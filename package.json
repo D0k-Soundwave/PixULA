@@ -1,6 +1,7 @@
 {
   "name": "pixula-tests",
   "private": true,
+  "license": "GPL-3.0-or-later",
   "description": "Dev-only test harness for PixULA. The app itself has zero dependencies and no build step - this package exists solely so `npx playwright test` can drive the installed Chrome against index.html. `node tests/run-all.js` remains the primary gate and needs none of this.",
   "scripts": {
     "test": "node tests/run-all.js",
