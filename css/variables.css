@@ -1,0 +1,198 @@
+/**
+ * CSS Variables - Design Tokens
+ * PixULA
+ *
+ * This file declares the cascade-layer order for the whole app (it is the
+ * first stylesheet loaded) and defines every design token. Precedence is
+ * by @layer, never by <link> order.
+ */
+
+@layer tokens, reset, layout, components, themes, utilities;
+
+@layer tokens {
+
+:root {
+    /* Tell the browser this is a dark UI so native widgets (scrollbars,
+       form-control popups, default focus rings) render in dark mode.
+       Themes.css overrides this for light variants. */
+    color-scheme: dark;
+    /* Themes the native parts of checkboxes, radios, range thumbs, and
+       progress bars without per-control overrides. */
+    accent-color: var(--accent-primary);
+
+    /* ===== COLORS ===== */
+    /* ZX Spectrum palette — the indexed tokens --zx-0 … --zx-15 are written
+       to :root by ColorManager at init from the single palette source
+       (constants.js / the active palette). CSS defines only readable
+       aliases; no palette hex value may appear in any stylesheet. */
+    --zx-black:          var(--zx-0);
+    --zx-blue:           var(--zx-1);
+    --zx-red:            var(--zx-2);
+    --zx-magenta:        var(--zx-3);
+    --zx-green:          var(--zx-4);
+    --zx-cyan:           var(--zx-5);
+    --zx-yellow:         var(--zx-6);
+    --zx-white:          var(--zx-7);
+    --zx-black-bright:   var(--zx-8);
+    --zx-blue-bright:    var(--zx-9);
+    --zx-red-bright:     var(--zx-10);
+    --zx-magenta-bright: var(--zx-11);
+    --zx-green-bright:   var(--zx-12);
+    --zx-cyan-bright:    var(--zx-13);
+    --zx-yellow-bright:  var(--zx-14);
+    --zx-white-bright:   var(--zx-15);
+
+    /* UI Colors (Dark Theme) */
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2d2d2d;
+    --bg-tertiary: #3d3d3d;
+    --bg-hover: #4d4d4d;
+    --bg-active: #5d5d5d;
+
+    --text-primary: #e0e0e0;
+    --text-secondary: #a0a0a0;
+    --text-muted: #707070;
+
+    --border-color: #404040;
+    --border-light: #505050;
+
+    --accent-primary: #6c5ce7;
+    --accent-primary-rgb: 108, 92, 231;
+    --accent-secondary: #a29bfe;
+    --accent-success: #00b894;
+    --accent-warning: #fdcb6e;
+    --accent-error: #d63031;
+    --accent-error-rgb: 214, 48, 49;
+
+    /* Semantic aliases (referenced by JS and component CSS) */
+    --accent-color: var(--accent-primary);   /* backward-compat alias */
+    --input-bg:     var(--bg-tertiary);
+    --btn-bg:       var(--bg-secondary);
+    --bg-panel:     var(--bg-primary);
+    --warning-color: var(--accent-warning);
+    --error-color:   var(--accent-error);
+    --canvas-bg:    var(--zx-7);             /* ZX paper */
+    --accent-bg:    rgba(var(--accent-primary-rgb), 0.15);
+
+    /* Component-state tokens (shared contract for toggle/state buttons —
+       replaces the rgba literals repeated per button class in the old tree) */
+    --on-accent:       #ffffff;
+    --state-dim-bg:    rgba(255, 255, 255, 0.15);
+    --state-dim-fg:    rgba(255, 255, 255, 0.5);
+    --state-active-bg: rgba(255, 255, 255, 0.25);
+    --checker-light:   #666666;
+    --checker-dark:    #444444;
+
+    /* Hairline around the picture itself, separating it from the ZX border
+       colour that fills the rest of the canvas iframe. It follows the theme
+       accent (every theme defines one), and CanvasSystem.syncBackdropColor
+       mirrors the resolved value into the iframe — custom properties do not
+       cross the srcdoc document boundary on their own. */
+    --canvas-edge: var(--accent-primary);
+
+    /* Canvas overlay colours — used by grid-overlay.js (read via getComputedStyle) */
+    --overlay-handle-bg:        #ffffff;
+    --overlay-handle-stroke:    rgba(0,0,0,0.7);
+    --overlay-rotation-handle:  #ffcc00;
+    --overlay-outline:          rgba(255,255,255,0.85);
+    --overlay-outline-brush:    rgba(255,255,255,0.6);
+    --overlay-info-bg:          rgba(0,0,0,0.65);
+    --overlay-info-text:        #ffffff;
+    --overlay-marching-1:       rgba(255,255,255,0.9);
+    --overlay-marching-2:       rgba(0,0,0,0.9);
+    --overlay-dim:              rgba(0,0,0,0.15);
+    --overlay-selection-fill:   rgba(255,255,255,0.07);
+
+    /* Grid overlay colours */
+    --grid-pixel-color: #000000;
+    --grid-cell-color:  #FF0000;
+    --grid-block-color: #0000FF;
+
+    /* ===== GLASSMORPHISM ===== */
+    --glass-bg: rgba(26, 26, 26, 0.85);
+    --glass-bg-solid: rgba(26, 26, 26, 0.95);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --glass-blur: blur(12px);
+
+    /* ===== SPACING ===== */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 32px;
+
+    /* ===== TYPOGRAPHY ===== */
+    --font-family: 'Jura', 'Exo 2', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    /* User-adjustable UI scale (set on :root by the header control + Ctrl-wheel).
+       Drives `zoom` on every chrome region and multiplies the #app grid tracks,
+       so the entire interface (icons, swatches, spacing, text) scales together
+       while the drawing canvas keeps its own separate zoom. Default 1 = no change. */
+    --ui-scale: 1;
+    /* Legacy text-only scale. Kept at 1 — the UI now scales via --ui-scale/zoom,
+       which already scales text, so this must not double-scale fonts. */
+    --ui-font-scale: 1;
+    --font-size-xs: calc(10px * var(--ui-font-scale));
+    --font-size-sm: calc(12px * var(--ui-font-scale));
+    --font-size-md: calc(14px * var(--ui-font-scale));
+    --font-size-lg: calc(16px * var(--ui-font-scale));
+    --font-size-xl: calc(20px * var(--ui-font-scale));
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-bold: 700;
+    --line-height: 1.5;
+
+    /* ===== SIZING ===== */
+    --toolbar-width: 128px;         /* 2-wide tool grid + padding + room for the vertical scrollbar */
+    --panel-width: 280px;
+    --header-height: 40px;
+    --status-height: 24px;
+    --panel-header-height: 32px;
+    /* Minimum interactive-control hit size on coarse pointers (touch/pen).
+       layout.css applies it under @media (pointer: coarse). */
+    --hit-target: 44px;
+
+    /* ===== BORDERS ===== */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-round: 50%;
+
+    /* ===== TRANSITIONS ===== */
+    --transition-fast: 100ms ease;
+    --transition-normal: 200ms ease;
+    --transition-slow: 300ms ease;
+
+    /* ===== Z-INDEX LAYERS ===== */
+    --z-canvas: 1;
+    --z-grid: 2;
+    --z-selection: 3;
+    --z-cursor: 4;
+    --z-panels: 10;
+    --z-toolbar: 20;
+    --z-header: 30;
+    --z-dropdown: 40;
+    --z-modal: 50;
+    --z-tooltip: 60;
+    --z-loading: 100;
+}
+
+/* Respect the user's reduced-motion preference: collapse chrome transition
+   durations to zero. (Canvas overlay animations run in the iframe via JS,
+   not these CSS tokens, so functional cues like marching ants are unaffected.) */
+@media (prefers-reduced-motion: reduce) {
+    :root {
+        --transition-fast: 0s;
+        --transition-normal: 0s;
+        --transition-slow: 0s;
+    }
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+} /* @layer tokens */

@@ -1,0 +1,246 @@
+/**
+ * Theme Variations — PixULA (clean rebuild)
+ *
+ * Dark-theme defaults live in variables.css :root (@layer tokens).
+ * Every theme here is a pure token-override block keyed off the data-theme
+ * attribute that ThemeManager sets on <html>. NO component selectors and no
+ * non-token rules belong in this file — components style themselves from
+ * tokens only, so a theme switch is nothing but a variable swap.
+ *
+ * Ported from H:\smsh css/themes.css; the rebuild additionally overrides the
+ * component-state tokens (--on-accent / --state-* / --checker-*) on the two
+ * light themes — those defaults are white-based rgba values that vanish on
+ * light surfaces.
+ */
+
+@layer themes {
+
+/* ── Light Theme ─────────────────────────────────────────────────────── */
+[data-theme="light"] {
+    color-scheme: light;
+    --bg-primary: #f5f5f5;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #e8e8e8;
+    --bg-hover: #d8d8d8;
+    --bg-active: #c8c8c8;
+
+    --text-primary: #1a1a1a;
+    --text-secondary: #555555;
+    --text-muted: #888888;
+
+    --border-color: #d0d0d0;
+    --border-light: #e0e0e0;
+
+    --accent-primary: #0055aa;
+    --accent-primary-rgb: 0, 85, 170;
+    --accent-secondary: #3388dd;
+    --accent-success: #008866;
+    --accent-warning: #cc8800;
+    --accent-error: #cc2222;
+    --accent-error-rgb: 204, 34, 34;
+
+    --glass-bg: rgba(255, 255, 255, 0.85);
+    --glass-bg-solid: rgba(255, 255, 255, 0.95);
+    --glass-border: rgba(0, 0, 0, 0.1);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+
+    --accent-bg:    rgba(0, 85, 170, 0.12);
+    --input-bg:     #e8e8e8;
+    --btn-bg:       #ffffff;
+
+    /* Component-state tokens — dark-based on light surfaces */
+    --state-dim-bg:    rgba(0, 0, 0, 0.08);
+    --state-dim-fg:    rgba(0, 0, 0, 0.45);
+    --state-active-bg: rgba(0, 0, 0, 0.18);
+    --checker-light:   #d0d0d0;
+    --checker-dark:    #b0b0b0;
+
+    /* Canvas overlays — inverted for light bg */
+    --overlay-handle-bg:        #1a1a1a;
+    --overlay-handle-stroke:    rgba(255,255,255,0.8);
+    --overlay-rotation-handle:  #ff8800;
+    --overlay-outline:          rgba(0,0,128,0.85);
+    --overlay-outline-brush:    rgba(0,0,128,0.55);
+    --overlay-info-bg:          rgba(255,255,255,0.8);
+    --overlay-info-text:        #000000;
+    --overlay-marching-1:       rgba(0,0,128,0.9);
+    --overlay-marching-2:       rgba(255,255,255,0.9);
+    --overlay-dim:              rgba(0,0,0,0.08);
+    --overlay-selection-fill:   rgba(0,0,128,0.05);
+
+    /* Grid colours — darker for light bg */
+    --grid-pixel-color: #888888;
+    --grid-cell-color:  #cc0000;
+    --grid-block-color: #0000cc;
+}
+
+/* ── Midnight Indigo Theme ───────────────────────────────────────────────
+   Modern premium dark UI: deep blue-black surfaces, azure->cyan accents.
+   (GitHub-dark / Linear / Vercel family.) */
+[data-theme="midnight"] {
+    --bg-primary: #0d1117;
+    --bg-secondary: #161b22;
+    --bg-tertiary: #21262d;
+    --bg-hover: #2d333b;
+    --bg-active: #373e47;
+
+    --text-primary: #e6edf3;
+    --text-secondary: #9da7b3;
+    --text-muted: #6e7681;
+
+    --border-color: #2a313a;
+    --border-light: #3d444d;
+
+    --accent-primary: #58a6ff;
+    --accent-primary-rgb: 88, 166, 255;
+    --accent-secondary: #56d4dd;
+    --accent-success: #3fb950;
+    --accent-warning: #d29922;
+    --accent-error: #f85149;
+    --accent-error-rgb: 248, 81, 73;
+
+    --glass-bg: rgba(13, 17, 23, 0.85);
+    --glass-bg-solid: rgba(13, 17, 23, 0.96);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+
+    --accent-bg: rgba(88, 166, 255, 0.14);
+    --overlay-rotation-handle: #58a6ff;
+    --overlay-outline:       rgba(120, 190, 255, 0.9);
+    --overlay-outline-brush: rgba(120, 190, 255, 0.6);
+}
+
+/* ── Nord Theme ──────────────────────────────────────────────────────────
+   Arctic, low-glare palette by Arctic Ice Studio. Polar-night surfaces with
+   a soft frost-cyan accent and Aurora hues for status colours. */
+[data-theme="nord"] {
+    --bg-primary: #2e3440;
+    --bg-secondary: #3b4252;
+    --bg-tertiary: #434c5e;
+    --bg-hover: #4c566a;
+    --bg-active: #5a657c;
+
+    --text-primary: #eceff4;
+    --text-secondary: #d8dee9;
+    --text-muted: #9aa5b8;
+
+    --border-color: #434c5e;
+    --border-light: #4c566a;
+
+    --accent-primary: #88c0d0;
+    --accent-primary-rgb: 136, 192, 208;
+    --accent-secondary: #81a1c1;
+    --accent-success: #a3be8c;
+    --accent-warning: #ebcb8b;
+    --accent-error: #bf616a;
+    --accent-error-rgb: 191, 97, 106;
+
+    --glass-bg: rgba(46, 52, 64, 0.85);
+    --glass-bg-solid: rgba(46, 52, 64, 0.96);
+    --glass-border: rgba(216, 222, 233, 0.12);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+
+    --accent-bg: rgba(136, 192, 208, 0.16);
+    --overlay-rotation-handle: #88c0d0;
+    --overlay-outline:       rgba(143, 188, 187, 0.9);
+    --overlay-outline-brush: rgba(143, 188, 187, 0.6);
+}
+
+/* ── Dracula Theme ───────────────────────────────────────────────────────
+   The well-known charcoal palette with purple/pink/green accents. */
+[data-theme="dracula"] {
+    --bg-primary: #21222c;
+    --bg-secondary: #282a36;
+    --bg-tertiary: #343746;
+    --bg-hover: #424450;
+    --bg-active: #4d5066;
+
+    --text-primary: #f8f8f2;
+    --text-secondary: #c8cad6;
+    --text-muted: #6272a4;
+
+    --border-color: #383a4a;
+    --border-light: #44475a;
+
+    --accent-primary: #bd93f9;
+    --accent-primary-rgb: 189, 147, 249;
+    --accent-secondary: #ff79c6;
+    --accent-success: #50fa7b;
+    --accent-warning: #ffb86c;
+    --accent-error: #ff5555;
+    --accent-error-rgb: 255, 85, 85;
+
+    --glass-bg: rgba(40, 42, 54, 0.85);
+    --glass-bg-solid: rgba(40, 42, 54, 0.96);
+    --glass-border: rgba(248, 248, 242, 0.1);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+
+    --accent-bg: rgba(189, 147, 249, 0.16);
+    --overlay-rotation-handle: #ff79c6;
+    --overlay-outline:       rgba(189, 147, 249, 0.9);
+    --overlay-outline-brush: rgba(189, 147, 249, 0.6);
+}
+
+/* ── Sepia Theme (warm light) ────────────────────────────────────────────
+   Premium warm-paper light alternative: cream surfaces, espresso text,
+   bronze accent. Canvas overlays are inverted (dark on light) like the
+   light theme, since the editing canvas is a fixed light paper colour. */
+[data-theme="sepia"] {
+    color-scheme: light;
+    --bg-primary: #efe7d6;
+    --bg-secondary: #faf4e8;
+    --bg-tertiary: #e6dcc6;
+    --bg-hover: #ddd1b8;
+    --bg-active: #d2c4a6;
+
+    --text-primary: #3a2f22;
+    --text-secondary: #6b5d49;
+    --text-muted: #998a72;
+
+    --border-color: #d8cab0;
+    --border-light: #e6dcc6;
+
+    --accent-primary: #b5651d;
+    --accent-primary-rgb: 181, 101, 29;
+    --accent-secondary: #d08a4a;
+    --accent-success: #5b7d3a;
+    --accent-warning: #c0871e;
+    --accent-error: #b23b2e;
+    --accent-error-rgb: 178, 59, 46;
+
+    --glass-bg: rgba(250, 244, 232, 0.85);
+    --glass-bg-solid: rgba(250, 244, 232, 0.96);
+    --glass-border: rgba(58, 47, 34, 0.1);
+    --glass-shadow: 0 8px 32px rgba(90, 70, 40, 0.18);
+
+    --accent-bg: rgba(181, 101, 29, 0.14);
+    --input-bg: #e6dcc6;
+    --btn-bg: #faf4e8;
+
+    /* Component-state tokens — dark-based on warm light surfaces */
+    --state-dim-bg:    rgba(58, 47, 34, 0.08);
+    --state-dim-fg:    rgba(58, 47, 34, 0.45);
+    --state-active-bg: rgba(58, 47, 34, 0.18);
+    --checker-light:   #d8cab0;
+    --checker-dark:    #c0b090;
+
+    /* Canvas overlays — inverted for light surfaces */
+    --overlay-handle-bg:        #3a2f22;
+    --overlay-handle-stroke:    rgba(250, 244, 232, 0.85);
+    --overlay-rotation-handle:  #d97a1e;
+    --overlay-outline:          rgba(80, 50, 20, 0.85);
+    --overlay-outline-brush:    rgba(80, 50, 20, 0.55);
+    --overlay-info-bg:          rgba(250, 244, 232, 0.85);
+    --overlay-info-text:        #3a2f22;
+    --overlay-marching-1:       rgba(80, 50, 20, 0.9);
+    --overlay-marching-2:       rgba(250, 244, 232, 0.9);
+    --overlay-dim:              rgba(80, 50, 20, 0.08);
+    --overlay-selection-fill:   rgba(80, 50, 20, 0.05);
+
+    /* Grid colours — readable on the fixed light canvas */
+    --grid-pixel-color: #7a6a50;
+    --grid-cell-color:  #b23b2e;
+    --grid-block-color: #3a4ba0;
+}
+
+} /* @layer themes */

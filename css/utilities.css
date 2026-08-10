@@ -1,0 +1,162 @@
+@layer utilities {
+/**
+ * Utilities — helpers and the no-clip control schema. Wins by @layer order
+ * (tokens -> reset -> layout -> components -> themes -> utilities), never by
+ * load order, so these rules are the final word at equal specificity.
+ *
+ * Control-sizing schema (three buckets, from the source repo's audit):
+ *   UI-label controls  -> wrap/grow; a localised label must NEVER clip
+ *   content-text nodes -> single-line ellipsis (file names, layer names)
+ *   icon controls      -> fixed square, no text involved
+ */
+
+/* Visually hidden, available to assistive tech */
+.sr-only {
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* The inline SVG sprite must never render as a box */
+.svg-sprite {
+    display: none;
+}
+
+/* The `hidden` attribute must always hide. Without this, an author display rule
+   (e.g. .tool-option { display: flex }) overrides the UA default, so every
+   showIf-hidden option row and other `.hidden` toggle stays visible. Utilities
+   is the last layer, so this is the final word. */
+[hidden] {
+    display: none !important;
+}
+
+/* ── No-clip baseline for text-bearing controls ─────────────────────────── */
+
+/* Buttons and labels that carry UI text: allow wrapping, grow with content.
+   (Icon buttons opt out below by having fixed dimensions + no text nodes.) */
+button,
+label,
+option,
+legend {
+    min-width: 0;
+}
+
+.panel-button,
+.menu-action,
+.menu-label,
+.flash-btn,
+.grid-toggle,
+.psb-tab,
+.pc-btn {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    height: auto;
+}
+
+/* Content text (user data / file names): one line, ellipsis */
+.layer-name,
+.stamp-name,
+.psb-name,
+.pc-library-name,
+.filename {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Icon-only controls: fixed hit target, centred glyph */
+.tool-btn,
+.layer-btn,
+.stamp-btn,
+.slider-step,
+.panel-collapse,
+.app-dialog-close {
+    flex-shrink: 0;
+}
+
+/* Colour bar: ONE button control. Every button (attr ops, draw modes, CLUT/
+   GigaScreen segments) and the Bright/Flash label toggles share the single
+   --clut-btn-size (matching the swatch height), so the row reads as one system
+   and any button added later inherits it. Here in the utilities layer so it
+   overrides the generic `button { min-width: 0 }` reset above. Icon buttons are
+   square; text segments keep the height and grow wider for their label. */
+#color-bar button,
+#color-bar .clut-bit {
+    box-sizing: border-box;
+    height: var(--clut-btn-size);
+    min-height: var(--clut-btn-size);
+    min-width: var(--clut-btn-size);
+    padding: 0 var(--space-xs);
+    flex: 0 0 auto;
+}
+
+#color-bar .tool-btn,
+#color-bar .clut-bit {
+    width: var(--clut-btn-size);
+    padding: 0;
+    aspect-ratio: auto;
+}
+
+/* A caption never sets the pitch: it wraps inside --clut-cell-size, whatever
+   its cell grows to (css/components.css). The clamp is on the LABEL, not the
+   cell, precisely so a cell CAN grow to share the row without the caption
+   spreading onto one long line and changing where it breaks - the 56px is
+   measured against every locale and must not move with the window width.
+   `caption-wide` opts out the groups that are genuinely wider than a cell -
+   the Ink and Paper swatch blocks and the Border dropdown - whose width is
+   set by their contents. */
+#color-bar .btn-captioned:not(.caption-wide) > .btn-label {
+    max-width: var(--clut-cell-size);
+}
+
+/* Selects must never clip their selected option's text */
+select {
+    max-width: 100%;
+    text-overflow: ellipsis;
+}
+
+/* ── Coarse-pointer ergonomics (touch/pen) ──────────────────────────────── */
+
+@media (pointer: coarse) {
+    .tool-btn,
+    .layer-ctrl-btn,
+    .grid-toggle,
+    .panel-button,
+    .menu-action,
+    .slider-step {
+        min-height: var(--hit-target);
+    }
+
+    .color-swatch {
+        min-height: 40px;
+    }
+
+    .layer-btn,
+    .stamp-btn {
+        width: 32px;
+        height: 32px;
+    }
+
+    input[type="range"] {
+        min-height: 32px;
+    }
+
+    /* Enlarged slider thumbs — a fingertip needs more than the mouse default */
+    input[type="range"]::-webkit-slider-thumb {
+        width: 28px;
+        height: 28px;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+        width: 28px;
+        height: 28px;
+    }
+}
+
+} /* @layer utilities */

@@ -1,0 +1,10 @@
+#!/bin/sh
+# Keep the PixULA_Micro/ contained builds (folder copy + single-file) in sync
+# with the app after every commit that touches the source. Post-commit, so it
+# never blocks or alters the commit; the build dir is gitignored, so nothing is
+# re-staged.
+if git diff-tree --no-commit-id --name-only -r HEAD \
+     | grep -qE '^(index\.html|css/|js/|tools/build-portable\.js)'; then
+    echo "post-commit: app source changed - rebuilding PixULA_Micro/ ..."
+    node tools/build-portable.js || echo "post-commit: build-portable failed (non-fatal; the portable builds may be stale)" >&2
+fi

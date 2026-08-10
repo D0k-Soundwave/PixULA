@@ -1,0 +1,14 @@
+{
+  "name": "pixula-tests",
+  "private": true,
+  "description": "Dev-only test harness for PixULA. The app itself has zero dependencies and no build step - this package exists solely so `npx playwright test` can drive the installed Chrome against index.html. `node tests/run-all.js` remains the primary gate and needs none of this.",
+  "scripts": {
+    "test": "node tests/run-all.js",
+    "test:browser": "playwright test",
+    "setup-hooks": "git config core.hooksPath .githooks",
+    "build:portable": "node tools/build-portable.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  }
+}

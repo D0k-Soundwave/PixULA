@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PixULA — Consolidated Manual Verification Checklist</title>
+<style>
+  :root {
+    --bg: #16181d; --bg2: #1e2128; --bg3: #262a33; --fg: #d8dce4; --fg2: #9aa1ad;
+    --acc: #4f8fe8; --ok: #3fae6a; --bad: #d05656; --def: #b58a3c; --border: #333845;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--fg); font: 15px/1.55 system-ui, "Segoe UI", sans-serif; padding-bottom: 60vh; }
+  header.top { position: sticky; top: 0; z-index: 10; background: var(--bg2); border-bottom: 1px solid var(--border); padding: 10px 18px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  header.top h1 { font-size: 16px; margin-right: auto; }
+  .progress { font-variant-numeric: tabular-nums; color: var(--fg2); }
+  .progress b { color: var(--fg); }
+  button.act { background: var(--bg3); color: var(--fg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; cursor: pointer; font: inherit; }
+  button.act:hover { border-color: var(--acc); }
+  main { max-width: 900px; margin: 0 auto; padding: 18px; }
+  .phase { margin-top: 34px; }
+  .phase > h2 { font-size: 20px; color: var(--acc); border-bottom: 2px solid var(--border); padding-bottom: 6px; }
+  .phase-intro { color: var(--fg2); margin: 8px 0 0; font-size: 14px; }
+  .sub { margin-top: 22px; }
+  .sub > h3 { font-size: 16px; margin-bottom: 4px; }
+  .sub-progress { font-size: 12px; color: var(--fg2); margin-bottom: 8px; }
+  .item { background: var(--bg2); border: 1px solid var(--border); border-left: 4px solid var(--border); border-radius: 8px; padding: 12px 14px; margin: 10px 0; }
+  .item.pass { border-left-color: var(--ok); }
+  .item.fail { border-left-color: var(--bad); }
+  .item.deferred { border-left-color: var(--def); }
+  .item h4 { font-size: 15px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .item h4 .k { color: var(--fg2); font: 12px/1 ui-monospace, monospace; }
+  .badge { font-size: 11px; padding: 1px 7px; border-radius: 10px; border: 1px solid var(--def); color: var(--def); white-space: nowrap; }
+  ol.steps { margin: 8px 0 0 22px; }
+  ol.steps li { margin: 4px 0; }
+  .expect { margin-top: 8px; padding: 7px 10px; background: var(--bg3); border-radius: 6px; font-size: 14px; }
+  .expect b { color: var(--ok); }
+  .verdict { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+  .verdict button { font: inherit; font-size: 13px; padding: 5px 14px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg3); color: var(--fg); cursor: pointer; }
+  .verdict button.on-pass { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .verdict button.on-fail { background: var(--bad); border-color: var(--bad); color: #fff; }
+  .verdict button.on-deferred { background: var(--def); border-color: var(--def); color: #fff; }
+  .note { width: 100%; margin-top: 8px; background: var(--bg); color: var(--fg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 9px; font: inherit; font-size: 13px; min-height: 34px; resize: vertical; }
+  kbd { background: var(--bg3); border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; font: 12px ui-monospace, monospace; }
+  .path { color: #7ec3f0; }
+  .filejump { position: fixed; right: 12px; bottom: 12px; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 8px; max-height: 60vh; overflow: auto; font-size: 12px; display: none; }
+  .filejump a { color: var(--acc); display: block; text-decoration: none; padding: 2px 6px; }
+  .toc { margin: 14px 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .toc a { color: var(--acc); text-decoration: none; font-size: 13px; background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 3px 10px; }
+  .part-banner { margin-top: 8px; padding: 7px 10px; background: #1d2b3d; border: 1px solid var(--acc); border-radius: 6px; font-size: 13.5px; }
+  .part-banner b { color: var(--acc); }
+  .auto-done { margin: 10px 0; padding: 8px 12px; border: 1px dashed var(--border); border-radius: 8px; color: var(--fg2); font-size: 12.5px; line-height: 1.7; }
+  .auto-done b { color: var(--ok); }
+  .auto-done .k { font: 11px ui-monospace, monospace; color: var(--fg2); }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>PixULA — Consolidated Manual Pass</h1>
+  <span class="progress" id="totalProgress"></span>
+  <button class="act" id="exportBtn" title="Download checklist-results.json — save it into tests/ for review">Export results</button>
+  <button class="act" id="copyBtn" title="Copy results JSON to clipboard">Copy results</button>
+</header>
+<main>
+  <p class="phase-intro" style="margin-top:16px">
+    <b>How to use:</b> keep this page open next to the app (<span class="path">H:\PixULA\index.html</span>).
+    Work top to bottom. Follow each item's numbered steps literally, then click
+    <b>Pass</b>, <b>Fail</b> (describe what you saw in the note box) or <b>Deferred</b>
+    (external tool / hardware not available). Progress saves automatically in this browser.
+    When you stop — finished or not — click <b>Export results</b> and save the file into
+    <span class="path">H:\PixULA\tests\</span> for review.<br><br>
+    <b>General rules:</b> unless an item says otherwise, start it from a fresh app state:
+    press <kbd>Ctrl+Shift+R</kbd> in the app, and if a restore prompt appears choose <b>No</b>.
+    "Draw something" means: pick the Brush (<kbd>B</kbd>), pick a colour by left-clicking a swatch, drag on the canvas.
+    Items marked <span class="badge">EXTERNAL TOOL</span> need another program — prepare the export files first.
+    Items marked <span class="badge">HARDWARE</span> need a pen/touch device.<br><br>
+    <b>Automation pass (2026-07-08):</b> 79 of the original 248 items are now fully
+    covered by the automated suites (<span class="path">npm run test:browser</span> + the Node suites) —
+    they appear as grey "automated" summary lines and count for nothing here. 55 more
+    are <b>partially automated</b>: their blue banner names the ONLY thing left to check —
+    verify exactly that, skip the rest of the steps if they only re-prove the automated part.<br><br>
+    <b>Drift note (measured 2026-08-07, corrected the same evening):</b>
+    <span class="path">tests/TESTLOG.md</span> has since grown to 332 rows, of which 131 are discharged and
+    60 partial — 249 -> 251 -> 254 as the browser suite went from 74 specs to 142, then -> 270 -> 279 -> 289 as
+    tool presets, the Reference panel's own presets and the palette file controls landed on 2026-08-07
+    (browser suite 161). Two lots of rows were added to this page to keep up: the five pen-hardware rows
+    from 2026-08-05 (p5.p8–p5.p12: eraser-tail size, the hovering tail, the tail in the grid editors, the
+    Preferences pen check, a second barrel on real hardware), which had been missing entirely — they are
+    rows no automated suite can ever cover — and the seventeen rows at the foot (tp.* and pal.*), which are
+    the visual, hardware, interop and judgement residue of those features. In the other
+    direction, this page's fold tables hold 79 fully-automated and 59 partially-automated rows against
+    TESTLOG's 131 and 60, so a few rows are presented here as if they were manual; doing them costs a minute
+    each and harms nothing.
+    The two tallies cannot be reconciled row by row — TESTLOG rows carry no ids, so the keys below map
+    onto them by text, not mechanically. TESTLOG is the book of record, and a verdict entered here is
+    still that row's verdict.
+  </p>
+  <nav class="toc" id="toc"></nav>
+  <div id="root"></div>
+</main>
+<script>
+"use strict";
+/* Every deferred manual row from tests/TESTLOG.md, in walk order
+   (Phase 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10 -> 11 -> 12a -> 12b -> 13).
+   Item ids are stable, so results map back onto TESTLOG rows.
+   Since the 2026-07-08 automation pass the AUTO/PART tables below this
+   array fold away what the test suites already cover. */
+const S = [ // f: "ext" = external tool, "hw" = hardware
+{ id:"p4", title:"Phase 4 — UI shell parity", intro:"Compare against the old app (H:\\smsh\\index.html) where an item says so. The boot-console row is already verified and not repeated here.", subs:[
+ { t:"Chrome / layout", items:[
+  { k:"p4.c2", t:"Header contents", s:[
+    "Look at the top header bar.",
+    "Left side: a menu bar reading File · Edit · View · Layer · Image · Settings · Help.",
+    "Right side: language selector (13 language names, English…Русский), theme selector (6 themes), interface-size selector (85%–300%), and a “Speak” checkbox."],
+    x:"All listed controls present, in that arrangement." },
+  { k:"p4.c3", t:"Left rail contents & order", s:[
+    "Look at the left rail, top to bottom.",
+    "Expect: Flash toggle -> 2×8 colour swatch grid (normal row + bright row) -> ink/paper wells -> Border dropdown -> Cell Ops (Swap, Apply) buttons -> tool rail. (The INK/PAP cycle buttons were removed 2026-07-08.)",
+    "Count the tool buttons and hover a few — tooltips should name them."],
+    x:"Order as listed; 23 buttons under 6 printed group headings — History 2 (undo/redo) · Paint 10 · Select 5 · Guide 2 (the clip modes) · Create 2 · View 2, in that order. 19 of them are tools; History and Guide are commands and modes, so they never light up as the active tool. Earlier counts of 13 and 14 in “5 groups” predate the rail-group pass; the Bezier tool is reached from the Shape options rather than a button of its own." },
+  { k:"p4.c4", t:"Right sidebar order", s:[
+    "Look at the right sidebar top to bottom."],
+    x:"Layers (pinned at top) -> Transform -> Tool Options -> Reference (collapsed by default)." },
+  { k:"p4.c5", t:"Panel collapse states persist", s:[
+    "Collapse the Transform panel (click its header arrow).",
+    "Expand the Reference panel.",
+    "Press F5."],
+    x:"After reload, Transform is still collapsed and Reference still expanded." },
+  { k:"p4.c6", t:"Status strip contents", s:[
+    "Look at the strip under the canvas and the status bar at the bottom.",
+    "Expect zoom controls: − / percentage dropdown / + / Fit; grid toggles 1×1, 8×8, 16×16; Mirror H/V buttons; Snap; a Screen mode selector; cursor + cell readout on the right when hovering the canvas."],
+    x:"All present. (Mirror/Snap/mode selector are later-phase additions — they belong there.)" },
+  { k:"p4.c7", t:"Ctrl+wheel over chrome steps UI scale", s:[
+    "Put the mouse over the right sidebar (not the canvas).",
+    "Hold Ctrl and scroll the wheel up, then down.",
+    "Watch the interface-size selector in the header and the canvas."],
+    x:"UI text/controls scale up/down and the selector tracks it; the canvas zoom level does NOT change; the page as a whole never scrolls." },
+ ]},
+ { t:"Drag previews", items:[
+  { k:"p4.d1", t:"Shape tool rubber-band preview", s:[
+    "Select the Shape tool (press S).",
+    "In Tool Options, make sure the shape is Line; drag on the canvas without releasing.",
+    "Release to commit. Repeat with Rectangle and Circle from the shape select."],
+    x:"While dragging you see a live preview; on release the shape is committed in ink colour." },
+  { k:"p4.d2", t:"Selection preview + marching ants", s:[
+    "Select the Select tool (press M).",
+    "Drag a rectangle over some drawn pixels and release.",
+    "In Tool Options switch selection mode to lasso/freeform if present, and drag an irregular loop."],
+    x:"Drag shows a preview; after release the selection border animates (marching ants) for both rectangle and lasso." },
+  { k:"p4.d3", t:"Gradient two-phase flow", s:[
+    "Select the Gradient tool (press D).",
+    "Drag once across the canvas and release — this defines the gradient line and shows a preview.",
+    "Move the mouse around (preview should update), then click once to commit."],
+    x:"First drag previews, hover updates it live, single click commits the gradient." },
+  { k:"p4.d4", t:"Brush/eraser cursor preview", s:[
+    "Select Brush (B) and hover the canvas without pressing.",
+    "Switch to Eraser (E) and hover over drawn pixels."],
+    x:"Brush shows a compositor-accurate ink preview under the cursor; eraser previews the paper colour." },
+  { k:"p4.d5", t:"Text stamp preview follows cursor", s:[
+    "Select the Text tool (T).",
+    "Type a word into the Tool Options text box.",
+    "Hover the canvas, then click once."],
+    x:"A live preview of the text follows the cursor; the click places it as a floating stamp (it appears in the Stamps list under Layers)." },
+ ]},
+ { t:"Colour / attributes", items:[
+  { k:"p4.a1", t:"Swatch click = ink, right-click = paper", s:[
+    "Left-click a swatch in the top (normal) row — the ink well updates.",
+    "Left-click the same column in the bottom (bright) row — ink updates to the bright variant.",
+    "Right-click a different swatch — the paper well updates."],
+    x:"Left = ink (row selects bright), right = paper." },
+  { k:"p4.a2", t:"Transparent ink/paper", s:[
+    "Double-click the currently selected ink swatch.",
+    "Then double-right-click (or Shift+double-click) a swatch for paper."],
+    x:"Ink becomes transparent (well shows it); paper becomes transparent the same way." },
+  { k:"p4.a3", t:"Flash + eyedropper round-trip", s:[
+    "Tick the Flash toggle, draw a few pixels, untick it.",
+    "Select the Eyedropper (I) and click the flashing pixels."],
+    x:"Wells and swatch selection rings update to the picked ink/paper/bright/flash — Flash toggle re-ticks itself." },
+  /* p4.a4 (INK/PAP cycle buttons) removed 2026-07-08 — the buttons were
+     dropped from the UI by decision; backend retained. */
+  { k:"p4.a5", t:"Swap / Apply attribute modes engage", s:[
+    "Click the Swap button — it should light up as an active mode.",
+    "Click/drag across drawn cells: their ink and paper exchange. Press Esc to exit.",
+    "Click Apply, drag across cells: they take the current ink/paper/bright/flash. Esc to exit.",
+    "Press Ctrl+Z once after a drag."],
+    x:"Both modes engage and paint cell-by-cell; one undo removes a whole drag. (TESTLOG's Phase 4 note said “inert” — that was pre-Phase-5; they must work now.)" },
+  { k:"p4.a6", t:"Border dropdown", s:[
+    "Pick a non-black colour in the Border dropdown.",
+    "Look at the area around the canvas; press F5 (decline restore if asked)."],
+    x:"The border area previews the colour and the choice survives the reload." },
+ ]},
+ { t:"Tool options (schema renderer)", items:[
+  { k:"p4.t1", t:"Every tool shows an options panel", s:[
+    "Click each of the 14 tools in the rail, one by one.",
+    "Watch the Tool Options panel each time; change one value on a few tools, switch away and back."],
+    x:"Each tool shows its own options; changed values are remembered when you come back." },
+  { k:"p4.t2", t:"Brush fade/pattern conditional rows", s:[
+    "Select Brush; in Tool Options set brush type to Fade — fade rows appear.",
+    "Set type to Pattern — a pattern browser slot appears instead."],
+    x:"Rows appear/disappear per brush type." },
+  { k:"p4.t3", t:"Shape conditional options", s:[
+    "Select Shape; set shape = Line: a Thickness slider is shown.",
+    "Set shape = Rectangle: Filled checkbox and Border option appear (no thickness).",
+    "Set shape = Circle: Filled but no border option."],
+    x:"Thickness only for line; Filled for closed shapes; Border for rectangle." },
+  { k:"p4.t4", t:"Text font/size lists", s:[
+    "Select Text; open the font select — ZX ROM is first, system fonts load in async.",
+    "Change the font, open the size list."],
+    x:"Font list populates (may take a moment); size list rescans when the font changes." },
+  { k:"p4.t5", t:"Slider decorations", s:[
+    "On any tool with a slider (e.g. Brush size), click − and + and type a number into the field."],
+    x:"−/number/+ all work; typed values commit (clamped to range)." },
+  { k:"p4.t6", t:"Pattern tool browser", s:[
+    "Select the Pattern tool (P).",
+    "In its panel: switch tabs, use the search box, and try Import/Export JSON buttons (export downloads a file)."],
+    x:"Browser fills the panel; tabs/search work; export downloads, import accepts the same file." },
+ ]},
+ { t:"Layers / stamps / transform", items:[
+  { k:"p4.l1", t:"Layer management round-trip", s:[
+    "In the Layers panel: Add a layer (+), draw on it, Duplicate it, Move it up/down with the arrows.",
+    "Double-click its name and rename it; toggle visibility (eye) and lock; Merge-selected/Merge and finally Delete one layer."],
+    x:"All operations work and the canvas recomposes correctly after each." },
+  { k:"p4.l2", t:"Stamp lifecycle from paste", s:[
+    "Select an area (M, drag), press Ctrl+C, then Ctrl+V.",
+    "A stamp row appears in the Stamps list: try engage/release, XOR toggle, then Commit.",
+    "Paste again and this time Delete the stamp."],
+    x:"Stamp appears/moves as floating preview; commit writes it; delete discards without touching the canvas." },
+  { k:"p4.l3", t:"Transform panel: stamp + image sections", s:[
+    "Paste a stamp (Ctrl+C/Ctrl+V on a selection). While floating: use Scale X/Y, Rotate and the warp Shape select in Transform.",
+    "Commit the stamp. Now use the image Rotate slider on the whole canvas and press Ctrl+Z once.",
+    "Try Flip H, Flip V, Invert, Outline, and Shift arrows."],
+    x:"Stamp transforms preview live; whole-image rotate is one undo entry; flips/invert/outline/shift all apply." },
+ ]},
+ { t:"Menus / dialogs", items:[
+  { k:"p4.m1", t:"File menu round-trip", s:[
+    "File > New (confirm if asked). Draw something.",
+    "File > Save (downloads .scr), File > Save As… (name it), File > Export… — pick PNG; note the Border colour override in the export dialog.",
+    "File > Open… and re-open the saved .scr."],
+    x:"All items work; export dialog offers format select + border override; the .scr re-opens identically." },
+  { k:"p4.m2", t:"Edit menu enable states", s:[
+    "Open the Edit menu with nothing selected — Cut/Copy/Delete/Deselect should be greyed out.",
+    "Make a selection and re-open — they enable. Copy, deselect, re-open — Paste is enabled."],
+    x:"Enable/disable states track selection and clipboard correctly." },
+  { k:"p4.m3", t:"View menu", s:[
+    "View > Zoom In / Zoom Out / Fit to Window / Actual Size.",
+    "Toggle Show Grid and Show Pixel Grid — the status-strip grid buttons should reflect the same state."],
+    x:"Zoom actions work; grid checkmarks and buttons stay in sync." },
+  { k:"p4.m4", t:"Layer + Image menu actions", s:[
+    "Use Layer > New Layer / Merge Down / Flatten Image (expect a confirm on flatten).",
+    "Use Image > Flip Horizontal / Invert Colours / Clear Canvas (expect a confirm on clear)."],
+    x:"All act on the document; flatten and clear ask first." },
+  { k:"p4.m5", t:"Preferences + Reset All", s:[
+    "Settings > Preferences… — toggle something, OK, reopen to see it kept.",
+    "Settings > Reset All Preferences (confirm)."],
+    x:"Preferences persist; reset reloads the app clean with defaults." },
+  { k:"p4.m6", t:"Help dialogs", s:[
+    "Help > About — close it.",
+    "Help > Keyboard Shortcuts (or press F1) — check the shortcut table lists the tools with their keys."],
+    x:"Both dialogs open, translated, closable via ×/Esc; shortcut table matches the tool rail hints." },
+ ]},
+]},
+{ id:"p5", title:"Phase 5 — Universal input", intro:"Mouse and keyboard first; pen and touch need hardware — use Deferred if you have none.", subs:[
+ { t:"Mouse", items:[
+  { k:"p5.m1", t:"Left-drag draws; stroke survives leaving the canvas", s:[
+    "Brush (B). Start a drag inside the canvas, drag OUT past the canvas edge and back in, release."],
+    x:"The stroke continues unbroken across the excursion (pointer capture)." },
+  { k:"p5.m2", t:"Right-click draws paper; no OS context menu", s:[
+    "Brush selected: right-drag across drawn pixels.",
+    "Also right-click on empty canvas, the left rail, and the header."],
+    x:"Right-drag paints paper colour; the browser's own context menu never appears over the app." },
+  { k:"p5.m3", t:"Right-click opens canvas context menu with selection", s:[
+    "Select tool (M), drag a selection.",
+    "Right-click INSIDE the selection."],
+    x:"The app's context menu (Cut/Copy/Paste/Delete/Select All/Deselect) opens exactly once." },
+  { k:"p5.m4", t:"Stamp right-click erases stamp ink", s:[
+    "Paste a stamp (select, Ctrl+C, Ctrl+V). With the stamp floating/engaged:",
+    "Left-click somewhere — stamps the content. Right-click/drag on it — erases stamp ink."],
+    x:"Left stamps, right erases within the stamp." },
+  { k:"p5.m5", t:"Wheel pans, Ctrl+wheel zooms", s:[
+    "Zoom in first (+ a few times) so the canvas is larger than the viewport.",
+    "Wheel-scroll over the canvas: it pans. Ctrl+wheel: zooms (wheel down = out).",
+    "Check the zoom −/+/Fit buttons still work after."],
+    x:"Wheel pans, Ctrl+wheel zooms around the cursor, buttons unaffected." },
+  { k:"p5.m6", t:"Space+drag pans", s:[
+    "Hold Space — cursor becomes a pan hand; drag the canvas; release Space."],
+    x:"Canvas pans while held; the previous tool is restored on release." },
+  { k:"p5.m7", t:"Attr paint via Swap/Apply (one undo per drag)", s:[
+    "Click Swap (it lights). Drag across several cells. Press Esc.",
+    "Press Ctrl+Z once."],
+    x:"Whole drag undone in one step; Esc (or right-click / clicking the button again) exits the mode." },
+  { k:"p5.m8", t:"Pattern capture hover flow", s:[
+    "Open the pattern capture (Pattern panel 8/16/32 capture buttons).",
+    "Hover the canvas — a capture preview follows; left-click captures to “Mine” and selects the pattern brush; right-click exits."],
+    x:"Hover preview, click-capture, right-click exit all work." },
+  { k:"p5.m9", t:"Long strokes at high zoom stay continuous", s:[
+    "Zoom to 800%+ and draw a fast wide scribble."],
+    x:"The stroke has no gaps (Bresenham interpolation)." },
+ ]},
+ { t:"Keyboard", items:[
+  { k:"p5.k1", t:"Tool shortcut keys", s:[
+    "Press each key with the canvas focused (click the canvas first): B, E, G, A, I, S, C, D, M, V, T, P, K, Z.",
+    "Watch the rail highlight."],
+    x:"B brush · E eraser · G fill · A spray · I eyedropper · S shape · C bezier · D gradient · M select · V move · T text · P pattern · K pattern-creator · Z zoom." },
+  { k:"p5.k2", t:"Undo/redo keys", s:["Draw, then Ctrl+Z, then Ctrl+Y, then Ctrl+Shift+Z."],
+    x:"Undo removes the stroke; both redo combos re-apply it." },
+  { k:"p5.k3", t:"Clipboard keys", s:[
+    "Select an area, Ctrl+C, then Ctrl+V — stamp lands at the top-left (0,0).",
+    "Make another selection, Ctrl+X."],
+    x:"Paste creates a floating stamp at 0,0; cut removes the pixels and floats them at the selection's origin." },
+  { k:"p5.k4", t:"Select-all / deselect / delete", s:[
+    "Ctrl+A (whole canvas selected), Ctrl+D (deselect).",
+    "Select an area, press Delete, then select another, press Backspace."],
+    x:"All four work; delete clears the selection contents." },
+  { k:"p5.k5", t:"File keys", s:["Ctrl+S, Ctrl+Shift+S, Ctrl+O (cancel the picker), Ctrl+N (cancel if warned)."],
+    x:"Save downloads, Save-As asks a name, Open shows the picker, New starts a fresh document." },
+  { k:"p5.k6", t:"Zoom keys", s:["Press + a few times, − a few times, then 0, then Ctrl+0."],
+    x:"+/− step zoom by 100%; both 0 forms return to actual size (100%)." },
+  { k:"p5.k7", t:"F1 + Escape cascade", s:[
+    "Press F1 — shortcuts dialog opens; Esc closes it.",
+    "Start a shape drag and press Esc mid-drag (stroke cancels).",
+    "Paste a stamp, press Esc (stamp cancels). Engage Swap mode, Esc (mode exits). Make a selection, Esc (deselects)."],
+    x:"Esc cancels in that priority order and ends back at the brush." },
+  { k:"p5.k8", t:"Enter commits stamp; colour keys; Shift+S snap", s:[
+    "Paste a stamp, press Enter — it commits.",
+    "Press 3 (ink = magenta), Shift+4 (paper = green), X (swap ink/paper), Shift+S (Snap toggles in the status strip)."],
+    x:"All keys act as described; 1–8 map to the 8 base colours." },
+  { k:"p5.k9", t:"Shortcuts never fire inside inputs", s:[
+    "Click into the Text tool's text box and type “best” — letters must appear, tools must NOT switch.",
+    "Open a dialog (F1) and type letters — nothing behind it reacts."],
+    x:"Typing in inputs/selects/dialogs never triggers shortcuts." },
+  { k:"p5.k10", t:"Tab reachability + focus ring", s:[
+    "Click the address bar, then Tab repeatedly into and through the app (or Shift+Tab).",
+    "Watch for a visible focus ring on: menu bar, header selectors, swatches, tool buttons, panel headers, status controls."],
+    x:"Everything interactive is reachable and shows a visible :focus-visible ring." },
+ ]},
+ { t:"Pen (hardware)", items:[
+  { k:"p5.p1", t:"Pressure varies brush size", f:"hw", s:[
+    "Brush options: enable the pressure/size option.",
+    "Draw light-to-heavy strokes with the pen."],
+    x:"Stroke width follows pressure." },
+  { k:"p5.p2", t:"Fast pen strokes have no gaps", f:"hw", s:["Scribble as fast as you can at medium zoom."],
+    x:"No straight-line gaps (coalesced events feed every sample)." },
+  { k:"p5.p3", t:"Pen hover preview", f:"hw", s:["Hover the pen above the canvas without touching."],
+    x:"Brush-outline preview follows the hover and leaves cleanly at the edge." },
+  { k:"p5.p4", t:"Barrel button does what it is assigned", f:"hw", s:[
+    "Open Settings > Preferences > Pen and read what the barrel button is bound to (eyedropper is the default, but any PEN_ACTIONS entry can be there).",
+    "Hold the barrel button and use the pen on the canvas."],
+    x:"That interaction performs the ASSIGNED action, not drawing; releasing returns to the tool. If you have rebound it, judge it against the binding you see in Preferences — the eyedropper is only the default." },
+  { k:"p5.p5", t:"Eraser end erases", f:"hw", s:["Flip the pen and rub the canvas with the eraser end."],
+    x:"The stroke routes to the eraser tool automatically." },
+  { k:"p5.p8", t:"The tail clears the ERASER's size, not the brush's", f:"hw", s:[
+    "Pick the Eraser and drag its size slider up to something large (say 32).",
+    "Pick the Brush and set its size to 1.",
+    "Flip the pen and press the tail once on the canvas."],
+    x:"One press clears the whole large disc the eraser slider promises. There is no separate pen-eraser size anywhere in the app." },
+  { k:"p5.p9", t:"Hovering tail: does the driver flag it before contact?", f:"hw", s:[
+    "Pick the Brush at size 1 and set the Eraser to a large size (as above).",
+    "Hold the pen tail-down and HOVER it above the canvas without touching."],
+    x:"Either result is correct — record which. If the driver reports bit 32 while hovering, the outline under the pen is the eraser's large disc; Windows Ink is expected to stay quiet until contact, in which case the outline stays the brush's." },
+  { k:"p5.p10", t:"The tail erases inside the grid editors", f:"hw", s:[
+    "Open File > Sprite Editor… (or Font / Map editor, or the Pattern Creator).",
+    "Draw a few cells with the pen tip, then flip the pen and press the tail on them."],
+    x:"The tail clears cells, exactly as the right mouse button does — it never paints ink." },
+  { k:"p5.p11", t:"Preferences > Pen: the pen check lights the real control", f:"hw", s:[
+    "Open Settings > Preferences > Pen and find the pen check.",
+    "Press each control your pen actually has, one at a time: tip, barrel, a second barrel if it has one, and the eraser tail.",
+    "Run this once per pen you own."],
+    x:"The check lights the control you actually pressed. This is the one row no synthetic event can stand in for — it measures what your driver sends, and the vendor profile above it is only a claim about what should arrive." },
+  { k:"p5.p12", t:"A second barrel button reaches the browser", f:"hw", s:[
+    "On a Wacom / XP-Pen / Huion / Gaomon pen that has two barrel buttons, press the SECOND one with the pen on or near the canvas.",
+    "Use the pen check in Preferences > Pen to see what arrives."],
+    x:"It arrives as the middle bit (buttons & 4) rather than being swallowed by the driver. Whether it does is a DRIVER SETTING, not a pen fact — if nothing arrives, record the driver and its button mapping rather than failing the app." },
+  { k:"p5.p6", t:"Tilt is reported", f:"hw", s:[
+    "In the app's DevTools console run: InputHandler.getTilt()",
+    "while holding the pen tilted on the canvas (run it during a stroke or immediately after)."],
+    x:"Returns non-zero tiltX/tiltY numbers for a tilted pen." },
+  { k:"p5.p7", t:"pointercancel commits the stroke", f:"hw", s:[
+    "Start a pen stroke and trigger an OS gesture (e.g. palm/edge gesture) so the OS steals the pointer."],
+    x:"The partial stroke is committed (undoable) — no stuck half-drawn state, next stroke works normally." },
+ ]},
+ { t:"Touch (hardware)", items:[
+  { k:"p5.t1", t:"One-finger draw / the status-bar touch switch", f:"hw", s:[
+    "Touch-drag with one finger — it draws.",
+    "Click the “Touch: draws” button in the status bar, then touch-drag again.",
+    "Reload and confirm the switch stuck."],
+    x:"Draws by default; pans when the switch is off; the choice persists." },
+  { k:"p5.t2", t:"Two-finger pan + pinch zoom", f:"hw", s:[
+    "Start a one-finger stroke, then put a second finger down (stroke should commit, gesture starts).",
+    "Two-finger drag pans; pinch zooms around the gesture centre."],
+    x:"Pan and pinch work; the interrupted stroke is committed, not lost." },
+  { k:"p5.t3", t:"Palm rejection near pen", f:"hw", s:[
+    "With the pen in hand (hovering or just used), rest your palm on the screen.",
+    "Now the hard case: rest the palm FIRST, then bring the pen down.",
+    "Draw a slow stroke, hold the pen still for over a second, then rest the palm.",
+    "If a palm still marks, raise Preferences > Input > “Ignore touch after pen or mouse use” and repeat."],
+    x:"No palm mark in any of them. Record the lockout value this pen needed — 500 ms is inherited, not measured." },
+  { k:"p5.t3b", t:"No double touch, and no stolen stroke", f:"hw", s:[
+    "Draw with the pen and deliberately tap the screen with the other hand mid-stroke.",
+    "Repeat while dragging with a MOUSE instead of the pen.",
+    "Repeat resting two fingers down at once during a pen stroke."],
+    x:"No mark from the touch, and the pen/mouse stroke carries on to its own lift — it is not cut short, and two contacts do not pinch the canvas." },
+  { k:"p5.t4", t:"Long-press context menu", f:"hw", s:["Press and hold still on the canvas ≥ 600 ms."],
+    x:"Any active stroke commits and the canvas context menu opens." },
+  { k:"p5.t5", t:"No browser scroll/zoom steals strokes", f:"hw", s:["Fast flicks and double-taps on the canvas."],
+    x:"The page never scrolls or double-tap-zooms; strokes land." },
+  { k:"p5.t6", t:"Coarse-pointer sizing", f:"hw", s:["On the touch device compare control sizes with desktop."],
+    x:"44px hit targets, ≥40px swatches, 28px slider thumbs under coarse pointer." },
+ ]},
+]},
+{ id:"p6", title:"Phase 6 — i18n + themes", intro:"Locale and theme switching, reload-free.", subs:[
+ { t:"Locale switch (no reload)", items:[
+  { k:"p6.l1", t:"13 autonyms + persisted boot locale", s:[
+    "Open the language selector: 13 entries, each in its own language (English, Español, Deutsch, Français, Italiano, Português, Polski, Čeština, Slovenčina, Magyar, Română, Türkçe, Русский).",
+    "Pick one, press F5."],
+    x:"App boots back into the picked locale." },
+  { k:"p6.l2", t:"Live re-translation coverage", s:[
+    "Switch to Deutsch (or another language you can sanity-check).",
+    "WITHOUT reloading, check: menu labels + open a menu (items translated), panel titles, tool-rail tooltips (with shortcut suffixes), the INK/PAP/Swap/Apply buttons, zoom Fit button, grid label, Reference panel, pattern panels, layer/stamp row titles, status “Ready”."],
+    x:"Everything re-translates immediately; nothing stays English (except proper names)." },
+  { k:"p6.l3", t:"Tool options + dialogs translated", s:[
+    "Still in the foreign locale: click through 3–4 tools and read their options panels.",
+    "Open File > Export…, Help > About, F1 shortcuts, Settings > Preferences… — all translated on open."],
+    x:"Options labels/optgroups/hints and re-opened dialogs come up translated." },
+  { k:"p6.l4", t:"<html lang> + F5", s:[
+    "In DevTools console run: document.documentElement.lang",
+    "Press F5 and run it again."],
+    x:"Returns the locale code (e.g. “de”) and survives reload." },
+  { k:"p6.l5", t:"No clipping in de/hu/ru at 100–300% scale", s:[
+    "For each of Deutsch, Magyar, Русский: set interface size 100%, then 200%, then 300%.",
+    "Look at the left rail (Swap/Apply rows), the menus, and the zoom strip (Fit button)."],
+    x:"Labels wrap or grow — never clip or overflow their buttons." },
+ ]},
+ { t:"Theme switch", items:[
+  { k:"p6.t1", t:"6 translated theme names + persisted boot theme", s:[
+    "Open the theme selector — six names, translated if you're in a foreign locale.",
+    "Pick one, F5."],
+    x:"Boots back into the picked theme." },
+  { k:"p6.t2", t:"All six themes render completely", s:[
+    "Switch through dark, light, midnight, nord, dracula, sepia.",
+    "Each time glance at: header, rails, dialogs (open one), scrollbars, toggle states (press a grid toggle)."],
+    x:"Every surface takes the theme; active toggles are visible on the light themes; no unstyled white/black patches." },
+  { k:"p6.t3", t:"Grid overlay colours re-read on switch", s:[
+    "Enable the 8×8 and 16×16 grids. Switch dark -> light -> sepia."],
+    x:"Grid line colours change with the theme (red/blue on dark; darker variants on light/sepia)." },
+  { k:"p6.t4", t:"Menu toggles <-> header selector sync", s:[
+    "Settings > Light Theme — the header selector should jump to Light.",
+    "Change the selector to Dark — the menu checkmarks follow."],
+    x:"Both directions stay in sync." },
+  { k:"p6.t5", t:"Theme F5 + reset", s:[
+    "Pick a non-dark theme, F5 (persists).",
+    "Settings > Reset All Preferences (confirm)."],
+    x:"Theme survives reload; reset returns to dark." },
+ ]},
+]},
+{ id:"p7", title:"Phase 7 — App polish + quick wins", intro:"Autosave, system clipboard, non-wrap scroll, new shapes, nudge + snap.", subs:[
+ { t:"Autosave / session", items:[
+  { k:"p7.a1", t:"Autosave + restore prompt", s:[
+    "Draw something distinctive. Change ink colour, zoom, and border colour too.",
+    "Wait 70 seconds (autosave runs every minute).",
+    "Press F5. A restore prompt should appear showing the age of the snapshot.",
+    "Accept it."],
+    x:"Layers, colours, selected tool, zoom and border all come back." },
+  { k:"p7.a2", t:"Decline restore clears it", s:[
+    "Draw again, wait 70s, F5 — decline the prompt this time.",
+    "F5 once more."],
+    x:"After declining, defaults boot and NO second prompt appears (autosave cleared)." },
+  { k:"p7.a3", t:"Autosave preference off = never writes", s:[
+    "Settings > Preferences… — untick “Autosave every minute”, OK.",
+    "Draw, wait 70s, F5."],
+    x:"No restore prompt (nothing was written). Re-enable the pref afterwards." },
+  { k:"p7.a4", t:"beforeunload warning", s:[
+    "Draw something, then press Ctrl+W (or try to close the tab) — cancel the browser prompt.",
+    "File > Save, then Ctrl+W again."],
+    x:"Unsaved changes trigger the browser's leave-warning; after saving there is none. (Reopen the app if you closed it.)" },
+  { k:"p7.a5", t:"Preferences reflect live state", s:[
+    "Open Preferences, toggle two checkboxes, OK.",
+    "Reopen Preferences."],
+    x:"The dialog shows the toggled values, not defaults." },
+ ]},
+ { t:"System clipboard paste", items:[
+  { k:"p7.s1", t:"OS image -> Ctrl+V", s:[
+    "Fresh reload (empties the internal clipboard is NOT enough — internal clipboard persists; instead make sure you haven't copied anything in the app since boot).",
+    "In another program (e.g. screenshot tool, Paint) copy an image to the OS clipboard.",
+    "Click the app canvas, press Ctrl+V."],
+    x:"The image appears as a floating stamp, quantized to ZX colours." },
+  { k:"p7.s2", t:"Internal clipboard wins over system", s:[
+    "Copy a selection inside the app (Ctrl+C).",
+    "With an image still on the OS clipboard, press Ctrl+V."],
+    x:"The INTERNAL copy pastes, not the OS image." },
+  { k:"p7.s3", t:"Menu paste with empty internal clipboard", s:[
+    "Fresh reload; copy an image in another app.",
+    "Edit > Paste."],
+    x:"Browser may show a clipboard permission prompt — on grant the stamp appears. (On file:// a denial with a console warning is an acceptable pass — note which you saw.)" },
+  { k:"p7.s4", t:"Context-menu paste order", s:[
+    "Same setup; right-click the canvas with the Select tool and choose Paste."],
+    x:"Same behaviour as the menu path." },
+  { k:"p7.s5", t:"Paste enable state", s:[
+    "Fresh reload with an image on the OS clipboard: open the Edit menu."],
+    x:"Paste is enabled (either clipboard can supply content)." },
+  { k:"p7.s6", t:"Transparent PNG paste", s:[
+    "Prepare a transparent-background PNG test file if you don't have one; copy it to the clipboard (e.g. open in a viewer and copy).",
+    "Paste into the app."],
+    x:"Glyph-on-nothing: transparent/white areas come out empty (paper), dark strokes as ink." },
+ ]},
+ { t:"Non-wrap scroll", items:[
+  { k:"p7.n1", t:"Wrap default on", s:[
+    "Draw at the left edge. In Transform, confirm “Wrap around” is ticked.",
+    "Click the Shift <- arrow repeatedly."],
+    x:"Pixels leaving the left edge re-enter on the right (old behaviour)." },
+  { k:"p7.n2", t:"No-wrap scrolls out", s:[
+    "Untick “Wrap around”. Shift <- until the drawing leaves the canvas."],
+    x:"Pixels scroll out and are gone; vacated cells keep their paper colour." },
+  { k:"p7.n3", t:"Scoped to selection and whole canvas", s:[
+    "Draw two separated marks. Select ONLY one, shift it (both wrap settings).",
+    "Deselect and shift the whole canvas."],
+    x:"With a selection only its contents move; without, everything moves." },
+ ]},
+ { t:"New shapes", items:[
+  { k:"p7.q1", t:"Parallelogram + Rounded Rectangle exist, localized", s:[
+    "Shape tool -> open the shape select: Rounded Rectangle under Basic, Parallelogram under Polygons.",
+    "Switch the app language to two other locales and re-open the select."],
+    x:"Both entries present and translated in each locale." },
+  { k:"p7.q2", t:"Both draw outline + filled", s:[
+    "Draw each shape with Filled off, then on (watch the live preview)."],
+    x:"Correct outlines/fills; the parallelogram's top edge skews right." },
+ ]},
+ { t:"Nudge + grid snap", items:[
+  { k:"p7.g1", t:"Arrows nudge stamp by nudgeStep", s:[
+    "Settings > Preferences… — set “Arrow-key nudge distance” to 3, OK.",
+    "Paste a stamp; press the arrow keys.",
+    "F5 (decline restore) and check the pref is still 3."],
+    x:"Stamp moves 3 px per arrow press; pref persists." },
+  { k:"p7.g2", t:"Arrows shift selection contents / no-op otherwise", s:[
+    "Make a selection with content, press arrows (contents shift).",
+    "Deselect everything, press arrows."],
+    x:"With no selection or stamp, arrows do nothing to the canvas." },
+  { k:"p7.g3", t:"Snap toggle + persistence", s:[
+    "Click the Snap button in the status strip (lights up). Press Shift+S (toggles off/on).",
+    "Reload."],
+    x:"Pressed state toggles both ways and survives reload." },
+  { k:"p7.g4", t:"Snap affects placement ops", s:[
+    "Snap ON: drag a selection marquee, drag a shape, drag a floating stamp.",
+    "Press an arrow key with the stamp floating."],
+    x:"All land on 8-px cell boundaries; arrows nudge by 8 while snap is on." },
+  { k:"p7.g5", t:"Snap never affects freehand", s:["Snap ON: draw with brush, eraser and fill."],
+    x:"Strokes follow the cursor exactly — not snapped." },
+ ]},
+]},
+{ id:"p8", title:"Phase 8 — Drawing parity", intro:"Bezier, symmetry, text effects, import dialog.", subs:[
+ { t:"Bezier curve tool", items:[
+  { k:"p8.b1", t:"Rail position, shortcut, tooltip", s:[
+    "Find the Bezier tool between Shape and Gradient in the rail; hover for the tooltip; press C."],
+    x:"Tool present, localized tooltip, C selects it." },
+  { k:"p8.b2", t:"Anchor drag + handle markers", s:[
+    "With Bezier active, drag on the canvas (a straight preview line follows) and release."],
+    x:"Curve preview + cross markers appear: 1 mid handle (quadratic) or 2 (cubic, per the curve-type option)." },
+  { k:"p8.b3", t:"Live re-bend", s:["Drag each marker (handles AND endpoints) around."],
+    x:"Curve re-bends live; the preview respects attribute clash (colours change per cell like real drawing)." },
+  { k:"p8.b4", t:"Enter and click-away commit", s:[
+    "Press Enter — curve commits.",
+    "Draw another curve, then click far away from all handles."],
+    x:"Click-away commits the pending curve AND starts a new one at the click point." },
+  { k:"p8.b5", t:"Escape / tool switch discards", s:[
+    "Start a curve, press Esc (nothing drawn).",
+    "Start another, press B to switch tools."],
+    x:"Both discard the pending curve without drawing." },
+  { k:"p8.b6", t:"Curve type + thickness options", s:[
+    "In Tool Options switch Quadratic <-> Cubic mid-edit; raise Thickness."],
+    x:"Type switch re-seats handles on the chord; thickness fattens preview and committed curve." },
+  { k:"p8.b7", t:"Right-drag erases; single undo", s:[
+    "Draw a filled area. Bezier: RIGHT-drag a curve across it, commit.",
+    "Press Ctrl+Z once."],
+    x:"Right-button curve erases (paper); one undo removes the whole committed curve." },
+ ]},
+ { t:"Symmetry drawing mode", items:[
+  { k:"p8.s1", t:"Mirror buttons present + off-toggle", s:[
+    "Find the Mirror label with H and V buttons beside the grid controls.",
+    "Click H (lights). Click H again (turns off). Click H then V (both = quad mode)."],
+    x:"Buttons toggle individually; clicking the active one turns it off; labels localized." },
+  { k:"p8.s2", t:"All tools mirror", s:[
+    "Mirror H on: draw with brush, eraser, spray, a shape, fill (fill a small bounded area), bezier, pattern tool.",
+    "Try V and H+V with the brush too."],
+    x:"Every stroke appears mirrored left<->right (H), topup/downbottom (V), or in all four quadrants (H+V)." },
+  { k:"p8.s3", t:"One undo per mirrored stroke", s:["With H+V on, draw one stroke; press Ctrl+Z once."],
+    x:"All four copies vanish together." },
+  { k:"p8.s4", t:"Exempt operations do NOT mirror", s:[
+    "Mirror H on: paste + commit a stamp; use Transform Flip H; Shift arrows; engage Apply attr mode and drag; pattern area fill (if available via pattern panel)."],
+    x:"None of these produce mirrored copies — they write exactly their own pixels." },
+  { k:"p8.s5", t:"Mirror persists across F5", s:["Set H+V, reload (decline restore)."],
+    x:"Both buttons come back pressed and the mode still works." },
+ ]},
+ { t:"Text directions + effects", items:[
+  { k:"p8.t1", t:"Direction select rotates preview + commit", s:[
+    "Text tool: type a word, set Direction to 90°, hover the canvas, click to place, Enter to commit.",
+    "Repeat quickly for 180° and 270°."],
+    x:"Preview is rotated; committed pixels match the preview exactly." },
+  { k:"p8.t2", t:"Shadow + Outline", s:[
+    "Enable Shadow only — place text. Enable Outline only — place text.",
+    "Check the shadow offset grows with a larger font size; outline is a 1px hollow contour."],
+    x:"Both effects render as described." },
+  { k:"p8.t3", t:"Combined effects survive transforms", s:[
+    "Enable Shadow + Outline, place text (don't commit).",
+    "Drag the stamp, scale it in Transform, apply a warp; then commit."],
+    x:"Effects persist through drag/scale/warp; committed result matches preview." },
+  { k:"p8.t4", t:"Effects on ZX ROM and system fonts", s:["Repeat a shadowed+outlined placement with ZX ROM and one system font."],
+    x:"Both font paths support the effects." },
+ ]},
+ { t:"Import conversion dialog", items:[
+  { k:"p8.i1", t:"PNG/JPG open shows dialog first", s:[
+    "Ctrl+O and pick any PNG or JPG photo."],
+    x:"The conversion dialog opens with a live quantized (ZX-colour) preview; the canvas is untouched behind it." },
+  { k:"p8.i2", t:"Live controls", s:[
+    "Move Brightness and Contrast sliders; switch Scaling between Fit (letterbox)/Stretch/Crop (fill); toggle Dithering Floyd–Steinberg/None."],
+    x:"Preview updates live for every control; labels localized." },
+  { k:"p8.i3", t:"OK applies exactly, Cancel aborts", s:[
+    "Set distinctive values and click OK — canvas should match the preview.",
+    "Re-open the same image and Cancel (also try × and Esc on further opens)."],
+    x:"OK imports exactly what was previewed; all three abort paths leave the document untouched." },
+  { k:"p8.i4", t:"Non-image opens bypass the dialog", s:["Open a .scr file (save one first if needed)."],
+    x:"SCR/TAP/SNA and other native formats load directly — no conversion dialog." },
+ ]},
+]},
+{ id:"p9", title:"Phase 9 — Format parity", intro:"GIF, tape blocks, persistent clipboard, ZED/SevenuP. Some rows need external programs.", subs:[
+ { t:"GIF import/export", items:[
+  { k:"p9.g1", t:"GIF import via conversion dialog", s:["Ctrl+O, pick any .gif."],
+    x:"Import Conversion dialog with live preview; OK imports, Cancel aborts." },
+  { k:"p9.g2", t:"Animated GIF -> first frame", s:["Open an animated .gif (prepare one if needed)."],
+    x:"Its first frame imports." },
+  { k:"p9.g3", t:"Static GIF export opens externally", s:[
+    "Draw something, File > Export… -> GIF, save.",
+    "Open the file in a browser tab or IrfanView."],
+    x:"Correct static image." },
+  { k:"p9.g4", t:"FLASH animation export", s:[
+    "Tick Flash, draw some cells, untick.",
+    "File > Export… -> GIF, tick “Animate FLASH cells (two-frame loop)”, save, open in a browser tab."],
+    x:"A looping two-frame GIF; FLASH cells swap ink/paper roughly every 320 ms." },
+  { k:"p9.g5", t:"Animate checkbox with no FLASH cells", s:["File > New, draw WITHOUT flash, export GIF with the animate box ticked."],
+    x:"Plain static GIF (no bogus animation)." },
+ ]},
+ { t:"Tape Blocks dialog", items:[
+  { k:"p9.t1", t:"Open + list blocks", s:[
+    "Prepare a test .tap if you have none (or File > Export… -> .tap first).",
+    "File > Tape Blocks… — pick the tape."],
+    x:"Every block listed with number, type/name, byte length; labels localized." },
+  { k:"p9.t2", t:"SCREEN$ Load", s:["In the list, find the highlighted SCREEN$ row and click Load. Then Ctrl+Z."],
+    x:"That screen lands on the canvas; undo removes it." },
+  { k:"p9.t3", t:"Reorder / remove / add", s:[
+    "Use Move up / Move down on a block, Remove on another, then “Add current screen”."],
+    x:"List updates correctly; add appends a header+data pair at the end." },
+  { k:"p9.t4", t:"Save tape byte-identity + emulator load", f:"ext", s:[
+    "Open a tape and immediately “Save tape” WITHOUT edits.",
+    "In PowerShell: fc.exe /b original.tap saved.tap",
+    "Load the saved tape in Fuse or ZEsarUX."],
+    x:"fc reports no differences; the tape loads in the emulator." },
+  { k:"p9.t5", t:"TZX exotic blocks + unknown IDs", s:[
+    "Prepare a .tzx containing pause/text/archive-info blocks and one with an unknown block ID.",
+    "Open each in Tape Blocks…"],
+    x:"Known blocks listed by localized type name; the unknown-ID tape surfaces a clear error, not a corrupt list." },
+ ]},
+ { t:"Persistent clipboard", items:[
+  { k:"p9.c1", t:"Copy survives F5", s:[
+    "Copy a distinctive selection (Ctrl+C). Press F5 (decline restore).",
+    "Open the Edit menu (Paste enabled?), then Ctrl+V."],
+    x:"Paste enabled immediately after boot; pastes the same pixels + attributes." },
+  { k:"p9.c2", t:"Cut persists + full browser restart", s:[
+    "Ctrl+X a selection, close the browser completely, reopen the app, Ctrl+V."],
+    x:"The cut content pastes after a full restart (IndexedDB)." },
+  { k:"p9.c3", t:"Private window degrades silently", s:[
+    "Open the app in a private/incognito window with the console open; copy and paste a selection."],
+    x:"Clipboard works in-session (localStorage fallback or degrades silently); NO console errors." },
+ ]},
+ { t:"ZED / SevenuP interchange", items:[
+  { k:"p9.z1", t:".zed opens in ZX-Paintbrush", f:"ext", s:[
+    "Draw a colourful test image. File > Export… -> .zed.",
+    "Open the file in ZX-Paintbrush 2.6.1 (or ZX-Editor SE)."],
+    x:"Pixels and attributes intact." },
+  { k:"p9.z2", t:".sev opens in SevenuP / ZX-PB", f:"ext", s:["Export .sev of the same image; open in SevenuP (or ZX-Paintbrush)."],
+    x:"Pixels and attributes intact." },
+  { k:"p9.z3", t:"Real SevenuP file imports", f:"ext", s:[
+    "In SevenuP save a file (ideally one with mask/sprite frames too); open it in our app."],
+    x:"First frame lands, mask ignored, no errors." },
+  { k:"p9.z4", t:"Real ZX-PB .zed imports; text-ZED rejected", f:"ext", s:[
+    "Save a .zed from ZX-Paintbrush, open it in our app.",
+    "Also generate a text-heavy ZED document and open that."],
+    x:"Graphic ZED imports correctly; the text-heavy one is rejected with a clear message." },
+  { k:"p9.z5", t:"Both formats in Open filter + Export list", s:[
+    "Ctrl+O — check the file-type filter mentions .zed and .sev.",
+    "File > Export… — check both appear in the format list, localized."],
+    x:"Present in both places." },
+ ]},
+]},
+{ id:"p10", title:"Phase 10 — Sinclair font editor", intro:"File > Font Editor…; CH*/CHX round-trips need ZX-Paintbrush.", subs:[
+ { t:"Glyph editing UX", items:[
+  { k:"p10.g1", t:"Open onto working font; grid + code label", s:[
+    "File > Font Editor…",
+    "Click several cells in the glyph grid; watch the “Code {n}” label and the selection highlight."],
+    x:"Opens onto the ROM charset on first run; label + highlight track clicks." },
+  { k:"p10.g2", t:"Cell editor edits update thumbnails live", s:[
+    "Select a glyph; in the editing surface draw with left button (ink) and right button (erase); try its line/fill modes if present."],
+    x:"The grid thumbnail updates live as you edit." },
+  { k:"p10.g3", t:"Glyph ops", s:[
+    "Use each op button on a glyph: Clear, Copy, Paste (onto another glyph), Invert, Flip H, Flip V, Shift <-->updown (shifts wrap).",
+    "Fresh-reload the app, open the Font Editor and press Paste BEFORE any Copy."],
+    x:"All ops act on the selected glyph; shifts wrap within the width; paste-before-copy shows a status hint instead of acting." },
+  { k:"p10.g4", t:"Load ROM Font resets", s:["Edit a few glyphs, set width 6, then click Load ROM Font."],
+    x:"Built-in charset restored, width back to 8." },
+ ]},
+ { t:"Width switching", items:[
+  { k:"p10.w1", t:"8->6->4 crops, back widens blank", s:[
+    "Draw a full-width glyph. Switch Width 8->6->4, watching the editing surface.",
+    "Switch back 4->8."],
+    x:"Narrowing crops the right-hand columns (documented destructive); widening restores blank columns (cropped pixels stay gone)." },
+  { k:"p10.w2", t:"Ops stay inside narrow width", s:["At width 4: Flip H, Shift left/right, Invert a glyph."],
+    x:"No pixels leak into the masked-off right columns (check by switching back to 8)." },
+  { k:"p10.w3", t:"Charset coverage switch", s:[
+    "Switch Charset “96 chars (32–127)” -> “256 chars (0–255)” and back.",
+    "Check a glyph you edited at code 65 (A) survives both switches."],
+    x:"Grid re-windows; overlapping codes keep their glyphs." },
+ ]},
+ { t:"Canvas-cell capture", items:[
+  { k:"p10.cc1", t:"Capture Cell pulls canvas art", s:[
+    "Close the editor; draw a distinctive 8×8 shape in the top-left canvas cell (use the 8×8 grid).",
+    "Font Editor: set Cell X=0, Cell Y=0, click Capture Cell."],
+    x:"The selected glyph now holds that cell's ink mask (composited layers)." },
+ ]},
+ { t:"Text tool with custom fonts", items:[
+  { k:"p10.t1", t:"Library font appears in the text tool", s:[
+    "In the Font Editor edit a few glyphs distinctively, type a name in “Font name...”, click Save.",
+    "Close, select the Text tool, open its font list."],
+    x:"The saved font is listed with its width label, alongside ZX ROM and system fonts." },
+  { k:"p10.t2", t:"Narrow advance + sharp rendering", s:[
+    "Save fonts at width 4 and 6 (edit a couple of glyphs each).",
+    "Type text with each at sizes 8, 16, 24 px and place it."],
+    x:"Tight 4/6-px spacing; edges stay 1-bit sharp at all sizes; committed = preview." },
+  { k:"p10.t3", t:"Effects + transforms on bitmap fonts", s:[
+    "With a library font: set Direction 90°, Shadow, Outline; place text; scale and rotate the floating stamp; commit."],
+    x:"All effects work; transforms re-rasterize from glyphs without blurring." },
+  { k:"p10.t4", t:"Deleting a used library font", s:[
+    "Place and COMMIT text using the library font.",
+    "Font Editor: select the font in the library, Delete it. Look at the canvas."],
+    x:"Committed pixels are untouched (art never depends on the library)." },
+ ]},
+ { t:"CH4/CH6/CH8/CHR/CHX round-trips (ZX-Paintbrush)", items:[
+  { k:"p10.f1", t:".ch8/.chr opens in ZX-PB", f:"ext", s:[
+    "Font Editor -> Export -> .ch8; also export .chr.",
+    "Open each in ZX-Paintbrush 2.6.1."],
+    x:"Displayed as a 128×128 character-set picture with every glyph in place." },
+  { k:"p10.f2", t:".ch4/.ch6 open left-aligned", f:"ext", s:["Export .ch4 and .ch6; open in ZX-Paintbrush / ZX-Editor SE."],
+    x:"Glyphs left-aligned within their 8×8 positions." },
+  { k:"p10.f3", t:".chx opens in ZX-PB", f:"ext", s:["Export .chx; open in ZX-Paintbrush (“big character file”)."],
+    x:"All covered characters defined; the space character present." },
+  { k:"p10.f4", t:"Real ZX-PB fonts import (5 extensions)", f:"ext", s:[
+    "In ZX-Paintbrush save a character set as .ch4, .ch6, .ch8, .chr and .chx.",
+    "Import each into our Font Editor."],
+    x:"Correct glyphs and coverage; a 768-byte CHR lands at codes 32–127." },
+  { k:"p10.f5", t:"Re-export stability", f:"ext", s:["Take one imported ZX-PB font, export it from our app, re-import that export."],
+    x:"No drift — glyphs identical after the second trip." },
+  { k:"p10.f6", t:"Extensions in Open dialog + File > Open", s:[
+    "Ctrl+O — filter lists .ch4/.ch6/.ch8/.chr/.chx.",
+    "Open a font file via File > Open (not the editor's Import button)."],
+    x:"All five accepted from both entry points." },
+ ]},
+ { t:"Library persistence", items:[
+  { k:"p10.p1", t:"Working font survives F5", s:["Edit glyphs, set width 6, name it; press F5; reopen the Font Editor."],
+    x:"Same working font: width, coverage, name, glyph edits." },
+  { k:"p10.p2", t:"Library survives browser restart; delete is permanent", s:[
+    "Save a library font. Close the browser fully, reopen, check the library.",
+    "Delete it, F5, check again."],
+    x:"Survives restart; stays deleted." },
+  { k:"p10.p3", t:"Developer export layouts", s:[
+    "Font Editor -> Export -> ASM (then C, then BIN).",
+    "Open the ASM/C in a text editor."],
+    x:"Label, first-code/count/width defines, raw 8-byte-per-glyph dump as documented." },
+  { k:"p10.p4", t:"Font editor localized ×13", s:[
+    "Switch app language to ru, then cs or hu, then tr; open the Font Editor in each; also at 200% interface size."],
+    x:"Every label translated; nothing clips at any scale." },
+ ]},
+]},
+{ id:"p11", title:"Phase 11 — Map/tile editor", intro:"File > Map Editor…; .zxm interop needs ZX-Paintbrush.", subs:[
+ { t:"Tile capture / paint / fill UX", items:[
+  { k:"p11.u1", t:"Three tile sources", s:[
+    "File > Map Editor…: click New Tile (blank tile appears).",
+    "Close; select an 8×8 pattern in the Pattern panel; reopen Map Editor; click From Pattern.",
+    "Draw on the canvas, then click Capture Screen."],
+    x:"All three populate the tile palette with correct thumbnails." },
+  { k:"p11.u2", t:"Edit Tile updates instances live", s:[
+    "Place a tile several times with Paint. Select it and draw in the Edit Tile pane; change its ink/paper/bright/flash controls."],
+    x:"Thumbnail AND every placed instance update live; colours apply." },
+  { k:"p11.u3", t:"Paint / erase / fill / pick", s:[
+    "Paint-drag tiles; right-button-drag to erase (or the Erase tool).",
+    "Paint a bounded same-tile region, choose Fill, click inside it.",
+    "Choose Pick Tile and click a placed tile."],
+    x:"Paint places, right/erase empties, Fill floods only the contiguous same-tile region, Pick selects the tile under the cursor." },
+  { k:"p11.u4", t:"Delete tile remaps indices", s:[
+    "With 3+ different tiles placed, select the middle one and Delete Tile (confirm)."],
+    x:"Its cells become empty; all OTHER placements still show their correct tiles." },
+ ]},
+ { t:"Large-map scrolling / zoom", items:[
+  { k:"p11.s1", t:"128×96 map, four corners", s:[
+    "Set Width 128, Height 96, Resize. Paint near all four corners, scrolling between them."],
+    x:"Smooth scrolling; tiles render correctly in the visible window; no smearing after scroll." },
+  { k:"p11.s2", t:"Zoom precision", s:[
+    "At several scroll positions try zoom 1×–6×; paint single cells at each."],
+    x:"Pointer-to-cell mapping exact everywhere; grid lines appear when tiles render ≥ 12 px." },
+  { k:"p11.s3", t:"Resize clip/grow", s:[
+    "Resize smaller than your painted area, then larger again."],
+    x:"Smaller clips bottom/right; larger adds empty cells; top-left content always survives." },
+ ]},
+ { t:"Map <-> canvas bridges", items:[
+  { k:"p11.b1", t:"Render to Canvas + single undo", s:[
+    "Scroll the map to a painted region, click Render to Canvas, close the editor.",
+    "Press Ctrl+Z once."],
+    x:"The visible map window is stamped with correct attributes; one undo removes it all." },
+  { k:"p11.b2", t:"Capture Screen dedups", s:[
+    "Draw a screen with REPEATED 8×8 cells (e.g. a tiled pattern).",
+    "Map Editor: Capture Screen; look at the tile palette count."],
+    x:"Identical cells share one tile (dedup) — far fewer tiles than cells." },
+  { k:"p11.b3", t:"Symmetry does not mirror renders", s:[
+    "Enable Mirror H. Render to Canvas again."],
+    x:"The render lands once, not mirrored." },
+ ]},
+ { t:".zxm round-trip with ZX-Paintbrush", items:[
+  { k:"p11.z1", t:"Our .zxm opens in ZX-PB", f:"ext", s:[
+    "Build a small map, Export -> .zxm.",
+    "Open it in ZX-Paintbrush 2.6.1 (its map editor)."],
+    x:"Base picture + map element list + positions all intact." },
+  { k:"p11.z2", t:"ZX-PB map imports", f:"ext", s:[
+    "Save a map in ZX-Paintbrush (include a multi-cell element).",
+    "Import it in our Map Editor."],
+    x:"Elements become tiles (multi-cell ones sliced); positions land on the right cells." },
+  { k:"p11.z3", t:"Re-export stability", f:"ext", s:["Re-export the imported ZX-PB map from our app and re-import that file."],
+    x:"Stable — no drift. (Off-screen positions in multi-screen maps are a known ZX-PB risk — note anything odd.)" },
+  { k:"p11.z4", t:".zxtm + .zxm in Open filter and dialog Import", s:[
+    "Ctrl+O — filter lists .zxtm and .zxm.",
+    "Also use the Map Editor's own Import… button for both."],
+    x:"Both accepted from both entry points." },
+ ]},
+ { t:"Persistence across F5", items:[
+  { k:"p11.p1", t:"Map survives F5", s:["Build tileset + map, name it, press F5, reopen the Map Editor."],
+    x:"Same map, tiles, name, dimensions." },
+  { k:"p11.p2", t:"Developer export + >255 tile reject", s:[
+    "Export -> ASM, C, BIN; open ASM/C in a text editor (tiles, attr table, u16le dims + index grid, $FF empty).",
+    "(The >255-tile rejection is impractical to build by hand — verify it in the Node suite and mark this half accordingly.)"],
+    x:"Layouts as documented; oversize rejection covered by automated test." },
+  { k:"p11.p3", t:"Map editor localized ×13", s:["Open the Map Editor in ru + two of cs/hu/tr/pl, at 100% and 200% interface size."],
+    x:"Fully translated, no clipped labels." },
+ ]},
+]},
+{ id:"p12a", title:"Phase 12a — Mode seam, multicolor, ULAplus", intro:"Image menu (or the status-strip Screen mode selector) switches modes.", subs:[
+ { t:"Mode switch UX + conversion warnings", items:[
+  { k:"p12a.m1", t:"Menu radios + status selector agree", s:[
+    "Open the Image menu — the mode list shows a check on Standard ULA.",
+    "Switch to Multicolor 8×1 via the STATUS-STRIP selector; re-open the Image menu.",
+    "Check the geometry readout (256 × 192 · 8×1)."],
+    x:"Menu check and selector mirror each other; geometry readout matches the mode." },
+  { k:"p12a.m2", t:"Refining switches are silent", s:[
+    "Standard ULA, draw something colourful.",
+    "Switch 8×8 -> Multicolor 8×4 -> 8×2 -> 8×1, then (from a fresh standard doc) Standard -> ULAplus."],
+    x:"No warnings; the picture looks pixel-identical right after every refine." },
+  { k:"p12a.m3", t:"Coarsening warns; Cancel is clean", s:[
+    "In Multicolor 8×1, switch to Standard ULA — a lossy-conversion confirm appears.",
+    "Click Cancel."],
+    x:"Everything untouched; menu checkmark and selector snap back to 8×1." },
+  { k:"p12a.m4", t:"Coarsen resolves by most-used attribute", s:[
+    "In 8×1 paint several different-ink lines inside ONE former 8×8 cell (more lines of colour A than B).",
+    "Switch to Standard ULA, accept the warning."],
+    x:"The cell takes the most-used attribute (colour A); pixels survive." },
+  { k:"p12a.m5", t:"Undo/redo restores mode AND content", s:[
+    "After the coarsening switch, press Ctrl+Z once, then Ctrl+Y."],
+    x:"One undo returns to 8×1 with the full multi-colour content (ULAplus switches also restore the palette); redo re-applies." },
+  { k:"p12a.m6", t:"Floating paste cancelled; gates message", s:[
+    "Paste a stamp (leave it floating), switch modes — the stamp is cancelled.",
+    "In Multicolor 8×1: open File > Map Editor… and try File > Export… -> .scr / tape formats."],
+    x:"Mode switch cancels the paste; cell-bound dialogs and gated exports show their localized messages instead of acting." },
+ ]},
+ { t:"Drawing + clash in 8×1/8×2/8×4", items:[
+  { k:"p12a.d1", t:"8×1 per-line attributes", s:[
+    "Mode Multicolor 8×1. Enable the 8×8 grid overlay (it should show per-line cells).",
+    "Draw two different ink colours on ADJACENT pixel rows within one former 8×8 cell."],
+    x:"Both colours coexist (no clash); the attribute overlay shows 8×1 cells." },
+  { k:"p12a.d2", t:"All tools honour finer clash", s:[
+    "In each of 8×4, 8×2, 8×1: use brush, a shape, fill, spray, gradient, text placement, and paste a selection."],
+    x:"All writes respect that mode's cell height (colour bleeds only within 8×4/8×2/8×1 cells)." },
+  { k:"p12a.d3", t:"FLASH, symmetry, snap, nudge per-axis", s:[
+    "In 8×2: draw FLASH cells (should animate).",
+    "Mirror H draw; Snap on: marquee-drag; paste a stamp and arrow-nudge."],
+    x:"FLASH animates; mirroring correct; snap/nudge step 8 px horizontally and 2 px vertically (per-axis cell size)." },
+  { k:"p12a.d4", t:"8×1 performance", s:["In 8×1, scribble fast at high zoom and run a full-canvas fill."],
+    x:"Stays responsive (6144 attribute cells)." },
+ ]},
+ { t:"ULAplus palette + Image2ULAplus", items:[
+  { k:"p12a.u1", t:"Switch keeps appearance; CLUT rail", s:[
+    "Draw in Standard ULA, switch to ULAplus."],
+    x:"Picture looks identical (default registers = standard palette); the rail's Flash/Bright controls are replaced by a CLUT selector (0–3) with ink-half/paper-half swatch rows." },
+  { k:"p12a.u2", t:"Edit Palette dialog", s:[
+    "Image > Edit Palette… — click a swatch, pick a strongly different colour, OK the picker.",
+    "Watch the canvas and rail; Ctrl+Z; try the Reset button."],
+    x:"Picked value snaps to G3R3B2; canvas + rail update LIVE; edits undo; Reset restores defaults." },
+  { k:"p12a.u3", t:"Per-CLUT rendering; nothing flashes", s:[
+    "Select CLUT 0, draw; select CLUT 1, edit its palette to differ, draw elsewhere."],
+    x:"Each area renders with its own CLUT's colours; no FLASH animation anywhere in ULAplus." },
+  { k:"p12a.u4", t:"PNG import generates 64-colour palette", s:[
+    "In ULAplus mode: Ctrl+O a colourful photo, OK the dialog.",
+    "Compare mentally with the same import in Standard mode; press Ctrl+Z once."],
+    x:"Visibly richer than 16-colour import; ONE undo removes pixels AND the generated palette." },
+  { k:"p12a.u5", t:"Import preview matches result", s:["Re-import the photo; compare the dialog preview to the committed canvas."],
+    x:"They match." },
+ ]},
+ { t:"Real-program round-trips", items:[
+  { k:"p12a.r1", t:".mlt <-> ZX-Paintbrush", f:"ext", s:[
+    "In 8×1 draw multi-colour content; File > Export… -> .mlt. Open in ZX-Paintbrush.",
+    "Save a .mlt from ZX-PB, import here, re-export, byte-compare (fc /b)."],
+    x:"ZX-PB shows per-line attrs intact; ZX-PB file imports identically and re-exports byte-stable." },
+  { k:"p12a.r2", t:"ULAplus .scr (6976) <-> ZX-PB", f:"ext", s:[
+    "In ULAplus with an edited palette: export .scr (6976 bytes). Open in ZX-PB (ULA+ mode).",
+    "Save a ULA+ .scr in ZX-PB and import here."],
+    x:"Palette + CLUT mapping correct both directions." },
+  { k:"p12a.r3", t:".ifl in RECOIL; wild .mc imports", f:"ext", s:[
+    "In 8×2: export .ifl; open with RECOIL/recoil2png.",
+    "Find a wild .mc file, or generate one; import it."],
+    x:".ifl renders with correct 8×2 attributes; .mc imports correctly." },
+  { k:"p12a.r4", t:"Standard exports still load (regression)", f:"ext", s:[
+    "In Standard ULA: export .scr, .tap, .tzx; load each in Fuse/ZEsarUX.",
+    "In ULAplus: export .tap and check it carries the 6912 screen."],
+    x:"All load; ULAplus TAP contains the plain screen part." },
+ ]},
+ { t:"F5 persistence per mode", items:[
+  { k:"p12a.f1", t:"Restore in all five modes", s:[
+    "In each of Standard, 8×4, 8×2, 8×1, ULAplus (edit the palette there): draw, wait 70s, F5, accept restore."],
+    x:"Mode + content (+ ULAplus palette) restored each time." },
+  { k:"p12a.f2", t:"Clipboard refuses cross-mode paste", s:[
+    "Copy in 8×1, F5, switch to Standard ULA, open Edit menu."],
+    x:"Paste unavailable (rather than pasting corrupt data)." },
+  { k:"p12a.f3", t:"Map/font docs survive mode excursion", s:[
+    "Build a small map + edit a font glyph. Switch to 8×1 and back to Standard. Reopen both editors."],
+    x:"Both documents untouched (kind-pinned geometry)." },
+  { k:"p12a.f4", t:"Mode strings localized ×13", s:["In ru + two of cs/hu/tr/pl: check Image menu modes, status selector, palette dialog, and a gate message (e.g. export .scr in 8×1)."],
+    x:"All translated, nothing clipped." },
+ ]},
+]},
+{ id:"p12b", title:"Phase 12b — Timex, GigaScreen, ColorTiles", intro:"ULAplus 8×1 (Timex), Timex Hi-res 512×192, GigaScreen, .ctile.", subs:[
+ { t:"Drawing in each new mode", items:[
+  { k:"p12b.d1", t:"ULAplus 8×1 + live palette repaint", s:[
+    "Mode: ULAplus 8×1 (Timex). Draw per-line colours; edit the palette (Image > Edit Palette…).",
+    "Also switch to plain ULAplus and edit the palette there."],
+    x:"Per-line cells + CLUT drawing both work; palette edits recolour the canvas immediately in BOTH modes (12a repaint fix)." },
+  { k:"p12b.d2", t:"Timex hi-res drawing + scheme selector", s:[
+    "Mode: Timex Hi-res 512×192. Draw with brush, a shape, fill, and place text.",
+    "Use the rail's hi-res colour-scheme selector to switch schemes."],
+    x:"Mono drawing at 512×192; scheme switches the WHOLE screen's ink/paper pair; attribute ops are hidden from the rail." },
+  { k:"p12b.d3", t:"GigaScreen sub-screen drawing", s:[
+    "Mode: GigaScreen. Note each layer's A/B badge in the Layers panel.",
+    "Draw on an A layer and a B layer (add one, click its badge to move it to B); use the Blend/A/B view toggle."],
+    x:"Drawing lands on the layer's sub-screen; Blend view shows mixed colours; A/B views isolate each." },
+  { k:"p12b.d4", t:"Giga FLASH per sub-screen", s:["Draw FLASH cells on both sub-screens; watch the blended view."],
+    x:"FLASH animates per sub-screen in the blend." },
+ ]},
+ { t:"512×192 viewport", items:[
+  { k:"p12b.v1", t:"Zoom/fit/status at 512", s:["In hi-res: click Fit, step zoom +/−, scroll around. Check the status readout."],
+    x:"All behave; status shows 512 × 192 · 8×8." },
+  { k:"p12b.v2", t:"1:1 pointer mapping", s:["Draw single-pixel diagonals near all four corners at 2–3 zoom levels."],
+    x:"No skipped or doubled pixels — pointer maps exactly." },
+  { k:"p12b.v3", t:"Selection across full width", s:["Marquee-select across the 512-px width; move, Flip H, copy/paste. Enable the 8×8 grid."],
+    x:"All selection ops work full-width; grid aligns with cells." },
+  { k:"p12b.v4", t:"256<->512 conversions", s:[
+    "Draw in Standard, switch to Timex Hi-res (warn: mono) — picture doubles horizontally and takes the scheme colours.",
+    "Draw hi-res detail, switch back (warn) — pixel pairs OR-merge to 256."],
+    x:"Both directions as documented; leaving hi-res stamps the scheme's ink/paper onto altered cells." },
+ ]},
+ { t:"GigaScreen preview + files", items:[
+  { k:"p12b.g1", t:"View toggle + badge moves", s:["Click Blend/A/B toggles rapidly; click layer badges to move layers between A and B; Ctrl+Z a badge move."],
+    x:"View switches instantly; badge moves recompose and are undoable." },
+  { k:"p12b.g2", t:"GIF flicker + PNG captures view", s:[
+    "Export GIF in GigaScreen mode; open in a browser (fast 2-frame flicker = the 102-colour illusion).",
+    "Export PNG once in Blend view, once in A view."],
+    x:"GIF flickers; each PNG captures the currently shown view." },
+  { k:"p12b.g3", t:".img round-trip + .mg import", f:"ext", s:[
+    "Export .img; re-import it (both sub-screens back).",
+    "Open a wild .img (13824 bytes) if available; open .mg files: type 8 should load, types 1/2/4 reject."],
+    x:"Round-trip intact; wild .img plausible; .mg behaves per type with localized reject." },
+  { k:"p12b.g4", t:"SCR/TAP gate in Giga", s:["In GigaScreen try File > Export… -> .scr and .tap."],
+    x:"Gated with the “save as .img” message." },
+ ]},
+ { t:"Real-program round-trips", items:[
+  { k:"p12b.r1", t:"Timex SCREEN$ 12288 <-> ZX-PB", f:"ext", s:[
+    "In Multicolor 8×1: export .scr (12288). Open in ZX-Paintbrush (Timex mode).",
+    "Save a Timex SCREEN$ from ZX-PB, import, re-export, fc /b."],
+    x:"Per-line attrs intact both ways; byte-stable re-export." },
+  { k:"p12b.r2", t:"12352 ULAplus Timex <-> ZX-PB", f:"ext", s:["Same dance in ULAplus 8×1 (Timex) mode with an edited palette (export = 12352 bytes)."],
+    x:"ZX-PB shows ULA+ active with our palette; reverse trip intact." },
+  { k:"p12b.r3", t:".ctile <-> ZX-PB", f:"ext", s:[
+    "In 8×1: select a 16-px-aligned area, Export -> .ctile. In ZX-PB (Timex mode active) open it — it asks sheet dimensions; 16 tiles/row.",
+    "Save ctiles from ZX-PB and import here."],
+    x:"Pixels + attrs intact both directions." },
+  { k:"p12b.r4", t:"Hi-res files in RECOIL", f:"ext", s:["Export 12289 .scr and .hrg from hi-res mode with a non-default scheme; open in RECOIL/recoil2png."],
+    x:"Rendered correctly; the port-byte colour scheme honoured." },
+  { k:"p12b.r5", t:".ctile alignment reject", s:["In 8×1 select a NON-16-px-aligned area and export .ctile."],
+    x:"Localized rejection message about the 16-pixel grid." },
+ ]},
+ { t:"Conversions + F5", items:[
+  { k:"p12b.c1", t:"Colour<->hi-res warnings, single undo", s:["Colour -> hi-res (warns, mono); Ctrl+Z once. Hi-res -> colour (warns, width halves); Ctrl+Z once."],
+    x:"Each direction warns and is one undo action." },
+  { k:"p12b.c2", t:"Giga entry silent, exit conditional", s:[
+    "Enter GigaScreen (silent). Leave immediately (no B content: silent).",
+    "Re-enter, put a layer on B, leave again."],
+    x:"Warning only when a B layer exists; tags clear on exit." },
+  { k:"p12b.c3", t:"ULAplus-8×1 conversion matrix", s:["ULAplus 8×1 -> ULAplus (coarsen: warns) and -> Multicolor 8×1 (palette-model change) and back."],
+    x:"Refine silent, coarsen warns, bits kept per the 12a rules." },
+  { k:"p12b.f1", t:"F5 in all eight modes", s:["In each mode (incl. hi-res with a scheme, Giga with A/B layers): draw, wait 70s, F5, restore."],
+    x:"Mode + content restored; hi-res scheme and Giga A/B tags included." },
+  { k:"p12b.f2", t:"Cross-mode clipboard for new modes", s:["Copy in hi-res, switch to GigaScreen — Paste unavailable."],
+    x:"Refused cleanly." },
+  { k:"p12b.f3", t:"New strings localized ×13", s:["ru + two of cs/hu/tr/pl: mode radios, scheme selector, Giga view row, layer badges, gate messages; 200% scale."],
+    x:"Translated, no clipping." },
+ ]},
+]},
+{ id:"p13", title:"Phase 13 — ZX Spectrum Next modes", intro:"Layer 2 / LoRes / Radastan / ULANext, RGB333 palettes, sprites, tilemaps.", subs:[
+ { t:"Drawing per mode", items:[
+  { k:"p13.d1", t:"Layer 2 256×192 index drawing", s:[
+    "Mode: Layer 2 256×192. The left rail shows the palette-index grid.",
+    "Left-click an index (ink), right-click another (background). Draw with brush/fill/shapes/spray/bezier.",
+    "Add a layer; erase on it (transparency); erase on the background layer (background index)."],
+    x:"All tools draw the selected index; eraser = transparency on upper layers, background index on the background." },
+  { k:"p13.d2", t:"320×256 and 640×256 geometry", s:[
+    "Switch to Layer 2 320×256: Fit, draw single-pixel diagonals at all corners, check grid + status readout.",
+    "Same in Layer 2 640×256 (16 colours) — check the index grid only offers 16 entries."],
+    x:"Canvas/zoom/grid/input map correctly at both; 640 mode exposes 16 palette entries." },
+  { k:"p13.d3", t:"LoRes + Radastan", s:[
+    "Mode LoRes 128×96 — canvas presents scaled up; draw, select, fill.",
+    "Mode Radastan 128×96 — index grid clamps to 16 colours."],
+    x:"Both work; Radastan is 16-colour." },
+  { k:"p13.d4", t:"ULANext classic drawing", s:[
+    "Mode ULANext: draw with ink/paper like classic; use INK/PAP cycle, Swap, Apply; tick Flash and draw."],
+    x:"Classic drawing + attr ops work; FLASH is stored but nothing animates." },
+  { k:"p13.d5", t:"Fill + select-by-colour match exact indices", s:[
+    "In Layer 2: draw an area in two similar indices; flood-fill one."],
+    x:"Fill stops exactly at the index boundary; colour-based selection selects by index." },
+  { k:"p13.d6", t:"Indexed clipboard + stamp transforms", s:[
+    "Copy a multi-index area, paste. Compare preview to committed result.",
+    "While floating: Flip H/V, rotate 90°, scale — colours kept. Try warp or arbitrary rotate — falls back to mask + current ink (documented)."],
+    x:"Exact colours through copy/paste/flip/rotate/scale; warp/arbitrary-rotate = mask+ink fallback." },
+  { k:"p13.d7", t:"Transform panel + symmetry on indices", s:[
+    "Use Transform flips/rotate/shift/scale on a selection; enable Mirror H and draw."],
+    x:"Per-pixel indices preserved; mirrored strokes carry the index." },
+  { k:"p13.d8", t:"Undo across mode + palette", s:[
+    "Edit the palette, draw, switch mode, then Ctrl+Z repeatedly back to the start."],
+    x:"Undo restores mode + content + palette registers at each step." },
+ ]},
+ { t:"Palette editing", items:[
+  { k:"p13.p1", t:"256-entry grid + reset", s:[
+    "In a Layer 2 mode: Image > Edit Palette… — a scrollable 256-entry grid (16 per row).",
+    "Edit an entry (snaps to RGB333, canvas recomposes live). Click Reset.",
+    "Also check ULAplus mode still shows the 4×16 CLUT grid."],
+    x:"Grid form per model; live recompose; Reset restores classics at 0–15/128–143 + identity ramp." },
+  { k:"p13.p2", t:"Palette undo + F5", s:["Edit registers, Ctrl+Z (reverts). Edit again, wait 70s, F5, restore."],
+    x:"Undoable; F5 restores edited registers." },
+  { k:"p13.p3", t:".pal/.npl round-trip + 8-bit form", s:[
+    "Export .pal and .npl of an edited palette; File > New; import each back.",
+    "Prepare a 256-byte 8-bit .pal; import it."],
+    x:"Round-trips exact; 8-bit form loads with blue-OR expansion." },
+ ]},
+ { t:"Sprite editor", items:[
+  { k:"p13.s1", t:"Open + draw + erase", s:[
+    "File > Sprite Editor… — draw with its tools; right-click erases to transparency."],
+    x:"Index painting works; transparency index is 0xE3 (or 0x03 at 4bpp)." },
+  { k:"p13.s2", t:"Sheet navigation + ops + depth", s:[
+    "Add several sprites, Prev/Next between them, Remove one; Flip H/V, Rotate, Clear; switch Depth 8<->4."],
+    x:"Navigation to the 64 cap; ops work; depth switch masks indices (no warning — documented destructive)." },
+  { k:"p13.s3", t:"Capture + Stamp", s:[
+    "In Layer 2 mode with art: Capture 16×16 (pulls the canvas region), then Stamp to canvas elsewhere; Ctrl+Z.",
+    "Switch to Standard ULA and try Capture again."],
+    x:"Capture/stamp work in indexed modes (stamp undoable); classic mode shows the localized gate message." },
+  { k:"p13.s4", t:".spr round-trip + emulator", f:"ext", s:[
+    "Export .spr at depth 8 and 4; re-import each.",
+    "Load the 8bpp .spr in CSpect/ZEsarUX (or NextBASIC)."],
+    x:"Round-trips intact; emulator displays the sheet correctly." },
+  { k:"p13.s5", t:"Sprite editor in classic mode", s:["Switch to Standard ULA, open the Sprite Editor, draw."],
+    x:"Works — colours resolve through the Next register file even while a classic mode is active." },
+ ]},
+ { t:"Tilemap export", items:[
+  { k:"p13.t1", t:"Next ASM/C/BIN export renders in emulator", f:"ext", s:[
+    "Build a map (Map Editor in a classic mode), Export -> the Next ASM/C/BIN options.",
+    "Prepare a CSpect/ZEsarUX test harness that loads the defs into tilemap pattern RAM with the .pal export."],
+    x:"Tiles render correctly in the emulator." },
+  { k:"p13.t2", t:">255 tiles reject / $FF empties", s:[
+    "Check exported BIN/ASM: empty cells emit $FF.",
+    "(The >255-tile reject is covered by the Node suite — confirm there and mark accordingly.)"],
+    x:"$FF for empties visible in the export; oversize reject test-covered." },
+ ]},
+ { t:"Next file round-trips", items:[
+  { k:"p13.r1", t:".nxi in RECOIL + wild import", f:"ext", s:[
+    "In Layer 2 256×192 with an edited palette: export .nxi; open in RECOIL/recoil2png or a Next image viewer.",
+    "Get a wild 49664-byte .nxi; import, re-export, fc /b."],
+    x:"Palette honoured in viewers; wild file imports intact and re-exports byte-stable." },
+  { k:"p13.r2", t:".sl2 on hardware/emulator + 81920 rule", f:"ext", s:[
+    "Export .sl2; LOAD it on Next hardware or emulator BASIC.",
+    "Export from 320×256 (81920 bytes) and import while in 320 mode, then while in 640 mode."],
+    x:"Loads correctly; 81920 resolves to 320×256 unless the document is already 640 (documented rule — verify both)." },
+  { k:"p13.r3", t:"LoRes containers + PNG quantize", s:[
+    "In LoRes and Radastan: export/import our own containers.",
+    "PNG-import a photo in each indexed mode with dithering on and off; compare dialog preview to result."],
+    x:"Round-trips work; quantization matches preview both dither settings." },
+  { k:"p13.r4", t:"Classic exports gate in indexed modes", s:[
+    "In Layer 2: try exporting .scr, .tap, .mlt, .zed, .sev, GIF, dev dumps.",
+    "Also export PNG and BMP."],
+    x:"Classic formats show localized gate messages; PNG/BMP still capture the canvas." },
+  { k:"p13.r5", t:"ULANext = plain .scr + .pal pair", f:"ext", s:[
+    "In ULANext with an edited palette: export .scr (6912) and .pal.",
+    "Load the pair in an emulator/viewer that supports ULANext palettes."],
+    x:"The pair reproduces the picture elsewhere." },
+ ]},
+ { t:"Mode conversions", items:[
+  { k:"p13.c1", t:"Classic -> indexed", s:[
+    "Draw colourful classic art (multiple layers, some cells untouched on the upper layer). Switch to Layer 2 256×192 (warns)."],
+    x:"Appearance preserved (classics land on slots 0–15); unaltered upper-layer cells stay transparent." },
+  { k:"p13.c2", t:"Indexed -> classic + indexed<->indexed", s:[
+    "Draw many-coloured indexed art; switch to Standard ULA (warns) — each 8×8 tile re-quantizes to 2 colours.",
+    "Also try Layer 2 256 -> 320 (pad), 320 -> 256 (crop), 256 -> LoRes (÷2), LoRes -> 256 (×2), 8bpp -> Radastan (16-entry remap)."],
+    x:"All follow the documented rules (top-left crop/pad, exact-2× resample, palette-window remap)." },
+  { k:"p13.c3", t:"STANDARD <-> ULANEXT silent + lossless", s:["With an UNEDITED palette: switch Standard -> ULANext -> Standard."],
+    x:"No warnings either way; visually identical throughout." },
+  { k:"p13.c4", t:"Cell-bound gates in indexed modes", s:[
+    "In Layer 2: try font Capture Cell, map Render/Capture, pattern capture, attr ops (should be hidden), ctile export."],
+    x:"Each gates with a localized message (or is hidden); nothing corrupts." },
+ ]},
+ { t:"F5 persistence", items:[
+  { k:"p13.f1", t:"F5 in all six Next modes", s:[
+    "In each: Layer 2 256/320/640, LoRes, Radastan, ULANext — draw (edit palette in one), wait 70s, F5, restore."],
+    x:"Mode + content + registers restored; the ink/background drawing indices reset to defaults (tool state — documented)." },
+  { k:"p13.f2", t:"Indexed clipboard across F5", s:[
+    "Copy indexed art, F5, paste in the same mode (works, colours exact). Switch to a classic mode — Paste unavailable."],
+    x:"Indexed clipboard restores with indices; cross-mode refused." },
+  { k:"p13.f3", t:"Next strings localized ×13", s:["ru + two of cs/hu/tr/pl at 100% + 200% scale: mode radios, palette editor, sprite editor, index grid, gate messages."],
+    x:"Translated, no clipping." },
+ ]},
+]},
+
+{ id:"tp", title:"Tool presets (2026-08-07)", intro:"Per-tool named settings: the Save/Load row at the foot of Tool Options, and the Presets panel under it. Everything the automated suites can reach is already discharged in TESTLOG — what is here is the visual, the hardware and the scale.", subs:[
+ { t:"Reading and hitting the controls", items:[
+  { k:"tp.r1", t:"The row reads in every language, at every scale", s:[
+    "Pick the Brush so the Save/Load row is showing.",
+    "Set the interface size selector to 300%.",
+    "Switch language through ru, then two of cs / hu / tr / pl (the long-word languages).",
+    "Look at the \"Load preset...\" list and the \"Save preset...\" button, and at the Presets panel heading below them."],
+    x:"Every label is translated and fully visible — nothing clipped, nothing overlapping, no text pushed outside its control." },
+  { k:"tp.r2", t:"A long preset name does not wreck the row", f:"hw", s:[
+    "Save a preset and give it the longest name the field will take (48 characters).",
+    "Look at its row in the Presets panel."],
+    x:"The name ellipsises inside its own button; the rename and delete icons stay put at the right-hand end and are still reachable." },
+  { k:"tp.r3", t:"Pen and finger can work the panel", f:"hw", s:[
+    "On a touchscreen or with a pen, in the Presets panel: tap a preset name to load it, then tap the rename icon, then the delete icon."],
+    x:"All three are comfortable targets (the icons grow to 44px under a coarse pointer); nothing needs a second attempt or a fingernail." },
+ ]},
+ { t:"Behaviour in the flow", items:[
+  { k:"tp.b1", t:"The Presets panel remembers being collapsed", s:[
+    "Collapse the Presets panel with its header button.",
+    "Press F5. If a restore prompt appears choose No."],
+    x:"It comes back collapsed, like the other sidebar panels." },
+  { k:"tp.b2", t:"Loading mid-drawing disturbs nothing else", s:[
+    "Set up a colour, a draw mode and a zoom you would notice changing.",
+    "Save a brush preset, change the brush, then load the preset back — while a drawing is in progress."],
+    x:"The brush changes and nothing else does: same ink and paper, same draw mode, same zoom and scroll position, same reference image. (Automated too — this is the one to trust your own eyes on.)" },
+  { k:"tp.b4", t:"A reference preset over a DIFFERENT loaded photo", s:[
+    "Load a photo, place it, and save it as a reference preset.",
+    "Load a second, visibly different photo and drag it somewhere else.",
+    "Zoom in to 400% or more, then load the first preset back."],
+    x:"The first photo returns at its own offset and scale in one step. By design the placement is applied before the image, so watch for a flash of the OLD picture at the NEW offset — there should not be one." },
+  { k:"tp.b5", t:"A real photo, not a test pixel", s:[
+    "Load a genuine reference photo of several MB, place it, save it as a preset.",
+    "Press F5, choose No at any restore prompt, then load the preset."],
+    x:"It saves without complaint and comes back displaying correctly. The automated coverage uses a 2x2 PNG, so this is the only test of the real size through IndexedDB." },
+  { k:"tp.b6", t:"The Reference panel's preset row reads in every language", s:[
+    "Interface size 300%, then switch through ru and two of cs / hu / tr / pl.",
+    "Read the Load/Save row and the preset list in the Reference panel."],
+    x:"Translated and unclipped, the same as the Tool Options row." },
+  { k:"tp.l1", t:"The library stays scannable across many tools", s:[
+    "Save presets on five or more different tools (brush, spray, eraser, fill, text...).",
+    "Read down the Presets panel."],
+    x:"The tool line reads first on every row, the settings line wraps to at most two lines and ellipsises rather than growing the row, and you can find the one you want by scanning rather than by hovering each in turn." },
+  { k:"tp.l2", t:"The settings line in every language", s:[
+    "With several presets saved, set interface size to 300%.",
+    "Switch through ru and two of cs / hu / tr / pl."],
+    x:"Every option label and every select value on the settings line is translated - no raw keys like \"opt.size\", no English left in - and the longer localized lines still clamp to two lines instead of pushing the icon buttons out." },
+  { k:"tp.l3", t:"The name on hover", s:[
+    "Hover a preset row and wait.",
+    "Try it in the dark theme and in light/sepia."],
+    x:"The name you gave the preset appears promptly and is legible against the row in every theme." },
+  { k:"tp.b3", t:"A full list still reads", s:[
+    "Save 20 or more presets for one tool (any names).",
+    "Look at the Presets panel and the Load list.",
+    "In DevTools console: JSON.stringify(await Storage.get('tool:brush','tool-presets')).length"],
+    x:"The panel scrolls with the sidebar and stays readable; the Load list is usable. Record the byte figure — the 64 KB cap was computed from a ~400-byte brush capture, so a real full list is the measurement that confirms it." },
+ ]},
+]},
+
+{ id:"pal", title:"Palette as a document (2026-08-07)", intro:"The palette load/save/generate controls in Image > Edit Palette... and on the File menu. Switch to ULAplus or a Layer 2 mode first - the palette is only editable there. Everything the suites can reach is already discharged in TESTLOG; these are the interop, the judgement and the localisation.", subs:[
+ { t:"Real programs", items:[
+  { k:"pal.x1", t:"A palette we wrote loads elsewhere", f:"ext", s:[
+    "In ULAplus mode, edit a few colours so the palette is recognisable, then Image > Edit Palette... > Save...",
+    "Load that .pal into ZX-Paintbrush (or another ULAplus-aware tool).",
+    "Then save a palette FROM that program and load it back here."],
+    x:"Both directions work and the colours match. The 64-byte form is per RECOIL and the ZX-Modules tables, but no real-program interop has ever been run - if it fails, record the exact bytes each side wrote." },
+  { k:"pal.x2", t:"A Next palette in Next tooling", f:"ext", s:[
+    "In a Layer 2 mode, Save... as .pal (512-byte form), then again as .npl (513-byte).",
+    "Load each into CSpect/ZEsarUX or a Next palette tool."],
+    x:"Both are accepted and show our colours; the .npl trailing transparency index ($E3) is honoured rather than read as a 257th colour." },
+ ]},
+ { t:"Judgement", items:[
+  { k:"pal.j1", t:"Build from image, on a real photograph", s:[
+    "In ULAplus: Image > Edit Palette... > From image..., choose a real photo (a portrait and a landscape are different tests).",
+    "Repeat in a Layer 2 256-colour mode."],
+    x:"The resulting palette is one you would actually paint that photo with. The automated checks only prove the entries are legal registers and that a flat image yields its own colour - whether the spread is USEFUL is a human call." },
+  { k:"pal.j2", t:"The ramp makes a usable shading run", s:[
+    "Set one entry to a dark shade and another eight or so along to a light one, then Ramp: From / To / Blend."],
+    x:"The steps read as an even gradient rather than as separate colours. On the 8-levels-per-channel grid some steps will repeat - note if a run is visibly lumpy rather than merely coarse." },
+  { k:"pal.j3", t:"Palette rows read in every language", s:[
+    "Interface size 300%, then ru and two of cs / hu / tr / pl, with the palette editor open."],
+    x:"Palette file / Build / Ramp labels and the From/To number inputs are translated, unclipped and still usable. The CLUT row labels read \"CLUT 0..3\" with real numbers, not \"{n}\"." },
+ ]},
+]},
+];
+
+/* ── 2026-07-08 automation pass (tests/TESTLOG.md legend) ─────────────────
+   AUTO: fully covered by the Playwright browser suite (npm run test:browser)
+   or an existing Node suite — folded into a per-section summary line below,
+   excluded from progress; nothing for a human to do.
+   PART: the logic half is automated — the banner text is the ONLY thing
+   left to verify by hand. Keys map onto TESTLOG rows by text — TESTLOG rows
+   carry no ids, so nothing enforces the mapping and the two tallies drift
+   whenever rows are added on one side only (they last did, by five pen rows,
+   between 2026-08-05 and 2026-08-07). */
+const AUTO = new Set([
+  "p4.c2","p4.c3","p4.c4","p4.c5","p4.c6","p4.d1","p4.d2","p4.a5",
+  "p4.m2","p4.m3","p4.m4","p4.m6",
+  "p5.m1","p5.m2","p5.m3","p5.m5","p5.m6","p5.m9",
+  "p5.k1","p5.k2","p5.k3","p5.k4","p5.k6","p5.k8","p5.k9","p5.k10",
+  "p6.l1","p6.l2","p6.l4","p6.l5","p6.t1","p6.t2","p6.t4",
+  "p7.a1","p7.a2","p7.a4","p7.a5","p7.n2","p7.n3","p7.g3",
+  "p8.s2","p8.s3","p8.s4","p8.s5","p8.i1","p8.i4",
+  "p9.g5","p9.c1",
+  "p10.g3","p10.g4","p10.w2","p10.w3","p10.p1",
+  "p11.u4","p11.b3","p11.s3","p11.p1",
+  "p12a.m1","p12a.m2","p12a.m3","p12a.m4","p12a.m5","p12a.u1","p12a.f1",
+  "p12b.v4","p12b.g4","p12b.r5","p12b.c2","p12b.c3","p12b.f1",
+  "p13.d5","p13.d7","p13.d8","p13.p2","p13.t2","p13.c1","p13.c2","p13.c3","p13.f1"
+]);
+const PART = {
+  "p4.l1": "panel-button ops, rename via double-click, lock/visibility (menu add/duplicate/delete/flatten are automated)",
+  "p4.l2": "the stamp-list row controls — engage/release/XOR/commit/delete (paste->stamp->commit is automated)",
+  "p4.l3": "the Transform panel UI: stamp scale/rotate/warp while floating + the image rotate slider's single undo (flips + shift semantics are automated)",
+  "p4.m1": "New/Open/Save/Save-As through the native dialogs (menu contents + Export dialog are automated)",
+  "p4.m5": "Reset All reloads clean (the Preferences dialog itself is automated)",
+  "p5.m7": "the drag paints attributes cell-by-cell with ONE undo entry per drag (engage + Esc exit are automated)",
+  "p5.p4": "that a real barrel press reaches the page at all, and as which bit — use Preferences > Pen > Pen check (the routing for every assignable action is automated with synthetic pen events: browser input-pen.spec)",
+  "p5.p5": "real inverted-pen contact (the buttons & 32 routing is automated: browser input-pen.spec)",
+  "p5.p8": "a real tail on real hardware (the size match against the eraser tool is automated with synthetic bits: browser input-pen.spec)",
+  "p5.p10": "real inverted-pen contact on a magnified grid (the button decoding is automated: browser editors.spec)",
+  "p5.k7": "the full Escape cascade order: stroke -> floating stamp -> special modes -> selection -> brush (F1 dialog + stamp/attr-mode Escape are automated)",
+  "p6.l3": "tool-options labels/hints re-translate for the current tool (reopened dialogs are automated)",
+  "p6.t5": "Reset All Preferences returns the theme to dark (F5 persistence is automated)",
+  "p7.q2": "the live preview look while dragging (the committed rasters are byte-tested in Node)",
+  "p8.b1": "rail position between Shape and Gradient + localized tooltip (the C shortcut is automated)",
+  "p8.t1": "the live stamp preview matches the committed result (rotation math is Node-tested)",
+  "p8.t2": "the in-canvas look (shadow/outline pixel math is Node-tested)",
+  "p8.t3": "effects surviving drag/scale/warp in the live UI (the mask-ops chain is Node-tested)",
+  "p8.i2": "the preview visibly updates as you move each control (the maths are Node-tested, control presence automated)",
+  "p8.i3": "OK imports exactly what the preview showed (Cancel-aborts-untouched is automated)",
+  "p9.g4": "the exported GIF flickers at ~320 ms/phase in an external viewer (two-frame structure is byte-tested)",
+  "p9.t4": "the saved tape loads in Fuse/ZEsarUX (byte-identity of unmodified tapes is Node-tested)",
+  "p9.c2": "a full browser restart — quit and reopen (reload survival is automated)",
+  "p10.g1": "grid selection highlight + code label updates (opening onto the working font is automated)",
+  "p10.w1": "the editing surface visibly narrows/widens (crop/expose semantics are Node-tested)",
+  "p11.u1": "From Pattern and Capture Screen produce correct thumbnails (open + New Tile are automated)",
+  "p11.u3": "the drag/right-button/pick gestures in the dialog (paint/erase/fill semantics are Node-tested)",
+  "p11.b2": "capture lands at the scrolled origin (byte-dedup is Node-tested)",
+  "p12a.m6": "Map Editor + gated exports show their localized messages in multicolor modes (paste cancellation is automated)",
+  "p12a.u2": "the native colour picker opens and picked values snap to G3R3B2; Reset restores defaults (grid, undoable edit + live recompose are automated)",
+  "p12a.u3": "the on-canvas look: per-CLUT colours, nothing flashes (CLUT resolution is Node-tested)",
+  "p12a.u4": "the visual richness vs the 16-colour import + ONE undo removing pixels AND palette (palette generation is Node-tested)",
+  "p12a.f2": "the Paste menu item is disabled rather than corrupting (codec rejection is Node-tested)",
+  "p12a.f4": "dialog + gate strings per locale (the main-chrome clip sweep is automated)",
+  "p12b.d1": "drawing in the 8×1 ULAplus variant (live palette repaint in plain ULAplus is automated)",
+  "p12b.d2": "brush/shapes/fill/text drawing feel + the scheme recompose look (512 geometry, selector + hidden attr ops are automated)",
+  "p12b.d3": "the blend view shows mixed colours; A/B views isolate sub-screens visually (tags, badges + view API are automated)",
+  "p12b.v1": "zoom/scroll feel at 512 (geometry + status readout are automated)",
+  "p12b.g2": "the flicker in a viewer + PNG/BMP capturing the shown view (2-frame GIF structure is byte-tested)",
+  "p12b.g3": "wild .img/.mg files from the net (our round-trips + type gates are Node-tested)",
+  "p12b.c1": "hi-res -> colour warns and both directions are single-undo in the UI (colour->hi-res warn + conversion math are automated)",
+  "p12b.f2": "the Paste menu state in the flow (codec rejection is Node-tested)",
+  "p12b.f3": "mode-specific strings per locale (the chrome sweep is automated)",
+  "p13.d1": "index-grid picks: left-click = ink index, right-click = background; per-tool drawing feel (index writes + draw-mode semantics are automated)",
+  "p13.d2": "single-pixel diagonals at the corners + 640 exposing only 16 palette entries (mode entry, drawing + F5 are automated)",
+  "p13.d3": "the scaled-up presentation + Radastan's 16-colour clamp in the UI (mode entry, drawing + F5 are automated)",
+  "p13.d4": "attribute ops still work + FLASH stores but nothing flashes (drawing + the lossless round-trip are automated)",
+  "p13.d6": "stamp preview matches commit + the documented warp/arbitrary-rotate fallback (indexed clipboard payloads + grid transforms are Node-tested)",
+  "p13.p1": "Reset restores the documented defaults + picker snapping in the UI (both grids + live recompose are automated)",
+  "p13.p3": "through the real export/import file flow (byte round-trips incl. the blue-OR form are Node-tested)",
+  "p13.s1": "drawing gestures inside the dialog (open + the sheet model are automated)",
+  "p13.s2": "the nav buttons UX (cap, ops + depth masking are automated)",
+  "p13.s3": "via the dialog buttons (capture/stamp bridges + gates are Node-tested)",
+  "p13.s4": "CSpect/ZEsarUX display our sheets (round-trips at both depths are Node-tested)",
+  "p13.t1": "the defs render in Next tilemap pattern RAM (tile-def bytes are Node-tested)",
+  "p13.r4": "PNG/BMP export captures the indexed canvas correctly (the gates are Node-tested)",
+  "p13.c4": "the localized message wording in each dialog (the gates themselves are Node-tested)",
+  "p13.f2": "the Paste menu state in the flow (codec + idx payloads are Node-tested)",
+  "p13.f3": "mode-specific strings per locale (the chrome sweep is automated)"
+};
+
+const store = {
+  key: "zx-manual-checklist-v1",
+  data: {},
+  load() { try { this.data = JSON.parse(localStorage.getItem(this.key)) || {}; } catch (e) { this.data = {}; } },
+  save() { localStorage.setItem(this.key, JSON.stringify(this.data)); },
+  set(k, status, note) {
+    if (!this.data[k]) this.data[k] = {};
+    if (status !== undefined) {
+      if (this.data[k].status === status) delete this.data[k].status; // click again = clear
+      else this.data[k].status = status;
+    }
+    if (note !== undefined) this.data[k].note = note;
+    if (!this.data[k].status && !this.data[k].note) delete this.data[k];
+    this.save();
+  },
+};
+store.load();
+
+const root = document.getElementById("root");
+const toc = document.getElementById("toc");
+const allItems = [];
+
+for (const phase of S) {
+  const ph = document.createElement("section");
+  ph.className = "phase"; ph.id = phase.id;
+  ph.innerHTML = `<h2>${phase.title}</h2><p class="phase-intro">${phase.intro}</p>`;
+  const a = document.createElement("a");
+  a.href = `#${phase.id}`; a.textContent = phase.title.split("—")[0].trim();
+  toc.appendChild(a);
+  for (const sub of phase.subs) {
+    const sd = document.createElement("div");
+    sd.className = "sub";
+    sd.innerHTML = `<h3>${sub.t}</h3><div class="sub-progress"></div>`;
+    const autoDone = [];
+    for (const it of sub.items) {
+      if (AUTO.has(it.k)) { autoDone.push(it); continue; }
+      allItems.push(it);
+      const div = document.createElement("div");
+      div.className = "item"; div.dataset.k = it.k;
+      const badge = it.f === "ext" ? '<span class="badge">EXTERNAL TOOL</span>'
+                  : it.f === "hw" ? '<span class="badge">HARDWARE</span>' : "";
+      const part = PART[it.k]
+        ? `<div class="part-banner"><b>Partially automated - only verify:</b> ${PART[it.k]}</div>` : "";
+      div.innerHTML = `
+        <h4><span class="k">${it.k}</span> ${it.t} ${badge}</h4>
+        ${part}
+        <ol class="steps">${it.s.map(s => `<li>${s}</li>`).join("")}</ol>
+        <div class="expect"><b>Expected:</b> ${it.x}</div>
+        <div class="verdict">
+          <button data-v="pass">Pass</button>
+          <button data-v="fail">Fail</button>
+          <button data-v="deferred">⏭ Deferred</button>
+        </div>
+        <textarea class="note" placeholder="Notes (required for Fail — describe exactly what you saw)"></textarea>`;
+      sd.appendChild(div);
+    }
+    if (autoDone.length) {
+      const ad = document.createElement("div");
+      ad.className = "auto-done";
+      ad.innerHTML = `<b>${autoDone.length} automated</b> — covered by the test suites, nothing to do: `
+        + autoDone.map(i => `<span class="k">${i.k}</span> ${i.t}`).join(" · ");
+      sd.appendChild(ad);
+    }
+    ph.appendChild(sd);
+  }
+  root.appendChild(ph);
+}
+
+function paint(div) {
+  const k = div.dataset.k, st = (store.data[k] || {}).status;
+  div.classList.remove("pass", "fail", "deferred");
+  if (st) div.classList.add(st);
+  for (const b of div.querySelectorAll(".verdict button")) {
+    b.className = (b.dataset.v === st) ? `on-${st}` : "";
+  }
+  const note = div.querySelector(".note");
+  if (document.activeElement !== note) note.value = (store.data[k] || {}).note || "";
+}
+function refreshProgress() {
+  let done = 0, fail = 0, def = 0;
+  for (const it of allItems) {
+    const st = (store.data[it.k] || {}).status;
+    if (st === "pass") done++; else if (st === "fail") fail++; else if (st === "deferred") def++;
+  }
+  document.getElementById("totalProgress").innerHTML =
+    `<b>${done + fail + def}</b> / ${allItems.length} answered · <b style="color:var(--ok)">${done} pass</b> · <b style="color:var(--bad)">${fail} fail</b> · <b style="color:var(--def)">${def} deferred</b>`;
+  for (const sd of document.querySelectorAll(".sub")) {
+    const items = sd.querySelectorAll(".item");
+    let a = 0;
+    for (const d of items) if ((store.data[d.dataset.k] || {}).status) a++;
+    sd.querySelector(".sub-progress").textContent = `${a} / ${items.length} answered`;
+  }
+}
+root.addEventListener("click", (e) => {
+  const b = e.target.closest(".verdict button");
+  if (!b) return;
+  const div = b.closest(".item");
+  store.set(div.dataset.k, b.dataset.v);
+  paint(div); refreshProgress();
+});
+root.addEventListener("input", (e) => {
+  if (!e.target.classList.contains("note")) return;
+  const div = e.target.closest(".item");
+  store.set(div.dataset.k, undefined, e.target.value);
+});
+function results() {
+  return JSON.stringify({
+    checklist: "zx-manual-consolidated-pass",
+    exportedAt: new Date().toISOString(),
+    answered: Object.keys(store.data).length,
+    total: allItems.length,
+    automatedDischarged: AUTO.size,
+    items: store.data,
+  }, null, 2);
+}
+document.getElementById("exportBtn").addEventListener("click", () => {
+  const blob = new Blob([results()], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "checklist-results.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+document.getElementById("copyBtn").addEventListener("click", async (e) => {
+  try { await navigator.clipboard.writeText(results()); e.target.textContent = "Copied!"; }
+  catch { e.target.textContent = "Copy failed — use Export"; }
+  setTimeout(() => e.target.textContent = "Copy results", 1500);
+});
+for (const d of document.querySelectorAll(".item")) paint(d);
+refreshProgress();
+</script>
+</body>
+</html>

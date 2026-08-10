@@ -1,0 +1,20 @@
+node_modules/
+test-results/
+playwright-report/
+
+# Contained/portable builds of the app (a generated duplicate of index.html +
+# css/ + js/, plus the single-file build inside it). Regenerate with
+# `npm run build:portable`; not tracked.
+PixULA_Micro/
+
+# Stale root-level copy of the inline build; the real one is
+# PixULA_Micro/PixULA_Inline/, written by tools/build-portable.js
+/PixULA_Inline/
+
+# Bench inputs are the user's own images, not repo content
+docs/bench-images/*
+!docs/bench-images/README.md
+
+# Stray tracked copy of the generated portable build (PixULA_Micro/ above
+# is already ignored as the source of truth; this zip duplicated it).
+/PixULA_Micro.zip

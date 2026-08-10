@@ -1,0 +1,421 @@
+@layer layout {
+/**
+ * Layout - Grid and Structure
+ * PixULA
+ */
+
+/* The page itself never scrolls — the app fills the viewport exactly and
+   scrolling lives ONLY inside the regions that own it (#toolbar, #panels,
+   #canvas-viewport). Anything that would overflow the page (fractional
+   `zoom` rounding, transient off-screen nodes) is clipped instead of
+   surfacing as a browser scrollbar. */
+html,
+body {
+    height: 100%;
+    overflow: hidden;
+}
+
+/* Main Application Grid */
+#app {
+    display: grid;
+    grid-template-areas:
+        "header   header   header"
+        "toolbar  colorbar panels"
+        "toolbar  canvas   panels"
+        "status   status   status";
+    /* Fixed tracks scale with --ui-scale so the chrome regions (which are
+       `zoom`-scaled by the same factor) get the room their content needs.
+       The colour bar row is `auto` — sized to its content — and only spans
+       the canvas column between the two rails. The 1fr canvas row takes the
+       remaining space. */
+    grid-template-rows: calc(var(--header-height) * var(--ui-scale)) auto 1fr calc(var(--status-height) * var(--ui-scale));
+    grid-template-columns: calc(var(--toolbar-width) * var(--ui-scale)) 1fr calc(var(--panel-width) * var(--ui-scale));
+    /* 100% (not 100vh): body's height chain is pinned to the real viewport
+       above, and 100vh can exceed it on mobile UA chrome. */
+    height: 100%;
+    overflow: hidden;
+}
+
+/* UI scale: `zoom` uniformly scales every descendant (text, icons, swatches,
+   spacing, borders) of each chrome region. The canvas viewport/iframe is
+   deliberately excluded so the drawing surface and its coordinate math are
+   never affected — the canvas has its own separate zoom control. */
+#header,
+#toolbar,
+#color-bar,
+#panels,
+#status-bar,
+#canvas-controls {
+    zoom: var(--ui-scale);
+}
+
+#header {
+    grid-area: header;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 var(--space-md);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    z-index: var(--z-header);
+}
+
+#toolbar {
+    grid-area: toolbar;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+    overflow-y: auto;
+    z-index: var(--z-toolbar);
+}
+
+/* Top colour bar — spans the canvas column only (between the two rails),
+   directly under the header. Scrolls sideways if the active mode's palette is
+   wider than the canvas column (e.g. the 256-entry indexed palettes).
+
+   ONE row while it fits; a second only when the width genuinely runs out —
+   which the screen mode (a 256-entry indexed palette is far wider than a
+   16-colour one), the window and the interface-size setting all decide, so it
+   is not a thing to fix in advance. The bar earns its height rather than
+   spending it.
+
+   WHERE it breaks is fixed, though: the palette (#toolbar-color) and the
+   controls (#color-bar-controls) are DOM groups that wrap as whole units, so
+   the second row is always "the controls", never half a cluster. Before that
+   grouping the draw modes moved to a different place whenever the active mode
+   changed the palette's width. */
+#color-bar {
+    grid-area: colorbar;
+    display: flex;
+    flex-direction: row;
+    /* WRAP, never scroll out of sight: on a narrow window the last cluster —
+       the global draw-mode selector — would otherwise sit off the right edge
+       behind an auto-hiding scrollbar. A mode you cannot see is a trap: leave
+       it on Paper Recolour and every tool silently paints paper on paper,
+       which reads as "the app is broken". */
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--space-sm) var(--space-lg);
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    overflow-x: auto;
+    overflow-y: hidden;
+    z-index: var(--z-toolbar);
+}
+
+/* The two groups GROW into whatever width is left over, and SHRINK when there
+   is none — but only the swatch cluster ever gives, by scrolling its own
+   overflow. Nothing is squashed: swatches and icon cells are all no-shrink
+   inside their clusters. The sizing itself is in css/components.css beside the
+   .toolbar-section rule it has to beat (later @layer wins over specificity). */
+
+/* The marks group: Swap and Recolour inline with the draw modes, one run at
+   one pitch. It rides beside the colour group while there is room and drops
+   below as one piece when there is not. Its icons share the width evenly —
+   see the flex-basis on the cells in css/components.css. */
+#color-bar-controls {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--space-sm) 0;
+}
+
+
+/* A mode with no attribute bits leaves #colour-bits empty; without this it
+   would still spend a --space-lg gap on nothing. */
+#color-bar .toolbar-section:empty {
+    display: none;
+}
+
+#canvas-area {
+    grid-area: canvas;
+    display: flex;
+    flex-direction: column;
+    /* Match the surrounding panels/toolbar so the canvas viewport
+       reads as a single themed surface rather than a lighter island. */
+    background: var(--bg-secondary);
+    overflow: hidden;
+}
+
+/* Wrapper for canvas-container to enable centering. Its own theme background
+   keeps the thin frame around the iframe on the UI theme colour — the selected
+   ZX border colour lives INSIDE the iframe (the mirrored body backdrop), not
+   in this padding. */
+#canvas-viewport {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+    padding: var(--space-md);
+    background: var(--bg-secondary);
+}
+
+#panels {
+    grid-area: panels;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-sm);
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border-color);
+    overflow-y: auto;
+    z-index: var(--z-panels);
+}
+
+/* Sidebar section order — most common use first.
+   Creation order in app.js _initUI is the canonical order (Layers (with Stamps
+   nested) -> Tool Options -> Transform -> Reference), so keyboard/AT order matches
+   the visual order without flex `order` overrides. All panels stack and scroll
+   together inside #panels (no sticky/fixed sections — panels must never
+   overlap or slide behind one another). */
+
+#status-bar {
+    grid-area: status;
+    display: flex;
+    gap: var(--space-lg);
+    padding: 0 var(--space-md);
+    align-items: center;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+/* Canvas iframe */
+#canvas-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: transparent;
+}
+
+/* Canvas Controls */
+#canvas-controls {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+}
+
+#zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+/* min-width/min-height, not width/height: the +/- buttons stay square, but
+   the text-bearing Fit button must grow with its localised label — including
+   VERTICALLY when it wraps at large font scales (UI-schema: labels never clip) */
+#zoom-controls button {
+    min-width: 28px;
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 var(--space-xs);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-weight: var(--font-weight-bold);
+    transition: background var(--transition-fast);
+}
+
+#zoom-controls button:hover {
+    background: var(--bg-hover);
+}
+
+#zoom-level {
+    min-width: 70px;
+    height: 28px;
+    padding: 0 var(--space-xs);
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+#zoom-level:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-hover);
+}
+
+#zoom-level:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+#grid-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    justify-self: center;
+}
+
+#grid-controls .control-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-right: var(--space-xs);
+}
+
+.grid-toggle {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--font-size-sm);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.grid-toggle:hover {
+    background: var(--bg-hover);
+}
+
+.grid-toggle[aria-pressed="true"] {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: #fff;
+}
+
+#canvas-info {
+    display: flex;
+    gap: var(--space-md);
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    justify-self: end;
+    font-variant-numeric: tabular-nums;
+}
+
+#cursor-position,
+#cell-position {
+    display: inline-block;
+    text-align: right;
+}
+
+/* Responsive Breakpoints */
+
+/* Tablet: Collapse panels to slide-out drawer */
+@media (max-width: 1024px) {
+    #app {
+        grid-template-areas:
+            "header   header"
+            "toolbar  colorbar"
+            "toolbar  canvas"
+            "status   status";
+        grid-template-rows: calc(var(--header-height) * var(--ui-scale)) auto 1fr calc(var(--status-height) * var(--ui-scale));
+        grid-template-columns: calc(var(--toolbar-width) * var(--ui-scale)) 1fr;
+    }
+
+    #panels {
+        position: fixed;
+        right: -280px;
+        top: var(--header-height);
+        bottom: var(--status-height);
+        width: 280px;
+        transition: right 0.3s ease;
+        box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
+    }
+
+    #panels.visible {
+        right: 0;
+    }
+
+    /* Add panel toggle button in header */
+    .panel-toggle-btn {
+        display: flex;
+    }
+}
+
+/* Small tablet / large phone */
+@media (max-width: 768px) {
+    #app {
+        /* Room for the 2-wide tool grid + the vertical scrollbar. */
+        --toolbar-width: 120px;
+    }
+
+    #panels {
+        width: 240px;
+        right: -240px;
+    }
+
+    #panels.visible {
+        right: 0;
+    }
+
+    #toolbar {
+        padding: var(--space-xs);
+    }
+
+    .tool-btn {
+        width: 32px;
+        height: 32px;
+    }
+
+    #status-bar {
+        gap: var(--space-sm);
+        font-size: 10px;
+    }
+
+    #canvas-info {
+        display: none;
+    }
+}
+
+/* Hide panel toggle button on larger screens */
+@media (min-width: 1025px) {
+    .panel-toggle-btn {
+        display: none;
+    }
+}
+
+/* Accessibility: skip-to-canvas link, hidden until keyboard-focused */
+.skip-link {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: var(--z-loading);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--accent-primary);
+    color: #fff;
+    border-radius: 0 0 var(--radius-sm) 0;
+    transform: translateY(-200%);
+    transition: transform var(--transition-fast);
+}
+
+.skip-link:focus {
+    transform: translateY(0);
+    outline: 2px solid #fff;
+}
+
+/* Baseline visible keyboard focus for controls that don't define their own. */
+a:focus-visible,
+select:focus-visible,
+input:focus-visible,
+[role="radio"]:focus-visible,
+[role="button"]:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+
+/* ZX border preview: while the Border dropdown has a colour selected,
+   #canvas-area takes the document's border colour (set by BorderControl via
+   --zx-border-preview). It sits behind #canvas-viewport's theme background, so
+   it isn't directly visible — it's the source CanvasSystem.syncBackdropColor
+   mirrors into the iframe body. Without the class it stays the theme colour. */
+#canvas-area.border-preview {
+    background-color: var(--zx-border-preview);
+}
+}

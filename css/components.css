@@ -1,0 +1,2978 @@
+@layer components {
+/**
+ * Components — one section per component, tokens only (css/variables.css).
+ * PixULA. No palette hex values here: document colours come from
+ * the --zx-N tokens ColorManager publishes; UI colours from theme tokens.
+ */
+
+/* ===== Menu bar ===== */
+
+#menu-bar {
+    display: flex;
+    align-items: stretch;
+    height: 100%;
+}
+
+.menu-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 0 var(--space-sm);
+    cursor: pointer;
+    user-select: none;
+}
+
+.menu-item:hover,
+.menu-item.active {
+    background: var(--bg-hover);
+}
+
+.menu-label {
+    font-size: var(--font-size-md);
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.menu-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 220px;
+    display: none;
+    flex-direction: column;
+    padding: var(--space-xs) 0;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    box-shadow: var(--glass-shadow);
+    z-index: var(--z-dropdown);
+}
+
+.menu-dropdown.visible {
+    display: flex;
+}
+
+.menu-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: var(--space-xs) var(--space-md);
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.menu-action:hover {
+    background: var(--bg-hover);
+}
+
+.menu-action.disabled {
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.menu-action.menu-toggle::before {
+    content: '';
+    display: inline-block;
+    width: 1em;
+    flex: 0 0 1em;
+}
+
+.menu-action.menu-toggle.checked::before {
+    content: 'yes';
+    color: var(--accent-primary);
+}
+
+.menu-shortcut {
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+}
+
+.menu-separator {
+    height: 1px;
+    margin: var(--space-xs) 0;
+    background: var(--border-color);
+}
+
+/* ===== Header controls ===== */
+
+#header-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+#header-controls select {
+    padding: 2px var(--space-xs);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+}
+
+.header-tts {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+/* ===== Left-rail Ink / Paper preview =====
+   The live selection wells sit at the very top of the tool rail, each under
+   its localised label, and are separated from the tool buttons by a rule.
+   Built once by ClutBar (#color-preview) — mode-independent. */
+#color-preview {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-xs);
+    width: 100%;
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--border-color);
+}
+
+#color-preview .color-cell {
+    gap: 3px;
+}
+
+#color-preview .color-cell span {
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+}
+
+#color-preview .clut-preview {
+    width: 100%;
+    min-height: 0;
+}
+
+/* ===== Tool rail ===== */
+
+#tool-rail {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    width: 100%;
+    align-items: center;
+}
+
+.tool-group {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    /* Even both ways: the buttons are a plain grid of icons, and an uneven gap
+       would imply a grouping the rows do not have. What separates one family
+       from the next is its printed heading, not a rule. */
+    gap: var(--space-xs);
+    width: 100%;
+}
+
+/* The group's name, spanning both columns above its buttons. Small, spaced and
+   in the secondary colour: it has to be readable at a glance while scanning the
+   rail, but it must never compete with the icons it labels — the artist is
+   looking for a tool, and reads the heading only when the icon is not obvious.
+   `h2` because the rail is a labelled region of the page, not a paragraph. */
+.tool-group-label {
+    grid-column: 1 / -1;
+    /* No top margin: the rail's own gap already puts space ABOVE the heading,
+       and 1px below binds it to the buttons it names. Every pixel here is paid
+       for eight times over, and the rail only just fits a 1080p window. */
+    margin: 0 0 1px;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    line-height: 1.1;
+    color: var(--text-secondary);
+    pointer-events: none;
+}
+
+
+/* A grid item stretches to its column, so a bare button fills its cell and
+   aspect-ratio squares it off that width. The captioned wrapper (still used by
+   the editor dialogs, which do print captions) is the item in that case, so it
+   has to hand the whole cell down to the button inside it — without this the
+   button falls back to its content width, a 20px glyph plus padding. */
+.tool-group > .btn-captioned {
+    width: 100%;
+}
+
+.tool-group > .btn-captioned > .tool-btn {
+    width: 100%;
+}
+
+.tool-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1;
+    min-height: 34px;
+    /* Press-and-hold raises our tooltip (js/ui/tooltip-manager.js); without
+       these the same gesture also starts a text selection and the platform's
+       own callout menu on top of it. */
+    user-select: none;
+    -webkit-touch-callout: none;
+    background: var(--btn-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.tool-btn:hover {
+    background: var(--bg-hover);
+}
+
+.tool-btn.active {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: var(--on-accent);
+}
+
+.tool-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.tool-btn:disabled:hover {
+    background: var(--btn-bg);
+}
+
+.tool-icon {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+    pointer-events: none;
+}
+
+/* Tool-rail glyphs are drawn a little larger than the shared 20px, because the
+   rail's buttons are the biggest icon controls in the app (54.5px at ui-scale 1,
+   measured 2026-08-04) and a 20px glyph reads as lost inside one. 28px is just
+   over half the button — the ratio a normal icon button uses — and, since the
+   symbols are authored on a 24-unit viewBox, it draws their strokes at 1.17x
+   their design weight. Filling the button edge-to-edge instead (the earlier
+   40px) scaled every stroke by 1.67x, which is what made the rail look bold
+   against the same icons elsewhere. It still fits the button's content box, so
+   no positioning trick is needed — the button's flex centring places it. */
+#tool-rail .tool-icon {
+    width: 28px;
+    height: 28px;
+}
+
+/* ===== Icon captions =====
+   Every icon control names itself: a one-keyword caption sits ABOVE the
+   button, OUTSIDE it, so the icon control keeps exactly the size it has
+   everywhere else and the text never eats into the glyph. The full name and
+   what the control does live in the tooltip (Helpers.composeTitle). Colour
+   swatches are excluded by design — a colour names itself. */
+
+.btn-captioned {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    min-width: 0;
+}
+
+.btn-label {
+    display: block;
+    /* Same treatment as the Ink/Paper preview captions (#color-preview
+       .color-cell span) — captions read as one system wherever they appear. */
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    line-height: 1.1;
+    text-align: center;
+    max-width: 100%;
+    /* `anywhere` (not break-word) so a long word also shrinks the caption's
+       min-content size — otherwise it would widen the column it sits in.
+       hyphens keeps a forced break readable where the locale's dictionary
+       allows it (<html lang> is set by I18n). */
+    overflow-wrap: anywhere;
+    hyphens: auto;
+    pointer-events: none;
+    color: var(--text-primary);
+}
+
+/* The caption belongs to its button: it takes the accent when the control is
+   engaged, so the pair reads as one control rather than as text that happens
+   to sit above an icon.
+   `input:checked`, not a bare `:checked` - a <select>'s selected <option>
+   matches :checked too, so the bare form lit the Border caption permanently
+   as though the dropdown were an engaged toggle. */
+.btn-captioned:has(.active, input:checked) .btn-label {
+    color: var(--accent-primary);
+}
+
+/* ===== CLUT bar (colour cluster + attribute ops) ===== */
+
+.toolbar-section {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.flash-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    padding: 3px var(--space-xs);
+    background: var(--state-dim-bg);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+}
+
+.flash-btn:has(input:checked) {
+    background: var(--accent-primary);
+    color: var(--on-accent);
+}
+
+.flash-btn input {
+    margin: 0;
+}
+
+.clut-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2px;
+}
+
+.color-swatch {
+    position: relative;
+    aspect-ratio: 1;
+    min-height: 20px;
+    border: 1px solid var(--border-light);
+    border-radius: 2px;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.color-swatch:hover {
+    border-color: var(--text-primary);
+}
+
+.color-swatch.active-ink {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 1px;
+    z-index: 1;
+}
+
+.color-swatch.active-paper::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border: 2px solid var(--overlay-handle-bg);
+    box-shadow: 0 0 0 1px var(--overlay-handle-stroke);
+    border-radius: 1px;
+    pointer-events: none;
+}
+
+.color-swatch.transparent {
+    background-image:
+        linear-gradient(45deg, var(--checker-dark) 25%, transparent 25%, transparent 75%, var(--checker-dark) 75%),
+        linear-gradient(45deg, var(--checker-dark) 25%, var(--checker-light) 25%, var(--checker-light) 75%, var(--checker-dark) 75%);
+    background-size: 8px 8px;
+    background-position: 0 0, 4px 4px;
+}
+
+.clut-divider {
+    height: 1px;
+    background: var(--border-light);
+    margin: 2px 0;
+}
+
+.clut-current {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-xs);
+}
+
+.color-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+.color-cell .color-swatch {
+    width: 100%;
+}
+
+/* The row's own column layout and caption typography come from .btn-captioned
+   / .btn-label (BorderControl builds it with Helpers.captionWrap), so only the
+   dropdown's own appearance is set here. */
+.border-select-row select {
+    width: 100%;
+    padding: 2px;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+}
+
+.clut-attrs {
+    gap: var(--space-xs);
+}
+
+.clut-attr-cluster {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-xs);
+}
+
+.clut-attr-cluster.clut-attr-stack {
+    grid-template-columns: 1fr;
+}
+
+/* Swap / Recolour are MODAL: while one is engaged it intercepts every pointer
+   press on the canvas, so it is marked in the warning colour rather than the
+   ordinary selected accent. The mark is on the engaged BUTTON, not on the pair
+   — only one of the two is ever in force, and on the colour bar the pair has no
+   box of its own to outline (display: contents, so the icons can share the row
+   evenly with the draw modes). */
+.clut-attrs .tool-btn.active {
+    outline: 2px solid var(--accent-warning);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+}
+
+/* ===== Top colour bar — horizontal layout =====
+   ClutBar builds the SAME DOM regardless of where the cluster lives; these
+   rules lay that DOM out horizontally for the top #color-bar and enlarge the
+   hit targets for pen/touch. Everything stays token-driven — no colour
+   literals, no JS layout. The fixed16 order runs left->right:
+     Ink preview · ink colours · ink transparent   (gap)
+     Paper preview · paper colours · paper transparent   (gap)
+     Bright/Flash · Border   ···   Swap · Apply */
+/* Every control in the bar is captioned above (Helpers.captionWrap) and every
+   control is --clut-btn-size tall, so aligning the BOTTOM edges puts every
+   swatch, toggle, dropdown and icon button on one baseline. Centring instead
+   aligned the captioned blocks by their middles, which pushed Bright and Flash
+   7px below the swatch row they sit beside; and top-aligning would break the
+   moment a translated caption wrapped to two lines. */
+#color-bar .toolbar-section {
+    width: auto;
+    /* Keep each section at its content width; when the combined width exceeds
+       the canvas column the bar scrolls sideways (overflow-x) rather than
+       squishing controls until their labels clip. */
+    flex: 0 0 auto;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: var(--space-md);
+    padding: 0;
+    border-bottom: none;
+}
+
+#color-bar #toolbar-color {
+    flex-wrap: nowrap;
+    /* Spread the clusters across the row rather than leaving the leftover
+       width bunched at one end. */
+    justify-content: space-between;
+}
+
+/* The two GROUPS size to the bar; the nested sections inside them keep the
+   .toolbar-section default of not growing or shrinking. This has to live here
+   rather than in css/layout.css: `#color-bar .toolbar-section { flex: 0 0
+   auto }` above is in a LATER @layer, and a layer beats specificity.
+
+   The colour group is NEVER wider than the bar. Bright/Flash and Border hold
+   their size, and #clut-cluster absorbs the whole difference by scrolling
+   itself — so those controls stay on screen at every window width, every
+   interface size and in every screen mode, including the 256-entry indexed
+   palettes at ~2700px of swatches, which could never have fitted. */
+#color-bar > #toolbar-color,
+#color-bar > #color-bar-controls {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* Every palette model lays its groups/rows out on ONE horizontal line so the
+   header keeps a constant height across screen modes; the #color-bar scrolls
+   sideways when a mode's palette is wider than the canvas column. fixed16 =
+   ink group · paper group · bit toggles; ULAplus = CLUT selector · ink half ·
+   paper half; ULANext = normal · bright; indexed = the scrolling swatch grid. */
+#color-bar #clut-cluster {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    /* Ink and paper are ONE thing - the pair of colours a cell is made of -
+       so they are set one colour box apart and no further. Spreading them to
+       the ends of the row (justify-content: space-between, which this
+       replaced) filled the width but read as two unrelated palettes.
+       Column gap only: a wrapped row must not inherit a 39px gutter. */
+    column-gap: var(--clut-btn-size);
+    row-gap: var(--space-xs);
+    justify-content: flex-start;
+    /* The cluster still takes the leftover width, which is what keeps
+       Bright, Flash and Border together at the right end rather than the
+       parent's space-between stranding them apart... */
+    flex: 1 1 auto;
+    /* ...and gives it ALL back when there is not enough, so the colour group is
+       never wider than the bar and Bright, Flash and Border are never pushed
+       off the right edge.
+       WRAP first: a swatch block drops to its own line and every colour stays
+       on screen. Scrolling would be shorter, but it hides colours behind an
+       overlay scrollbar that takes no space and so does not announce itself -
+       measured 2026-08-09 at 1366px: 2 of 18 swatches off view, nothing to say
+       so. A colour the artist cannot see is the palette equivalent of a mode
+       they cannot see. Scroll is kept only for the one item that CANNOT wrap:
+       the indexed Next grid, a single element ~2700px wide. */
+    flex-wrap: wrap;
+    align-content: flex-end;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+}
+
+/* Nothing inside the scrolling cluster shrinks. Flex items shrink by default,
+   and a swatch block that shrinks does not drop swatches — the swatches are
+   no-shrink themselves, so they spill out of a narrower wrapper and get
+   CLIPPED. Holding the blocks at their size is what makes the cluster
+   overflow, which is what makes it scroll. */
+#color-bar #clut-cluster > * {
+    flex: 0 0 auto;
+}
+
+/* One colour channel: colour swatches · transparent box, under its caption. */
+#color-bar .clut-channel {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+#color-bar .clut-row {
+    display: flex;
+    flex-direction: row;
+    gap: 3px;
+    align-items: flex-end;
+}
+
+/* Rows sit side by side on the single-line bar, so the separator between the
+   ULAplus ink/paper halves (and the ULANext normal/bright rows) is vertical. */
+#color-bar .clut-divider {
+    width: 1px;
+    height: auto;
+    min-height: 24px;
+    align-self: stretch;
+    margin: 0 var(--space-xs);
+}
+
+#color-bar .color-swatch {
+    width: 39px;
+    height: 39px;
+    min-height: 0;
+    aspect-ratio: auto;
+    flex: 0 0 auto;
+}
+
+#color-bar .clut-transparent-box {
+    margin-left: 2px;
+}
+
+/* Bright / Flash are full-size icon toggles, in cells like every other. */
+#color-bar .clut-bits {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+}
+
+/* ── One pitch, everywhere in the bar ─────────────────────────────────────
+   Every captioned icon control is exactly one button wide, so every cluster
+   shares the same pitch and the icons sit on one grid across the whole
+   controls line. A caption wider than its button (Recolour, Paper RC) used
+   to widen that one wrapper and centre the button inside it, leaving 4px
+   between two icons and 10px between the next two.
+   The caption WRAPS to fit rather than setting the pitch, so the grid is even
+   in every language. --clut-cell-size is what makes that survivable: see the
+   token below. */
+#color-bar .btn-captioned:not(.caption-wide) {
+    width: var(--clut-cell-size);
+}
+
+/* Break at a space before chopping a word. .btn-label's own default is
+   `anywhere`, which is right where a caption's min-content width decides the
+   width of the column it sits in - but here the width is FIXED, so `anywhere`
+   bought nothing and spent the difference on "Norma / l" and "Recolo / ur".
+   (`hyphens: auto` is inherited and would be better still, but Chrome only
+   honours it with a hyphenation dictionary installed - M 2026-08-09: no hyphen
+   appears in headless OR headed Chrome here, so it cannot be relied on.) */
+#color-bar .btn-label {
+    overflow-wrap: break-word;
+    text-wrap: balance;
+}
+
+/* ── One button control for the whole colour bar ──────────────────────────
+   Every button in #color-bar shares ONE size, --clut-btn-size (the swatch
+   height), so the row reads as one system. The token lives here; the sizing
+   that enforces it lives in css/utilities.css because it must win over the
+   generic `button { min-width: 0 }` reset there (@layer order, not
+   specificity). Any button added to the bar later inherits it automatically.
+
+   --clut-cell-size is the CAPTION's width, and therefore the pitch every icon
+   control sits on. It is bigger than the button because a caption is text and
+   text is longer in most languages than in English. 56px is measured, not
+   chosen (M, 2026-08-09, tools measurement over all 13 locales at scale 1):
+   the widest single caption word is 81.1px (fr "CLIGNOTANT") and the widest
+   whole caption 98.8px (tr "Yeniden renklendir"), so no sane pitch keeps
+   everything on one line - the question is only how many lines it takes. At
+   39px (button width) fr needs 3 lines and tr needs 4; at 54px tr still needs
+   3; 56px is the SMALLEST width at which no locale exceeds two lines, which
+   is the budget the bar's height was set for. English fits on one.
+   It carries no unit arithmetic because the whole chrome scales by `zoom`
+   (--ui-scale), so a px token already tracks the interface-size setting. */
+#color-bar {
+    --clut-btn-size: 39px;
+    --clut-cell-size: 56px;
+}
+
+/* The native checkbox drives state/AT but the icon shows it — hide the box. */
+#color-bar .clut-bit input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Border picker is a <select>, not a button, so it needs its own match to the
+   bar's control size: inline "Border" label + a --clut-btn-size-tall dropdown,
+   so it reads as one control with the swatches and buttons, not a small strip. */
+#color-bar #border-select {
+    box-sizing: border-box;
+    width: auto;
+    height: var(--clut-btn-size);
+    min-height: var(--clut-btn-size);
+    padding: 0 var(--space-xs);
+    font-size: var(--font-size-sm);
+}
+
+/* Swap/Recolour and the draw modes are ONE run. `display: contents` dissolves
+   the two section boxes so all seven cells are siblings in #color-bar-controls
+   — which is what lets them share the width EVENLY. Kept as separate sections
+   because two different components own them (ClutBar, DrawModeBar) and ClutBar
+   still hides #attr-tools whole in the modes that have no cell attributes;
+   an inline `display: none` still beats this. */
+#color-bar-controls #attr-tools,
+#color-bar-controls #draw-modes {
+    display: contents;
+}
+
+/* Every icon cell takes an equal share of the row: same basis, same grow, so
+   they come out the same width however much room there is. The 39px button
+   stays centred in whatever the cell becomes. */
+#color-bar-controls .btn-captioned {
+    flex: 1 0 var(--clut-cell-size);
+}
+
+@media (pointer: coarse) {
+    #color-bar { --clut-btn-size: 44px; }
+}
+
+/* Indexed Next palettes scroll sideways with the bar. Small palettes (<=16)
+   sit in one full-size row; the 256-entry palettes go dense — two half-height
+   rows whose pair occupies the SAME height as one full row (18+18+3px gap =
+   39px), which also halves the horizontal scroll length. */
+#color-bar .indexed-palette-grid {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: auto;
+    grid-template-columns: none;
+    grid-auto-columns: max-content;
+    gap: 3px;
+    max-height: none;
+    overflow: visible;
+}
+
+#color-bar .indexed-palette-grid.indexed-dense {
+    grid-template-rows: repeat(2, auto);
+}
+
+#color-bar .indexed-palette-grid.indexed-dense .color-swatch {
+    width: 18px;
+    height: 18px;
+}
+
+@media (pointer: coarse) {
+    #color-bar .color-swatch { width: 44px; height: 44px; }
+    /* Dense 256-palette rows stay two-up but grow to a usable tap size. */
+    #color-bar .indexed-palette-grid.indexed-dense .color-swatch { width: 22px; height: 22px; }
+    /* The left-rail preview wells fill their grid column; nudge the whole
+       block wider so fingertips land, keeping the tool-rail width. */
+    #color-preview .clut-preview { min-height: 48px; }
+}
+
+/* ===== Panel chrome (tpl-panel) ===== */
+
+.panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: var(--panel-header-height);
+    padding: 0 var(--space-sm);
+    background: var(--bg-tertiary);
+    cursor: pointer;
+    user-select: none;
+}
+
+.panel-title {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+}
+
+.panel-collapse {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 auto;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    position: relative;
+}
+
+.panel-collapse::before {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg);
+    transform-origin: center;
+    transition: transform var(--transition-fast);
+}
+
+.panel-collapse[aria-expanded="false"]::before {
+    transform: rotate(-45deg);
+}
+
+.panel-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+}
+
+.panel-subheading {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-secondary);
+    margin-top: var(--space-sm);
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--border-color);
+}
+
+.panel-help {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.panel-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding-bottom: var(--space-xs);
+}
+
+.panel-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+.panel-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.panel-row.input-row label {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+.button-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+}
+
+.button-row > .panel-button {
+    flex: 1 1 auto;
+}
+
+.panel-button {
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--btn-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: background var(--transition-fast);
+    overflow-wrap: anywhere;
+}
+
+.panel-button:hover:not(:disabled) {
+    background: var(--bg-hover);
+}
+
+.panel-button:disabled {
+    color: var(--text-muted);
+    cursor: default;
+}
+
+.panel-button.small {
+    padding: 2px var(--space-xs);
+    font-size: var(--font-size-xs);
+}
+
+.panel-button.primary {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: var(--on-accent);
+}
+
+.panel-button.danger {
+    background: color-mix(in srgb, var(--accent-error) 25%, var(--btn-bg));
+    border-color: var(--accent-error);
+}
+
+.panel-button.toggle.active,
+.panel-button.active {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: var(--on-accent);
+}
+
+.panel-button.full-width {
+    width: 100%;
+}
+
+.panel-select,
+.panel-input {
+    padding: 2px var(--space-xs);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    min-width: 0;
+}
+
+.panel-input.small {
+    width: 56px;
+}
+
+.slider-value {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    min-width: 3.5em;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.image-info .info-content {
+    display: flex;
+    flex-direction: column;
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+.image-info .filename {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/*
+ * A standing condition the artist needs to act on, not an alert: a preset
+ * loaded its thumbnail because the linked photo was not reachable. Warning
+ * colour on the rule only, so it reads as a note beside the file info rather
+ * than an error block over it.
+ */
+.panel-note {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    margin-top: var(--spacing-sm);
+    padding-left: var(--spacing-sm);
+    border-left: 2px solid var(--warning-color);
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+/* ===== Tool options (OptionControls rows) ===== */
+
+.tool-option {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.tool-option > label {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+}
+
+.tool-option select,
+.tool-option .opt-input:not([type="range"]):not([type="checkbox"]) {
+    width: 100%;
+    padding: 3px var(--space-xs);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+}
+
+.tool-option input[type="range"] {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.opt-value {
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* An option rendered as a grid of pictures (the shape list). Deliberately the
+   tool rail's own layout and button — same .tool-btn, same printed group
+   heading — because it is the same job: pick one of a set of things you
+   recognise by sight. auto-fill rather than a fixed column count, so the grid
+   reflows with the panel and the ui-scale instead of overflowing it. */
+/* Tighter than the rail's 34px minimum on purpose: THIRTY shapes sit here, and
+   the rows the grid saves are rows the shape's own options move up into view.
+   A picked shape has to bring its dial with it on a laptop screen, not push it
+   under the fold — which a 5-column grid did (measured 2026-08-04: 623px of
+   panel, Thickness the last row visible at 900px tall). */
+.opt-icon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(32px, 1fr));
+    gap: var(--space-xs);
+    width: 100%;
+}
+
+.opt-icon-grid > .tool-btn {
+    width: 100%;
+    min-height: 0;          /* the cell width squares it off via aspect-ratio */
+}
+
+/* Matches .tool-group-label, one step quieter: inside a panel it is a
+   sub-heading under the option's own label, not a region title. */
+.opt-icon-group-label {
+    grid-column: 1 / -1;
+    margin: var(--space-xs) 0 0;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    line-height: 1.1;
+    color: var(--text-secondary);
+    pointer-events: none;
+}
+
+.opt-icon-group-label:first-child {
+    margin-top: 0;
+}
+
+/* The pixel rasters are drawn to fill their viewBox, so they take the button's
+   glyph size directly rather than the 20px a stroked symbol wants. */
+.opt-icon-grid .shape-icon {
+    width: 78%;
+    height: 78%;
+}
+
+.opt-textarea {
+    width: 100%;
+    padding: var(--space-xs);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family);
+    resize: vertical;
+}
+
+.tool-option-hint {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.tool-option-separator {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: var(--space-xs) 0;
+}
+
+/* Transform-panel control groups: a button and the settings that only feed it
+   (Outline + gap/thickness, Shift + step/wrap) read as one bordered unit. */
+.tp-group {
+    padding: var(--space-xs);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+}
+
+.tp-shift-opts {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-top: var(--space-xs);
+}
+
+.tp-shift-opts select {
+    flex: 0 1 auto;
+    min-width: 0;
+}
+
+.no-options {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+}
+
+.tool-option-slot > [data-slot] {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+/* ===== Slider decoration (range + number + step buttons) ===== */
+
+.slider-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    width: 100%;
+}
+
+.slider-row input[type="range"] {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.slider-step {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--btn-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: var(--font-size-xs);
+    line-height: 1;
+    cursor: pointer;
+}
+
+.slider-step:hover {
+    background: var(--bg-hover);
+}
+
+.slider-num {
+    width: 44px;
+    flex: 0 0 auto;
+    padding: 1px 2px;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    text-align: center;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.slider-num::-webkit-outer-spin-button,
+.slider-num::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* ===== Layer panel ===== */
+
+#layer-list,
+#stamp-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+.layer-item,
+.stamp-item {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px var(--space-xs);
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+
+.layer-item:hover,
+.stamp-item:hover {
+    background: var(--bg-hover);
+}
+
+.layer-item.current,
+.stamp-item.current {
+    background: var(--accent-bg);
+    border-color: var(--accent-primary);
+}
+
+.layer-item.selected {
+    background: var(--state-dim-bg);
+}
+
+.layer-item.current.selected {
+    background: var(--accent-bg);
+}
+
+.layer-item.draw-target {
+    border-color: var(--accent-success);
+}
+
+.layer-btn,
+.stamp-btn {
+    width: 22px;
+    height: 22px;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
+    cursor: pointer;
+}
+
+.layer-btn:hover,
+.stamp-btn:hover {
+    background: var(--bg-active);
+    color: var(--text-primary);
+}
+
+.layer-btn .row-icon,
+.stamp-btn .row-icon,
+.layer-ctrl-btn .row-icon {
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: currentColor;
+    pointer-events: none;
+}
+
+.layer-checkbox.checked,
+.stamp-xor.active {
+    color: var(--accent-primary);
+}
+
+/* GigaScreen sub-screen badge (Phase 12b) — text button that may carry a
+   localised letter, so it grows rather than clips */
+.layer-btn.layer-giga {
+    width: auto;
+    min-width: 22px;
+    padding: 0 var(--space-xs);
+    font-weight: 700;
+    border: 1px solid var(--border-color);
+}
+.layer-btn.layer-giga.giga-b {
+    color: var(--text-primary);
+    background: var(--bg-active);
+}
+
+.layer-visibility:not(.visible),
+.stamp-visibility:not(.visible) {
+    color: var(--text-muted);
+}
+
+.layer-lock.locked {
+    color: var(--accent-warning);
+}
+
+.layer-name,
+.stamp-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.layer-rename-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 1px var(--space-xs);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--accent-primary);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+}
+
+#layer-controls {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+}
+
+.layer-ctrl-btn {
+    min-width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--btn-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.layer-ctrl-btn:hover:not(:disabled) {
+    background: var(--bg-hover);
+}
+
+.layer-ctrl-btn:disabled {
+    color: var(--text-muted);
+    cursor: default;
+}
+
+.layer-ctrl-btn.layer-ctrl-wide {
+    padding: 0 var(--space-sm);
+    font-size: var(--font-size-xs);
+}
+
+.layer-ctrl-divider {
+    width: 1px;
+    height: 16px;
+    background: var(--border-color);
+    margin: 0 2px;
+}
+
+/* ===== Pattern browser (psb-*) ===== */
+
+.psb {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    min-height: 0;
+    flex: 1 1 auto;
+}
+
+.psb-tabs {
+    display: flex;
+    gap: 2px;
+    flex-wrap: wrap;
+}
+
+.psb-tab {
+    flex: 1 1 auto;
+    padding: 2px var(--space-xs);
+    background: var(--btn-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
+    cursor: pointer;
+}
+
+.psb-tab.active {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: var(--on-accent);
+}
+
+.psb-search {
+    width: 100%;
+    padding: 3px var(--space-xs);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+}
+
+/* Cells are a FIXED 64px, not a 1fr share of the panel: the thumbnail inside is a
+   whole pattern tile at an integer zoom (Helpers.createPatternPreview), so a cell
+   that flexed with the panel width would either clip the tile or leave a ragged
+   margin. auto-fill packs as many 64px cells per row as the panel currently holds. */
+/* Cells are a FIXED 64px, not a 1fr share of the panel: the thumbnail inside is a
+   whole pattern tile at an integer zoom (Helpers.createPatternPreview), so a cell
+   that flexed with the panel width would either clip the tile or leave a ragged
+   margin. auto-fill packs as many cells per row as the panel currently holds. */
+.psb-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 66px);
+    justify-content: space-between;
+    gap: var(--space-xs);
+    overflow-y: auto;
+    min-height: 80px;
+    max-height: 300px;
+    flex: 1 1 auto;
+    padding: 2px;
+}
+
+/* content-box against the global border-box reset: the 64px is the THUMBNAIL's
+   space, and the border has to sit outside it. Under border-box the frame steals a
+   pixel from each edge, the 64px canvas is squeezed into 62, and the integer zoom it
+   was drawn at is lost to a 0.97 rescale — the exact defect this panel had. */
+.pattern-item {
+    position: relative;
+    box-sizing: content-box;
+    width: 64px;
+    height: 64px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    cursor: pointer;
+    background: var(--checker-light);
+}
+
+.pattern-item:hover {
+    border-color: var(--text-primary);
+}
+
+.pattern-item.selected {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 1px;
+}
+
+/* The thumbnail is a canvas already sized in device pixels by
+   Helpers.createPatternPreview; it is centred, never stretched, because any CSS
+   scaling here would undo the integer zoom it was drawn at. */
+.pattern-thumbnail {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* flex-shrink: 0 or a cell one pixel too small silently rescales the canvas
+   instead of overflowing, which is the failure mode that hides itself. */
+.pattern-thumbnail canvas {
+    display: block;
+    flex: 0 0 auto;
+    image-rendering: pixelated;
+}
+
+.pattern-error {
+    background: var(--accent-error);
+    opacity: 0.3;
+}
+
+.psb-item-delete {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 16px;
+    height: 16px;
+    background: var(--accent-error);
+    border: none;
+    border-radius: 0 0 0 var(--radius-sm);
+    color: var(--on-accent);
+    font-size: 11px;
+    line-height: 1;
+    cursor: pointer;
+    display: none;
+}
+
+.pattern-item:hover .psb-item-delete {
+    display: block;
+}
+
+.psb-footer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.psb-preview-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-xs);
+}
+
+.psb-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.psb-apply-btn,
+.psb-create-btn,
+.psb-cap-btn,
+.psb-export-btn,
+.psb-import-btn {
+    padding: 2px var(--space-sm);
+    background: var(--btn-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: var(--font-size-xs);
+    cursor: pointer;
+}
+
+.psb-apply-btn:disabled {
+    color: var(--text-muted);
+    cursor: default;
+}
+
+/* No width/height here: the canvas carries its own CSS size, derived from the
+   integer zoom it was drawn at. Pinning it would rescale the pattern by a fraction,
+   which is exactly what the preview exists to avoid — and content-box for the same
+   reason, so the border frames the pattern rather than eating two pixels of it. */
+.psb-canvas {
+    box-sizing: content-box;
+    border: 1px solid var(--border-color);
+    image-rendering: pixelated;
+    align-self: center;
+}
+
+.psb-mine-actions {
+    display: flex;
+    gap: var(--space-xs);
+}
+
+.psb-capture-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+}
+
+.psb-capture-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+/* ===== Pattern creator dialog (pc-*) ===== */
+
+.pattern-creator-dialog {
+    width: min(720px, 92vw);
+}
+
+.pc-layout {
+    display: grid;
+    grid-template-columns: 160px 1fr 150px;
+    gap: var(--space-md);
+    min-height: 0;
+}
+
+.pc-library,
+.pc-preview {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    min-width: 0;
+}
+
+.pc-library-title,
+.pc-preview-title {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-secondary);
+}
+
+.pc-library-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow-y: auto;
+    max-height: 420px;
+}
+
+.pc-library-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: 2px;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+
+.pc-library-item:hover {
+    background: var(--bg-hover);
+}
+
+.pc-library-item--active {
+    border-color: var(--accent-primary);
+}
+
+.pc-library-thumb {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+    image-rendering: pixelated;
+    border: 1px solid var(--border-color);
+}
+
+.pc-library-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: var(--font-size-xs);
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pc-library-use,
+.pc-library-delete {
+    flex: 0 0 auto;
+    padding: 1px 4px;
+    background: var(--btn-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 10px;
+    cursor: pointer;
+}
+
+.pc-library-empty {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+.pc-center {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    align-items: center;
+}
+
+.pc-size-tabs,
+.pc-toolbar {
+    display: flex;
+    gap: var(--space-xs);
+}
+
+.pc-size-tabs button {
+    padding: 2px var(--space-sm);
+    background: var(--btn-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
+    cursor: pointer;
+}
+
+.pc-size-tabs button.active {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: var(--on-accent);
+}
+
+.pc-toolbar .tool-btn {
+    width: 30px;
+    min-height: 30px;
+    aspect-ratio: auto;
+    font-size: var(--font-size-sm);
+}
+
+.pc-canvas {
+    width: 256px;
+    height: 256px;
+    border: 1px solid var(--border-color);
+    image-rendering: pixelated;
+    cursor: crosshair;
+    touch-action: none;
+}
+
+.pc-status {
+    min-height: 1.2em;
+    font-size: var(--font-size-xs);
+    color: var(--accent-warning);
+}
+
+.pc-actions {
+    display: flex;
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.pc-name {
+    flex: 1 1 120px;
+    min-width: 0;
+    padding: 2px var(--space-xs);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+}
+
+.pc-btn {
+    padding: 2px var(--space-sm);
+    background: var(--btn-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: var(--font-size-xs);
+    cursor: pointer;
+}
+
+.pc-btn:hover {
+    background: var(--bg-hover);
+}
+
+/* content-box for the same reason as .psb-canvas: the canvas sets its own CSS size
+   from an integer zoom, and a border-box border would rescale it. */
+.pc-preview-canvas {
+    box-sizing: content-box;
+    border: 1px solid var(--border-color);
+    image-rendering: pixelated;
+    align-self: center;
+}
+
+.pc-preview-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+/* ===== Dialogs ===== */
+
+.app-dialog {
+    padding: 0;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--glass-shadow);
+    max-width: 92vw;
+    max-height: 90vh;
+}
+
+.app-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.app-dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.app-dialog-title {
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-medium);
+}
+
+.app-dialog-close {
+    width: 24px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: var(--font-size-lg);
+    line-height: 1;
+    cursor: pointer;
+}
+
+.app-dialog-close:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.app-dialog-body {
+    padding: var(--space-md);
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.app-dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    border-top: 1px solid var(--border-color);
+}
+
+.dialog-select {
+    width: 100%;
+    padding: var(--space-xs);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+}
+
+.export-dialog-body,
+.preferences-dialog-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    min-width: 240px;
+}
+
+/* Import conversion dialog (Phase 8): quantized live preview + adjustments */
+.import-dialog-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    min-width: 280px;
+}
+
+/*
+ * Three conversions side by side. Comparing is the whole point - measured on
+ * real photographs each method won a different metric and lost the others, so
+ * the only way to choose is to see them together. Wraps rather than scrolls,
+ * because a method hidden off the right edge is a method nobody picks.
+ */
+.import-methods {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    justify-content: center;
+}
+
+.import-method {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-xs);
+    background: none;
+    border: 2px solid transparent;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+
+.import-method:hover {
+    border-color: var(--border-color);
+}
+
+.import-method.active {
+    border-color: var(--accent-primary);
+    color: var(--text-primary);
+}
+
+.import-method__label {
+    font-size: var(--font-size-sm);
+}
+
+/* One of three side by side, so it sizes to its pane rather than the dialog. */
+.import-preview {
+    width: 15rem;
+    max-width: 100%;
+    aspect-ratio: 4 / 3;
+    image-rendering: pixelated;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+
+.import-controls {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.export-dialog-body label,
+.preferences-dialog-body h3 {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.dialog-check-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    cursor: pointer;
+}
+
+/* Tape block editor (Phase 9) */
+.tape-dialog-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    min-width: 340px;
+    max-width: 520px;
+}
+
+.tape-dialog-file {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tape-block-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+.tape-block-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+}
+
+.tape-block-row.is-screen {
+    border-color: var(--accent-primary);
+}
+
+.tape-block-num {
+    color: var(--text-muted);
+    min-width: 1.5em;
+    text-align: right;
+}
+
+.tape-block-desc {
+    flex: 1;
+    overflow-wrap: anywhere;
+}
+
+.tape-block-size {
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.tape-block-actions {
+    display: flex;
+    gap: 2px;
+}
+
+.tape-block-btn {
+    padding: 2px var(--space-xs);
+    min-width: 0;
+}
+
+.tape-block-empty {
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    padding: var(--space-md);
+    text-align: center;
+}
+
+.pref-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+}
+
+/* Preferences > Pen: a statement of fact rather than a control, so it reads
+   as prose and does not invite a click. */
+.pref-note {
+    margin: 0;
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+/* The pen check: press each control against the box and see what the browser
+   actually reports. touch-action none so a pen press cannot scroll the dialog
+   out from under the hand testing it. */
+/*
+ * A grouped block inside Preferences that is more than one control - the
+ * backup folder and the privacy statement. Same dashed frame as .pen-check,
+ * which is the existing "this is a unit, not a row" signal in this dialog.
+ */
+.pref-block {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    margin: var(--space-sm) 0;
+    padding: var(--space-sm);
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-sm);
+}
+
+.pref-block__label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.pref-block__hint,
+.pref-block__status {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    /* Store names and folder names are unbreakable tokens; without this a
+       long one pushes the dialog wider than the viewport. */
+    overflow-wrap: anywhere;
+}
+
+.pref-block__status {
+    color: var(--text-primary);
+}
+
+.pen-check {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-sm);
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-sm);
+    touch-action: none;
+}
+
+.pen-check__label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.pen-check__hint {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+.pen-check__bits {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+}
+
+.pen-check__bit {
+    padding: 2px var(--space-xs);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+/* Seen at least once = this control reaches the page at all (the useful
+   finding); lit = it is down right now. */
+.pen-check__bit--seen {
+    color: var(--text-primary);
+    border-color: var(--accent-color);
+}
+
+.pen-check__bit--lit {
+    background: var(--accent-color);
+    color: var(--bg-primary);
+}
+
+.about-dialog-body {
+    text-align: center;
+    min-width: 240px;
+}
+
+.about-dialog-body .about-specs {
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    margin-top: var(--space-md);
+}
+
+.shortcuts-table {
+    width: 100%;
+    font-size: var(--font-size-sm);
+    border-collapse: collapse;
+}
+
+.shortcuts-table td {
+    padding: 2px var(--space-sm);
+}
+
+.shortcuts-table kbd {
+    padding: 1px 4px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    white-space: nowrap;
+}
+
+/* ===== Tooltip ===== */
+
+/* Two stages in one node: the name tag appears on hover, and .app-tooltip-desc
+   is unhidden underneath it when the pointer stays put (js/ui/tooltip-manager.js).
+   `width: max-content` keeps the name stage as narrow as its own text while the
+   description stage still wraps at max-width. */
+.app-tooltip {
+    position: fixed;
+    z-index: var(--z-tooltip);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    width: max-content;
+    max-width: 240px;
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    line-height: 1.4;
+    box-shadow: var(--glass-shadow);
+    pointer-events: none;
+}
+
+.app-tooltip-name {
+    font-weight: var(--font-weight-medium);
+}
+
+/* Secondary colour and a hairline above it, so the sentence reads as an
+   expansion of the name rather than a second name. */
+.app-tooltip-desc {
+    padding-top: 3px;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+/* The status bar's draw-mode readout: present ONLY when the global mode is not
+   Normal, and in the accent colour, because it is explaining why a stroke may
+   be leaving no visible mark. */
+#draw-mode-status {
+    font-weight: var(--font-weight-medium);
+    color: var(--accent-primary);
+}
+
+/* The touch drawing switch. Quiet while touch behaves normally and in the
+   accent colour once it has been turned off, for the same reason the draw-mode
+   readout is: that is the state in which a gesture leaves no mark. */
+.status-toggle {
+    padding: 1px var(--space-xs);
+    font: inherit;
+    color: var(--text-secondary);
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+}
+
+.status-toggle:hover {
+    color: var(--text-primary);
+    border-color: var(--accent-primary);
+}
+
+.status-toggle.is-off {
+    font-weight: var(--font-weight-medium);
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+/* ===== Canvas context menu ===== */
+
+.canvas-context-menu {
+    position: fixed;
+    z-index: var(--z-dropdown);
+    min-width: 160px;
+    padding: var(--space-xs) 0;
+    margin: 0;
+    list-style: none;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--glass-shadow);
+}
+
+.canvas-context-menu__item {
+    padding: var(--space-xs) var(--space-md);
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.canvas-context-menu__item:hover {
+    background: var(--bg-hover);
+}
+
+.canvas-context-menu__item--disabled {
+    color: var(--text-muted);
+    cursor: default;
+}
+
+.canvas-context-menu__sep {
+    height: 1px;
+    margin: var(--space-xs) 0;
+    background: var(--border-color);
+}
+
+/* ============================================
+   Shared cell grid editor (Pattern Creator, map tile editor)
+   ============================================ */
+
+.pc-canvas-slot {
+    display: contents;
+}
+
+/* ============================================
+   Map editor dialog (Phase 11)
+   ============================================ */
+
+.map-editor-dialog {
+    width: min(960px, 96vw);
+}
+
+.me-layout {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: var(--space-md);
+    min-height: 0;
+}
+
+.me-tiles {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    min-width: 0;
+}
+
+.me-section-title {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-secondary);
+}
+
+.me-tile-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    align-content: flex-start;
+    overflow-y: auto;
+    min-height: 56px;
+    max-height: 140px;
+    padding: 2px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+}
+
+.me-tile-thumb {
+    width: 24px;
+    height: 24px;
+    image-rendering: pixelated;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.me-tile-thumb--active {
+    border-color: var(--accent-primary);
+    outline: 1px solid var(--accent-primary);
+}
+
+.me-tile-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+}
+
+.me-tile-toolbar {
+    display: flex;
+    gap: var(--space-xs);
+}
+
+.me-tile-toolbar .tool-btn {
+    width: 30px;
+    min-height: 30px;
+    aspect-ratio: auto;
+    font-size: var(--font-size-sm);
+}
+
+.me-tile-canvas {
+    width: 160px;
+    height: 160px;
+    border: 1px solid var(--border-color);
+    image-rendering: pixelated;
+    cursor: crosshair;
+    touch-action: none;
+}
+
+.me-attr-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    align-items: center;
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+.me-attr-row label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    min-width: 0;
+}
+
+.me-attr-row select {
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    padding: 1px 2px;
+    max-width: 90px;
+}
+
+.me-center {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    min-width: 0;
+}
+
+.me-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    align-items: center;
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+.me-tool-group {
+    display: flex;
+    gap: var(--space-xs);
+    align-items: center;
+}
+
+.me-tool-group .tool-btn {
+    width: 30px;
+    min-height: 30px;
+    aspect-ratio: auto;
+    font-size: var(--font-size-sm);
+}
+
+/* Editor toolbars line captioned controls up with the plain ones. */
+.me-tool-group .btn-captioned {
+    align-self: flex-end;
+}
+
+.me-tool-group label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.me-width,
+.me-height {
+    width: 56px;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    padding: 2px 4px;
+}
+
+.me-zoom-label {
+    min-width: 2.2em;
+    text-align: center;
+    color: var(--text-primary);
+}
+
+.me-name {
+    flex: 1 1 120px;
+    min-width: 0;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    padding: 2px var(--space-xs);
+}
+
+.me-viewport {
+    position: relative;
+    overflow: auto;
+    height: min(52vh, 520px);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-secondary);
+}
+
+.me-sizer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.me-map-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    image-rendering: pixelated;
+    cursor: crosshair;
+    touch-action: none;
+}
+
+.me-bridges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    align-items: center;
+}
+
+.me-export-format {
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    padding: 2px 4px;
+}
+
+@media (pointer: coarse) {
+    .me-tile-thumb {
+        width: 44px;
+        height: 44px;
+    }
+}
+
+/* ============================================
+   Font editor dialog (Phase 10)
+   ============================================ */
+
+.font-editor-dialog {
+    width: min(760px, 96vw);
+}
+
+.fe-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: var(--space-md);
+    min-height: 0;
+}
+
+.fe-left,
+.fe-center {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    min-width: 0;
+}
+
+.fe-glyph-grid {
+    align-self: start;
+    max-width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    image-rendering: pixelated;
+    cursor: pointer;
+    touch-action: none;
+}
+
+.fe-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    align-items: center;
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+.fe-row label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    min-width: 0;
+}
+
+.fe-row select,
+.fe-coverage {
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    padding: 1px 2px;
+    min-width: 0;
+}
+
+.fe-library {
+    width: 100%;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+}
+
+.fe-editor-slot {
+    align-self: center;
+}
+
+.fe-glyph-canvas {
+    border: 1px solid var(--border-color);
+    image-rendering: pixelated;
+    cursor: crosshair;
+    touch-action: none;
+}
+
+.fe-width,
+.fe-export-format {
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    padding: 2px 4px;
+}
+
+.fe-cell-x,
+.fe-cell-y {
+    width: 52px;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    padding: 2px 4px;
+}
+
+.fe-current {
+    margin-left: auto;
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.fe-name {
+    flex: 1 1 120px;
+    min-width: 0;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    padding: 2px var(--space-xs);
+}
+
+
+/* ── Palette editor (ULAplus, Phase 12a) ─────────────────────────────── */
+
+.palette-editor {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    min-width: 0;
+}
+
+.palette-editor-hint {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    margin: 0;
+    max-width: 46ch;
+}
+
+.palette-editor-clut {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    min-width: 0;
+}
+
+.palette-editor-clut-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    min-width: 4.5em;
+    overflow-wrap: break-word;
+}
+
+.palette-editor-swatches {
+    display: flex;
+    gap: 2px;
+    flex-wrap: wrap;
+}
+
+.palette-editor-swatch {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    flex: 0 0 auto;
+}
+
+/* Visual gap between the ink half (0-7) and paper half (8-15) */
+.palette-editor-paper-start {
+    margin-left: var(--space-sm);
+}
+
+/* Hidden native colour picker, retargeted per swatch */
+.palette-editor-picker {
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    pointer-events: none;
+    border: 0;
+    padding: 0;
+}
+
+/* ── Next indexed palettes (Phase 13) ────────────────────────────────── */
+
+/* 256-entry editor grid: tighter swatches, capped height, scrolls */
+.palette-editor-large {
+    max-height: min(60vh, 480px);
+    overflow-y: auto;
+}
+
+.palette-editor-large .palette-editor-swatch {
+    width: 16px;
+    height: 16px;
+}
+
+.palette-editor-large .palette-editor-clut-label {
+    min-width: 2.5em;
+    text-align: right;
+}
+
+/* The palette's own file and generator controls, under the swatches. */
+.palette-editor-tools {
+    margin-top: var(--space-md);
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.palette-editor-tool-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+/* One column for the row labels, so the controls line up down the group. */
+.palette-editor-tool-label {
+    flex: 0 0 auto;
+    min-width: 6em;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.palette-editor-tool-button {
+    flex: 0 1 auto;
+}
+
+.palette-editor-kind,
+.palette-editor-index {
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    padding: var(--space-xs);
+}
+
+/* Wide enough for three digits and the spinner Chrome puts beside them. */
+.palette-editor-index {
+    width: 5em;
+}
+
+.palette-editor-index-label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+/* Left-rail index grid in indexed modes: 8 per row, scrolls past 64 */
+.indexed-palette-grid {
+    grid-template-columns: repeat(8, 1fr);
+    max-height: 40vh;
+    overflow-y: auto;
+}
+
+.indexed-palette-grid .color-swatch {
+    min-height: 14px;
+}
+
+/* ── User presets ─────────────────────────────────────────────────────── */
+
+/*
+ * The save/load row sits AFTER #tool-options-content inside the Tool Options
+ * panel section, so it survives that content being rebuilt on every tool
+ * change (PanelSection.addExtra) and folds away with it when the panel is
+ * collapsed.
+ */
+.preset-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-sm);
+    border-top: 1px solid var(--border-color);
+}
+
+.preset-bar-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+/* The names are the point of the list, so it takes the width it can get. */
+.preset-bar-select {
+    flex: 1 1 100%;
+    min-width: 0;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    padding: var(--space-xs);
+}
+
+.preset-bar-buttons {
+    display: flex;
+    gap: var(--space-xs);
+    flex: 1 1 100%;
+}
+
+.preset-bar-button {
+    flex: 1 1 auto;
+}
+
+/* ── The Presets panel ────────────────────────────────────────────────── */
+
+/* Which tool is being listed. Quiet, because it is a caption on the list
+   rather than a heading over it — the panel already has one of those. */
+.preset-panel-scope {
+    margin: 0 0 var(--space-xs);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.preset-panel-list {
+    list-style: none;
+    margin: 0 0 var(--space-sm);
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.preset-panel-item {
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+}
+
+/* The name IS the load button: loading is what the row is for, so the target
+   is the whole width rather than an icon beside a label. */
+.preset-panel-load {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: left;
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.preset-panel-load:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-color);
+}
+
+.preset-panel-action {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.preset-panel-action:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.preset-panel-action svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+}
+
+.preset-panel-save {
+    width: 100%;
+}
+
+/* A library row is two lines: which tool, then what the preset changes about
+   it. Both are the load button, so the whole block is one target. */
+.preset-library-load {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    white-space: normal;
+}
+
+.preset-library-scope {
+    font-weight: 600;
+}
+
+/* The settings line is the long one. It wraps to two lines and then stops,
+   because a row that grows without limit turns the list into a document. */
+.preset-library-settings {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.preset-library-item {
+    align-items: stretch;
+}
+
+/* A pen or a finger needs the whole 44px, and the row grows to match. */
+@media (pointer: coarse) {
+    .preset-panel-action {
+        width: 44px;
+    }
+
+    .preset-panel-load {
+        padding: var(--space-sm);
+    }
+}
+
+/* ── Preset dialogs ───────────────────────────────────────────────────── */
+
+.preset-field {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+}
+
+.preset-field > label {
+    min-width: 5em;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.preset-field > input,
+.preset-field > select {
+    flex: 1 1 auto;
+    min-width: 0;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: var(--space-xs);
+    font-size: var(--font-size-sm);
+}
+
+/* The description is a textarea, so its label sits at the top of the row. */
+.preset-field-tall {
+    align-items: flex-start;
+}
+
+.preset-field > textarea {
+    flex: 1 1 auto;
+    min-width: 0;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: var(--space-xs);
+    font-size: var(--font-size-sm);
+    font-family: inherit;
+    resize: vertical;
+}
+
+.preset-scopes {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: var(--space-sm);
+}
+
+.preset-scopes-legend {
+    margin: 0 0 var(--space-xs);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.preset-scope {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: var(--font-size-sm);
+    padding: 2px 0;
+}
+
+.preset-manager-hint {
+    margin: 0 0 var(--space-sm);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+/* Every slot is listed, so the list scrolls rather than the dialog growing. */
+.preset-list {
+    max-height: min(60vh, 480px);
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+}
+
+.preset-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-xs) var(--space-sm);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.preset-row:last-child {
+    border-bottom: none;
+}
+
+.preset-row-empty {
+    color: var(--text-muted);
+}
+
+.preset-row-number {
+    min-width: 2em;
+    text-align: right;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.preset-row-name {
+    flex: 1 1 12em;
+    min-width: 0;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: var(--space-xs);
+    font-size: var(--font-size-sm);
+}
+
+/* A slot with a shortcut says so on hover; the marker is the number itself. */
+.preset-row-keyed {
+    color: var(--text-primary);
+    font-weight: 600;
+    cursor: help;
+}
+
+.preset-row-description {
+    flex: 1 1 10em;
+    min-width: 0;
+    background: var(--input-bg);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: var(--space-xs);
+    font-size: var(--font-size-xs);
+}
+
+.preset-row-empty-label {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* What the preset carries: one line, elided rather than wrapping the row. */
+.preset-row-carries {
+    flex: 1 1 10em;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+.preset-row-actions {
+    display: flex;
+    gap: var(--space-xs);
+    flex: 0 0 auto;
+}
+
+.preset-row-button {
+    font-size: var(--font-size-xs);
+    padding: 2px var(--space-xs);
+}
+
+.preset-file-input {
+    display: none;
+}
+
+/* Narrow panels: the actions drop under the name rather than squeezing it. */
+@media (max-width: 720px) {
+    .preset-row {
+        flex-wrap: wrap;
+    }
+
+    .preset-row-description,
+    .preset-row-carries {
+        flex-basis: 100%;
+    }
+}
+
+} /* @layer components */

@@ -1,0 +1,386 @@
+===============================================================================
+PIXULA - LEFT TOOLBAR: TOOL OPTION / SETTING TREES
+===============================================================================
+Audit of every left-rail tool, its full options schema, every conditional
+permutation the schema enables, cross-tool duplicates, and options/permutations
+that produce no change (dead/inert).
+
+Re-derived from the code 2026-08-07 (previous revision predated the rail
+regrouping, the Hatch brush, the fade zones and the global draw mode).
+
+Source of truth:
+  - Rail order + tool metadata : js/core/constants.js  (TOOLS, TOOL_GROUPS)
+  - Rail groups not in TOOL_GROUPS : js/ui/components/tool-rail.js
+  - Per-tool options            : static optionsSchema on each js/tools/*.js
+  - Shared draw-mode list       : js/tools/tool-base.js  (DRAW_MODE_OPTS)
+  - Renderer / showIf / dynamic : js/ui/components/option-controls.js
+  - Shape raster                : js/tools/shape-generator.js
+
+Schema field notes (from tool-base.js contract):
+  type   = select | icons | range | check | textarea | slot | hint
+  value  = the row's DEFAULT (the schema key is `value`, not `default`)
+  showIf = { key, equals } | { in:[…] } | { notIn:[…] } | { gt:n }
+           | { all:[…] } | { any:[…] }                    (row visibility)
+  dynamic= async tool method that rewrites the option list at render time
+  tool   = the option is a TOOL SWITCH (OptionControls._commit selects it)
+  Legend below:  [range a..b =d] default d ; (check =d) ; <select> ; -> reveals
+
+===============================================================================
+LEFT RAIL ORDER (as rendered by tool-rail.js)
+===============================================================================
+Six labelled groups. Four come from TOOL_GROUPS; History and Guide are built
+outside that loop because they are commands and a mode, not tools - they never
+take the tool `active` state.
+
+GROUP "History" : Undo(Ctrl+Z)  Redo(Ctrl+Y)        [above everything else]
+GROUP "Paint"   : Brush(B)  Spray(A)  Fade(F)  Pattern(P)  Hatch(H)
+                  Eraser(E)  Fill(G)  Gradient(D)  Shape(S)  Eyedropper(I)
+                  [Bezier(C) is a `variantOf: 'shape'` entry - no button of its
+                   own; it is reached from the Shape option grid]
+GROUP "Select"  : Selection(M)  Ellipse  Lasso  Wand  Cell
+                  [all five drive the ONE SelectionTool via selectMode]
+GROUP "Guide"   : Draw inside selection  Draw outside selection
+                  [StateManager.getClipMode(); exclusive, click the armed one
+                   to turn the guide off]
+GROUP "Create"  : Text(T)  Pattern Creator(K)        [TOOL_GROUPS id 'content']
+GROUP "View"    : Zoom(Z)  Pan(V)                    [Pan's tool id is legacy
+                                                      'transform']
+
+Rail buttons print no captions: the name arrives on hover after ~400 ms and
+the description ~1000 ms later (TooltipManager); touch gets both on a 500 ms
+press-and-hold, and that hold never switches tool.
+
+===============================================================================
+NOT PER-TOOL: THE TWO ROWS THAT SIT AROUND EVERY OPTIONS PANEL
+===============================================================================
+DRAW MODE is GLOBAL. It lives in the top bar (DrawModeBar -> StateManager),
+not in any tool's schema, and applies to every tool that lays ink:
+  <Normal | Attributes only | Pixels only | Paper | XOR>   =Normal
+  (ToolBase.DRAW_MODE_OPTS - 5 entries. DRAW_MODE in constants.js also carries
+   'transparent', 'erase' and 'ink', which the engine uses internally but the
+   selector does not offer.)
+  It persists across reloads, and Preferences > "Reset draw mode on tool change"
+  turns it back to Normal on every tool switch (off by default). The status bar
+  names the mode while it is anything but Normal, because Paper and Attributes
+  only can leave a stroke with nothing visible.
+
+TOOL PRESETS sit at the FOOT of the options panel (ToolPresetBar): "Load
+preset..." lists the presets of the tool in your hand and nothing else, and
+"Save preset..." files the CURRENT tool's options under a name it asks you for.
+The PRESETS PANEL in the right sidebar is the whole library rather than one
+tool's shelf: every scope's presets, each row leading with the tool and with
+the settings that preset changes (only those that differ from the tool's
+defaults), the name you gave it on hover, and rename/delete beside it. Clicking
+a row takes that tool in hand before applying. A tool preset carries that tool's options and nothing around them - no
+colour, no draw mode, no view - so everything in this document is preset-able
+unless its schema row says `preset: false`. They are filed by RAIL id, so Spray
+and Fade have their own lists even though one BrushTool serves them.
+
+The REFERENCE PANEL has the same two controls and its own list, filed under the
+`reference` scope: a tracing photo AND where it sits, restored together. It is
+not a rail tool, so its panel carries the list as well as the row. Its Save is
+disabled until an image is loaded - a placement with no picture is not a thing
+anyone means to save.
+
+WORKSPACE PRESETS are the other kind, and are not reached from here: NINE
+numbered slots under Settings > Workspace Presets..., one per digit key, so
+every one of them is recalled by Alt+1..Alt+9. Each carries whichever of the SIX
+slices it was saved with (tool options, colour, drawing modes, pattern,
+reference image, view). The palette is deliberately not among them - it is a
+file (Image > Edit Palette..., File > Load/Save Palette...).
+
+===============================================================================
+1. BRUSH  (id 'brush', shortcut B)                         js/tools/brush-tool.js
+===============================================================================
+One class serves seven brush TYPES. Round and Square share the Brush button and
+are switched by the compact selector below; Spray, Fade, Pattern and Hatch are
+rail buttons of their own (ToolManager._brushVariants sets brushType), and
+Crosshatch is reachable as a fade delegate. Every type is the single-pixel
+pencil at size 1 (tests/brush-size-one.test.js).
+
+brushType <Round | Square>                       =Round
+          ONLY shown while brushType is round or square - on the variant
+          buttons the type is already the button you pressed.
+size      [1..32 =1]
+sizeVariation (Size jitter) [0..100% =0]
+  -> variationRate (Jitter spacing) [1..50 =10]   ONLY when sizeVariation > 0
+pressureSensitivity (check =off)
+
+Shown ONLY for the scattering brush (Spray), or Fade delegating to it. Every
+deterministic brush (Round, Square, Crosshatch, Pattern, Hatch) ignores both -
+Hatch in particular, whose tone is thickness/spacing and whose repeat stamps
+are idempotent:
+  flowRate   [1..100% =100]
+  continuous (Build up)  (check =off)
+
+Conditional reveals by brushType:
+  Spray   -> distribution <Uniform | Poisson>                    =Uniform
+          -> weighting [-100..100 =0]      ONLY for Uniform (rim..even..centre)
+          -> minDistance [1..8px =2]       ONLY for Poisson (min spacing)
+          -> poissonShape <Square | Round> ONLY for Poisson      =Square
+             (Poisson = the former stand-alone stipple brush, folded in as a
+              blue-noise even-spacing sub-mode; Round confines the stipple to
+              the disc inside the size box)
+  Hatch   -> hatchAngle <0 | 26.6 | 45 | 63.4 | 90 | 116.6 | 135 | 153.4 deg
+                         | Follow stroke>                        =Follow
+             (the 8 curated pixel-clean angles in BrushShapes.HATCH_ANGLES)
+          -> hatchSpacing [2..16px =4]     tone = thickness/spacing
+          -> hatchThickness [1..8px =1]
+          -> hatchNib <Square | Round>                           =Round
+             (single direction only - there is deliberately no "cross" mode:
+              you cross-hatch with a SECOND pass at another angle, which
+              registers against the first because the lattice is canvas-anchored)
+  Fade    -> fadeBrushType <Round | Square | Crosshatch | Spray |
+                            Pattern | Hatch>                     =Round
+             (BRUSH_TYPE_OPTS minus fade - a fade cannot delegate to itself.
+              The unfiltered list is the brushType row's `presetOptions`, so
+              every type the rail can set survives a preset round trip;
+              tests/preset-slices.test.js drives it from BrushEngine's own
+              registry, so a new type cannot be left out of it)
+          -> fadeLength [8..256px =64]
+          -> fadeMeasure <From start point | Along the stroke>   =From start
+          -> fadeDither <Ordered 4 | Ordered 8 | Halftone | Noise> =Ordered 4
+          -> the four zone lengths, as % of fadeLength:
+               fadeSolid   [0..100% =0]     full-strength head
+               fadeDense   [0..100% =40]
+               fadeSparse  [0..100% =35]
+               fadeStipple [0..100% =25]    tail
+             (the fade thins whatever its delegate writes through the dither
+              gate in PixelDrawRoutine, so a fade over Hatch or Pattern fades -
+              those brushes ignore `flow` and could not fade before it existed)
+  Pattern -> no rows of its own: the dedicated 'Patterns' sidebar panel appears
+             (PatternPanel; the browser is not an inline slot)
+
+Full permutation shape:
+  {5 global drawMode} x {7 brushType} x size x sizeVariation(->variationRate)
+  x pressureSensitivity
+  + (scatter / fade-to-scatter adds flowRate x continuous)
+  + (Spray adds distribution -> weighting | minDistance x poissonShape)
+  + (Hatch adds angle x spacing x thickness x nib)
+  + (Fade adds delegate x length x measure x dither x 4 zone lengths)
+  + (Pattern adds the pattern panel)
+
+===============================================================================
+2. ERASER  (id 'eraser', shortcut E)                      js/tools/eraser-tool.js
+===============================================================================
+size  [1..128 =1]
+(no other options; always clears pixels to PAPER; interpolates the stroke)
+(the range is 4x the brush's: clearing a large area is what an eraser is for.
+ A stroke clears each pixel once, so the cost is bounded by the canvas rather
+ than by the disc area.)
+(an erasing pen - the tail, or any barrel bound to PEN_ACTIONS.ERASER - routes
+ to THIS tool instance, so it clears the disc this slider sets, whatever brush
+ is active.)
+
+===============================================================================
+3. FILL  (id 'fill', shortcut G)                            js/tools/fill-tool.js
+===============================================================================
+contiguous (Contiguous only)  (check =on)
+  -> diagonal (Allow diagonal) (check =off)   ONLY when contiguous = on
+usePattern (Use pattern)      (check =off)    masks the fill through the
+                                              current pattern
+(In the GLOBAL Attributes-only draw mode, fill floods same-attribute CELLS with
+ fixed 4-connectivity; all three options above simply have no effect there.)
+
+Permutations: contiguous(->diagonal) x usePattern.
+
+===============================================================================
+4. EYEDROPPER  (id 'eyedropper', shortcut I)          js/tools/eyedropper-tool.js
+===============================================================================
+(NO options - static optionsSchema = []. Left = pick INK, right = pick PAPER,
+ Alt+click = pick both from the cell attributes; in indexed (Next) modes it
+ picks the composited palette INDEX. Behaviour is fixed.)
+
+===============================================================================
+5. SHAPE  (rail 'shape', shortcut S; registered id 'rectangle')
+===============================================================================                       js/tools/shape-tool.js
+shapeType  <icon grid, grouped>   =Rectangle
+   Basic   : Line, Rectangle, Square, Rounded rectangle
+   Radial  : Circle, Ellipse, Arc, Sector, Ring, [Curve -> switches to BEZIER]
+   Polygons: Triangle, Diamond, Parallelogram, Pentagon, Hexagon, Heptagon,
+             Octagon, Nonagon, Decagon, Dodecagon
+   Symbols : X, Heart, Star, Arrow
+   Complex : House, Moon, Flower, Gear, Spiral, Bowtie, Hourglass
+   (30 shapes + the curve entry. Each button's icon IS that shape's own raster,
+    posed by ICON_POSE; where the raster stops being identifiable at 25 px,
+    ICON_BADGE prints the side count and ICON_ART redraws flower/gear.)
+
+Conditional reveals:
+  shapeType notIn [Line, Arc, Spiral, X]  -> filled (check =off)
+                                             (open shapes have no interior)
+  filled = off, OR shapeType in [Line, Arc, Spiral, X]
+                                          -> thickness [1..8 =1]
+                                             (outline stroke width; hidden when
+                                              the shape is filled)
+
+Per-shape parameters (SHAPE_PARAM_ROWS - each keyed to its own shape, so
+picking a shape brings up its dial and nothing else's):
+  star    -> starPoints   [3..12 =5]
+  flower  -> flowerPetals [3..12 =6]
+  gear    -> gearTeeth    [3..16 =8]
+  spiral  -> spiralTurns  [1..8 =3]
+  ring    -> ringInner    [10..90% step 5 =50]   inner radius, % of outer
+  moon    -> moonPhase    [5..95% step 5 =30]    cutout offset, % of radius
+  arc     -> arcSpan      [15..360 deg step 15 =180]
+  sector  -> arcSpan      (same row, re-seeded to 90 by setShapeType)
+
+Permutation shape: {5 global drawMode} x {30 shapeType} x (fillable: filled)
+  x (unfilled: thickness) x (that shape's own parameter, if it has one)
+
+===============================================================================
+6. BEZIER CURVE  (id 'bezier', shortcut C)                 js/tools/bezier-tool.js
+===============================================================================
+Reached from the Shape grid (it is `variantOf: 'shape'`, so it has no rail
+button); the grid stays on screen while it is active, so one list holds every
+drawn curve and shape.
+
+shapeType  <the SAME icon grid as Shape>   (picking a non-curve entry switches
+                                            back to ShapeTool with that shape)
+curveType  <Quadratic | Cubic>   =Quadratic
+thickness  [1..8 =1]
+hint: usage text
+(drag places the anchors, then the handle markers bend it; Enter or a click
+ away commits, Escape or a tool switch cancels)
+
+===============================================================================
+7. GRADIENT  (id 'gradient', shortcut D)                 js/tools/gradient-tool.js
+===============================================================================
+gradientType  <Linear | Radial | Reflected | Diamond | Square |
+               Conical | Spiral>                                    =Linear
+gradientSteps (Steps) [1..16 =1]      (1 = smooth; 2..16 = quantised bands)
+dithered      (check =on)             (off = hard 50% threshold, crisp bands)
+  -> ditherScale (Dither grain) <Coarse (2) | Medium (4) | Fine (8)>  =Fine
+                                        ONLY when dithered = on
+shapeConstraint (Shape fill, check =off)   click-flood the region, then gradient
+  fillShape <None | Circle | Square | Rectangle | Triangle>  =None
+                                        ONLY when shapeConstraint = off
+                                        (the constraint uses the flood region)
+
+Permutations: {7 gradientType} x gradientSteps x dithered(->ditherScale)
+  x shapeConstraint (off adds fillShape)
+
+===============================================================================
+8. SELECTION  (id 'selection', shortcut M)             js/tools/selection-tool.js
+===============================================================================
+selectMode <Wand | Rectangle | Ellipse | Cell | Lasso (freeform)>  =Rectangle
+(the four extra rail buttons in the Select group set this same key, so the
+ select and the buttons always agree; right-click clears the selection in any
+ mode. The Guide group below them confines or protects the selection while
+ drawing - one mode, armed or off.)
+
+===============================================================================
+9. TEXT  (id 'text', shortcut T)                            js/tools/text-tool.js
+===============================================================================
+textContent (textarea)             [preset: false - content, not a setting]
+fontFamily  <ZX ROM | any 'zxfont:' library font | installed system fonts>
+            =ZX ROM     (dynamic: _enumerateFonts)
+textSize    <8|16|24|32|48|64 px on bitmap fonts; a quality-scanned list on
+             system fonts>  (dynamic: getSizesForFont)
+fontBold    (check =off)   faux-bold thickening on bitmap fonts; real weight
+                           on system fonts
+fontItalic  (check =off)   faux-italic shear on bitmap fonts; real style on
+                           system fonts
+textDirection <0 | 90 | 180 | 270 deg>  =0
+textShadow  (check =off)
+textOutline (check =off)
+hint: usage text
+(direction/shadow/outline ride on fontInfo, so SelectionService re-applies them
+ when the placed stamp is dragged, scaled, rotated or warped)
+
+===============================================================================
+10. PATTERN CREATOR  (id 'pattern-creator', shortcut K)
+===============================================================================                 js/tools/pattern-creator-tool.js
+(NO options - static optionsSchema = []. Selecting it opens the Pattern Creator
+ modal; the tool never touches the main canvas. getFootprint() returns null.)
+
+===============================================================================
+11. ZOOM  (id 'zoom', shortcut Z)                           js/tools/zoom-tool.js
+===============================================================================
+zoomLevel <ZOOM_CONFIG.LEVELS: 100..1600% in 100% steps>  =200
+          syncEvent CANVAS_ZOOM  (tracks zoom changed elsewhere)
+(left-click zooms in one LADDER stop (100/200/400/800/1600) around the clicked
+ pixel, right-click out, drag = marquee zoom to the region)
+
+===============================================================================
+12. PAN  (rail label 'Pan', shortcut V; id legacy 'transform')
+===============================================================================                        js/tools/move-tool.js
+hint only ('move.useTransform'). No settings; drag pans the viewport.
+
+===============================================================================
+DUPLICATED OPTIONS / SETTINGS ACROSS TOOLS  (name = schema key / i18n label)
+===============================================================================
+
+A. "Size"  (key size / opt.size)
+     - Brush  : range 1..32
+     - Eraser : range 1..128 (same control, wider range - see section 2)
+   The one other stamp-radius dial, Spray's, is not a second Size: spray IS the
+   brush, at the brush's size.
+
+B. "Thickness"  (key thickness / opt.thickness, range 1..8)
+     - Shape (any unfilled shape) : outline stroke width
+     - Bezier                     : thickens the curve stroke
+     - Brush > Hatch              : hatchThickness, the lattice line width
+   Same control and label, three meanings that are all "how wide is the line".
+
+C. Brush-type option set  (BRUSH_TYPE_OPTS, 6 entries)
+     - rendered ONLY by Brush.fadeBrushType (the delegate list).
+     - Brush.brushType renders SOLID_BRUSH_OPTS (Round/Square) instead, because
+       every other type has its own rail button.
+
+D. Nib shape  (NIB_SHAPE_OPTS, Square/Round, i18n label "Shape")
+     - Brush > Spray > Poisson : poissonShape
+     - Brush > Hatch           : hatchNib
+
+E. "Shape" label  (opt.shape)
+     - Shape.shapeType, Gradient.fillShape and the two nib rows above all carry
+       the i18n label "Shape" for four different meanings (the drawn shape, the
+       gradient's fill region, the stipple nib, the hatch nib).
+
+F. Geometric-shape VALUES reused across tools (same i18n labels):
+     - Square    : Shape(shapeType), Gradient(fillShape), Gradient(gradientType),
+                   both nib rows                              (common.square)
+     - Circle    : Shape(shapeType), Gradient(fillShape)      (common.circle)
+     - Rectangle : Shape(shapeType), Gradient(fillShape)      (common.rectangle)
+     - Triangle  : Shape(shapeType), Gradient(fillShape)      (common.triangle)
+     - Diamond   : Shape(shapeType), Gradient(gradientType)   (gt.diamond)
+     - Spiral    : Shape(shapeType), Gradient(gradientType)   (gt.spiral)
+
+G. Pattern painting - TWO entry points to the same PatternService:
+     - Brush with brushType = Pattern (opens the 'Patterns' sidebar panel)
+     - Fill with usePattern = on
+   Both consume PatternService.getCurrentPattern() / shouldDrawPixel().
+
+H. Zoom level select is duplicated by design:
+     - the Zoom tool's zoomLevel select IS the canvas status-strip #zoom-level
+       select (both from ZOOM_CONFIG.LEVELS; syncEvent keeps them in lockstep).
+
+I. Erase is duplicated by concept:
+     - Eraser tool (size only) vs the global Paper draw mode vs a brush
+       right-click. The Eraser is a solid Brush locked to erase, at its own size.
+
+J. The shape grid appears in two tools:
+     - Shape and Bezier both render SHAPE_TYPE_ROW, so the list never changes
+       place when you move between a drawn shape and a drawn curve.
+
+===============================================================================
+KNOWN NO-OP PERMUTATIONS THAT REMAIN  (expected behaviour, not bugs)
+===============================================================================
+(The dead/invalid options this audit originally listed have been fixed, removed
+ or hidden: shape line thickness & rectangle border, gradient "Dithered", shape
+ "Filled" on arc/spiral/x, text bold/italic on bitmap fonts, brush Flow/Build-up
+ on the deterministic brushes, fill Contiguous/Allow-diagonal/Use-pattern in
+ attributes-only mode, gradient Dither-grain when un-dithered, gradient Shape
+ under Shape-fill. All guarded by tests/tool-option-fixes.test.js. What remains
+ below is inherent - it cannot be decided from option values alone, so it is not
+ hidden.)
+
+1. BRUSH > pressureSensitivity  on non-pressure input  -- NO-OP (by hardware)
+   Pressure is 1.0 for mouse/touch; the size/flow pressure mapping only varies
+   under a pressure pen. With a mouse the checkbox changes nothing. Inert unless
+   a pen reports pressure.
+
+2. Any pixel option in a mode that does not draw pixels -- NO-OP (by draw mode)
+   The global Attributes only and Paper modes are the visible cases: a stroke
+   can legitimately leave no ink. The status bar names the mode while it is in
+   force, which is why this is a state and not a bug.
+===============================================================================
