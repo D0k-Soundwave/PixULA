@@ -111,7 +111,7 @@ const S = [ // f: "ext" = external tool, "hw" = hardware
   { k:"p4.c2", t:"Header contents", s:[
     "Look at the top header bar.",
     "Left side: a menu bar reading File · Edit · View · Layer · Image · Settings · Help.",
-    "Right side: language selector (13 language names, English…Русский), theme selector (6 themes), interface-size selector (85%–300%), and a “Speak” checkbox."],
+    "Right side: language selector (13 language names, English…Русский), theme selector (6 themes), interface-size selector (85%–200%), and a “Speak” checkbox."],
     x:"All listed controls present, in that arrangement." },
   { k:"p4.c3", t:"Left rail contents & order", s:[
     "Look at the left rail, top to bottom.",
@@ -425,8 +425,8 @@ const S = [ // f: "ext" = external tool, "hw" = hardware
     "In DevTools console run: document.documentElement.lang",
     "Press F5 and run it again."],
     x:"Returns the locale code (e.g. “de”) and survives reload." },
-  { k:"p6.l5", t:"No clipping in de/hu/ru at 100–300% scale", s:[
-    "For each of Deutsch, Magyar, Русский: set interface size 100%, then 200%, then 300%.",
+  { k:"p6.l5", t:"No clipping in de/hu/ru at 100–200% scale", s:[
+    "For each of Deutsch, Magyar, Русский: set interface size 100%, then 200%.",
     "Look at the left rail (Swap/Apply rows), the menus, and the zoom strip (Fit button)."],
     x:"Labels wrap or grow — never clip or overflow their buttons." },
  ]},
@@ -1139,7 +1139,7 @@ const S = [ // f: "ext" = external tool, "hw" = hardware
  { t:"Reading and hitting the controls", items:[
   { k:"tp.r1", t:"The row reads in every language, at every scale", s:[
     "Pick the Brush so the Save/Load row is showing.",
-    "Set the interface size selector to 300%.",
+    "Set the interface size selector to 200%.",
     "Switch language through ru, then two of cs / hu / tr / pl (the long-word languages).",
     "Look at the \"Load preset...\" list and the \"Save preset...\" button, and at the Presets panel heading below them."],
     x:"Every label is translated and fully visible — nothing clipped, nothing overlapping, no text pushed outside its control." },
@@ -1170,7 +1170,7 @@ const S = [ // f: "ext" = external tool, "hw" = hardware
     "Press F5, choose No at any restore prompt, then load the preset."],
     x:"It saves without complaint and comes back displaying correctly. The automated coverage uses a 2x2 PNG, so this is the only test of the real size through IndexedDB." },
   { k:"tp.b6", t:"The Reference panel's preset row reads in every language", s:[
-    "Interface size 300%, then switch through ru and two of cs / hu / tr / pl.",
+    "Interface size 200%, then switch through ru and two of cs / hu / tr / pl.",
     "Read the Load/Save row and the preset list in the Reference panel."],
     x:"Translated and unclipped, the same as the Tool Options row." },
   { k:"tp.l1", t:"The library stays scannable across many tools", s:[
@@ -1178,7 +1178,7 @@ const S = [ // f: "ext" = external tool, "hw" = hardware
     "Read down the Presets panel."],
     x:"The tool line reads first on every row, the settings line wraps to at most two lines and ellipsises rather than growing the row, and you can find the one you want by scanning rather than by hovering each in turn." },
   { k:"tp.l2", t:"The settings line in every language", s:[
-    "With several presets saved, set interface size to 300%.",
+    "With several presets saved, set interface size to 200%.",
     "Switch through ru and two of cs / hu / tr / pl."],
     x:"Every option label and every select value on the settings line is translated - no raw keys like \"opt.size\", no English left in - and the longer localized lines still clamp to two lines instead of pushing the icon buttons out." },
   { k:"tp.l3", t:"The name on hover", s:[
@@ -1214,7 +1214,7 @@ const S = [ // f: "ext" = external tool, "hw" = hardware
     "Set one entry to a dark shade and another eight or so along to a light one, then Ramp: From / To / Blend."],
     x:"The steps read as an even gradient rather than as separate colours. On the 8-levels-per-channel grid some steps will repeat - note if a run is visibly lumpy rather than merely coarse." },
   { k:"pal.j3", t:"Palette rows read in every language", s:[
-    "Interface size 300%, then ru and two of cs / hu / tr / pl, with the palette editor open."],
+    "Interface size 200%, then ru and two of cs / hu / tr / pl, with the palette editor open."],
     x:"Palette file / Build / Ramp labels and the From/To number inputs are translated, unclipped and still usable. The CLUT row labels read \"CLUT 0..3\" with real numbers, not \"{n}\"." },
  ]},
 ]},

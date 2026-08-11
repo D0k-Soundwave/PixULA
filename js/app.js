@@ -108,6 +108,7 @@ const BOOT_MANIFEST = [
     ['ToolRail',         'js/ui/components/tool-rail.js'],
     ['ClutBar',          'js/ui/components/clut-bar.js'],
     ['DrawModeBar',      'js/ui/components/draw-mode-bar.js'],
+    ['ColorBarFit',      'js/ui/components/colorbar-fit.js'],
     ['TouchModeStatus',  'js/ui/components/touch-mode-status.js'],
     ['LayerPanel',       'js/ui/components/layer-panel.js'],
     ['TransformPanel',   'js/ui/components/transform-panel.js'],
@@ -297,6 +298,7 @@ class AppClass {
         ClutBar.init();
         BorderControl.initialize();
         DrawModeBar.init();
+        ColorBarFit.init(); // after the bar's own content exists, before anything measures it
         TouchModeStatus.init();
         ToolRail.init();
 

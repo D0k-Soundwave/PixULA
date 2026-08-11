@@ -145,10 +145,9 @@ class ClutBarClass {
 
     /** @private */
     _buildColorCluster(host) {
-        // One mode-dependent container, rebuilt on mode/bit changes. PREPENDED:
-        // #colour-bits and #border-host are already in the markup after it, and
-        // the order along the colour group runs swatches -> Bright/Flash ->
-        // Border.
+        // One mode-dependent container, rebuilt on mode/bit changes. #toolbar-color
+        // holds only this cluster — Bright/Flash and Border are a separate
+        // #toolbar-attrs sibling in the top #color-bar (css/components.css).
         this._cluster = document.createElement('div');
         this._cluster.id = 'clut-cluster';
         this._swatchHost = this._cluster;

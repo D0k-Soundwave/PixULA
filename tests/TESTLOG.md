@@ -163,7 +163,7 @@ Manual matrix (run in browser, old app open side by side):
 - [x] Switching locale re-translates: menus (labels + items), panel titles, tool-rail tooltips incl. shortcut suffixes, CLUT attr buttons, zoom Fit + aria labels, grid label (colon intact), reference panel, pattern panels, layer/stamp row titles, status Ready — AUTO (browser: i18n-themes.spec; sampled: menus, panel titles, Cyrillic check. Full visual sweep: manual)
 - [ ] Tool options panel: labels/options/optgroups/hints re-translate for current tool; re-opened dialogs (export/about/shortcuts/preferences) come up translated — PART: reopened About in ru AUTO (browser: i18n-themes.spec); manual: tool options re-translate
 - [x] `<html lang>` tracks the locale; F5 restores the same locale — AUTO (browser: i18n-themes.spec)
-- [x] de / hu / ru: left rail (Swap/Apply stacked rows), menus, zoom strip — nothing clips at 100–300% UI scale (Fit button grows with its label) — AUTO (browser: i18n-themes.spec; scrollWidth/Height sweep at min+max scale — found and fixed the zoom-fit vertical clip)
+- [x] de / hu / ru: left rail (Swap/Apply stacked rows), menus, zoom strip — nothing clips at 100–200% UI scale (Fit button grows with its label; the selector's top preset was 300% until it was retired 2026-08-10, see js/ui/components/colorbar-fit.js) — AUTO (browser: i18n-themes.spec; scrollWidth/Height sweep at min+max scale — found and fixed the zoom-fit vertical clip)
 
 ### Theme switch
 - [x] Theme selector lists 6 translated names; boots into the theme persisted pre-Phase-6 (interim 'theme' key) — AUTO (browser: i18n-themes.spec)
@@ -703,7 +703,7 @@ Manual matrix (deferred to the end-of-rebuild consolidated pass):
 - [x] Loading restores the tool's options and moves NOTHING else (colour, symmetry, zoom untouched) — AUTO (browser: tool-presets.spec)
 - [x] The sliders and selects show the loaded values immediately — AUTO (browser: tool-presets.spec, through the real select)
 - [x] A tool with nothing to capture (eyedropper, move) shows no row — AUTO (browser: tool-presets.spec, presets.spec)
-- [ ] The row reads correctly in all 13 languages, and the Save/Load labels do not clip at 300% interface size — PART: the chrome clip sweep is AUTO (browser: i18n-themes.spec); manual: these two controls per locale at large scale
+- [ ] The row reads correctly in all 13 languages, and the Save/Load labels do not clip at 200% interface size — PART: the chrome clip sweep is AUTO (browser: i18n-themes.spec); manual: these two controls per locale at large scale
 
 ### The Presets panel
 - [x] Lists the active tool's presets, names the tool, follows a tool change — AUTO (browser: tool-presets.spec)
@@ -728,7 +728,7 @@ Manual matrix (deferred to the end-of-rebuild consolidated pass):
 - [x] The asset sweep spares reference pictures when an unrelated preset is saved, and drops one only when the last preset referencing it goes — AUTO (node: tool-presets.test.js)
 - [ ] Loading a reference preset over a DIFFERENT loaded photo replaces it cleanly on screen (no flash of the old image at the new offset, no stale canvas) — the transform is applied before the image by design; confirm that reads correctly at high zoom
 - [ ] A large real photo (several MB) saves, reloads after F5 and still displays — the asset path is byte-tested with a 2x2 PNG only, so this is the one that exercises the real size
-- [ ] The Reference panel's preset row reads correctly in all 13 languages at 300% interface size
+- [ ] The Reference panel's preset row reads correctly in all 13 languages at 200% interface size
 
 ### Palette as a document (2026-08-07)
 - [x] File > Load Palette… / Save Palette… exist and work without opening the editor — AUTO (browser: palette-files.spec)
@@ -740,7 +740,7 @@ Manual matrix (deferred to the end-of-rebuild consolidated pass):
 - [ ] A .pal saved here loads into ZX-Paintbrush / an emulator's palette loader, and one written by them loads here — the byte forms are per the SpecNext wiki and RECOIL, but no real-program interop has been run
 - [ ] Build from image on a real photograph produces a palette a human judges usable in each of ULAplus and Layer 2 — the automated checks only prove the colours are legal registers and that a flat image yields its own colour
 - [ ] The .npl transparency index ($E3) is honoured by real Next tooling on a palette we wrote
-- [ ] The palette editor's new rows read correctly in all 13 languages at 300% interface size, and the number inputs stay usable
+- [ ] The palette editor's new rows read correctly in all 13 languages at 200% interface size, and the number inputs stay usable
 
 ### The Presets panel as a library (2026-08-07)
 - [x] It lists every scope's presets, not just the active tool's, and labels each row with its tool — AUTO (browser: tool-presets.spec)
@@ -750,7 +750,7 @@ Manual matrix (deferred to the end-of-rebuild consolidated pass):
 - [x] Reference presets appear in the library labelled by their scope — AUTO (browser: tool-presets.spec)
 - [x] Nothing in the panel chrome is named after one tool; the Save button says only "Save preset..." and names the tool in its tooltip, following the tool in hand — AUTO (browser: tool-presets.spec)
 - [ ] With presets across five or more tools the list stays scannable: the tool line reads first, the settings line wraps to at most two lines and ellipsises rather than growing the row
-- [ ] The settings line reads correctly in all 13 languages at 300% interface size — every option label and select value is translated, and a long localized settings line still clamps
+- [ ] The settings line reads correctly in all 13 languages at 200% interface size — every option label and select value is translated, and a long localized settings line still clamps
 - [ ] Hovering a row shows the name promptly and it is legible against every theme
 
 ### System fonts and the caps (2026-08-07)
@@ -772,7 +772,7 @@ Manual matrix (deferred to the end-of-rebuild consolidated pass):
 - [x] An existing `autosave: false` preference from before the change arrives as 0 minutes — AUTO (browser: autosave.spec)
 - [ ] Set 2 minutes, draw, wait, and confirm a restore prompt appears on the next boot offering that work — the timing itself is the one thing no spec waits for
 - [ ] Set 0, draw, close the tab, reopen: no restore prompt, and no work silently saved
-- [ ] The minutes field and its label read correctly in all 13 languages at 300% interface size
+- [ ] The minutes field and its label read correctly in all 13 languages at 200% interface size
 
 ### Undo snapshot memory (2026-08-07)
 - [x] Packed snapshots restore a classic-mode layer byte-exactly after a real wreck — AUTO (browser: undo-snapshot.spec)

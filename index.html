@@ -76,8 +76,6 @@
                     <option value="1.25">125%</option>
                     <option value="1.5">150%</option>
                     <option value="2">200%</option>
-                    <option value="2.5">250%</option>
-                    <option value="3">300%</option>
                 </select>
                 <label class="header-tts" title="Speak UI changes aloud" data-i18n-title="a11y.speakHint">
                     <input type="checkbox" id="tts-toggle">
@@ -94,17 +92,29 @@
              ClutBar; Border dropdown appended by BorderControl. Zero
              hand-written swatches. -->
         <div id="color-bar" role="toolbar" aria-label="Colours and attributes" aria-orientation="horizontal">
-            <!-- Two groups, cut by what the control DOES to the picture.
-                 COLOUR: the swatches, the selectors that say which swatches
-                 (ULAplus CLUT, GigaScreen view, Timex scheme), the Bright and
-                 Flash bits and the Border — everything that answers "which
-                 colour". MARKS: how a stroke combines with what is already
-                 there — the draw modes, with Swap and Recolour beside them
-                 because they are attribute ops, not colours.
-                 The bar is one row while it fits; when it does not, these two
-                 are what wrap, as whole units, so the second row is always the
-                 marks group entire and never half a cluster. -->
+            <!-- Three groups, cut by what the control DOES to the picture, at
+                 one shared pitch (one palette-icon block) between every pair:
+                 PALETTE: the swatches and the selectors that say which
+                 swatches (ULAplus CLUT, GigaScreen view, Timex scheme).
+                 ATTRS: the Bright/Flash bits and the Border — cell/screen
+                 attributes, not swatches, but riding right after the
+                 palette rather than with the marks. MARKS: how a stroke
+                 combines with what is already there — the draw modes, with
+                 Swap and Recolour after them because they are attribute ops,
+                 not colours.
+                 They are three SEPARATE flex items (not #toolbar-attrs
+                 nested inside the palette group, tried 2026-08-10 and
+                 reverted) specifically so ordinary flex-wrap packs them
+                 freely: whichever group runs out of room drops to the next
+                 line and picks up whatever follows it that still fits there
+                 too — e.g. attrs joins the marks row rather than claiming a
+                 whole line of its own — which is what keeps the bar at TWO
+                 rows across a much wider range of interface-size settings
+                 than a rigid "each group is its own line" rule would. -->
             <div id="toolbar-color" class="toolbar-section">
+                <!-- Swatch cluster (ClutBar) is prepended here. -->
+            </div>
+            <div id="toolbar-attrs" class="toolbar-section">
                 <!-- Bright/Flash (ClutBar; per-mode, empty where the mode has
                      no attribute bits) -->
                 <div id="colour-bits" class="toolbar-section"></div>
@@ -112,12 +122,12 @@
                 <div id="border-host" class="toolbar-section"></div>
             </div>
             <div id="color-bar-controls">
-                <!-- Swap / Recolour (ClutBar) sit INLINE with the draw modes:
-                     one run, one pitch, no group gap between them. -->
-                <div id="attr-tools" class="toolbar-section clut-attrs"></div>
                 <!-- Global draw-mode selector (DrawModeBar): icon buttons in the
                      left-toolbar style; drives StateManager's document-wide mode. -->
                 <div id="draw-modes" class="toolbar-section"></div>
+                <!-- Swap / Recolour (ClutBar) sit INLINE with the draw modes,
+                     after XOR: one run, one pitch, no group gap between them. -->
+                <div id="attr-tools" class="toolbar-section clut-attrs"></div>
             </div>
         </div>
 
@@ -512,6 +522,7 @@
     <script defer src="js/ui/components/tool-rail.js"></script>
     <script defer src="js/ui/components/clut-bar.js"></script>
     <script defer src="js/ui/components/draw-mode-bar.js"></script>
+    <script defer src="js/ui/components/colorbar-fit.js"></script>
     <script defer src="js/ui/components/touch-mode-status.js"></script>
     <script defer src="js/ui/components/layer-panel.js"></script>
     <script defer src="js/ui/components/transform-panel.js"></script>

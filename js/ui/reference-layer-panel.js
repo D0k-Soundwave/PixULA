@@ -300,8 +300,43 @@ class ReferenceLayerPanelClass {
         this.controls.offsetX = xInput;
         this.controls.offsetY = yInput;
 
+        // Same cross-of-four-arrows pad as the Transform panel's Shift -
+        // nudges the same X/Y fields above by one canvas pixel rather than
+        // requiring a typed value for a small reposition.
+        const pad = document.createElement('div');
+        pad.className = 'dir-pad';
+
+        const OFFSET_STEP = 1;
+        const nudge = (input, delta) => {
+            input.value = String((parseInt(input.value, 10) || 0) + delta);
+            updateOffset();
+        };
+
+        const mkNudge = (dirClass, dx, dy, glyphEntity) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `panel-button small ${dirClass}`;
+            // innerHTML, not textContent: an HTML entity (matching the
+            // Transform panel's Shift pad) rather than a raw arrow
+            // character, which tests/lint-architecture.test.js flags as a
+            // pictograph wherever it appears in js/ source.
+            btn.innerHTML = glyphEntity;
+            btn.addEventListener('click', () => {
+                if (dx) nudge(xInput, dx * OFFSET_STEP);
+                if (dy) nudge(yInput, dy * OFFSET_STEP);
+            });
+            pad.appendChild(btn);
+            return btn;
+        };
+
+        mkNudge('dir-pad-up', 0, -1, '&#x2191;');
+        mkNudge('dir-pad-left', -1, 0, '&#x2190;');
+        mkNudge('dir-pad-right', 1, 0, '&#x2192;');
+        mkNudge('dir-pad-down', 0, 1, '&#x2193;');
+
         section.appendChild(label);
         section.appendChild(row);
+        section.appendChild(pad);
         return section;
     }
 
@@ -312,7 +347,16 @@ class ReferenceLayerPanelClass {
 
         const scale = this._sliderRow({
             id: 'ref-scale', i18n: 'reference.scale', fallback: 'Scale',
-            min: 1, max: 500, value: 100, unit: '%',
+            // Negative scale mirrors the image (drawImage with a negative
+            // width/height flips its source - ReferenceLayerService._render
+            // does this for free, no extra branch needed) at the same
+            // centred offset a positive scale of the same magnitude would
+            // use, so this is one slider for "flip AND resize" together
+            // rather than a second control. -99, not -100 or a symmetric
+            // -500: never quite reaching a full-size mirror keeps 0 (a
+            // vanished image) a deliberate drag past a limit, not a
+            // resting value the thumb parks on.
+            min: -99, max: 500, value: 100, unit: '%',
             event: EVENTS.REFERENCE_SCALE, payloadKey: 'scale'
         });
         this.controls.scale = scale.slider;

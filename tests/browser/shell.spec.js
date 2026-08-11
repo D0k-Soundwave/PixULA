@@ -72,24 +72,27 @@ test('every row of the colour bar sits on one baseline and one pitch',
         await boot(page);
 
         /*
-         * The bar is cut by what a control DOES: colour (which colour) against
-         * marks (how a stroke combines). They are DOM groups, so a wrap can
-         * only ever fall BETWEEN them - never through the middle of a cluster.
-         * Swap and Recolour belong to marks: they are attribute ops, and they
-         * sit inline with the draw modes rather than off with the swatches.
+         * The bar is cut by what a control DOES: palette (which colour),
+         * attrs (Bright/Flash/Border - cell/screen attributes, its own
+         * sibling group so it can wrap independently of the swatches) and
+         * marks (how a stroke combines). Swap and Recolour belong to marks:
+         * they are attribute OPS, and they sit inline with the draw modes
+         * rather than off with the swatches or with Bright/Flash/Border.
          */
         const split = await page.evaluate(() => ({
             swatchesInMarks: document.querySelectorAll('#color-bar-controls .color-swatch').length,
             marks: [...document.querySelectorAll('#color-bar-controls button')]
                 .map((b) => b.id || b.dataset.drawMode),
-            // Bright/Flash and Border answer "which colour", so they stay put
-            colourGroupKeeps: ['#bright-toggle', '#flash-toggle', '#border-select']
-                .filter((s) => document.querySelector(`#toolbar-color ${s}`)).length
+            // Bright/Flash and Border are their own block, one palette-icon
+            // pitch after the paper clut.
+            attrsGroupKeeps: ['#bright-toggle', '#flash-toggle', '#border-select']
+                .filter((s) => document.querySelector(`#toolbar-attrs ${s}`)).length
         }));
         expect(split.swatchesInMarks).toBe(0);
-        expect(split.marks).toEqual(['attr-transpose', 'attr-apply',
-            'normal', 'ink', 'paper', 'pixel_only', 'xor']);
-        expect(split.colourGroupKeeps).toBe(3);
+        // Draw modes first, Swap/Recolour after XOR (moved 2026-08-10).
+        expect(split.marks).toEqual(['normal', 'ink', 'paper', 'pixel_only', 'xor',
+            'attr-transpose', 'attr-apply']);
+        expect(split.attrsGroupKeeps).toBe(3);
 
         // One pitch for every icon in the marks run, whatever its caption's
         // length - and they share the row's width evenly, so it fills the bar
@@ -247,6 +250,139 @@ test.describe('the colour bar spends only the height it needs', () => {
                 expect(marksRows).toBe(1);
             });
     });
+});
+
+/*
+ * ColorBarFit (js/ui/components/colorbar-fit.js): raising the interface-size
+ * setting used to fragment the bar into three, four, five+ short rows well
+ * before any other chrome region showed a problem, because #color-bar's own
+ * icons grew with --ui-scale while the column they sit in did not (found
+ * 2026-08-10). #color-bar now scales by --ui-scale times its own
+ * --colorbar-scale (css/layout.css), and this component dials that second
+ * factor down - independently of every other region - until the bar's
+ * content fits two rows again, or the floor is reached.
+ *
+ * This holds across the whole interface-size range at every window width
+ * tested, from 1024px up. It does NOT hold at every width for every scale
+ * this component could in principle be asked to reach - #toolbar and
+ * #panels are a DIFFERENT region, scaling by plain --ui-scale with no floor
+ * of their own ((--toolbar-width + --panel-width) = 408px base,
+ * css/variables.css), so past a high enough scale those two tracks alone
+ * can exceed a narrow window and leave #color-bar's own grid column at
+ * zero regardless of --colorbar-scale - no amount of shrinking inside it
+ * can conjure a column that isn't there. That is exactly why the
+ * interface-size selector's presets stop at 200% (85%-300% until
+ * 2026-08-10, index.html): every window width from 1024px up reaches two
+ * rows at every preset the selector now offers, so the impossible
+ * combination is simply not reachable through it any more. A value stored
+ * from before the presets were narrowed is clamped to the new max on
+ * restore (js/ui/components/app-settings.js) rather than reapplying a
+ * scale the selector can no longer even show as selected.
+ */
+test.describe('ColorBarFit keeps the bar at two rows across interface sizes', () => {
+    for (const width of [1024, 1366, 1600]) {
+        test.describe(`at ${width}px`, () => {
+            test.use({ viewport: { width, height: 900 } });
+            for (const scale of ['1.25', '1.5', '2']) {
+                test(`${Math.round(scale * 100)}% still gets two rows`,
+                    async ({ page }) => {
+                        await boot(page);
+                        await page.selectOption('#font-scale-selector', scale);
+                        await page.waitForTimeout(250);
+                        const result = await page.evaluate(() => {
+                            const bar = document.getElementById('color-bar');
+                            const tops = new Set();
+                            for (const el of document.querySelectorAll(
+                                '#color-bar .color-swatch, #color-bar button, #color-bar select, #color-bar .clut-bit')) {
+                                if (el.offsetParent === null) continue;
+                                tops.add(Math.round(el.getBoundingClientRect().top / 10));
+                            }
+                            return {
+                                rows: tops.size,
+                                hasHorizontalOverflow: bar.scrollWidth > bar.clientWidth + 1
+                            };
+                        });
+                        expect(result.rows).toBeLessThanOrEqual(2);
+                        expect(result.hasHorizontalOverflow).toBe(false);
+                    });
+            }
+        });
+    }
+
+    test('the selector offers nothing above 200%, and a stale stored value above it is clamped down',
+        async ({ page }) => {
+            await boot(page);
+            const values = await page.$$eval('#font-scale-selector option', o => o.map(x => x.value));
+            expect(values.map(Number)).toEqual(expect.arrayContaining([0.85, 1, 1.25, 1.5, 2]));
+            expect(Math.max(...values.map(Number))).toBe(2);
+
+            await page.evaluate(() => Storage.set('uiFontScale', '3'));
+            await reload(page);
+            const after = await page.evaluate(() => ({
+                selector: document.getElementById('font-scale-selector').value,
+                uiScale: getComputedStyle(document.documentElement)
+                    .getPropertyValue('--ui-scale').trim()
+            }));
+            expect(after.selector).toBe('2');
+            expect(after.uiScale).toBe('2');
+        });
+
+    /*
+     * A scale ColorBarFit measures as "exactly two rows" in its OWN read
+     * can still paint as three on the SAME machine (found 2026-08-12, a
+     * 2560x1440 display at 125% Windows scaling): its row count and the
+     * browser's actual layout are two separate roundings of the same
+     * fractional-device-pixel-ratio geometry, and a scale landing exactly
+     * on the boundary between them has zero margin for the two to
+     * disagree. ColorBarFit._margined() backs off from that edge by an
+     * amount that grows with how far window.devicePixelRatio sits from a
+     * whole number - fractional scaling (Windows "125%", "150%"...) is
+     * exactly what produces a fractional DPR. This does not (cannot,
+     * confirmed on real hardware but never reproduced by Playwright's DPR
+     * emulation) prove the margin is large enough for every real display -
+     * it pins that the margin EXISTS and scales with DPR, so a future
+     * change cannot silently zero it out the way the original edge-exact
+     * search did.
+     */
+    test('the safety margin actually grows at a fractional device pixel ratio',
+        async ({ page }) => {
+            const scaleAt = async (dpr) => {
+                await page.setViewportSize({ width: 1024, height: 900 });
+                // deviceScaleFactor is fixed per browser context in Playwright,
+                // not settable mid-test - reload with a fresh context field
+                // instead by re-navigating; simplest is two separate contexts,
+                // so this drives dpr via emulation on THIS page's CDP session.
+                const client = await page.context().newCDPSession(page);
+                await client.send('Emulation.setDeviceMetricsOverride', {
+                    width: 1024, height: 900, deviceScaleFactor: dpr, mobile: false
+                });
+                await boot(page);
+                await page.selectOption('#font-scale-selector', '2');
+                await page.waitForTimeout(300);
+                return parseFloat(await page.evaluate(() =>
+                    getComputedStyle(document.getElementById('color-bar'))
+                        .getPropertyValue('--colorbar-scale').trim()));
+            };
+            const atIntegerDpr = await scaleAt(1);
+            const atFractionalDpr = await scaleAt(1.25);
+            // Same content, same width, same interface-size - the only
+            // difference is DPR, so any gap in the settled scale is the
+            // margin's own DPR term, not a coincidence of what fit.
+            expect(atFractionalDpr).toBeLessThan(atIntegerDpr);
+        });
+
+    test('the indexed Next grid opts out - it scrolls by design, shrinking it would not help',
+        async ({ page }) => {
+            await boot(page);
+            page.on('dialog', (d) => d.accept()); // classic->indexed warns (lossy)
+            await page.evaluate(() => ScreenModeService.switchMode('layer2_256'));
+            await page.selectOption('#font-scale-selector', '2');
+            await page.waitForTimeout(250);
+            const scale = await page.evaluate(() =>
+                getComputedStyle(document.getElementById('color-bar'))
+                    .getPropertyValue('--colorbar-scale').trim());
+            expect(scale).toBe('1');
+        });
 });
 
 /*

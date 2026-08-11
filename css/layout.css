@@ -42,11 +42,20 @@ body {
    never affected — the canvas has its own separate zoom control. */
 #header,
 #toolbar,
-#color-bar,
 #panels,
 #status-bar,
 #canvas-controls {
     zoom: var(--ui-scale);
+}
+
+/* #color-bar scales by --ui-scale too, but multiplied by --colorbar-scale
+   (default 1, css/components.css) — the one region ColorBarFit
+   (js/ui/components/colorbar-fit.js) can dial back on its own, shrinking
+   this bar's icons independently of every other chrome region, specifically
+   to keep its content fitting two rows at interface sizes where it
+   otherwise would not. See the row-count rationale further down this file. */
+#color-bar {
+    zoom: calc(var(--ui-scale) * var(--colorbar-scale));
 }
 
 #header {
@@ -83,11 +92,19 @@ body {
    is not a thing to fix in advance. The bar earns its height rather than
    spending it.
 
-   WHERE it breaks is fixed, though: the palette (#toolbar-color) and the
-   controls (#color-bar-controls) are DOM groups that wrap as whole units, so
-   the second row is always "the controls", never half a cluster. Before that
-   grouping the draw modes moved to a different place whenever the active mode
-   changed the palette's width. */
+   WHERE it breaks is fixed, though: the palette (#toolbar-color), the
+   attributes (#toolbar-attrs — Bright, Flash, Border) and the marks
+   controls (#color-bar-controls) are three plain flex siblings at one
+   shared column-gap (one palette-icon block, below), which is what lets
+   ordinary flex-wrap pack them freely — a group that does not fit joins
+   whatever follows it on the next line instead of always claiming a whole
+   line to itself, so the bar tends to settle on two rows across a much
+   wider range of interface-size settings than a hard "one group per row"
+   rule would (see the DOM-order rationale in index.html and the flex
+   rationale in css/components.css beside the .toolbar-section rule it has
+   to beat — later @layer wins over specificity). Before this grouping the
+   draw modes moved to a different place whenever the active mode changed
+   the palette's width. */
 #color-bar {
     grid-area: colorbar;
     display: flex;
@@ -99,7 +116,10 @@ body {
        which reads as "the app is broken". */
     flex-wrap: wrap;
     align-items: flex-end;
-    gap: var(--space-sm) var(--space-lg);
+    /* One palette-icon pitch between every pair of groups, whether they land
+       on the same row or not — the same unit #clut-cluster uses between ink
+       and paper (css/components.css), so the whole bar reads as one rhythm. */
+    gap: var(--space-sm) var(--clut-btn-size);
     padding: var(--space-xs) var(--space-sm);
     background: var(--bg-secondary);
     border-bottom: 1px solid var(--border-color);
@@ -108,16 +128,11 @@ body {
     z-index: var(--z-toolbar);
 }
 
-/* The two groups GROW into whatever width is left over, and SHRINK when there
-   is none — but only the swatch cluster ever gives, by scrolling its own
-   overflow. Nothing is squashed: swatches and icon cells are all no-shrink
-   inside their clusters. The sizing itself is in css/components.css beside the
-   .toolbar-section rule it has to beat (later @layer wins over specificity). */
-
-/* The marks group: Swap and Recolour inline with the draw modes, one run at
-   one pitch. It rides beside the colour group while there is room and drops
-   below as one piece when there is not. Its icons share the width evenly —
-   see the flex-basis on the cells in css/components.css. */
+/* The marks group: the draw modes then Swap and Recolour, inline, one run at
+   one pitch, Swap/Recolour after XOR. It rides beside the colour group while
+   there is room and drops below as one piece when there is not. Its icons
+   share the width evenly — see the flex-basis on the cells in
+   css/components.css. */
 #color-bar-controls {
     display: flex;
     flex-direction: row;

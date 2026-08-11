@@ -452,10 +452,12 @@
    ClutBar builds the SAME DOM regardless of where the cluster lives; these
    rules lay that DOM out horizontally for the top #color-bar and enlarge the
    hit targets for pen/touch. Everything stays token-driven — no colour
-   literals, no JS layout. The fixed16 order runs left->right:
-     Ink preview · ink colours · ink transparent   (gap)
-     Paper preview · paper colours · paper transparent   (gap)
-     Bright/Flash · Border   ···   Swap · Apply */
+   literals, no JS layout. The fixed16 order runs left->right, across the
+   three top-level groups (#toolbar-color · #toolbar-attrs · #color-bar-controls),
+   all at one shared pitch (one palette-icon block):
+     Ink colours · ink transparent   (gap)
+     Paper colours · paper transparent   (one palette-icon pitch)
+     Bright/Flash · Border   (one palette-icon pitch)   draw modes · Swap · Recolour */
 /* Every control in the bar is captioned above (Helpers.captionWrap) and every
    control is --clut-btn-size tall, so aligning the BOTTOM edges puts every
    swatch, toggle, dropdown and icon button on one baseline. Centring instead
@@ -475,24 +477,36 @@
     border-bottom: none;
 }
 
-#color-bar #toolbar-color {
-    flex-wrap: nowrap;
-    /* Spread the clusters across the row rather than leaving the leftover
-       width bunched at one end. */
-    justify-content: space-between;
-}
-
-/* The two GROUPS size to the bar; the nested sections inside them keep the
+/* The three GROUPS size to the bar; the nested sections inside them keep the
    .toolbar-section default of not growing or shrinking. This has to live here
    rather than in css/layout.css: `#color-bar .toolbar-section { flex: 0 0
    auto }` above is in a LATER @layer, and a layer beats specificity.
 
-   The colour group is NEVER wider than the bar. Bright/Flash and Border hold
-   their size, and #clut-cluster absorbs the whole difference by scrolling
-   itself — so those controls stay on screen at every window width, every
-   interface size and in every screen mode, including the 256-entry indexed
-   palettes at ~2700px of swatches, which could never have fitted. */
-#color-bar > #toolbar-color,
+   #toolbar-color holds ONLY #clut-cluster now (no grow: it hugs the
+   swatches' own width rather than bloating into leftover row space, which
+   is what keeps #toolbar-attrs sitting right after paper instead of
+   stranded past an invisibly-padded box) — shrink stays live, so #clut-
+   cluster can still absorb the whole difference by scrolling itself, and
+   the palette group is NEVER wider than the bar at every window width,
+   every interface size and every screen mode, including the 256-entry
+   indexed palettes at ~2700px of swatches, which could never have fitted.
+   #toolbar-attrs (Bright/Flash/Border) is fixed to its own content width.
+   #color-bar-controls (the marks group) keeps the ONLY grow in this row —
+   tried splitting it 50/50 with the palette group (2026-08-09) and tried
+   nesting #toolbar-attrs inside the palette group so it could only ever
+   drop to a line of its own (2026-08-10); both reverted; see the DOM-order
+   comment in index.html for why three plain siblings, not two or a nest,
+   is what lets the bar settle on two rows across the widest range of
+   interface-size settings. */
+#color-bar > #toolbar-color {
+    flex: 0 1 auto;
+    min-width: 0;
+}
+
+#color-bar > #toolbar-attrs {
+    flex: 0 0 auto;
+}
+
 #color-bar > #color-bar-controls {
     flex: 1 1 auto;
     min-width: 0;
@@ -515,13 +529,12 @@
     column-gap: var(--clut-btn-size);
     row-gap: var(--space-xs);
     justify-content: flex-start;
-    /* The cluster still takes the leftover width, which is what keeps
-       Bright, Flash and Border together at the right end rather than the
-       parent's space-between stranding them apart... */
-    flex: 1 1 auto;
-    /* ...and gives it ALL back when there is not enough, so the colour group is
-       never wider than the bar and Bright, Flash and Border are never pushed
-       off the right edge.
+    /* The cluster is #toolbar-color's only child, so its own grow/shrink is
+       what #toolbar-color's (flex: 0 1 auto, above) ultimately hands down —
+       grow is moot either way since the parent never bloats past it, so this
+       stays 1 1 auto (matching every other flex item's default expectation)
+       and gives it back down to nothing (min-width: 0) when the row is tight
+       — the colour group is never wider than the bar.
        WRAP first: a swatch block drops to its own line and every colour stays
        on screen. Scrolling would be shorter, but it hides colours behind an
        overlay scrollbar that takes no space and so does not announce itself -
@@ -529,6 +542,7 @@
        so. A colour the artist cannot see is the palette equivalent of a mode
        they cannot see. Scroll is kept only for the one item that CANNOT wrap:
        the indexed Next grid, a single element ~2700px wide. */
+    flex: 1 1 auto;
     flex-wrap: wrap;
     align-content: flex-end;
     min-width: 0;
@@ -637,6 +651,10 @@
 #color-bar {
     --clut-btn-size: 39px;
     --clut-cell-size: 56px;
+    /* ColorBarFit's own knob (js/ui/components/colorbar-fit.js) — 1 until it
+       decides the bar needs to shrink to keep fitting two rows; see the
+       zoom formula in css/layout.css. */
+    --colorbar-scale: 1;
 }
 
 /* The native checkbox drives state/AT but the icon shows it — hide the box. */
@@ -660,12 +678,13 @@
     font-size: var(--font-size-sm);
 }
 
-/* Swap/Recolour and the draw modes are ONE run. `display: contents` dissolves
-   the two section boxes so all seven cells are siblings in #color-bar-controls
-   — which is what lets them share the width EVENLY. Kept as separate sections
-   because two different components own them (ClutBar, DrawModeBar) and ClutBar
-   still hides #attr-tools whole in the modes that have no cell attributes;
-   an inline `display: none` still beats this. */
+/* The draw modes and Swap/Recolour are ONE run, in that DOM order (XOR then
+   Swap/Recolour). `display: contents` dissolves the two section boxes so all
+   seven cells are siblings in #color-bar-controls — which is what lets them
+   share the width EVENLY. Kept as separate sections because two different
+   components own them (ClutBar, DrawModeBar) and ClutBar still hides
+   #attr-tools whole in the modes that have no cell attributes; an inline
+   `display: none` still beats this. */
 #color-bar-controls #attr-tools,
 #color-bar-controls #draw-modes {
     display: contents;
@@ -1041,6 +1060,33 @@
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
 }
+
+/* A directional pad - the same cross-of-four-arrows layout as a pan
+   cursor, rather than a left-to-right reading order that has nothing to do
+   with which arrow points where. Shared by the Transform panel's Shift and
+   the Reference panel's Offset, wherever four buttons nudge something in
+   four directions. Only 4 of the 9 cells are populated (the diagonals stay
+   empty), placed explicitly by grid-area rather than relying on markup
+   order, so a locale re-labelling never reshuffles it. */
+.dir-pad {
+    display: grid;
+    grid-template-columns: repeat(3, 28px);
+    grid-template-rows: repeat(3, 28px);
+    gap: var(--space-xs);
+    width: fit-content;
+}
+
+.dir-pad .panel-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.dir-pad-up    { grid-area: 1 / 2; }
+.dir-pad-left  { grid-area: 2 / 1; }
+.dir-pad-right { grid-area: 2 / 3; }
+.dir-pad-down  { grid-area: 3 / 2; }
 
 .tp-shift-opts {
     display: flex;

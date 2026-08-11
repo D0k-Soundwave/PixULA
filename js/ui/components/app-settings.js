@@ -96,24 +96,44 @@ class AppSettingsClass {
         const sel = document.getElementById('font-scale-selector');
         const root = document.documentElement;
 
+        // Ctrl/⌘ + wheel steps through THESE, below, so it is also the
+        // source of truth for what a restored value must be clamped against
+        // - a value stored before a preset was removed (300%/250%, retired
+        // 2026-08-10: two rows was not reliably achievable above 200%,
+        // see js/ui/components/colorbar-fit.js) must not apply a scale the
+        // selector can no longer even show as selected.
+        const presets = () => Array.from(sel.options)
+            .map((o) => parseFloat(o.value))
+            .filter((n) => n > 0)
+            .sort((a, b) => a - b);
+
         const apply = (scale) => {
-            const n = parseFloat(scale);
-            if (n > 0) root.style.setProperty('--ui-scale', String(n));
+            let n = parseFloat(scale);
+            if (n <= 0) return;
+            if (sel) {
+                const values = presets();
+                if (values.length) n = clamp(n, values[0], values[values.length - 1]);
+            }
+            root.style.setProperty('--ui-scale', String(n));
+            // ColorBarFit (and anything else that cares) reacts here rather
+            // than being called directly - one fact, whoever is listening.
+            EventBus.emit(EVENTS.UI_SCALE_CHANGED, { scale: n });
+            return n;
         };
         // Apply a scale, reflect it in the selector, and persist it.
         // Programmatically setting sel.value does not fire 'change', so this
         // is safe to call from the wheel handler without re-entrancy.
         const setScale = (value) => {
-            apply(value);
-            if (sel) sel.value = String(value);
-            if (window.Storage) Promise.resolve(Storage.set(this.SCALE_KEY, String(value))).catch(() => {});
+            const n = apply(value);
+            if (sel) sel.value = String(n);
+            if (window.Storage) Promise.resolve(Storage.set(this.SCALE_KEY, String(n))).catch(() => {});
         };
 
         if (window.Storage) {
             Promise.resolve(Storage.get(this.SCALE_KEY)).then((v) => {
                 if (v) {
-                    apply(v);
-                    if (sel) sel.value = String(v);
+                    const n = apply(v);
+                    if (sel) sel.value = String(n);
                 }
             }).catch(() => {});
         }
@@ -125,10 +145,6 @@ class AppSettingsClass {
         // selector's presets instead of triggering native page zoom. Canvas
         // zoom is handled separately inside the iframe, whose wheel events
         // don't reach this outer-document listener.
-        const presets = () => Array.from(sel.options)
-            .map((o) => parseFloat(o.value))
-            .filter((n) => n > 0)
-            .sort((a, b) => a - b);
 
         document.addEventListener('wheel', (e) => {
             if (!(e.ctrlKey || e.metaKey)) return;

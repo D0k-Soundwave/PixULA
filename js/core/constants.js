@@ -875,6 +875,7 @@ const EVENTS = Object.freeze({
     UI_PANEL_TOGGLE: 'ui:panelToggle',
     UI_THEME_CHANGE: 'ui:themeChange',
     UI_LANGUAGE_CHANGE: 'ui:languageChange',
+    UI_SCALE_CHANGED: 'ui:scaleChanged',
     THEME_CHANGED: 'theme:changed',
 
     // File events

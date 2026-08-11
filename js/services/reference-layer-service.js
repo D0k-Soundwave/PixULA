@@ -389,10 +389,12 @@ class ReferenceLayerServiceClass {
 
     /**
      * Set scale
-     * @param {number} scale - Scale percentage (1-500)
+     * @param {number} scale - Scale percentage (-99-500). Negative mirrors
+     *   the image at |scale| - _render()'s drawImage call flips its source
+     *   for free when the destination width/height goes negative.
      */
     setScale(scale) {
-        this.scale = Helpers.clamp(scale, 1, 500);
+        this.scale = Helpers.clamp(scale, -99, 500);
         this._render();
         this._saveState();
 
