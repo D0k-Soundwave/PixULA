@@ -58,6 +58,24 @@ class GridOverlayClass {
         this.cellGridColor  = '#FF0000';
         this.blockGridColor = '#0000FF';
 
+        // Overlay chrome colours (marching ants, handles, footprint/stamp
+        // outlines, selection fill/dim) — resolved once here and on
+        // EVENTS.THEME_CHANGED rather than via getComputedStyle() on every
+        // draw call. _animateMarchingAnts self-schedules on requestAnimationFrame
+        // for as long as a selection exists, so re-reading these from inside it
+        // used to be a permanent per-frame style-recalculation cost.
+        this._overlayColors = {
+            outline:        'rgba(255,255,255,0.85)',
+            outlineBrush:   'rgba(255,255,255,0.6)',
+            handleBg:       '#ffffff',
+            handleStroke:   'rgba(0,0,0,0.7)',
+            rotationHandle: '#ffcc00',
+            selectionFill:  'rgba(255,255,255,0.07)',
+            marching1:      'rgba(255,255,255,0.9)',
+            marching2:      'rgba(0,0,0,0.9)',
+            dim:            'rgba(0,0,0,0.15)'
+        };
+
         // Grid caches - separate cache for each grid type
         this._grid1x1Cache = null;
         this._grid8x8Cache = null;
@@ -160,6 +178,19 @@ class GridOverlayClass {
         this.pixelGridColor = this._cssVar('--grid-pixel-color', '#000000');
         this.cellGridColor  = this._cssVar('--grid-cell-color',  '#FF0000');
         this.blockGridColor = this._cssVar('--grid-block-color', '#0000FF');
+
+        this._overlayColors = {
+            outline:        this._cssVar('--overlay-outline',        'rgba(255,255,255,0.85)'),
+            outlineBrush:   this._cssVar('--overlay-outline-brush',  'rgba(255,255,255,0.6)'),
+            handleBg:       this._cssVar('--overlay-handle-bg',      '#ffffff'),
+            handleStroke:   this._cssVar('--overlay-handle-stroke', 'rgba(0,0,0,0.7)'),
+            rotationHandle: this._cssVar('--overlay-rotation-handle', '#ffcc00'),
+            selectionFill:  this._cssVar('--overlay-selection-fill', 'rgba(255,255,255,0.07)'),
+            marching1:      this._cssVar('--overlay-marching-1',     'rgba(255,255,255,0.9)'),
+            marching2:      this._cssVar('--overlay-marching-2',     'rgba(0,0,0,0.9)'),
+            dim:            this._cssVar('--overlay-dim',            'rgba(0,0,0,0.15)')
+        };
+
         this._cachedZoom = null; // rebuild caches so new colours apply
     }
 
@@ -515,7 +546,7 @@ class GridOverlayClass {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         if (!pixels || pixels.length === 0) return;
 
-        ctx.fillStyle = color || this._cssVar('--overlay-outline', 'rgba(255,255,255,0.85)');
+        ctx.fillStyle = color || this._overlayColors.outline;
 
         for (let i = 0; i < pixels.length; i++) {
             const p = pixels[i];
@@ -551,7 +582,7 @@ class GridOverlayClass {
         // Geometry via the live mode views, read at call time (never cached).
         const edge = MaskOps.boundaryPoints(pixels, ZX_SPECTRUM.WIDTH, ZX_SPECTRUM.HEIGHT);
 
-        ctx.fillStyle = this._cssVar('--overlay-outline-brush', 'rgba(255,255,255,0.6)');
+        ctx.fillStyle = this._overlayColors.outlineBrush;
         for (let i = 0; i < edge.length; i++) {
             ctx.fillRect(edge[i].x, edge[i].y, 1, 1);
         }
@@ -594,9 +625,9 @@ class GridOverlayClass {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         if (!handles || handles.length === 0) return;
 
-        const body = this._cssVar('--overlay-handle-bg', '#ffffff');
-        const edge = this._cssVar('--overlay-handle-stroke', 'rgba(0,0,0,0.7)');
-        const hot  = this._cssVar('--overlay-rotation-handle', '#ffcc00');
+        const body = this._overlayColors.handleBg;
+        const edge = this._overlayColors.handleStroke;
+        const hot  = this._overlayColors.rotationHandle;
 
         // Guide lines first — the markers sit on top of their own ends.
         if (linkPixels && linkPixels.length) {
@@ -861,7 +892,7 @@ class GridOverlayClass {
         const scale = this.zoom / 100;
         ctx.save();
         ctx.setLineDash([1, 2]);
-        ctx.strokeStyle = this._cssVar('--overlay-outline-brush', 'rgba(255,255,255,0.6)');
+        ctx.strokeStyle = this._overlayColors.outlineBrush;
         ctx.lineWidth = 0.5 / scale;
         ctx.strokeRect(fp.x + 0.5, fp.y + 0.5, fp.width, fp.height);
         ctx.restore();
@@ -917,7 +948,7 @@ class GridOverlayClass {
         const cellW = ZX_SPECTRUM.CELL_WIDTH;
         const cellH = ZX_SPECTRUM.CELL_HEIGHT;
         const layers = LayerManager.layers;
-        const fill = this._cssVar('--overlay-selection-fill', 'rgba(255,255,255,0.07)');
+        const fill = this._overlayColors.selectionFill;
 
         // Highlight ink pixels from all visible non-background layers
         for (let py = y; py < y + h; py++) {
@@ -948,8 +979,8 @@ class GridOverlayClass {
         }
 
         // Dashed border
-        const m1 = this._cssVar('--overlay-marching-1', 'rgba(255,255,255,0.9)');
-        const m2 = this._cssVar('--overlay-marching-2', 'rgba(0,0,0,0.9)');
+        const m1 = this._overlayColors.marching1;
+        const m2 = this._overlayColors.marching2;
         ctx.save();
         ctx.strokeStyle = m1;
         ctx.lineWidth = 1;
@@ -971,13 +1002,13 @@ class GridOverlayClass {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         // Dim overlay outside selection
-        ctx.fillStyle = this._cssVar('--overlay-dim', 'rgba(0,0,0,0.15)');
+        ctx.fillStyle = this._overlayColors.dim;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.clearRect(x, y, w, h);
 
         // Marching ants border
-        const m1 = this._cssVar('--overlay-marching-1', 'rgba(255,255,255,0.9)');
-        const m2 = this._cssVar('--overlay-marching-2', 'rgba(0,0,0,0.9)');
+        const m1 = this._overlayColors.marching1;
+        const m2 = this._overlayColors.marching2;
         ctx.save();
         ctx.strokeStyle = m1;
         ctx.lineWidth = 1;
@@ -1042,8 +1073,8 @@ class GridOverlayClass {
             }
         };
 
-        const m1 = this._cssVar('--overlay-marching-1', 'rgba(255,255,255,0.9)');
-        const m2 = this._cssVar('--overlay-marching-2', 'rgba(0,0,0,0.9)');
+        const m1 = this._overlayColors.marching1;
+        const m2 = this._overlayColors.marching2;
         ctx.save();
         ctx.setLineDash([4, 4]);
         ctx.lineWidth = 1;
@@ -1081,8 +1112,8 @@ class GridOverlayClass {
             ctx.stroke();
         };
 
-        const m1 = this._cssVar('--overlay-marching-1', 'rgba(255,255,255,0.9)');
-        const m2 = this._cssVar('--overlay-marching-2', 'rgba(0,0,0,0.9)');
+        const m1 = this._overlayColors.marching1;
+        const m2 = this._overlayColors.marching2;
         ctx.save();
         ctx.setLineDash([4, 4]);
         ctx.lineWidth = 1;

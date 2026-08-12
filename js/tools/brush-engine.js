@@ -283,7 +283,17 @@ class BrushEngineClass {
     }
 
     /**
-     * Apply brush continuously between two points
+     * Apply brush continuously between two points.
+     *
+     * `fromX, fromY` is never re-stamped: every caller (BrushTool.onPointerMove,
+     * its only caller) passes the PREVIOUS call's `to` — or the pointerdown
+     * point, which BrushTool already stamped directly via applyBrush() — as
+     * this call's `from`, so it always carries ink already. Looping from i=0
+     * used to restamp it anyway: with a fast pen feeding several coalesced
+     * pointermove samples per frame, that is a full size x size disc re-laid
+     * (up to ~800 PixelDrawRoutine.draw() calls at size 32) purely to redraw a
+     * point that had not moved since the previous stamp — real, avoidable
+     * per-sample cost on exactly the path the pen-latency work targets.
      * @param {number} fromX - Start X
      * @param {number} fromY - Start Y
      * @param {number} toX - End X
@@ -299,8 +309,8 @@ class BrushEngineClass {
 
         let applied = false;
 
-        for (let i = 0; i <= steps; i++) {
-            const t = steps > 0 ? i / steps : 0;
+        for (let i = 1; i <= steps; i++) {
+            const t = i / steps;
             const x = Math.round(fromX + (toX - fromX) * t);
             const y = Math.round(fromY + (toY - fromY) * t);
 

@@ -679,6 +679,10 @@ class SelectionServiceClass {
     const fp = this.floatingPaste;
     if (!fp) return;
 
+    // Captured before Step "Update display pixels" below overwrites them —
+    // the footprint being vacated, for _clearFloatingFootprint.
+    const oldX = fp.x, oldY = fp.y, oldWidth = fp.width, oldHeight = fp.height;
+
     // ── Step 1: Obtain source pixels at the target scale ───────────────────
     let srcPixels, srcW, srcH;
     const targetW = Math.max(1, Math.round(fp._srcWidth  * fp._scaleX));
@@ -762,8 +766,7 @@ class SelectionServiceClass {
     fp.x = cx - Math.floor(srcW / 2);
     fp.y = cy - Math.floor(srcH / 2);
 
-    fp.floatingLayer.clear();
-    LayerManager.composeToCanvas();
+    this._clearFloatingFootprint(fp.floatingLayer, oldX, oldY, oldWidth, oldHeight);
     this._drawFloatingLayer();
     LayerManager.flushPendingCompose();
     CanvasSystem.requestRender();
@@ -935,6 +938,43 @@ class SelectionServiceClass {
   }
 
   /**
+   * Clear only the cells a floating layer's footprint at (x, y, width,
+   * height) could have touched, and defer their recompose.
+   *
+   * The bounded counterpart of `floatingLayer.clear()` (reinitialises the
+   * WHOLE 32x24 grid, allocating fresh typed arrays for every cell) +
+   * `LayerManager.composeToCanvas()` (recomposes every layer across all
+   * 32x24 cells) — both of which used to run on every single pointer-move of
+   * a stamp drag/scale/rotate/warp, regardless of how few cells a small
+   * stamp actually occupies. Mirrors the cell-range math `_drawFloatingLayer`
+   * already uses for the footprint it draws INTO; this is the same math for
+   * the footprint being vacated.
+   *
+   * Safe to call with the stamp's old bounds and rely on `_drawFloatingLayer`
+   * to repaint the new ones afterwards: any cell outside the CURRENT
+   * footprint is always left in this cleared (unaltered, all-zero) state by
+   * construction, so a cell newly entering the footprint on the next move is
+   * guaranteed clean before `_drawFloatingLayer` ORs pixel bits into it.
+   * @param {Object} floatingLayer
+   * @param {number} x @param {number} y @param {number} width @param {number} height
+   * @private
+   */
+  _clearFloatingFootprint(floatingLayer, x, y, width, height) {
+    if (width <= 0 || height <= 0) return;
+    const startCellX = Math.max(0, ZX_COORDS.pixelToCell(x, y).x);
+    const startCellY = Math.max(0, ZX_COORDS.pixelToCell(x, y).y);
+    const endCellX = Math.min(ZX_SPECTRUM.GRID_COLS - 1, ZX_COORDS.pixelToCell(x + width - 1, y).x);
+    const endCellY = Math.min(ZX_SPECTRUM.GRID_ROWS - 1, ZX_COORDS.pixelToCell(x, y + height - 1).y);
+
+    for (let cy = startCellY; cy <= endCellY; cy++) {
+      for (let cx = startCellX; cx <= endCellX; cx++) {
+        floatingLayer.clearCell(cx, cy);
+        LayerManager.deferCellCompose(cx, cy);
+      }
+    }
+  }
+
+  /**
    * Reposition the floating paste to new canvas coordinates.
    * Clears the floating layer and redraws at the new offset.
    * @param {number} newX
@@ -944,8 +984,7 @@ class SelectionServiceClass {
     if (!this.floatingPaste) return;
     const fp = this.floatingPaste;
 
-    fp.floatingLayer.clear();
-    LayerManager.composeToCanvas(); // Remove old pixels from imageData
+    this._clearFloatingFootprint(fp.floatingLayer, fp.x, fp.y, fp.width, fp.height);
 
     fp.x = newX;
     fp.y = newY;
@@ -1131,6 +1170,9 @@ class SelectionServiceClass {
     }
 
     const { pixels, width: w, height: h } = fp;
+    // Captured before fp.x/fp.y are overwritten below — the footprint being
+    // vacated, for _clearFloatingFootprint.
+    const oldX = fp.x, oldY = fp.y;
     let newPixels, newW = w, newH = h;
     // Indexed stamps (Phase 13): the pure grid transforms apply identically
     // to the index grid; shape-changing mask ops (invert/outline) drop it.
@@ -1211,8 +1253,7 @@ class SelectionServiceClass {
     fp.x = cx - Math.floor(newW / 2);
     fp.y = cy - Math.floor(newH / 2);
 
-    fp.floatingLayer.clear();
-    LayerManager.composeToCanvas();
+    this._clearFloatingFootprint(fp.floatingLayer, oldX, oldY, w, h);
     this._drawFloatingLayer();
     LayerManager.flushPendingCompose();
     CanvasSystem.requestRender();
