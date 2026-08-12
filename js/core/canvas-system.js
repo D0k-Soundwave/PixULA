@@ -152,9 +152,25 @@ class CanvasSystemClass {
       return;
     }
 
+    // Pen/mouse-to-pixel latency, not readback speed, is what this canvas is
+    // tuned for: it is a pure putImageData sink (getImageData() below returns
+    // the cached JS-side buffer, never a canvas readback — the only ctx-level
+    // getImageData calls in the codebase run on OTHER, throwaway canvases in
+    // io/ and the selection/text/pattern tools). `willReadFrequently` forces a
+    // software-rendered canvas, which was paying that cost for a readback
+    // pattern that does not happen here — and a software canvas cannot be
+    // handed to the display controller the way `desynchronized` wants.
+    // `desynchronized` (P, developer.chrome.com/blog/desynchronized,
+    // 2026-08-12 read) lets the browser skip the compositor queue and in some
+    // cases hand this canvas's buffer straight to the display controller,
+    // which is what stylus apps need to stay under the ~50ms hand-eye
+    // coordination threshold the same article cites — safe here because the
+    // canvas is opaque (alpha: false) and the render loop already writes a
+    // whole new frame with putImageData rather than clearing in place, which
+    // is the flicker-avoidance pattern the hint calls for.
     this.ctx = this.canvas.getContext('2d', {
       alpha: false,
-      willReadFrequently: true
+      desynchronized: true
     });
 
     this.ctx.imageSmoothingEnabled = false;
