@@ -281,6 +281,21 @@ class SelectionToolClass extends ToolBase {
     const rect = this._normalizeRect(this.startX, this.startY, this.currentX, this.currentY);
     if (rect.width <= 0 || rect.height <= 0) return null;
 
+    // A drag that settles to a single pixel wide or tall (a plain click with
+    // no movement included, since a zero-distance drag is exactly 1x1) reads
+    // as a jitter or a mistaken tap -- nobody sets out to select a line or a
+    // point. Not committing it doubles as another deselect/escape path: a
+    // plain drag already cleared any prior selection on pointerdown, so
+    // simply returning here leaves that cleared state; a Shift+drag addition
+    // just adds nothing, leaving the existing selection untouched rather
+    // than being replaced by a sliver nobody could see or use. Cell mode is
+    // exempt -- a snapped single cell is a deliberate, meaningful minimum
+    // there, and can legitimately BE 1px tall by design in the 8x1
+    // multicolor modes.
+    if (this._selectMode !== 'cell' && (rect.width === 1 || rect.height === 1)) {
+      return null;
+    }
+
     let selection;
     if (this._selectMode === 'cell') {
       selection = this._snapToCell(rect);
