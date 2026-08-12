@@ -151,6 +151,10 @@ const de = {
     'transform.shiftStep.pixel': '1 Pixel',
     'transform.shiftStep.cell': '1 Zelle',
     'transform.shiftWrap': 'Umlaufend',
+    'dirpad.up': 'Nach oben verschieben',
+    'dirpad.down': 'Nach unten verschieben',
+    'dirpad.left': 'Nach links verschieben',
+    'dirpad.right': 'Nach rechts verschieben',
 
     // Tool options
     'tools.noOptions': 'Keine Optionen für dieses Werkzeug',

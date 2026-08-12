@@ -106,10 +106,11 @@ class TransformPanelClass {
           <div class="tool-option tp-group tp-shift-group">
             <label data-i18n="transform.shift">Shift</label>
             <div class="dir-pad">
-              <button type="button" class="panel-button small dir-pad-up" data-tp-transform="shiftUp">&#x2191;</button>
-              <button type="button" class="panel-button small dir-pad-left" data-tp-transform="shiftLeft">&#x2190;</button>
-              <button type="button" class="panel-button small dir-pad-right" data-tp-transform="shiftRight">&#x2192;</button>
-              <button type="button" class="panel-button small dir-pad-down" data-tp-transform="shiftDown">&#x2193;</button>
+              <svg class="dir-pad-icon" aria-hidden="true"><use href="#icon-move"/></svg>
+              <button type="button" class="dir-pad-zone dir-pad-zone-up" data-tp-transform="shiftUp" data-i18n-aria-label="dirpad.up" aria-label="Shift up"></button>
+              <button type="button" class="dir-pad-zone dir-pad-zone-left" data-tp-transform="shiftLeft" data-i18n-aria-label="dirpad.left" aria-label="Shift left"></button>
+              <button type="button" class="dir-pad-zone dir-pad-zone-right" data-tp-transform="shiftRight" data-i18n-aria-label="dirpad.right" aria-label="Shift right"></button>
+              <button type="button" class="dir-pad-zone dir-pad-zone-down" data-tp-transform="shiftDown" data-i18n-aria-label="dirpad.down" aria-label="Shift down"></button>
             </div>
             <div class="tp-shift-opts">
               <select class="tp-shift-step" data-i18n-aria-label="transform.shiftStep" aria-label="Shift step">

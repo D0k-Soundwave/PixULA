@@ -151,6 +151,10 @@ const es = {
     'transform.shiftStep.pixel': '1 píxel',
     'transform.shiftStep.cell': '1 celda',
     'transform.shiftWrap': 'Envolver en los bordes',
+    'dirpad.up': 'Desplazar hacia arriba',
+    'dirpad.down': 'Desplazar hacia abajo',
+    'dirpad.left': 'Desplazar a la izquierda',
+    'dirpad.right': 'Desplazar a la derecha',
 
     // Tool options
     'tools.noOptions': 'No hay opciones para esta herramienta',

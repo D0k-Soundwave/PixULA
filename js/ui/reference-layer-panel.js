@@ -300,11 +300,15 @@ class ReferenceLayerPanelClass {
         this.controls.offsetX = xInput;
         this.controls.offsetY = yInput;
 
-        // Same cross-of-four-arrows pad as the Transform panel's Shift -
-        // nudges the same X/Y fields above by one canvas pixel rather than
-        // requiring a typed value for a small reposition.
+        // Same one-icon compass pad as the Transform panel's Shift (icon-move,
+        // the Move/Pan tool's glyph, with four invisible pie-slice buttons
+        // laid over it) - nudges the same X/Y fields above by one canvas
+        // pixel rather than requiring a typed value for a small reposition.
         const pad = document.createElement('div');
         pad.className = 'dir-pad';
+        // innerHTML, not a raw arrow character: tests/lint-architecture.test.js
+        // flags a pictograph wherever it appears in js/ source.
+        pad.innerHTML = '<svg class="dir-pad-icon" aria-hidden="true"><use href="#icon-move"/></svg>';
 
         const OFFSET_STEP = 1;
         const nudge = (input, delta) => {
@@ -312,15 +316,12 @@ class ReferenceLayerPanelClass {
             updateOffset();
         };
 
-        const mkNudge = (dirClass, dx, dy, glyphEntity) => {
+        const mkNudge = (dirClass, dx, dy, i18nKey, fallback) => {
             const btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = `panel-button small ${dirClass}`;
-            // innerHTML, not textContent: an HTML entity (matching the
-            // Transform panel's Shift pad) rather than a raw arrow
-            // character, which tests/lint-architecture.test.js flags as a
-            // pictograph wherever it appears in js/ source.
-            btn.innerHTML = glyphEntity;
+            btn.className = `dir-pad-zone ${dirClass}`;
+            btn.setAttribute('data-i18n-aria-label', i18nKey);
+            btn.setAttribute('aria-label', fallback);
             btn.addEventListener('click', () => {
                 if (dx) nudge(xInput, dx * OFFSET_STEP);
                 if (dy) nudge(yInput, dy * OFFSET_STEP);
@@ -329,10 +330,10 @@ class ReferenceLayerPanelClass {
             return btn;
         };
 
-        mkNudge('dir-pad-up', 0, -1, '&#x2191;');
-        mkNudge('dir-pad-left', -1, 0, '&#x2190;');
-        mkNudge('dir-pad-right', 1, 0, '&#x2192;');
-        mkNudge('dir-pad-down', 0, 1, '&#x2193;');
+        mkNudge('dir-pad-zone-up', 0, -1, 'dirpad.up', 'Shift up');
+        mkNudge('dir-pad-zone-left', -1, 0, 'dirpad.left', 'Shift left');
+        mkNudge('dir-pad-zone-right', 1, 0, 'dirpad.right', 'Shift right');
+        mkNudge('dir-pad-zone-down', 0, 1, 'dirpad.down', 'Shift down');
 
         section.appendChild(label);
         section.appendChild(row);

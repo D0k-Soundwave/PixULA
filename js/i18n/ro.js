@@ -151,6 +151,10 @@ const ro = {
     'transform.shiftStep.pixel': '1 pixel',
     'transform.shiftStep.cell': '1 celulă',
     'transform.shiftWrap': 'Înfășurare la margini',
+    'dirpad.up': 'Deplasează în sus',
+    'dirpad.down': 'Deplasează în jos',
+    'dirpad.left': 'Deplasează la stânga',
+    'dirpad.right': 'Deplasează la dreapta',
 
     // Tool options
     'tools.noOptions': 'Nicio opțiune pentru acest instrument',

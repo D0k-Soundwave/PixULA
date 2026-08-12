@@ -151,6 +151,10 @@ const pl = {
     'transform.shiftStep.pixel': '1 piksel',
     'transform.shiftStep.cell': '1 komórka',
     'transform.shiftWrap': 'Zawijaj na krawędzi',
+    'dirpad.up': 'Przesuń w górę',
+    'dirpad.down': 'Przesuń w dół',
+    'dirpad.left': 'Przesuń w lewo',
+    'dirpad.right': 'Przesuń w prawo',
 
     // Tool options
     'tools.noOptions': 'Brak opcji dla tego narzędzia',

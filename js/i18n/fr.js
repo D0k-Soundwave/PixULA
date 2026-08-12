@@ -151,6 +151,10 @@ const fr = {
     'transform.shiftStep.pixel': '1 pixel',
     'transform.shiftStep.cell': '1 cellule',
     'transform.shiftWrap': 'Boucler sur les bords',
+    'dirpad.up': 'Décaler vers le haut',
+    'dirpad.down': 'Décaler vers le bas',
+    'dirpad.left': 'Décaler vers la gauche',
+    'dirpad.right': 'Décaler vers la droite',
 
     // Tool options
     'tools.noOptions': 'Aucune option pour cet outil',

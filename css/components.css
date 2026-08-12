@@ -1061,32 +1061,61 @@
     border-radius: var(--radius-sm);
 }
 
-/* A directional pad - the same cross-of-four-arrows layout as a pan
-   cursor, rather than a left-to-right reading order that has nothing to do
-   with which arrow points where. Shared by the Transform panel's Shift and
-   the Reference panel's Offset, wherever four buttons nudge something in
-   four directions. Only 4 of the 9 cells are populated (the diagonals stay
-   empty), placed explicitly by grid-area rather than relying on markup
-   order, so a locale re-labelling never reshuffles it. */
+/* A directional pad - one square control showing all four arrows as a
+   single pan-cursor glyph (icon-move: the arrows meet at the centre with no
+   gap), the same icon the Move/Pan tool uses on the rail. Four buttons
+   still sit UNDER it, one per pie-slice from centre to corner, so each
+   direction keeps its own hover, focus and screen-reader name — splitting
+   the icon into four separately-bordered squares (the first version of this
+   control) reads as four things, not one. `overflow: hidden` + the shared
+   border-radius keeps a slice's hover tint from poking past the pad's
+   rounded corners. Shared by the Transform panel's Shift and the Reference
+   panel's Offset, wherever four actions nudge something in four
+   directions. */
 .dir-pad {
-    display: grid;
-    grid-template-columns: repeat(3, 28px);
-    grid-template-rows: repeat(3, 28px);
-    gap: var(--space-xs);
-    width: fit-content;
+    position: relative;
+    width: 144px;
+    height: 144px;
+    background: var(--btn-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    /* Both host containers (.tool-option, .panel-section) are flex columns,
+       whose cross axis is horizontal - align-self is what centres a fixed-
+       width item there instead of it sitting at the column's start edge. */
+    align-self: center;
 }
 
-.dir-pad .panel-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.dir-pad-icon {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 104px;
+    height: 104px;
+    fill: currentColor;
+    pointer-events: none;
+}
+
+.dir-pad-zone {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     padding: 0;
+    margin: 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
 }
 
-.dir-pad-up    { grid-area: 1 / 2; }
-.dir-pad-left  { grid-area: 2 / 1; }
-.dir-pad-right { grid-area: 2 / 3; }
-.dir-pad-down  { grid-area: 3 / 2; }
+.dir-pad-zone:hover:not(:disabled) {
+    background: var(--bg-hover);
+}
+
+.dir-pad-zone-up    { clip-path: polygon(50% 50%, 0 0, 100% 0); }
+.dir-pad-zone-right { clip-path: polygon(50% 50%, 100% 0, 100% 100%); }
+.dir-pad-zone-down  { clip-path: polygon(50% 50%, 100% 100%, 0 100%); }
+.dir-pad-zone-left  { clip-path: polygon(50% 50%, 0 100%, 0 0); }
 
 .tp-shift-opts {
     display: flex;

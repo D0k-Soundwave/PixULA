@@ -151,6 +151,10 @@ const pt = {
     'transform.shiftStep.pixel': '1 pixel',
     'transform.shiftStep.cell': '1 célula',
     'transform.shiftWrap': 'Envolver nas bordas',
+    'dirpad.up': 'Deslocar para cima',
+    'dirpad.down': 'Deslocar para baixo',
+    'dirpad.left': 'Deslocar para a esquerda',
+    'dirpad.right': 'Deslocar para a direita',
 
     // Tool options
     'tools.noOptions': 'Sem opções para esta ferramenta',

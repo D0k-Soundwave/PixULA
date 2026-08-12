@@ -198,6 +198,10 @@ const en = {
     'transform.shiftStep.pixel': '1 pixel',
     'transform.shiftStep.cell': '1 cell',
     'transform.shiftWrap': 'Wrap around',
+    'dirpad.up': 'Shift up',
+    'dirpad.down': 'Shift down',
+    'dirpad.left': 'Shift left',
+    'dirpad.right': 'Shift right',
 
     // Tool options — shared
     'tools.noOptions': 'No options for this tool',

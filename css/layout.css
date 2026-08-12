@@ -116,6 +116,13 @@ body {
        which reads as "the app is broken". */
     flex-wrap: wrap;
     align-items: flex-end;
+    /* Centres whichever line has no flex-grow item on it (e.g. the swatch
+       row alone, or #toolbar-attrs stranded on its own line at small
+       interface sizes) so it never just sits flush left with the rest of
+       the bar empty beside it. A line WITH the grown #color-bar-controls
+       (below) already fills the line before this can act — that box's own
+       children get their own justify-content: center for the same reason. */
+    justify-content: center;
     /* One palette-icon pitch between every pair of groups, whether they land
        on the same row or not — the same unit #clut-cluster uses between ink
        and paper (css/components.css), so the whole bar reads as one rhythm. */
@@ -138,6 +145,11 @@ body {
     flex-direction: row;
     flex-wrap: wrap;
     align-items: flex-end;
+    /* This box is the bar's ONLY flex-grow item (css/components.css), so it
+       is usually wider than its own children need - without this they
+       cluster at ITS left edge, leaving the same off-centre look the outer
+       #color-bar rule above fixes for a line that has no grown item. */
+    justify-content: center;
     gap: var(--space-sm) 0;
 }
 

@@ -151,6 +151,10 @@ const sk = {
     'transform.shiftStep.pixel': '1 pixel',
     'transform.shiftStep.cell': '1 bunka',
     'transform.shiftWrap': 'Pretáčať cez okraj',
+    'dirpad.up': 'Posunúť nahor',
+    'dirpad.down': 'Posunúť nadol',
+    'dirpad.left': 'Posunúť doľava',
+    'dirpad.right': 'Posunúť doprava',
 
     // Tool options
     'tools.noOptions': 'Žiadne možnosti pre tento nástroj',

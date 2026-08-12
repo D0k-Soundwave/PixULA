@@ -151,6 +151,10 @@ const ru = {
     'transform.shiftStep.pixel': '1 пиксель',
     'transform.shiftStep.cell': '1 ячейка',
     'transform.shiftWrap': 'Переносить через край',
+    'dirpad.up': 'Сдвинуть вверх',
+    'dirpad.down': 'Сдвинуть вниз',
+    'dirpad.left': 'Сдвинуть влево',
+    'dirpad.right': 'Сдвинуть вправо',
 
     // Tool options
     'tools.noOptions': 'Нет параметров для этого инструмента',

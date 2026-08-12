@@ -151,6 +151,10 @@ const it = {
     'transform.shiftStep.pixel': '1 pixel',
     'transform.shiftStep.cell': '1 cella',
     'transform.shiftWrap': 'Avvolgi ai bordi',
+    'dirpad.up': 'Sposta in alto',
+    'dirpad.down': 'Sposta in basso',
+    'dirpad.left': 'Sposta a sinistra',
+    'dirpad.right': 'Sposta a destra',
 
     // Tool options
     'tools.noOptions': 'Nessuna opzione per questo strumento',

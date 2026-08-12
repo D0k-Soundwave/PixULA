@@ -151,6 +151,10 @@ const hu = {
     'transform.shiftStep.pixel': '1 képpont',
     'transform.shiftStep.cell': '1 cella',
     'transform.shiftWrap': 'Átfordulás a szélen',
+    'dirpad.up': 'Eltolás felfelé',
+    'dirpad.down': 'Eltolás lefelé',
+    'dirpad.left': 'Eltolás balra',
+    'dirpad.right': 'Eltolás jobbra',
 
     // Tool options
     'tools.noOptions': 'Nincsenek beállítások ehhez az eszközhöz',

@@ -151,6 +151,10 @@ const tr = {
     'transform.shiftStep.pixel': '1 piksel',
     'transform.shiftStep.cell': '1 hücre',
     'transform.shiftWrap': 'Kenardan sar',
+    'dirpad.up': 'Yukarı kaydır',
+    'dirpad.down': 'Aşağı kaydır',
+    'dirpad.left': 'Sola kaydır',
+    'dirpad.right': 'Sağa kaydır',
 
     // Tool options
     'tools.noOptions': 'Bu araç için seçenek yok',

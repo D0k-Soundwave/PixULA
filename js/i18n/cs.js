@@ -151,6 +151,10 @@ const cs = {
     'transform.shiftStep.pixel': '1 pixel',
     'transform.shiftStep.cell': '1 buňka',
     'transform.shiftWrap': 'Přetáčet přes okraj',
+    'dirpad.up': 'Posunout nahoru',
+    'dirpad.down': 'Posunout dolů',
+    'dirpad.left': 'Posunout doleva',
+    'dirpad.right': 'Posunout doprava',
 
     // Tool options
     'tools.noOptions': 'Žádné možnosti pro tento nástroj',
