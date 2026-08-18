@@ -1147,12 +1147,29 @@ class InputHandlerClass {
   _notePreciseInput(e) {
     if (e.pointerType === 'pen') {
       this._lastPreciseTime = Date.now();
+      this._maybeAutoEnablePressure();
       return;
     }
     if (e.pointerType === 'mouse' &&
         (e.buttons !== 0 || this._strokePointerType === 'mouse')) {
       this._lastPreciseTime = Date.now();
     }
+  }
+
+  /**
+   * The first time this session sees a real pen, and nobody has ever
+   * explicitly chosen a Pressure Sensitivity preference (Preferences > Pen —
+   * saved just now or in a past session), turn it on. An explicit choice,
+   * either way, always wins and this never fires again once one exists —
+   * `pressureSensitivityExplicit` is set both when a saved preference is
+   * loaded at boot and the moment Preferences is saved, so this can't
+   * override a choice made earlier in the same session either.
+   * @private
+   */
+  _maybeAutoEnablePressure() {
+    if (StateManager.get('pressureSensitivityExplicit') === true) return;
+    if (StateManager.get('pressureSensitivity') === true) return;
+    StateManager.set('pressureSensitivity', true);
   }
 
   /**

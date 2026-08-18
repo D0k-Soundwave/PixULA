@@ -19,15 +19,24 @@
  * 2. **The tip is not assignable.** It always draws with the active tool.
  *    Every other binding overloads a control that is otherwise idle; binding
  *    the tip would overload the one contact drawing needs.
+ *
+ * A control's out-of-the-box action is resolved through `defaultAction()`,
+ * which checks the chosen model's own `defaults` override (PEN_PROFILES)
+ * before falling back to the baseline every other pen shares
+ * (PEN_DEFAULT_ACTIONS) — most models share the baseline outright, since most
+ * vendor "real" defaults are OS-level concepts with no pixel-art equivalent.
  */
 const PenMap = {
 
     /**
      * @param {string} id
-     * @returns {Object} profile descriptor (generic when the id is unknown)
+     * @returns {Object} profile descriptor (generic when the id is unknown).
+     *   Retired family-level ids resolve through PEN_PROFILE_ALIASES first, to
+     *   the specific model that reproduces their exact old shape and defaults.
      */
     getProfile(id) {
-        return PEN_PROFILES[id] || PEN_PROFILES.generic;
+        const resolved = PEN_PROFILE_ALIASES[id] || id;
+        return PEN_PROFILES[resolved] || PEN_PROFILES.generic;
     },
 
     /**
@@ -91,15 +100,31 @@ const PenMap = {
     /**
      * The action assigned to a control.
      * @param {string} controlId
-     * @param {Object} [config] - {actions: {barrel: 'menu', ...}}
+     * @param {Object} [config] - {profile: 'wacomProPen3D', actions: {barrel: 'menu', ...}}
      * @returns {string} action id (never null; unmapped controls fall back to
-     *          their default, and an unknown assignment reads as 'none')
+     *          the chosen profile's default, or the shared one, and an
+     *          unknown assignment reads as 'none')
      */
     actionFor(controlId, config) {
         if (controlId === PEN_CONTROLS.TIP.id) return PEN_ACTIONS.INK.id;
         const assigned = config && config.actions ? config.actions[controlId] : null;
-        const chosen = assigned || PEN_DEFAULT_ACTIONS[controlId] || PEN_ACTIONS.NONE.id;
+        const chosen = assigned || PenMap.defaultAction(config && config.profile, controlId);
         return PenMap.isAction(chosen) ? chosen : PEN_ACTIONS.NONE.id;
+    },
+
+    /**
+     * The out-of-the-box action for a control under a profile: that model's
+     * own `defaults` override if it names one for this control (real,
+     * documented, and representable — e.g. the Wacom Pro Pen 3D's middle
+     * button defaulting to Pan), else the baseline every other pen shares.
+     * @param {string} profileId
+     * @param {string} controlId
+     * @returns {string} action id
+     */
+    defaultAction(profileId, controlId) {
+        const profile = PenMap.getProfile(profileId);
+        const override = profile.defaults && profile.defaults[controlId];
+        return override || PEN_DEFAULT_ACTIONS[controlId] || PEN_ACTIONS.NONE.id;
     },
 
     /** @returns {boolean} true when the id names a real action */
@@ -133,7 +158,7 @@ const PenMap = {
     defaultsFor(profileId, custom) {
         const actions = {};
         for (const control of PenMap.controlsFor(profileId, custom)) {
-            actions[control] = PEN_DEFAULT_ACTIONS[control];
+            actions[control] = PenMap.defaultAction(profileId, control);
         }
         return actions;
     }

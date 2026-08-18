@@ -70,6 +70,8 @@ class MenuSystemClass {
             this._updateThemeToggles(ThemeManager.getTheme());
         }
         this._updateModeToggles();
+        this._updateMirrorToggles();
+        if (window.StateManager) this._updateToggleState('grid-snap', StateManager.getGridSnap());
 
         Logger.info('MenuSystem', 'Initialized');
     }
@@ -169,9 +171,27 @@ class MenuSystemClass {
                     { type: 'separator' },
                     { id: 'grid', label: 'Show Grid', shortcut: 'G', action: 'view:toggleGrid', toggle: true },
                     { id: 'pixel-grid', label: 'Show Pixel Grid', action: 'view:togglePixelGrid', toggle: true },
+                    { id: 'grid-snap', label: 'Snap', shortcut: 'Shift+S', action: 'view:toggleSnap', toggle: true, i18n: 'view.snap' },
                     { type: 'separator' },
+                    // The tool-stroke mirror modifier (rail: canvas-controls.js)
+                    // as a radio group — bare "H"/"V" labels only make sense
+                    // under a "Mirror" heading, which a flat list can't offer.
+                    { id: 'mirror', label: 'Mirror', i18n: 'view.mirror', items: [
+                        { id: 'mirror-off',  label: 'Off',        action: 'view:mirrorOff',  toggle: true, i18n: 'common.off' },
+                        { id: 'mirror-h',    label: 'Horizontal', action: 'view:mirrorH',    toggle: true, i18n: 'view.mirrorH' },
+                        { id: 'mirror-v',    label: 'Vertical',   action: 'view:mirrorV',    toggle: true, i18n: 'view.mirrorV' },
+                        { id: 'mirror-both', label: 'H+V',        action: 'view:mirrorBoth', toggle: true, i18n: 'view.mirrorBoth' }
+                    ]},
+                    { type: 'separator' },
+                    // Every collapsible sidebar panel, not just two of six —
+                    // each also has its own inline collapse header, this is
+                    // the menu-reachable equivalent.
+                    { id: 'panel-layers', label: 'Layers', action: 'view:toggleLayers', toggle: true, i18n: 'panels.layers' },
+                    { id: 'panel-transform', label: 'Transform', action: 'view:toggleTransform', toggle: true, i18n: 'panels.transform' },
+                    { id: 'panel-patterns', label: 'Patterns', action: 'view:togglePatterns', toggle: true, i18n: 'panels.patternLibrary' },
                     { id: 'panel-reference', label: 'Reference Panel', action: 'view:toggleReference', toggle: true },
-                    { id: 'panel-tools', label: 'Tool Options', action: 'view:toggleToolOptions', toggle: true }
+                    { id: 'panel-tools', label: 'Tool Options', action: 'view:toggleToolOptions', toggle: true },
+                    { id: 'panel-presets', label: 'Tool Presets', action: 'view:toggleToolPresets', toggle: true, i18n: 'panels.presets' }
                 ]
             },
             {
@@ -203,25 +223,30 @@ class MenuSystemClass {
                     { id: 'invert', label: 'Invert Colors', action: 'image:invert' },
                     { id: 'clear', label: 'Clear Canvas', action: 'image:clear' },
                     { type: 'separator' },
-                    // Screen modes (Phase 12a) — radio-style toggles, labels
-                    // reuse the mode.* keys from the SCREEN_MODES registry;
-                    // `mode` names the descriptor whose composed tooltip the
-                    // row shows (Helpers.describeScreenMode).
-                    { id: 'mode-standard_ula',   label: 'Standard ULA',   action: 'image:modeStandardUla',   toggle: true, i18n: 'mode.standardUla', mode: 'standard_ula' },
-                    { id: 'mode-multicolor_8x4', label: 'Multicolor 8×4', action: 'image:modeMulticolor8x4', toggle: true, i18n: 'mode.multicolor8x4', mode: 'multicolor_8x4' },
-                    { id: 'mode-multicolor_8x2', label: 'Multicolor 8×2', action: 'image:modeMulticolor8x2', toggle: true, i18n: 'mode.multicolor8x2', mode: 'multicolor_8x2' },
-                    { id: 'mode-multicolor_8x1', label: 'Multicolor 8×1', action: 'image:modeMulticolor8x1', toggle: true, i18n: 'mode.multicolor8x1', mode: 'multicolor_8x1' },
-                    { id: 'mode-ula_plus',       label: 'ULAplus',        action: 'image:modeUlaPlus',       toggle: true, i18n: 'mode.ulaPlus', mode: 'ula_plus' },
-                    { id: 'mode-ula_plus_8x1',   label: 'ULAplus 8×1 (Timex)', action: 'image:modeUlaPlus8x1', toggle: true, i18n: 'mode.ulaPlus8x1', mode: 'ula_plus_8x1' },
-                    { id: 'mode-timex_hires',    label: 'Timex Hi-res 512×192', action: 'image:modeTimexHires', toggle: true, i18n: 'mode.timexHires', mode: 'timex_hires' },
-                    { id: 'mode-gigascreen',     label: 'GigaScreen',     action: 'image:modeGigascreen',    toggle: true, i18n: 'mode.gigascreen', mode: 'gigascreen' },
-                    // ZX Spectrum Next modes (Phase 13)
-                    { id: 'mode-ulanext',        label: 'ULANext',         action: 'image:modeUlanext',       toggle: true, i18n: 'mode.ulanext', mode: 'ulanext' },
-                    { id: 'mode-layer2_256',     label: 'Layer 2 256×192', action: 'image:modeLayer2_256',    toggle: true, i18n: 'mode.layer2_256', mode: 'layer2_256' },
-                    { id: 'mode-layer2_320',     label: 'Layer 2 320×256', action: 'image:modeLayer2_320',    toggle: true, i18n: 'mode.layer2_320', mode: 'layer2_320' },
-                    { id: 'mode-layer2_640',     label: 'Layer 2 640×256', action: 'image:modeLayer2_640',    toggle: true, i18n: 'mode.layer2_640', mode: 'layer2_640' },
-                    { id: 'mode-lores',          label: 'LoRes 128×96',    action: 'image:modeLores',         toggle: true, i18n: 'mode.lores', mode: 'lores' },
-                    { id: 'mode-lores_radastan', label: 'Radastan 128×96', action: 'image:modeLoresRadastan', toggle: true, i18n: 'mode.loresRadastan', mode: 'lores_radastan' },
+                    // Screen modes (Phase 12a/13) live in their own flyout —
+                    // 14 radio-style toggles is a wall in a flat dropdown.
+                    // Labels reuse the mode.* keys from the SCREEN_MODES
+                    // registry; `mode` names the descriptor whose composed
+                    // tooltip the row shows (Helpers.describeScreenMode).
+                    { id: 'screen-mode', label: 'Screen Mode', i18n: 'menu.image.screenMode', items: [
+                        { id: 'mode-standard_ula',   label: 'Standard ULA',   action: 'image:modeStandardUla',   toggle: true, i18n: 'mode.standardUla', mode: 'standard_ula' },
+                        { id: 'mode-multicolor_8x4', label: 'Multicolor 8×4', action: 'image:modeMulticolor8x4', toggle: true, i18n: 'mode.multicolor8x4', mode: 'multicolor_8x4' },
+                        { id: 'mode-multicolor_8x2', label: 'Multicolor 8×2', action: 'image:modeMulticolor8x2', toggle: true, i18n: 'mode.multicolor8x2', mode: 'multicolor_8x2' },
+                        { id: 'mode-multicolor_8x1', label: 'Multicolor 8×1', action: 'image:modeMulticolor8x1', toggle: true, i18n: 'mode.multicolor8x1', mode: 'multicolor_8x1' },
+                        { id: 'mode-ula_plus',       label: 'ULAplus',        action: 'image:modeUlaPlus',       toggle: true, i18n: 'mode.ulaPlus', mode: 'ula_plus' },
+                        { id: 'mode-ula_plus_8x1',   label: 'ULAplus 8×1 (Timex)', action: 'image:modeUlaPlus8x1', toggle: true, i18n: 'mode.ulaPlus8x1', mode: 'ula_plus_8x1' },
+                        { id: 'mode-timex_hires',    label: 'Timex Hi-res 512×192', action: 'image:modeTimexHires', toggle: true, i18n: 'mode.timexHires', mode: 'timex_hires' },
+                        { id: 'mode-gigascreen',     label: 'GigaScreen',     action: 'image:modeGigascreen',    toggle: true, i18n: 'mode.gigascreen', mode: 'gigascreen' },
+                        { type: 'separator' },
+                        // ZX Spectrum Next modes (Phase 13)
+                        { id: 'mode-ulanext',        label: 'ULANext',         action: 'image:modeUlanext',       toggle: true, i18n: 'mode.ulanext', mode: 'ulanext' },
+                        { id: 'mode-layer2_256',     label: 'Layer 2 256×192', action: 'image:modeLayer2_256',    toggle: true, i18n: 'mode.layer2_256', mode: 'layer2_256' },
+                        { id: 'mode-layer2_320',     label: 'Layer 2 320×256', action: 'image:modeLayer2_320',    toggle: true, i18n: 'mode.layer2_320', mode: 'layer2_320' },
+                        { id: 'mode-layer2_640',     label: 'Layer 2 640×256', action: 'image:modeLayer2_640',    toggle: true, i18n: 'mode.layer2_640', mode: 'layer2_640' },
+                        { id: 'mode-lores',          label: 'LoRes 128×96',    action: 'image:modeLores',         toggle: true, i18n: 'mode.lores', mode: 'lores' },
+                        { id: 'mode-lores_radastan', label: 'Radastan 128×96', action: 'image:modeLoresRadastan', toggle: true, i18n: 'mode.loresRadastan', mode: 'lores_radastan' }
+                    ]},
+                    { type: 'separator' },
                     { id: 'edit-palette', label: 'Edit Palette...', action: 'image:editPalette' }
                 ]
             },
@@ -232,8 +257,17 @@ class MenuSystemClass {
                     { id: 'preferences', label: 'Preferences...', action: 'settings:preferences' },
                     { id: 'presets', label: 'Workspace Presets...', action: 'settings:presets' },
                     { type: 'separator' },
-                    { id: 'theme-light', label: 'Light Theme', action: 'settings:themeLight', toggle: true },
-                    { id: 'theme-dark', label: 'Dark Theme', action: 'settings:themeDark', toggle: true },
+                    // All 6 themes, matching the header selector — the old
+                    // Light/Dark pair reached only 2 of them, a second,
+                    // narrower control for the same setting.
+                    { id: 'theme', label: 'Theme', i18n: 'menu.settings.theme', items: [
+                        { id: 'theme-dark',     label: 'Dark',     action: 'settings:themeDark',     toggle: true, i18n: 'theme.dark' },
+                        { id: 'theme-light',    label: 'Light',    action: 'settings:themeLight',    toggle: true, i18n: 'theme.light' },
+                        { id: 'theme-midnight', label: 'Midnight', action: 'settings:themeMidnight', toggle: true, i18n: 'theme.midnight' },
+                        { id: 'theme-nord',     label: 'Nord',     action: 'settings:themeNord',     toggle: true, i18n: 'theme.nord' },
+                        { id: 'theme-dracula',  label: 'Dracula',  action: 'settings:themeDracula',  toggle: true, i18n: 'theme.dracula' },
+                        { id: 'theme-sepia',    label: 'Sepia',    action: 'settings:themeSepia',    toggle: true, i18n: 'theme.sepia' }
+                    ]},
                     { type: 'separator' },
                     { id: 'reset-preferences', label: 'Reset All Preferences', action: 'settings:resetAll' }
                 ]
@@ -275,6 +309,20 @@ class MenuSystemClass {
         return items.map(item => {
             if (item.type === 'separator') {
                 return '<div class="menu-separator"></div>';
+            }
+
+            // A submenu parent carries `items` instead of `action` — its own
+            // i18n key is mandatory (there is no action id to derive one from).
+            if (item.items) {
+                return `
+                    <div class="menu-action menu-action--parent" data-id="${item.id}" aria-haspopup="true" aria-expanded="false">
+                        <span class="menu-action-label" data-i18n="${item.i18n}">${item.label}</span>
+                        <span class="menu-submenu-arrow" aria-hidden="true"></span>
+                        <div class="menu-dropdown menu-submenu" id="menu-${item.id}">
+                            ${this._buildMenuItems(item.items)}
+                        </div>
+                    </div>
+                `;
             }
 
             const shortcutHtml = item.shortcut
@@ -324,11 +372,30 @@ class MenuSystemClass {
             });
         });
 
-        this.element.querySelectorAll('.menu-action').forEach(action => {
+        this.element.querySelectorAll('.menu-action:not(.menu-action--parent)').forEach(action => {
             action.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this._executeAction(action.dataset.action);
                 this._closeAllMenus();
+            });
+        });
+
+        // Submenu parents toggle their flyout instead of executing+closing —
+        // click for touch/keyboard-less access, hover once the bar is already
+        // in "browsing" mode (mirrors the top-level menuItem mouseenter above).
+        // Always OPEN, never toggle-closed: a real mouse click is preceded by
+        // the mouseenter below, which already opened it — toggling on click
+        // would immediately close what hover just opened. Touch/keyboard have
+        // no such preceding hover, so click-to-open still reaches them.
+        // Closing is handled elsewhere: a sibling submenu opening, a leaf
+        // click, an outside click, or Escape.
+        this.element.querySelectorAll('.menu-action--parent').forEach(parent => {
+            parent.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this._openSubmenu(parent);
+            });
+            parent.addEventListener('mouseenter', () => {
+                if (this._menuOpen) this._openSubmenu(parent);
             });
         });
 
@@ -358,6 +425,53 @@ class MenuSystemClass {
 
         // Keep the Image-menu mode radios in sync with the mode fact
         EventBus.on(EVENTS.SCREEN_MODE_CHANGED, () => this._updateModeToggles());
+
+        // Keep the View-menu Mirror radios and Snap toggle in sync with their
+        // facts (both can also change from the canvas-controls rail).
+        EventBus.on(EVENTS.SYMMETRY_CHANGED, ({ mode }) => this._updateMirrorToggles(mode));
+        EventBus.on(EVENTS.GRID_SNAP_CHANGED, ({ snap }) => this._updateToggleState('grid-snap', !!snap));
+    }
+
+    /**
+     * Open a submenu, closing any sibling submenu at the same level first.
+     * @private
+     */
+    _openSubmenu(parent) {
+        const dropdown = parent.querySelector(':scope > .menu-submenu');
+        if (!dropdown) return;
+        const level = parent.parentElement;
+        if (level) {
+            level.querySelectorAll(':scope > .menu-action--parent').forEach(sibling => {
+                if (sibling !== parent) this._closeSubmenu(sibling);
+            });
+        }
+        parent.setAttribute('aria-expanded', 'true');
+        dropdown.classList.add('visible');
+        this._positionSubmenu(dropdown);
+    }
+
+    /** @private */
+    _closeSubmenu(parent) {
+        const dropdown = parent.querySelector(':scope > .menu-submenu');
+        parent.setAttribute('aria-expanded', 'false');
+        if (!dropdown) return;
+        dropdown.classList.remove('visible', 'menu-submenu--flip');
+        // Nested-nested submenus never occur today, but leaving one open
+        // would survive this close and reappear stale next time.
+        dropdown.querySelectorAll('.menu-dropdown.visible').forEach(d => d.classList.remove('visible'));
+    }
+
+    /**
+     * Flip a freshly-opened submenu to the left of its parent when it would
+     * otherwise run off the right edge of the window.
+     * @private
+     */
+    _positionSubmenu(dropdown) {
+        dropdown.classList.remove('menu-submenu--flip');
+        const rect = dropdown.getBoundingClientRect();
+        if (rect.right > window.innerWidth) {
+            dropdown.classList.add('menu-submenu--flip');
+        }
     }
 
     /** @private */
@@ -411,7 +525,10 @@ class MenuSystemClass {
             item.classList.remove('active');
         });
         this.element.querySelectorAll('.menu-dropdown').forEach(dropdown => {
-            dropdown.classList.remove('visible');
+            dropdown.classList.remove('visible', 'menu-submenu--flip');
+        });
+        this.element.querySelectorAll('.menu-action--parent').forEach(parent => {
+            parent.setAttribute('aria-expanded', 'false');
         });
         this.activeMenu = null;
         this._menuOpen = false;
@@ -499,6 +616,13 @@ class MenuSystemClass {
             case 'view:togglePixelGrid':
                 GridOverlay.togglePixelGrid();
                 break;
+            case 'view:toggleSnap':
+                StateManager.setGridSnap(!StateManager.getGridSnap());
+                break;
+            case 'view:mirrorOff':  StateManager.setSymmetryMode('off');  break;
+            case 'view:mirrorH':    StateManager.setSymmetryMode('h');    break;
+            case 'view:mirrorV':    StateManager.setSymmetryMode('v');    break;
+            case 'view:mirrorBoth': StateManager.setSymmetryMode('quad'); break;
             case 'view:toggleReference': {
                 const expanded = PanelSection.toggle('reference-panel');
                 this._updateToggleState('panel-reference', expanded);
@@ -507,6 +631,26 @@ class MenuSystemClass {
             case 'view:toggleToolOptions': {
                 const expanded = PanelSection.toggle('tool-options-panel');
                 this._updateToggleState('panel-tools', expanded);
+                break;
+            }
+            case 'view:toggleLayers': {
+                const expanded = PanelSection.toggle('layer-panel');
+                this._updateToggleState('panel-layers', expanded);
+                break;
+            }
+            case 'view:toggleTransform': {
+                const expanded = PanelSection.toggle('transform-panel');
+                this._updateToggleState('panel-transform', expanded);
+                break;
+            }
+            case 'view:togglePatterns': {
+                const expanded = PanelSection.toggle('patterns-panel');
+                this._updateToggleState('panel-patterns', expanded);
+                break;
+            }
+            case 'view:toggleToolPresets': {
+                const expanded = PanelSection.toggle('tool-preset-panel');
+                this._updateToggleState('panel-presets', expanded);
                 break;
             }
 
@@ -549,16 +693,12 @@ class MenuSystemClass {
             // Settings
             case 'settings:preferences': this._showPreferences(); break;
             case 'settings:presets': PresetDialog.open(); break;
-            case 'settings:themeLight':
-                if (window.ThemeManager) ThemeManager.setTheme('light');
-                else EventBus.emit(EVENTS.UI_THEME_CHANGE, { theme: 'light' });
-                this._updateThemeToggles('light');
-                break;
-            case 'settings:themeDark':
-                if (window.ThemeManager) ThemeManager.setTheme('dark');
-                else EventBus.emit(EVENTS.UI_THEME_CHANGE, { theme: 'dark' });
-                this._updateThemeToggles('dark');
-                break;
+            case 'settings:themeDark':     this._setTheme('dark');     break;
+            case 'settings:themeLight':    this._setTheme('light');    break;
+            case 'settings:themeMidnight': this._setTheme('midnight'); break;
+            case 'settings:themeNord':     this._setTheme('nord');     break;
+            case 'settings:themeDracula':  this._setTheme('dracula');  break;
+            case 'settings:themeSepia':    this._setTheme('sepia');    break;
             case 'settings:resetAll':       this._resetAllPreferences();  break;
 
             // Help
@@ -782,8 +922,13 @@ class MenuSystemClass {
             <label class="pref-row">
                 <span data-i18n="pref.autosaveMinutes">${this._t('pref.autosaveMinutes', 'Autosave every (minutes, 0 = off)')}</span>
                 <input type="number" id="pref-autosave-minutes" name="pref-autosave-minutes"
-                       min="0" max="60" step="1" value="1">
+                       min="0" max="60" step="1" value="0">
             </label>
+            <label class="pref-row">
+                <input type="checkbox" id="pref-restore-on-boot" name="pref-restore-on-boot" checked>
+                <span data-i18n="pref.restoreOnBoot">${this._t('pref.restoreOnBoot', 'Offer to restore unsaved work on start')}</span>
+            </label>
+            <div class="pref-block__hint" data-i18n="pref.restoreOnBootHint">${this._t('pref.restoreOnBootHint', 'Off starts every session with a blank canvas. Autosave still runs on its own interval above, in case of a crash within the session - this only decides whether it is ever offered back.')}</div>
             <label class="pref-row">
                 <input type="checkbox" id="pref-confirm-clear" name="pref-confirm-clear" checked>
                 <span data-i18n="pref.confirmClear">${this._t('pref.confirmClear', 'Confirm before clearing')}</span>
@@ -837,6 +982,16 @@ class MenuSystemClass {
             <div class="pref-block__hint" data-i18n="pref.touchLockoutHint">${this._t('pref.touchLockoutHint', 'Catches the palm that lands just before or just after the pen does. A hovering pen counts; a mouse counts only while it is dragging. 0 turns the window off.')}</div>
             <h3 data-i18n="pref.pen">${this._t('pref.pen', 'Pen')}</h3>
             <label class="pref-row">
+                <input type="checkbox" id="pref-pressure-sensitivity" name="pref-pressure-sensitivity">
+                <span data-i18n="pref.pressureSensitivity">${this._t('pref.pressureSensitivity', 'Pressure Sensitivity')}</span>
+            </label>
+            <label class="pref-row" id="pref-pressure-strength-row" hidden>
+                <span data-i18n="pref.pressureStrength">${this._t('pref.pressureStrength', 'Pressure strength')} (%)</span>
+                <input type="number" id="pref-pressure-strength" name="pref-pressure-strength"
+                       min="0" max="200" step="5" value="100">
+            </label>
+            <div class="pref-block__hint" id="pref-pressure-strength-hint" hidden data-i18n="pref.pressureStrengthHint">${this._t('pref.pressureStrengthHint', 'How strongly pen pressure changes brush size and flow. 0% turns the effect off; 200% is the most dramatic.')}</div>
+            <label class="pref-row">
                 <span data-i18n="pref.penProfile">${this._t('pref.penProfile', 'Pen model')}</span>
                 <select id="pref-pen-profile" name="pref-pen-profile"></select>
             </label>
@@ -880,6 +1035,8 @@ class MenuSystemClass {
         // Reflect the live state (seeded from Storage at boot)
         const autosaveMinutes = content.querySelector('#pref-autosave-minutes');
         if (autosaveMinutes) autosaveMinutes.value = String(StateManager.getAutosaveMinutes());
+        const restoreOnBoot = content.querySelector('#pref-restore-on-boot');
+        if (restoreOnBoot) restoreOnBoot.checked = StateManager.get('restoreOnBoot') !== false;
         const confirmClear = content.querySelector('#pref-confirm-clear');
         if (confirmClear) confirmClear.checked = StateManager.get('confirmClear') !== false;
         const pixelPerfect = content.querySelector('#pref-pixel-perfect');
@@ -896,6 +1053,7 @@ class MenuSystemClass {
         if (touchLockout) {
             touchLockout.value = String(TouchPolicy.normalizeLockout(StateManager.get('touchLockoutMs')));
         }
+        this._initPressurePreferences(content);
 
         Dialog.open({
             id: 'preferences-dialog',
@@ -1087,6 +1245,31 @@ class MenuSystemClass {
     }
 
     /**
+     * Wire the Preferences pressure block: reflect live state, and show the
+     * strength row only while the checkbox is on (same hide-don't-disable
+     * pattern as #pref-pen-shape below).
+     * @private
+     */
+    _initPressurePreferences(root) {
+        const enabledCheck = root.querySelector('#pref-pressure-sensitivity');
+        const strengthRow = root.querySelector('#pref-pressure-strength-row');
+        const strengthHint = root.querySelector('#pref-pressure-strength-hint');
+        const strengthInput = root.querySelector('#pref-pressure-strength');
+        if (!enabledCheck || !strengthRow || !strengthInput) return;
+
+        enabledCheck.checked = StateManager.get('pressureSensitivity') === true;
+        const rawStrength = StateManager.get('pressureStrength');
+        strengthInput.value = String(clamp(typeof rawStrength === 'number' ? rawStrength : 100, 0, 200));
+
+        const syncStrengthVisibility = () => {
+            strengthRow.hidden = !enabledCheck.checked;
+            if (strengthHint) strengthHint.hidden = !enabledCheck.checked;
+        };
+        syncStrengthVisibility();
+        enabledCheck.addEventListener('change', syncStrengthVisibility);
+    }
+
+    /**
      * Wire the Preferences pen block: the model selector, the generic profile's
      * own shape controls, the per-control action rows and the live pen check.
      *
@@ -1107,17 +1290,36 @@ class MenuSystemClass {
             ? InputHandler.getPenConfig()
             : { profile: PEN_PROFILES.generic.id, custom: {}, actions: {} };
 
+        // Grouped by vendor (optgroup) so ~20 real models stay scannable;
+        // `generic` carries no group and renders as a plain top-level option.
+        const groups = new Map();
         for (const key of Object.keys(PEN_PROFILES)) {
             const profile = PEN_PROFILES[key];
             const option = document.createElement('option');
             option.value = profile.id;
-            // Brand names are proper nouns — only the generic entry is a phrase
-            // that needs translating.
+            // Brand and model names are proper nouns — only the generic entry
+            // is a phrase that needs translating.
             option.textContent = profile.label || this._t(profile.i18n, 'Generic / other');
             if (profile.i18n) option.setAttribute('data-i18n', profile.i18n);
-            profileSelect.appendChild(option);
+
+            if (!profile.group) {
+                profileSelect.appendChild(option);
+                continue;
+            }
+            let optgroup = groups.get(profile.group);
+            if (!optgroup) {
+                optgroup = document.createElement('optgroup');
+                optgroup.label = profile.group;
+                groups.set(profile.group, optgroup);
+                profileSelect.appendChild(optgroup);
+            }
+            optgroup.appendChild(option);
         }
-        profileSelect.value = config.profile;
+        // A saved family-level id (from before the list was split into real
+        // models) resolves through PEN_PROFILE_ALIASES so the picker highlights
+        // the specific model it now means, not a mismatched value that falls
+        // through to nothing and reads as Generic.
+        profileSelect.value = PenMap.getProfile(config.profile).id;
         if (barrelsSelect) barrelsSelect.value = String(PenMap.shape(config.profile, config.custom).barrels);
         if (eraserCheck) eraserCheck.checked = PenMap.shape(config.profile, config.custom).eraser === true;
 
@@ -1179,7 +1381,7 @@ class MenuSystemClass {
                 option.textContent = this._t(action.i18n, action.id);
                 select.appendChild(option);
             }
-            select.value = PenMap.actionFor(controlId, { actions: assigned });
+            select.value = PenMap.actionFor(controlId, { profile: profileId, actions: assigned });
             row.appendChild(select);
             container.appendChild(row);
         }
@@ -1243,6 +1445,7 @@ class MenuSystemClass {
     /** @private */
     _savePreferences(dialog) {
         const autosaveEl = dialog.querySelector('#pref-autosave-minutes');
+        const restoreOnBoot = dialog.querySelector('#pref-restore-on-boot');
         const confirmClear = dialog.querySelector('#pref-confirm-clear');
         const pixelPerfect = dialog.querySelector('#pref-pixel-perfect');
         const resetDrawMode = dialog.querySelector('#pref-reset-draw-mode');
@@ -1254,12 +1457,19 @@ class MenuSystemClass {
         const touchLockout = touchLockoutEl
             ? TouchPolicy.normalizeLockout(touchLockoutEl.value)
             : TOUCH_DEFAULTS.lockoutMs;
+        const pressureEnabled = dialog.querySelector('#pref-pressure-sensitivity');
+        const pressureStrengthEl = dialog.querySelector('#pref-pressure-strength');
+        // 0 is a real, meaningful value (pressure has no effect) so it must
+        // survive - unlike nudgeStep's `|| 1` above, NaN is the only fallback case.
+        const parsedStrength = pressureStrengthEl ? parseInt(pressureStrengthEl.value, 10) : NaN;
+        const pressureStrength = clamp(Number.isNaN(parsedStrength) ? 100 : parsedStrength, 0, 200);
 
         // Minutes, 0 = off. Clamped rather than rejected: a number field can
         // be typed into, and a silently ignored entry is worse than a capped one.
         if (autosaveEl) {
             StateManager.setAutosaveMinutes(clamp(parseInt(autosaveEl.value, 10) || 0, 0, 60));
         }
+        if (restoreOnBoot) StateManager.set('restoreOnBoot', restoreOnBoot.checked);
         if (confirmClear) StateManager.set('confirmClear', confirmClear.checked);
         if (pixelPerfect) StateManager.set('pixelPerfect', pixelPerfect.checked);
         if (resetDrawMode) StateManager.set('resetDrawModeOnTool', resetDrawMode.checked);
@@ -1270,6 +1480,15 @@ class MenuSystemClass {
         if (touchDraw) InputHandler.setTouchDrawing(touchDraw.checked);
         if (touchNoDouble) StateManager.set('touchBlockWhileContact', touchNoDouble.checked);
         if (touchLockoutEl) StateManager.set('touchLockoutMs', touchLockout);
+        // Saving here is always an explicit choice, whichever way the
+        // checkbox lands - it must outrank InputHandler's auto-enable-on-
+        // first-pen-event for the rest of this session too, not just after
+        // the next reload (see _maybeAutoEnablePressure).
+        if (pressureEnabled) {
+            StateManager.set('pressureSensitivity', pressureEnabled.checked);
+            StateManager.set('pressureSensitivityExplicit', true);
+        }
+        if (pressureStrengthEl) StateManager.set('pressureStrength', pressureStrength);
 
         // The folder itself was set by its own button (it needs the click as a
         // gesture); only the count is an ordinary field. BackupService owns
@@ -1286,6 +1505,7 @@ class MenuSystemClass {
 
         Storage.set('preferences', {
             autosaveMinutes: StateManager.getAutosaveMinutes(),
+            restoreOnBoot: restoreOnBoot?.checked,
             confirmClear: confirmClear?.checked,
             pixelPerfect: pixelPerfect?.checked,
             resetDrawModeOnTool: resetDrawMode?.checked,
@@ -1295,6 +1515,8 @@ class MenuSystemClass {
             // dialog, and this whole-object write would clobber that.
             touchBlockWhileContact: touchNoDouble?.checked,
             touchLockoutMs: touchLockout,
+            pressureSensitivity: pressureEnabled?.checked,
+            pressureStrength,
             penProfile: pen?.profile,
             penCustom: pen?.custom,
             penActions: pen?.actions
@@ -1305,8 +1527,24 @@ class MenuSystemClass {
 
     /** @private */
     _updateThemeToggles(activeTheme) {
-        this._updateToggleState('theme-light', activeTheme === 'light');
-        this._updateToggleState('theme-dark', activeTheme === 'dark');
+        for (const id of ['dark', 'light', 'midnight', 'nord', 'dracula', 'sepia']) {
+            this._updateToggleState(`theme-${id}`, activeTheme === id);
+        }
+    }
+
+    /** @private */
+    _updateMirrorToggles(mode) {
+        const m = mode || (window.StateManager ? StateManager.getSymmetryMode() : 'off');
+        this._updateToggleState('mirror-off', m === 'off');
+        this._updateToggleState('mirror-h', m === 'h');
+        this._updateToggleState('mirror-v', m === 'v');
+        this._updateToggleState('mirror-both', m === 'quad');
+    }
+
+    /** @private */
+    _setTheme(id) {
+        if (window.ThemeManager) ThemeManager.setTheme(id);
+        else EventBus.emit(EVENTS.UI_THEME_CHANGE, { theme: id });
     }
 
     /** @private */

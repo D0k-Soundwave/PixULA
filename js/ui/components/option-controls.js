@@ -394,6 +394,18 @@ class OptionControlsClass {
         range.addEventListener('input', () => {
             valueEl.textContent = `${range.value}${unit}`;
             this._commit(tool, entry, parseFloat(range.value));
+            // A setter may snap the dragged value elsewhere (e.g. a brush
+            // size excluded for a poor round shape) - re-read the tool so
+            // the slider and label show what actually took effect, not a
+            // number the drag passed through but the tool rejected.
+            const getter = 'get' + entry.key.charAt(0).toUpperCase() + entry.key.slice(1);
+            if (typeof tool[getter] === 'function') {
+                const actual = tool[getter]();
+                if (actual !== undefined && String(actual) !== range.value) {
+                    range.value = String(actual);
+                    valueEl.textContent = `${actual}${unit}`;
+                }
+            }
         });
 
         row.appendChild(range);

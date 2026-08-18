@@ -113,4 +113,59 @@ check('every action carries an i18n key',
 check('every profile carries a label or an i18n key',
     Object.keys(PEN_PROFILES).every(k => PEN_PROFILES[k].label || PEN_PROFILES[k].i18n));
 
+// ── Real named models (docs/pen-info-table.md, 2026-08-18) ────────────────
+
+check('the vendor families expanded to a real, named model per profile (22)',
+    Object.keys(PEN_PROFILES).length === 22);
+check('every non-generic profile carries a vendor group for the dropdown',
+    Object.keys(PEN_PROFILES).filter(k => k !== 'generic')
+        .every(k => typeof PEN_PROFILES[k].group === 'string' && PEN_PROFILES[k].group.length > 0));
+
+// Every retired family-level id must resolve to a model that reproduces its
+// EXACT old shape - a saved choice from before the split must keep behaving
+// exactly as it did, not gain or lose a control.
+check('every alias resolves to a real, present profile, never generic',
+    Object.keys(PEN_PROFILE_ALIASES).every(old =>
+        PEN_PROFILES[PEN_PROFILE_ALIASES[old]] &&
+        PEN_PROFILE_ALIASES[old] !== 'generic'));
+check('aliased apple/samsung/microsoft/wacom/xppen/gaomon controlsFor matches pre-split shape',
+    PenMap.controlsFor('apple').length === 0 &&
+    PenMap.controlsFor('samsung').join(',') === 'barrel' &&
+    PenMap.controlsFor('microsoft').join(',') === 'barrel,eraser' &&
+    PenMap.controlsFor('wacom').join(',') === 'barrel,barrel2,eraser' &&
+    PenMap.controlsFor('xppen').join(',') === 'barrel,barrel2' &&
+    PenMap.controlsFor('gaomon').join(',') === 'barrel,barrel2');
+check('aliased ids keep their old default actions too',
+    JSON.stringify(PenMap.defaultsFor('wacom')) === JSON.stringify(PenMap.defaultsFor('wacomProPen2')));
+check('huion and generic were not split and carry no alias',
+    PEN_PROFILE_ALIASES.huion === undefined && PEN_PROFILE_ALIASES.generic === undefined);
+
+// The one profile whose real, documented default earns an override: the Pro
+// Pen 3D's middle button is pan/zoom, not the shared menu default.
+check('Wacom Pro Pen 3D has no eraser (the doc lists none)',
+    PenMap.controlsFor('wacomProPen3D').join(',') === 'barrel,barrel2');
+check('Wacom Pro Pen 3D barrel2 defaults to Pan, not the shared Menu default',
+    PenMap.actionFor('barrel2', { profile: 'wacomProPen3D' }) === 'pan');
+check('Wacom Pro Pen 3D barrel still defaults to something (menu)',
+    PenMap.actionFor('barrel', { profile: 'wacomProPen3D' }) === 'menu');
+check('every OTHER Wacom pen keeps the shared barrel2 default (menu), not pan',
+    PenMap.actionFor('barrel2', { profile: 'wacomProPen2' }) === 'menu' &&
+    PenMap.actionFor('barrel2', { profile: 'wacomProPen3' }) === 'menu' &&
+    PenMap.actionFor('barrel2', { profile: 'wacomAccessory' }) === 'menu');
+check('an explicit assignment still outranks a model\'s own default',
+    PenMap.actionFor('barrel2', { profile: 'wacomProPen3D', actions: { barrel2: 'undo' } }) === 'undo');
+
+// Every Apple/Samsung/XP-Pen/Gaomon model shares its family's shape exactly,
+// even though each is its own named entry in the list.
+check('all four Apple Pencil generations present nothing to assign',
+    ['applePencil1', 'applePencil2', 'applePencilUsbC', 'applePencilPro']
+        .every(id => PenMap.controlsFor(id).length === 0));
+check('all three Samsung S Pen variants share one barrel, no eraser',
+    ['sPenPhone', 'sPenTab', 'sPenFold']
+        .every(id => PenMap.controlsFor(id).join(',') === 'barrel'));
+check('the three Microsoft pens have genuinely different shapes',
+    PenMap.controlsFor('surfacePen').join(',') === 'barrel,eraser' &&
+    PenMap.controlsFor('surfacePenLegacy').join(',') === 'barrel,barrel2,eraser' &&
+    PenMap.controlsFor('surfaceSlimPen').join(',') === 'barrel');
+
 summary();

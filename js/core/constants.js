@@ -580,7 +580,7 @@ const PEN_ACTIONS = Object.freeze({
 });
 
 /**
- * PEN PROFILES — what a given make of stylus physically has, and what its
+ * PEN PROFILES — what a real, named pen model physically has, and what its
  * controls should do out of the box.
  *
  * A profile is NOT detection. Nothing here is measured: the browser reports the
@@ -593,10 +593,36 @@ const PEN_ACTIONS = Object.freeze({
  *
  * `barrels` counts side buttons the web can see; `eraser` is an inverted tail.
  * `custom: true` (generic only) lets the user declare the shape themselves.
- * Brand names are proper nouns and carry no i18n key — they read the same in
- * every locale.
+ * `group` sorts models under a vendor heading in the Preferences dropdown
+ * (docs/pen-info-table.md is the source list); entries with no `group` render
+ * ungrouped (only `generic` today). Brand and model names are proper nouns and
+ * carry no i18n key — they read the same in every locale.
  *
- * Sources are the vendors' own published specifications, read 2026-08-05.
+ * `defaults` overrides PEN_DEFAULT_ACTIONS per control for models whose real,
+ * documented out-of-the-box behaviour both differs AND survives translation
+ * into an action this app actually has (see wacomProPen3D below) — most
+ * vendor defaults are OS-level concepts ("right-click", "double-click", a
+ * launcher shortcut) with no meaningful pixel-art equivalent, so most models
+ * below omit `defaults` and keep the shared baseline rather than force one.
+ *
+ * Many vendors ship several models that are electrically identical from a
+ * browser's point of view (same button/eraser shape, same real defaults) —
+ * they are still listed separately so an artist can find their exact pen by
+ * name, even where picking a sibling model would behave identically.
+ *
+ * Physically real controls this table can never represent, because no
+ * PointerEvent bit carries them: Apple Pencil 2/Pro's double-tap, Pencil
+ * Pro's squeeze and barrel-roll gyro, S Pen Air actions (BLE, a separate
+ * channel from drawing input), Surface Pen's OS-level tail click/hold app
+ * shortcuts (as opposed to its tail's eraser-invert bit, which IS
+ * represented), the Wacom Art Pen's barrel rotation, and the Airbrush Pen's
+ * analog wheel. A third physical button on modular Wacom pens (Pro Pen 3's
+ * upper/middle/front) is also unrepresentable past the two the bitmask
+ * distinguishes — see PEN_CONTROLS above.
+ *
+ * Sources are the vendors' own published specifications, read 2026-08-05
+ * (family-level table) and docs/pen-info-table.md (model-level list, read
+ * 2026-08-18).
  * @const {Object}
  */
 const PEN_PROFILES = Object.freeze({
@@ -604,39 +630,159 @@ const PEN_PROFILES = Object.freeze({
         id: 'generic', i18n: 'pen.profile.generic', custom: true,
         barrels: 1, eraser: false
     }),
-    apple: Object.freeze({
-        // Apple Pencil (all generations): no web-visible buttons at all. The
-        // double-tap (Pencil 2) and squeeze (Pencil Pro) are private APIs.
-        id: 'apple', label: 'Apple Pencil', barrels: 0, eraser: false
+
+    // ── Apple ────────────────────────────────────────────────────────────
+    // Every generation: no web-visible buttons at all. The 2nd-gen/Pro
+    // double-tap and the Pro's squeeze are private APIs.
+    applePencil1: Object.freeze({
+        id: 'applePencil1', label: 'Apple Pencil (1st generation)', group: 'Apple',
+        barrels: 0, eraser: false
     }),
-    samsung: Object.freeze({
-        // S Pen: one side button, no eraser tail.
-        id: 'samsung', label: 'Samsung S Pen', barrels: 1, eraser: false
+    applePencil2: Object.freeze({
+        id: 'applePencil2', label: 'Apple Pencil (2nd generation)', group: 'Apple',
+        barrels: 0, eraser: false
     }),
-    microsoft: Object.freeze({
-        // Surface Pen / Slim Pen: one side button plus an eraser tail.
-        id: 'microsoft', label: 'Microsoft Surface Pen', barrels: 1, eraser: true
+    applePencilUsbC: Object.freeze({
+        id: 'applePencilUsbC', label: 'Apple Pencil (USB-C)', group: 'Apple',
+        barrels: 0, eraser: false
     }),
-    wacom: Object.freeze({
-        // Pro Pen 2 and the Intuos pens: rocker switch (two buttons) + eraser.
-        id: 'wacom', label: 'Wacom', barrels: 2, eraser: true
+    applePencilPro: Object.freeze({
+        id: 'applePencilPro', label: 'Apple Pencil Pro', group: 'Apple',
+        barrels: 0, eraser: false
     }),
-    xppen: Object.freeze({
-        id: 'xppen', label: 'XP-Pen', barrels: 2, eraser: false
+
+    // ── Samsung ──────────────────────────────────────────────────────────
+    // One side button, no eraser tail, on every S Pen variant Samsung ships
+    // today. Hover + button opens Air Command, and BLE top buttons on newer
+    // pens drive Air actions — both travel over a channel a web page cannot
+    // read, so all three list entries share this exact shape.
+    sPenPhone: Object.freeze({
+        id: 'sPenPhone', label: 'Samsung S Pen (Galaxy phones)', group: 'Samsung',
+        barrels: 1, eraser: false
     }),
+    sPenTab: Object.freeze({
+        id: 'sPenTab', label: 'Samsung S Pen (Galaxy Tab)', group: 'Samsung',
+        barrels: 1, eraser: false
+    }),
+    sPenFold: Object.freeze({
+        id: 'sPenFold', label: 'Samsung S Pen (Fold Edition / Pro / Creator Edition)',
+        group: 'Samsung', barrels: 1, eraser: false
+    }),
+
+    // ── Microsoft ────────────────────────────────────────────────────────
+    surfacePen: Object.freeze({
+        // Current Surface Pen: one barrel, tail eraser (its invert bit is
+        // real and distinct from the tail's separate OS-level Bluetooth
+        // click/hold app shortcuts, which are not).
+        id: 'surfacePen', label: 'Surface Pen (current)', group: 'Microsoft',
+        barrels: 1, eraser: true
+    }),
+    surfacePenLegacy: Object.freeze({
+        // Surface Pro 3/4-era pen: an extra side button over the current one.
+        id: 'surfacePenLegacy', label: 'Surface Pen (2-button, older)', group: 'Microsoft',
+        barrels: 2, eraser: true
+    }),
+    surfaceSlimPen: Object.freeze({
+        // Slim Pen / Slim Pen 2: flat-edge side button, no tail at all.
+        id: 'surfaceSlimPen', label: 'Surface Slim Pen / Slim Pen 2', group: 'Microsoft',
+        barrels: 1, eraser: false
+    }),
+
+    // ── Wacom ────────────────────────────────────────────────────────────
+    wacomProPen3: Object.freeze({
+        // Modular grip: up to three side buttons, but only two are ever
+        // distinguishable to a browser (see PEN_CONTROLS) — capped at 2.
+        id: 'wacomProPen3', label: 'Wacom Pro Pen 3', group: 'Wacom',
+        barrels: 2, eraser: true
+    }),
+    wacomProPen2: Object.freeze({
+        id: 'wacomProPen2', label: 'Wacom Pro Pen 2', group: 'Wacom',
+        barrels: 2, eraser: true
+    }),
+    wacomProPen3D: Object.freeze({
+        // No eraser. Its middle button's documented real default is genuinely
+        // distinct and genuinely representable — hover pans, contact +
+        // vertical move zooms — which is exactly how our own Pan pen-action
+        // already works, so it is the one profile below that earns a real
+        // `defaults` override rather than the shared baseline.
+        id: 'wacomProPen3D', label: 'Wacom Pro Pen 3D', group: 'Wacom',
+        barrels: 2, eraser: false,
+        defaults: { barrel: PEN_ACTIONS.MENU.id, barrel2: PEN_ACTIONS.PAN.id }
+    }),
+    wacomAccessory: Object.freeze({
+        // Grip/Classic/Art/Airbrush/Finetip/Ballpoint/Inking pens: same
+        // button+eraser shape across the range. The Art Pen's barrel
+        // rotation and the Airbrush's analog wheel have no control here.
+        id: 'wacomAccessory',
+        label: 'Wacom Grip / Classic / Art / Airbrush / Inking Pen', group: 'Wacom',
+        barrels: 2, eraser: true
+    }),
+
+    // ── XP-Pen ───────────────────────────────────────────────────────────
+    // Every line shares the same two-side-button, no-eraser shape and the
+    // same "one button right-click, one a driver-configured Function Key"
+    // real default — Function Key has no fixed real-world action to mirror.
+    xppenX: Object.freeze({
+        id: 'xppenX', label: 'XP-Pen X3 / X4 series', group: 'XP-Pen',
+        barrels: 2, eraser: false
+    }),
+    xppenPA: Object.freeze({
+        id: 'xppenPA', label: 'XP-Pen PA series (PA1/PA2/PA5/PA6)', group: 'XP-Pen',
+        barrels: 2, eraser: false
+    }),
+    xppenP: Object.freeze({
+        id: 'xppenP', label: 'XP-Pen P series (Star / Deco)', group: 'XP-Pen',
+        barrels: 2, eraser: false
+    }),
+
+    // ── Huion ────────────────────────────────────────────────────────────
+    // Not itemised in docs/pen-info-table.md; kept as the one family-level
+    // entry it has always been (still grouped, for a consistent dropdown).
     huion: Object.freeze({
-        id: 'huion', label: 'Huion', barrels: 2, eraser: false
+        id: 'huion', label: 'Huion', group: 'Huion', barrels: 2, eraser: false
     }),
-    gaomon: Object.freeze({
-        id: 'gaomon', label: 'Gaomon', barrels: 2, eraser: false
+
+    // ── Gaomon ───────────────────────────────────────────────────────────
+    // Same two-button, no-eraser shape and the same driver-remappable
+    // defaults across the range.
+    gaomonAp50: Object.freeze({
+        id: 'gaomonAp50', label: 'Gaomon ArtPaint AP50', group: 'Gaomon',
+        barrels: 2, eraser: false
+    }),
+    gaomonAp32: Object.freeze({
+        id: 'gaomonAp32', label: 'Gaomon ArtPaint AP32', group: 'Gaomon',
+        barrels: 2, eraser: false
+    }),
+    gaomonAp20: Object.freeze({
+        id: 'gaomonAp20', label: 'Gaomon ArtPaint AP20 / AP40', group: 'Gaomon',
+        barrels: 2, eraser: false
     })
 });
 
 /**
- * Out-of-the-box action for each control. The barrel keeps the eyedropper it
- * has always had and the tail keeps erasing, so an existing pen behaves exactly
- * as it did before this setting existed; the second barrel is new ground and
- * takes the canvas menu, which is otherwise a keyboard-only route.
+ * Retired family-level profile ids that still resolve, to a specific model
+ * that reproduces the old family's exact shape and defaults — a saved choice
+ * from before the pen list was split into real models (2026-08-18) must keep
+ * behaving exactly as it did, never fall back to generic and silently gain or
+ * lose controls. @see PenMap#getProfile
+ * @const {Object}
+ */
+const PEN_PROFILE_ALIASES = Object.freeze({
+    apple: 'applePencil2',
+    samsung: 'sPenPhone',
+    microsoft: 'surfacePen',
+    wacom: 'wacomProPen2',
+    xppen: 'xppenX',
+    gaomon: 'gaomonAp50'
+    // huion and generic kept their own id - no alias needed.
+});
+
+/**
+ * Out-of-the-box action for each control, shared by every profile that does
+ * not name its own `defaults` override. The barrel keeps the eyedropper it
+ * has always had and the tail keeps erasing, so an existing pen behaves
+ * exactly as it did before this setting existed; the second barrel is new
+ * ground and takes the canvas menu, which is otherwise a keyboard-only route.
  * @const {Object}
  */
 const PEN_DEFAULT_ACTIONS = Object.freeze({
@@ -1155,6 +1301,7 @@ window.TOOL_GROUPS = TOOL_GROUPS;
 window.PEN_CONTROLS = PEN_CONTROLS;
 window.PEN_ACTIONS = PEN_ACTIONS;
 window.PEN_PROFILES = PEN_PROFILES;
+window.PEN_PROFILE_ALIASES = PEN_PROFILE_ALIASES;
 window.PEN_DEFAULT_ACTIONS = PEN_DEFAULT_ACTIONS;
 window.TOUCH_DEFAULTS = TOUCH_DEFAULTS;
 window.ZOOM_CONFIG = ZOOM_CONFIG;

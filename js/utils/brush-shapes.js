@@ -46,11 +46,21 @@ const BrushShapes = {
      * demoted to the odd size below them. The ramp is 1, 4, 5, 12, 21, 24, 37,
      * 44, ... — a pixel, a 2x2, a plus, then true discs.
      *
+     * A size with a hand-curated replacement in `BRUSH_SHAPE_OVERRIDES`
+     * (built by `tools/brush-shape-designer.html`, never hand-edited —
+     * see `js/data/brush-shape-overrides.js`) returns that mask instead;
+     * every other size still comes from the formula. This is the ONLY
+     * place that table is read, so discOffsets/maskOffsets and every
+     * consumer of disc() inherit an override for free.
+     *
      * @param {number} size - Diameter in pixels
      * @returns {number[][]} row-major mask
      */
     disc(size) {
         const n = Math.max(1, Math.round(size));
+        const override = BrushShapes._overrideMask(n);
+        if (override) return override;
+
         const c = n / 2;
         const r = BrushShapes.radiusFor(n);
         const rr = r * r;
@@ -65,6 +75,60 @@ const BrushShapes = {
             }
         }
         return mask;
+    },
+
+    /**
+     * The curated mask for `size`, reconstructed from its centre-relative
+     * offset list, or `null` if this size has no override.
+     * @param {number} size
+     * @returns {number[][]|null}
+     * @private
+     */
+    _overrideMask(size) {
+        const table = window.BRUSH_SHAPE_OVERRIDES;
+        const offsets = table && table.masks && table.masks[size];
+        if (!offsets) return null;
+
+        const offset = Math.floor(size / 2);
+        const mask = [];
+        for (let y = 0; y < size; y++) mask[y] = new Array(size).fill(0);
+        offsets.forEach(o => {
+            const x = o.dx + offset, y = o.dy + offset;
+            if (x >= 0 && x < size && y >= 0 && y < size) mask[y][x] = 1;
+        });
+        return mask;
+    },
+
+    /**
+     * Is `size` flagged (via the same curated table) as producing a poor
+     * round shape? Sizes/tools that offer a brush-size slider skip it —
+     * see `nearestAllowedSize`.
+     * @param {number} size
+     * @returns {boolean}
+     */
+    isSizeExcluded(size) {
+        const table = window.BRUSH_SHAPE_OVERRIDES;
+        const excluded = table && table.excludedSizes;
+        return !!(excluded && excluded.indexOf(Math.round(size)) !== -1);
+    },
+
+    /**
+     * `size` clamped to [1, max], then nudged to the nearest size that
+     * isn't excluded (searching outward, ties broken downward). Sizes
+     * beyond the curated table's range (the eraser's 33..128) are never
+     * excluded, so this is a no-op there.
+     * @param {number} size
+     * @param {number} max
+     * @returns {number}
+     */
+    nearestAllowedSize(size, max) {
+        const n = clamp(Math.round(size), 1, max);
+        if (!BrushShapes.isSizeExcluded(n)) return n;
+        for (let d = 1; d <= max; d++) {
+            if (n - d >= 1 && !BrushShapes.isSizeExcluded(n - d)) return n - d;
+            if (n + d <= max && !BrushShapes.isSizeExcluded(n + d)) return n + d;
+        }
+        return n; // every size in range excluded - nothing sane to return instead
     },
 
     /**

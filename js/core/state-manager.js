@@ -620,16 +620,20 @@ class StateManagerClass {
 /*
  * Autosave interval bounds, in minutes.
  *
- * [A] The DEFAULT of 1 is inherited from the fixed 60-second timer this
- * preference replaced, kept so nobody's behaviour changed on upgrade. It is
- * still a guess: what would justify a different number is a measurement of
- * what a save actually costs at the largest screen mode.
+ * The DEFAULT is 0 (off). Autosave writes a copy of the whole document into
+ * this browser's storage on its own timer, unasked; not everyone drawing on
+ * this machine wants that happening silently, and someone who does not turn
+ * it on should never find a restore prompt anyway - so 0 is the quieter
+ * starting point, and it is one field in Preferences > General to change.
+ * `restoreOnBoot` (js/app.js _checkAutosave) is a completely separate
+ * preference: it only governs whether a PAST autosave record, if autosave
+ * was turned on and one exists, is ever offered back at the next launch.
  *
  * [C] The MAXIMUM of 60 is one hour, past which "autosave" stops describing
  * the feature - an interval longer than a working session saves nothing, and
  * the artist who wants that wants 0.
  */
-StateManagerClass.AUTOSAVE_DEFAULT_MINUTES = 1;
+StateManagerClass.AUTOSAVE_DEFAULT_MINUTES = 0;
 StateManagerClass.AUTOSAVE_MAX_MINUTES = 60;
 
 window.StateManager = new StateManagerClass();

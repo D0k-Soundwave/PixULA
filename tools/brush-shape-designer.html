@@ -1,0 +1,794 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Brush Shape Designer</title>
+<style>
+  :root {
+    --bg: #1b1d22;
+    --panel: #23262d;
+    --panel-2: #2a2e37;
+    --border: #3a3f4a;
+    --text: #d8dbe2;
+    --text-dim: #8b909c;
+    --ink: #101114;
+    --paper: #ffffff;
+    --accent: #5aa9e6;
+    --warn: #e0a03c;
+    --bad: #d9605f;
+    --good: #5fbf7a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 {
+    margin: 0 0 4px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  header p {
+    margin: 0;
+    color: var(--text-dim);
+  }
+  .layout {
+    display: flex;
+    height: calc(100vh - 78px);
+  }
+  .rail {
+    width: 190px;
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    flex: none;
+  }
+  .rail-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  .rail-row:hover { background: var(--panel-2); }
+  .rail-row.selected { background: var(--panel-2); box-shadow: inset 3px 0 0 var(--accent); }
+  .rail-row.excluded { opacity: 0.45; }
+  .rail-thumb {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    image-rendering: pixelated;
+    flex: none;
+  }
+  .rail-label { flex: 1; }
+  .rail-size { font-variant-numeric: tabular-nums; }
+  .rail-flag {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex: none;
+  }
+  .rail-flag.touched { background: var(--accent); }
+  .rail-flag.clean { background: transparent; }
+  .rail-flag.excluded-dot { background: var(--bad); }
+
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    flex-wrap: wrap;
+  }
+  .toolbar .group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .toolbar label { color: var(--text-dim); }
+  button, select {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 5px 10px;
+    font: inherit;
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { border-color: var(--accent); color: var(--accent); }
+  input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
+
+  .stage {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    padding: 20px;
+    overflow: auto;
+    align-items: flex-start;
+  }
+  .candidate-block, .scale-block { text-align: center; }
+  .candidate-block {
+    border: 2px solid transparent;
+    border-radius: 8px;
+    padding: 10px;
+  }
+  .candidate-block.active {
+    border-color: var(--accent);
+    background: rgba(90,169,230,0.07);
+  }
+  .candidate-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .candidate-header h2 { margin: 0; }
+  .candidate-select {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .candidate-tools {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .stage h2 {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0 0 8px;
+  }
+  .candidate-canvas, #scale-canvas {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    cursor: crosshair;
+    image-rendering: pixelated;
+  }
+  #scale-canvas { cursor: default; }
+  .hint {
+    max-width: 260px;
+    color: var(--text-dim);
+    font-size: 12px;
+    text-align: left;
+    margin: 8px auto 0;
+  }
+  .no-choice-note {
+    color: var(--text-dim);
+    font-size: 12px;
+    padding: 8px 0;
+  }
+  footer {
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  #status {
+    color: var(--text-dim);
+    flex: 1;
+  }
+  #status.good { color: var(--good); }
+  #file-input { display: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Brush Shape Designer</h1>
+  <p>Hand-edit the round brush mask for any size 1-32, then export it for review. Not part of the app - dev tool only.
+  Every shape is exactly N x N pixels for a size-N brush - never larger, never cropped - and uses the one centring
+  that actually fits that size (a true single centre pixel for odd sizes, a true centre 4 for even sizes). The only
+  thing that can genuinely vary at a fixed size is how many pixels wide the circle's cap is at each of the four
+  edges it must fully reach; up to three such variations are offered when more than one exists, and only one when
+  that's all there is. The radio button under whichever one you want picks the shape that actually gets exported.</p>
+</header>
+
+<div class="layout">
+  <div class="rail" id="rail"></div>
+
+  <div class="main">
+    <div class="toolbar">
+      <div class="group">
+        <strong id="size-label">Size 8</strong>
+      </div>
+      <div class="group">
+        <label><input type="checkbox" id="show-guide" checked> Show centre highlight</label>
+      </div>
+      <div class="group">
+        <label><input type="checkbox" id="exclude-size"> Exclude this size from the brush tool</label>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div id="candidates-row" style="display: flex; flex-wrap: wrap; gap: 24px;"></div>
+
+      <div class="scale-block">
+        <h2>Relative scale <span id="scale-active-label"></span></h2>
+        <canvas id="scale-canvas"></canvas>
+        <p class="hint">Only the shape currently marked "Use this shape" is shown here, at the same pixels-per-cell for every size - this is what actually exports.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span id="status">Left button / drag paints, right button / drag erases, on any candidate. Only the size(s) whose active shape you touch, or that you exclude, are written to the export.</span>
+  <button id="load-btn">Load JSON</button>
+  <input type="file" id="file-input" accept="application/json">
+  <button id="download-btn" class="primary">Download JSON</button>
+</footer>
+
+<script src="../js/utils/brush-shapes.js"></script>
+<script>
+'use strict';
+(function() {
+
+  var MIN_SIZE = 1, MAX_SIZE = 32;
+  var EDITOR_BOX = 260;
+  var SCALE_PX = 8;
+  var RAIL_THUMB = 26;
+  var PAPER_COLOR = '#ffffff';
+  var INK_COLOR = '#101114';
+  var GRID_LINE = 'rgba(0,0,0,0.12)';
+  var MAX_CANDIDATES = 3;
+
+  // ---- state ----------------------------------------------------------
+  // masks[size] = [ overrideMask|undefined, ... ] parallel to
+  // computeCandidates(size) - a slot is only present once hand-edited or
+  // Reset/Cleared; until then it reads as that candidate's computed shape.
+  var candidatesCache = {};   // size -> [{ mask, capWidth }, ...] (1..3 entries)
+  var masks = {};
+  var active = {};            // size -> candidate index (defaults to 0)
+  var excluded = {};
+  var selected = 8;
+
+  // ---- candidate generation ------------------------------------------------
+  //
+  // Centre c = size/2 exactly: a half-integer for odd sizes (a true single
+  // centre pixel) or an integer for even sizes (a true centre 4) - never
+  // anything else, so there is no cross-parity ambiguity and the grid is
+  // always exactly size x size.
+  //
+  // What DOES vary is how wide the circle's cap is at each of the four
+  // edges it must fully reach (every candidate spans the whole box - row 0,
+  // row N-1, col 0, col N-1 - never less). Sweeping the radius outward from
+  // the smallest value that reaches every edge, each subsequent tied ring
+  // of cells widens that cap by one symmetric step (1, 3, 5.. for odd
+  // sizes; 2, 4, 6.. for even). We stop offering wider caps once growing
+  // further would start pulling in the actual corner cells - a real circle
+  // inscribed in a square never touches the corners - and cap the list at
+  // three candidates even if more would technically still qualify, since
+  // beyond that the shape stops reading as "a circle" and starts reading
+  // as "a square with the corners chipped".
+  function sweepCandidates(n) {
+    var c = n / 2;
+    var offsets = [];
+    for (var x = 0; x < n; x++) offsets.push(x + 0.5 - c);
+    var edgeOffset = offsets[0];
+    var cornerDist = Math.sqrt(2) * Math.abs(edgeOffset);
+    var mags = Array.from(new Set(offsets.map(Math.abs))).sort(function(a, b) { return a - b; });
+
+    var out = [];
+    for (var k = 0; k < mags.length; k++) {
+      var r = Math.sqrt(edgeOffset * edgeOffset + mags[k] * mags[k]);
+      if (r >= cornerDist - 1e-9) break;
+
+      var mask = [];
+      var touchesTop = false, touchesBottom = false, touchesLeft = false, touchesRight = false;
+      for (var y = 0; y < n; y++) {
+        mask[y] = new Array(n).fill(0);
+        for (var xx = 0; xx < n; xx++) {
+          var dx = xx + 0.5 - c, dy = y + 0.5 - c;
+          if (Math.sqrt(dx * dx + dy * dy) <= r + 1e-9) {
+            mask[y][xx] = 1;
+            if (y === 0) touchesTop = true;
+            if (y === n - 1) touchesBottom = true;
+            if (xx === 0) touchesLeft = true;
+            if (xx === n - 1) touchesRight = true;
+          }
+        }
+      }
+      if (!(touchesTop && touchesBottom && touchesLeft && touchesRight)) continue;
+
+      var capWidth = mask[0].reduce(function(a, v) { return a + v; }, 0);
+      out.push({ mask: mask, capWidth: capWidth, r: r });
+      if (out.length >= MAX_CANDIDATES) break;
+    }
+    return out;
+  }
+
+  function computeCandidates(size) {
+    if (candidatesCache[size]) return candidatesCache[size];
+    var list;
+    if (size === 1) list = [{ mask: [[1]], capWidth: 1, r: 0 }];
+    else if (size === 2) list = [{ mask: [[1, 1], [1, 1]], capWidth: 2, r: null }];
+    else list = sweepCandidates(size);
+    candidatesCache[size] = list;
+    return list;
+  }
+
+  function activeIndex(size) {
+    var i = active[size];
+    var count = computeCandidates(size).length;
+    if (i === undefined || i >= count) return 0;
+    return i;
+  }
+
+  function candidateMask(size, i) {
+    if (masks[size] && masks[size][i]) return masks[size][i];
+    return computeCandidates(size)[i].mask;
+  }
+
+  function isCandidateTouched(size, i) {
+    return !!(masks[size] && masks[size][i]);
+  }
+
+  function ensureEditableCandidate(size, i) {
+    if (!masks[size]) masks[size] = [];
+    if (!masks[size][i]) masks[size][i] = cloneMask(candidateMask(size, i));
+    return masks[size][i];
+  }
+
+  function cloneMask(mask) {
+    return mask.map(function(row) { return row.slice(); });
+  }
+
+  function zeroGrid(n) {
+    var g = [];
+    for (var y = 0; y < n; y++) g[y] = new Array(n).fill(0);
+    return g;
+  }
+
+  // The cell(s) a grid of width n is anchored to: a half-integer centre
+  // sits in the middle of one cell (odd n - a true centre pixel); an
+  // integer centre sits on the corner shared by four cells (even n - the
+  // centre 4 pixels).
+  function centerCells(n) {
+    var c = n / 2;
+    var cells = [];
+    if (Number.isInteger(c)) {
+      for (var yy = c - 1; yy <= c; yy++) {
+        for (var xx = c - 1; xx <= c; xx++) {
+          if (xx >= 0 && xx < n && yy >= 0 && yy < n) cells.push({ x: xx, y: yy });
+        }
+      }
+    } else {
+      var idx = Math.floor(c);
+      if (idx >= 0 && idx < n) cells.push({ x: idx, y: idx });
+    }
+    return cells;
+  }
+
+  // ---- rail -------------------------------------------------------------
+  var railEl = document.getElementById('rail');
+  var railRows = {};
+
+  function buildRail() {
+    for (var size = MIN_SIZE; size <= MAX_SIZE; size++) {
+      (function(size) {
+        var row = document.createElement('div');
+        row.className = 'rail-row';
+        row.dataset.size = size;
+
+        var thumb = document.createElement('canvas');
+        thumb.className = 'rail-thumb';
+        thumb.width = RAIL_THUMB;
+        thumb.height = RAIL_THUMB;
+
+        var label = document.createElement('span');
+        label.className = 'rail-label rail-size';
+        label.textContent = size;
+
+        var flag = document.createElement('span');
+        flag.className = 'rail-flag clean';
+
+        row.appendChild(thumb);
+        row.appendChild(label);
+        row.appendChild(flag);
+        row.addEventListener('click', function() { selectSize(size); });
+
+        railEl.appendChild(row);
+        railRows[size] = { row: row, thumb: thumb, flag: flag };
+      })(size);
+    }
+  }
+
+  function drawMaskToCanvas(canvas, mask, n, box) {
+    var ctx = canvas.getContext('2d');
+    var zoom = Math.max(1, Math.floor(box / n));
+    var used = zoom * n;
+    var off = Math.floor((box - used) / 2);
+    ctx.clearRect(0, 0, box, box);
+    ctx.fillStyle = PAPER_COLOR;
+    ctx.fillRect(0, 0, box, box);
+    ctx.fillStyle = INK_COLOR;
+    for (var y = 0; y < n; y++) {
+      for (var x = 0; x < n; x++) {
+        if (mask[y][x]) ctx.fillRect(off + x * zoom, off + y * zoom, zoom, zoom);
+      }
+    }
+  }
+
+  function refreshRailRow(size) {
+    var r = railRows[size];
+    if (!r) return;
+    var i = activeIndex(size);
+    drawMaskToCanvas(r.thumb, candidateMask(size, i), size, RAIL_THUMB);
+    r.row.classList.toggle('selected', size === selected);
+    r.row.classList.toggle('excluded', !!excluded[size]);
+    r.flag.className = 'rail-flag ' + (excluded[size] ? 'excluded-dot' : (isCandidateTouched(size, i) ? 'touched' : 'clean'));
+  }
+
+  function refreshAllRail() {
+    for (var size = MIN_SIZE; size <= MAX_SIZE; size++) refreshRailRow(size);
+  }
+
+  // ---- candidate panels (rebuilt whenever the selected size changes) ------
+  var candidatesRow = document.getElementById('candidates-row');
+  var sizeLabel = document.getElementById('size-label');
+  var showGuide = document.getElementById('show-guide');
+  var panels = []; // [{ el, canvas, ctx, index }] for the CURRENT selected size
+
+  function editorZoom(n) {
+    return Math.min(48, Math.max(8, Math.floor(EDITOR_BOX / n)));
+  }
+
+  function buildCandidateRow() {
+    candidatesRow.innerHTML = '';
+    panels = [];
+    var size = selected;
+    var cands = computeCandidates(size);
+
+    if (cands.length === 1) {
+      var note = document.createElement('p');
+      note.className = 'no-choice-note';
+      note.style.flexBasis = '100%';
+      note.textContent = 'Only one way to make a full-width, full-height circle exists at size ' + size + ' - shown below, no alternatives to choose between.';
+      candidatesRow.appendChild(note);
+    }
+
+    cands.forEach(function(cand, i) {
+      var block = document.createElement('div');
+      block.className = 'candidate-block';
+      block.dataset.index = i;
+
+      var header = document.createElement('div');
+      header.className = 'candidate-header';
+      var h2 = document.createElement('h2');
+      h2.textContent = 'Edge width ' + cand.capWidth + 'px';
+      var label = document.createElement('label');
+      label.className = 'candidate-select';
+      var radio = document.createElement('input');
+      radio.type = 'radio';
+      radio.name = 'active-candidate';
+      radio.value = String(i);
+      radio.checked = (i === activeIndex(size));
+      radio.addEventListener('change', function() {
+        active[size] = i;
+        updateActiveHighlight();
+        refreshRailRow(size);
+        redrawScale();
+        updateStatus();
+      });
+      label.appendChild(radio);
+      label.appendChild(document.createTextNode(' Use this shape'));
+      header.appendChild(h2);
+      header.appendChild(label);
+
+      var tools = document.createElement('div');
+      tools.className = 'candidate-tools';
+      var resetBtn = document.createElement('button');
+      resetBtn.textContent = 'Reset';
+      resetBtn.title = 'Discard your hand edits here and go back to the computed shape';
+      resetBtn.addEventListener('click', function() {
+        if (masks[size]) delete masks[size][i];
+        redrawCandidate(i);
+        refreshRailRow(size);
+        redrawScale();
+        updateStatus();
+      });
+      var clearBtn = document.createElement('button');
+      clearBtn.textContent = 'Clear';
+      clearBtn.title = 'Erase every pixel here, leaving it blank';
+      clearBtn.addEventListener('click', function() {
+        if (!masks[size]) masks[size] = [];
+        masks[size][i] = zeroGrid(size);
+        redrawCandidate(i);
+        refreshRailRow(size);
+        redrawScale();
+        updateStatus();
+      });
+      tools.appendChild(resetBtn);
+      tools.appendChild(clearBtn);
+
+      var canvas = document.createElement('canvas');
+      canvas.className = 'candidate-canvas';
+
+      var hint = document.createElement('p');
+      hint.className = 'hint';
+      hint.textContent = 'Always exactly ' + size + 'x' + size + '. Left button / drag paints, right button / drag erases.';
+
+      block.appendChild(header);
+      block.appendChild(tools);
+      block.appendChild(canvas);
+      block.appendChild(hint);
+      candidatesRow.appendChild(block);
+
+      var ctx = canvas.getContext('2d');
+      panels.push({ el: block, canvas: canvas, ctx: ctx, index: i });
+
+      var painting = false, paintValue = 1;
+      canvas.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+      canvas.addEventListener('pointerdown', function(e) {
+        painting = true;
+        paintValue = (e.button === 2 || (e.buttons & 2)) ? 0 : 1;
+        paintCell(i, e.clientX, e.clientY, paintValue);
+      });
+      canvas.addEventListener('pointermove', function(e) {
+        if (!painting) return;
+        paintCell(i, e.clientX, e.clientY, paintValue);
+      });
+      canvas.addEventListener('pointerleave', function() { painting = false; });
+      window.addEventListener('pointerup', function() { painting = false; });
+    });
+
+    updateActiveHighlight();
+    redrawCandidates();
+  }
+
+  function redrawCandidate(i) {
+    var size = selected;
+    var panel = panels[i];
+    if (!panel) return;
+    var mask = candidateMask(size, i);
+    var zoom = editorZoom(size);
+    var box = zoom * size;
+    panel.canvas.width = box;
+    panel.canvas.height = box;
+    var ctx = panel.ctx;
+
+    ctx.fillStyle = PAPER_COLOR;
+    ctx.fillRect(0, 0, box, box);
+    ctx.fillStyle = INK_COLOR;
+    for (var y = 0; y < size; y++) {
+      for (var x = 0; x < size; x++) {
+        if (mask[y][x]) ctx.fillRect(x * zoom, y * zoom, zoom, zoom);
+      }
+    }
+
+    ctx.strokeStyle = GRID_LINE;
+    ctx.lineWidth = 1;
+    for (var k = 0; k <= size; k++) {
+      ctx.beginPath(); ctx.moveTo(k * zoom, 0); ctx.lineTo(k * zoom, box); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, k * zoom); ctx.lineTo(box, k * zoom); ctx.stroke();
+    }
+
+    if (showGuide.checked) {
+      ctx.fillStyle = 'rgba(90,169,230,0.25)';
+      ctx.strokeStyle = '#5aa9e6';
+      ctx.lineWidth = 2;
+      centerCells(size).forEach(function(cell) {
+        ctx.fillRect(cell.x * zoom, cell.y * zoom, zoom, zoom);
+      });
+      var c = size / 2;
+      var lo = Number.isInteger(c) ? c - 1 : Math.floor(c);
+      var span = Number.isInteger(c) ? 2 : 1;
+      ctx.strokeRect(lo * zoom + 1, lo * zoom + 1, span * zoom - 2, span * zoom - 2);
+    }
+  }
+
+  function redrawCandidates() {
+    panels.forEach(function(p) { redrawCandidate(p.index); });
+  }
+
+  function paintCell(i, clientX, clientY, value) {
+    var size = selected;
+    var panel = panels[i];
+    var rect = panel.canvas.getBoundingClientRect();
+    var zoom = editorZoom(size);
+    var x = Math.floor((clientX - rect.left) / zoom);
+    var y = Math.floor((clientY - rect.top) / zoom);
+    if (x < 0 || x >= size || y < 0 || y >= size) return;
+    var mask = ensureEditableCandidate(size, i);
+    if (mask[y][x] === value) return;
+    mask[y][x] = value;
+    redrawCandidate(i);
+    refreshRailRow(size);
+    redrawScale();
+    updateStatus();
+  }
+
+  function updateActiveHighlight() {
+    var ai = activeIndex(selected);
+    panels.forEach(function(p) {
+      p.el.classList.toggle('active', p.index === ai);
+    });
+  }
+
+  // ---- relative-scale preview (active candidate only) ----------------------
+  var scaleCanvas = document.getElementById('scale-canvas');
+  var scaleCtx = scaleCanvas.getContext('2d');
+  var scaleActiveLabel = document.getElementById('scale-active-label');
+  var SCALE_STAGE = MAX_SIZE;
+
+  function redrawScale() {
+    var box = SCALE_STAGE * SCALE_PX;
+    scaleCanvas.width = box;
+    scaleCanvas.height = box;
+    scaleCtx.fillStyle = PAPER_COLOR;
+    scaleCtx.fillRect(0, 0, box, box);
+
+    var size = selected;
+    var i = activeIndex(size);
+    var mask = candidateMask(size, i);
+    var used = size * SCALE_PX;
+    var off = Math.floor((box - used) / 2);
+    scaleCtx.fillStyle = INK_COLOR;
+    for (var y = 0; y < size; y++) {
+      for (var x = 0; x < size; x++) {
+        if (mask[y][x]) scaleCtx.fillRect(off + x * SCALE_PX, off + y * SCALE_PX, SCALE_PX, SCALE_PX);
+      }
+    }
+    scaleCtx.strokeStyle = 'rgba(0,0,0,0.2)';
+    scaleCtx.strokeRect(off + 0.5, off + 0.5, used - 1, used - 1);
+
+    if (showGuide.checked) {
+      scaleCtx.fillStyle = 'rgba(90,169,230,0.25)';
+      scaleCtx.strokeStyle = '#5aa9e6';
+      scaleCtx.lineWidth = 1;
+      centerCells(size).forEach(function(cell) {
+        scaleCtx.fillRect(off + cell.x * SCALE_PX, off + cell.y * SCALE_PX, SCALE_PX, SCALE_PX);
+      });
+      var c = size / 2;
+      var lo = Number.isInteger(c) ? c - 1 : Math.floor(c);
+      var span = Number.isInteger(c) ? 2 : 1;
+      scaleCtx.strokeRect(off + lo * SCALE_PX + 0.5, off + lo * SCALE_PX + 0.5, span * SCALE_PX - 1, span * SCALE_PX - 1);
+    }
+
+    var cand = computeCandidates(size)[i];
+    scaleActiveLabel.textContent = '(active: edge width ' + cand.capWidth + 'px)';
+  }
+
+  // ---- selection / excluded ------------------------------------------------
+  function selectSize(size) {
+    selected = size;
+    sizeLabel.textContent = 'Size ' + size;
+    document.getElementById('exclude-size').checked = !!excluded[size];
+    refreshAllRail();
+    buildCandidateRow();
+    redrawScale();
+  }
+
+  function updateStatus() {
+    var editedCount = 0;
+    for (var s = MIN_SIZE; s <= MAX_SIZE; s++) {
+      if (isCandidateTouched(s, activeIndex(s))) editedCount++;
+    }
+    var exCount = Object.keys(excluded).length;
+    var el = document.getElementById('status');
+    if (editedCount === 0 && exCount === 0) {
+      el.className = '';
+      el.textContent = 'Left button / drag paints, right button / drag erases, on any candidate. Only the size(s) whose active shape you touch, or that you exclude, are written to the export.';
+    } else {
+      el.className = 'good';
+      el.textContent = editedCount + ' size(s) edited (active shape), ' + exCount + ' size(s) excluded. Download when ready.';
+    }
+  }
+
+  document.getElementById('exclude-size').addEventListener('change', function(e) {
+    var size = selected;
+    if (e.target.checked) excluded[size] = true; else delete excluded[size];
+    refreshRailRow(size);
+    updateStatus();
+  });
+
+  showGuide.addEventListener('change', function() { redrawCandidates(); redrawScale(); });
+
+  // ---- export / import ----------------------------------------------------
+  document.getElementById('download-btn').addEventListener('click', function() {
+    var exportMasks = {};
+    var exportIndex = {};
+    for (var size = MIN_SIZE; size <= MAX_SIZE; size++) {
+      var i = activeIndex(size);
+      if (!isCandidateTouched(size, i)) continue;
+      exportMasks[size] = BrushShapes.maskOffsets(masks[size][i], size);
+      exportIndex[size] = i;
+    }
+    var payload = {
+      version: 3,
+      generatedAt: new Date().toISOString(),
+      masks: exportMasks,
+      activeIndex: exportIndex,
+      excludedSizes: Object.keys(excluded).map(Number).sort(function(a, b) { return a - b; })
+    };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'brush-shape-overrides.export.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('load-btn').addEventListener('click', function() {
+    document.getElementById('file-input').click();
+  });
+
+  document.getElementById('file-input').addEventListener('change', function(e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function() {
+      var payload;
+      try { payload = JSON.parse(reader.result); }
+      catch (err) { alert('Not valid JSON: ' + err.message); return; }
+
+      masks = {};
+      active = {};
+      excluded = {};
+
+      Object.keys(payload.masks || {}).forEach(function(sizeStr) {
+        var size = Number(sizeStr);
+        if (!(size >= MIN_SIZE && size <= MAX_SIZE)) return;
+        var count = computeCandidates(size).length;
+        var i = (payload.activeIndex && payload.activeIndex[sizeStr] !== undefined) ? payload.activeIndex[sizeStr] : 0;
+        if (i >= count) i = 0;
+        var mask = zeroGrid(size);
+        var offset = Math.floor(size / 2);
+        (payload.masks[sizeStr] || []).forEach(function(o) {
+          var x = o.dx + offset, y = o.dy + offset;
+          if (x >= 0 && x < size && y >= 0 && y < size) mask[y][x] = 1;
+        });
+        if (!masks[size]) masks[size] = [];
+        masks[size][i] = mask;
+        active[size] = i;
+      });
+
+      (payload.excludedSizes || []).forEach(function(size) {
+        if (size >= MIN_SIZE && size <= MAX_SIZE) excluded[size] = true;
+      });
+
+      selectSize(selected);
+      refreshAllRail();
+      updateStatus();
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  // ---- boot -----------------------------------------------------------
+  buildRail();
+  selectSize(selected);
+  refreshAllRail();
+
+})();
+</script>
+
+</body>
+</html>

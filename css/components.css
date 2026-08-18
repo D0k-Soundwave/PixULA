@@ -80,9 +80,18 @@
     flex: 0 0 1em;
 }
 
+/* A CSS-drawn tick (rotated border corner, same technique as
+   .panel-collapse::before) rather than literal text — 'yes' wrapped inside
+   the 1em gutter into two lines and was never localised in the first place. */
 .menu-action.menu-toggle.checked::before {
-    content: 'yes';
-    color: var(--accent-primary);
+    content: '';
+    width: 0.5em;
+    height: 0.85em;
+    border-right: 0.16em solid var(--accent-primary);
+    border-bottom: 0.16em solid var(--accent-primary);
+    transform: rotate(40deg);
+    transform-origin: bottom left;
+    margin-left: 0.3em;
 }
 
 .menu-shortcut {
@@ -94,6 +103,34 @@
     height: 1px;
     margin: var(--space-xs) 0;
     background: var(--border-color);
+}
+
+/* A submenu parent is a plain .menu-action that owns a nested .menu-dropdown
+   instead of an action — position:relative anchors the flyout to it. */
+.menu-action--parent {
+    position: relative;
+}
+
+.menu-submenu-arrow {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    flex: 0 0 auto;
+    border-top: 1.6px solid currentColor;
+    border-right: 1.6px solid currentColor;
+    transform: rotate(45deg);
+    color: var(--text-muted);
+}
+
+.menu-submenu {
+    top: -1px;
+    left: 100%;
+    right: auto;
+}
+
+.menu-submenu.menu-submenu--flip {
+    left: auto;
+    right: 100%;
 }
 
 /* ===== Header controls ===== */

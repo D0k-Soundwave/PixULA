@@ -198,17 +198,19 @@ for (const type of ['spray']) {
   brush.setFlowRate(100);
 }
 
+// Pressure sensitivity is a global preference (Preferences > Pen) now, not a
+// per-tool option — see brush-engine.js mapPressure().
 for (const type of TYPES) {
   const brush = new global.BrushTool();
   brush.setBrushType(type);
   brush.setSize(1);
-  brush.setPressureSensitivity(true);
+  StateManager.set('pressureSensitivity', true);
 
   BrushEngine.startDrawingSession();
   const written = recordWrites(() => BrushEngine.applyBrush(30, 30, 0.05, true));
   check(`brush ${type}: size 1 survives a feather-light pen (pressure 0.05)`,
     only(written, 30, 30));
-  brush.setPressureSensitivity(false);
+  StateManager.set('pressureSensitivity', false);
 }
 
 // ── The eraser too ─────────────────────────────────────────────────────────

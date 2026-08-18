@@ -145,7 +145,7 @@ test('a library row names the settings it changes, not the fifteen it does not',
             ToolManager.selectTool(TOOLS.BRUSH);
             const brush = ToolManager.getTool(TOOLS.BRUSH);
             brush.setSize(16);
-            brush.setPressureSensitivity(true);
+            brush.setContinuous(true);
             await PresetService.saveToolPreset(TOOLS.BRUSH, 'Fat marker');
         });
 
@@ -165,7 +165,7 @@ test('a library row names the settings it changes, not the fifteen it does not',
         await page.evaluate(async () => {
             const brush = ToolManager.getTool(TOOLS.BRUSH);
             brush.setSize(1);
-            brush.setPressureSensitivity(false);
+            brush.setContinuous(false);
             await PresetService.saveToolPreset(TOOLS.BRUSH, 'Straight out of the box');
         });
         const rows = await page.evaluate(() =>

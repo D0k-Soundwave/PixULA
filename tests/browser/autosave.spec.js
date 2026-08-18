@@ -23,8 +23,8 @@ test('the preference is minutes, and it shows the live value', async ({ page }) 
     const field = page.locator('#pref-autosave-minutes');
     expect(await field.getAttribute('type')).toBe('number');
     expect(await field.getAttribute('min')).toBe('0');
-    // Default is the one-minute cadence the fixed timer used to have
-    expect(await field.inputValue()).toBe('1');
+    // Default is off — autosave is opt-in, not a silent background write
+    expect(await field.inputValue()).toBe('0');
 
     const label = await page.evaluate(() =>
         document.querySelector('#pref-autosave-minutes').closest('.pref-row').textContent.trim());
@@ -85,7 +85,7 @@ test('out-of-range entries are clamped, not ignored or stored raw', async ({ pag
     expect(r.negative).toBe(0);              // below zero is just "off"
     expect(r.huge).toBe(r.max);
     expect(r.fractional).toBe(3);            // a timer cannot honour 2.6
-    expect(r.nonsense).toBe(1);              // falls back to the default
+    expect(r.nonsense).toBe(0);              // falls back to the default
 });
 
 test('an existing "autosave: false" preference arrives as 0 minutes', async ({ page }) => {

@@ -70,15 +70,17 @@ test('all 6 themes apply as data-theme token overrides and persist', async ({ pa
     expect(await page.getAttribute('html', 'data-theme')).toBe('sepia');
 });
 
-test('Settings menu Light/Dark toggles track the header selector and vice versa', async ({ page }) => {
+test('Settings menu Theme submenu tracks the header selector and vice versa', async ({ page }) => {
     await boot(page);
     await page.click('.menu-item[data-menu="settings"] .menu-label');
+    await page.click('.menu-action--parent[data-id="theme"]');
     await page.click('.menu-action[data-action="settings:themeLight"]');
     expect(await page.getAttribute('html', 'data-theme')).toBe('light');
     expect(await page.inputValue('#theme-selector')).toBe('light');
 
     await page.selectOption('#theme-selector', 'dark');
     await page.click('.menu-item[data-menu="settings"] .menu-label');
+    await page.click('.menu-action--parent[data-id="theme"]');
     const darkChecked = await page.$eval('.menu-action[data-id="theme-dark"]',
         el => el.classList.contains('checked') || el.getAttribute('aria-checked') === 'true');
     expect(darkChecked).toBe(true);

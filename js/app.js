@@ -183,6 +183,7 @@ class AppClass {
                 } else if (prefs.autosave === false) {
                     StateManager.setAutosaveMinutes(0);
                 }
+                if (typeof prefs.restoreOnBoot === 'boolean') StateManager.set('restoreOnBoot', prefs.restoreOnBoot);
                 if (typeof prefs.confirmClear === 'boolean') StateManager.set('confirmClear', prefs.confirmClear);
                 if (typeof prefs.pixelPerfect === 'boolean') StateManager.set('pixelPerfect', prefs.pixelPerfect);
                 if (typeof prefs.resetDrawModeOnTool === 'boolean') StateManager.set('resetDrawModeOnTool', prefs.resetDrawModeOnTool);
@@ -195,6 +196,18 @@ class AppClass {
                 }
                 if (typeof prefs.touchLockoutMs === 'number') {
                     StateManager.set('touchLockoutMs', TouchPolicy.normalizeLockout(prefs.touchLockoutMs));
+                }
+                // Pressure sensitivity (Preferences > Pen). Absent means nobody
+                // has ever saved a choice, so InputHandler auto-enables it the
+                // first time a pen shows up this session (see
+                // _maybeAutoEnablePressure); a present boolean is an explicit
+                // choice from a past session and must outrank that auto-detect.
+                if (typeof prefs.pressureSensitivity === 'boolean') {
+                    StateManager.set('pressureSensitivity', prefs.pressureSensitivity);
+                    StateManager.set('pressureSensitivityExplicit', true);
+                }
+                if (typeof prefs.pressureStrength === 'number') {
+                    StateManager.set('pressureStrength', prefs.pressureStrength);
                 }
                 // `touchPanOnly` was the single off-by-default checkbox this
                 // replaced on 2026-08-10. Read once, never written again, so
@@ -353,11 +366,27 @@ class AppClass {
         CanvasSystem.requestRender();
     }
 
-    /** Offer to restore autosaved work from a previous session (< 24h old). */
+    /**
+     * Offer to restore autosaved work from a previous session (< 24h old).
+     *
+     * `restoreOnBoot` (Preferences > General, default on) gates the OFFER
+     * only, not the writing — autosave keeps running on its own interval
+     * either way, as crash protection within the current session. With it
+     * off, any leftover record from a previous session is discarded here
+     * rather than left to linger unreachable: someone who wants every
+     * session to start blank should not find their last drawing still
+     * sitting in storage the day they turn this back on.
+     */
     async _checkAutosave() {
         try {
             const autosaveData = await Storage.get('autosave');
             if (!autosaveData || !autosaveData.timestamp) return;
+
+            if (StateManager.get('restoreOnBoot') === false) {
+                await Storage.delete('autosave');
+                Logger.debug('App', 'Autosave restore offer skipped (restoreOnBoot off)');
+                return;
+            }
 
             const ageMs = Date.now() - autosaveData.timestamp;
             const maxAge = 24 * 60 * 60 * 1000;

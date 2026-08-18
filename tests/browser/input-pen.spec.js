@@ -242,12 +242,12 @@ test('Preferences shows the controls the chosen pen model has', async ({ page })
     const profile = page.locator('#pref-pen-profile');
     await expect(profile).toBeVisible();
 
-    // Wacom: two barrels and an eraser tail
-    await profile.selectOption('wacom');
+    // Wacom Pro Pen 2: two barrels and an eraser tail
+    await profile.selectOption('wacomProPen2');
     expect(await page.locator('[data-pen-control]').count()).toBe(3);
 
     // Apple Pencil: nothing a browser can see, and it says so
-    await profile.selectOption('apple');
+    await profile.selectOption('applePencil2');
     expect(await page.locator('[data-pen-control]').count()).toBe(0);
     await expect(page.locator('#pref-pen-controls .pref-note').first()).toBeVisible();
 
@@ -262,17 +262,100 @@ test('Preferences shows the controls the chosen pen model has', async ({ page })
 test('an assignment made in Preferences survives a reload', async ({ page }) => {
     await boot(page);
     await page.evaluate(() => MenuSystem._showPreferences());
-    await page.selectOption('#pref-pen-profile', 'wacom');
+    await page.selectOption('#pref-pen-profile', 'wacomProPen2');
     await page.selectOption('[data-pen-control="barrel"]', 'menu');
     await page.locator('#dialog-preferences-dialog .app-dialog-footer button.primary').click();
 
     await page.reload();
     await page.waitForSelector('html[data-app-ready]');
     const stored = await page.evaluate(() => InputHandler.getPenConfig());
-    expect(stored.profile).toBe('wacom');
+    expect(stored.profile).toBe('wacomProPen2');
     expect(stored.actions.barrel).toBe('menu');
 
     await page.keyboard.press('b');
     await penTap(page, 120, 120, BARREL, 2);
     await expect(page.locator('.canvas-context-menu').first()).toBeVisible();
+});
+
+// ── The pen model list: real named models, grouped by vendor ───────────────
+
+test('the pen model list is grouped by vendor, with ~20 real named models', async ({ page }) => {
+    await boot(page);
+    await page.evaluate(() => MenuSystem._showPreferences());
+    const groups = await page.locator('#pref-pen-profile optgroup').evaluateAll(
+        els => els.map(el => el.label));
+    expect(groups).toEqual(
+        expect.arrayContaining(['Apple', 'Samsung', 'Microsoft', 'Wacom', 'XP-Pen', 'Huion', 'Gaomon']));
+    const options = await page.locator('#pref-pen-profile option').count();
+    expect(options).toBeGreaterThanOrEqual(20);
+});
+
+test('a pre-split profile choice (a plain family id in storage) highlights its real model on open', async ({ page }) => {
+    await boot(page);
+    // Simulate a preference saved before the model list was split into real
+    // pens - a bare family id, exactly what earlier sessions persisted.
+    await page.evaluate(() => StateManager.set('pen.profile', 'wacom'));
+    await page.evaluate(() => MenuSystem._showPreferences());
+    await expect(page.locator('#pref-pen-profile')).toHaveValue('wacomProPen2');
+    // And it still behaves as it always did - drawing/erasing untouched.
+    expect(await page.locator('[data-pen-control]').count()).toBe(3);
+});
+
+test('Wacom Pro Pen 3D defaults its middle button to Pan, not Menu', async ({ page }) => {
+    await boot(page);
+    await page.evaluate(() => MenuSystem._showPreferences());
+    await page.selectOption('#pref-pen-profile', 'wacomProPen3D');
+    // No eraser tail on this model.
+    expect(await page.locator('[data-pen-control]').count()).toBe(2);
+    await expect(page.locator('[data-pen-control="barrel2"]')).toHaveValue('pan');
+});
+
+// ── Pressure sensitivity is now a global preference, not a per-tool option ──
+
+test('Preferences shows the pressure strength row only while pressure is on', async ({ page }) => {
+    await boot(page);
+    await page.evaluate(() => MenuSystem._showPreferences());
+    const enabled = page.locator('#pref-pressure-sensitivity');
+    const strengthRow = page.locator('#pref-pressure-strength-row');
+
+    await expect(enabled).not.toBeChecked();
+    await expect(strengthRow).toBeHidden();
+
+    await enabled.check();
+    await expect(strengthRow).toBeVisible();
+
+    await enabled.uncheck();
+    await expect(strengthRow).toBeHidden();
+});
+
+test('pressure sensitivity and strength survive a reload', async ({ page }) => {
+    await boot(page);
+    await page.evaluate(() => MenuSystem._showPreferences());
+    await page.check('#pref-pressure-sensitivity');
+    await page.fill('#pref-pressure-strength', '150');
+    await page.locator('#dialog-preferences-dialog .app-dialog-footer button.primary').click();
+
+    await page.reload();
+    await page.waitForSelector('html[data-app-ready]');
+    expect(await page.evaluate(() => StateManager.get('pressureSensitivity'))).toBe(true);
+    expect(await page.evaluate(() => StateManager.get('pressureStrength'))).toBe(150);
+});
+
+test('a real pen turns pressure sensitivity on by itself, the first time', async ({ page }) => {
+    await boot(page);
+    expect(await page.evaluate(() => StateManager.get('pressureSensitivity'))).not.toBe(true);
+
+    await penHover(page, 100, 100, 0);
+    expect(await page.evaluate(() => StateManager.get('pressureSensitivity'))).toBe(true);
+});
+
+test('an explicit Off in Preferences outranks auto-detect for the rest of the session', async ({ page }) => {
+    await boot(page);
+    await page.evaluate(() => MenuSystem._showPreferences());
+    // The checkbox already starts unchecked; saving it still records an
+    // explicit choice, because the field is always present in the form now.
+    await page.locator('#dialog-preferences-dialog .app-dialog-footer button.primary').click();
+
+    await penHover(page, 100, 100, 0);
+    expect(await page.evaluate(() => StateManager.get('pressureSensitivity'))).not.toBe(true);
 });

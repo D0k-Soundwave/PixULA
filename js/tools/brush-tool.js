@@ -168,8 +168,10 @@ class BrushToolClass extends ToolBase {
     { type: 'range',  key: 'variationRate', i18n: 'opt.jitterSpacing', min: 1, max: 50,  value: 10,
       showIf: { key: 'sizeVariation', gt: 0 } },
     { type: 'check',  key: 'continuous',          i18n: 'opt.buildUp',             value: false,
-      showIf: SCATTER_SHOWIF },
-    { type: 'check',  key: 'pressureSensitivity', i18n: 'opt.pressureSensitivity', value: false }
+      showIf: SCATTER_SHOWIF }
+    // Pressure sensitivity moved to Preferences > Pen (global, 2026-08-18) —
+    // it now applies to every tool that draws through BrushEngine, not just
+    // this one, and shouldn't be a per-tool preset value.
     // The pattern browser lives in its own 'Patterns' sidebar panel (PatternPanel),
     // shown only while brushType === 'pattern' — no longer an inline slot here.
   ];
@@ -344,22 +346,6 @@ class BrushToolClass extends ToolBase {
     if (!SOLID_BRUSHES.includes(BrushEngine.currentBrush)) {
       this.setBrushType(this._lastSolid || 'round');
     }
-  }
-
-  /**
-   * Set pressure sensitivity
-   * @param {boolean} enabled - True to enable
-   */
-  setPressureSensitivity(enabled) {
-    BrushEngine.setPressureSensitivity(enabled);
-  }
-
-  /**
-   * Get pressure sensitivity
-   * @returns {boolean}
-   */
-  getPressureSensitivity() {
-    return !!BrushEngine.pressureSensitivity;
   }
 
   /**

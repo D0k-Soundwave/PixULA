@@ -154,10 +154,15 @@ class EraserToolClass extends ToolBase {
    * The round brush stays at 32; nothing about the geometry stops it, but a
    * 128 px brush and a 128 px eraser are not the same request.
    *
+   * Sizes flagged in BRUSH_SHAPE_OVERRIDES as producing a poor round shape
+   * are skipped in favour of the nearest size that isn't - only meaningful
+   * inside the curated 1..32 range, since nothing beyond it is excluded.
+   *
    * @param {number} size - Eraser size (1-128)
    */
   setSize(size) {
-    this.size = clamp(size, 1, 128);
+    const clamped = clamp(size, 1, 128);
+    this.size = clamped <= 32 ? BrushShapes.nearestAllowedSize(clamped, 32) : clamped;
     Logger.debug('EraserTool', `Size set to ${this.size}`);
   }
 

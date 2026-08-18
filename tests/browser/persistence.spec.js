@@ -54,6 +54,36 @@ test('autosave restore prompt: decline clears the autosave and boots defaults', 
     expect(await page.evaluate(async () => await Storage.get('autosave'))).toBeFalsy();
 });
 
+test('restoreOnBoot off: no prompt, autosave record cleared, canvas boots blank', async ({ page }) => {
+    await boot(page);
+    await drawSeed(page);
+    await writeAutosave(page);
+    // Written to the 'preferences' record, not just StateManager in memory —
+    // a real reload wipes the JS heap, and _initCore only re-seeds
+    // StateManager from what Storage actually holds. autosaveMinutes is set
+    // to a real interval here (its own default is 0/off) to prove the two
+    // preferences are independent: turning off the restore OFFER must not
+    // also turn off the autosave WRITES that back it.
+    await page.evaluate(async () => {
+        const prefs = (await Storage.get('preferences')) || {};
+        prefs.restoreOnBoot = false;
+        prefs.autosaveMinutes = 5;
+        await Storage.set('preferences', prefs);
+    });
+
+    // No dialog handler at all: if App still offered the restore prompt,
+    // Chrome's unhandled confirm() would auto-dismiss and reload() would hang
+    // waiting on navigation behind it, failing the test on timeout.
+    await reload(page);
+    expect(await seedIsInk(page)).toBe(false);
+    expect(await page.evaluate(async () => await Storage.get('autosave'))).toBeFalsy();
+
+    // Autosave itself is a separate preference and keeps running as crash
+    // protection within the session — restoreOnBoot only gates the offer.
+    const minutes = await page.evaluate(() => StateManager.getAutosaveMinutes());
+    expect(minutes).toBe(5);
+});
+
 test('beforeunload warns with unsaved changes', async ({ page }) => {
     await boot(page);
     // Real user gesture (Chrome requires activation for the dialog) + a change

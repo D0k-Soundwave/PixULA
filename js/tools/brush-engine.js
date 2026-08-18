@@ -58,9 +58,10 @@ class BrushEngineClass {
         this._patternCache = new Map();
         this._maxCacheSize = 64; // Limit cache size to prevent unbounded growth
 
-        // Pressure Sensitivity System
-        // Default OFF - all devices behave like mouse (constant size)
-        this.pressureSensitivity = false;
+        // Pressure sensitivity is a GLOBAL preference (Preferences > Pen), not
+        // per-tool state — see mapPressure() and the on/off check in
+        // applyBrush(), both of which read StateManager live so a change in
+        // Preferences takes effect on the artist's very next stamp.
         this.flowRate = 100;
 
         // Brush dynamics
@@ -73,11 +74,6 @@ class BrushEngineClass {
         this.variationChangeThreshold = 10;
         this.lastVariationX = null;
         this.lastVariationY = null;
-
-        // Pressure mapping thresholds
-        this.pressureThreshold = 0.8;
-        this.minPressureSize = 0.3;
-        this.maxPressureSize = 1.5;
 
         // Drawing session state
         this.drawingSessionActive = false;
@@ -152,20 +148,13 @@ class BrushEngineClass {
     }
 
     /**
-     * Set brush size
+     * Set brush size. Sizes flagged in BRUSH_SHAPE_OVERRIDES as producing a
+     * poor round shape are skipped in favour of the nearest size that isn't.
      * @param {number} size - Size in pixels (1-32)
      */
     setSize(size) {
-        this.currentSize = clamp(size, 1, 32);
+        this.currentSize = BrushShapes.nearestAllowedSize(size, 32);
         EventBus.emit(EVENTS.BRUSH_SIZE_CHANGED, { size: this.currentSize });
-    }
-
-    /**
-     * Enable or disable pressure sensitivity
-     * @param {boolean} enabled - True to enable
-     */
-    setPressureSensitivity(enabled) {
-        this.pressureSensitivity = enabled;
     }
 
     /**
@@ -177,20 +166,23 @@ class BrushEngineClass {
     }
 
     /**
-     * Map pressure to size multiplier
+     * Map pressure to a size/flow multiplier. Linear and centred on pressure
+     * 0.5 -> 1.0x (neutral), swinging symmetrically toward the ends — light
+     * pressure shrinks, firm pressure grows — so the whole 0..1 pressure
+     * range does something, not just its top end. `pressureStrength` (the
+     * Preferences > Pen setting, percent, default 100) scales the size of
+     * that swing: 0% is no effect at all, 100% spans roughly 0.5x-1.5x,
+     * 200% spans close to 0x-2.0x.
      * @param {number} pressure - Input pressure (0.0-1.0)
      * @returns {number} Size multiplier
      */
     mapPressure(pressure) {
         pressure = clamp(pressure, 0.0, 1.0);
-
-        if (pressure < this.pressureThreshold) {
-            const normalized = pressure / this.pressureThreshold;
-            return this.minPressureSize + normalized * (1.0 - this.minPressureSize);
-        }
-
-        const normalized = (pressure - this.pressureThreshold) / (1.0 - this.pressureThreshold);
-        return 1.0 + normalized * (this.maxPressureSize - 1.0);
+        const rawStrength = StateManager.get('pressureStrength');
+        const strength = clamp(typeof rawStrength === 'number' ? rawStrength : 100, 0, 200) / 100;
+        const amplitude = 0.5 * strength;
+        const mapped = 1.0 + (pressure - 0.5) * 2 * amplitude;
+        return Math.max(0.05, mapped);
     }
 
     /**
@@ -232,11 +224,14 @@ class BrushEngineClass {
             return false;
         }
 
+        // Global preference (Preferences > Pen) — off by default, so mouse
+        // and touch (which always report pressure 1.0) are never affected.
+        const pressureSensitive = StateManager.get('pressureSensitivity') === true;
         const mappedPressure = this.mapPressure(pressure);
 
         // Calculate effective size
         let effectiveSize = this.currentSize;
-        if (this.pressureSensitivity) {
+        if (pressureSensitive) {
             effectiveSize = Math.max(1, Math.round(this.currentSize * mappedPressure));
         }
 
@@ -260,7 +255,7 @@ class BrushEngineClass {
 
         // Calculate effective flow
         let effectiveFlow = this.flowRate / 100;
-        if (this.pressureSensitivity) {
+        if (pressureSensitive) {
             effectiveFlow *= mappedPressure;
         }
         if (this.flowVariation > 0) {
@@ -290,10 +285,10 @@ class BrushEngineClass {
         const ppEraseMode = ppEligible ? PixelDrawRoutine.resolveUserMode(!isInk) : null;
 
         const applied = brush.apply(x, y, effectiveSize, effectiveFlow, colorSelection, {
-            // Pressure is only a fact when the user asked for it — otherwise a
+            // Pressure is only a fact when the preference is on — otherwise a
             // pen would still modulate the density-driven brushes behind the
-            // back of an unticked Pressure sensitivity checkbox.
-            pressure: this.pressureSensitivity ? mappedPressure : 1.0,
+            // back of an unticked Pressure Sensitivity setting.
+            pressure: pressureSensitive ? mappedPressure : 1.0,
             patternData: patternData,
             isInk: isInk
         });
