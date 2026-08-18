@@ -349,7 +349,7 @@ class FileManagerClass {
      * `.scr` remains how you hand a picture to an emulator.
      */
     const defaultName = this.currentFilename || 'image.pixula';
-    const filename = prompt(this._t('dialog.saveAs', 'Save as:'), defaultName);
+    const filename = await SaveDialog.show(defaultName);
 
     if (!filename) return false;
 

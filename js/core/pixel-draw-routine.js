@@ -248,11 +248,15 @@ class PixelDrawRoutineClass {
    * @param {Object} colorSelection - { ink, paper, bright, flash }
    * @param {string} mode - DRAW_MODE value (normal, erase, transparent, attributes_only)
    * @param {Object} options - Additional options { layer, skipUndo }
+   * @returns {boolean} True if a pixel/attribute write actually happened -
+   *   false for anything the gate rejected (bounds, clip, dither, locked/
+   *   missing layer, a no-op mode). Callers that need to know whether their
+   *   stamp really changed something (not just "was in bounds") read this.
    */
   draw(pixelX, pixelY, colorSelection, mode = DRAW_MODE.NORMAL, options = {}) {
     // Validate coordinates - silently ignore out-of-bounds
     if (!Validators.isValidPixelCoord(pixelX, pixelY)) {
-      return;
+      return false;
     }
 
     // Symmetry: expand this write into its mirrored counterparts. The
@@ -268,7 +272,7 @@ class PixelDrawRoutineClass {
     // stroke that strays outside stops producing its mirror inside".
     if (this._clipSuspend === 0 && options.clip !== false &&
         this.isClipped(pixelX, pixelY)) {
-      return;
+      return false;
     }
 
     // The dither gate thins a stroke to a density. Placed after the symmetry
@@ -277,19 +281,19 @@ class PixelDrawRoutineClass {
     // across the mirror instead of copying the original's holes.
     if (this._ditherGate && options.dither !== false &&
         !this._ditherGate(pixelX, pixelY)) {
-      return;
+      return false;
     }
 
     // Get target layer
     const layer = options.layer || LayerManager.getCurrentLayer();
     if (!layer) {
       Logger.warn('PixelDrawRoutine', 'No active layer');
-      return;
+      return false;
     }
 
     // Check if layer is locked
     if (layer.locked) {
-      return;
+      return false;
     }
 
     // XOR toggles once per STROKE, not once per call. A stroke writes the same
@@ -314,7 +318,7 @@ class PixelDrawRoutineClass {
 
     // Get cell data
     const cell = layer.getCell(cellX, cellY);
-    if (!cell) return;
+    if (!cell) return false;
 
     // Undo capture happens at action boundaries (UndoRedo.beginAction /
     // endAction wraps the whole tool stroke). Individual draw calls do
@@ -326,7 +330,7 @@ class PixelDrawRoutineClass {
     // tail below. Modes that only make sense on attributes are no-ops.
     if (cell.indices) {
       if (!this._applyIndexed(layer, cell, localX, localY, colorSelection, mode)) {
-        return;
+        return false;
       }
     } else {
     // Apply drawing based on mode
@@ -373,7 +377,7 @@ class PixelDrawRoutineClass {
 
       default:
         Logger.warn('PixelDrawRoutine', `Unknown draw mode: ${mode}`);
-        return;
+        return false;
     }
     }
 
@@ -391,6 +395,8 @@ class PixelDrawRoutineClass {
         this.pendingChanges.set(key, { cellX, cellY });
       }
     }
+
+    return true;
   }
 
   /**

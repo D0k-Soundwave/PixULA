@@ -184,7 +184,6 @@ class AppClass {
                     StateManager.setAutosaveMinutes(0);
                 }
                 if (typeof prefs.confirmClear === 'boolean') StateManager.set('confirmClear', prefs.confirmClear);
-                if (typeof prefs.cellBoundaries === 'boolean') StateManager.set('respectCellBoundaries', prefs.cellBoundaries);
                 if (typeof prefs.pixelPerfect === 'boolean') StateManager.set('pixelPerfect', prefs.pixelPerfect);
                 if (typeof prefs.resetDrawModeOnTool === 'boolean') StateManager.set('resetDrawModeOnTool', prefs.resetDrawModeOnTool);
                 if (typeof prefs.nudgeStep === 'number') StateManager.set('nudgeStep', prefs.nudgeStep);

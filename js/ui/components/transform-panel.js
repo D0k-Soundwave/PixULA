@@ -41,7 +41,13 @@ class TransformPanelClass {
         Logger.info('TransformPanel', 'Initialized');
     }
 
-    /** @private */
+    /**
+     * Build the panel body. The Shift dir-pad is injected via the shared
+     * Helpers.buildDirPad() (also used by the Reference panel's Offset pad)
+     * rather than hand-written into the template string below, so the two
+     * controls cannot drift out of lockstep on a future redesign.
+     * @private
+     */
     _build(content) {
         content.innerHTML = `
           <div class="tp-stamp-section" hidden>
@@ -105,13 +111,7 @@ class TransformPanelClass {
           </div>
           <div class="tool-option tp-group tp-shift-group">
             <label data-i18n="transform.shift">Shift</label>
-            <div class="dir-pad">
-              <svg class="dir-pad-icon" aria-hidden="true"><use href="#icon-move"/></svg>
-              <button type="button" class="dir-pad-zone dir-pad-zone-up" data-tp-transform="shiftUp" data-i18n-aria-label="dirpad.up" aria-label="Shift up"></button>
-              <button type="button" class="dir-pad-zone dir-pad-zone-left" data-tp-transform="shiftLeft" data-i18n-aria-label="dirpad.left" aria-label="Shift left"></button>
-              <button type="button" class="dir-pad-zone dir-pad-zone-right" data-tp-transform="shiftRight" data-i18n-aria-label="dirpad.right" aria-label="Shift right"></button>
-              <button type="button" class="dir-pad-zone dir-pad-zone-down" data-tp-transform="shiftDown" data-i18n-aria-label="dirpad.down" aria-label="Shift down"></button>
-            </div>
+            <div class="dir-pad-slot"></div>
             <div class="tp-shift-opts">
               <select class="tp-shift-step" data-i18n-aria-label="transform.shiftStep" aria-label="Shift step">
                 <option value="1" data-i18n="transform.shiftStep.pixel">1 pixel</option>
@@ -121,6 +121,13 @@ class TransformPanelClass {
             </div>
           </div>
         `;
+
+        const { element: pad, zones } = Helpers.buildDirPad();
+        zones.up.dataset.tpTransform = 'shiftUp';
+        zones.left.dataset.tpTransform = 'shiftLeft';
+        zones.right.dataset.tpTransform = 'shiftRight';
+        zones.down.dataset.tpTransform = 'shiftDown';
+        content.querySelector('.dir-pad-slot').replaceWith(pad);
     }
 
     /** Wire all events on the permanent transform panel (called once). @private */

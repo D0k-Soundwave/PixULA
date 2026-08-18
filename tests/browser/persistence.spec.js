@@ -80,10 +80,16 @@ test('preferences checkboxes reflect live state when reopened', async ({ page })
     await page.keyboard.press('Escape');
 
     // Change live state OUTSIDE the dialog — reopening must show it,
-    // not the defaults (the Phase 7 TESTLOG row's point).
+    // not the defaults (the Phase 7 TESTLOG row's point). confirmClear is a
+    // real StateManager-backed boolean with its own checkbox (#pref-confirm-
+    // clear), unlike 'autosave' (Storage's autosave-snapshot record, not a
+    // StateManager preference key at all — this test used to toggle that by
+    // mistake and only passed because its checkbox lookup fell back to
+    // "whichever checkbox is first in the dialog" and coincidentally landed
+    // on confirmClear's own then-default value).
     const was = await page.evaluate(() => {
-        const v = StateManager.get('autosave') !== false;
-        StateManager.set('autosave', !v);
+        const v = StateManager.get('confirmClear') !== false;
+        StateManager.set('confirmClear', !v);
         return !v;
     });
     await page.click('.menu-item[data-menu="settings"] .menu-label');
@@ -92,9 +98,7 @@ test('preferences checkboxes reflect live state when reopened', async ({ page })
     const shown = await page.evaluate(() => {
         const dlgEl = [...document.querySelectorAll('#preferences-dialog, .dialog, dialog, [role="dialog"]')]
             .find(el => el.offsetParent !== null || el.open);
-        const box = dlgEl.querySelector(
-            'input[type="checkbox"][name*="autosave"], input[type="checkbox"][id*="autosave"]')
-            || dlgEl.querySelector('input[type="checkbox"]');
+        const box = dlgEl.querySelector('#pref-confirm-clear');
         return box.checked;
     });
     expect(shown).toBe(was);

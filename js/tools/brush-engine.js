@@ -82,6 +82,11 @@ class BrushEngineClass {
         // Drawing session state
         this.drawingSessionActive = false;
 
+        // Pixel-perfect: the last <=2 ELIGIBLE stamped anchor points of the
+        // current stroke (not raw pointer samples — the points actually
+        // passed to applyBrush). See _trackPixelPerfect.
+        this._ppAnchors = [];
+
         this._initialized = false;
     }
 
@@ -272,7 +277,19 @@ class BrushEngineClass {
             patternData = PatternService.getCurrentPatternData();
         }
 
-        return brush.apply(x, y, effectiveSize, effectiveFlow, colorSelection, {
+        // Snapshot what this exact pixel held BEFORE this stamp, and the
+        // layer/erase-mode this stamp is committing under - captured now,
+        // while both are authoritative, for _trackPixelPerfect's later
+        // retroactive erase (which must judge and act on this stamp's own
+        // moment, not whatever is live by the time a third point arrives).
+        // Cheap to always compute when eligible: eligibility only depends on
+        // size/brush/preference/draw-mode, all already known here.
+        const ppEligible = this._pixelPerfectEligible(effectiveSize);
+        const ppPreState = ppEligible ? PixelDrawRoutine.getPixelState(x, y) : null;
+        const ppLayer = ppEligible ? LayerManager.getCurrentLayer() : null;
+        const ppEraseMode = ppEligible ? PixelDrawRoutine.resolveUserMode(!isInk) : null;
+
+        const applied = brush.apply(x, y, effectiveSize, effectiveFlow, colorSelection, {
             // Pressure is only a fact when the user asked for it — otherwise a
             // pen would still modulate the density-driven brushes behind the
             // back of an unticked Pressure sensitivity checkbox.
@@ -280,6 +297,121 @@ class BrushEngineClass {
             patternData: patternData,
             isInk: isInk
         });
+
+        this._trackPixelPerfect(applied, x, y, effectiveSize, isInk, colorSelection,
+            ppPreState ? ppPreState.isInk : null, ppLayer, ppEraseMode);
+
+        return applied;
+    }
+
+    /**
+     * Is pixel-perfect corner removal meaningful for a stamp of this
+     * (effective, pressure/jitter-adjusted) size, from the currently active
+     * brush, under the current global draw mode? Scoped to round/square only
+     * — a deliberate PRODUCT scope, not a technical one: crosshatch, spray
+     * and hatch also fall through to the same plain, unmodified
+     * BaseBrush.stampCentre at size 1 and would geometrically support the
+     * exact same corner-removal (only 'pattern', which overrides
+     * stampCentre with its own tile-bit decision, and 'fade', whose size-1
+     * path never reaches stampCentre at all — it dithers through its own
+     * probabilistic _ditherPixel — are excluded for a real reason). Pixel-
+     * perfect is a precision-pencil feature; retroactively editing a
+     * gesture-driven or randomised brush's own placement is a different
+     * promise to the artist, so it stays off those brushes by name rather
+     * than by capability. Also scoped to the two draw modes whose
+     * forward/erase pair is a plain pixel-bit toggle: 'ink'/'paper' never
+     * touch a pixel bit at all, and 'xor' would silently no-op against
+     * PixelDrawRoutine's once-per-batch XOR guard rather than actually undo
+     * anything.
+     * @param {number} size
+     * @returns {boolean}
+     * @private
+     */
+    _pixelPerfectEligible(size) {
+        if (size > 1) return false;
+        if (this.currentBrush !== 'round' && this.currentBrush !== 'square') return false;
+        if (!window.StateManager || StateManager.get('pixelPerfect') !== true) return false;
+        const dm = this.getDrawMode();
+        return dm === 'normal' || dm === 'pixel_only';
+    }
+
+    /** @private */
+    _ppOrthoAdjacent(p, q) {
+        const dx = Math.abs(p.x - q.x), dy = Math.abs(p.y - q.y);
+        return (dx === 1 && dy === 0) || (dx === 0 && dy === 1);
+    }
+
+    /** @private */
+    _ppDiagAdjacent(p, q) {
+        return Math.abs(p.x - q.x) === 1 && Math.abs(p.y - q.y) === 1;
+    }
+
+    /**
+     * Pixel-perfect corner removal. Tracks the last <=2 eligible stamps of
+     * this stroke and, on the third, tests whether the middle one (B) is a
+     * redundant staircase corner: B orthogonally adjacent to both A (two
+     * stamps ago) and C (this stamp), with A and C diagonally adjacent to
+     * each other. That shape only arises from a naive diagonal drag — a real
+     * corner in the artist's gesture would not put A and C diagonal
+     * neighbours. If found, B is retroactively erased through
+     * PixelDrawRoutine.draw() with B's own captured colour/mode, which folds
+     * the erase into the stroke's open undo batch and inherits mirroring and
+     * clipping automatically (it is just another draw() call, not a bypass).
+     * History then collapses to just the new point: with B gone, A and C are
+     * already a clean diagonal pair, so the run resumes fresh from C. Any
+     * ineligible or no-op stamp resets history entirely rather than risk
+     * comparing across a discontinuity.
+     *
+     * B is erased only when its OWN stamp actually changed the pixel bit
+     * (`preExisting !== isInk`) - otherwise B's stamp landed on a pixel that
+     * already carried this exact ink/erase state before the current stroke
+     * touched it (pre-existing art from earlier work, most commonly), and
+     * "removing the corner" would delete that content rather than anything
+     * this stroke drew. And the erase carries the LAYER and MODE captured at
+     * B's own stamp time (not re-resolved live here), so a mid-stroke layer
+     * switch or draw-mode change between B and C cannot make the retroactive
+     * erase land somewhere else or mean something else.
+     * @param {boolean} applied - Did this stamp actually write a pixel?
+     * @param {number} x
+     * @param {number} y
+     * @param {number} size - The EFFECTIVE size this stamp used
+     * @param {boolean} isInk
+     * @param {Object} colorSelection
+     * @param {boolean|null} preExisting - Was (x, y) already at this same
+     *   isInk state BEFORE this stamp, or null if not captured
+     * @param {Object|null} layer - The layer this stamp committed to
+     * @param {string|null} eraseMode - The DRAW_MODE that undoes this stamp,
+     *   resolved at stamp time
+     * @private
+     */
+    _trackPixelPerfect(applied, x, y, size, isInk, colorSelection, preExisting, layer, eraseMode) {
+        const anchors = this._ppAnchors;
+
+        if (!applied || !this._pixelPerfectEligible(size)) {
+            anchors.length = 0;
+            return;
+        }
+
+        const point = { x, y, isInk, colorSelection, preExisting, layer, eraseMode };
+
+        if (anchors.length === 2) {
+            const [a, b] = anchors;
+            if (a.isInk === b.isInk && b.isInk === point.isInk &&
+                this._ppOrthoAdjacent(a, b) && this._ppOrthoAdjacent(b, point) &&
+                this._ppDiagAdjacent(a, point) &&
+                b.preExisting !== b.isInk) {
+                PixelDrawRoutine.draw(b.x, b.y, b.colorSelection, b.eraseMode, { layer: b.layer });
+                anchors.length = 0;
+                anchors.push(point);
+                return;
+            }
+            // No corner (or B pre-dates this stroke / can't be undone here): slide the window.
+            anchors[0] = b;
+            anchors[1] = point;
+            return;
+        }
+
+        anchors.push(point);
     }
 
     /**
@@ -331,6 +463,7 @@ class BrushEngineClass {
         this.variationDistance = 0;
         this.lastVariationX = null;
         this.lastVariationY = null;
+        this._ppAnchors.length = 0;
 
         // Reset stroke-aware brushes
         this.brushes.forEach(brush => {
@@ -438,8 +571,7 @@ class BaseBrush {
     stampCentre(x, y, options = {}) {
         if (!_inBounds(x, y)) return false;
         const isInk = options.isInk !== undefined ? options.isInk : true;
-        PixelDrawRoutine.draw(x, y, options.colorSelection, PixelDrawRoutine.resolveUserMode(isInk));
-        return true;
+        return !!PixelDrawRoutine.draw(x, y, options.colorSelection, PixelDrawRoutine.resolveUserMode(isInk));
     }
 
     apply(x, y, size, flow, colorSelection, options = {}) {
@@ -480,8 +612,7 @@ class SolidBrush extends BaseBrush {
                     const pixelY = y + dy - offset;
 
                     if (_inBounds(pixelX, pixelY)) {
-                        PixelDrawRoutine.draw(pixelX, pixelY, colorSelection, mode);
-                        applied = true;
+                        if (PixelDrawRoutine.draw(pixelX, pixelY, colorSelection, mode)) applied = true;
                     }
                 }
             }
@@ -546,8 +677,7 @@ class CrossHatchBrush extends BaseBrush {
                 const pixelY = y + dy - offset;
 
                 if (this._isLattice(pixelX, pixelY) && _inBounds(pixelX, pixelY)) {
-                    PixelDrawRoutine.draw(pixelX, pixelY, colorSelection, mode);
-                    applied = true;
+                    if (PixelDrawRoutine.draw(pixelX, pixelY, colorSelection, mode)) applied = true;
                 }
             }
         }
@@ -650,8 +780,7 @@ class SprayBrush extends BaseBrush {
             const pixelY = y + points[i].dy;
 
             if (_inBounds(pixelX, pixelY)) {
-                PixelDrawRoutine.draw(pixelX, pixelY, colorSelection, mode);
-                applied = true;
+                if (PixelDrawRoutine.draw(pixelX, pixelY, colorSelection, mode)) applied = true;
             }
         }
 
@@ -684,8 +813,7 @@ class SprayBrush extends BaseBrush {
             const pixelY = y + row - offset;
 
             if (_inBounds(pixelX, pixelY)) {
-                PixelDrawRoutine.draw(pixelX, pixelY, colorSelection, mode);
-                applied = true;
+                if (PixelDrawRoutine.draw(pixelX, pixelY, colorSelection, mode)) applied = true;
             }
         }
 
@@ -955,8 +1083,7 @@ class FadeBrush extends BaseBrush {
         if (density <= this.thresholdAt(x, y)) return false;
 
         const isInk = options.isInk !== undefined ? options.isInk : true;
-        PixelDrawRoutine.draw(x, y, colorSelection, PixelDrawRoutine.resolveUserMode(isInk));
-        return true;
+        return !!PixelDrawRoutine.draw(x, y, colorSelection, PixelDrawRoutine.resolveUserMode(isInk));
     }
 
     /**
@@ -1075,8 +1202,7 @@ class PatternBrush extends BaseBrush {
             ? PixelDrawRoutine.resolveUserMode(isInk)
             : PixelDrawRoutine.resolveUserMode(false);
 
-        PixelDrawRoutine.draw(x, y, options.colorSelection, mode);
-        return true;
+        return !!PixelDrawRoutine.draw(x, y, options.colorSelection, mode);
     }
 
     /**
@@ -1112,16 +1238,14 @@ class PatternBrush extends BaseBrush {
                 if (!_inBounds(pixelX, pixelY)) continue;
 
                 if (!isInk) {
-                    PixelDrawRoutine.draw(pixelX, pixelY, colorSelection, PixelDrawRoutine.resolveUserMode(false));
-                    applied = true;
+                    if (PixelDrawRoutine.draw(pixelX, pixelY, colorSelection, PixelDrawRoutine.resolveUserMode(false))) applied = true;
                     continue;
                 }
 
                 const mode = this._tileBit(patternData, pixelX, pixelY)
                     ? PixelDrawRoutine.resolveUserMode(true)
                     : PixelDrawRoutine.resolveUserMode(false);
-                PixelDrawRoutine.draw(pixelX, pixelY, colorSelection, mode);
-                applied = true;
+                if (PixelDrawRoutine.draw(pixelX, pixelY, colorSelection, mode)) applied = true;
             }
         }
 
@@ -1257,8 +1381,7 @@ class HatchBrush extends BaseBrush {
                 // stamps reinforce one set of lines rather than moireing.
                 if (!BrushShapes.onHatchLine(pixelX, pixelY, dir, this.spacing, this.thickness)) continue;
 
-                PixelDrawRoutine.draw(pixelX, pixelY, colorSelection, mode);
-                applied = true;
+                if (PixelDrawRoutine.draw(pixelX, pixelY, colorSelection, mode)) applied = true;
             }
         }
 

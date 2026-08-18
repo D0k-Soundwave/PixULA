@@ -1175,8 +1175,7 @@ PresetServiceClass.SLICES = Object.freeze([
                 clip: StateManager.getClipMode(),
                 snap: StateManager.getGridSnap(),
                 nudgeStep: StateManager.get('nudgeStep'),
-                pixelPerfect: StateManager.get('pixelPerfect'),
-                respectCellBoundaries: StateManager.get('respectCellBoundaries')
+                pixelPerfect: StateManager.get('pixelPerfect')
             };
         },
 
@@ -1191,9 +1190,6 @@ PresetServiceClass.SLICES = Object.freeze([
             }
             if (typeof value.pixelPerfect === 'boolean') {
                 StateManager.set('pixelPerfect', value.pixelPerfect);
-            }
-            if (typeof value.respectCellBoundaries === 'boolean') {
-                StateManager.set('respectCellBoundaries', value.respectCellBoundaries);
             }
         }
     },

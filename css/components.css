@@ -1068,14 +1068,14 @@
    direction keeps its own hover, focus and screen-reader name — splitting
    the icon into four separately-bordered squares (the first version of this
    control) reads as four things, not one. `overflow: hidden` + the shared
-   border-radius keeps a slice's hover tint from poking past the pad's
+   border-radius keeps a slice's rendering from poking past the pad's
    rounded corners. Shared by the Transform panel's Shift and the Reference
    panel's Offset, wherever four actions nudge something in four
    directions. */
 .dir-pad {
     position: relative;
-    width: 144px;
-    height: 144px;
+    width: 120px;
+    height: 120px;
     background: var(--btn-bg);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
@@ -1084,16 +1084,6 @@
        whose cross axis is horizontal - align-self is what centres a fixed-
        width item there instead of it sitting at the column's start edge. */
     align-self: center;
-}
-
-.dir-pad-icon {
-    position: absolute;
-    inset: 0;
-    margin: auto;
-    width: 104px;
-    height: 104px;
-    fill: currentColor;
-    pointer-events: none;
 }
 
 .dir-pad-zone {
@@ -1108,14 +1098,51 @@
     cursor: pointer;
 }
 
-.dir-pad-zone:hover:not(:disabled) {
-    background: var(--bg-hover);
+/* A disabled zone (no image loaded, in the Reference panel's case) must not
+   invite a click that would do nothing: pointer-events: none blocks both the
+   hover fill below and the click itself, on top of the button's own
+   disabled state. */
+.dir-pad-zone:disabled {
+    pointer-events: none;
+    opacity: 0.35;
 }
 
 .dir-pad-zone-up    { clip-path: polygon(50% 50%, 0 0, 100% 0); }
 .dir-pad-zone-right { clip-path: polygon(50% 50%, 100% 0, 100% 100%); }
 .dir-pad-zone-down  { clip-path: polygon(50% 50%, 100% 100%, 0 100%); }
 .dir-pad-zone-left  { clip-path: polygon(50% 50%, 0 100%, 0 0); }
+
+/* Each zone owns its own quarter of icon-move (see the icon-dirpad-* symbols
+   in index.html — the same path data icon-move uses, split so each quadrant
+   is its own glyph) rather than sharing one always-filled background icon.
+   At rest it is hollow (stroked, not filled) so the pad reads as four equal
+   options; hovering, focusing or pressing ONE zone fills that zone's own
+   glyph solid, which is the "which way am I about to move it" feedback —
+   replacing a flat grey wash over the whole pie-slice, which said "this
+   segment is live" but not which direction it was. Sized/positioned exactly
+   like the old shared icon, so the four glyphs still meet at a shared centre
+   with no gap. `pointer-events: none` keeps the glyph out of the button's
+   own hit-testing (redundant under the parent's clip-path, kept for safety
+   since this element still paints on top of it). */
+.dir-pad-glyph {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 104px;
+    height: 104px;
+    pointer-events: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1;
+    stroke-linejoin: round;
+}
+
+.dir-pad-zone:hover .dir-pad-glyph,
+.dir-pad-zone:focus-visible .dir-pad-glyph,
+.dir-pad-zone:active .dir-pad-glyph {
+    fill: currentColor;
+    stroke: none;
+}
 
 .tp-shift-opts {
     display: flex;

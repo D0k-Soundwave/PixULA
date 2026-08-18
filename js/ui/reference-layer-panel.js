@@ -300,40 +300,31 @@ class ReferenceLayerPanelClass {
         this.controls.offsetX = xInput;
         this.controls.offsetY = yInput;
 
-        // Same one-icon compass pad as the Transform panel's Shift (icon-move,
-        // the Move/Pan tool's glyph, with four invisible pie-slice buttons
-        // laid over it) - nudges the same X/Y fields above by one canvas
-        // pixel rather than requiring a typed value for a small reposition.
-        const pad = document.createElement('div');
-        pad.className = 'dir-pad';
-        // innerHTML, not a raw arrow character: tests/lint-architecture.test.js
-        // flags a pictograph wherever it appears in js/ source.
-        pad.innerHTML = '<svg class="dir-pad-icon" aria-hidden="true"><use href="#icon-move"/></svg>';
-
+        // Same directional pad as the Transform panel's Shift (shared
+        // builder: Helpers.buildDirPad - each zone owns its own quarter of
+        // icon-move, hollow at rest, filled on hover/focus so the icon
+        // itself says which way it will move) - nudges the same X/Y fields
+        // above by one canvas pixel rather than requiring a typed value for
+        // a small reposition.
         const OFFSET_STEP = 1;
         const nudge = (input, delta) => {
             input.value = String((parseInt(input.value, 10) || 0) + delta);
             updateOffset();
         };
 
-        const mkNudge = (dirClass, dx, dy, i18nKey, fallback) => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = `dir-pad-zone ${dirClass}`;
-            btn.setAttribute('data-i18n-aria-label', i18nKey);
-            btn.setAttribute('aria-label', fallback);
-            btn.addEventListener('click', () => {
-                if (dx) nudge(xInput, dx * OFFSET_STEP);
-                if (dy) nudge(yInput, dy * OFFSET_STEP);
-            });
-            pad.appendChild(btn);
-            return btn;
-        };
+        const { element: pad, zones } = Helpers.buildDirPad();
+        zones.up.addEventListener('click', () => nudge(yInput, -OFFSET_STEP));
+        zones.down.addEventListener('click', () => nudge(yInput, OFFSET_STEP));
+        zones.left.addEventListener('click', () => nudge(xInput, -OFFSET_STEP));
+        zones.right.addEventListener('click', () => nudge(xInput, OFFSET_STEP));
 
-        mkNudge('dir-pad-zone-up', 0, -1, 'dirpad.up', 'Shift up');
-        mkNudge('dir-pad-zone-left', -1, 0, 'dirpad.left', 'Shift left');
-        mkNudge('dir-pad-zone-right', 1, 0, 'dirpad.right', 'Shift right');
-        mkNudge('dir-pad-zone-down', 0, 1, 'dirpad.down', 'Shift down');
+        // Registered in this.controls so _enableControls disables them along
+        // with the rest of the panel when no image is loaded - without this
+        // the pad stayed clickable (and lit up on hover) with nothing to move.
+        this.controls.padUp = zones.up;
+        this.controls.padLeft = zones.left;
+        this.controls.padRight = zones.right;
+        this.controls.padDown = zones.down;
 
         section.appendChild(label);
         section.appendChild(row);
@@ -601,6 +592,7 @@ class ReferenceLayerPanelClass {
         const names = [
             'visible', 'opacity',
             'offsetX', 'offsetY', 'scale', 'rotation',
+            'padUp', 'padLeft', 'padRight', 'padDown',
             'flipX', 'flipY', 'clearBtn', 'presetBtn'
         ];
         names.forEach((name) => {

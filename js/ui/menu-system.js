@@ -122,8 +122,8 @@ class MenuSystemClass {
                     { id: 'new', label: 'New', shortcut: 'Ctrl+N', action: 'file:new' },
                     { id: 'open', label: 'Open...', shortcut: 'Ctrl+O', action: 'file:open' },
                     { type: 'separator' },
-                    { id: 'save', label: 'Save', shortcut: 'Ctrl+S', action: 'file:save' },
-                    { id: 'save-as', label: 'Save As...', shortcut: 'Ctrl+Shift+S', action: 'file:saveAs' },
+                    { id: 'save', label: 'Save Project', shortcut: 'Ctrl+S', action: 'file:save' },
+                    { id: 'save-as', label: 'Save Project As...', shortcut: 'Ctrl+Shift+S', action: 'file:saveAs' },
                     { type: 'separator' },
                     { id: 'export', label: 'Export...', shortcut: 'Ctrl+E', action: 'file:export' },
                     { id: 'import', label: 'Import...', action: 'file:import' },
@@ -234,9 +234,6 @@ class MenuSystemClass {
                     { type: 'separator' },
                     { id: 'theme-light', label: 'Light Theme', action: 'settings:themeLight', toggle: true },
                     { id: 'theme-dark', label: 'Dark Theme', action: 'settings:themeDark', toggle: true },
-                    { type: 'separator' },
-                    { id: 'cell-boundaries', label: 'Respect Cell Boundaries', action: 'settings:cellBoundaries', toggle: true },
-                    { id: 'attribute-mode', label: 'Attribute Mode', action: 'settings:attributeMode', toggle: true },
                     { type: 'separator' },
                     { id: 'reset-preferences', label: 'Reset All Preferences', action: 'settings:resetAll' }
                 ]
@@ -562,8 +559,6 @@ class MenuSystemClass {
                 else EventBus.emit(EVENTS.UI_THEME_CHANGE, { theme: 'dark' });
                 this._updateThemeToggles('dark');
                 break;
-            case 'settings:cellBoundaries': this._toggleCellBoundaries(); break;
-            case 'settings:attributeMode':  this._toggleAttributeMode();  break;
             case 'settings:resetAll':       this._resetAllPreferences();  break;
 
             // Help
@@ -698,7 +693,8 @@ class MenuSystemClass {
      * @private
      */
     _clearCanvas() {
-        if (!confirm(this._t('msg.confirmClear', 'Clear the current layer?'))) {
+        if (StateManager.get('confirmClear') !== false &&
+            !confirm(this._t('msg.confirmClear', 'Clear the current layer?'))) {
             return;
         }
         const layer = LayerManager.getCurrentLayer();
@@ -739,7 +735,7 @@ class MenuSystemClass {
         const shortcuts = [
             ['Ctrl+N', this._t('app.new', 'New')],
             ['Ctrl+O', this._t('app.open', 'Open')],
-            ['Ctrl+S', this._t('app.save', 'Save')],
+            ['Ctrl+S', this._t('app.save', 'Save Project')],
             ['Ctrl+Z', this._t('app.undo', 'Undo')],
             ['Ctrl+Y', this._t('app.redo', 'Redo')],
             ['Ctrl+C / Ctrl+V / Ctrl+X', this._t('app.copy', 'Copy') + ' / ' + this._t('app.paste', 'Paste') + ' / ' + this._t('app.cut', 'Cut')]
@@ -789,7 +785,7 @@ class MenuSystemClass {
                        min="0" max="60" step="1" value="1">
             </label>
             <label class="pref-row">
-                <input type="checkbox" id="pref-confirm-clear" name="pref-confirm-clear">
+                <input type="checkbox" id="pref-confirm-clear" name="pref-confirm-clear" checked>
                 <span data-i18n="pref.confirmClear">${this._t('pref.confirmClear', 'Confirm before clearing')}</span>
             </label>
             <div class="pref-block" id="pref-backup">
@@ -811,10 +807,6 @@ class MenuSystemClass {
                 </label>
             </div>
             <h3 data-i18n="pref.drawing">${this._t('pref.drawing', 'Drawing')}</h3>
-            <label class="pref-row">
-                <input type="checkbox" id="pref-cell-boundaries" name="pref-cell-boundaries" checked>
-                <span data-i18n="pref.cellBoundaries">${this._t('pref.cellBoundaries', 'Respect cell boundaries')}</span>
-            </label>
             <label class="pref-row">
                 <input type="checkbox" id="pref-pixel-perfect" name="pref-pixel-perfect">
                 <span data-i18n="pref.pixelPerfect">${this._t('pref.pixelPerfect', 'Pixel-perfect strokes')}</span>
@@ -889,9 +881,7 @@ class MenuSystemClass {
         const autosaveMinutes = content.querySelector('#pref-autosave-minutes');
         if (autosaveMinutes) autosaveMinutes.value = String(StateManager.getAutosaveMinutes());
         const confirmClear = content.querySelector('#pref-confirm-clear');
-        if (confirmClear) confirmClear.checked = StateManager.get('confirmClear') === true;
-        const cellBoundaries = content.querySelector('#pref-cell-boundaries');
-        if (cellBoundaries) cellBoundaries.checked = StateManager.get('respectCellBoundaries') !== false;
+        if (confirmClear) confirmClear.checked = StateManager.get('confirmClear') !== false;
         const pixelPerfect = content.querySelector('#pref-pixel-perfect');
         if (pixelPerfect) pixelPerfect.checked = StateManager.get('pixelPerfect') === true;
         const resetDrawMode = content.querySelector('#pref-reset-draw-mode');
@@ -1254,7 +1244,6 @@ class MenuSystemClass {
     _savePreferences(dialog) {
         const autosaveEl = dialog.querySelector('#pref-autosave-minutes');
         const confirmClear = dialog.querySelector('#pref-confirm-clear');
-        const cellBoundaries = dialog.querySelector('#pref-cell-boundaries');
         const pixelPerfect = dialog.querySelector('#pref-pixel-perfect');
         const resetDrawMode = dialog.querySelector('#pref-reset-draw-mode');
         const nudgeStepEl = dialog.querySelector('#pref-nudge-step');
@@ -1272,7 +1261,6 @@ class MenuSystemClass {
             StateManager.setAutosaveMinutes(clamp(parseInt(autosaveEl.value, 10) || 0, 0, 60));
         }
         if (confirmClear) StateManager.set('confirmClear', confirmClear.checked);
-        if (cellBoundaries) StateManager.set('respectCellBoundaries', cellBoundaries.checked);
         if (pixelPerfect) StateManager.set('pixelPerfect', pixelPerfect.checked);
         if (resetDrawMode) StateManager.set('resetDrawModeOnTool', resetDrawMode.checked);
         if (nudgeStepEl) StateManager.set('nudgeStep', nudgeStep);
@@ -1299,7 +1287,6 @@ class MenuSystemClass {
         Storage.set('preferences', {
             autosaveMinutes: StateManager.getAutosaveMinutes(),
             confirmClear: confirmClear?.checked,
-            cellBoundaries: cellBoundaries?.checked,
             pixelPerfect: pixelPerfect?.checked,
             resetDrawModeOnTool: resetDrawMode?.checked,
             nudgeStep,
@@ -1323,27 +1310,9 @@ class MenuSystemClass {
     }
 
     /** @private */
-    _toggleCellBoundaries() {
-        const current = StateManager.get('respectCellBoundaries') !== false;
-        StateManager.set('respectCellBoundaries', !current);
-        this._updateToggleState('cell-boundaries', !current);
-        Logger.info('MenuSystem', `Cell boundaries: ${!current ? 'enabled' : 'disabled'}`);
-    }
-
-    /** @private */
-    _toggleAttributeMode() {
-        const current = StateManager.get('attributeMode') !== false;
-        StateManager.set('attributeMode', !current);
-        this._updateToggleState('attribute-mode', !current);
-        Logger.info('MenuSystem', `Attribute mode: ${!current ? 'enabled' : 'disabled'}`);
-    }
-
-    /** @private */
     _resetAllPreferences() {
         if (confirm(this._t('msg.confirmResetAll', 'Reset all preferences to defaults and reload?'))) {
             if (window.ThemeManager) ThemeManager.setTheme('dark');
-            StateManager.set('respectCellBoundaries', true);
-            StateManager.set('attributeMode', true);
             StateManager.setAutosaveMinutes(StateManager.AUTOSAVE_DEFAULT_MINUTES);
             Logger.info('MenuSystem', 'All preferences reset');
             // Finish the async deletes before reloading so they aren't cut off

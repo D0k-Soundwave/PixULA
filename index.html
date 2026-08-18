@@ -364,6 +364,16 @@
         <symbol id="icon-guide-out" viewBox="0 0 24 24"><path d="M7 7h10v10H7z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-dasharray="3 2" opacity="0.8"/><path d="M2 6L6 2M2 12L6 8M2 18L6 14M18 22L22 18M18 16L22 12M18 10L22 6M9 3L11 1M13 3L15 1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
         <symbol id="icon-select-cell" viewBox="0 0 24 24"><path d="M3 3h18v18H3V3zm0 6h18M3 15h18M9 3v18M15 3v18" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="9" y="9" width="6" height="6" fill="currentColor" opacity="0.85"/></symbol>
         <symbol id="icon-move" viewBox="0 0 24 24"><path d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z"/></symbol>
+        <!-- The four quadrants of icon-move, split into their own symbols so
+             the .dir-pad control (Transform panel Shift, Reference panel
+             Offset) can show each direction outlined at rest and filled on
+             hover/focus of that direction's own zone - the coordinates are
+             copied unchanged from icon-move so the four glyphs still meet
+             at a shared centre with no gap, matching that icon exactly. -->
+        <symbol id="icon-dirpad-up" viewBox="0 0 24 24"><path d="M10 9h4V6h3l-5-5-5 5h3v3z"/></symbol>
+        <symbol id="icon-dirpad-left" viewBox="0 0 24 24"><path d="M9 10H6V7l-5 5 5 5v-3h3v-4z"/></symbol>
+        <symbol id="icon-dirpad-right" viewBox="0 0 24 24"><path d="M23 12l-5-5v3h-3v4h3v3l5-5z"/></symbol>
+        <symbol id="icon-dirpad-down" viewBox="0 0 24 24"><path d="M14 15h-4v3H7l5 5 5-5h-3v-3z"/></symbol>
         <symbol id="icon-text" viewBox="0 0 24 24"><path d="M5 4v3h5.5v12h3V7H19V4z"/></symbol>
         <symbol id="icon-pattern" viewBox="0 0 24 24"><path d="M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z"/></symbol>
         <symbol id="icon-pattern-creator" viewBox="0 0 24 24"><path d="M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7z"/><path d="M16.5 13v3H13.5v1.5h3V21H18v-3.5h3V16h-3v-3z"/></symbol>
@@ -509,6 +519,7 @@
     <script defer src="js/ui/components/palette-editor-dialog.js"></script>
     <script defer src="js/ui/components/preset-dialog.js"></script>
     <script defer src="js/ui/components/tool-preset-dialog.js"></script>
+    <script defer src="js/ui/components/save-dialog.js"></script>
     <script defer src="js/ui/components/preset-controls.js"></script>
     <script defer src="js/ui/components/a11y-announcer.js"></script>
     <script defer src="js/ui/tooltip-manager.js"></script>

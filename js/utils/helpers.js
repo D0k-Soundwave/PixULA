@@ -540,6 +540,47 @@ const Helpers = {
     },
 
     /**
+     * The compass-style four-zone directional pad: one hollow zone per
+     * direction (up/left/right/down), filled solid on hover/focus to say
+     * which way it will move something - see the .dir-pad rule in
+     * css/components.css. Shared by the Transform panel's Shift group and
+     * the Reference panel's Offset nudges, which is the point of pulling it
+     * out here: both places used to build this control independently (a
+     * static template string in one, a DOM-built closure in the other) and
+     * had to be hand-updated in lockstep on every redesign. Callers wire
+     * their own click handlers onto the returned zone buttons and decide
+     * their own enable/disable state; this only builds the shared markup.
+     * @returns {{element: HTMLElement, zones: {up: HTMLButtonElement, left: HTMLButtonElement, right: HTMLButtonElement, down: HTMLButtonElement}}}
+     */
+    buildDirPad() {
+        const pad = document.createElement('div');
+        pad.className = 'dir-pad';
+
+        const ZONES = [
+            { dir: 'up',    icon: 'icon-dirpad-up',    i18n: 'dirpad.up',    fallback: 'Shift up' },
+            { dir: 'left',  icon: 'icon-dirpad-left',  i18n: 'dirpad.left',  fallback: 'Shift left' },
+            { dir: 'right', icon: 'icon-dirpad-right', i18n: 'dirpad.right', fallback: 'Shift right' },
+            { dir: 'down',  icon: 'icon-dirpad-down',  i18n: 'dirpad.down',  fallback: 'Shift down' }
+        ];
+
+        const zones = {};
+        for (const z of ZONES) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `dir-pad-zone dir-pad-zone-${z.dir}`;
+            btn.dataset.i18nAriaLabel = z.i18n;
+            btn.setAttribute('aria-label', this.tr(z.i18n, z.fallback));
+            // innerHTML, not a raw arrow character: tests/lint-architecture.test.js
+            // flags a pictograph wherever it appears in js/ source.
+            btn.innerHTML = `<svg class="dir-pad-glyph" aria-hidden="true"><use href="#${z.icon}"/></svg>`;
+            pad.appendChild(btn);
+            zones[z.dir] = btn;
+        }
+
+        return { element: pad, zones };
+    },
+
+    /**
      * Turn a set of pixels into SVG path data — one subpath per horizontal RUN
      * of set pixels, so a 100-pixel icon is a handful of commands rather than
      * 100 rects.
