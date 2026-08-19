@@ -982,6 +982,14 @@ const fr = {
     'cap.pick': 'Choisir',
 
     // User presets (named, slotted setups)
+    'menu.settings.companion': 'Compagnon...',
+    'companion.title': 'Compagnon',
+    'companion.refresh': 'Vérifier à nouveau',
+    'companion.connect': 'Connecter',
+    'companion.notRunning': 'Le compagnon n\'est pas lancé',
+    'companion.notConnected': 'Compagnon lancé, non connecté',
+    'companion.connected': 'Connecté',
+    'companion.waiting': 'Cliquez sur Activer le jumelage dans l\'icône du compagnon dans la zone de notification...',
     'menu.settings.presets': 'Préréglages d\'espace...',
     'preset.full': 'Tous les emplacements sont occupés. Supprimez-en un dans le gestionnaire.',
     'preset.name': 'Nom',

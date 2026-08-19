@@ -982,6 +982,14 @@ const hu = {
     'cap.pick': 'Kiválasztás',
 
     // User presets (named, slotted setups)
+    'menu.settings.companion': 'Kísérő...',
+    'companion.title': 'Kísérő',
+    'companion.refresh': 'Ellenőrzés újra',
+    'companion.connect': 'Csatlakozás',
+    'companion.notRunning': 'A kísérő nem fut',
+    'companion.notConnected': 'A kísérő fut, nincs csatlakoztatva',
+    'companion.connected': 'Csatlakoztatva',
+    'companion.waiting': 'Kattintson a Párosítás engedélyezése elemre a kísérő tálcaikonján...',
     'menu.settings.presets': 'Munkakörnyezet-készletek...',
     'preset.full': 'Minden hely foglalt. Előbb szabadítson fel egyet a készletkezelőben.',
     'preset.name': 'Név',

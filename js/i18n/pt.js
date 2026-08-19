@@ -982,6 +982,14 @@ const pt = {
     'cap.pick': 'Escolher',
 
     // User presets (named, slotted setups)
+    'menu.settings.companion': 'Companheiro...',
+    'companion.title': 'Companheiro',
+    'companion.refresh': 'Verificar novamente',
+    'companion.connect': 'Ligar',
+    'companion.notRunning': 'O companheiro não está em execução',
+    'companion.notConnected': 'Companheiro em execução, não ligado',
+    'companion.connected': 'Ligado',
+    'companion.waiting': 'Clique em Ativar Emparelhamento no ícone do companheiro na barra de tarefas...',
     'menu.settings.presets': 'Predefinições do ambiente...',
     'preset.full': 'Todas as posições estão ocupadas. Liberte uma no gestor de predefinições.',
     'preset.name': 'Nome',

@@ -982,6 +982,14 @@ const it = {
     'cap.pick': 'Scegli',
 
     // User presets (named, slotted setups)
+    'menu.settings.companion': 'Compagno...',
+    'companion.title': 'Compagno',
+    'companion.refresh': 'Controlla di nuovo',
+    'companion.connect': 'Connetti',
+    'companion.notRunning': 'Compagno non in esecuzione',
+    'companion.notConnected': 'Compagno in esecuzione, non connesso',
+    'companion.connected': 'Connesso',
+    'companion.waiting': 'Fai clic su Abilita associazione nell\'icona del compagno nella barra delle applicazioni...',
     'menu.settings.presets': 'Preimpostazioni ambiente...',
     'preset.full': 'Tutte le posizioni sono occupate. Liberane una nella gestione preimpostazioni.',
     'preset.name': 'Nome',

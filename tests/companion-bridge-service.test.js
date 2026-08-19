@@ -9,16 +9,17 @@ installStubs({
         STORES: {
             COMPANION: 'companion'
         },
-        async get(storeName, key) {
+        async get(key, storeName) {
             const storeData = mockStorage.get(storeName) || new Map();
-            return storeData.get(key) || null;
+            const rec = storeData.get(key);
+            return rec ? rec.value : null;
         },
-        async set(storeName, item) {
+        async set(key, value, storeName) {
             const storeData = mockStorage.get(storeName) || new Map();
-            storeData.set(item.key, item);
+            storeData.set(key, { key, value });
             mockStorage.set(storeName, storeData);
         },
-        async delete(storeName, key) {
+        async delete(key, storeName) {
             const storeData = mockStorage.get(storeName);
             if (storeData) storeData.delete(key);
         }

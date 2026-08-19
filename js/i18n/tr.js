@@ -982,6 +982,14 @@ const tr = {
     'cap.pick': 'Seç',
 
     // User presets (named, slotted setups)
+    'menu.settings.companion': 'Yardımcı...',
+    'companion.title': 'Yardımcı',
+    'companion.refresh': 'Tekrar Kontrol Et',
+    'companion.connect': 'Bağlan',
+    'companion.notRunning': 'Yardımcı çalışmıyor',
+    'companion.notConnected': 'Yardımcı çalışıyor, bağlı değil',
+    'companion.connected': 'Bağlandı',
+    'companion.waiting': 'Yardımcı simgesindeki Eşleştirmeyi Etkinleştir seçeneğine tıklayın...',
     'menu.settings.presets': 'Çalışma alanı ön ayarları...',
     'preset.full': 'Tüm yuvalar dolu. Önce ön ayar yöneticisinden birini silin.',
     'preset.name': 'Ad',

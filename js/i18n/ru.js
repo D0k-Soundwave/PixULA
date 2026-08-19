@@ -982,6 +982,14 @@ const ru = {
     'cap.pick': 'Выбрать',
 
     // User presets (named, slotted setups)
+    'menu.settings.companion': 'Компаньон...',
+    'companion.title': 'Компаньон',
+    'companion.refresh': 'Проверить снова',
+    'companion.connect': 'Подключить',
+    'companion.notRunning': 'Компаньон не запущен',
+    'companion.notConnected': 'Компаньон запущен, не подключен',
+    'companion.connected': 'Подключено',
+    'companion.waiting': 'Нажмите Разрешить сопряжение в значке компаньона в системном трее...',
     'menu.settings.presets': 'Пресеты рабочей среды...',
     'preset.full': 'Все ячейки заняты. Сначала освободите одну в менеджере пресетов.',
     'preset.name': 'Название',

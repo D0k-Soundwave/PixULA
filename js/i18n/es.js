@@ -983,6 +983,14 @@ const es = {
     'cap.pick': 'Elegir',
 
     // User presets (named, slotted setups)
+    'menu.settings.companion': 'Compañero...',
+    'companion.title': 'Compañero',
+    'companion.refresh': 'Comprobar de nuevo',
+    'companion.connect': 'Conectar',
+    'companion.notRunning': 'El compañero no está en ejecución',
+    'companion.notConnected': 'Compañero en ejecución, no conectado',
+    'companion.connected': 'Conectado',
+    'companion.waiting': 'Haga clic en Habilitar emparejamiento en el icono del compañero en la bandeja del sistema...',
     'menu.settings.presets': 'Preajustes de espacio...',
     'preset.full': 'Todas las ranuras de preajuste están llenas. Elimina una en el gestor de preajustes.',
     'preset.name': 'Nombre',

@@ -982,6 +982,14 @@ const sk = {
     'cap.pick': 'Vybrať',
 
     // User presets (named, slotted setups)
+    'menu.settings.companion': 'Spoločník...',
+    'companion.title': 'Spoločník',
+    'companion.refresh': 'Skontrolovať znova',
+    'companion.connect': 'Pripojiť',
+    'companion.notRunning': 'Spoločník nebeží',
+    'companion.notConnected': 'Spoločník beží, nepripojené',
+    'companion.connected': 'Pripojené',
+    'companion.waiting': 'Kliknite na Povoliť párovanie v ikone spoločníka na paneli úloh...',
     'menu.settings.presets': 'Predvoľby pracovnej plochy...',
     'preset.full': 'Všetky pozície sú obsadené. Najprv jednu uvoľnite v správcovi predvolieb.',
     'preset.name': 'Názov',

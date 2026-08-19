@@ -982,6 +982,14 @@ const pl = {
     'cap.pick': 'Wybierz',
 
     // User presets (named, slotted setups)
+    'menu.settings.companion': 'Towarzysz...',
+    'companion.title': 'Towarzysz',
+    'companion.refresh': 'Sprawdź ponownie',
+    'companion.connect': 'Połącz',
+    'companion.notRunning': 'Towarzysz nie jest uruchomiony',
+    'companion.notConnected': 'Towarzysz uruchomiony, niepołączony',
+    'companion.connected': 'Połączono',
+    'companion.waiting': 'Kliknij Włącz parowanie w ikonie towarzysza na pasku zadań...',
     'menu.settings.presets': 'Ustawienia pulpitu...',
     'preset.full': 'Wszystkie miejsca są zajęte. Najpierw zwolnij jedno w menedżerze ustawień.',
     'preset.name': 'Nazwa',

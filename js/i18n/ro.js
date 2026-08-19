@@ -982,6 +982,14 @@ const ro = {
     'cap.pick': 'Alege',
 
     // User presets (named, slotted setups)
+    'menu.settings.companion': 'Însoțitor...',
+    'companion.title': 'Însoțitor',
+    'companion.refresh': 'Verifică din nou',
+    'companion.connect': 'Conectare',
+    'companion.notRunning': 'Însoțitorul nu rulează',
+    'companion.notConnected': 'Însoțitorul rulează, neconectat',
+    'companion.connected': 'Conectat',
+    'companion.waiting': 'Faceți clic pe Activare împerechere din pictograma însoțitorului din bara de sistem...',
     'menu.settings.presets': 'Presetări spațiu de lucru...',
     'preset.full': 'Toate pozițiile sunt ocupate. Eliberează una în managerul de presetări.',
     'preset.name': 'Nume',

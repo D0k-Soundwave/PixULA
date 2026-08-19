@@ -19,9 +19,9 @@ class CompanionBridgeServiceClass {
     }
 
     async init() {
-        const stored = await Storage.get(Storage.STORES.COMPANION, TOKEN_KEY);
-        if (stored && stored.value) {
-            this.token = stored.value;
+        const stored = await Storage.get(TOKEN_KEY, Storage.STORES.COMPANION);
+        if (stored) {
+            this.token = stored;
             this.paired = true;
         }
     }
@@ -61,7 +61,7 @@ class CompanionBridgeServiceClass {
         }
         this.token = await res.text();
         this.paired = true;
-        await Storage.set(Storage.STORES.COMPANION, { key: TOKEN_KEY, value: this.token });
+        await Storage.set(TOKEN_KEY, this.token, Storage.STORES.COMPANION);
         EventBus.emit(EVENTS.COMPANION_STATE_CHANGED, this.getState());
         return this.token;
     }
@@ -70,7 +70,7 @@ class CompanionBridgeServiceClass {
     async forget() {
         this.token = null;
         this.paired = false;
-        await Storage.delete(Storage.STORES.COMPANION, TOKEN_KEY);
+        await Storage.delete(TOKEN_KEY, Storage.STORES.COMPANION);
         EventBus.emit(EVENTS.COMPANION_STATE_CHANGED, this.getState());
     }
 }

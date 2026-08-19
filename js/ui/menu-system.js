@@ -256,6 +256,7 @@ class MenuSystemClass {
                 items: [
                     { id: 'preferences', label: 'Preferences...', action: 'settings:preferences' },
                     { id: 'presets', label: 'Workspace Presets...', action: 'settings:presets' },
+                    { id: 'companion', label: 'Companion...', action: 'settings:companion' },
                     { type: 'separator' },
                     // All 6 themes, matching the header selector — the old
                     // Light/Dark pair reached only 2 of them, a second,
@@ -704,6 +705,7 @@ class MenuSystemClass {
             // Settings
             case 'settings:preferences': this._showPreferences(); break;
             case 'settings:presets': PresetDialog.open(); break;
+            case 'settings:companion': CompanionDialog.open(); break;
             case 'settings:themeDark':     this._setTheme('dark');     break;
             case 'settings:themeLight':    this._setTheme('light');    break;
             case 'settings:themeMidnight': this._setTheme('midnight'); break;
