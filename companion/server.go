@@ -13,10 +13,13 @@ type Server struct {
 	mux     *http.ServeMux
 	pairing *pairing
 	folders *folderStore
+	fonts   *fontStore
 }
 
 func newServer() *Server {
 	s := &Server{mux: http.NewServeMux(), pairing: newPairing(), folders: newFolderStore()}
+	s.fonts = newFontStore()
+	s.fonts.Refresh()
 	s.mux.HandleFunc("GET /status", s.handleStatus)
 	s.mux.HandleFunc("POST /pair", s.pairing.HandlePair)
 
@@ -27,6 +30,8 @@ func newServer() *Server {
 	s.mux.Handle("GET /folders/{id}/file/{relpath...}", auth(http.HandlerFunc(s.handleFolderFile)))
 	s.mux.Handle("PUT /folders/{id}/file/{relpath...}", auth(http.HandlerFunc(s.handleFolderFile)))
 	s.mux.Handle("DELETE /folders/{id}/file/{relpath...}", auth(http.HandlerFunc(s.handleFolderFile)))
+	s.mux.Handle("GET /fonts", auth(http.HandlerFunc(s.handleFontsList)))
+	s.mux.Handle("GET /fonts/{id}/file", auth(http.HandlerFunc(s.handleFontFile)))
 	return s
 }
 
