@@ -38,7 +38,7 @@ class CompanionFileProvider extends FileAccessProvider {
     }
 
     async listFiles(folderRef) {
-        const res = await fetch(`${COMPANION_BASE_URL}/folders/${folderRef}/list`, {
+        const res = await fetch(`${COMPANION_BASE_URL}/folders/${encodeURIComponent(folderRef)}/list`, {
             headers: this._headers()
         });
         if (!res.ok) throw new Error(`companion: listFiles failed (${res.status})`);
@@ -46,7 +46,7 @@ class CompanionFileProvider extends FileAccessProvider {
     }
 
     async readFile(folderRef, relPath) {
-        const res = await fetch(`${COMPANION_BASE_URL}/folders/${folderRef}/file/${relPath}`, {
+        const res = await fetch(`${COMPANION_BASE_URL}/folders/${encodeURIComponent(folderRef)}/file/${encodeURIComponent(relPath)}`, {
             headers: this._headers()
         });
         if (!res.ok) throw new Error(`companion: readFile failed (${res.status})`);
@@ -54,7 +54,7 @@ class CompanionFileProvider extends FileAccessProvider {
     }
 
     async writeFile(folderRef, relPath, bytes) {
-        const res = await fetch(`${COMPANION_BASE_URL}/folders/${folderRef}/file/${relPath}`, {
+        const res = await fetch(`${COMPANION_BASE_URL}/folders/${encodeURIComponent(folderRef)}/file/${encodeURIComponent(relPath)}`, {
             method: 'PUT',
             headers: this._headers(),
             body: bytes
@@ -63,11 +63,12 @@ class CompanionFileProvider extends FileAccessProvider {
     }
 
     async deleteFile(folderRef, relPath) {
-        const res = await fetch(`${COMPANION_BASE_URL}/folders/${folderRef}/file/${relPath}`, {
+        const res = await fetch(`${COMPANION_BASE_URL}/folders/${encodeURIComponent(folderRef)}/file/${encodeURIComponent(relPath)}`, {
             method: 'DELETE',
             headers: this._headers()
         });
-        return res.ok;
+        if (!res.ok) throw new Error(`companion: deleteFile failed (${res.status})`);
+        return true;
     }
 }
 
