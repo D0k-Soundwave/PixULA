@@ -10,16 +10,14 @@ const version = "0.1.0"
 // Server owns the HTTP routing and every piece of companion state
 // (pairing, folders, fonts) built up across this phase's later tasks.
 type Server struct {
-	mux *http.ServeMux
-	// paired reports whether a token has ever been issued this run. Real
-	// pairing state (Task 2) replaces this placeholder field directly —
-	// it is not read anywhere yet, so it is safe to widen there.
-	paired bool
+	mux     *http.ServeMux
+	pairing *pairing
 }
 
 func newServer() *Server {
-	s := &Server{mux: http.NewServeMux()}
+	s := &Server{mux: http.NewServeMux(), pairing: newPairing()}
 	s.mux.HandleFunc("GET /status", s.handleStatus)
+	s.mux.HandleFunc("POST /pair", s.pairing.HandlePair)
 	return s
 }
 
@@ -29,6 +27,6 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]any{
 		"version": version,
-		"paired":  s.paired,
+		"paired":  s.pairing.IsPaired(),
 	})
 }
