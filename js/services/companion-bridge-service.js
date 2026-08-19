@@ -36,14 +36,44 @@ class CompanionBridgeServiceClass {
         return new CompanionFileProvider(() => this.token);
     }
 
-    /** Unauthenticated existence check - never confers trust. */
+    /**
+     * Unauthenticated existence check - never confers trust.
+     *
+     * It also reads the `paired` flag the companion reports, because the
+     * companion's token lives ONLY in its own process memory: restarting the
+     * binary invalidates every token it ever issued, while this side still
+     * holds one in IndexedDB. A running companion reporting paired=false has
+     * no token at all, so the one stored here is provably dead - drop it and
+     * go back to the unpaired state (the Companion dialog then shows Connect
+     * again). Without this the dialog reads "Connected" forever, hides the
+     * only way to re-pair, and every authenticated call 401s with nothing to
+     * recover it - see docs/COMPANION.md's Failure behavior table.
+     */
     async checkStatus() {
+        let serverPaired = null;
         try {
             const res = await fetch(`${COMPANION_BASE_URL}/status`);
             this.running = res.ok;
+            if (res.ok) {
+                try {
+                    const body = await res.json();
+                    if (body && typeof body.paired === 'boolean') serverPaired = body.paired;
+                } catch (parseError) {
+                    // An unreadable body says nothing about pairing; leave the
+                    // stored token alone rather than forgetting it on a guess.
+                    Logger.warn('CompanionBridgeService', 'Could not read /status body', parseError);
+                }
+            }
         } catch (error) {
             this.running = false;
         }
+
+        if (this.running && serverPaired === false && this.paired) {
+            Logger.info('CompanionBridgeService', 'Companion reports no pairing - dropping the stale token');
+            await this.forget(); // emits COMPANION_STATE_CHANGED itself
+            return this.running;
+        }
+
         EventBus.emit(EVENTS.COMPANION_STATE_CHANGED, this.getState());
         return this.running;
     }

@@ -93,6 +93,62 @@ async function run() {
 
     if (events.length < 2) throw new Error('expected EVENTS.COMPANION_STATE_CHANGED on every transition');
     console.log('  ok: state changes are announced on the bus');
+
+    // A companion that is still running but reports paired=false has thrown
+    // its only token away (it lives in process memory and does not survive a
+    // restart), so the token stored here is provably dead. checkStatus() must
+    // notice and return to the unpaired state - otherwise the dialog says
+    // "Connected" forever, hides Connect, and every authenticated call 401s
+    // with no way back short of clearing IndexedDB by hand.
+    {
+        // Still paired locally from the pair() step above.
+        if (CompanionBridgeService.getState().paired !== true) throw new Error('precondition: expected the service to be paired here');
+        global.fetch = async (url) => {
+            if (url.endsWith('/status')) return { ok: true, json: async () => ({ version: '0.1.0', paired: false }) };
+            throw new Error('unexpected fetch: ' + url);
+        };
+        await CompanionBridgeService.checkStatus();
+        state = CompanionBridgeService.getState();
+        if (state.running !== true) throw new Error('expected running=true - the companion is up, only its pairing is gone');
+        if (state.paired !== false || state.token !== null) {
+            throw new Error('expected a restarted companion to drop the stale token and return to the unpaired state');
+        }
+        if (CompanionBridgeService.getProvider() !== null) throw new Error('expected no provider once the stale token is dropped');
+        const stillStored = await Storage.get('token', Storage.STORES.COMPANION);
+        if (stillStored) throw new Error('expected the stale token to be deleted from storage, not just from memory');
+        console.log('  ok: checkStatus() drops a stale token when a running companion reports paired=false');
+    }
+
+    // The inverse must NOT fire: a companion that still holds a pairing
+    // leaves the stored token exactly where it is.
+    {
+        CompanionBridgeService.paired = true;
+        CompanionBridgeService.token = 'c'.repeat(64);
+        await Storage.set('token', CompanionBridgeService.token, Storage.STORES.COMPANION);
+        global.fetch = async (url) => {
+            if (url.endsWith('/status')) return { ok: true, json: async () => ({ version: '0.1.0', paired: true }) };
+            throw new Error('unexpected fetch: ' + url);
+        };
+        await CompanionBridgeService.checkStatus();
+        state = CompanionBridgeService.getState();
+        if (state.paired !== true || state.token !== 'c'.repeat(64)) {
+            throw new Error('expected a live pairing to be left alone by checkStatus()');
+        }
+        console.log('  ok: checkStatus() leaves a live pairing untouched');
+    }
+
+    // An unreachable companion says nothing about the token's validity - the
+    // artist may simply have the binary closed - so nothing is forgotten.
+    {
+        global.fetch = async () => { throw new Error('ECONNREFUSED'); };
+        await CompanionBridgeService.checkStatus();
+        state = CompanionBridgeService.getState();
+        if (state.running !== false) throw new Error('expected running=false when unreachable');
+        if (state.paired !== true || state.token !== 'c'.repeat(64)) {
+            throw new Error('expected an unreachable companion to leave the stored token alone');
+        }
+        console.log('  ok: checkStatus() keeps the token when the companion is simply not running');
+    }
 }
 
 run().then(() => console.log('ALL CHECKS PASSED')).catch((e) => { console.error(e); process.exit(1); });
