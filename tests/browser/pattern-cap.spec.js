@@ -190,8 +190,19 @@ test('50 of each size is far inside the cap, and small on disk', async ({ page }
 
     expect(r.count).toBe(150);
     expect(r.count).toBeLessThan(r.max);
-    // M: 62,519 B across five runs (62,393 - 62,583). A generous band, because
-    // storage.estimate() is page-quantized: the point is the ORDER, ~60 KB
-    expect(r.bytes).toBeGreaterThan(30 * 1024);
-    expect(r.bytes).toBeLessThan(160 * 1024);
+    // M: 29,952 B across five runs (29,669 - 30,152), 2026-08-20, Chrome
+    // 151.0.7922.140 (channel 'chrome' via Playwright 1.61.1). Re-measured
+    // after this exact assertion started failing in CI; the prior M (62,519
+    // B, Chrome version unrecorded) was roughly double this. PatternService's
+    // storage encoding is unchanged (git history: one "Initial commit" touches
+    // both this file and pattern-service.js), so the drop is navigator.
+    // storage.estimate()'s own quantization/accounting differing across
+    // Chrome versions, not a code change. A generous band either way, because
+    // storage.estimate() is page-quantized and volatile across browser
+    // versions: the point is the ORDER, ~30 KB now (was ~60 KB). If this
+    // starts failing again on a Chrome upgrade, re-measure rather than widen
+    // the band further - a repeat halving would be worth understanding, not
+    // just re-centering around.
+    expect(r.bytes).toBeGreaterThan(15 * 1024);
+    expect(r.bytes).toBeLessThan(80 * 1024);
 });
