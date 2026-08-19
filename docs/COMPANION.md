@@ -144,6 +144,16 @@ trust signal the way a real-origin web app (e.g. one checking
 permissively; it provides no access control here by design. **The bearer
 token is the entire access-control boundary.**
 
+In practice (`companion/server.go`): every response, including error
+responses, carries a literal `Access-Control-Allow-Origin: *`, and every
+registered route also answers its own `OPTIONS` preflight (methods derived
+from the real route table, so it can't drift from it) with
+`Access-Control-Allow-Methods`/`Access-Control-Allow-Headers`, without
+requiring a token — a browser preflight can never carry the `Authorization`
+header at all, so answering it without one is not a security relaxation.
+The real request that follows a preflight is still fully gated by the
+bearer-token check described below.
+
 ### Pairing: the Enable Pairing button
 
 No code is typed or copied anywhere. The flow, as implemented
