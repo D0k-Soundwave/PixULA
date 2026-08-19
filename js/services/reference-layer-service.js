@@ -54,8 +54,45 @@ class ReferenceLayerServiceClass {
         this.lockAspectRatio = true;
         this.fitMode = 'none';
 
+        /*
+         * Which backend a companion-shaped link would be attributed to /
+         * validated against ('browser' | 'companion'). NOT persisted across
+         * reloads (matching BackupService's own scope decision - see its
+         * "Remaining scope note") and NOT consulted by loadImage() or
+         * fileFromHandle(): ImageSource.fileFromHandle() dispatches by the
+         * HANDLE'S OWN SHAPE, never by this flag, precisely so a handle
+         * restored from an old preset resolves by what it is rather than by
+         * whichever provider this session happens to prefer right now (see
+         * the shape-inference comment on ImageSource.fileFromHandle and the
+         * bug it heads off - BackupService.initialize() shipped that bug
+         * once already). This flag exists for API parity with
+         * BackupService.setProviderKind()/getProviderKind() (design spec
+         * s3.1: each feature picks its provider independently) and to give
+         * a future companion-based photo picker something to read.
+         */
+        this._providerKind = 'browser'; // 'browser' | 'companion'
+
         this._initialized = false;
         this._eventUnsubscribers = [];
+    }
+
+    /** @returns {'browser'|'companion'} which backend this link is currently set to */
+    getProviderKind() { return this._providerKind; }
+
+    /**
+     * Declare which backend this link should use. Falls back to 'browser'
+     * if the companion isn't paired, mirroring
+     * BackupService.setProviderKind() - choosing 'companion' before pairing
+     * must never leave the feature claiming a backend that cannot actually
+     * serve it.
+     */
+    setProviderKind(kind) {
+        if (kind === 'companion') {
+            const companionProvider = window.CompanionBridgeService && CompanionBridgeService.getProvider();
+            this._providerKind = companionProvider ? 'companion' : 'browser';
+        } else {
+            this._providerKind = 'browser';
+        }
     }
 
     /**
