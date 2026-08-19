@@ -12,12 +12,21 @@ const version = "0.1.0"
 type Server struct {
 	mux     *http.ServeMux
 	pairing *pairing
+	folders *folderStore
 }
 
 func newServer() *Server {
-	s := &Server{mux: http.NewServeMux(), pairing: newPairing()}
+	s := &Server{mux: http.NewServeMux(), pairing: newPairing(), folders: newFolderStore()}
 	s.mux.HandleFunc("GET /status", s.handleStatus)
 	s.mux.HandleFunc("POST /pair", s.pairing.HandlePair)
+
+	auth := s.pairing.requireToken
+	s.mux.Handle("POST /folders/choose", auth(http.HandlerFunc(s.handleFoldersChoose)))
+	s.mux.Handle("GET /folders", auth(http.HandlerFunc(s.handleFoldersList)))
+	s.mux.Handle("GET /folders/{id}/list", auth(http.HandlerFunc(s.handleFolderList)))
+	s.mux.Handle("GET /folders/{id}/file/{relpath...}", auth(http.HandlerFunc(s.handleFolderFile)))
+	s.mux.Handle("PUT /folders/{id}/file/{relpath...}", auth(http.HandlerFunc(s.handleFolderFile)))
+	s.mux.Handle("DELETE /folders/{id}/file/{relpath...}", auth(http.HandlerFunc(s.handleFolderFile)))
 	return s
 }
 
