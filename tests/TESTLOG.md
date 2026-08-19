@@ -101,7 +101,7 @@ browser smoke matrix — run against the old app at `H:\smsh` side by side.
 
 ### Drag previews (Phase-4 exit criterion — GridOverlay port)
 - [x] Shape tool: rubber-band preview while dragging line/rectangle/circle/… commits on release — AUTO (browser: input-mouse.spec; overlay pixel readback mid-drag + commit)
-- [x] Selection tool: drag preview + solid border after release (rect + lasso mask) — AUTO (browser: input-mouse.spec; rect border via overlay readback. Lasso preview: manual)
+- [x] Selection tool: drag preview + marching ants after release (rect + lasso mask) — AUTO (browser: input-mouse.spec; rect ants via overlay readback. Lasso preview: manual)
 - [ ] Gradient tool: two-phase flow — first drag previews, hover updates, click commits
 - [ ] Brush/eraser: compositor-accurate preview under cursor; eraser previews paper
 - [ ] Text tool: stamp preview follows cursor; click places floating stamp
