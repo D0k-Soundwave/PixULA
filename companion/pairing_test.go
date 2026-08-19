@@ -45,6 +45,45 @@ func TestPairResolvesOnEnablePairing(t *testing.T) {
 	}
 }
 
+func TestEnablePairingTwiceIsIdempotent(t *testing.T) {
+	p := newPairing()
+
+	// Simulate an accidental tray double-click within the arm window: two
+	// back-to-back calls before any /pair request has arrived. The second
+	// call must be a no-op (armed already true) so it never starts a
+	// second racing goroutine.
+	p.EnablePairing()
+	p.EnablePairing()
+
+	type result struct {
+		code int
+		body string
+	}
+	done := make(chan result, 1)
+	go func() {
+		req := httptest.NewRequest(http.MethodPost, "/pair", nil)
+		rec := httptest.NewRecorder()
+		p.HandlePair(rec, req)
+		done <- result{rec.Code, rec.Body.String()}
+	}()
+
+	select {
+	case r := <-done:
+		if r.code != http.StatusOK {
+			t.Fatalf("expected 200, got %d: %s", r.code, r.body)
+		}
+		if len(r.body) != 64 {
+			t.Fatalf("expected a 64-char hex token, got %d chars: %q", len(r.body), r.body)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("POST /pair never resolved after the double EnablePairing call")
+	}
+
+	if !p.IsPaired() {
+		t.Fatal("expected IsPaired() true after a successful pair")
+	}
+}
+
 func TestPairTimesOutWithoutEnablePairing(t *testing.T) {
 	p := newPairing()
 	p.pairTimeout = 30 * time.Millisecond // test-only override, see Step 3

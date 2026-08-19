@@ -52,6 +52,10 @@ func newToken() string {
 // waiting in HandlePair, resolves it immediately with a fresh token.
 func (p *pairing) EnablePairing() {
 	p.mu.Lock()
+	if p.armed {
+		p.mu.Unlock()
+		return
+	}
 	p.armed = true
 	p.armedAt = time.Now()
 	p.mu.Unlock()
