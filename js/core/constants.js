@@ -1035,6 +1035,7 @@ const EVENTS = Object.freeze({
     // Pattern events
     BACKUP_STATE_CHANGED: 'backup:stateChanged',
     BACKUP_WRITTEN: 'backup:written',
+    COMPANION_STATE_CHANGED: 'companion:stateChanged',
     PATTERN_CHANGED: 'pattern:changed',
     PATTERN_LIBRARY_FULL: 'pattern:libraryFull',
     PATTERN_LOADED: 'pattern:loaded',
