@@ -52,6 +52,14 @@ const KEEP_KEY = 'backupKeepVersions';
 /** `<base> V<n>.pixula` - the shape both the writer and the scanner agree on. */
 const VERSION_RE = /^(.*) V(\d+)\.pixula$/i;
 
+/**
+ * The companion has no notion of a folder "name" - `/folders/choose` hands
+ * back only an opaque folderId, never the OS path (see the design spec
+ * s4.3). This is the label passed to its native picker and shown back to
+ * the artist in place of a real folder name.
+ */
+const COMPANION_FOLDER_LABEL = 'PixULA Backups';
+
 class BackupServiceClass {
     constructor() {
         this.directory = null;
@@ -59,11 +67,35 @@ class BackupServiceClass {
         this.lastError = null;
         this.lastWritten = null;
         this._keep = DEFAULT_KEEP_VERSIONS;
+
+        this._providerKind = 'browser'; // 'browser' | 'companion'
+        this._browserProvider = new BrowserFSAProvider();
+        this._provider = this._browserProvider; // active provider, swappable via setProviderKind
     }
 
-    /** Is the browser able to do this at all? @returns {boolean} */
+    /** Is the active provider able to do this at all? @returns {boolean} */
     get isSupported() {
-        return typeof window.showDirectoryPicker === 'function';
+        return this._provider.isAvailable();
+    }
+
+    /** @returns {'browser'|'companion'} which backend this link currently uses */
+    getProviderKind() { return this._providerKind; }
+
+    /**
+     * Switch which backend this link uses. Per-feature, not global - see
+     * the design spec s3.1. Falls back to the browser provider if the
+     * companion isn't paired yet, so choosing 'companion' before pairing
+     * never leaves the service without a usable provider.
+     */
+    setProviderKind(kind) {
+        if (kind === 'companion') {
+            const companionProvider = CompanionBridgeService.getProvider();
+            this._provider = companionProvider || this._browserProvider;
+            this._providerKind = companionProvider ? 'companion' : 'browser';
+        } else {
+            this._provider = this._browserProvider;
+            this._providerKind = 'browser';
+        }
     }
 
     /** Is a folder configured (whether or not it is currently permitted)? */
@@ -97,7 +129,7 @@ class BackupServiceClass {
         if (typeof keep === 'number') this._keep = keep;
 
         const handle = await Storage.get(HANDLE_KEY);
-        if (!handle || typeof handle.getFileHandle !== 'function') {
+        if (!this._isValidFolderRef(handle)) {
             EventBus.emit(EVENTS.BACKUP_STATE_CHANGED, this.getState());
             return;
         }
@@ -120,12 +152,12 @@ class BackupServiceClass {
             return false;
         }
         try {
-            const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
-            if (!handle) return false;
-            this.directory = handle;
+            const folderRef = await this._provider.chooseFolder(COMPANION_FOLDER_LABEL);
+            if (!folderRef) return false;
+            this.directory = folderRef;
             this.needsPermission = (await this._permission(true)) !== 'granted';
-            await Storage.set(HANDLE_KEY, handle);
-            Logger.info('BackupService', `Backup folder set: ${handle.name}`);
+            await Storage.set(HANDLE_KEY, folderRef);
+            Logger.info('BackupService', `Backup folder set: ${this._folderName()}`);
             EventBus.emit(EVENTS.BACKUP_STATE_CHANGED, this.getState());
             return !this.needsPermission;
         } catch (error) {
@@ -183,10 +215,7 @@ class BackupServiceClass {
             const version = await this._nextVersion(base);
             const name = `${base} V${version}.pixula`;
 
-            const fileHandle = await this.directory.getFileHandle(name, { create: true });
-            const writable = await fileHandle.createWritable();
-            await writable.write(bytes);
-            await writable.close();
+            await this._provider.writeFile(this.directory, name, bytes);
 
             this.lastWritten = { name, version, bytes: bytes.length, at: Date.now() };
             this.lastError = null;
@@ -210,10 +239,10 @@ class BackupServiceClass {
         const base = this._sanitize(baseName);
         const found = [];
         try {
-            for await (const [name, handle] of this.directory.entries()) {
-                if (handle.kind !== 'file') continue;
-                const m = VERSION_RE.exec(name);
-                if (m && m[1] === base) found.push({ name, version: Number(m[2]) });
+            const files = await this._provider.listFiles(this.directory);
+            for (const file of files) {
+                const m = VERSION_RE.exec(file.name);
+                if (m && m[1] === base) found.push({ name: file.name, version: Number(m[2]) });
             }
         } catch (error) {
             Logger.warn('BackupService', 'Could not list versions', error);
@@ -228,16 +257,25 @@ class BackupServiceClass {
             configured: this.isConfigured,
             active: this.isActive,
             needsPermission: this.needsPermission,
-            folderName: this.directory ? this.directory.name : '',
+            folderName: this._folderName(),
             keepVersions: this._keep,
             lastWritten: this.lastWritten,
             lastError: this.lastError
         };
     }
 
-    /** @private */
+    /**
+     * FSA-specific: the companion has no equivalent permission state to poll -
+     * `CompanionBridgeService.getProvider()` only ever hands back a provider
+     * once paired, so a companion-backed link is 'granted' for as long as it
+     * has a folder at all. A folder that goes unreachable mid-session (the
+     * companion stops, a path leaves its authorized root) surfaces as an
+     * error on the operation that hit it, not as `needsPermission`.
+     * @private
+     */
     async _permission(request) {
         if (!this.directory) return 'denied';
+        if (this._providerKind === 'companion') return 'granted';
         const opts = { mode: 'readwrite' };
         try {
             let state = await this.directory.queryPermission(opts);
@@ -249,6 +287,24 @@ class BackupServiceClass {
             Logger.warn('BackupService', 'Permission check failed', error);
             return 'denied';
         }
+    }
+
+    /**
+     * A folder reference is opaque outside this file (FileSystemDirectoryHandle
+     * for the browser provider, a plain folderId string for the companion) -
+     * this is the one place that tells the two apart, to validate what came
+     * back out of storage and to pick a display name.
+     * @private
+     */
+    _isValidFolderRef(handle) {
+        if (!handle) return false;
+        return typeof handle === 'string' || typeof handle.getFileHandle === 'function';
+    }
+
+    /** @private */
+    _folderName() {
+        if (!this.directory) return '';
+        return this._providerKind === 'companion' ? COMPANION_FOLDER_LABEL : this.directory.name;
     }
 
     /**
@@ -272,7 +328,7 @@ class BackupServiceClass {
 
         for (const entry of versions.slice(this._keep)) {
             try {
-                await this.directory.removeEntry(entry.name);
+                await this._provider.deleteFile(this.directory, entry.name);
                 Logger.debug('BackupService', `Pruned ${entry.name}`);
             } catch (error) {
                 // A file the artist has open elsewhere is not our problem to
