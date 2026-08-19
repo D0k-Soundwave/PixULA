@@ -101,7 +101,7 @@ browser smoke matrix — run against the old app at `H:\smsh` side by side.
 
 ### Drag previews (Phase-4 exit criterion — GridOverlay port)
 - [x] Shape tool: rubber-band preview while dragging line/rectangle/circle/… commits on release — AUTO (browser: input-mouse.spec; overlay pixel readback mid-drag + commit)
-- [x] Selection tool: drag preview + marching ants after release (rect + lasso mask) — AUTO (browser: input-mouse.spec; rect ants via overlay readback. Lasso preview: manual)
+- [x] Selection tool: drag preview + solid border after release (rect + lasso mask) — AUTO (browser: input-mouse.spec; rect border via overlay readback. Lasso preview: manual)
 - [ ] Gradient tool: two-phase flow — first drag previews, hover updates, click commits
 - [ ] Brush/eraser: compositor-accurate preview under cursor; eraser previews paper
 - [ ] Text tool: stamp preview follows cursor; click places floating stamp
@@ -796,3 +796,31 @@ Manual matrix (deferred to the end-of-rebuild consolidated pass):
 - [x] A redo entry keeps only the layers the undo changed, not a full snapshot — AUTO (browser: undo-snapshot.spec)
 - [x] Redo still restores correctly after its entry was trimmed — AUTO (browser: undo-snapshot.spec)
 - [ ] Undo all the way back through 200+ strokes at Layer 2 640 with several layers, then redo all the way forward, and confirm the picture matches at both ends and the tab's memory does not climb
+
+## Companion file-access bridge (2026-08-19)
+An optional local Go binary (`companion/`) giving prompt-free folder access
+and real OS-font access; see `docs/COMPANION.md` for the architecture and
+security model. The pairing state machine, path-traversal/symlink-escape
+rejection and folder authorization are AUTO at the unit level (`go test
+./...` in `companion/`, separate from `node tests/run-all.js`); provider
+switching, the bridge's own state transitions and the HTTP client's request
+shaping are AUTO (node: `companion-bridge-service.test.js`,
+`companion-file-provider.test.js`, `backup-service-provider.test.js`,
+`reference-layer-service-provider.test.js`, `storage-companion-store.test.js`)
+with no real companion process involved. What remains needs an actual running
+binary, a real click on a real native window, and real OS state — exactly the
+bucket this file already keeps native file dialogs and pen/touch hardware in.
+As of this writing only pairing (Settings > Companion...) and system fonts
+(File > Font Editor... > From System Font...) are reachable through real UI;
+`BackupService`/`ReferenceLayerService` can already route through the
+companion (`setProviderKind()`) but no UI calls that yet, so there is nothing
+to manually test there until that hookup lands.
+- [ ] Companion: tray icon appears on launch; Enable Pairing click resolves a waiting PixULA tab within the 2-minute arm window (Windows/macOS/Linux)
+- [ ] Companion: a second Enable Pairing click while already armed is a no-op, not a restarted window
+- [ ] Companion: `/folders/choose` opens the OS's native folder picker; cancelling returns no folderId
+- [ ] Companion: `/fonts` lists real installed fonts on Windows, macOS, and Linux (with and without fontconfig present on Linux)
+- [ ] Companion: From System Font in the Font Editor loads a real installed font's bytes and rasterizes a legible glyph set at 4/6/8 cell width
+- [ ] Companion: Gatekeeper (macOS) / SmartScreen (Windows) warning appears on first run of the unsigned binary — expected, documented in `docs/COMPANION.md`
+- [ ] Companion: reload the PixULA tab after pairing — Check Again in Settings > Companion... reflects the paired state without re-pairing; killing the companion process and checking again reports not running
+- [ ] Companion: a token rejected by a restarted companion (401) drops PixULA back to the unpaired state and Settings > Companion... offers to pair again, rather than looping or erroring silently
+- [ ] Companion: `build.sh` run on a real Mac and a real Linux box each produce a working native binary — the documented limitation is that Windows/amd64 is the only target that reliably cross-builds from this dev environment (cgo+Cocoa for darwin; a `sqweek/dialog` non-cgo bug with no tagged release to pin around for the Linux cross-build path)
