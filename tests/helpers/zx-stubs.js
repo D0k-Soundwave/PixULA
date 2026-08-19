@@ -39,15 +39,18 @@ function installStubs(overrides = {}) {
     }
   };
   global.document.fonts = {
-    _fonts: [],
-    add(face) { this._fonts.push(face); },
-    delete(face) { this._fonts = this._fonts.filter(f => f !== face); }
+    _fonts: new Set(),
+    add(face) { this._fonts.add(face); },
+    delete(face) { this._fonts.delete(face); },
+    has(face) { return this._fonts.has(face); }
   };
 
   // Canvas 2D stub for FontRasterizer — fillText/getImageData/clearRect are no-ops
   // returning all-zero-alpha ImageData, which is enough for the contract test
   // (glyph count, byte shape, width masking). Real pixel-accurate rendering is
   // exercised only in the Playwright spec (Task 15).
+  // _testThrowOnGetImageDataCall allows tests to simulate errors mid-rasterization.
+  let _testThrowOnGetImageDataCall = 0;
   if (!global.document.createElement) {
     global.document.createElement = function(tag) {
       if (tag === 'canvas') {
@@ -61,6 +64,10 @@ function installStubs(overrides = {}) {
                 clearRect() {},
                 fillText() {},
                 getImageData(x, y, w, h) {
+                  _testThrowOnGetImageDataCall--;
+                  if (_testThrowOnGetImageDataCall === 0) {
+                    throw new Error('test: simulated canvas error');
+                  }
                   const imageData = {
                     data: new Uint8ClampedArray(w * h * 4),
                     width: w,
@@ -77,6 +84,9 @@ function installStubs(overrides = {}) {
       return null;
     };
   }
+  global._testCanvasThrowAfter = function(callCount) {
+    _testThrowOnGetImageDataCall = callCount;
+  };
 
   Object.assign(global, overrides);
 }
