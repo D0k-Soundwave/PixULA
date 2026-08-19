@@ -129,6 +129,43 @@ async function run() {
         }
         console.log('  ok: initialize() recognizes an unpaired companion folderId and stays unavailable rather than falling back to the browser provider');
     }
+
+    // chooseFolder() with the service's REAL label. BackupService passes
+    // COMPANION_FOLDER_LABEL ('PixULA Backups') straight into the provider,
+    // and the File System Access spec restricts its `id` option to
+    // [A-Za-z0-9_-] and 32 characters - so a provider that forwards the label
+    // as `id` makes Chrome throw a TypeError before a picker ever opens, and
+    // the Backup Folder picker cannot be configured at all, by anyone. This
+    // drives the whole real path (BackupService -> BrowserFSAProvider ->
+    // showDirectoryPicker) against a stub that enforces the spec's own rule.
+    {
+        mockStored.backupFolder = null;
+        const FSA_ID_RE = /^[A-Za-z0-9_-]*$/;
+        let seenOpts = null;
+        global.window.showDirectoryPicker = async (opts) => {
+            seenOpts = opts;
+            if (opts && 'id' in opts &&
+                (!FSA_ID_RE.test(String(opts.id)) || String(opts.id).length > 32)) {
+                throw new TypeError(
+                    `Failed to execute 'showDirectoryPicker' on 'Window': ID '${opts.id}' contains invalid characters.`);
+            }
+            return {
+                name: 'Backups',
+                getFileHandle() {},
+                async queryPermission() { return 'granted'; },
+                async requestPermission() { return 'granted'; }
+            };
+        };
+
+        const fresh = new (BackupService.constructor)();
+        const ok = await fresh.chooseFolder();
+        if (!ok) throw new Error(`expected chooseFolder() to succeed with the real label; lastError=${fresh.lastError}`);
+        if (!seenOpts || 'id' in seenOpts) {
+            throw new Error('BackupService.chooseFolder must reach showDirectoryPicker without an `id` option');
+        }
+        if (seenOpts.mode !== 'readwrite') throw new Error("expected { mode: 'readwrite' }");
+        console.log('  ok: chooseFolder() works with the real COMPANION_FOLDER_LABEL (no FSA `id` constraint violation)');
+    }
 }
 
 run().then(() => console.log('ALL CHECKS PASSED')).catch((e) => { console.error(e); process.exit(1); });

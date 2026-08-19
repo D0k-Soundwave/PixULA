@@ -17,7 +17,14 @@ class BrowserFSAProvider extends FileAccessProvider {
 
     async chooseFolder(label) {
         try {
-            return await window.showDirectoryPicker({ id: label, mode: 'readwrite' });
+            // `label` is deliberately NOT passed as the File System Access
+            // `id` option: that field is spec-restricted to [A-Za-z0-9_-] and
+            // 32 characters, and every real label this app passes ('PixULA
+            // Backups') contains a space, which makes Chrome throw a
+            // TypeError before a picker ever opens. Nothing here depends on
+            // FSA's per-id remembered starting directory, so the option is
+            // simply not used.
+            return await window.showDirectoryPicker({ mode: 'readwrite' });
         } catch (error) {
             if (error && error.name === 'AbortError') return null;
             throw error;
