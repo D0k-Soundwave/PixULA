@@ -824,6 +824,12 @@ const it = {
     'font.status.imported': 'Font importato.',
     'font.status.importFailed': 'Importazione non riuscita: {error}',
     'font.status.exported': 'Font esportato.',
+    'font.fromSystemFont': 'Da carattere di sistema...',
+    'font.chooseSystemFont': 'Scegli carattere di sistema',
+    'font.pointSize': 'Dimensione in punti',
+    'font.generate': 'Genera',
+    'font.systemFontNeedsCompanion': 'Collega il Compagno (Impostazioni > Compagno...) per usare i caratteri di sistema.',
+    'font.systemFontGenerated': 'Generato da {family}',
 
     // Screen modes + ULAplus (Phase 12a)
     'mode.standardUla': 'ULA standard',

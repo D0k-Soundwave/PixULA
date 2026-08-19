@@ -824,6 +824,12 @@ const pl = {
     'font.status.imported': 'Czcionka zaimportowana.',
     'font.status.importFailed': 'Import nie powiódł się: {error}',
     'font.status.exported': 'Czcionka wyeksportowana.',
+    'font.fromSystemFont': 'Z czcionki systemowej...',
+    'font.chooseSystemFont': 'Wybierz czcionkę systemową',
+    'font.pointSize': 'Rozmiar w punktach',
+    'font.generate': 'Generuj',
+    'font.systemFontNeedsCompanion': 'Połącz Towarzysza (Ustawienia > Towarzysz...), aby używać czcionek systemowych.',
+    'font.systemFontGenerated': 'Wygenerowano z {family}',
 
     // Screen modes + ULAplus (Phase 12a)
     'mode.standardUla': 'Standardowe ULA',

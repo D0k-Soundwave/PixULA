@@ -845,6 +845,12 @@ const en = {
     'font.status.imported': 'Font imported.',
     'font.status.importFailed': 'Import failed: {error}',
     'font.status.exported': 'Font exported.',
+    'font.fromSystemFont': 'From System Font...',
+    'font.chooseSystemFont': 'Choose System Font',
+    'font.pointSize': 'Point size',
+    'font.generate': 'Generate',
+    'font.systemFontNeedsCompanion': 'Connect the Companion (Settings > Companion...) to use system fonts.',
+    'font.systemFontGenerated': 'Generated from {family}',
 
     // Screen modes + ULAplus (Phase 12a)
     'mode.standardUla': 'Standard ULA',

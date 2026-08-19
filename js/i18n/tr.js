@@ -824,6 +824,12 @@ const tr = {
     'font.status.imported': 'Yazı tipi içe aktarıldı.',
     'font.status.importFailed': 'İçe aktarma başarısız: {error}',
     'font.status.exported': 'Yazı tipi dışa aktarıldı.',
+    'font.fromSystemFont': 'Sistem Yazı Tipinden...',
+    'font.chooseSystemFont': 'Sistem yazı tipi seç',
+    'font.pointSize': 'Punto boyutu',
+    'font.generate': 'Oluştur',
+    'font.systemFontNeedsCompanion': 'Sistem yazı tiplerini kullanmak için Yardımcıyı bağlayın (Ayarlar > Yardımcı...).',
+    'font.systemFontGenerated': '{family} yazı tipinden oluşturuldu',
 
     // Screen modes + ULAplus (Phase 12a)
     'mode.standardUla': 'Standart ULA',

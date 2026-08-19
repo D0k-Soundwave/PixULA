@@ -70,6 +70,32 @@ class CompanionFileProvider extends FileAccessProvider {
         if (!res.ok) throw new Error(`companion: deleteFile failed (${res.status})`);
         return true;
     }
+
+    /**
+     * List OS-installed fonts the companion can see. Each entry is
+     * { fontId, family, style } — no font bytes here, that is readFontFile.
+     * @returns {Promise<Array<{fontId:string, family:string, style:string}>>}
+     */
+    async listFonts() {
+        const res = await fetch(`${COMPANION_BASE_URL}/fonts`, { headers: this._headers() });
+        if (!res.ok) throw new Error(`companion: listFonts failed (${res.status})`);
+        return res.json();
+    }
+
+    /**
+     * Read one system font's raw file bytes (TTF/OTF) by id, for
+     * client-side rasterization (FontRasterizer) — no font rendering ever
+     * happens in the companion itself.
+     * @param {string} fontId
+     * @returns {Promise<ArrayBuffer>}
+     */
+    async readFontFile(fontId) {
+        const res = await fetch(`${COMPANION_BASE_URL}/fonts/${encodeURIComponent(fontId)}/file`, {
+            headers: this._headers()
+        });
+        if (!res.ok) throw new Error(`companion: readFontFile failed (${res.status})`);
+        return res.arrayBuffer();
+    }
 }
 
 window.CompanionFileProvider = CompanionFileProvider;

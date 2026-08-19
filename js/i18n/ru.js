@@ -824,6 +824,12 @@ const ru = {
     'font.status.imported': 'Шрифт импортирован.',
     'font.status.importFailed': 'Ошибка импорта: {error}',
     'font.status.exported': 'Шрифт экспортирован.',
+    'font.fromSystemFont': 'Из системного шрифта...',
+    'font.chooseSystemFont': 'Выбрать системный шрифт',
+    'font.pointSize': 'Размер в пунктах',
+    'font.generate': 'Создать',
+    'font.systemFontNeedsCompanion': 'Подключите Компаньона (Настройки > Компаньон...), чтобы использовать системные шрифты.',
+    'font.systemFontGenerated': 'Создано из {family}',
 
     // Screen modes + ULAplus (Phase 12a)
     'mode.standardUla': 'Стандартный ULA',

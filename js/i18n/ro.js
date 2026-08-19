@@ -824,6 +824,12 @@ const ro = {
     'font.status.imported': 'Fontul a fost importat.',
     'font.status.importFailed': 'Importul a eșuat: {error}',
     'font.status.exported': 'Fontul a fost exportat.',
+    'font.fromSystemFont': 'Din font de sistem...',
+    'font.chooseSystemFont': 'Alege font de sistem',
+    'font.pointSize': 'Dimensiune în puncte',
+    'font.generate': 'Generează',
+    'font.systemFontNeedsCompanion': 'Conectați Însoțitorul (Setări > Însoțitor...) pentru a folosi fonturile de sistem.',
+    'font.systemFontGenerated': 'Generat din {family}',
 
     // Screen modes + ULAplus (Phase 12a)
     'mode.standardUla': 'ULA standard',

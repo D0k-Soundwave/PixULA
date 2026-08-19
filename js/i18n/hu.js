@@ -824,6 +824,12 @@ const hu = {
     'font.status.imported': 'Betűkészlet importálva.',
     'font.status.importFailed': 'Az importálás nem sikerült: {error}',
     'font.status.exported': 'Betűkészlet exportálva.',
+    'font.fromSystemFont': 'Rendszer-betűkészletből...',
+    'font.chooseSystemFont': 'Rendszer-betűkészlet kiválasztása',
+    'font.pointSize': 'Pontméret',
+    'font.generate': 'Létrehozás',
+    'font.systemFontNeedsCompanion': 'Csatlakoztassa a Kísérőt (Beállítások > Kísérő...) a rendszer-betűkészletek használatához.',
+    'font.systemFontGenerated': 'Létrehozva ebből: {family}',
 
     // Screen modes + ULAplus (Phase 12a)
     'mode.standardUla': 'Szabványos ULA',
