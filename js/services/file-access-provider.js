@@ -16,7 +16,13 @@
 class FileAccessProvider {
     /** @returns {Promise<*|null>} folderRef, or null if the artist cancelled */
     async chooseFolder(label) { throw new Error('Not implemented'); }
-    /** @returns {Promise<{name:string,size:number,mtime:number}[]>} */
+    /**
+     * `mtime` is MILLISECONDS since the Unix epoch - the File API's
+     * `file.lastModified` / `Date.now()` convention - in EVERY provider. The
+     * companion converts on its own side (Go's UnixMilli) so a caller never
+     * has to know which backend a listing came from.
+     * @returns {Promise<{name:string,size:number,mtime:number}[]>}
+     */
     async listFiles(folderRef) { throw new Error('Not implemented'); }
     /** @returns {Promise<ArrayBuffer>} */
     async readFile(folderRef, relPath) { throw new Error('Not implemented'); }

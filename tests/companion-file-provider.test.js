@@ -86,6 +86,38 @@ async function run() {
     const deleteResult = await provider.deleteFile(folderRef, 'v1.pixula');
     if (deleteResult !== true) throw new Error('deleteFile should return true on success');
     console.log('  ok: deleteFile returns true on success');
+
+    // chooseFolder: a cancelled picker and a failed one must not look the
+    // same. Only the companion's 204 ("picker closed, nothing chosen") may
+    // return null - BackupService reads null as "the artist pressed Escape"
+    // and reports nothing, so a 401 from a token a restarted companion no
+    // longer knows, or a 500 from a picker that could not open, would
+    // otherwise vanish without a message or a lastError.
+    // (a real 204 Response has ok === true and an empty body, so the null
+    // must come from the status check, never from a body parse)
+    global.fetch = async () => ({
+        ok: true, status: 204,
+        json: async () => { throw new Error('a 204 carries no body to parse'); }
+    });
+    if (await provider.chooseFolder('Backups') !== null) {
+        throw new Error('expected chooseFolder to return null on 204 (genuine cancellation)');
+    }
+    console.log('  ok: chooseFolder returns null only for a cancelled picker (204)');
+
+    for (const status of [401, 403, 500]) {
+        global.fetch = async () => ({ ok: false, status });
+        let threw = null;
+        try {
+            await provider.chooseFolder('Backups');
+        } catch (e) {
+            threw = e;
+        }
+        if (!threw) throw new Error(`expected chooseFolder to throw on ${status}, not return null like a cancellation`);
+        if (!threw.message.includes(String(status))) {
+            throw new Error(`expected the ${status} status in the error message, got: ${threw.message}`);
+        }
+    }
+    console.log('  ok: chooseFolder throws on 401/403/500 rather than reporting a cancellation');
 }
 
 run().then(() => console.log('ALL CHECKS PASSED')).catch((e) => { console.error(e); process.exit(1); });

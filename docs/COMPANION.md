@@ -251,9 +251,9 @@ All endpoints except `/status` and `/pair` require
 |---|---|---|
 | GET | `/status` | Existence/version check, unauthenticated |
 | POST | `/pair` | Long-poll pairing (see above) |
-| POST | `/folders/choose` | Native folder picker -> `{folderId, label}` |
+| POST | `/folders/choose` | Native folder picker -> `{folderId, label}`; **204** if the artist cancelled the picker, 500 if it failed |
 | GET | `/folders` | List authorized folders (id, label) |
-| GET | `/folders/:id/list` | Directory listing (name, size, mtime) |
+| GET | `/folders/:id/list` | Directory listing (name, size, mtime — mtime in **milliseconds** since the epoch, matching the browser provider's `file.lastModified`) |
 | GET | `/folders/:id/file/:relpath` | Read file bytes |
 | PUT | `/folders/:id/file/:relpath` | Write file bytes |
 | DELETE | `/folders/:id/file/:relpath` | Delete file (backup retention pruning) |
@@ -273,8 +273,14 @@ bytes (`GET /fonts/:id/file`) — no font-rendering code runs in the
 companion at all. Rasterization happens entirely client-side: PixULA loads
 the bytes with the standard `FontFace` API, the artist picks a point size
 and cell width (4/6/8, matching `FontService`'s existing width model), and
-glyphs are rendered to an offscreen canvas and thresholded into the same
-row-byte bitmap format every other glyph source produces. Once generated,
+glyphs are rendered to an offscreen canvas and reduced to the same row-byte
+bitmap format every other glyph source produces. That reduction is real
+work rather than a plain threshold (`js/utils/font-rasterizer.js`): each
+glyph is drawn at 4x into a supersampled canvas, box-filtered down to one
+coverage fraction per output pixel, and inked at 40% coverage, with every
+glyph sharing one baseline computed from the whole set's ink bounds and the
+render size capped so those bounds fit the 8-row cell. A single-sample
+opacity test at this size renders most text blank. Once generated,
 it is a normal saved font — the text tool, warp/effects pipeline, and
 library need zero changes.
 
@@ -288,8 +294,9 @@ isolated behind Go build tags (`fonts_windows.go`, `fonts_darwin.go`,
 |---|---|
 | Companion not running | `GET /status` fails to connect; feature reports unavailable, falls back to its normal browser-native path where one exists |
 | Companion running, unpaired | Feature reports "not connected"; Companion dialog offers to pair |
-| Token rejected (401) | Bridge clears the stored token, re-enters the unpaired state, surfaces the same "not connected" status |
+| Companion restarted (its token is memory-only, so every previously issued token is dead) | The failing call surfaces its own error (401). `CompanionBridgeService.checkStatus()` reads `paired` from `/status`, and a companion that is running while reporting `paired: false` provably holds no token — so the stored one is cleared and the bridge re-enters the unpaired state. That check runs whenever the Companion dialog opens or Check Again is pressed, which is what puts the Connect button back |
 | Path outside authorized folder (403) | Surfaced as an error on that specific operation; does not affect pairing state |
+| Folder picker cancelled vs. failed | A cancelled picker answers 204 and is reported as a silent no-op; any other status throws, so a stale token or a broken picker cannot masquerade as "the artist pressed Escape" |
 
 No condition here differs in kind from what `BackupService.needsPermission`
 already models — this reuses that shape rather than inventing a second

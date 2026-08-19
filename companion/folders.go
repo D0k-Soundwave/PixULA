@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"os"
@@ -23,10 +24,20 @@ type folderRecord struct {
 type folderStore struct {
 	mu      sync.Mutex
 	folders map[string]folderRecord
+	// browse opens the OS's own folder picker. It is a field rather than a
+	// direct call so the choose route's cancelled-vs-failed handling can be
+	// tested without a real native dialog; production always uses the
+	// dialog package, wired in newFolderStore.
+	browse func(label string) (string, error)
 }
 
 func newFolderStore() *folderStore {
-	return &folderStore{folders: make(map[string]folderRecord)}
+	return &folderStore{
+		folders: make(map[string]folderRecord),
+		browse: func(label string) (string, error) {
+			return dialog.Directory().Title("Choose a folder for PixULA: " + label).Browse()
+		},
+	}
 }
 
 func newFolderID() string {
@@ -97,7 +108,7 @@ func (fs *folderStore) Resolve(id, relPath string) (string, bool) {
 }
 
 func (fs *folderStore) Choose(label string) (folderRecord, error) {
-	dir, err := dialog.Directory().Title("Choose a folder for PixULA: " + label).Browse()
+	dir, err := fs.browse(label)
 	if err != nil {
 		return folderRecord{}, err
 	}
@@ -127,7 +138,17 @@ func (s *Server) handleFoldersChoose(w http.ResponseWriter, r *http.Request) {
 	json.NewDecoder(r.Body).Decode(&body)
 	rec, err := s.folders.Choose(body.Label)
 	if err != nil {
-		http.Error(w, "cancelled or failed: "+err.Error(), http.StatusBadRequest)
+		// A cancelled picker and a broken one must not look the same to
+		// PixULA: 204 (nothing chosen) is the ONE response the client maps
+		// to "the artist pressed Escape" and reports silently. Anything
+		// else - a picker that could not open, an OS-level failure - is a
+		// real error the client surfaces, exactly like the browser
+		// provider, which swallows only AbortError and rethrows the rest.
+		if errors.Is(err, dialog.ErrCancelled) {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		http.Error(w, "folder picker failed: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	json.NewEncoder(w).Encode(map[string]string{"folderId": rec.ID, "label": rec.Label})
@@ -138,9 +159,13 @@ func (s *Server) handleFoldersList(w http.ResponseWriter, r *http.Request) {
 }
 
 type fileEntry struct {
-	Name  string `json:"name"`
-	Size  int64  `json:"size"`
-	Mtime int64  `json:"mtime"`
+	Name string `json:"name"`
+	Size int64  `json:"size"`
+	// Mtime is MILLISECONDS since the Unix epoch, matching what the browser
+	// provider reports (File.lastModified) and JavaScript's own Date.now().
+	// The two providers are interchangeable behind one interface, so a
+	// consumer must never have to ask which backend produced a timestamp.
+	Mtime int64 `json:"mtime"`
 }
 
 func (s *Server) handleFolderList(w http.ResponseWriter, r *http.Request) {
@@ -164,7 +189,7 @@ func (s *Server) handleFolderList(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			continue
 		}
-		out = append(out, fileEntry{Name: e.Name(), Size: info.Size(), Mtime: info.ModTime().Unix()})
+		out = append(out, fileEntry{Name: e.Name(), Size: info.Size(), Mtime: info.ModTime().UnixMilli()})
 	}
 	json.NewEncoder(w).Encode(out)
 }

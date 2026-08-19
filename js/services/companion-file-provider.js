@@ -32,7 +32,15 @@ class CompanionFileProvider extends FileAccessProvider {
             headers: this._headers({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ label })
         });
-        if (!res.ok) return null;
+        // 204 is the companion's "picker closed, nothing chosen" - the only
+        // response that means the artist cancelled, and the only one that may
+        // return null: BackupService reads a null return as "pressed Escape"
+        // and reports nothing at all, so collapsing a 401 (a token a
+        // restarted companion no longer knows) or a 500 into it would hide a
+        // real failure behind a silent no-op. Everything else throws, exactly
+        // as BrowserFSAProvider rethrows anything that is not an AbortError.
+        if (res.status === 204) return null;
+        if (!res.ok) throw new Error(`companion: chooseFolder failed (${res.status})`);
         const body = await res.json();
         return body.folderId;
     }
