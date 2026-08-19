@@ -110,6 +110,11 @@ class InputHandlerClass {
     // mouse cursor is deliberately not precise input; see _notePreciseInput.
     // The window itself is TOUCH_DEFAULTS.lockoutMs, a live preference.
     this._lastPreciseTime = 0;
+    // Once true, pressure sensitivity is permanently resolved (explicit
+    // choice or already on) and _maybeAutoEnablePressure has nothing left
+    // to decide — cached so the pen hover/move hot path stops re-reading
+    // StateManager for it after the first resolution.
+    this._pressureAutoDecided = false;
     // Set for the life of one touch when the policy said navigate: the pan
     // branch reads it instead of re-deciding, so one contact gets one verdict.
     this._touchNavigating = false;
@@ -173,6 +178,7 @@ class InputHandlerClass {
       this._keyboardDoc = iframeDoc;
       this._attachKeyboardEvents(iframeDoc); // keys while canvas has focus
       this._suppressIframeContextMenu(iframeDoc);
+      this._closeMenusOnIframeInteraction(iframeDoc);
       this._preventDefaults();
 
       // Chromium re-navigates srcdoc iframes on file:// after the initial
@@ -412,6 +418,21 @@ class InputHandlerClass {
       outer.addEventListener('contextmenu', prevent, true);
       outer.addEventListener('contextmenu', prevent);
     }
+  }
+
+  /**
+   * Close any open menu-bar dropdown the moment a pointer goes down on the
+   * canvas. MenuSystem's own click-outside handler lives on the top
+   * document and never sees this: the iframe is a separate document, and it
+   * covers most of the screen, so without this a menu only closed on a
+   * second click or Escape.
+   * @param {Document} iframeDoc
+   * @private
+   */
+  _closeMenusOnIframeInteraction(iframeDoc) {
+    iframeDoc.addEventListener('pointerdown', () => {
+      if (window.MenuSystem) MenuSystem.closeAllMenus();
+    }, true);
   }
 
   /** @private */
@@ -1167,9 +1188,14 @@ class InputHandlerClass {
    * @private
    */
   _maybeAutoEnablePressure() {
-    if (StateManager.get('pressureSensitivityExplicit') === true) return;
-    if (StateManager.get('pressureSensitivity') === true) return;
+    if (this._pressureAutoDecided) return;
+    if (StateManager.get('pressureSensitivityExplicit') === true ||
+        StateManager.get('pressureSensitivity') === true) {
+      this._pressureAutoDecided = true;
+      return;
+    }
     StateManager.set('pressureSensitivity', true);
+    this._pressureAutoDecided = true;
   }
 
   /**

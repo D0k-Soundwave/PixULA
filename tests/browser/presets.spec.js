@@ -214,7 +214,7 @@ test('the tool preset bar sits BELOW the tool options and survives a tool change
         // what you reach for once the options above it are set
         const order = await page.evaluate(() => {
             const content = document.getElementById('tool-options-panel-content');
-            const bar = document.querySelector('.preset-bar');
+            const bar = document.querySelector('#tool-options-panel .preset-bar');
             // Node.DOCUMENT_POSITION_FOLLOWING === 4
             return (content.compareDocumentPosition(bar) & 4) === 4;
         });

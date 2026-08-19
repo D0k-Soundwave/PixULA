@@ -122,13 +122,12 @@ class MenuSystemClass {
                 label: 'File',
                 items: [
                     { id: 'new', label: 'New', shortcut: 'Ctrl+N', action: 'file:new' },
-                    { id: 'open', label: 'Open...', shortcut: 'Ctrl+O', action: 'file:open' },
+                    { id: 'import', label: 'Load...', shortcut: 'Ctrl+O', action: 'file:import' },
+                    { id: 'export', label: 'Save...', shortcut: 'Ctrl+E', action: 'file:export' },
                     { type: 'separator' },
+                    { id: 'load-project', label: 'Load Project...', action: 'file:loadProject' },
                     { id: 'save', label: 'Save Project', shortcut: 'Ctrl+S', action: 'file:save' },
                     { id: 'save-as', label: 'Save Project As...', shortcut: 'Ctrl+Shift+S', action: 'file:saveAs' },
-                    { type: 'separator' },
-                    { id: 'export', label: 'Export...', shortcut: 'Ctrl+E', action: 'file:export' },
-                    { id: 'import', label: 'Import...', action: 'file:import' },
                     { type: 'separator' },
                     // A palette is a document of its own in every editor that
                     // supports custom palettes: you build one and reuse it
@@ -136,6 +135,7 @@ class MenuSystemClass {
                     // just two entries buried in the Export format list.
                     { id: 'load-palette', label: 'Load Palette...', action: 'file:loadPalette' },
                     { id: 'save-palette', label: 'Save Palette...', action: 'file:savePalette' },
+                    { id: 'create-palette', label: 'Create Palette...', action: 'file:createPalette' },
                     { type: 'separator' },
                     { id: 'tape-blocks', label: 'Tape Blocks...', action: 'file:tapeBlocks' },
                     { id: 'map-editor', label: 'Map Editor...', action: 'file:mapEditor' },
@@ -535,6 +535,16 @@ class MenuSystemClass {
     }
 
     /**
+     * Public close-outside hook. The document 'click' listener above cannot
+     * see a click inside the canvas iframe - it is a separate document, and
+     * it covers most of the screen - so InputHandler calls this directly on
+     * pointerdown there instead.
+     */
+    closeAllMenus() {
+        this._closeAllMenus();
+    }
+
+    /**
      * Execute a menu action — direct singleton calls (commands go down)
      * @private
      */
@@ -542,12 +552,13 @@ class MenuSystemClass {
         switch (actionId) {
             // File
             case 'file:new':    FileManager.newFile();  break;
-            case 'file:open':   FileManager.openFile(); break;
             case 'file:save':   FileManager.save();     break;
             case 'file:saveAs': FileManager.saveAs();   break;
             case 'file:export': this._showExportDialog(); break;
+            case 'file:loadProject': FileManager.loadProjectFile(); break;
             case 'file:loadPalette': PaletteEditorDialog.loadFromFile(); break;
             case 'file:savePalette': PaletteEditorDialog.saveToFile(); break;
+            case 'file:createPalette': PaletteEditorDialog.create(); break;
             case 'file:import': FileManager.openFile(); break;
             case 'file:tapeBlocks': TapeBlockDialog.openForFile(); break;
             case 'file:mapEditor': MapEditorDialog.open(); break;
@@ -874,7 +885,7 @@ class MenuSystemClass {
     _showShortcuts() {
         const shortcuts = [
             ['Ctrl+N', this._t('app.new', 'New')],
-            ['Ctrl+O', this._t('app.open', 'Open')],
+            ['Ctrl+O', this._t('app.open', 'Load')],
             ['Ctrl+S', this._t('app.save', 'Save Project')],
             ['Ctrl+Z', this._t('app.undo', 'Undo')],
             ['Ctrl+Y', this._t('app.redo', 'Redo')],
@@ -925,6 +936,14 @@ class MenuSystemClass {
                        min="0" max="60" step="1" value="0">
             </label>
             <label class="pref-row">
+                <span data-i18n="pref.defaultScreenMode">${this._t('pref.defaultScreenMode', 'New document screen type')}</span>
+                <select id="pref-default-screen-mode" name="pref-default-screen-mode">
+                    ${(window.ScreenModeService ? ScreenModeService.getModes() : []).map(m =>
+                        `<option value="${m.id}" data-i18n="${m.i18n}">${this._t(m.i18n, m.id)}</option>`).join('')}
+                </select>
+            </label>
+            <div class="pref-block__hint" data-i18n="pref.defaultScreenModeHint">${this._t('pref.defaultScreenModeHint', 'The screen mode File > New starts a blank canvas in.')}</div>
+            <label class="pref-row">
                 <input type="checkbox" id="pref-restore-on-boot" name="pref-restore-on-boot" checked>
                 <span data-i18n="pref.restoreOnBoot">${this._t('pref.restoreOnBoot', 'Offer to restore unsaved work on start')}</span>
             </label>
@@ -932,6 +951,10 @@ class MenuSystemClass {
             <label class="pref-row">
                 <input type="checkbox" id="pref-confirm-clear" name="pref-confirm-clear" checked>
                 <span data-i18n="pref.confirmClear">${this._t('pref.confirmClear', 'Confirm before clearing')}</span>
+            </label>
+            <label class="pref-row">
+                <input type="checkbox" id="pref-show-presets-panel" name="pref-show-presets-panel">
+                <span data-i18n="pref.showPresetsPanel">${this._t('pref.showPresetsPanel', 'Show Presets panel in sidebar')}</span>
             </label>
             <div class="pref-block" id="pref-backup">
                 <div class="pref-block__label" data-i18n="pref.backupFolder">${this._t('pref.backupFolder', 'Backup folder')}</div>
@@ -1034,11 +1057,28 @@ class MenuSystemClass {
         this._initPrivacyPreferences(content);
         // Reflect the live state (seeded from Storage at boot)
         const autosaveMinutes = content.querySelector('#pref-autosave-minutes');
-        if (autosaveMinutes) autosaveMinutes.value = String(StateManager.getAutosaveMinutes());
+        if (autosaveMinutes) {
+            autosaveMinutes.value = String(StateManager.getAutosaveMinutes());
+            // A number input left EMPTY has no value for the spinner to step
+            // from, so the HTML stepping algorithm falls back to a base of 0
+            // and the very first spinner click lands on 1 - not the 0 the
+            // empty field actually reads as. Snapping empty back to '0' the
+            // instant it happens means the spinner always steps from the
+            // value on screen, matching what a clamp on save would store.
+            autosaveMinutes.addEventListener('input', () => {
+                if (autosaveMinutes.value === '') autosaveMinutes.value = '0';
+            });
+        }
+        const defaultScreenMode = content.querySelector('#pref-default-screen-mode');
+        if (defaultScreenMode) {
+            defaultScreenMode.value = StateManager.get('defaultScreenMode') || 'standard_ula';
+        }
         const restoreOnBoot = content.querySelector('#pref-restore-on-boot');
         if (restoreOnBoot) restoreOnBoot.checked = StateManager.get('restoreOnBoot') !== false;
         const confirmClear = content.querySelector('#pref-confirm-clear');
         if (confirmClear) confirmClear.checked = StateManager.get('confirmClear') !== false;
+        const showPresetsPanel = content.querySelector('#pref-show-presets-panel');
+        if (showPresetsPanel) showPresetsPanel.checked = StateManager.get('showPresetsPanel') === true;
         const pixelPerfect = content.querySelector('#pref-pixel-perfect');
         if (pixelPerfect) pixelPerfect.checked = StateManager.get('pixelPerfect') === true;
         const resetDrawMode = content.querySelector('#pref-reset-draw-mode');
@@ -1445,8 +1485,10 @@ class MenuSystemClass {
     /** @private */
     _savePreferences(dialog) {
         const autosaveEl = dialog.querySelector('#pref-autosave-minutes');
+        const defaultScreenModeEl = dialog.querySelector('#pref-default-screen-mode');
         const restoreOnBoot = dialog.querySelector('#pref-restore-on-boot');
         const confirmClear = dialog.querySelector('#pref-confirm-clear');
+        const showPresetsPanel = dialog.querySelector('#pref-show-presets-panel');
         const pixelPerfect = dialog.querySelector('#pref-pixel-perfect');
         const resetDrawMode = dialog.querySelector('#pref-reset-draw-mode');
         const nudgeStepEl = dialog.querySelector('#pref-nudge-step');
@@ -1469,8 +1511,10 @@ class MenuSystemClass {
         if (autosaveEl) {
             StateManager.setAutosaveMinutes(clamp(parseInt(autosaveEl.value, 10) || 0, 0, 60));
         }
+        if (defaultScreenModeEl) StateManager.set('defaultScreenMode', defaultScreenModeEl.value);
         if (restoreOnBoot) StateManager.set('restoreOnBoot', restoreOnBoot.checked);
         if (confirmClear) StateManager.set('confirmClear', confirmClear.checked);
+        if (showPresetsPanel) StateManager.set('showPresetsPanel', showPresetsPanel.checked);
         if (pixelPerfect) StateManager.set('pixelPerfect', pixelPerfect.checked);
         if (resetDrawMode) StateManager.set('resetDrawModeOnTool', resetDrawMode.checked);
         if (nudgeStepEl) StateManager.set('nudgeStep', nudgeStep);
@@ -1505,8 +1549,10 @@ class MenuSystemClass {
 
         Storage.set('preferences', {
             autosaveMinutes: StateManager.getAutosaveMinutes(),
+            defaultScreenMode: defaultScreenModeEl?.value,
             restoreOnBoot: restoreOnBoot?.checked,
             confirmClear: confirmClear?.checked,
+            showPresetsPanel: showPresetsPanel?.checked,
             pixelPerfect: pixelPerfect?.checked,
             resetDrawModeOnTool: resetDrawMode?.checked,
             nudgeStep,

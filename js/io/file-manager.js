@@ -180,10 +180,19 @@ class FileManagerClass {
       if (!confirmed) return false;
     }
 
-    // New always produces the standard blank ZX canvas — Paper White, Ink Black —
-    // with no further prompts, mirroring a fresh page reload. WHITE_PAPER is the
+    // New always produces a blank canvas with no further prompts, mirroring a
+    // fresh page reload — Paper White, Ink Black. WHITE_PAPER is the
     // conventional non-bright white background.
     const WHITE_PAPER = 7;
+
+    // Switch to the artist's preferred default screen mode (Preferences >
+    // New document screen type) FIRST, so every reset step below builds at
+    // the right geometry. applyModeRaw is the conversion-free restore path —
+    // correct here since a blank canvas has no content to preserve.
+    if (window.ScreenModeService && window.StateManager) {
+      const defaultMode = StateManager.get('defaultScreenMode');
+      if (defaultMode) ScreenModeService.applyModeRaw(defaultMode);
+    }
 
     // Reset layers
     LayerManager.reset();
@@ -243,6 +252,43 @@ class FileManagerClass {
       });
 
       // Handle cancel
+      input.addEventListener('cancel', () => resolve(false));
+
+      input.click();
+    });
+  }
+
+  /**
+   * Open a file, but only accept .pixula project files — File > Load
+   * Project..., picked out from the universal Load (openFile) for the
+   * artist who specifically wants their own project files, not any
+   * importable format. `accept` restricts the OS picker; the extension
+   * check below covers a picker that lets the filter be overridden.
+   * @returns {Promise<boolean>} True if the project loaded successfully
+   */
+  async loadProjectFile() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.pixula';
+
+    return new Promise((resolve) => {
+      input.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) {
+          resolve(false);
+          return;
+        }
+        if (FormatRegistry.getExtension(file.name) !== 'pixula') {
+          Logger.error('FileManager', `Not a project file: ${file.name}`);
+          EventBus.emit(EVENTS.FILE_ERROR, { message: 'That is not a .pixula project file.' });
+          resolve(false);
+          return;
+        }
+
+        const success = await this.loadFile(file);
+        resolve(success);
+      });
+
       input.addEventListener('cancel', () => resolve(false));
 
       input.click();

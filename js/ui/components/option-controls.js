@@ -165,9 +165,14 @@ class OptionControlsClass {
         return row;
     }
 
+    /** The tool-getter method name a schema entry's key reads from. @private */
+    _getterName(entry) {
+        return 'get' + entry.key.charAt(0).toUpperCase() + entry.key.slice(1);
+    }
+
     /** Initial value: tool getter wins over schema default. @private */
     _initialValue(tool, entry) {
-        const getter = 'get' + entry.key.charAt(0).toUpperCase() + entry.key.slice(1);
+        const getter = this._getterName(entry);
         const value = (typeof tool[getter] === 'function') ? tool[getter]() : entry.value;
         this._values[entry.key] = value;
         return value;
@@ -398,7 +403,7 @@ class OptionControlsClass {
             // size excluded for a poor round shape) - re-read the tool so
             // the slider and label show what actually took effect, not a
             // number the drag passed through but the tool rejected.
-            const getter = 'get' + entry.key.charAt(0).toUpperCase() + entry.key.slice(1);
+            const getter = this._getterName(entry);
             if (typeof tool[getter] === 'function') {
                 const actual = tool[getter]();
                 if (actual !== undefined && String(actual) !== range.value) {
@@ -605,7 +610,7 @@ class OptionControlsClass {
     _bindSyncRows(tool) {
         for (const { entry, inputEl } of this._rows) {
             if (!entry.syncEvent || !inputEl) continue;
-            const getter = 'get' + entry.key.charAt(0).toUpperCase() + entry.key.slice(1);
+            const getter = this._getterName(entry);
             if (typeof tool[getter] !== 'function') {
                 Logger.warn('OptionControls', `${tool.id}: syncEvent on '${entry.key}' needs a ${getter}() getter`);
                 continue;

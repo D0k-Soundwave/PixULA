@@ -168,6 +168,7 @@ class AppClass {
         StateManager.set('paper', 7);
         StateManager.set('bright', false);
         StateManager.set('flash', false);
+        StateManager.set('showPresetsPanel', false);
 
         // Seed persisted preferences into state (the Preferences dialog
         // saves them as one object; absent keys keep their defaults).
@@ -183,11 +184,13 @@ class AppClass {
                 } else if (prefs.autosave === false) {
                     StateManager.setAutosaveMinutes(0);
                 }
+                if (typeof prefs.defaultScreenMode === 'string') StateManager.set('defaultScreenMode', prefs.defaultScreenMode);
                 if (typeof prefs.restoreOnBoot === 'boolean') StateManager.set('restoreOnBoot', prefs.restoreOnBoot);
                 if (typeof prefs.confirmClear === 'boolean') StateManager.set('confirmClear', prefs.confirmClear);
                 if (typeof prefs.pixelPerfect === 'boolean') StateManager.set('pixelPerfect', prefs.pixelPerfect);
                 if (typeof prefs.resetDrawModeOnTool === 'boolean') StateManager.set('resetDrawModeOnTool', prefs.resetDrawModeOnTool);
                 if (typeof prefs.nudgeStep === 'number') StateManager.set('nudgeStep', prefs.nudgeStep);
+                if (typeof prefs.showPresetsPanel === 'boolean') StateManager.set('showPresetsPanel', prefs.showPresetsPanel);
                 // Touch admission, layers 1 and 2 (js/utils/touch-policy.js).
                 // Layer 3, the drawing switch, has its own key below — it is
                 // toggled from the status bar, outside this record.
@@ -319,17 +322,20 @@ class AppClass {
         CanvasControls.init();
 
         // Right sidebar — creation order IS the visual/AT order:
-        // Layers -> Tool Options -> Transform -> Reference. Tool Options sits
-        // right under Layers because it changes with every tool selection;
-        // Transform is mostly stamp-contextual. All panels scroll together
-        // inside #panels (no sticky sections — see layout.css).
+        // Reference -> Layers -> Tool Options -> Transform -> Presets. Reference
+        // leads because it is set up once at the start of a picture; Tool Options
+        // sits right under Layers because it changes with every tool selection;
+        // Transform is mostly stamp-contextual. Presets is last and only shown
+        // when the "Show Presets panel" preference (Preferences > General) is
+        // on — see ToolPresetPanel's own display toggle. All panels scroll
+        // together inside #panels (no sticky sections — see layout.css).
+        ReferenceLayerPanel.initialize();
         LayerPanel.init();
         OptionControls.init();
-        ToolPresetBar.init();   // save/load row at the foot of the tool options
-        ToolPresetPanel.init(); // the Presets panel, directly under Tool Options
+        ToolPresetBar.init();  // save/load row at the foot of the tool options
         PatternPanel.init();   // dedicated Patterns panel (shown only for the brush's pattern type)
         TransformPanel.init();
-        ReferenceLayerPanel.initialize();
+        ToolPresetPanel.init(); // the Presets panel, last and preference-gated
         PanelSection.restore(); // persisted collapse states (async)
 
         // Cross-cutting helpers

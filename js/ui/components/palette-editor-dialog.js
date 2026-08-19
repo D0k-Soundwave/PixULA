@@ -65,7 +65,8 @@ class PaletteEditorDialogClass {
                     ColorManager.setUlaplusRegisters(PaletteOps.buildUlaplusRegisters(imageData)),
                 // .npl's trailing transparency index is a Next idea; the
                 // 64-byte ULAplus form has only the one shape.
-                fileKinds: ['pal']
+                fileKinds: ['pal'],
+                encode: (kind) => NextPaletteFormat.export(kind)
             };
         }
         if (model === 'rgb333') {
@@ -90,7 +91,71 @@ class PaletteEditorDialogClass {
                     PaletteOps.buildNextRegisters(imageData, ZX_SPECTRUM.PALETTE_SIZE)),
                 // Both Next forms: .pal is the 512-byte register pair dump,
                 // .npl the same plus the trailing transparency index.
-                fileKinds: ['pal', 'npl']
+                fileKinds: ['pal', 'npl'],
+                encode: (kind) => NextPaletteFormat.export(kind)
+            };
+        }
+        return null;
+    }
+
+    /**
+     * The same shape as _traits(), but backed by a local register buffer
+     * instead of the live document (ColorManager). Used by File > Create
+     * Palette…: building a palette from scratch — by eye or by sampling a
+     * photo — must not touch the document, so there is no UndoRedo action,
+     * no canvas recompose, and swatches paint from this buffer directly
+     * rather than the --zx-N tokens (those only ever reflect the document's
+     * OWN palette). Seeded from the active model's defaults, same as a
+     * fresh document would show.
+     * @private
+     */
+    _scratchTraits() {
+        const model = ACTIVE_SCREEN_MODE.paletteModel;
+        if (model === 'ulaplus64') {
+            const regs = ULAPLUS.defaultRegisters();
+            return {
+                model, count: 64, scratch: true,
+                titleI18n: 'palette.createTitle',
+                title: 'Create Palette',
+                hintI18n: 'palette.createHint',
+                hint: 'Click a swatch to pick a colour, or sample one from a photo below. Nothing here touches your document — save it as a file when you are happy with it.',
+                getHex: (i) => ULAPLUS.registerToHex(regs[i]),
+                getReg: (i) => regs[i],
+                setFromRGB: (i, r, g, b) => { regs[i] = ULAPLUS.rgbToRegister(r, g, b); },
+                reset: () => regs.set(ULAPLUS.defaultRegisters()),
+                rowLabel: (row) => this._t('palette.clut', 'CLUT {n}', { n: row })
+                    .replace('{n}', String(row)),
+                rowLabelI18n: 'palette.clut',
+                buildFromImage: (imageData) => regs.set(PaletteOps.buildUlaplusRegisters(imageData)),
+                fileKinds: ['pal'],
+                encode: (kind) => NextPaletteFormat.encodeUlaplus(regs)
+            };
+        }
+        if (model === 'rgb333') {
+            const regs = NEXTRGB333.defaultRegisters();
+            return {
+                model, count: ZX_SPECTRUM.PALETTE_SIZE, scratch: true,
+                titleI18n: 'palette.createTitle',
+                title: 'Create Palette',
+                hintI18n: 'palette.createHint',
+                hint: 'Click a swatch to pick a colour, or sample one from a photo below. Nothing here touches your document — save it as a file when you are happy with it.',
+                getHex: (i) => NEXTRGB333.registerToHex(regs[i]),
+                getReg: (i) => regs[i],
+                setFromRGB: (i, r, g, b) => { regs[i] = NEXTRGB333.rgbToRegister(r, g, b); },
+                reset: () => regs.set(NEXTRGB333.defaultRegisters()),
+                rowLabel: (row) => String(row * 16),
+                rowLabelI18n: null,
+                buildFromImage: (imageData) => regs.set(
+                    PaletteOps.buildNextRegisters(imageData, ZX_SPECTRUM.PALETTE_SIZE)),
+                fileKinds: ['pal', 'npl'],
+                encode: (kind) => {
+                    const pal = NextPaletteFormat.encode(regs);
+                    if (kind !== 'npl') return pal;
+                    const npl = new Uint8Array(513);
+                    npl.set(pal);
+                    npl[512] = 0xE3;
+                    return npl;
+                }
             };
         }
         return null;
@@ -100,6 +165,14 @@ class PaletteEditorDialogClass {
     open() {
         if (Dialog.isOpen('palette-editor')) return;
         const traits = this._traits();
+        if (!traits) { this._needsPaletteMode(); return; }
+        this._createDialog(traits);
+    }
+
+    /** File > Create Palette… — build a new palette from scratch, saved only as a file. */
+    create() {
+        if (Dialog.isOpen('create-palette')) return;
+        const traits = this._scratchTraits();
         if (!traits) { this._needsPaletteMode(); return; }
         this._createDialog(traits);
     }
@@ -131,6 +204,12 @@ class PaletteEditorDialogClass {
             const r = parseInt(hex.slice(1, 3), 16);
             const g = parseInt(hex.slice(3, 5), 16);
             const b = parseInt(hex.slice(5, 7), 16);
+            if (traits.scratch) {
+                traits.setFromRGB(pickerTarget, r, g, b);
+                this._repaintSwatch(content, pickerTarget, traits);
+                this._refreshTitles(content, traits);
+                return;
+            }
             UndoRedo.beginAction('Palette');
             traits.setFromRGB(pickerTarget, r, g, b);
             UndoRedo.endAction();
@@ -164,7 +243,11 @@ class PaletteEditorDialogClass {
                 sw.className = 'color-swatch palette-editor-swatch'
                     + (traits.model === 'ulaplus64' && i === 8 ? ' palette-editor-paper-start' : '');
                 sw.dataset.index = String(index);
-                sw.style.setProperty('background-color', `var(--zx-${index})`);
+                // Scratch swatches paint from the local buffer directly — there
+                // is no --zx-N token for a palette that was never applied to
+                // the document, and one wouldn't stay live anyway.
+                if (traits.scratch) sw.style.backgroundColor = traits.getHex(index);
+                else sw.style.setProperty('background-color', `var(--zx-${index})`);
                 sw.addEventListener('click', () => {
                     pickerTarget = index;
                     picker.value = traits.getHex(index);
@@ -181,7 +264,7 @@ class PaletteEditorDialogClass {
         this._refreshTitles(content, traits);
 
         Dialog.open({
-            id: 'palette-editor',
+            id: traits.scratch ? 'create-palette' : 'palette-editor',
             titleI18n: traits.titleI18n,
             title: traits.title,
             content,
@@ -190,11 +273,7 @@ class PaletteEditorDialogClass {
                 {
                     i18n: 'palette.reset', label: 'Reset to defaults',
                     onClick: () => {
-                        UndoRedo.beginAction('Palette');
-                        traits.reset();
-                        UndoRedo.endAction();
-                        LayerManager.composeToCanvas();
-                        this._refreshTitles(content, traits);
+                        this._edit(content, traits, () => traits.reset());
                         return false; // keep open
                     }
                 },
@@ -231,7 +310,7 @@ class PaletteEditorDialogClass {
     saveToFile() {
         const traits = this._traits();
         if (!traits) { this._needsPaletteMode(); return; }
-        this._saveFile(traits.fileKinds[0]);
+        this._saveFile(traits.fileKinds[0], traits);
     }
 
     /** @private */
@@ -258,16 +337,20 @@ class PaletteEditorDialogClass {
         // ── Files ────────────────────────────────────────────────────────
         const files = this._toolRow(tools, 'palette.files', 'Palette file');
 
-        const loader = document.createElement('input');
-        loader.type = 'file';
-        loader.accept = '.pal,.npl';
-        loader.hidden = true;
-        loader.addEventListener('change', (e) => this._loadFile(e, content, traits));
-        tools.appendChild(loader);
+        // Create Palette starts from a blank slate on purpose — loading a
+        // file into it is what File > Load Palette… already does.
+        if (!traits.scratch) {
+            const loader = document.createElement('input');
+            loader.type = 'file';
+            loader.accept = '.pal,.npl';
+            loader.hidden = true;
+            loader.addEventListener('change', (e) => this._loadFile(e, content, traits));
+            tools.appendChild(loader);
 
-        files.appendChild(this._button('palette.load', 'Load...', 'palette.loadHint',
-            'Replace this palette with one from a .pal or .npl file',
-            () => loader.click()));
+            files.appendChild(this._button('palette.load', 'Load...', 'palette.loadHint',
+                'Replace this palette with one from a .pal or .npl file',
+                () => loader.click()));
+        }
 
         // Only the Next has two file forms worth choosing between, so only the
         // Next gets a chooser. One option in a select is a question with one
@@ -290,7 +373,7 @@ class PaletteEditorDialogClass {
 
         files.appendChild(this._button('palette.save', 'Save...', 'palette.saveHint',
             'Write this palette out as a file you can load into another picture',
-            () => this._saveFile(kindSelect ? kindSelect.value : traits.fileKinds[0])));
+            () => this._saveFile(kindSelect ? kindSelect.value : traits.fileKinds[0], traits)));
 
         // ── Build from an image ──────────────────────────────────────────
         const build = this._toolRow(tools, 'palette.build', 'Build');
@@ -391,15 +474,37 @@ class PaletteEditorDialogClass {
     /**
      * Every write to the register file goes through here: one undo action, a
      * recompose (the composited canvas holds resolved RGB, so it does not
-     * follow the --zx-N tokens the swatches do) and a tooltip refresh.
+     * follow the --zx-N tokens the swatches do) and a tooltip refresh. A
+     * scratch buffer (Create Palette) skips undo and recompose entirely —
+     * it is not the document — and repaints its own swatches directly since
+     * there is no --zx-N token to follow.
      * @private
      */
     _edit(content, traits, fn) {
+        if (traits.scratch) {
+            fn();
+            this._repaintAll(content, traits);
+            this._refreshTitles(content, traits);
+            return;
+        }
         UndoRedo.beginAction('Palette');
         fn();
         UndoRedo.endAction();
         LayerManager.composeToCanvas();
         this._refreshTitles(content, traits);
+    }
+
+    /** Repaint one scratch swatch's background from its current value. @private */
+    _repaintSwatch(content, index, traits) {
+        const sw = content.querySelector(`.palette-editor-swatch[data-index="${index}"]`);
+        if (sw) sw.style.backgroundColor = traits.getHex(index);
+    }
+
+    /** Repaint every scratch swatch's background. @private */
+    _repaintAll(content, traits) {
+        content.querySelectorAll('.palette-editor-swatch').forEach((sw) => {
+            sw.style.backgroundColor = traits.getHex(parseInt(sw.dataset.index, 10));
+        });
     }
 
     /** @private */
@@ -433,9 +538,11 @@ class PaletteEditorDialogClass {
     }
 
     /** @private */
-    _saveFile(kind) {
+    _saveFile(kind, traits) {
         try {
-            NextPaletteFormat.exportAndDownload(kind, `palette.${kind}`);
+            let name = `palette.${kind}`;
+            if (!name.toLowerCase().endsWith(`.${kind}`)) name += `.${kind}`;
+            FormatRegistry.download(traits.encode(kind), name);
         } catch (error) {
             Logger.warn('PaletteEditorDialog', 'Palette save failed', error);
             alert(error.message || this._t('palette.saveFailed', 'The palette could not be saved.'));

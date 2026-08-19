@@ -6,7 +6,7 @@
  * intercepts image opens with a live preview and Cancel aborts.
  */
 const { test, expect } = require('@playwright/test');
-const { boot } = require('./helpers');
+const { boot, selectMode } = require('./helpers');
 
 async function openFileDialog(page, action) {
     await page.click('.menu-item[data-menu="file"] .menu-label');
@@ -69,7 +69,7 @@ test('Sprite editor: opens, adds/removes sprites within the 64 cap', async ({ pa
 
 test('Palette editor: 4×16 CLUT grid in ULAplus, 256 entries in rgb333; edits are undoable and recompose', async ({ page }) => {
     await boot(page);
-    await page.selectOption('#screen-mode-select', 'ula_plus'); // refine = silent
+    await selectMode(page, 'ula_plus'); // refine = silent
     await page.waitForFunction(() => ACTIVE_SCREEN_MODE.id === 'ula_plus');
     await page.click('.menu-item[data-menu="image"] .menu-label');
     await page.click('.menu-action[data-action="image:editPalette"]');
@@ -104,7 +104,7 @@ test('Palette editor: 4×16 CLUT grid in ULAplus, 256 entries in rgb333; edits a
 
     // rgb333 mode -> 256-entry grid
     page.on('dialog', (d) => d.accept());
-    await page.selectOption('#screen-mode-select', 'layer2_256');
+    await selectMode(page, 'layer2_256');
     await page.waitForFunction(() => ACTIVE_SCREEN_MODE.id === 'layer2_256');
     await page.click('.menu-item[data-menu="image"] .menu-label');
     await page.click('.menu-action[data-action="image:editPalette"]');

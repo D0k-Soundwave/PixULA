@@ -28,6 +28,7 @@
 class ToolPresetPanelClass {
     constructor() {
         this._content = null;
+        this._panelSection = null;
         this._toolId = null;
         this._initialized = false;
     }
@@ -60,6 +61,7 @@ class ToolPresetPanelClass {
             return;
         }
         this._content = panel.content;
+        this._panelSection = panel.section;
 
         EventBus.on(EVENTS.TOOL_SELECTED, (data) => {
             this._toolId = (data && data.currentTool) || null;
@@ -67,12 +69,24 @@ class ToolPresetPanelClass {
         });
         // Any scope's change, not just the active tool's: this list spans them.
         EventBus.on(EVENTS.TOOL_PRESETS_CHANGED, () => this._render());
+        // Preferences > General "Show Presets panel" toggle, applied live —
+        // no reload needed to hide or reveal the whole section.
+        EventBus.on(EVENTS.STATE_CHANGED, (data) => {
+            if (data && data.path === 'showPresetsPanel') this._syncVisibility();
+        });
 
         this._toolId = StateManager.getCurrentTool();
         this._render();
+        this._syncVisibility();
 
         this._initialized = true;
         Logger.info('ToolPresetPanel', 'Initialized');
+    }
+
+    /** @private */
+    _syncVisibility() {
+        if (!this._panelSection) return;
+        this._panelSection.style.display = StateManager.get('showPresetsPanel') ? '' : 'none';
     }
 
     /** @private */

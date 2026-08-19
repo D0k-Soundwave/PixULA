@@ -64,4 +64,16 @@ function app(page, fn, arg) {
     return page.evaluate(fn, arg);
 }
 
-module.exports = { APP_URL, boot, reload, collectConsole, app };
+/**
+ * Switch screen mode via the Image menu radios — the only entry point since
+ * the status-bar `#screen-mode-select` dropdown was removed in favour of it.
+ * Both funnelled through the same MenuSystem.requestScreenMode confirm path,
+ * so a lossy-conversion dialog behaves identically to the old selector.
+ */
+async function selectMode(page, modeId) {
+    await page.click('.menu-item[data-menu="image"] .menu-label');
+    await page.click('.menu-action--parent[data-id="screen-mode"]');
+    await page.click(`.menu-action[data-id="mode-${modeId}"]`);
+}
+
+module.exports = { APP_URL, boot, reload, collectConsole, app, selectMode };

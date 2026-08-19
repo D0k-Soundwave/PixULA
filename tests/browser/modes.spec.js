@@ -1,32 +1,36 @@
 'use strict';
 /**
- * Phase 12a/12b/13 mode-switch UX TESTLOG rows — menu radios + status
- * selector coherence, lossy confirm + cancel snap-back, undo restoring
- * mode AND content, floating-paste cancellation, and per-mode rail/gate
- * UI (CLUT selector, index grid, scheme selector, giga view row,
- * attr ops hidden in indexed modes).
+ * Phase 12a/12b/13 mode-switch UX TESTLOG rows — Image-menu radio behaviour,
+ * lossy confirm + cancel snap-back, undo restoring mode AND content, floating-
+ * paste cancellation, and per-mode rail/gate UI (CLUT selector, index grid,
+ * scheme selector, giga view row, attr ops hidden in indexed modes).
  */
 const { test, expect } = require('@playwright/test');
-const { boot } = require('./helpers');
+const { boot, selectMode } = require('./helpers');
 
 const modeId = (page) => page.evaluate(() => ACTIVE_SCREEN_MODE.id);
 
-test('status selector + Image menu radio + geometry readout stay coherent', async ({ page }) => {
+/** Whether the given mode's Image-menu radio is checked. Opens the submenu itself. */
+async function isModeChecked(page, modeId) {
+    await page.click('.menu-item[data-menu="image"] .menu-label');
+    await page.click('.menu-action--parent[data-id="screen-mode"]');
+    const checked = await page.$eval(`.menu-action[data-id="mode-${modeId}"]`,
+        el => el.classList.contains('checked') || el.getAttribute('aria-checked') === 'true');
+    await page.keyboard.press('Escape');
+    return checked;
+}
+
+test('Image menu radio switches mode and the geometry readout follows', async ({ page }) => {
     await boot(page);
-    await page.selectOption('#screen-mode-select', 'multicolor_8x1'); // refine = silent
+    await selectMode(page, 'multicolor_8x1'); // refine = silent
     expect(await modeId(page)).toBe('multicolor_8x1');
     await expect(page.locator('#canvas-size')).toHaveText(/256\s*×\s*192\s*·\s*8×1/);
-
-    await page.click('.menu-item[data-menu="image"] .menu-label');
-    const checked = await page.$eval('.menu-action[data-id="mode-multicolor_8x1"]',
-        el => el.classList.contains('checked') || el.getAttribute('aria-checked') === 'true');
-    expect(checked).toBe(true);
-    await page.keyboard.press('Escape');
+    expect(await isModeChecked(page, 'multicolor_8x1')).toBe(true);
 });
 
-test('coarsening warns; Cancel leaves mode, content and selector untouched', async ({ page }) => {
+test('coarsening warns; Cancel leaves mode and content untouched', async ({ page }) => {
     await boot(page);
-    await page.selectOption('#screen-mode-select', 'multicolor_8x1');
+    await selectMode(page, 'multicolor_8x1');
     await page.evaluate(() => {
         UndoRedo.beginAction('seed');
         PixelDrawRoutine.draw(5, 5, ColorManager.getCurrentSelection(), DRAW_MODE.NORMAL);
@@ -35,18 +39,18 @@ test('coarsening warns; Cancel leaves mode, content and selector untouched', asy
 
     let confirmSeen = false;
     page.once('dialog', (d) => { confirmSeen = d.type() === 'confirm'; d.dismiss(); });
-    await page.selectOption('#screen-mode-select', 'standard_ula');
+    await selectMode(page, 'standard_ula');
     await page.waitForTimeout(200);
     expect(confirmSeen).toBe(true);
     expect(await modeId(page)).toBe('multicolor_8x1');
-    expect(await page.inputValue('#screen-mode-select')).toBe('multicolor_8x1'); // snapped back
+    expect(await isModeChecked(page, 'multicolor_8x1')).toBe(true); // snapped back
     expect(await page.evaluate(() =>
         PixelDrawRoutine.getPixelState(5, 5)?.isInk === true)).toBe(true);
 });
 
 test('coarsening accept converts; ONE undo restores previous mode AND content', async ({ page }) => {
     await boot(page);
-    await page.selectOption('#screen-mode-select', 'multicolor_8x1');
+    await selectMode(page, 'multicolor_8x1');
     await page.evaluate(() => {
         UndoRedo.beginAction('seed');
         PixelDrawRoutine.draw(5, 5, ColorManager.getCurrentSelection(), DRAW_MODE.NORMAL);
@@ -54,7 +58,7 @@ test('coarsening accept converts; ONE undo restores previous mode AND content', 
     });
 
     page.once('dialog', (d) => d.accept());
-    await page.selectOption('#screen-mode-select', 'standard_ula');
+    await selectMode(page, 'standard_ula');
     await page.waitForTimeout(200);
     expect(await modeId(page)).toBe('standard_ula');
     expect(await page.evaluate(() =>
@@ -81,14 +85,14 @@ test('switching modes cancels an active floating paste', async ({ page }) => {
     });
     await page.keyboard.press('Control+v'); // the real paste path
     expect(await page.evaluate(() => !!SelectionService.floatingPaste)).toBe(true);
-    await page.selectOption('#screen-mode-select', 'multicolor_8x4'); // refine, silent
+    await selectMode(page, 'multicolor_8x4'); // refine, silent
     await page.waitForTimeout(200);
     expect(await page.evaluate(() => !!SelectionService.floatingPaste)).toBe(false);
 });
 
 test('ULAplus: CLUT selector replaces Flash/Bright in the rail', async ({ page }) => {
     await boot(page);
-    await page.selectOption('#screen-mode-select', 'ula_plus');
+    await selectMode(page, 'ula_plus');
     await page.waitForTimeout(200);
     const rail = await page.evaluate(() => ({
         flashVisible: !!document.querySelector('#flash-toggle')?.offsetParent,
@@ -105,7 +109,7 @@ test('ULAplus: CLUT selector replaces Flash/Bright in the rail', async ({ page }
 test('Timex hi-res: 512-wide geometry + scheme selector; attr ops hidden', async ({ page }) => {
     await boot(page);
     page.on('dialog', (d) => d.accept()); // mono conversion warns
-    await page.selectOption('#screen-mode-select', 'timex_hires');
+    await selectMode(page, 'timex_hires');
     await page.waitForTimeout(300);
     expect(await modeId(page)).toBe('timex_hires');
     await expect(page.locator('#canvas-size')).toHaveText(/512\s*×\s*192/);
@@ -121,7 +125,7 @@ test('Timex hi-res: 512-wide geometry + scheme selector; attr ops hidden', async
 
 test('GigaScreen: layer A/B badges + view toggle; drawing lands per sub-screen', async ({ page }) => {
     await boot(page);
-    await page.selectOption('#screen-mode-select', 'gigascreen'); // entering is silent
+    await selectMode(page, 'gigascreen'); // entering is silent
     await page.waitForTimeout(200);
     expect(await modeId(page)).toBe('gigascreen');
 
@@ -142,7 +146,7 @@ test('GigaScreen: layer A/B badges + view toggle; drawing lands per sub-screen',
 test('indexed modes: attr ops hidden, index grid in the rail, classic exports gated', async ({ page }) => {
     await boot(page);
     page.on('dialog', (d) => d.accept()); // classic->indexed warns (lossy)
-    await page.selectOption('#screen-mode-select', 'layer2_256');
+    await selectMode(page, 'layer2_256');
     await page.waitForTimeout(300);
     expect(await modeId(page)).toBe('layer2_256');
 
@@ -179,10 +183,10 @@ test('ULANext <-> Standard is silent both ways and visually lossless with unedit
     });
     let dialogs = 0;
     page.on('dialog', (d) => { dialogs++; d.accept(); });
-    await page.selectOption('#screen-mode-select', 'ulanext');
+    await selectMode(page, 'ulanext');
     await page.waitForTimeout(200);
     expect(await modeId(page)).toBe('ulanext');
-    await page.selectOption('#screen-mode-select', 'standard_ula');
+    await selectMode(page, 'standard_ula');
     await page.waitForTimeout(200);
     expect(await modeId(page)).toBe('standard_ula');
     expect(dialogs).toBe(0); // silent both ways
@@ -190,32 +194,30 @@ test('ULANext <-> Standard is silent both ways and visually lossless with unedit
         PixelDrawRoutine.getPixelState(30, 30)?.isInk === true)).toBe(true);
 });
 
-test('every mode row and option carries the descriptor tooltip, in the active locale', async ({ page }) => {
+test('every mode row carries the descriptor tooltip, in the active locale', async ({ page }) => {
     await boot(page);
 
-    // One tooltip per registered mode, on both entry points, with the
-    // numbers taken from the descriptor (never retyped).
+    // One tooltip per registered mode, with the numbers taken from the
+    // descriptor (never retyped).
     const rows = await page.evaluate(() => ScreenModeService.getModes().map(m => {
-        const opt = document.querySelector(`#screen-mode-select option[value="${m.id}"]`);
         const item = document.querySelector(`.menu-action[data-id="mode-${m.id}"]`);
         return {
             id: m.id, width: m.width, height: m.height, bytes: m.fileSize,
-            optTitle: opt && opt.title, menuTitle: item && item.title
+            menuTitle: item && item.title
         };
     }));
     expect(rows.length).toBeGreaterThan(13);
     for (const r of rows) {
-        expect(r.optTitle, r.id).toBe(r.menuTitle);
         // size, byte count and a description line below the summary
-        expect(r.optTitle, r.id).toContain(`${r.width} × ${r.height}`);
-        expect(r.optTitle, r.id).toContain(String(r.bytes));
-        expect(r.optTitle.split('\n').length, r.id).toBe(4);
+        expect(r.menuTitle, r.id).toContain(`${r.width} × ${r.height}`);
+        expect(r.menuTitle, r.id).toContain(String(r.bytes));
+        expect(r.menuTitle.split('\n').length, r.id).toBe(4);
     }
 
-    // The selector itself describes the ACTIVE mode and follows a switch.
-    const active = () => page.getAttribute('#screen-mode-select', 'title');
+    // The status-bar size readout describes the ACTIVE mode and follows a switch.
+    const active = () => page.getAttribute('#canvas-size', 'title');
     expect(await active()).toContain('256 × 192');
-    await page.selectOption('#screen-mode-select', 'multicolor_8x1');
+    await selectMode(page, 'multicolor_8x1');
     expect(await active()).toContain('8×1');
 
     // Locale switch re-composes them (no reload).

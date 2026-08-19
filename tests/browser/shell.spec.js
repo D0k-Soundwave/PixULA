@@ -515,16 +515,21 @@ test.describe('the global draw mode can never hide', () => {
     });
 });
 
-// Presets sits directly under Tool Options because it lists the presets of the
-// tool whose options are above it — the two panels are one subject.
-test('right sidebar order: Layers -> Tool Options -> Presets -> Patterns -> Transform -> Reference (collapsed)', async ({ page }) => {
+// Reference leads because it is set up once at the start of a picture.
+// Presets is last and preference-gated (Preferences > General, off by
+// default), so it stays in the DOM (for its own specs) but is not laid out
+// unless that preference is on.
+test('right sidebar order: Reference -> Layers -> Tool Options -> Patterns -> Transform -> Presets (collapsed)', async ({ page }) => {
     await boot(page);
     const panels = await page.$$eval('#panels > section', els => els.map(e => e.id));
-    expect(panels).toEqual(['layer-panel', 'tool-options-panel', 'tool-preset-panel',
-        'patterns-panel', 'transform-panel', 'reference-panel']);
+    expect(panels).toEqual(['reference-panel', 'layer-panel', 'tool-options-panel',
+        'patterns-panel', 'transform-panel', 'tool-preset-panel']);
     const refCollapsed = await page.evaluate(() =>
         window.PanelSection ? PanelSection.isCollapsed('reference-panel') : null);
     if (refCollapsed !== null) expect(refCollapsed).toBe(true);
+    // Off by default, so the Presets panel takes up no room in the sidebar
+    expect(await page.evaluate(() =>
+        getComputedStyle(document.getElementById('tool-preset-panel')).display)).toBe('none');
 });
 
 test('panel collapse state persists across F5 (WINDOW_STATE)', async ({ page }) => {
@@ -540,7 +545,7 @@ test('panel collapse state persists across F5 (WINDOW_STATE)', async ({ page }) 
     expect(after).toBe(before);
 });
 
-test('status strip: zoom controls, grid toggles, readouts, mode selector', async ({ page }) => {
+test('status strip: zoom controls, grid toggles, readouts', async ({ page }) => {
     await boot(page);
     await expect(page.locator('#zoom-out')).toBeAttached();
     await expect(page.locator('#zoom-in')).toBeAttached();
@@ -551,8 +556,15 @@ test('status strip: zoom controls, grid toggles, readouts, mode selector', async
     }
     await expect(page.locator('#cursor-position')).toBeAttached();
     await expect(page.locator('#canvas-size')).toHaveText(/256\s*×\s*192/);
-    const modes = await page.$$eval('#screen-mode-select option', o => o.map(x => x.value));
+});
+
+test('Image > Screen Mode lists every registered mode as a radio', async ({ page }) => {
+    await boot(page);
+    await page.click('.menu-item[data-menu="image"] .menu-label');
+    await page.click('.menu-action--parent[data-id="screen-mode"]');
+    const modes = await page.$$eval('.menu-action[data-id^="mode-"]', els => els.map(e => e.dataset.id));
     expect(modes.length).toBe(14);
+    await page.keyboard.press('Escape');
 });
 
 test('drawing guide: toggle confines every tool to the selection, and persists', async ({ page }) => {

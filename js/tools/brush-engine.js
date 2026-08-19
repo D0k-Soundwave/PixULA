@@ -293,7 +293,7 @@ class BrushEngineClass {
             isInk: isInk
         });
 
-        this._trackPixelPerfect(applied, x, y, effectiveSize, isInk, colorSelection,
+        this._trackPixelPerfect(applied, ppEligible, x, y, effectiveSize, isInk, colorSelection,
             ppPreState ? ppPreState.isInk : null, ppLayer, ppEraseMode);
 
         return applied;
@@ -367,6 +367,8 @@ class BrushEngineClass {
      * switch or draw-mode change between B and C cannot make the retroactive
      * erase land somewhere else or mean something else.
      * @param {boolean} applied - Did this stamp actually write a pixel?
+     * @param {boolean} eligible - This stamp's own _pixelPerfectEligible(size)
+     *   result, computed once by the caller (same inputs, still authoritative).
      * @param {number} x
      * @param {number} y
      * @param {number} size - The EFFECTIVE size this stamp used
@@ -379,10 +381,10 @@ class BrushEngineClass {
      *   resolved at stamp time
      * @private
      */
-    _trackPixelPerfect(applied, x, y, size, isInk, colorSelection, preExisting, layer, eraseMode) {
+    _trackPixelPerfect(applied, eligible, x, y, size, isInk, colorSelection, preExisting, layer, eraseMode) {
         const anchors = this._ppAnchors;
 
-        if (!applied || !this._pixelPerfectEligible(size)) {
+        if (!applied || !eligible) {
             anchors.length = 0;
             return;
         }

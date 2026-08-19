@@ -13,11 +13,11 @@
  * a single undoable action.
  */
 const { test, expect } = require('@playwright/test');
-const { boot } = require('./helpers');
+const { boot, selectMode } = require('./helpers');
 
 /** Switch to a mode whose palette is editable. Refining from the default is silent. */
 const toUlaplus = async (page) => {
-    await page.selectOption('#screen-mode-select', 'ula_plus');
+    await selectMode(page, 'ula_plus');
     await page.waitForFunction(() => ACTIVE_SCREEN_MODE.id === 'ula_plus');
 };
 
@@ -108,7 +108,7 @@ test('the Next offers both of its file forms; ULAplus has only the one',
         await boot(page);
         page.on('dialog', (d) => d.accept());   // the lossy-conversion warning
 
-        await page.selectOption('#screen-mode-select', 'layer2_256');
+        await selectMode(page, 'layer2_256');
         await page.waitForFunction(() => ACTIVE_SCREEN_MODE.id === 'layer2_256');
         await openEditor(page);
 

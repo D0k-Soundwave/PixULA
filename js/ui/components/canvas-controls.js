@@ -33,64 +33,30 @@ class CanvasControlsClass {
     }
 
     /**
-     * Status-bar screen-mode slot (Phase 12a): canvas size readout + a mode
-     * selector that mirrors the Image-menu radios. Both entry points funnel
-     * through MenuSystem.requestScreenMode (one lossy-confirm path); the
-     * selector renders from the SCREEN_MODE_CHANGED fact.
+     * Status-bar canvas-size readout (Phase 12a). Mode switching itself lives
+     * only in Image > Screen Mode now — this used to also host a `<select>`
+     * mirroring those radios, but two entry points for the same one
+     * lossy-confirm path (MenuSystem.requestScreenMode) was redundant, and
+     * removing it frees status-bar space. The readout still describes
+     * whichever mode is active, via the SCREEN_MODE_CHANGED fact.
      * @private
      */
     _setupModeStatus() {
         const sizeEl = document.getElementById('canvas-size');
-        const statusBar = document.getElementById('status-bar');
-        if (!statusBar || !window.ScreenModeService) {
+        if (!sizeEl || !window.ScreenModeService) {
             if (sizeEl) sizeEl.textContent = `${ZX_SPECTRUM.WIDTH} × ${ZX_SPECTRUM.HEIGHT}`;
             return;
         }
 
-        const select = document.createElement('select');
-        select.id = 'screen-mode-select';
-        select.setAttribute('aria-label', this._t('mode.selectorLabel', 'Screen mode'));
-        select.dataset.i18nAriaLabel = 'mode.selectorLabel';
-        for (const mode of ScreenModeService.getModes()) {
-            const opt = document.createElement('option');
-            opt.value = mode.id;
-            opt.dataset.i18n = mode.i18n;
-            opt.textContent = this._t(mode.i18n, mode.id);
-            // Full descriptor tooltip (size, attribute layout, colours,
-            // palette, what the mode is for) — composed in one place and
-            // re-translated by I18n from the same attribute.
-            opt.dataset.i18nModeTitle = mode.id;
-            opt.title = Helpers.describeScreenMode(mode);
-            select.appendChild(opt);
-        }
-        select.value = ScreenModeService.getModeId();
-        statusBar.appendChild(select);
-
-        select.addEventListener('change', () => {
-            const changed = window.MenuSystem
-                ? MenuSystem.requestScreenMode(select.value)
-                : ScreenModeService.switchMode(select.value);
-            if (!changed) select.value = ScreenModeService.getModeId();
-        });
-
         const renderSize = () => {
-            if (sizeEl) {
-                sizeEl.textContent = `${ZX_SPECTRUM.WIDTH} × ${ZX_SPECTRUM.HEIGHT} · ` +
-                    `${ZX_SPECTRUM.CELL_WIDTH}×${ZX_SPECTRUM.CELL_HEIGHT}`;
-                // The size readout describes the same mode as the selector.
-                sizeEl.dataset.i18nModeTitle = ScreenModeService.getModeId();
-                sizeEl.title = Helpers.describeScreenMode(ScreenModeService.getMode());
-            }
-            // A closed <select> shows its own tooltip, not the option's.
-            select.dataset.i18nModeTitle = ScreenModeService.getModeId();
-            select.title = Helpers.describeScreenMode(ScreenModeService.getMode());
+            sizeEl.textContent = `${ZX_SPECTRUM.WIDTH} × ${ZX_SPECTRUM.HEIGHT} · ` +
+                `${ZX_SPECTRUM.CELL_WIDTH}×${ZX_SPECTRUM.CELL_HEIGHT}`;
+            sizeEl.dataset.i18nModeTitle = ScreenModeService.getModeId();
+            sizeEl.title = Helpers.describeScreenMode(ScreenModeService.getMode());
         };
         renderSize();
 
-        EventBus.on(EVENTS.SCREEN_MODE_CHANGED, ({ mode }) => {
-            select.value = mode;
-            renderSize();
-        });
+        EventBus.on(EVENTS.SCREEN_MODE_CHANGED, renderSize);
     }
 
     // ── Zoom ─────────────────────────────────────────────────────────────────

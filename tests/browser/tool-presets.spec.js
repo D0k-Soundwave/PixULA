@@ -211,6 +211,9 @@ test('loading from the library takes that preset\'s tool in hand first',
     async ({ page }) => {
         await boot(page);
         await clearToolPresets(page);
+        // The Presets panel is hidden by default (Preferences > General);
+        // this spec is about its own UI, so switch it on for the click below.
+        await page.evaluate(() => StateManager.set('showPresetsPanel', true));
 
         await page.evaluate(async () => {
             ToolManager.selectTool(TOOLS.ERASER);
@@ -327,6 +330,9 @@ test('a tool with nothing to capture says so instead of offering empty controls'
 test('the Presets panel is ordinary sidebar chrome: titled, and it collapses',
     async ({ page }) => {
         await boot(page);
+        // Hidden by default (Preferences > General); switch it on so the
+        // collapse click below lands on a real, laid-out element.
+        await page.evaluate(() => StateManager.set('showPresetsPanel', true));
 
         const panel = await page.evaluate(() => {
             const section = document.getElementById('tool-preset-panel');
