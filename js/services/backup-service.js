@@ -135,6 +135,19 @@ class BackupServiceClass {
         }
 
         this.directory = handle;
+
+        // Infer the provider kind from the ref's own shape rather than
+        // trusting the constructor default ('browser'). A companion
+        // folderId restored while the service still thought it was
+        // 'browser' would hand that plain string straight to
+        // BrowserFSAProvider.writeFile(), which calls .getFileHandle on it
+        // and is guaranteed to fail - silently, on every autosave, until
+        // reload. _permission() re-derives the live companion provider on
+        // every check (see below), so a pairing that lapsed - or hasn't
+        // happened yet this session - surfaces as needsPermission exactly
+        // like an FSA permission lapse does, rather than failing at write time.
+        this._providerKind = (typeof handle === 'string') ? 'companion' : 'browser';
+
         this.needsPermission = (await this._permission(false)) !== 'granted';
         Logger.info('BackupService', this.needsPermission
             ? 'Backup folder restored; waiting for permission'
@@ -265,17 +278,33 @@ class BackupServiceClass {
     }
 
     /**
-     * FSA-specific: the companion has no equivalent permission state to poll -
-     * `CompanionBridgeService.getProvider()` only ever hands back a provider
-     * once paired, so a companion-backed link is 'granted' for as long as it
-     * has a folder at all. A folder that goes unreachable mid-session (the
-     * companion stops, a path leaves its authorized root) surfaces as an
-     * error on the operation that hit it, not as `needsPermission`.
+     * FSA-specific for the browser path: the companion has no equivalent
+     * permission state to poll, so its branch re-derives the live provider
+     * from `CompanionBridgeService.getProvider()` on every call instead of
+     * trusting whatever `this._provider` already held - the two places that
+     * restore a companion folderId without having just called
+     * `setProviderKind()` (`initialize()` on boot, and `resume()` after the
+     * artist re-pairs) both rely on this to pick up a provider that exists
+     * now, even if it did not a moment ago. `getProvider()` only ever hands
+     * one back once paired, so 'granted' here means a *usable* companion
+     * provider is active, never merely "the kind is set to companion" - a
+     * lapsed pairing is 'denied', exactly like a lapsed FSA permission, and
+     * `this._provider` is deliberately left untouched in that case rather
+     * than falling back to the browser provider, since a companion folderId
+     * run through BrowserFSAProvider is always wrong (a string has no
+     * `.getFileHandle`). A folder that goes unreachable mid-write (the
+     * companion stops, a path leaves its authorized root) still surfaces as
+     * an error on that specific operation, not as `needsPermission`.
      * @private
      */
     async _permission(request) {
         if (!this.directory) return 'denied';
-        if (this._providerKind === 'companion') return 'granted';
+        if (this._providerKind === 'companion') {
+            const companionProvider = CompanionBridgeService.getProvider();
+            if (!companionProvider) return 'denied';
+            this._provider = companionProvider;
+            return 'granted';
+        }
         const opts = { mode: 'readwrite' };
         try {
             let state = await this.directory.queryPermission(opts);
