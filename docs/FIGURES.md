@@ -27,9 +27,19 @@ The useful output of this exercise. Not every A figure matters - a 48-character
 name limit can be wrong without hurting anyone. These are the guesses something
 actually rests on.
 
-**This list is empty as of 2026-08-07.** No decision currently rests on an
-untagged or assumed figure. Keep it that way: an entry here is a debt, not a
-record.
+**One entry as of 2026-08-19.** The companion bridge (`companion/`,
+`js/services/companion-*.js`) added a genuine one:
+
+| Figure | Value | Tag | What rests on it |
+|---|---|---|---|
+| Companion HTTP port | 51973 | A | Chosen from the 49152-65535 dynamic/private range, never checked against every possible local-dev-server collision on an artist's machine (the plan's own Global Constraint says so explicitly). It is hardcoded identically in three places - `companion/main.go`'s `defaultAddr`, and `COMPANION_BASE_URL` in both `js/services/companion-file-provider.js` and `js/services/companion-bridge-service.js` - so a real collision (another local tool already bound to 51973) fails pairing silently rather than falling back. If that turns out to matter in practice, making the port configurable is the fix; not attempted in v1 |
+
+Two more from the same feature were considered and did NOT make this list,
+because nothing rests on either being exactly right rather than approximately
+right: the pairing arm window (120000 ms - see §2, wrong by a factor of 2
+would just mean a slightly longer or shorter window to click Enable Pairing
+in) and the token size (32 bytes / 256 bits - so far past any real attack
+budget that halving it would still be fine).
 
 Five figures have left it. `MAX_LAYERS`, `DEFAULT_UNDO_LIMIT` and
 `MAX_LIBRARY_FONTS` were measured, and `MapCodec.MAX_TILES` was measured and
@@ -65,6 +75,7 @@ measured.
 | Pattern search debounce | 200 ms | C | `pattern-panel.js` - just past the 150-200 ms (P) slow-typing keystroke gap |
 | TZX block pause | 1000 ms | P | `tzx-format.js` - the format's own convention |
 | Font/map name-entry settle | 800 ms | A | `font-service.js`, `map-service.js` debounce |
+| Companion pairing arm window | 120000 ms (2 min) | A | `companion/pairing.go` `pairArmWindow`. The design spec proposed "~2 minutes" as a not-yet-tuned figure; the plan's Global Constraints promoted it to a fixed value. Not measured against real pairing UX (how long someone actually takes to notice the tray icon and click it) - see §1 for why nothing load-bearing rests on the exact number |
 
 ## 3. Persistence caps
 
