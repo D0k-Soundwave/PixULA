@@ -61,8 +61,22 @@ function installStubs(overrides = {}) {
                 textBaseline: 'top',
                 font: '',
                 fillStyle: '#000',
+                textAlign: 'left',
                 clearRect() {},
                 fillText() {},
+                // Zeroed metrics: this stub renders nothing, so it must not
+                // claim any ink. FontRasterizer treats an all-blank set as
+                // "no usable metrics" and falls back to em proportions,
+                // which is the honest answer for a canvas that cannot draw.
+                measureText() {
+                    return {
+                        width: 0,
+                        actualBoundingBoxLeft: 0,
+                        actualBoundingBoxRight: 0,
+                        actualBoundingBoxAscent: 0,
+                        actualBoundingBoxDescent: 0
+                    };
+                },
                 getImageData(x, y, w, h) {
                   _testThrowOnGetImageDataCall--;
                   if (_testThrowOnGetImageDataCall === 0) {
