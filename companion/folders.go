@@ -59,6 +59,40 @@ func (fs *folderStore) Resolve(id, relPath string) (string, bool) {
 	if target != root && !strings.HasPrefix(target, root+string(os.PathSeparator)) {
 		return "", false
 	}
+
+	// The check above is purely lexical. It does not protect against a
+	// symlink (or, on Windows, a junction/reparse point) sitting inside the
+	// authorized folder and pointing outside it - lexically the joined path
+	// stays under root, but the OS would follow the link and actually touch
+	// a file elsewhere. Resolve the REAL path and check it against the REAL
+	// root too. target may not exist yet (a PUT creating a new file), so
+	// walk up to the nearest existing ancestor and resolve that instead -
+	// this also catches a symlinked directory placed inside the authorized
+	// folder before any file under it exists.
+	realRoot, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return "", false // authorized folder itself vanished/unreadable
+	}
+	checkPath := target
+	for {
+		real, err := filepath.EvalSymlinks(checkPath)
+		if err == nil {
+			if real != realRoot && !strings.HasPrefix(real, realRoot+string(os.PathSeparator)) {
+				return "", false
+			}
+			break
+		}
+		parent := filepath.Dir(checkPath)
+		if parent == checkPath {
+			break // reached filesystem root without finding an existing ancestor
+		}
+		checkPath = parent
+	}
+	// Known residual limitation, deliberately not closed here: there is a
+	// TOCTOU window between this check and the actual os.Open/os.Create/
+	// os.Remove call - a symlink could theoretically be swapped in between.
+	// Closing that needs platform-specific O_NOFOLLOW-style opens and is
+	// disproportionate for a v1 local single-user companion process.
 	return target, true
 }
 
