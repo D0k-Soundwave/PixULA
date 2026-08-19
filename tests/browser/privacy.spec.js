@@ -115,6 +115,7 @@ test('clearing empties every store and every pixula- key', async ({ page }) => {
         return {
             before: before.stores.reduce((n, s) => n + (s.records || 0), 0),
             after: after.stores.reduce((n, s) => n + (s.records || 0), 0),
+            storeCount: Object.keys(Storage.STORES).length,
             cleared: result,
             ourKeyGone: localStorage.getItem('pixula-probe') === null,
             theirKeyKept: localStorage.getItem('somebody-elses-key') === 'keep me'
@@ -123,7 +124,13 @@ test('clearing empties every store and every pixula- key', async ({ page }) => {
 
     expect(r.before).toBeGreaterThan(0);
     expect(r.after).toBe(0);
-    expect(r.cleared.stores).toBe(10);
+    // What this test is really about: EVERY store in Storage.STORES was
+    // cleared, none skipped. Read the count from the registry rather than
+    // restating it, so adding a store cannot leave this asserting the old
+    // number (which is exactly what the COMPANION store, DB v8, did to the
+    // literal 10 that used to sit here).
+    expect(r.cleared.stores).toBe(r.storeCount);
+    expect(r.storeCount).toBe(11); // 11 as of DB v8; a new store is a deliberate edit here
     // Withdrawal deletes OUR data, not everything on the origin
     expect(r.ourKeyGone).toBe(true);
     expect(r.theirKeyKept).toBe(true);
