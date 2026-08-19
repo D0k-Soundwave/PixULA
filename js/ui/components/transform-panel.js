@@ -213,13 +213,34 @@ class TransformPanelClass {
 
         // ── Image rotation slider ─────────────────────────────────────────
         // Live preview: snapshot the layer/selection on first input, rotate
-        // from that snapshot on every tick (avoids accumulated quality loss),
-        // commit one undo entry on `change` (release / keyboard step), reset to 0.
+        // from that snapshot on every tick (avoids accumulated quality loss
+        // WITHIN one drag), commit one undo entry once the interaction
+        // settles, reset to 0.
+        //
+        // "Once the interaction settles" is load-bearing, not cosmetic. Each
+        // rotation is nearest-neighbour: a point at radius r only crosses a
+        // pixel boundary once r*sin(degrees) passes ~0.5px. At 1 degree that
+        // needs r > ~28px, so anything closer to the pivot than that is
+        // rotated to the SAME pixel it started at - correct for that single
+        // degree, not a bug. The bug was committing (which snapshots the
+        // ALREADY-ROUNDED result as the new starting point) after every
+        // single stepper click: content inside that radius rounds back to
+        // itself on every fresh snapshot, forever, no matter how many clicks
+        // accumulate - the centre of a shape visibly never rotated while the
+        // outer rim eventually did, because only the rim ever crossed the
+        // threshold on any individual click. A drag never hit this, because
+        // 'change' only ever fired once, at release - every tick mid-drag
+        // rotated the CURRENT click's full angle from the one original
+        // snapshot, so nothing was ever re-quantized until the final commit.
+        // The fix is the same shape a drag already has: let a burst of
+        // stepper clicks share one open snapshot and commit only after the
+        // clicks stop, instead of after each one.
         const imgRot    = content.querySelector('.tp-img-rot');
         const imgRotVal = content.querySelector('.tp-img-rot-val');
         let _imgRotSnap = null;
         let _imgRotArea = null;
         let _imgRotOpen = false;
+        let _imgRotCommitTimer = null;
 
         const beginImgRot = () => {
             if (_imgRotOpen) return false;
@@ -234,6 +255,7 @@ class TransformPanelClass {
         };
 
         const commitImgRot = () => {
+            if (_imgRotCommitTimer) { clearTimeout(_imgRotCommitTimer); _imgRotCommitTimer = null; }
             if (!_imgRotOpen) return;
             UndoRedo.endAction();
             _imgRotOpen = false;
@@ -241,6 +263,19 @@ class TransformPanelClass {
             _imgRotArea = null;
             imgRot.value = 0;
             imgRotVal.textContent = '0°';
+        };
+
+        // A real drag's 'change' fires once, at release - committing right
+        // then is already correct. A stepper click's 'change' fires on every
+        // click; waiting this long after the LAST one before committing lets
+        // a burst of clicks share the drag's one-snapshot, one-commit shape
+        // instead of each click re-quantizing an already-rounded result.
+        // [A] chosen to comfortably exceed a deliberate next click, never
+        // measured against real click cadence.
+        const IMG_ROT_COMMIT_IDLE_MS = 500;
+        const scheduleCommitImgRot = () => {
+            if (_imgRotCommitTimer) clearTimeout(_imgRotCommitTimer);
+            _imgRotCommitTimer = setTimeout(commitImgRot, IMG_ROT_COMMIT_IDLE_MS);
         };
 
         imgRot.addEventListener('input', (e) => {
@@ -251,7 +286,7 @@ class TransformPanelClass {
             CanvasSystem.requestRender();
         });
 
-        imgRot.addEventListener('change', commitImgRot);
+        imgRot.addEventListener('change', scheduleCommitImgRot);
         imgRot.addEventListener('blur', commitImgRot);
     }
 

@@ -716,6 +716,14 @@ class OptionControlsClass {
 
         const min = parseFloat(range.min) || 0;
         const max = range.max !== '' ? parseFloat(range.max) : 100;
+        // A native range input re-validates its OWN value against its step
+        // on every assignment (and re-validates again the moment the step
+        // attribute itself changes back, which rules out toggling step to
+        // bypass it) - so a nudge that isn't a multiple of the element's own
+        // step, from its own min, is silently snapped back to where it
+        // started. Stepping by the element's real granularity keeps every
+        // nudge legal instead of fighting that browser behaviour.
+        const step = parseFloat(range.step) || 1;
         const fmt = (v) => String(Math.round(v));
 
         const rowEl = document.createElement('div');
@@ -786,9 +794,9 @@ class OptionControlsClass {
             if (e.key === 'Enter') { e.preventDefault(); commitNum(); num.blur(); }
         });
 
-        // ± step by 1 unit, regardless of the slider's own step granularity
-        minusBtn.addEventListener('click', () => setValue((parseFloat(range.value) || 0) - 1));
-        plusBtn.addEventListener('click',  () => setValue((parseFloat(range.value) || 0) + 1));
+        // +/- by the slider's own step (1 where none is set)
+        minusBtn.addEventListener('click', () => setValue((parseFloat(range.value) || 0) - step));
+        plusBtn.addEventListener('click',  () => setValue((parseFloat(range.value) || 0) + step));
     }
 }
 
