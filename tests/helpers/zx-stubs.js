@@ -18,6 +18,66 @@ function installStubs(overrides = {}) {
     registerImport() {}, registerExport() {}, download() {},
     getExtension(f) { const p = String(f).split('.'); return p.length > 1 ? p.pop().toLowerCase() : ''; }
   };
+
+  // FontFace and document.fonts stub for FontRasterizer contract test (Task 14)
+  global.FontFace = class FontFace {
+    constructor(name, source) {
+      this.family = name;
+      this.source = source;
+    }
+    async load() {
+      return this;
+    }
+  };
+
+  global.document = global.document || {
+    documentElement: {
+      style: {
+        setProperty() {},
+        removeProperty() {}
+      }
+    }
+  };
+  global.document.fonts = {
+    _fonts: [],
+    add(face) { this._fonts.push(face); },
+    delete(face) { this._fonts = this._fonts.filter(f => f !== face); }
+  };
+
+  // Canvas 2D stub for FontRasterizer — fillText/getImageData/clearRect are no-ops
+  // returning all-zero-alpha ImageData, which is enough for the contract test
+  // (glyph count, byte shape, width masking). Real pixel-accurate rendering is
+  // exercised only in the Playwright spec (Task 15).
+  if (!global.document.createElement) {
+    global.document.createElement = function(tag) {
+      if (tag === 'canvas') {
+        return {
+          getContext(type) {
+            if (type === '2d') {
+              return {
+                textBaseline: 'top',
+                font: '',
+                fillStyle: '#000',
+                clearRect() {},
+                fillText() {},
+                getImageData(x, y, w, h) {
+                  const imageData = {
+                    data: new Uint8ClampedArray(w * h * 4),
+                    width: w,
+                    height: h
+                  };
+                  return imageData;
+                }
+              };
+            }
+            return null;
+          }
+        };
+      }
+      return null;
+    };
+  }
+
   Object.assign(global, overrides);
 }
 
