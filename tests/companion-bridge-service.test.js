@@ -41,6 +41,21 @@ loadModule('js/services/companion-file-provider.js');
 loadModule('js/services/companion-bridge-service.js');
 
 async function run() {
+    // init(): restore a previously-stored token
+    {
+        const storedToken = 'b'.repeat(64);
+        mockStorage.set('companion', new Map([['token', { key: 'token', value: storedToken }]]));
+        const serviceWithToken = new (window.CompanionBridgeService.constructor)();
+        await serviceWithToken.init();
+        const state = serviceWithToken.getState();
+        if (state.paired !== true || state.token !== storedToken) throw new Error('expected init() to restore stored token');
+        if (!(serviceWithToken.getProvider() instanceof CompanionFileProvider)) throw new Error('expected a usable provider after init() restore');
+        console.log('  ok: init() restores a previously-stored token and enables pairing');
+    }
+
+    // Clear storage for the rest of the test
+    mockStorage.clear();
+
     const events = [];
     EventBus.on(EVENTS.COMPANION_STATE_CHANGED, (state) => events.push(state));
 
