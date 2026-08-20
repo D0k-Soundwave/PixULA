@@ -1174,8 +1174,7 @@ PresetServiceClass.SLICES = Object.freeze([
                 symmetry: StateManager.getSymmetryMode(),
                 clip: StateManager.getClipMode(),
                 snap: StateManager.getGridSnap(),
-                nudgeStep: StateManager.get('nudgeStep'),
-                pixelPerfect: StateManager.get('pixelPerfect')
+                nudgeStep: StateManager.get('nudgeStep')
             };
         },
 
@@ -1187,9 +1186,6 @@ PresetServiceClass.SLICES = Object.freeze([
             if (typeof value.snap === 'boolean') StateManager.setGridSnap(value.snap);
             if (Number.isFinite(value.nudgeStep)) {
                 StateManager.set('nudgeStep', Helpers.clamp(value.nudgeStep, 1, 32));
-            }
-            if (typeof value.pixelPerfect === 'boolean') {
-                StateManager.set('pixelPerfect', value.pixelPerfect);
             }
         }
     },

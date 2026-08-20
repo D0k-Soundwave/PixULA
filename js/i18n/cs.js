@@ -441,6 +441,9 @@ const cs = {
     'msg.confirmClear': 'Vymazat aktuální vrstvu?',
     'msg.confirmFlatten': 'Sloučit všechny vrstvy do jedné? Poté je nelze znovu oddělit.',
     'panel.collapseExpand': 'Sbalit/rozbalit panel',
+    'panel.moveUp': 'Posunout nahoru',
+    'panel.moveDown': 'Posunout dolů',
+    'panel.reorderHint': 'Pravým tlačítkem posunete tento panel nahoru nebo dolů',
     'panel.patterns': 'Vzory',
     'panels.stamps': 'Razítka',
     'panels.transform': 'Transformace',
@@ -588,7 +591,6 @@ const cs = {
     'pref.privacyLocalKeys': '{count} klíčů nastavení',
     'pref.privacySize': 'Celkem přibližně {kb} KB.',
     'msg.confirmClearData': 'Smazat vše, co tento program uložil v prohlížeči, a znovu načíst? Souborů, které jste uložili sami, se to nedotkne.',
-    'pref.pixelPerfect': 'Pixelově přesné tahy',
     'pref.resetDrawMode': 'Volba nástroje vrátí režim kreslení na Normální',
     'pref.nudgeStep': 'Krok posunu šipkami pro razítka a výběry (pixely)',
 

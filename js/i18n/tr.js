@@ -441,6 +441,9 @@ const tr = {
     'msg.confirmClear': 'Geçerli katman temizlensin mi?',
     'msg.confirmFlatten': 'Tüm katmanlar tek katmanda birleştirilsin mi? Bu işlem geri ayrılamaz.',
     'panel.collapseExpand': 'Paneli daralt/genişlet',
+    'panel.moveUp': 'Yukarı taşı',
+    'panel.moveDown': 'Aşağı taşı',
+    'panel.reorderHint': 'Bu paneli yukarı veya aşağı taşımak için sağ tıklayın',
     'panel.patterns': 'Desenler',
     'panels.stamps': 'Damgalar',
     'panels.transform': 'Dönüşüm',
@@ -588,7 +591,6 @@ const tr = {
     'pref.privacyLocalKeys': '{count} ayar anahtarı',
     'pref.privacySize': 'Toplam yaklaşık {kb} KB.',
     'msg.confirmClearData': 'Bu programın tarayıcıda sakladığı her şeyi silip yeniden yüklemek istiyor musunuz? Kendi kaydettiğiniz dosyalara dokunulmaz.',
-    'pref.pixelPerfect': 'Piksel hassasiyetinde çizgiler',
     'pref.resetDrawMode': 'Bir araç seçmek çizim kipini Normal\'e döndürür',
     'pref.nudgeStep': 'Damgalar ve seçimler için ok tuşlarıyla kaydırma adımı (piksel)',
 

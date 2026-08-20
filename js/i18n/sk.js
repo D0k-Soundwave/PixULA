@@ -441,6 +441,9 @@ const sk = {
     'msg.confirmClear': 'Vymazať aktuálnu vrstvu?',
     'msg.confirmFlatten': 'Zlúčiť všetky vrstvy do jednej? Už ich nebude možné oddeliť.',
     'panel.collapseExpand': 'Zbaliť/rozbaliť panel',
+    'panel.moveUp': 'Presunúť nahor',
+    'panel.moveDown': 'Presunúť nadol',
+    'panel.reorderHint': 'Pravým tlačidlom presuniete tento panel nahor alebo nadol',
     'panel.patterns': 'Vzory',
     'panels.stamps': 'Pečiatky',
     'panels.transform': 'Transformácia',
@@ -588,7 +591,6 @@ const sk = {
     'pref.privacyLocalKeys': '{count} kľúčov nastavení',
     'pref.privacySize': 'Celkom približne {kb} KB.',
     'msg.confirmClearData': 'Vymazať všetko, čo tento program uložil v prehliadači, a znova načítať? Súborov, ktoré ste uložili sami, sa to nedotkne.',
-    'pref.pixelPerfect': 'Pixelovo presné ťahy',
     'pref.resetDrawMode': 'Voľba nástroja vráti režim kreslenia na Normálny',
     'pref.nudgeStep': 'Krok posunu šípkami pre pečiatky a výbery (pixely)',
 

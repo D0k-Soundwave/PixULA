@@ -421,17 +421,19 @@ class InputHandlerClass {
   }
 
   /**
-   * Close any open menu-bar dropdown the moment a pointer goes down on the
-   * canvas. MenuSystem's own click-outside handler lives on the top
-   * document and never sees this: the iframe is a separate document, and it
-   * covers most of the screen, so without this a menu only closed on a
-   * second click or Escape.
+   * Close any open menu-bar dropdown, and any open CanvasContextMenu (the
+   * canvas edit menu, or PanelSection's panel reorder menu), the moment a
+   * pointer goes down on the canvas. Both components' own click-outside
+   * handlers live on the top document and never see this: the iframe is a
+   * separate document, and it covers most of the screen, so without this a
+   * menu only closed on a second click or Escape.
    * @param {Document} iframeDoc
    * @private
    */
   _closeMenusOnIframeInteraction(iframeDoc) {
     iframeDoc.addEventListener('pointerdown', () => {
       if (window.MenuSystem) MenuSystem.closeAllMenus();
+      if (window.CanvasContextMenu) CanvasContextMenu.hide();
     }, true);
   }
 

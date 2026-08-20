@@ -12,9 +12,11 @@
 class PanelSectionClass {
     constructor() {
         this.STORE_KEY = 'panelCollapse';
+        this.ORDER_KEY = 'panelOrder';
         /** @type {Map<string, { section, content, title, button }>} */
         this._sections = new Map();
         this._restored = null; // persisted collapse states (async)
+        this._restoredOrder = null; // persisted panel order (async)
     }
 
     /** English fallback until i18n lands (Phase 6). @private */
@@ -58,6 +60,18 @@ class PanelSectionClass {
         titleEl.dataset.i18n = titleI18n;
         titleEl.textContent = this._t(titleI18n, title);
 
+        // Hover hint: the header's own name (already visible as the h2) plus
+        // the right-click reorder hint, composed the same way every other
+        // control's two-stage tooltip is (Helpers.composeTitle / I18n's
+        // data-i18n-title + data-i18n-title-name pair keeps it live on a
+        // locale switch).
+        header.dataset.i18nTitleName = titleI18n;
+        header.dataset.i18nTitle = 'panel.reorderHint';
+        header.title = Helpers.composeTitle(
+            this._t(titleI18n, title),
+            this._t('panel.reorderHint', 'Right-click to move this panel up or down')
+        );
+
         const entry = { section, content, title: titleEl, button };
         this._sections.set(id, entry);
 
@@ -69,11 +83,19 @@ class PanelSectionClass {
             this._save();
         });
 
+        header.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            this._showReorderMenu(id, e.clientX, e.clientY);
+        });
+
         host.appendChild(fragment);
 
         // Apply any persisted state that resolved before this panel existed
         if (this._restored && Object.prototype.hasOwnProperty.call(this._restored, content.id)) {
             this._setCollapsedDom(entry, !this._restored[content.id]);
+        }
+        if (this._restoredOrder && this._restoredOrder.includes(id)) {
+            this._applyOrder(this._restoredOrder);
         }
 
         return { section, content, title: titleEl };
@@ -132,22 +154,92 @@ class PanelSectionClass {
         Promise.resolve(Storage.set(this.STORE_KEY, states, store)).catch(() => {});
     }
 
+    /** Show the Move up/Move down context menu for a panel's title bar. @private */
+    _showReorderMenu(id, screenX, screenY) {
+        if (!window.CanvasContextMenu) return;
+        const host = document.getElementById('panels');
+        const entry = this._sections.get(id);
+        if (!host || !entry) return;
+        const children = Array.from(host.children);
+        const idx = children.indexOf(entry.section);
+
+        CanvasContextMenu.show(screenX, screenY, [
+            {
+                label: this._t('panel.moveUp', 'Move up'),
+                disabled: idx <= 0,
+                action: () => this._moveSection(id, -1)
+            },
+            {
+                label: this._t('panel.moveDown', 'Move down'),
+                disabled: idx < 0 || idx >= children.length - 1,
+                action: () => this._moveSection(id, 1)
+            }
+        ]);
+    }
+
+    /** Move a panel one slot up (-1) or down (+1) within #panels. @private */
+    _moveSection(id, delta) {
+        const host = document.getElementById('panels');
+        const entry = this._sections.get(id);
+        if (!host || !entry) return;
+        const children = Array.from(host.children);
+        const idx = children.indexOf(entry.section);
+        const target = idx + delta;
+        if (idx < 0 || target < 0 || target >= children.length) return;
+
+        if (delta < 0) {
+            host.insertBefore(entry.section, children[target]);
+        } else {
+            host.insertBefore(entry.section, children[target + 1] || null);
+        }
+        this._saveOrder();
+    }
+
+    /** Persist the panels' current DOM order. @private */
+    _saveOrder() {
+        if (!window.Storage) return;
+        const host = document.getElementById('panels');
+        if (!host) return;
+        const order = Array.from(host.children).map((el) => el.id).filter(Boolean);
+        const store = (Storage.STORES && Storage.STORES.WINDOW_STATE) || 'window-state';
+        Promise.resolve(Storage.set(this.ORDER_KEY, order, store)).catch(() => {});
+    }
+
+    /** Reorder #panels' children to match a persisted id order. @private */
+    _applyOrder(order) {
+        const host = document.getElementById('panels');
+        if (!host) return;
+        for (const id of order) {
+            const entry = this._sections.get(id);
+            if (entry) host.appendChild(entry.section);
+        }
+    }
+
     /**
-     * Restore persisted collapse states. Called once from App init after all
-     * panels are created (also applied late to panels created afterwards).
+     * Restore persisted collapse states and panel order. Called once from App
+     * init after all panels are created (also applied late to panels created
+     * afterwards).
      */
     async restore() {
         if (!window.Storage) return;
         const store = (Storage.STORES && Storage.STORES.WINDOW_STATE) || 'window-state';
         try {
-            const states = await Storage.get(this.STORE_KEY, store);
-            if (!states) return;
-            this._restored = states;
-            for (const entry of this._sections.values()) {
-                const key = entry.content.id;
-                if (Object.prototype.hasOwnProperty.call(states, key)) {
-                    this._setCollapsedDom(entry, !states[key]);
+            const [states, order] = await Promise.all([
+                Storage.get(this.STORE_KEY, store),
+                Storage.get(this.ORDER_KEY, store)
+            ]);
+            if (states) {
+                this._restored = states;
+                for (const entry of this._sections.values()) {
+                    const key = entry.content.id;
+                    if (Object.prototype.hasOwnProperty.call(states, key)) {
+                        this._setCollapsedDom(entry, !states[key]);
+                    }
                 }
+            }
+            if (Array.isArray(order) && order.length) {
+                this._restoredOrder = order;
+                this._applyOrder(order);
             }
         } catch (e) { /* defaults apply */ }
     }

@@ -140,6 +140,9 @@ const en = {
     'panel.preview': 'Preview',
     'panel.patterns': 'Patterns',
     'panel.collapseExpand': 'Collapse/Expand panel',
+    'panel.moveUp': 'Move up',
+    'panel.moveDown': 'Move down',
+    'panel.reorderHint': 'Right-click to move this panel up or down',
     'panels.patterns': 'Patterns',
 
     'panels.patternLibrary': 'Pattern Library',
@@ -558,7 +561,6 @@ const en = {
     'pref.privacyLocalKeys': '{count} settings keys',
     'pref.privacySize': 'About {kb} KB in total.',
     'msg.confirmClearData': 'Delete everything this program has stored in the browser, and reload? Files you saved yourself are not touched.',
-    'pref.pixelPerfect': 'Pixel-perfect strokes',
     'pref.resetDrawMode': 'Picking a tool returns the draw mode to Normal',
     'pref.nudgeStep': 'Arrow-key nudge distance for stamps and selections (pixels)',
 

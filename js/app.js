@@ -187,7 +187,6 @@ class AppClass {
                 if (typeof prefs.defaultScreenMode === 'string') StateManager.set('defaultScreenMode', prefs.defaultScreenMode);
                 if (typeof prefs.restoreOnBoot === 'boolean') StateManager.set('restoreOnBoot', prefs.restoreOnBoot);
                 if (typeof prefs.confirmClear === 'boolean') StateManager.set('confirmClear', prefs.confirmClear);
-                if (typeof prefs.pixelPerfect === 'boolean') StateManager.set('pixelPerfect', prefs.pixelPerfect);
                 if (typeof prefs.resetDrawModeOnTool === 'boolean') StateManager.set('resetDrawModeOnTool', prefs.resetDrawModeOnTool);
                 if (typeof prefs.nudgeStep === 'number') StateManager.set('nudgeStep', prefs.nudgeStep);
                 if (typeof prefs.showPresetsPanel === 'boolean') StateManager.set('showPresetsPanel', prefs.showPresetsPanel);

@@ -33,7 +33,7 @@
  */
 
 // Elements that opt into the styled fly-out tooltip.
-const SELECTOR = '.tool-btn, .panel-collapse, .layer-ctrl-btn';
+const SELECTOR = '.tool-btn, .panel-collapse, .layer-ctrl-btn, .panel-header';
 const GAP = 8; // px between the anchor element and the tooltip
 
 /* Dwell timings.

@@ -98,8 +98,12 @@
     --overlay-outline-brush:    rgba(255,255,255,0.6);
     --overlay-info-bg:          rgba(0,0,0,0.65);
     --overlay-info-text:        #ffffff;
-    --overlay-marching-1:       rgba(255,255,255,0.9);
-    --overlay-marching-2:       rgba(0,0,0,0.9);
+    /* The selection border overlays ZX artwork, not app chrome, so it does
+       NOT vary per theme like the tokens around it — every ZX_PALETTE entry
+       (constants.js) is built from {0, 215, 255} per channel, and #3399ff
+       lands on none of them (its G channel, 153, is on no ZX entry), so the
+       border stays visible against any colour the artist can actually draw. */
+    --overlay-selection-border: #3399ff;
     --overlay-dim:              rgba(0,0,0,0.15);
     --overlay-selection-fill:   rgba(255,255,255,0.07);
 

@@ -441,6 +441,9 @@ const de = {
     'msg.confirmClear': 'Aktuelle Ebene löschen?',
     'msg.confirmFlatten': 'Alle Ebenen zu einer zusammenführen? Dies kann nicht wieder getrennt werden.',
     'panel.collapseExpand': 'Bereich ein-/ausklappen',
+    'panel.moveUp': 'Nach oben verschieben',
+    'panel.moveDown': 'Nach unten verschieben',
+    'panel.reorderHint': 'Rechtsklick verschiebt diesen Bereich nach oben oder unten',
     'panel.patterns': 'Muster',
     'panels.stamps': 'Stempel',
     'panels.transform': 'Transformieren',
@@ -588,7 +591,6 @@ const de = {
     'pref.privacyLocalKeys': '{count} Einstellungsschlüssel',
     'pref.privacySize': 'Insgesamt etwa {kb} KB.',
     'msg.confirmClearData': 'Alles löschen, was dieses Programm im Browser gespeichert hat, und neu laden? Selbst gespeicherte Dateien bleiben unberührt.',
-    'pref.pixelPerfect': 'Pixelgenaue Striche',
     'pref.resetDrawMode': 'Ein Werkzeug zu wählen setzt den Zeichenmodus auf Normal zurück',
     'pref.nudgeStep': 'Pfeiltasten-Schrittweite für Stempel und Auswahlen (Pixel)',
 

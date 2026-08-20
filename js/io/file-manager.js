@@ -50,7 +50,6 @@ class FileManagerClass {
     // Track canvas modifications
     this._boundHandlers.onModified = this._onCanvasModified.bind(this);
     EventBus.on(EVENTS.CANVAS_DIRTY, this._boundHandlers.onModified);
-    EventBus.on(EVENTS.PIXEL_CHANGED, this._boundHandlers.onModified);
     EventBus.on(EVENTS.PIXEL_BATCH_END, this._boundHandlers.onModified);
 
     // Handle keyboard shortcuts

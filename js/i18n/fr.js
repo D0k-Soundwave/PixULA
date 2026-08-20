@@ -441,6 +441,9 @@ const fr = {
     'msg.confirmClear': 'Effacer le calque actuel ?',
     'msg.confirmFlatten': 'Aplatir tous les calques en un seul ? Ils ne pourront plus être séparés.',
     'panel.collapseExpand': 'Réduire/développer le panneau',
+    'panel.moveUp': 'Déplacer vers le haut',
+    'panel.moveDown': 'Déplacer vers le bas',
+    'panel.reorderHint': 'Clic droit pour déplacer ce panneau vers le haut ou le bas',
     'panel.patterns': 'Motifs',
     'panels.stamps': 'Tampons',
     'panels.transform': 'Transformation',
@@ -588,7 +591,6 @@ const fr = {
     'pref.privacyLocalKeys': '{count} clés de réglages',
     'pref.privacySize': 'Environ {kb} Ko au total.',
     'msg.confirmClearData': 'Supprimer tout ce que ce programme a enregistré dans le navigateur et recharger ? Les fichiers que vous avez enregistrés vous-même ne sont pas touchés.',
-    'pref.pixelPerfect': 'Traits au pixel près',
     'pref.resetDrawMode': 'Choisir un outil ramène le mode de dessin sur Normal',
     'pref.nudgeStep': 'Pas de déplacement aux flèches pour tampons et sélections (pixels)',
 

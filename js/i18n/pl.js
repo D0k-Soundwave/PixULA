@@ -441,6 +441,9 @@ const pl = {
     'msg.confirmClear': 'Wyczyścić bieżącą warstwę?',
     'msg.confirmFlatten': 'Spłaszczyć wszystkie warstwy w jedną? Nie będzie można ich ponownie rozdzielić.',
     'panel.collapseExpand': 'Zwiń/rozwiń panel',
+    'panel.moveUp': 'Przesuń w górę',
+    'panel.moveDown': 'Przesuń w dół',
+    'panel.reorderHint': 'Kliknij prawym przyciskiem, aby przesunąć ten panel w górę lub w dół',
     'panel.patterns': 'Wzory',
     'panels.stamps': 'Stemple',
     'panels.transform': 'Transformacja',
@@ -588,7 +591,6 @@ const pl = {
     'pref.privacyLocalKeys': '{count} kluczy ustawień',
     'pref.privacySize': 'Łącznie około {kb} KB.',
     'msg.confirmClearData': 'Usunąć wszystko, co ten program zapisał w przeglądarce, i przeładować? Pliki zapisane przez ciebie nie zostaną naruszone.',
-    'pref.pixelPerfect': 'Kreski idealne co do piksela',
     'pref.resetDrawMode': 'Wybór narzędzia przywraca tryb rysowania na Zwykły',
     'pref.nudgeStep': 'Krok przesuwania strzałkami dla stempli i zaznaczeń (piksele)',
 

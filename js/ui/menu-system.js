@@ -978,10 +978,6 @@ class MenuSystemClass {
             </div>
             <h3 data-i18n="pref.drawing">${this._t('pref.drawing', 'Drawing')}</h3>
             <label class="pref-row">
-                <input type="checkbox" id="pref-pixel-perfect" name="pref-pixel-perfect">
-                <span data-i18n="pref.pixelPerfect">${this._t('pref.pixelPerfect', 'Pixel-perfect strokes')}</span>
-            </label>
-            <label class="pref-row">
                 <input type="checkbox" id="pref-reset-draw-mode" name="pref-reset-draw-mode">
                 <span data-i18n="pref.resetDrawMode">${this._t('pref.resetDrawMode', 'Picking a tool returns the draw mode to Normal')}</span>
             </label>
@@ -1081,8 +1077,6 @@ class MenuSystemClass {
         if (confirmClear) confirmClear.checked = StateManager.get('confirmClear') !== false;
         const showPresetsPanel = content.querySelector('#pref-show-presets-panel');
         if (showPresetsPanel) showPresetsPanel.checked = StateManager.get('showPresetsPanel') === true;
-        const pixelPerfect = content.querySelector('#pref-pixel-perfect');
-        if (pixelPerfect) pixelPerfect.checked = StateManager.get('pixelPerfect') === true;
         const resetDrawMode = content.querySelector('#pref-reset-draw-mode');
         if (resetDrawMode) resetDrawMode.checked = StateManager.get('resetDrawModeOnTool') === true;
         const nudgeStep = content.querySelector('#pref-nudge-step');
@@ -1491,7 +1485,6 @@ class MenuSystemClass {
         const restoreOnBoot = dialog.querySelector('#pref-restore-on-boot');
         const confirmClear = dialog.querySelector('#pref-confirm-clear');
         const showPresetsPanel = dialog.querySelector('#pref-show-presets-panel');
-        const pixelPerfect = dialog.querySelector('#pref-pixel-perfect');
         const resetDrawMode = dialog.querySelector('#pref-reset-draw-mode');
         const nudgeStepEl = dialog.querySelector('#pref-nudge-step');
         const nudgeStep = nudgeStepEl ? clamp(parseInt(nudgeStepEl.value, 10) || 1, 1, 32) : 1;
@@ -1517,7 +1510,6 @@ class MenuSystemClass {
         if (restoreOnBoot) StateManager.set('restoreOnBoot', restoreOnBoot.checked);
         if (confirmClear) StateManager.set('confirmClear', confirmClear.checked);
         if (showPresetsPanel) StateManager.set('showPresetsPanel', showPresetsPanel.checked);
-        if (pixelPerfect) StateManager.set('pixelPerfect', pixelPerfect.checked);
         if (resetDrawMode) StateManager.set('resetDrawModeOnTool', resetDrawMode.checked);
         if (nudgeStepEl) StateManager.set('nudgeStep', nudgeStep);
         // The drawing switch has a second home in the status bar, so it goes
@@ -1555,7 +1547,6 @@ class MenuSystemClass {
             restoreOnBoot: restoreOnBoot?.checked,
             confirmClear: confirmClear?.checked,
             showPresetsPanel: showPresetsPanel?.checked,
-            pixelPerfect: pixelPerfect?.checked,
             resetDrawModeOnTool: resetDrawMode?.checked,
             nudgeStep,
             // touchDrawing is deliberately absent: it persists under its own
@@ -1607,7 +1598,8 @@ class MenuSystemClass {
                 Storage.delete('theme'),
                 Storage.delete('gridSnap'),
                 Storage.delete('touchDrawing'),
-                Storage.delete('panelCollapse', Storage.STORES.WINDOW_STATE)
+                Storage.delete('panelCollapse', Storage.STORES.WINDOW_STATE),
+                Storage.delete('panelOrder', Storage.STORES.WINDOW_STATE)
             ]).then(() => location.reload());
         }
     }

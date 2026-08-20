@@ -5,7 +5,7 @@
  * GridOverlay - Displays pixel and cell grid overlays on the canvas
  * Manages separate canvases for 1x1 pixel grid, 8x8 cell grid, and 16x16 block grid
  * Also manages the function/composite preview canvases (tool drag previews) and
- * the selection overlay (marching ants, stamp outline, lasso preview).
+ * the selection overlay (selection border, stamp outline, lasso preview).
  *
  * Ported from H:\smsh (2026-07-03) and conformed:
  *  - grid cache canvases come from Helpers.createCanvas (single scratch-canvas source)
@@ -41,9 +41,6 @@ class GridOverlayClass {
         // Selection overlay canvas
         this.selectionCanvas = null;
         this.selectionCtx = null;
-        this._selectionAnimFrame = null;
-        this._selectionDashOffset = 0;
-        this._selectionAnimating = false;
         this._selectionImageData = null;  // cached ImageData for mask rendering
 
         // Visibility states
@@ -58,22 +55,18 @@ class GridOverlayClass {
         this.cellGridColor  = '#FF0000';
         this.blockGridColor = '#0000FF';
 
-        // Overlay chrome colours (marching ants, handles, footprint/stamp
+        // Overlay chrome colours (selection border, handles, footprint/stamp
         // outlines, selection fill/dim) — resolved once here and on
         // EVENTS.THEME_CHANGED rather than via getComputedStyle() on every
-        // draw call. _animateMarchingAnts self-schedules on requestAnimationFrame
-        // for as long as a selection exists, so re-reading these from inside it
-        // used to be a permanent per-frame style-recalculation cost.
+        // draw call.
         this._overlayColors = {
-            outline:        'rgba(255,255,255,0.85)',
-            outlineBrush:   'rgba(255,255,255,0.6)',
-            handleBg:       '#ffffff',
-            handleStroke:   'rgba(0,0,0,0.7)',
-            rotationHandle: '#ffcc00',
-            selectionFill:  'rgba(255,255,255,0.07)',
-            marching1:      'rgba(255,255,255,0.9)',
-            marching2:      'rgba(0,0,0,0.9)',
-            dim:            'rgba(0,0,0,0.15)'
+            outline:         'rgba(255,255,255,0.85)',
+            outlineBrush:    'rgba(255,255,255,0.6)',
+            handleBg:        '#ffffff',
+            handleStroke:    'rgba(0,0,0,0.7)',
+            rotationHandle:  '#ffcc00',
+            selectionFill:   'rgba(255,255,255,0.07)',
+            selectionBorder: '#3399ff'
         };
 
         // Grid caches - separate cache for each grid type
@@ -180,15 +173,13 @@ class GridOverlayClass {
         this.blockGridColor = this._cssVar('--grid-block-color', '#0000FF');
 
         this._overlayColors = {
-            outline:        this._cssVar('--overlay-outline',        'rgba(255,255,255,0.85)'),
-            outlineBrush:   this._cssVar('--overlay-outline-brush',  'rgba(255,255,255,0.6)'),
-            handleBg:       this._cssVar('--overlay-handle-bg',      '#ffffff'),
-            handleStroke:   this._cssVar('--overlay-handle-stroke', 'rgba(0,0,0,0.7)'),
-            rotationHandle: this._cssVar('--overlay-rotation-handle', '#ffcc00'),
-            selectionFill:  this._cssVar('--overlay-selection-fill', 'rgba(255,255,255,0.07)'),
-            marching1:      this._cssVar('--overlay-marching-1',     'rgba(255,255,255,0.9)'),
-            marching2:      this._cssVar('--overlay-marching-2',     'rgba(0,0,0,0.9)'),
-            dim:            this._cssVar('--overlay-dim',            'rgba(0,0,0,0.15)')
+            outline:         this._cssVar('--overlay-outline',          'rgba(255,255,255,0.85)'),
+            outlineBrush:    this._cssVar('--overlay-outline-brush',    'rgba(255,255,255,0.6)'),
+            handleBg:        this._cssVar('--overlay-handle-bg',        '#ffffff'),
+            handleStroke:    this._cssVar('--overlay-handle-stroke',    'rgba(0,0,0,0.7)'),
+            rotationHandle:  this._cssVar('--overlay-rotation-handle',  '#ffcc00'),
+            selectionFill:   this._cssVar('--overlay-selection-fill',   'rgba(255,255,255,0.07)'),
+            selectionBorder: this._cssVar('--overlay-selection-border', '#3399ff')
         };
 
         this._cachedZoom = null; // rebuild caches so new colours apply
@@ -899,7 +890,7 @@ class GridOverlayClass {
     }
 
     /**
-     * Render the selection overlay (stamp outline or marching ants).
+     * Render the selection overlay (stamp outline or selection border).
      * Called on EVENTS.CANVAS_RENDER.
      * @private
      */
@@ -908,31 +899,36 @@ class GridOverlayClass {
 
         // Stamp / floating paste overlay
         if (window.SelectionService && SelectionService.isFloating()) {
-            this._stopSelectionAnimation();
             const fp = SelectionService.floatingPaste;
             if (fp) this._drawBrushStampOutline(fp);
+            else this._clearSelectionCanvas();
             return;
         }
 
         if (!window.SelectionService || !SelectionService.hasSelection()) {
-            this._stopSelectionAnimation();
+            this._clearSelectionCanvas();
             return;
         }
 
         const sel = SelectionService.getSelection();
-        if (!sel) { this._stopSelectionAnimation(); return; }
+        if (!sel) { this._clearSelectionCanvas(); return; }
 
-        // All drawing is owned by the rAF loop in _animateMarchingAnts.
-        if (!this._selectionAnimating) {
-            this._selectionAnimating = true;
-            this._animateMarchingAnts();
+        this._drawSelectionBorder(this.selectionCtx, sel.x, sel.y, sel.width, sel.height, sel.mask);
+    }
+
+    /** @private */
+    _clearSelectionCanvas() {
+        if (this.selectionCtx && this.selectionCanvas) {
+            this.selectionCtx.clearRect(0, 0, this.selectionCanvas.width, this.selectionCanvas.height);
         }
     }
 
     /**
      * Draw a drag-in-progress selection preview on the function-preview canvas.
      * Shows ink pixels from all visible layers ORed together as a translucent
-     * highlight, plus a dashed border — no layer colour data is altered.
+     * highlight, plus a solid border — no layer colour data is altered. Same
+     * plain-line style as the committed selection (_drawSelectionBorder), so
+     * nothing changes look when the drag ends.
      * Called directly by SelectionTool.onPointerMove().
      * @param {number} x @param {number} y @param {number} w @param {number} h
      */
@@ -978,59 +974,34 @@ class GridOverlayClass {
             }
         }
 
-        // Dashed border
-        const m1 = this._overlayColors.marching1;
-        const m2 = this._overlayColors.marching2;
+        // Solid border (see the doc comment above for why it isn't dashed).
         ctx.save();
-        ctx.strokeStyle = m1;
+        ctx.strokeStyle = this._overlayColors.selectionBorder;
         ctx.lineWidth = 1;
-        ctx.setLineDash([4, 4]);
-        ctx.lineDashOffset = 0;
-        ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
-        ctx.strokeStyle = m2;
-        ctx.lineDashOffset = 4;
         ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
         ctx.restore();
     }
 
     /**
-     * Draw marching ants selection border (rectangular selection).
+     * Draw the selection border, rectangular or masked. A rectangular
+     * selection (`mask` omitted) is treated as fully selected within (w, h) —
+     * same boundary-tracing renderer either way, so a plain marquee and a
+     * lasso/ellipse/wand selection share one crisp outline style instead of
+     * two independently-drifting ones. Solid line, no dash, no animation —
+     * matches the drag-in-progress preview, so committing a selection stays
+     * one continuous look instead of jumping into a crawling marquee.
+     * @param {boolean[][]} [mask] - Row-major mask relative to (x,y); omit for a solid rect
      * @private
      */
-    _drawMarchingAnts(ctx, x, y, w, h) {
+    _drawSelectionBorder(ctx, x, y, w, h, mask) {
         const canvas = this.selectionCanvas;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Dim overlay outside selection
-        ctx.fillStyle = this._overlayColors.dim;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.clearRect(x, y, w, h);
+        const isSelected = mask
+            ? (rx, ry) => { const row = mask[ry]; return !!row && !!row[rx]; }
+            : () => true;
 
-        // Marching ants border
-        const m1 = this._overlayColors.marching1;
-        const m2 = this._overlayColors.marching2;
-        ctx.save();
-        ctx.strokeStyle = m1;
-        ctx.lineWidth = 1;
-        ctx.setLineDash([4, 4]);
-        ctx.lineDashOffset = -this._selectionDashOffset;
-        ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
-        ctx.strokeStyle = m2;
-        ctx.lineDashOffset = -(this._selectionDashOffset + 4);
-        ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
-        ctx.restore();
-    }
-
-    /**
-     * Draw marching ants for a masked (non-rectangular) selection.
-     * @param {boolean[][]} mask - Row-major mask relative to (x,y)
-     * @private
-     */
-    _drawMarchingAntsMask(ctx, x, y, w, h, mask) {
-        const canvas = this.selectionCanvas;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Dim overlay — transparent where mask is set.
+        // Dim overlay — transparent where selected.
         // Reuse a cached ImageData to avoid a full-canvas allocation every frame.
         if (!this._selectionImageData ||
                 this._selectionImageData.width  !== canvas.width ||
@@ -1042,10 +1013,8 @@ class GridOverlayClass {
         d.fill(0);
         for (let i = 3; i < d.length; i += 4) d[i] = 38; // matches --overlay-dim alpha (~0.15)
         for (let ry = 0; ry < h; ry++) {
-            const row = mask[ry];
-            if (!row) continue;
             for (let rx = 0; rx < w; rx++) {
-                if (!row[rx]) continue;
+                if (!isSelected(rx, ry)) continue;
                 const px = x + rx, py = y + ry;
                 if (px >= 0 && px < canvas.width && py >= 0 && py < canvas.height) {
                     d[(py * canvas.width + px) * 4 + 3] = 0;
@@ -1054,44 +1023,60 @@ class GridOverlayClass {
         }
         ctx.putImageData(imgData, 0, 0);
 
-        // Build outline path from exposed mask edges
-        const buildPath = () => {
-            ctx.beginPath();
-            for (let ry = 0; ry < h; ry++) {
-                const row     = mask[ry];
-                const rowUp   = ry > 0     ? mask[ry - 1] : null;
-                const rowDown = ry < h - 1 ? mask[ry + 1] : null;
-                if (!row) continue;
-                for (let rx = 0; rx < w; rx++) {
-                    if (!row[rx]) continue;
-                    const px = x + rx, py = y + ry;
-                    if (ry === 0 || !rowUp   || !rowUp[rx])   { ctx.moveTo(px, py);     ctx.lineTo(px + 1, py);     }
-                    if (ry === h - 1 || !rowDown || !rowDown[rx]) { ctx.moveTo(px, py + 1); ctx.lineTo(px + 1, py + 1); }
-                    if (rx === 0 || !row[rx - 1])             { ctx.moveTo(px, py);     ctx.lineTo(px, py + 1);     }
-                    if (rx === w - 1 || !row[rx + 1])         { ctx.moveTo(px + 1, py); ctx.lineTo(px + 1, py + 1); }
-                }
-            }
-        };
+        this._strokeCrispOutline(ctx, x, y, w, h, isSelected);
+    }
 
-        const m1 = this._overlayColors.marching1;
-        const m2 = this._overlayColors.marching2;
+    /**
+     * Trace and stroke the crisp per-pixel boundary of a selected region —
+     * shared by the committed selection border and every live drag preview,
+     * so nothing ever looks different once a drag ends. Each edge segment is
+     * offset 0.5px into the boundary pixel's own row/column: a 1px stroke
+     * centered on a bare integer coordinate straddles two pixel rows at 50%
+     * opacity each, which reads as a soft blurred band once the canvas is
+     * scaled up by zoom. Only ever draws axis-aligned segments (never a
+     * diagonal), which is what keeps it free of antialiasing regardless of
+     * the shape's true outline — see drawLassoPreview for why that matters.
+     * @param {(rx: number, ry: number) => boolean} isSelected - predicate over region-local coords
+     * @private
+     */
+    _strokeCrispOutline(ctx, x, y, w, h, isSelected) {
+        ctx.beginPath();
+        for (let ry = 0; ry < h; ry++) {
+            for (let rx = 0; rx < w; rx++) {
+                if (!isSelected(rx, ry)) continue;
+                const px = x + rx, py = y + ry;
+                if (ry === 0 || !isSelected(rx, ry - 1)) { ctx.moveTo(px, py + 0.5);     ctx.lineTo(px + 1, py + 0.5); }
+                if (ry === h - 1 || !isSelected(rx, ry + 1)) { ctx.moveTo(px, py + 0.5); ctx.lineTo(px + 1, py + 0.5); }
+                if (rx === 0 || !isSelected(rx - 1, ry)) { ctx.moveTo(px + 0.5, py);     ctx.lineTo(px + 0.5, py + 1); }
+                if (rx === w - 1 || !isSelected(rx + 1, ry)) { ctx.moveTo(px + 0.5, py); ctx.lineTo(px + 0.5, py + 1); }
+            }
+        }
         ctx.save();
-        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = this._overlayColors.selectionBorder;
         ctx.lineWidth = 1;
-        ctx.strokeStyle = m1;
-        ctx.lineDashOffset = -this._selectionDashOffset;
-        buildPath();
-        ctx.stroke();
-        ctx.strokeStyle = m2;
-        ctx.lineDashOffset = -(this._selectionDashOffset + 4);
-        buildPath();
         ctx.stroke();
         ctx.restore();
     }
 
     /**
-     * Draw a live lasso path preview on the function-preview canvas during drag.
-     * @param {Array<{x,y}>} path - Current accumulated lasso path
+     * Draw a live lasso/ellipse selection preview on the function-preview
+     * canvas during drag — exactly the pixels `path` itself passes through,
+     * walked with the canonical Bresenham line (ToolBase.getLinePoints) and
+     * filled directly. Never closed into a region: a freeform lasso path
+     * isn't a loop until the artist releases (SelectionTool._rasterizeLasso
+     * is what closes it, at commit), so treating it as one early — filling
+     * it and tracing the fill's boundary, as an earlier version of this did
+     * — drew a straight anchor line bridging the last point back to the
+     * first, which is not anything the artist has actually traced yet. An
+     * ellipse's outline polygon already loops back on itself (its last
+     * point repeats the first), so the same open walk closes it correctly
+     * too, with no separate case needed. A plain vector stroke along `path`
+     * was tried before this and rejected: canvas always antialiases
+     * diagonal segments regardless of pixel-centre offsets, so it looked
+     * blurred; walking Bresenham pixels is what a freehand pencil stroke
+     * does, and is crisp by construction.
+     * @param {Array<{x,y}>} path - Current accumulated lasso path, or an
+     *        ellipse's outline polygon
      */
     drawLassoPreview(path) {
         if (!this._initialized || path.length < 2) return;
@@ -1101,67 +1086,18 @@ class GridOverlayClass {
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        const drawPath = (strokeStyle, dashOffset) => {
-            ctx.beginPath();
-            ctx.moveTo(path[0].x + 0.5, path[0].y + 0.5);
-            for (let i = 1; i < path.length; i++) {
-                ctx.lineTo(path[i].x + 0.5, path[i].y + 0.5);
-            }
-            ctx.strokeStyle = strokeStyle;
-            ctx.lineDashOffset = dashOffset;
-            ctx.stroke();
-        };
-
-        const m1 = this._overlayColors.marching1;
-        const m2 = this._overlayColors.marching2;
-        ctx.save();
-        ctx.setLineDash([4, 4]);
-        ctx.lineWidth = 1;
-        drawPath(m1, 0);
-        drawPath(m2, 4);
-        ctx.restore();
-    }
-
-    /** @private */
-    _animateMarchingAnts() {
-        if (!this._selectionAnimating) return;
-
-        this._selectionDashOffset = (this._selectionDashOffset + 0.05) % 8;
-
-        if (window.SelectionService && SelectionService.isFloating()) {
-            this._stopSelectionAnimation();
-            return;
-        }
-
-        if (!window.SelectionService || !SelectionService.hasSelection()) {
-            this._stopSelectionAnimation();
-            return;
-        }
-
-        const sel = SelectionService.getSelection();
-        if (!sel) { this._stopSelectionAnimation(); return; }
-
-        if (sel.mask) {
-            this._drawMarchingAntsMask(this.selectionCtx, sel.x, sel.y, sel.width, sel.height, sel.mask);
-        } else {
-            this._drawMarchingAnts(this.selectionCtx, sel.x, sel.y, sel.width, sel.height);
-        }
-        this._selectionAnimFrame = requestAnimationFrame(() => this._animateMarchingAnts());
-    }
-
-    /** @private */
-    _stopSelectionAnimation() {
-        this._selectionAnimating = false;
-        if (this._selectionAnimFrame) {
-            cancelAnimationFrame(this._selectionAnimFrame);
-            this._selectionAnimFrame = null;
-        }
-        this._selectionDashOffset = 0;
-
-        if (this.selectionCtx && this.selectionCanvas) {
-            this.selectionCtx.clearRect(0, 0, this.selectionCanvas.width, this.selectionCanvas.height);
+        ctx.fillStyle = this._overlayColors.selectionBorder;
+        for (let i = 1; i < path.length; i++) {
+            const x0 = Math.round(path[i - 1].x), y0 = Math.round(path[i - 1].y);
+            const x1 = Math.round(path[i].x),     y1 = Math.round(path[i].y);
+            ToolBase.forEachLinePoint(x0, y0, x1, y1, (x, y) => {
+                if (x >= 0 && x < canvas.width && y >= 0 && y < canvas.height) {
+                    ctx.fillRect(x, y, 1, 1);
+                }
+            });
         }
     }
+
 }
 
 // Create singleton instance

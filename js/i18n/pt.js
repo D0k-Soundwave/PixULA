@@ -441,6 +441,9 @@ const pt = {
     'msg.confirmClear': 'Limpar a camada atual?',
     'msg.confirmFlatten': 'Achatar todas as camadas numa só? Não poderão ser separadas novamente.',
     'panel.collapseExpand': 'Colapsar/expandir painel',
+    'panel.moveUp': 'Mover para cima',
+    'panel.moveDown': 'Mover para baixo',
+    'panel.reorderHint': 'Clique com o botão direito para mover este painel para cima ou para baixo',
     'panel.patterns': 'Padrões',
     'panels.stamps': 'Carimbos',
     'panels.transform': 'Transformação',
@@ -588,7 +591,6 @@ const pt = {
     'pref.privacyLocalKeys': '{count} chaves de definições',
     'pref.privacySize': 'Cerca de {kb} KB no total.',
     'msg.confirmClearData': 'Apagar tudo o que este programa guardou no navegador e recarregar? Os ficheiros que guardou não são tocados.',
-    'pref.pixelPerfect': 'Traços com precisão de píxel',
     'pref.resetDrawMode': 'Escolher uma ferramenta repõe o modo de desenho em Normal',
     'pref.nudgeStep': 'Distância de deslocamento com as setas para carimbos e seleções (pixels)',
 

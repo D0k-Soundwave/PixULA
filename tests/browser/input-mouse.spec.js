@@ -181,7 +181,7 @@ test('space+drag pans without drawing; releasing space returns to the tool', asy
     expect(await isInk(page, 128, 96)).toBe(false); // pan drew nothing
 });
 
-test('shape tool shows a rubber-band preview mid-drag; selection shows marching ants after release', async ({ page }) => {
+test('shape tool shows a rubber-band preview mid-drag; selection shows a border after release', async ({ page }) => {
     await boot(page);
     const overlayActive = () => page.evaluate(() => {
         const doc = document.getElementById('canvas-frame').contentDocument;
@@ -210,8 +210,8 @@ test('shape tool shows a rubber-band preview mid-drag; selection shows marching 
     await page.mouse.down();
     await page.mouse.move(b.x, b.y, { steps: 5 });
     await page.mouse.up();
-    await page.waitForTimeout(150); // ants animate on rAF
-    expect(await overlayActive(), 'marching ants after release').toBe(true);
+    await page.waitForTimeout(150); // CANVAS_RENDER -> _renderSelectionOverlay settles
+    expect(await overlayActive(), 'selection border after release').toBe(true);
 });
 
 // Attribute paint mode is STICKY — Escape leaves it armed and only a new

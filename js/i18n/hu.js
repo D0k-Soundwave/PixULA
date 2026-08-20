@@ -441,6 +441,9 @@ const hu = {
     'msg.confirmClear': 'Törli az aktuális réteget?',
     'msg.confirmFlatten': 'Az összes réteg egyesítése eggyé? Ezután nem választhatók szét.',
     'panel.collapseExpand': 'Panel összecsukása/kibontása',
+    'panel.moveUp': 'Áthelyezés felfelé',
+    'panel.moveDown': 'Áthelyezés lefelé',
+    'panel.reorderHint': 'Jobb kattintással feljebb vagy lejjebb helyezheti ezt a panelt',
     'panel.patterns': 'Minták',
     'panels.stamps': 'Bélyegzők',
     'panels.transform': 'Átalakítás',
@@ -588,7 +591,6 @@ const hu = {
     'pref.privacyLocalKeys': '{count} beállításkulcs',
     'pref.privacySize': 'Összesen körülbelül {kb} KB.',
     'msg.confirmClearData': 'Törölni mindent, amit ez a program a böngészőben tárolt, és újratölteni? Az általad mentett fájlokat nem érinti.',
-    'pref.pixelPerfect': 'Pixelpontos vonások',
     'pref.resetDrawMode': 'Egy eszköz választása visszaállítja a rajzolási módot Normálra',
     'pref.nudgeStep': 'Nyílbillentyűs elmozdítás lépésköze bélyegzőkhöz és kijelölésekhez (képpont)',
 

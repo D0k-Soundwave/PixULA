@@ -441,6 +441,9 @@ const it = {
     'msg.confirmClear': 'Cancellare il livello corrente?',
     'msg.confirmFlatten': 'Unire tutti i livelli in uno? Non potranno più essere separati.',
     'panel.collapseExpand': 'Comprimi/espandi pannello',
+    'panel.moveUp': 'Sposta su',
+    'panel.moveDown': 'Sposta giù',
+    'panel.reorderHint': 'Clic destro per spostare questo pannello su o giù',
     'panel.patterns': 'Motivi',
     'panels.stamps': 'Timbri',
     'panels.transform': 'Trasformazione',
@@ -588,7 +591,6 @@ const it = {
     'pref.privacyLocalKeys': '{count} chiavi di impostazione',
     'pref.privacySize': 'Circa {kb} KB in totale.',
     'msg.confirmClearData': 'Eliminare tutto ciò che questo programma ha salvato nel browser e ricaricare? I file che hai salvato tu non vengono toccati.',
-    'pref.pixelPerfect': 'Tratti pixel-perfect',
     'pref.resetDrawMode': 'Scegliere uno strumento riporta la modalità di disegno a Normale',
     'pref.nudgeStep': 'Passo di spostamento con le frecce per timbri e selezioni (pixel)',
 

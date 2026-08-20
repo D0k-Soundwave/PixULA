@@ -441,6 +441,9 @@ const es = {
     'msg.confirmClear': '¿Borrar la capa actual?',
     'msg.confirmFlatten': '¿Acoplar todas las capas en una? No se podrán separar de nuevo.',
     'panel.collapseExpand': 'Contraer/expandir panel',
+    'panel.moveUp': 'Mover arriba',
+    'panel.moveDown': 'Mover abajo',
+    'panel.reorderHint': 'Clic derecho para mover este panel arriba o abajo',
     'panel.patterns': 'Patrones',
     'panels.stamps': 'Sellos',
     'panels.transform': 'Transformar',
@@ -588,7 +591,6 @@ const es = {
     'pref.privacyLocalKeys': '{count} claves de configuración',
     'pref.privacySize': 'Unos {kb} KB en total.',
     'msg.confirmClearData': '¿Borrar todo lo que este programa ha guardado en el navegador y recargar? Los archivos que hayas guardado tú no se tocan.',
-    'pref.pixelPerfect': 'Trazos con precisión de píxel',
     'pref.resetDrawMode': 'Elegir una herramienta devuelve el modo de dibujo a Normal',
     'pref.nudgeStep': 'Distancia de empuje con flechas para sellos y selecciones (píxeles)',
 

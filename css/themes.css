@@ -63,8 +63,6 @@
     --overlay-outline-brush:    rgba(0,0,128,0.55);
     --overlay-info-bg:          rgba(255,255,255,0.8);
     --overlay-info-text:        #000000;
-    --overlay-marching-1:       rgba(0,0,128,0.9);
-    --overlay-marching-2:       rgba(255,255,255,0.9);
     --overlay-dim:              rgba(0,0,0,0.08);
     --overlay-selection-fill:   rgba(0,0,128,0.05);
 
@@ -232,8 +230,6 @@
     --overlay-outline-brush:    rgba(80, 50, 20, 0.55);
     --overlay-info-bg:          rgba(250, 244, 232, 0.85);
     --overlay-info-text:        #3a2f22;
-    --overlay-marching-1:       rgba(80, 50, 20, 0.9);
-    --overlay-marching-2:       rgba(250, 244, 232, 0.9);
     --overlay-dim:              rgba(80, 50, 20, 0.08);
     --overlay-selection-fill:   rgba(80, 50, 20, 0.05);
 

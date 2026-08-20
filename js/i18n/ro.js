@@ -441,6 +441,9 @@ const ro = {
     'msg.confirmClear': 'Golești stratul curent?',
     'msg.confirmFlatten': 'Aplatizezi toate straturile într-unul singur? Nu vor mai putea fi separate.',
     'panel.collapseExpand': 'Restrânge/extinde panoul',
+    'panel.moveUp': 'Mutare în sus',
+    'panel.moveDown': 'Mutare în jos',
+    'panel.reorderHint': 'Clic dreapta pentru a muta acest panou în sus sau în jos',
     'panel.patterns': 'Modele',
     'panels.stamps': 'Ștampile',
     'panels.transform': 'Transformare',
@@ -588,7 +591,6 @@ const ro = {
     'pref.privacyLocalKeys': '{count} chei de setări',
     'pref.privacySize': 'Aproximativ {kb} KB în total.',
     'msg.confirmClearData': 'Ștergi tot ce a stocat acest program în browser și reîncarci? Fișierele salvate de tine nu sunt atinse.',
-    'pref.pixelPerfect': 'Trasee precise la pixel',
     'pref.resetDrawMode': 'Alegerea unei unelte readuce modul de desenare la Normal',
     'pref.nudgeStep': 'Pasul de deplasare cu săgețile pentru ștampile și selecții (pixeli)',
 

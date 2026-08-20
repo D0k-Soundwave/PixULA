@@ -948,7 +948,6 @@ const ZOOM_CONFIG = (() => {
  */
 const EVENTS = Object.freeze({
     // Pixel events
-    PIXEL_CHANGED: 'pixel:changed',
     PIXEL_BATCH_START: 'pixel:batchStart',
     PIXEL_BATCH_END: 'pixel:batchEnd',
 
@@ -985,10 +984,6 @@ const EVENTS = Object.freeze({
     DRAW_MODE_CHANGED: 'draw:modeChanged',
 
     // Input events
-    INPUT_DRAW_START: 'input:drawStart',
-    INPUT_DRAW: 'input:draw',
-    INPUT_DRAW_MOVE: 'input:drawMove',
-    INPUT_DRAW_END: 'input:drawEnd',
     INPUT_POINTER_MOVE: 'input:pointerMove',
     INPUT_KEY_DOWN: 'input:keyDown',
     INPUT_WHEEL_ZOOM: 'input:wheelZoom',
@@ -996,29 +991,16 @@ const EVENTS = Object.freeze({
     TOUCH_MODE_CHANGED: 'input:touchModeChanged',
 
     // Shortcut events
-    SHORTCUT_UNDO: 'shortcut:undo',
-    SHORTCUT_REDO: 'shortcut:redo',
     SHORTCUT_SAVE: 'shortcut:save',
     SHORTCUT_OPEN: 'shortcut:open',
     SHORTCUT_NEW: 'shortcut:new',
-    SHORTCUT_SELECT_ALL: 'shortcut:selectAll',
-    SHORTCUT_DESELECT: 'shortcut:deselect',
-    SHORTCUT_COPY: 'shortcut:copy',
-    SHORTCUT_PASTE: 'shortcut:paste',
-    SHORTCUT_CUT: 'shortcut:cut',
-    SHORTCUT_DELETE: 'shortcut:delete',
-    SHORTCUT_ZOOM_IN: 'shortcut:zoomIn',
-    SHORTCUT_ZOOM_OUT: 'shortcut:zoomOut',
-    SHORTCUT_ZOOM_RESET: 'shortcut:zoomReset',
     SHORTCUT_PAN_MODE: 'shortcut:panMode',
 
     // History events
-    HISTORY_PUSH: 'history:push',
     HISTORY_UNDO: 'history:undo',
     HISTORY_REDO: 'history:redo',
 
     // UI events
-    UI_PANEL_TOGGLE: 'ui:panelToggle',
     UI_THEME_CHANGE: 'ui:themeChange',
     UI_LANGUAGE_CHANGE: 'ui:languageChange',
     UI_SCALE_CHANGED: 'ui:scaleChanged',
@@ -1038,7 +1020,6 @@ const EVENTS = Object.freeze({
     COMPANION_STATE_CHANGED: 'companion:stateChanged',
     PATTERN_CHANGED: 'pattern:changed',
     PATTERN_LIBRARY_FULL: 'pattern:libraryFull',
-    PATTERN_LOADED: 'pattern:loaded',
 
     // Map/tile editor events (facts from MapService)
     MAP_CHANGED: 'map:changed',

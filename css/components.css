@@ -586,6 +586,18 @@
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: thin;
+    /* .active-ink's outline sits 1px off the swatch and is 2px wide, so it
+       paints 3px past the swatch's own box - past this box's edges too, for
+       whichever swatch is first/last in a row or on the last wrapped line.
+       overflow here clips at the padding edge, not the content edge, so
+       padding reserves the room the outline paints into and the matching
+       negative margin gives it back, leaving every OTHER box's size and
+       position exactly as they were. Without it the ring was clipped flat
+       on that edge - worse at some --ui-scale values than others (rounding
+       of the sub-pixel outline width), which read as "scaling broke it"
+       when the room was simply never reserved. */
+    padding: 4px;
+    margin: -4px;
 }
 
 /* Nothing inside the scrolling cluster shrinks. Flex items shrink by default,
