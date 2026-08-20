@@ -527,6 +527,12 @@ const it = {
 
     // View
     'view.grid': 'Griglia',
+    'grid.pixelGrid': 'Griglia dei pixel',
+    'grid.pixelGrid.hint': 'Mostra una linea attorno a ogni singolo pixel',
+    'grid.cellGrid': 'Griglia delle celle',
+    'grid.cellGrid.hint': 'Mostra una linea attorno a ogni cella di attributi, l\'unità che condivide inchiostro e carta',
+    'grid.blockGrid': 'Griglia dei blocchi',
+    'grid.blockGrid.hint': 'Mostra una linea attorno a ogni blocco di 16x16 pixel',
     'view.snap': 'Aggancia',
     'view.snap.hint': 'Aggancia selezione, forme e incollaggio alla griglia degli attributi (Shift+S)',
     'view.attributes': 'Mostra attributi',

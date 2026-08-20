@@ -527,6 +527,12 @@ const pl = {
 
     // View
     'view.grid': 'Siatka',
+    'grid.pixelGrid': 'Siatka pikseli',
+    'grid.pixelGrid.hint': 'Pokazuje linię wokół każdego pojedynczego piksela',
+    'grid.cellGrid': 'Siatka komórek',
+    'grid.cellGrid.hint': 'Pokazuje linię wokół każdej komórki atrybutów, jednostki współdzielącej atrament i papier',
+    'grid.blockGrid': 'Siatka bloków',
+    'grid.blockGrid.hint': 'Pokazuje linię wokół każdego bloku 16x16 pikseli',
     'view.snap': 'Przyciąganie',
     'view.snap.hint': 'Przyciągaj zaznaczenie, kształty i wklejanie do siatki atrybutów (Shift+S)',
     'view.attributes': 'Pokaz atrybuty',

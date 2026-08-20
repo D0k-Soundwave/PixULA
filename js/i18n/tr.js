@@ -527,6 +527,12 @@ const tr = {
 
     // View
     'view.grid': 'Izgara',
+    'grid.pixelGrid': 'Piksel ızgarası',
+    'grid.pixelGrid.hint': 'Her bir pikselin etrafında bir çizgi gösterir',
+    'grid.cellGrid': 'Hücre ızgarası',
+    'grid.cellGrid.hint': 'Mürekkep ve kağıdı paylaşan birim olan her öznitelik hücresinin etrafında bir çizgi gösterir',
+    'grid.blockGrid': 'Blok ızgarası',
+    'grid.blockGrid.hint': 'Her 16x16 piksellik bloğun etrafında bir çizgi gösterir',
     'view.snap': 'Tuttur',
     'view.snap.hint': 'Seçimi, şekilleri ve yapıştırmayı öznitelik ızgarasına tuttur (Shift+S)',
     'view.attributes': 'Ozellikleri goster',

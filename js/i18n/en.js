@@ -603,6 +603,12 @@ const en = {
 
     // View
     'view.grid': 'Grid',
+    'grid.pixelGrid': 'Pixel grid',
+    'grid.pixelGrid.hint': 'Shows a line around every individual pixel',
+    'grid.cellGrid': 'Cell grid',
+    'grid.cellGrid.hint': 'Shows a line around every attribute cell, the unit ink and paper are shared across',
+    'grid.blockGrid': 'Block grid',
+    'grid.blockGrid.hint': 'Shows a line around every 16x16 pixel block',
     'view.snap': 'Snap',
     'view.snap.hint': 'Snap selection, shape and paste placement to the attribute grid (Shift+S)',
     'view.attributes': 'Show Attributes',

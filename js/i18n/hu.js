@@ -527,6 +527,12 @@ const hu = {
 
     // View
     'view.grid': 'Rács',
+    'grid.pixelGrid': 'Pixelrács',
+    'grid.pixelGrid.hint': 'Vonalat jelenít meg minden egyes képpont körül',
+    'grid.cellGrid': 'Cellarács',
+    'grid.cellGrid.hint': 'Vonalat jelenít meg minden attribútumcella körül, az egység, amely megosztja a tintát és a papírt',
+    'grid.blockGrid': 'Blokkrács',
+    'grid.blockGrid.hint': 'Vonalat jelenít meg minden 16x16 képpontos blokk körül',
     'view.snap': 'Illesztés',
     'view.snap.hint': 'Kijelölés, alakzatok és beillesztés illesztése az attribútumrácshoz (Shift+S)',
     'view.attributes': 'Attributumok mutatasa',

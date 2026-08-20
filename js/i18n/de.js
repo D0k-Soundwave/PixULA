@@ -527,6 +527,12 @@ const de = {
 
     // View
     'view.grid': 'Raster',
+    'grid.pixelGrid': 'Pixelraster',
+    'grid.pixelGrid.hint': 'Zeigt eine Linie um jedes einzelne Pixel',
+    'grid.cellGrid': 'Zellraster',
+    'grid.cellGrid.hint': 'Zeigt eine Linie um jede Attributzelle, die Einheit, die sich Tinte und Papier teilt',
+    'grid.blockGrid': 'Blockraster',
+    'grid.blockGrid.hint': 'Zeigt eine Linie um jeden 16x16-Pixel-Block',
     'view.snap': 'Einrasten',
     'view.snap.hint': 'Auswahl, Formen und Einfügen am Attributraster einrasten (Shift+S)',
     'view.attributes': 'Attribute anzeigen',

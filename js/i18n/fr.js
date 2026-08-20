@@ -527,6 +527,12 @@ const fr = {
 
     // View
     'view.grid': 'Grille',
+    'grid.pixelGrid': 'Grille de pixels',
+    'grid.pixelGrid.hint': 'Affiche une ligne autour de chaque pixel individuel',
+    'grid.cellGrid': 'Grille de cellules',
+    'grid.cellGrid.hint': 'Affiche une ligne autour de chaque cellule d\'attributs, l\'unité qui partage l\'encre et le papier',
+    'grid.blockGrid': 'Grille de blocs',
+    'grid.blockGrid.hint': 'Affiche une ligne autour de chaque bloc de 16x16 pixels',
     'view.snap': 'Magnétisme',
     'view.snap.hint': 'Aligner la sélection, les formes et le collage sur la grille d’attributs (Shift+S)',
     'view.attributes': 'Afficher les attributs',

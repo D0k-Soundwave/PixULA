@@ -190,10 +190,13 @@ class CanvasControlsClass {
         // CELL_WIDTH×CELL_HEIGHT (cells are not square in multicolor modes);
         // the block grid is always 2×CELL_SIZE = 16×16 px (grid-overlay.js).
         const defs = [
-            { id: 'grid-1x1-toggle',   label: () => '1x1',   key: 'pixel', toggle: () => GridOverlay.togglePixelGrid() },
+            { id: 'grid-1x1-toggle',   label: () => '1x1',   key: 'pixel', toggle: () => GridOverlay.togglePixelGrid(),
+              i18n: 'grid.pixelGrid', hint: 'grid.pixelGrid.hint' },
             { id: 'grid-8x8-toggle',   label: () => `${ZX_SPECTRUM.CELL_WIDTH}x${ZX_SPECTRUM.CELL_HEIGHT}`,
-              key: 'cell',  toggle: () => GridOverlay.toggleCellGrid() },
-            { id: 'grid-16x16-toggle', label: () => '16x16', key: 'block', toggle: () => GridOverlay.toggleBlockGrid() }
+              key: 'cell',  toggle: () => GridOverlay.toggleCellGrid(),
+              i18n: 'grid.cellGrid', hint: 'grid.cellGrid.hint' },
+            { id: 'grid-16x16-toggle', label: () => '16x16', key: 'block', toggle: () => GridOverlay.toggleBlockGrid(),
+              i18n: 'grid.blockGrid', hint: 'grid.blockGrid.hint' }
         ];
 
         for (const def of defs) {
@@ -201,6 +204,9 @@ class CanvasControlsClass {
             btn.type = 'button';
             btn.id = def.id;
             btn.className = 'grid-toggle';
+            btn.dataset.i18nTitleName = def.i18n;
+            btn.dataset.i18nTitle = def.hint;
+            btn.title = Helpers.composeTitle(this._t(def.i18n, def.id), this._t(def.hint, ''));
             btn.setAttribute('aria-pressed', 'false');
             btn.textContent = def.label();
             btn.addEventListener('click', def.toggle);
@@ -228,8 +234,12 @@ class CanvasControlsClass {
         snapBtn.id = 'grid-snap-toggle';
         snapBtn.className = 'grid-toggle';
         snapBtn.dataset.i18n = 'view.snap';
+        snapBtn.dataset.i18nTitleName = 'view.snap';
         snapBtn.dataset.i18nTitle = 'view.snap.hint';
-        snapBtn.title = this._t('view.snap.hint', 'Snap selection, shape and paste placement to the attribute grid (Shift+S)');
+        snapBtn.title = Helpers.composeTitle(
+            this._t('view.snap', 'Snap'),
+            this._t('view.snap.hint', 'Snap selection, shape and paste placement to the attribute grid (Shift+S)')
+        );
         snapBtn.textContent = this._t('view.snap', 'Snap');
         snapBtn.setAttribute('aria-pressed', String(StateManager.getGridSnap()));
         snapBtn.addEventListener('click', () => {
@@ -279,9 +289,12 @@ class CanvasControlsClass {
             btn.id = `symmetry-${def.mode}-toggle`;
             btn.className = 'grid-toggle';
             btn.dataset.i18n = def.i18n;
+            btn.dataset.i18nTitleName = def.i18n;
             btn.dataset.i18nTitle = 'view.mirror.hint';
-            btn.title = this._t('view.mirror.hint',
-                'Mirror drawing across the canvas centre — every tool draws on both sides');
+            btn.title = Helpers.composeTitle(
+                this._t(def.i18n, def.fallback),
+                this._t('view.mirror.hint', 'Mirror drawing across the canvas centre — every tool draws on both sides')
+            );
             btn.textContent = this._t(def.i18n, def.fallback);
             btn.setAttribute('aria-pressed', String(StateManager.getSymmetryMode() === def.mode));
             btn.addEventListener('click', () => {

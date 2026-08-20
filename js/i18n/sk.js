@@ -527,6 +527,12 @@ const sk = {
 
     // View
     'view.grid': 'Mriežka',
+    'grid.pixelGrid': 'Pixelová mriežka',
+    'grid.pixelGrid.hint': 'Zobrazí čiaru okolo každého jednotlivého pixelu',
+    'grid.cellGrid': 'Bunková mriežka',
+    'grid.cellGrid.hint': 'Zobrazí čiaru okolo každej atribútovej bunky, jednotky zdieľajúcej atrament a papier',
+    'grid.blockGrid': 'Bloková mriežka',
+    'grid.blockGrid.hint': 'Zobrazí čiaru okolo každého bloku 16x16 pixelov',
     'view.snap': 'Prichytávanie',
     'view.snap.hint': 'Prichytávať výber, tvary a vkladanie k mriežke atribútov (Shift+S)',
     'view.attributes': 'Zobrazit atributy',

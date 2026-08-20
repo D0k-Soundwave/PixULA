@@ -527,6 +527,12 @@ const pt = {
 
     // View
     'view.grid': 'Grelha',
+    'grid.pixelGrid': 'Grelha de pixels',
+    'grid.pixelGrid.hint': 'Mostra uma linha à volta de cada pixel individual',
+    'grid.cellGrid': 'Grelha de células',
+    'grid.cellGrid.hint': 'Mostra uma linha à volta de cada célula de atributos, a unidade que partilha tinta e papel',
+    'grid.blockGrid': 'Grelha de blocos',
+    'grid.blockGrid.hint': 'Mostra uma linha à volta de cada bloco de 16x16 pixels',
     'view.snap': 'Ajustar',
     'view.snap.hint': 'Ajustar seleção, formas e colagem à grade de atributos (Shift+S)',
     'view.attributes': 'Mostrar atributos',

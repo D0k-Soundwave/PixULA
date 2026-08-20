@@ -527,6 +527,12 @@ const es = {
 
     // View
     'view.grid': 'Cuadrícula',
+    'grid.pixelGrid': 'Cuadrícula de píxeles',
+    'grid.pixelGrid.hint': 'Muestra una línea alrededor de cada píxel individual',
+    'grid.cellGrid': 'Cuadrícula de celdas',
+    'grid.cellGrid.hint': 'Muestra una línea alrededor de cada celda de atributos, la unidad que comparte tinta y papel',
+    'grid.blockGrid': 'Cuadrícula de bloques',
+    'grid.blockGrid.hint': 'Muestra una línea alrededor de cada bloque de 16x16 píxeles',
     'view.snap': 'Ajustar',
     'view.snap.hint': 'Ajustar la selección, las formas y el pegado a la cuadrícula de atributos (Shift+S)',
     'view.attributes': 'Mostrar atributos',

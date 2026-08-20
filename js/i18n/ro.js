@@ -527,6 +527,12 @@ const ro = {
 
     // View
     'view.grid': 'Grilă',
+    'grid.pixelGrid': 'Grilă de pixeli',
+    'grid.pixelGrid.hint': 'Afișează o linie în jurul fiecărui pixel individual',
+    'grid.cellGrid': 'Grilă de celule',
+    'grid.cellGrid.hint': 'Afișează o linie în jurul fiecărei celule de atribute, unitatea care partajează cerneala și hârtia',
+    'grid.blockGrid': 'Grilă de blocuri',
+    'grid.blockGrid.hint': 'Afișează o linie în jurul fiecărui bloc de 16x16 pixeli',
     'view.snap': 'Aliniere',
     'view.snap.hint': 'Aliniază selecția, formele și lipirea la grila de atribute (Shift+S)',
     'view.attributes': 'Afiseaza atribute',

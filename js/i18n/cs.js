@@ -527,6 +527,12 @@ const cs = {
 
     // View
     'view.grid': 'Mřížka',
+    'grid.pixelGrid': 'Pixelová mřížka',
+    'grid.pixelGrid.hint': 'Zobrazí čáru kolem každého jednotlivého pixelu',
+    'grid.cellGrid': 'Buňková mřížka',
+    'grid.cellGrid.hint': 'Zobrazí čáru kolem každé atributové buňky, jednotky sdílející inkoust a papír',
+    'grid.blockGrid': 'Bloková mřížka',
+    'grid.blockGrid.hint': 'Zobrazí čáru kolem každého bloku 16x16 pixelů',
     'view.snap': 'Přichytávání',
     'view.snap.hint': 'Přichytávat výběr, tvary a vkládání k mřížce atributů (Shift+S)',
     'view.attributes': 'Zobrazit atributy',
