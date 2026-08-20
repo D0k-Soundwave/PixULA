@@ -1,8 +1,8 @@
 # App-wide hover tooltip coverage — design
 
-Status: approved in chat. Written 2026-08-20. Batch 1 (systemic fixes)
-shipped and merged to main 2026-08-20 — see §7. Batches 2-4 not yet
-planned.
+Status: approved in chat. Written 2026-08-20. Batch 1 (systemic fixes) and
+batch 2 (main workspace sweep) both shipped 2026-08-20 — see §7. Batches
+3-4 not yet planned.
 
 ## 1. Motivation
 
@@ -185,20 +185,48 @@ each independently tested before the next starts:
    `Helpers.composeTitle` at all) — excluded from the sweep with an
    inline comment rather than fixed, since both are out of every task's
    file scope. Both are carried into batch 2/3 below.
-2. **Main workspace sweep**: draw-mode bar, remaining flat-but-descriptive
-   controls wired into two-stage (snap/mirror toggles, touch-mode status,
-   zoom-level readout), pattern-panel thumbnails/list rows, preset list
-   rows, Transform panel and grid-toggle buttons (unverified areas,
-   confirmed here). Now also carries forward, from batch 1's own
-   discoveries: `.panel-collapse` (every sidebar panel's collapse/expand
-   header — matched by `TooltipManager`'s `SELECTOR` since before batch 1
-   existed, still name-only) and `#merge-selected` (Layers panel Merge
-   button, `js/ui/components/layer-panel.js:113` — its `title` is the raw
-   hint text with no `Helpers.composeTitle(name, hint)` call at all, not
-   a two-stage title in any form). Both are currently excluded from
-   `tests/browser/tooltip.spec.js`'s widened sweep with a comment marking
-   them as this exact gap — remove that exclusion once this batch lands
-   real hints for both.
+2. **Main workspace sweep — DONE, 2026-08-20 (commits f4526a2..fa0d2a8,
+   worktree `tooltip-batch2`, not yet merged to main).** draw-mode bar,
+   remaining flat-but-descriptive controls wired into two-stage (snap/
+   mirror toggles, touch-mode status, zoom-level readout), pattern-panel
+   thumbnails/list rows, preset list rows, Transform panel and grid-toggle
+   buttons — all landed via
+   `docs/superpowers/plans/2026-08-20-tooltip-batch2-main-workspace.md`,
+   eight tasks executed inline (no subagents — this session's harness ran
+   at an unusually slow pace for dispatched agents, so the human chose
+   inline execution over subagent-driven), full Playwright suite green
+   (297/297) on the branch. Also fixed, carried forward from batch 1's own
+   discoveries: `.panel-collapse` and `#merge-selected` (see the prior
+   paragraph) both now have real hints; the exclusion batch 1 added for
+   them is removed. Most of this batch turned out to be systemic wiring
+   (reusing already-correct hint sentences that just weren't composed with
+   a name or matched by `SELECTOR`) rather than fresh content authoring —
+   the plan's own architecture note called this in advance and it held;
+   the true content-authoring work was almost entirely the Transform
+   panel (14 new keys) plus the draw-mode bar (5), three new grid-size
+   toggles (6) and one pattern-thumbnail hint (1).
+
+   Two deviations from the plan's literal text, both resolved during
+   implementation rather than needing a ruling: (1) the plan's Task 7
+   assumed `TransformPanelClass` had its own `_t()` translation helper
+   (matching every other file in this batch) and specified a manual
+   title-stamping loop using it — that class has no such method and never
+   needed one, since its whole body is a static `innerHTML` template that
+   already relies entirely on the existing `I18n.apply(this._content)`
+   call in `init()` to translate everything, `[data-i18n-title]` included.
+   The manual loop was removed as both unnecessary and broken; adding the
+   `data-i18n-title-name`/`data-i18n-title` attribute pairs to the
+   template was sufficient on its own. (2) Task 8's widened sweep, once it
+   started walking `#transform-panel`, caught the shared shift dir-pad
+   zones (`Helpers.buildDirPad()`, `.dir-pad-zone`) as a new failure —
+   they match `SELECTOR` via `[data-tp-transform]` but deliberately carry
+   no hint (see the Global Constraints note on why one hint text can't
+   serve both the Transform panel and Reference panel contexts it's
+   shared between). Excluded with a comment in `tooltip.spec.js`, the same
+   pattern as the `.panel-collapse`/`#merge-selected` exclusion batch 1
+   used and this batch just removed — carried forward as a real, still-
+   open gap for whoever eventually parameterizes `buildDirPad()`.
+3. **Dialog sweep**: Font Editor, Map Editor, Sprite Editor, Palette
 3. **Dialog sweep**: Font Editor, Map Editor, Sprite Editor, Palette
    Editor, Preset save/manage, Tape Block, Preferences, Import — whatever
    the systemic fixes in batch 1 didn't already cover.
@@ -245,12 +273,30 @@ back before starting the next batch.
   Import/Save/Companion dialogs, `CellGridEditor` chrome) are confirmed
   fresh at the start of batch 2/3 rather than trusted from the audit
   summary, since that pass explicitly flagged them as time-boxed-out.
+  **Batch 2 covered its share**: Transform panel and grid toggles are
+  done (see §7 batch 2). Sprite Editor, Import/Save/Companion dialogs and
+  `CellGridEditor` chrome remain for batch 3 — genuinely not yet touched.
 - **New, discovered during batch 1's own implementation** (not part of
   the original audit): `.panel-collapse` sidebar headers and
-  `#merge-selected` in `layer-panel.js` are both real, out-of-scope gaps
-  — see §7 batch 2 above for detail. Neither was visible to the original
-  audit pass; both surfaced only once `tooltip.spec.js`'s sweep was
-  widened to cover `#panels` in batch 1's own task 5.
+  `#merge-selected` in `layer-panel.js` were real, out-of-scope gaps for
+  batch 1 — see §7 batch 2 above for detail. Neither was visible to the
+  original audit pass; both surfaced only once `tooltip.spec.js`'s sweep
+  was widened to cover `#panels` in batch 1's own task 5. **Resolved in
+  batch 2** (both now have real two-stage hints; the exclusion is
+  removed).
+- **New, discovered during batch 2's own implementation** (not part of
+  the original audit, and not visible to batch 1's own sweep since it
+  never walked `#transform-panel`): the shift dir-pad zones
+  (`Helpers.buildDirPad()`, `.dir-pad-zone`, shared verbatim by the
+  Transform panel and the Reference panel) match `TooltipManager`'s
+  `SELECTOR` via `[data-tp-transform]` but carry no hint at all —
+  deliberately, since one hint text would be right for one of their two
+  contexts and wrong for the other, and the builder takes no parameter to
+  vary it. Excluded from `tooltip.spec.js`'s sweep with a comment (the
+  same pattern as the resolved gap above). Real fix needs either a
+  parameter on `buildDirPad()` or two separate builders — a design
+  decision, not a mechanical batch-3 task; flagging here so batch 3's
+  planning doesn't rediscover it from scratch.
 - Batch 1's dialog close-button task also fixed a genuine, previously
   latent interaction bug as a side effect (native dialog autofocus +
   `:focus-visible` immediately popping the tooltip on every dialog open)
