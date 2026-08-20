@@ -487,6 +487,7 @@ const es = {
     'dialog.yes': 'Sí',
     'dialog.no': 'No',
     'dialog.close': 'Cerrar',
+    'dialog.close.hint': 'También puede cerrar este cuadro de diálogo con Escape',
     'dialog.apply': 'Aplicar',
     'dialog.confirm': 'Confirmar',
     'dialog.newFile': 'Nuevo archivo',

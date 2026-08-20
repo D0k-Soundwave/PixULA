@@ -487,6 +487,7 @@ const ru = {
     'dialog.yes': 'Да',
     'dialog.no': 'Нет',
     'dialog.close': 'Закрыть',
+    'dialog.close.hint': 'Это окно можно также закрыть клавишей Escape',
     'dialog.apply': 'Применить',
     'dialog.confirm': 'Подтвердить',
     'dialog.newFile': 'Новый файл',

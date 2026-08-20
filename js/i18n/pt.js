@@ -487,6 +487,7 @@ const pt = {
     'dialog.yes': 'Sim',
     'dialog.no': 'Não',
     'dialog.close': 'Fechar',
+    'dialog.close.hint': 'Também pode fechar esta caixa de diálogo com Escape',
     'dialog.apply': 'Aplicar',
     'dialog.confirm': 'Confirmar',
     'dialog.newFile': 'Novo ficheiro',

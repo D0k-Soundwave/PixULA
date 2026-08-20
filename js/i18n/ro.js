@@ -487,6 +487,7 @@ const ro = {
     'dialog.yes': 'Da',
     'dialog.no': 'Nu',
     'dialog.close': 'Închide',
+    'dialog.close.hint': 'Puteți închide și această fereastră cu tasta Escape',
     'dialog.apply': 'Aplică',
     'dialog.confirm': 'Confirmă',
     'dialog.newFile': 'Fișier nou',

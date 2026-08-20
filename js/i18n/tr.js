@@ -487,6 +487,7 @@ const tr = {
     'dialog.yes': 'Evet',
     'dialog.no': 'Hayır',
     'dialog.close': 'Kapat',
+    'dialog.close.hint': 'Bu iletişim kutusunu Escape tuşuyla da kapatabilirsiniz',
     'dialog.apply': 'Uygula',
     'dialog.confirm': 'Onayla',
     'dialog.newFile': 'Yeni dosya',

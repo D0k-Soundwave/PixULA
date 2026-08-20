@@ -487,6 +487,7 @@ const fr = {
     'dialog.yes': 'Oui',
     'dialog.no': 'Non',
     'dialog.close': 'Fermer',
+    'dialog.close.hint': 'Vous pouvez aussi fermer cette boîte de dialogue avec la touche Échap',
     'dialog.apply': 'Appliquer',
     'dialog.confirm': 'Confirmer',
     'dialog.newFile': 'Nouveau fichier',

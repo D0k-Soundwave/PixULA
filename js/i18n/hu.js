@@ -487,6 +487,7 @@ const hu = {
     'dialog.yes': 'Igen',
     'dialog.no': 'Nem',
     'dialog.close': 'Bezárás',
+    'dialog.close.hint': 'Ezt a párbeszédablakot az Esc billentyűvel is bezárhatja',
     'dialog.apply': 'Alkalmaz',
     'dialog.confirm': 'Megerősítés',
     'dialog.newFile': 'Új fájl',

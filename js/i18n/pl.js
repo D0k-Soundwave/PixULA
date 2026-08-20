@@ -487,6 +487,7 @@ const pl = {
     'dialog.yes': 'Tak',
     'dialog.no': 'Nie',
     'dialog.close': 'Zamknij',
+    'dialog.close.hint': 'To okno można też zamknąć klawiszem Escape',
     'dialog.apply': 'Zastosuj',
     'dialog.confirm': 'Potwierdź',
     'dialog.newFile': 'Nowy plik',

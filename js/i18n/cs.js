@@ -487,6 +487,7 @@ const cs = {
     'dialog.yes': 'Ano',
     'dialog.no': 'Ne',
     'dialog.close': 'Zavřít',
+    'dialog.close.hint': 'Dialog můžete zavřít také klávesou Escape',
     'dialog.apply': 'Použít',
     'dialog.confirm': 'Potvrdit',
     'dialog.newFile': 'Nový soubor',

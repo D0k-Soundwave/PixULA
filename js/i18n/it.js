@@ -487,6 +487,7 @@ const it = {
     'dialog.yes': 'Sì',
     'dialog.no': 'No',
     'dialog.close': 'Chiudi',
+    'dialog.close.hint': 'È possibile chiudere questa finestra anche con il tasto Esc',
     'dialog.apply': 'Applica',
     'dialog.confirm': 'Conferma',
     'dialog.newFile': 'Nuovo file',

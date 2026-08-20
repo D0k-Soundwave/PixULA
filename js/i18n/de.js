@@ -487,6 +487,7 @@ const de = {
     'dialog.yes': 'Ja',
     'dialog.no': 'Nein',
     'dialog.close': 'Schließen',
+    'dialog.close.hint': 'Sie können diesen Dialog auch mit Escape schließen',
     'dialog.apply': 'Anwenden',
     'dialog.confirm': 'Bestätigen',
     'dialog.newFile': 'Neue Datei',

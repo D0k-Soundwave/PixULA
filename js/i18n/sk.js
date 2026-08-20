@@ -487,6 +487,7 @@ const sk = {
     'dialog.yes': 'Ano',
     'dialog.no': 'Nie',
     'dialog.close': 'Zavrieť',
+    'dialog.close.hint': 'Tento dialóg môžete zavrieť aj klávesom Escape',
     'dialog.apply': 'Použiť',
     'dialog.confirm': 'Potvrdiť',
     'dialog.newFile': 'Nový súbor',

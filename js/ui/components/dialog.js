@@ -60,7 +60,14 @@ class DialogClass {
         const closeBtn = document.createElement('button');
         closeBtn.type = 'button';
         closeBtn.className = 'app-dialog-close';
+        closeBtn.dataset.i18nTitleName = 'dialog.close';
+        closeBtn.dataset.i18nTitle = 'dialog.close.hint';
+        closeBtn.dataset.i18nAriaLabel = 'dialog.close';
         closeBtn.setAttribute('aria-label', this._t('dialog.close', 'Close'));
+        closeBtn.title = Helpers.composeTitle(
+            this._t('dialog.close', 'Close'),
+            this._t('dialog.close.hint', 'You can also press Escape to close this dialog')
+        );
         closeBtn.textContent = '×';
         closeBtn.addEventListener('click', () => this.close(id));
 
@@ -102,6 +109,14 @@ class DialogClass {
         this._open.set(id, dialog);
         if (window.I18n && typeof I18n.apply === 'function') I18n.apply(dialog);
         dialog.showModal();
+        // showModal() autofocuses the first focusable descendant, which is this
+        // header's close button (it precedes any body content) - TooltipManager's
+        // :focus-visible handling then treats that as a genuine keyboard-focus
+        // request and immediately shows (and strips the title of) the tooltip the
+        // instant the dialog opens. Redirect focus to the dialog itself so opening
+        // a dialog doesn't pop its own tooltip.
+        dialog.tabIndex = -1;
+        dialog.focus();
 
         return dialog;
     }

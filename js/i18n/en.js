@@ -488,6 +488,7 @@ const en = {
     'dialog.yes': 'Yes',
     'dialog.no': 'No',
     'dialog.close': 'Close',
+    'dialog.close.hint': 'You can also press Escape to close this dialog',
     'dialog.apply': 'Apply',
     'dialog.confirm': 'Confirm',
     'dialog.newFile': 'New File',
