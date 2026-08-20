@@ -1,6 +1,7 @@
 node_modules/
 test-results/
 playwright-report/
+.worktrees/
 
 # Contained/portable build of the app (a generated duplicate of index.html +
 # css/ + js/). Regenerate with `npm run build:portable`; not tracked.
