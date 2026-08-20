@@ -52,24 +52,24 @@ class TransformPanelClass {
         content.innerHTML = `
           <div class="tp-stamp-section" hidden>
             <div class="tool-option">
-              <label><input type="checkbox" class="tp-xor"> <span data-i18n="transform.xorMode">XOR Mode</span></label>
+              <label><input type="checkbox" class="tp-xor" data-i18n-title-name="transform.xorMode" data-i18n-title="transform.xorMode.hint"> <span data-i18n="transform.xorMode">XOR Mode</span></label>
             </div>
             <hr class="tool-option-separator">
             <div class="tool-option">
               <label><span data-i18n="transform.scaleX">Scale X</span>: <span class="tp-sx-val">100%</span></label>
-              <input type="range" class="tp-sx" min="10" max="400" step="5" value="100">
+              <input type="range" class="tp-sx" min="10" max="400" step="5" value="100" data-i18n-title-name="transform.scaleX" data-i18n-title="transform.scaleX.hint">
             </div>
             <div class="tool-option">
               <label><span data-i18n="transform.scaleY">Scale Y</span>: <span class="tp-sy-val">100%</span></label>
-              <input type="range" class="tp-sy" min="10" max="400" step="5" value="100">
+              <input type="range" class="tp-sy" min="10" max="400" step="5" value="100" data-i18n-title-name="transform.scaleY" data-i18n-title="transform.scaleY.hint">
             </div>
             <div class="tool-option">
               <label><span data-i18n="transform.rotate">Rotate</span>: <span class="tp-rot-val">0&#xb0;</span></label>
-              <input type="range" class="tp-rot" min="-180" max="180" step="1" value="0">
+              <input type="range" class="tp-rot" min="-180" max="180" step="1" value="0" data-i18n-title-name="transform.rotate" data-i18n-title="transform.rotate.hint">
             </div>
             <div class="tool-option">
               <label data-i18n="transform.shape">Shape</label>
-              <select class="tp-warp">
+              <select class="tp-warp" data-i18n-title-name="transform.shape" data-i18n-title="transform.shape.hint">
                 <option value="none" data-i18n="transform.warp.none">None</option>
                 <option value="arch-up" data-i18n="transform.warp.archUp">Arch Up</option>
                 <option value="arch-down" data-i18n="transform.warp.archDown">Arch Down</option>
@@ -83,41 +83,41 @@ class TransformPanelClass {
               </select>
             </div>
             <div class="tool-option">
-              <button type="button" class="panel-button small tp-reset" data-i18n="transform.reset">Reset</button>
+              <button type="button" class="panel-button small tp-reset" data-i18n="transform.reset" data-i18n-title-name="transform.reset" data-i18n-title="transform.reset.hint">Reset</button>
             </div>
             <hr class="tool-option-separator">
           </div>
           <div class="tp-image-section">
             <div class="tool-option">
               <label><span data-i18n="transform.rotate">Rotate</span>: <span class="tp-img-rot-val">0&#xb0;</span></label>
-              <input type="range" class="tp-img-rot" min="-180" max="180" step="1" value="0">
+              <input type="range" class="tp-img-rot" min="-180" max="180" step="1" value="0" data-i18n-title-name="transform.rotate" data-i18n-title="transform.rotate.hint">
             </div>
           </div>
           <div class="tool-option">
             <div class="button-row">
-              <button type="button" class="panel-button small" data-tp-transform="flipH">&#x2194; <span data-i18n="transform.flipH">Flip H</span></button>
-              <button type="button" class="panel-button small" data-tp-transform="flipV">&#x2195; <span data-i18n="transform.flipV">Flip V</span></button>
-              <button type="button" class="panel-button small" data-tp-transform="invert">&#x25A0; <span data-i18n="transform.invert">Invert</span></button>
+              <button type="button" class="panel-button small" data-tp-transform="flipH" data-i18n-title-name="transform.flipH" data-i18n-title="transform.flipH.hint">&#x2194; <span data-i18n="transform.flipH">Flip H</span></button>
+              <button type="button" class="panel-button small" data-tp-transform="flipV" data-i18n-title-name="transform.flipV" data-i18n-title="transform.flipV.hint">&#x2195; <span data-i18n="transform.flipV">Flip V</span></button>
+              <button type="button" class="panel-button small" data-tp-transform="invert" data-i18n-title-name="transform.invert" data-i18n-title="transform.invert.hint">&#x25A0; <span data-i18n="transform.invert">Invert</span></button>
             </div>
           </div>
           <div class="tool-option tp-group tp-outline-group">
             <div class="button-row">
-              <button type="button" class="panel-button small" data-tp-transform="outline">&#x25AD; <span data-i18n="transform.outline">Outline</span></button>
+              <button type="button" class="panel-button small" data-tp-transform="outline" data-i18n-title-name="transform.outline" data-i18n-title="transform.outline.hint">&#x25AD; <span data-i18n="transform.outline">Outline</span></button>
             </div>
             <label><span data-i18n="transform.gap">Gap</span>: <span class="tp-og-val">1</span>px</label>
-            <input type="range" class="tp-og" min="0" max="8" value="1">
+            <input type="range" class="tp-og" min="0" max="8" value="1" data-i18n-title-name="transform.gap" data-i18n-title="transform.gap.hint">
             <label><span data-i18n="transform.thickness">Thickness</span>: <span class="tp-os-val">1</span>px</label>
-            <input type="range" class="tp-os" min="1" max="8" value="1">
+            <input type="range" class="tp-os" min="1" max="8" value="1" data-i18n-title-name="transform.thickness" data-i18n-title="transform.thickness.hint">
           </div>
           <div class="tool-option tp-group tp-shift-group">
             <label data-i18n="transform.shift">Shift</label>
             <div class="dir-pad-slot"></div>
             <div class="tp-shift-opts">
-              <select class="tp-shift-step" data-i18n-aria-label="transform.shiftStep" aria-label="Shift step">
+              <select class="tp-shift-step" data-i18n-aria-label="transform.shiftStep" aria-label="Shift step" data-i18n-title-name="transform.shiftStep" data-i18n-title="transform.shiftStep.hint">
                 <option value="1" data-i18n="transform.shiftStep.pixel">1 pixel</option>
                 <option value="cell" data-i18n="transform.shiftStep.cell">1 cell</option>
               </select>
-              <label><input type="checkbox" class="tp-shift-wrap" checked> <span data-i18n="transform.shiftWrap">Wrap around</span></label>
+              <label><input type="checkbox" class="tp-shift-wrap" checked data-i18n-title-name="transform.shiftWrap" data-i18n-title="transform.shiftWrap.hint"> <span data-i18n="transform.shiftWrap">Wrap around</span></label>
             </div>
           </div>
         `;
@@ -128,6 +128,18 @@ class TransformPanelClass {
         zones.right.dataset.tpTransform = 'shiftRight';
         zones.down.dataset.tpTransform = 'shiftDown';
         content.querySelector('.dir-pad-slot').replaceWith(pad);
+
+        // Unlike every other task in this batch, this class has no _t()
+        // helper of its own and never needed one — this whole panel is a
+        // static innerHTML template with data-i18n attributes, and
+        // init()'s existing `I18n.apply(this._content)` call (line 35,
+        // right after _build()/_wire() run) already stamps every
+        // [data-i18n-title] element's title generically, the same
+        // mechanism every other control in the app goes through. The
+        // data-i18n-title-name/data-i18n-title pairs added above are
+        // enough; no manual stamping loop is needed here. Dir-pad zones
+        // carry neither attribute (out of scope — see Global Constraints),
+        // so I18n.apply's sweep never touches them.
     }
 
     /** Wire all events on the permanent transform panel (called once). @private */
