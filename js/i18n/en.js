@@ -236,6 +236,11 @@ const en = {
     'dm.ink': 'Ink Recolour',
     'dm.paper': 'Paper Recolour',
     'dm.xor': 'XOR / Over',
+    'dm.normal.hint': 'Sets pixels and stamps the cell\'s ink, paper, bright and flash together',
+    'dm.ink.hint': 'Repaints the ink colour and flash of the cell under the pointer, without touching any pixel',
+    'dm.paper.hint': 'Repaints the paper colour and flash of the cell under the pointer, without touching any pixel',
+    'dm.pixelsOnly.hint': 'Sets or clears pixels without touching that cell\'s ink, paper, bright or flash',
+    'dm.xor.hint': 'Toggles each pixel it touches, so overlapping strokes cancel each other out',
     // Brush
     'opt.brushType': 'Brush Type',
     'opt.fadeBrush': 'Fade Brush',

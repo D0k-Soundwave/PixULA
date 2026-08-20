@@ -23,11 +23,16 @@
 // Recolour is the one that names what it does. The DRAW_MODE.ATTRIBUTES_ONLY
 // primitive stays — Recolour, Swap and TransformService all write through it.
 const MODES = [
-    ['normal',          'icon-dm-normal',     'dm.normal',         'Normal',          'dm.normal',      'Normal'],
-    ['ink',             'icon-dm-ink',        'dm.ink',            'Ink Recolour',    'cap.dmInk',      'Ink RC'],
-    ['paper',           'icon-dm-paper',      'dm.paper',          'Paper Recolour',  'cap.dmPaper',    'Paper RC'],
-    ['pixel_only',      'icon-dm-pixels',     'dm.pixelsOnly',     'Pixels Only',     'cap.pixels',     'Pixels'],
-    ['xor',             'icon-dm-xor',        'dm.xor',            'XOR / Over',      'cap.xor',        'XOR']
+    ['normal',          'icon-dm-normal',     'dm.normal',         'Normal',          'dm.normal',      'Normal',
+     'dm.normal.hint', 'Sets pixels and stamps the cell\'s ink, paper, bright and flash together'],
+    ['ink',             'icon-dm-ink',        'dm.ink',            'Ink Recolour',    'cap.dmInk',      'Ink RC',
+     'dm.ink.hint', 'Repaints the ink colour and flash of the cell under the pointer, without touching any pixel'],
+    ['paper',           'icon-dm-paper',      'dm.paper',          'Paper Recolour',  'cap.dmPaper',    'Paper RC',
+     'dm.paper.hint', 'Repaints the paper colour and flash of the cell under the pointer, without touching any pixel'],
+    ['pixel_only',      'icon-dm-pixels',     'dm.pixelsOnly',     'Pixels Only',     'cap.pixels',     'Pixels',
+     'dm.pixelsOnly.hint', 'Sets or clears pixels without touching that cell\'s ink, paper, bright or flash'],
+    ['xor',             'icon-dm-xor',        'dm.xor',            'XOR / Over',      'cap.xor',        'XOR',
+     'dm.xor.hint', 'Toggles each pixel it touches, so overlapping strokes cancel each other out']
 ];
 
 class DrawModeBarClass {
@@ -84,14 +89,15 @@ class DrawModeBarClass {
     }
 
     /** @private */
-    _buildButton(value, icon, i18n, fallback, capKey, capFallback) {
+    _buildButton(value, icon, i18n, fallback, capKey, capFallback, hintKey, hintFallback) {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'tool-btn';
         btn.dataset.drawMode = value;
         const name = this._t(i18n, fallback);
         btn.dataset.i18nTitleName = i18n;
-        btn.title = name;
+        btn.dataset.i18nTitle = hintKey;
+        btn.title = Helpers.composeTitle(name, this._t(hintKey, hintFallback));
         btn.dataset.i18nAriaLabel = i18n;
         btn.setAttribute('aria-label', name);
         btn.setAttribute('role', 'radio');
