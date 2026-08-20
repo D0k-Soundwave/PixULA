@@ -25,10 +25,10 @@ window.SHAPE_TYPES = SHAPE_TYPES;
  */
 const SHAPE_TYPE_OPTS = Object.freeze([
   { i18n: 'shapecat.basic', options: [
-    { value: 'line',              i18n: 'shape.line' },
-    { value: 'rectangle',         i18n: 'common.rectangle' },
-    { value: 'square',            i18n: 'common.square' },
-    { value: 'rounded-rectangle', i18n: 'shape.roundedRectangle' }
+    { value: 'line',              i18n: 'shape.line',              hintI18n: 'shapeType.line.hint' },
+    { value: 'rectangle',         i18n: 'common.rectangle',        hintI18n: 'shapeType.rectangle.hint' },
+    { value: 'square',            i18n: 'common.square',           hintI18n: 'shapeType.square.hint' },
+    { value: 'rounded-rectangle', i18n: 'shape.roundedRectangle',  hintI18n: 'shapeType.roundedRectangle.hint' }
   ]},
   { i18n: 'shapecat.radial', options: [
     { value: 'circle',  i18n: 'common.circle' },

@@ -316,7 +316,16 @@ class OptionControlsClass {
         return grid;
     }
 
-    /** One shape button: its picture, its name, its lit state. @private */
+    /**
+     * One shape button: its picture, its name, its lit state.
+     *
+     * `opt.hintI18n` is optional — an icon-grid option that doesn't set one
+     * renders exactly as before (name-only, via I18n's own
+     * `[data-i18n-title-name]:not([data-i18n-title])` fallback path). Only
+     * the Shape Type row's "basic" category sets one so far; every other
+     * tool's icon-grid options are unaffected until they are given one too.
+     * @private
+     */
     _buildIconButton(tool, entry, opt, current) {
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -324,13 +333,15 @@ class OptionControlsClass {
         btn.dataset.value = String(opt.value);
 
         const name = t(opt.i18n, opt.label !== undefined ? opt.label : String(opt.value));
+        const hint = opt.hintI18n ? t(opt.hintI18n, opt.hintFallback || '') : '';
         // Same attributes the rail's buttons carry, so I18n recomposes the
         // title on a locale change and TooltipManager raises the name tag.
         if (opt.i18n) {
             btn.dataset.i18nTitleName = opt.i18n;
             btn.dataset.i18nAriaLabel = opt.i18n;
         }
-        btn.title = Helpers.composeTitle(name, '', '');
+        if (opt.hintI18n) btn.dataset.i18nTitle = opt.hintI18n;
+        btn.title = Helpers.composeTitle(name, hint, '');
         btn.setAttribute('aria-label', name);
 
         const on = String(opt.value) === String(current);
