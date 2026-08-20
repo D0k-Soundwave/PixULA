@@ -1,6 +1,8 @@
 # App-wide hover tooltip coverage — design
 
-Status: approved in chat, pending spec review. Written 2026-08-20.
+Status: approved in chat. Written 2026-08-20. Batch 1 (systemic fixes)
+shipped and merged to main 2026-08-20 — see §7. Batches 2-4 not yet
+planned.
 
 ## 1. Motivation
 
@@ -163,15 +165,40 @@ assertion:
 Per-chat agreement, this lands in reviewable batches rather than one pass,
 each independently tested before the next starts:
 
-1. **Systemic fixes**: dialog close-button hint, `option-controls.js` hint
-   plumbing (mechanism only — schema hints authored per-tool as each tool
-   is touched, not all at once), the three-dialog mini-toolset dedup, zoom
-   in/out/fit. Unlocks the largest control count for the least new copy.
+1. **Systemic fixes — DONE, merged to main 2026-08-20 (commits
+   0dc068d..b2dec60, merge c1d9c59).** dialog close-button hint,
+   `option-controls.js` hint plumbing (mechanism only — schema hints
+   authored per-tool as each tool is touched, not all at once), the
+   three-dialog mini-toolset dedup, zoom in/out/fit. Unlocks the largest
+   control count for the least new copy. Landed via
+   `docs/superpowers/plans/2026-08-20-tooltip-batch1-systemic.md`, five
+   tasks, each independently task-reviewed and approved, full Playwright
+   suite green (289/289) on the merged result. Two real, previously-latent
+   bugs were found and fixed/documented along the way (not planned, but
+   directly caused by this batch's own changes making them newly visible):
+   `dialog.showModal()` autofocusing the close button and popping every
+   dialog's tooltip open on load (fixed, `js/ui/components/dialog.js`);
+   and `tooltip.spec.js`'s widened sweep (task 4 below) surfacing two
+   more name-only controls unrelated to any of the five tasks —
+   `.panel-collapse` sidebar headers and `#merge-selected`
+   (`js/ui/components/layer-panel.js`, title never composed via
+   `Helpers.composeTitle` at all) — excluded from the sweep with an
+   inline comment rather than fixed, since both are out of every task's
+   file scope. Both are carried into batch 2/3 below.
 2. **Main workspace sweep**: draw-mode bar, remaining flat-but-descriptive
    controls wired into two-stage (snap/mirror toggles, touch-mode status,
    zoom-level readout), pattern-panel thumbnails/list rows, preset list
    rows, Transform panel and grid-toggle buttons (unverified areas,
-   confirmed here).
+   confirmed here). Now also carries forward, from batch 1's own
+   discoveries: `.panel-collapse` (every sidebar panel's collapse/expand
+   header — matched by `TooltipManager`'s `SELECTOR` since before batch 1
+   existed, still name-only) and `#merge-selected` (Layers panel Merge
+   button, `js/ui/components/layer-panel.js:113` — its `title` is the raw
+   hint text with no `Helpers.composeTitle(name, hint)` call at all, not
+   a two-stage title in any form). Both are currently excluded from
+   `tests/browser/tooltip.spec.js`'s widened sweep with a comment marking
+   them as this exact gap — remove that exclusion once this batch lands
+   real hints for both.
 3. **Dialog sweep**: Font Editor, Map Editor, Sprite Editor, Palette
    Editor, Preset save/manage, Tape Block, Preferences, Import — whatever
    the systemic fixes in batch 1 didn't already cover.
@@ -198,13 +225,37 @@ back before starting the next batch.
 ## 9. Open items carried into implementation
 
 - Exact location for the shared mini-toolset builder (Pattern
-  Creator/Font Editor/Map Editor) — decided when touching those three
-  files, not pre-committed here.
+  Creator/Font Editor/Map Editor) — **resolved**: `Helpers.miniToolButton`
+  in `js/utils/helpers.js`, immediately after the existing
+  `captionedButton` (the same file/location the plan's own §3 mechanism
+  note guessed at). All three dialogs now call it.
 - Whether `option-controls.js` schema hints get authored tool-by-tool
-  across batches 1-3, or held until a dedicated pass — leaning toward
-  "as each tool is touched" so batch 1 stays mechanism-only and reviewable
-  on its own.
+  across batches 1-3, or held until a dedicated pass — **confirmed**: "as
+  each tool is touched" is the approach that shipped. Batch 1 landed the
+  `hintI18n` mechanism in `_buildIconButton` plus exactly one proof
+  category (Shape Type's "basic": line/rectangle/square/rounded-rectangle,
+  4 keys). Every other tool's icon-grid options — including Shape Type's
+  own radial/polygons/symbols/complex categories — remain untouched and
+  name-only, verified backward-compatible by that task's own reviewer
+  (an option with no `hintI18n` renders byte-identically to before,
+  confirmed by tracing `Helpers.composeTitle`'s degenerate-argument path).
+  Batch 2/3 should keep authoring `hintI18n` per-tool as each is swept,
+  not hold it for a dedicated mechanical pass.
 - The unverified areas (Transform panel, grid toggles, Sprite Editor,
   Import/Save/Companion dialogs, `CellGridEditor` chrome) are confirmed
   fresh at the start of batch 2/3 rather than trusted from the audit
   summary, since that pass explicitly flagged them as time-boxed-out.
+- **New, discovered during batch 1's own implementation** (not part of
+  the original audit): `.panel-collapse` sidebar headers and
+  `#merge-selected` in `layer-panel.js` are both real, out-of-scope gaps
+  — see §7 batch 2 above for detail. Neither was visible to the original
+  audit pass; both surfaced only once `tooltip.spec.js`'s sweep was
+  widened to cover `#panels` in batch 1's own task 5.
+- Batch 1's dialog close-button task also fixed a genuine, previously
+  latent interaction bug as a side effect (native dialog autofocus +
+  `:focus-visible` immediately popping the tooltip on every dialog open)
+  — worth checking for the same class of issue (a SELECTOR-matched
+  control that happens to receive programmatic/autofocus on its
+  container's own open) when batch 3 sweeps the remaining dialogs, since
+  several of them (Sprite Editor, Palette Editor, Import) may have their
+  own first-focusable-element in a similar position.
