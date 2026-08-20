@@ -521,7 +521,7 @@ const hu = {
     'view.fitToWindow': 'Ablakhoz igazitas',
     'view.zoomOut.hint': 'Eggyel kisebb nagyítási szintre lép',
     'view.zoomIn.hint': 'Eggyel nagyobb nagyítási szintre lép',
-    'view.zoomFit.hint': 'A vásznot a legnagyobb, az ablakba még beférő nagyítási szintre állítja',
+    'view.zoomFit.hint': 'A vászont a legnagyobb, az ablakba még beférő nagyítási szintre állítja',
     'view.actualSize': 'Valos meret',
 
     // Help
