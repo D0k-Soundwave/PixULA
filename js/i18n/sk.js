@@ -689,6 +689,7 @@ const sk = {
     'tooltips.zoomIn': 'Priblizit',
     'tooltips.zoomOut': 'Oddalit',
     'view.zoomLevel': 'Úroveň priblíženia',
+    'view.zoomLevel.hint': 'Prejde priamo na konkrétne percento priblíženia',
 
     // Phase 8: bezier tool, symmetry mode, text effects, import dialog
     'tool.bezier': 'Bézierova krivka',

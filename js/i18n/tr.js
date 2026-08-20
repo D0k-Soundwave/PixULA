@@ -689,6 +689,7 @@ const tr = {
     'tooltips.zoomIn': 'Yakinlastir',
     'tooltips.zoomOut': 'Uzaklastir',
     'view.zoomLevel': 'Yakınlaştırma düzeyi',
+    'view.zoomLevel.hint': 'Doğrudan belirli bir yakınlaştırma yüzdesine atlar',
 
     // Phase 8: bezier tool, symmetry mode, text effects, import dialog
     'tool.bezier': 'Bézier Eğrisi',

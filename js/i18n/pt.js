@@ -689,6 +689,7 @@ const pt = {
     'tooltips.zoomIn': 'Ampliar',
     'tooltips.zoomOut': 'Reduzir',
     'view.zoomLevel': 'Nível de zoom',
+    'view.zoomLevel.hint': 'Salta diretamente para uma percentagem de zoom específica',
 
     // Phase 8: bezier tool, symmetry mode, text effects, import dialog
     'tool.bezier': 'Curva de Bézier',

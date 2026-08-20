@@ -689,6 +689,7 @@ const ru = {
     'tooltips.zoomIn': 'Приблизить',
     'tooltips.zoomOut': 'Отдалить',
     'view.zoomLevel': 'Масштаб',
+    'view.zoomLevel.hint': 'Сразу переходит к заданному проценту масштаба',
 
     // Phase 8: bezier tool, symmetry mode, text effects, import dialog
     'tool.bezier': 'Кривая Безье',

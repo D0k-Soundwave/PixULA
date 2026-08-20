@@ -709,6 +709,7 @@ const en = {
     'toolgroup.select': 'Select',
     'toolgroup.view': 'View',
     'view.zoomLevel': 'Zoom level',
+    'view.zoomLevel.hint': 'Jumps straight to a specific zoom percentage',
 
     // Phase 8: bezier tool, symmetry mode, text effects, import dialog
     'tool.bezier': 'Bezier Curve',

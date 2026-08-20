@@ -689,6 +689,7 @@ const pl = {
     'tooltips.zoomIn': 'Przybliz',
     'tooltips.zoomOut': 'Oddal',
     'view.zoomLevel': 'Poziom powiększenia',
+    'view.zoomLevel.hint': 'Przechodzi bezpośrednio do konkretnego procentu powiększenia',
 
     // Phase 8: bezier tool, symmetry mode, text effects, import dialog
     'tool.bezier': 'Krzywa Béziera',

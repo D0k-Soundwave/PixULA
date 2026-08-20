@@ -107,7 +107,13 @@ class CanvasControlsClass {
         select.id = 'zoom-level';
         select.name = 'zoom-level';
         select.dataset.i18nAriaLabel = 'view.zoomLevel';
+        select.dataset.i18nTitleName = 'view.zoomLevel';
+        select.dataset.i18nTitle = 'view.zoomLevel.hint';
         select.setAttribute('aria-label', this._t('view.zoomLevel', 'Zoom level'));
+        select.title = Helpers.composeTitle(
+            this._t('view.zoomLevel', 'Zoom level'),
+            this._t('view.zoomLevel.hint', 'Jumps straight to a specific zoom percentage')
+        );
         for (const z of ZOOM_CONFIG.LEVELS) {
             const opt = document.createElement('option');
             opt.value = String(z);

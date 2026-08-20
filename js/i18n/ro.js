@@ -689,6 +689,7 @@ const ro = {
     'tooltips.zoomIn': 'Mareste',
     'tooltips.zoomOut': 'Micsoreaza',
     'view.zoomLevel': 'Nivel de zoom',
+    'view.zoomLevel.hint': 'Sare direct la un anumit procent de zoom',
 
     // Phase 8: bezier tool, symmetry mode, text effects, import dialog
     'tool.bezier': 'Curbă Bézier',

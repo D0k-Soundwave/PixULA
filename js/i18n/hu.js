@@ -689,6 +689,7 @@ const hu = {
     'tooltips.zoomIn': 'Nagyitas',
     'tooltips.zoomOut': 'Kicsinyites',
     'view.zoomLevel': 'Nagyítási szint',
+    'view.zoomLevel.hint': 'Egyenesen egy adott nagyítási százalékra ugrik',
 
     // Phase 8: bezier tool, symmetry mode, text effects, import dialog
     'tool.bezier': 'Bézier-görbe',

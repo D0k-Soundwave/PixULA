@@ -689,6 +689,7 @@ const fr = {
     'tooltips.zoomIn': 'Zoom avant',
     'tooltips.zoomOut': 'Zoom arriere',
     'view.zoomLevel': 'Niveau de zoom',
+    'view.zoomLevel.hint': 'Passe directement à un pourcentage de zoom précis',
 
     // Phase 8: bezier tool, symmetry mode, text effects, import dialog
     'tool.bezier': 'Courbe de Bézier',
