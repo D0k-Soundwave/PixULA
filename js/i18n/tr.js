@@ -460,6 +460,8 @@ const tr = {
     'tool.eraser.hint': 'Pikselleri kağıt rengine döndürün',
     'tool.eyedropper.hint': 'İmlecin altındaki rengi geçerli mürekkep ya da kağıt olarak alın',
     'tool.fill.hint': 'İmlecin altındaki alanı kenarlarına kadar doldurun',
+    'miniTool.brush.hint': 'Pikselleri ayarlamak için tıklayın veya sürükleyin',
+    'miniTool.line.hint': 'İki nokta arasına düz bir çizgi çizmek için sürükleyin',
     'tool.gradient': 'Degrade',
     'tool.gradient.hint': 'Bir bölgeyi mürekkepten kağıda taramalı geçişle doldurun',
     'tool.selection.hint': 'Bir dikdörtgen sürükleyip içindekini taşıyın, kopyalayın ya da dönüştürün',

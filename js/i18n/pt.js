@@ -460,6 +460,8 @@ const pt = {
     'tool.eraser.hint': 'Devolver os pixels à cor do papel',
     'tool.eyedropper.hint': 'Tomar a cor sob o cursor como tinta ou papel atual',
     'tool.fill.hint': 'Encher a área sob o cursor até aos seus limites',
+    'miniTool.brush.hint': 'Clique ou arraste para definir pixels',
+    'miniTool.line.hint': 'Arraste para desenhar uma linha reta entre dois pontos',
     'tool.gradient': 'Gradiente',
     'tool.gradient.hint': 'Encher uma região com um gradiente pontilhado da tinta ao papel',
     'tool.selection.hint': 'Arrastar um retângulo para mover, copiar ou transformar o que está dentro',

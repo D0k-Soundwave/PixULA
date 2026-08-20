@@ -460,6 +460,8 @@ const sk = {
     'tool.eraser.hint': 'Vracajte pixely na farbu papiera',
     'tool.eyedropper.hint': 'Prevezmite farbu pod kurzorom ako aktuálny atrament alebo papier',
     'tool.fill.hint': 'Vyplňte plochu pod kurzorom až k jej okrajom',
+    'miniTool.brush.hint': 'Kliknite alebo ťahajte na nastavenie pixelov',
+    'miniTool.line.hint': 'Ťahaním nakreslíte priamku medzi dvoma bodmi',
     'tool.gradient': 'Prechod',
     'tool.gradient.hint': 'Vyplňte oblasť ditherovaným prechodom z atramentu na papier',
     'tool.selection.hint': 'Vytiahnite obdĺžnik a jeho obsah presuňte, skopírujte alebo transformujte',

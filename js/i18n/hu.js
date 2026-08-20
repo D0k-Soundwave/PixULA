@@ -460,6 +460,8 @@ const hu = {
     'tool.eraser.hint': 'Állítsd vissza a képpontokat a papír színére',
     'tool.eyedropper.hint': 'Vedd át a kurzor alatti színt aktuális tintaként vagy papírként',
     'tool.fill.hint': 'Töltsd ki a kurzor alatti területet a széléig',
+    'miniTool.brush.hint': 'Kattintással vagy húzással állíthat be képpontokat',
+    'miniTool.line.hint': 'Húzással egyenes vonalat rajzolhat két pont között',
     'tool.gradient': 'Átmenet',
     'tool.gradient.hint': 'Tölts ki egy területet szórt átmenettel a tintától a papírig',
     'tool.selection.hint': 'Húzz téglalapot, hogy a benne lévőt mozgasd, másold vagy alakítsd',

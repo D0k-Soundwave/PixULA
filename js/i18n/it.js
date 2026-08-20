@@ -460,6 +460,8 @@ const it = {
     'tool.eraser.hint': 'Riportare i pixel al colore della carta',
     'tool.eyedropper.hint': 'Prendere il colore sotto il cursore come inchiostro o carta corrente',
     'tool.fill.hint': 'Riempire l\'area sotto il cursore fino ai suoi bordi',
+    'miniTool.brush.hint': 'Fare clic o trascinare per impostare i pixel',
+    'miniTool.line.hint': 'Trascinare per disegnare una linea retta tra due punti',
     'tool.gradient': 'Gradiente',
     'tool.gradient.hint': 'Riempire una regione con una sfumatura retinata da inchiostro a carta',
     'tool.selection.hint': 'Trascinare un rettangolo per spostare, copiare o trasformare ciò che contiene',

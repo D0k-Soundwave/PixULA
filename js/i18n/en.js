@@ -93,6 +93,8 @@ const en = {
     'tool.eraser.hint': 'Clear pixels back to the paper colour',
     'tool.fill': 'Fill',
     'tool.fill.hint': 'Flood the area under the cursor out to its edges',
+    'miniTool.brush.hint': 'Click or drag to set pixels',
+    'miniTool.line.hint': 'Drag to draw a straight line between two points',
     'tool.shape': 'Shape',
     'tool.shape.hint': 'Drag out a line, box, ellipse, polygon or star; choose which in the options',
     'tool.line': 'Line',

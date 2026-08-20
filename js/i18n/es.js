@@ -460,6 +460,8 @@ const es = {
     'tool.eraser.hint': 'Devolver los píxeles al color del papel',
     'tool.eyedropper.hint': 'Tomar el color bajo el cursor como tinta o papel actual',
     'tool.fill.hint': 'Rellenar el área bajo el cursor hasta sus bordes',
+    'miniTool.brush.hint': 'Haga clic o arrastre para activar píxeles',
+    'miniTool.line.hint': 'Arrastre para dibujar una línea recta entre dos puntos',
     'tool.gradient': 'Degradado',
     'tool.gradient.hint': 'Rellenar una región con un degradado tramado de tinta a papel',
     'tool.selection.hint': 'Arrastrar un rectángulo para mover, copiar o transformar lo que contiene',

@@ -460,6 +460,8 @@ const fr = {
     'tool.eraser.hint': 'Ramener les pixels à la couleur du papier',
     'tool.eyedropper.hint': 'Prendre la couleur sous le curseur comme encre ou papier courant',
     'tool.fill.hint': 'Remplir la zone sous le curseur jusqu\'à ses bords',
+    'miniTool.brush.hint': 'Cliquez ou faites glisser pour définir des pixels',
+    'miniTool.line.hint': 'Faites glisser pour tracer une ligne droite entre deux points',
     'tool.gradient': 'Dégradé',
     'tool.gradient.hint': 'Remplir une région d\'un dégradé tramé de l\'encre au papier',
     'tool.selection.hint': 'Tirer un rectangle pour déplacer, copier ou transformer ce qu\'il contient',

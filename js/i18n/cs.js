@@ -460,6 +460,8 @@ const cs = {
     'tool.eraser.hint': 'Vracejte pixely na barvu papíru',
     'tool.eyedropper.hint': 'Převezměte barvu pod kurzorem jako aktuální inkoust nebo papír',
     'tool.fill.hint': 'Vyplňte plochu pod kurzorem až k jejím okrajům',
+    'miniTool.brush.hint': 'Klikněte nebo táhněte pro nastavení pixelů',
+    'miniTool.line.hint': 'Tažením nakreslíte přímku mezi dvěma body',
     'tool.gradient': 'Přechod',
     'tool.gradient.hint': 'Vyplňte oblast ditherovaným přechodem z inkoustu na papír',
     'tool.selection.hint': 'Vytáhněte obdélník a jeho obsah přesuňte, zkopírujte nebo transformujte',

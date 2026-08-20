@@ -521,6 +521,33 @@ const Helpers = {
     },
 
     /**
+     * One button in the small brush/eraser/line/fill toolset shared by the
+     * Pattern Creator, Font Editor and Map Editor dialogs' CellGridEditor
+     * surface. Previously hand-copied identically into all three with no
+     * hover hint in any copy — this is the one source of truth now, so the
+     * three dialogs cannot drift from each other again.
+     * @param {string} tool         CellGridEditor tool id: 'brush'|'eraser'|'line'|'fill'
+     * @param {string} letter       single-glyph icon shown on the button
+     * @param {string} nameKey      i18n key for the button's name
+     * @param {string} nameFallback English fallback for the name
+     * @param {string} hintKey      i18n key for the "how it works" sentence
+     * @param {string} hintFallback English fallback for the hint
+     * @param {boolean} [active]    initial active state
+     * @returns {string} HTML for the captioned button
+     */
+    miniToolButton(tool, letter, nameKey, nameFallback, hintKey, hintFallback, active = false) {
+        const name = this.tr(nameKey, nameFallback);
+        const hint = this.tr(hintKey, hintFallback);
+        const title = this.composeTitle(name, hint);
+        const cls = 'tool-btn' + (active ? ' active' : '');
+        return `<span class="btn-captioned">${this.captionHTML(nameKey, nameFallback)}` +
+            `<button type="button" data-tool="${tool}" class="${cls}" ` +
+            `data-i18n-title-name="${nameKey}" data-i18n-title="${hintKey}" data-i18n-aria-label="${nameKey}" ` +
+            `aria-label="${this.escapeHTML(name)}" title="${this.escapeHTML(title)}">` +
+            `<span class="tool-icon">${letter}</span></button></span>`;
+    },
+
+    /**
      * The DOM-builder counterpart: returns the wrapper holding the caption and
      * `el`. Callers keep their own reference to `el` (state, events); only the
      * wrapper is appended.

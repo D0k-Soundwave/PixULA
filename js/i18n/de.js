@@ -460,6 +460,8 @@ const de = {
     'tool.eraser.hint': 'Pixel auf die Papierfarbe zurücksetzen',
     'tool.eyedropper.hint': 'Die Farbe unter dem Zeiger als aktuelle Tinte oder Papier übernehmen',
     'tool.fill.hint': 'Die Fläche unter dem Zeiger bis zu ihren Rändern füllen',
+    'miniTool.brush.hint': 'Klicken oder ziehen, um Pixel zu setzen',
+    'miniTool.line.hint': 'Ziehen, um eine gerade Linie zwischen zwei Punkten zu zeichnen',
     'tool.gradient': 'Verlauf',
     'tool.gradient.hint': 'Einen Bereich mit einem gerasterten Verlauf von Tinte zu Papier füllen',
     'tool.selection.hint': 'Ein Rechteck aufziehen, um seinen Inhalt zu verschieben, zu kopieren oder zu verformen',

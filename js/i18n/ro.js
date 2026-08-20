@@ -460,6 +460,8 @@ const ro = {
     'tool.eraser.hint': 'Readu pixelii la culoarea hârtiei',
     'tool.eyedropper.hint': 'Ia culoarea de sub cursor ca cerneală sau hârtie curentă',
     'tool.fill.hint': 'Umple zona de sub cursor până la marginile ei',
+    'miniTool.brush.hint': 'Faceți clic sau trageți pentru a seta pixeli',
+    'miniTool.line.hint': 'Trageți pentru a desena o linie dreaptă între două puncte',
     'tool.gradient': 'Gradient',
     'tool.gradient.hint': 'Umple o regiune cu un degrade tramat de la cerneală la hârtie',
     'tool.selection.hint': 'Trage un dreptunghi ca să muți, copiezi sau transformi ce e în el',

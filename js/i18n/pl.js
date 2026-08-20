@@ -460,6 +460,8 @@ const pl = {
     'tool.eraser.hint': 'Przywracaj piksele do koloru papieru',
     'tool.eyedropper.hint': 'Pobierz kolor spod kursora jako bieżący atrament lub papier',
     'tool.fill.hint': 'Wypełnij obszar pod kursorem aż po jego krawędzie',
+    'miniTool.brush.hint': 'Kliknij lub przeciągnij, aby ustawić piksele',
+    'miniTool.line.hint': 'Przeciągnij, aby narysować linię prostą między dwoma punktami',
     'tool.gradient': 'Gradient',
     'tool.gradient.hint': 'Wypełnij obszar ditherowanym przejściem od atramentu do papieru',
     'tool.selection.hint': 'Wyciągnij prostokąt, aby przenieść, skopiować lub przekształcić jego zawartość',
