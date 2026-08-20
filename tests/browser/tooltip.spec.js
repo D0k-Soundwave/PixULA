@@ -95,12 +95,27 @@ test('every two-stage control in the main workspace chrome has a real descriptio
     await boot(page);
     const bad = await page.evaluate(() => {
         const out = [];
-        const areas = ['#tool-rail', '#panels', '#zoom-controls', '.app-dialog-header'];
+        const areas = [
+            '#tool-rail', '#panels', '#zoom-controls', '.app-dialog-header',
+            '#grid-controls', '#draw-modes', '#transform-panel'
+        ];
         const seen = new Set();
         for (const areaSelector of areas) {
             for (const area of document.querySelectorAll(areaSelector)) {
                 for (const el of area.querySelectorAll(window.Tooltip.SELECTOR)) {
                     if (el.closest('#tool-options-panel-content')) continue;
+                    // KNOWN GAP, deliberately out of scope (see the batch 2
+                    // plan's Global Constraints): the shift dir-pad zones
+                    // (Helpers.buildDirPad()) are shared verbatim by the
+                    // Transform panel (shift the layer/selection) and the
+                    // Reference panel (shift the reference image) — one
+                    // hint text would be correct for one context and wrong
+                    // for the other, and the builder has no parameter to
+                    // vary it. They carry aria-label only, no title, by
+                    // design. Remove this exclusion once buildDirPad() (or
+                    // its two call sites) can express context-specific
+                    // hints.
+                    if (el.classList.contains('dir-pad-zone')) continue;
                     if (seen.has(el)) continue;
                     seen.add(el);
                     const { name, desc } = Helpers.splitTitle(el.getAttribute('title') || '');
