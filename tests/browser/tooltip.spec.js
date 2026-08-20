@@ -82,6 +82,52 @@ test('every rail control has a description that is not its own name', async ({ p
     expect(bad).toEqual([]);
 });
 
+/*
+ * The main-workspace areas already swept for real hints, generalized beyond
+ * the rail's own test above. #tool-options-panel-content is deliberately
+ * excluded: only the Shape Type row's "basic" category has real hints so
+ * far (batch 1 of docs/superpowers/specs/2026-08-20-tooltip-coverage-design.md);
+ * every other tool's icon-grid options are still name-only pending batch 2/3,
+ * so including that panel here would make this test flaky against work not
+ * yet done. Remove the exclusion once batch 2/3 finishes that panel.
+ */
+test('every two-stage control in the main workspace chrome has a real description', async ({ page }) => {
+    await boot(page);
+    const bad = await page.evaluate(() => {
+        const out = [];
+        const areas = ['#tool-rail', '#panels', '#zoom-controls', '.app-dialog-header'];
+        const seen = new Set();
+        for (const areaSelector of areas) {
+            for (const area of document.querySelectorAll(areaSelector)) {
+                for (const el of area.querySelectorAll(window.Tooltip.SELECTOR)) {
+                    if (el.closest('#tool-options-panel-content')) continue;
+                    // KNOWN GAP, out of this batch's scope: .panel-collapse (every
+                    // sidebar panel's collapse/expand header button) and
+                    // #merge-selected (the Layers panel's Merge button) are matched
+                    // by SELECTOR but their title text was never given a real
+                    // composeTitle(name, hint) two-part description by Tasks 1-4 —
+                    // that work belongs to a separate, not-yet-committed session
+                    // (see this batch's progress.md pre-flight ruling on the
+                    // .panel-header drift, which is the same underlying gap).
+                    // Excluding here rather than leaving this test permanently red
+                    // for controls outside Task 5's file scope; found and reported
+                    // 2026-08-20 in task-5-report.md. Remove this exclusion once
+                    // that hint work lands.
+                    if (el.classList.contains('panel-collapse') || el.id === 'merge-selected') continue;
+                    if (seen.has(el)) continue;
+                    seen.add(el);
+                    const { name, desc } = Helpers.splitTitle(el.getAttribute('title') || '');
+                    if (!desc || desc === name) {
+                        out.push(el.getAttribute('aria-label') || name || el.className);
+                    }
+                }
+            }
+        }
+        return out;
+    });
+    expect(bad).toEqual([]);
+});
+
 /* Touch has no hover, so the whole tooltip hangs off press-and-hold. Real touch
    events (CDP), not synthetic ones: the point is that the browser's own tap
    still selects a tool while a hold does not. */

@@ -342,6 +342,7 @@ class TooltipManagerClass {
 }
 
 window.Tooltip = new TooltipManagerClass();
+window.Tooltip.SELECTOR = SELECTOR;
 
 Logger.debug('Tooltip', 'Tooltip manager loaded');
 
