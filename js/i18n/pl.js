@@ -456,6 +456,7 @@ const pl = {
     'panel.reorderHint': 'Kliknij prawym przyciskiem, aby przesunąć ten panel w górę lub w dół',
     'panel.collapseExpand.hint': 'Zwija ten panel do paska tytułu lub rozwija go z powrotem',
     'panel.patterns': 'Wzory',
+    'pattern.selectHint': 'Kliknij, aby ustawić ten wzór jako aktywny wzór wypełnienia',
     'panels.stamps': 'Stemple',
     'panels.transform': 'Transformacja',
     'pattern.applyAll': 'Zastosuj do płótna',

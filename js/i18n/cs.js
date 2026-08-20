@@ -456,6 +456,7 @@ const cs = {
     'panel.reorderHint': 'Pravým tlačítkem posunete tento panel nahoru nebo dolů',
     'panel.collapseExpand.hint': 'Sbalí tento panel na záhlaví, nebo jej znovu rozbalí',
     'panel.patterns': 'Vzory',
+    'pattern.selectHint': 'Kliknutím nastavíte tento vzorek jako aktivní výplňový vzorek',
     'panels.stamps': 'Razítka',
     'panels.transform': 'Transformace',
     'pattern.applyAll': 'Použít na plátno',

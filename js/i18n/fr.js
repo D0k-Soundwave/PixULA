@@ -456,6 +456,7 @@ const fr = {
     'panel.reorderHint': 'Clic droit pour déplacer ce panneau vers le haut ou le bas',
     'panel.collapseExpand.hint': 'Réduit ce panneau à sa barre de titre, ou le développe à nouveau',
     'panel.patterns': 'Motifs',
+    'pattern.selectHint': 'Cliquez pour faire de ce motif le motif de remplissage actif',
     'panels.stamps': 'Tampons',
     'panels.transform': 'Transformation',
     'pattern.applyAll': 'Appliquer au canevas',

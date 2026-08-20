@@ -456,6 +456,7 @@ const it = {
     'panel.reorderHint': 'Clic destro per spostare questo pannello su o giù',
     'panel.collapseExpand.hint': 'Riduce questo pannello alla sua barra del titolo, o lo riespande',
     'panel.patterns': 'Motivi',
+    'pattern.selectHint': 'Fare clic per rendere questo il motivo di riempimento attivo',
     'panels.stamps': 'Timbri',
     'panels.transform': 'Trasformazione',
     'pattern.applyAll': 'Applica alla tela',

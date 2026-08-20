@@ -456,6 +456,7 @@ const de = {
     'panel.reorderHint': 'Rechtsklick verschiebt diesen Bereich nach oben oder unten',
     'panel.collapseExpand.hint': 'Klappt dieses Panel auf die Titelleiste zusammen oder wieder auf',
     'panel.patterns': 'Muster',
+    'pattern.selectHint': 'Anklicken, um dieses Muster zum aktiven Füllmuster zu machen',
     'panels.stamps': 'Stempel',
     'panels.transform': 'Transformieren',
     'pattern.applyAll': 'Auf Leinwand anwenden',

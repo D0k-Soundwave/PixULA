@@ -456,6 +456,7 @@ const hu = {
     'panel.reorderHint': 'Jobb kattintással feljebb vagy lejjebb helyezheti ezt a panelt',
     'panel.collapseExpand.hint': 'Erre a panelra összecsukja a címsorra, vagy visszaállítja kinyitva',
     'panel.patterns': 'Minták',
+    'pattern.selectHint': 'Kattintson, hogy ez legyen az aktív kitöltési minta',
     'panels.stamps': 'Bélyegzők',
     'panels.transform': 'Átalakítás',
     'pattern.applyAll': 'Alkalmazás a vászonra',

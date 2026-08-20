@@ -263,7 +263,9 @@ class PatternPanelClass {
             const item = document.createElement('div');
             item.className = 'pattern-item';
             item.dataset.index = index;
-            item.title = pattern.name;
+            item.dataset.i18nTitle = 'pattern.selectHint';
+            item.title = Helpers.composeTitle(pattern.name,
+                this._t('pattern.selectHint', 'Click to make this the active fill pattern'));
 
             const thumbnail = document.createElement('div');
             thumbnail.className = 'pattern-thumbnail';

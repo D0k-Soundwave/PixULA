@@ -141,6 +141,7 @@ const en = {
     'panel.options': 'Options',
     'panel.preview': 'Preview',
     'panel.patterns': 'Patterns',
+    'pattern.selectHint': 'Click to make this the active fill pattern',
     'panel.collapseExpand': 'Collapse/Expand panel',
     'panel.moveUp': 'Move up',
     'panel.moveDown': 'Move down',

@@ -456,6 +456,7 @@ const ro = {
     'panel.reorderHint': 'Clic dreapta pentru a muta acest panou în sus sau în jos',
     'panel.collapseExpand.hint': 'Restrânge acest panou la bara de titlu, sau îl extinde din nou',
     'panel.patterns': 'Modele',
+    'pattern.selectHint': 'Faceți clic pentru a face din acesta modelul de umplere activ',
     'panels.stamps': 'Ștampile',
     'panels.transform': 'Transformare',
     'pattern.applyAll': 'Aplică pe pânză',

@@ -456,6 +456,7 @@ const tr = {
     'panel.reorderHint': 'Bu paneli yukarı veya aşağı taşımak için sağ tıklayın',
     'panel.collapseExpand.hint': 'Bu paneli başlık çubuğuna daraltır veya tekrar genişletir',
     'panel.patterns': 'Desenler',
+    'pattern.selectHint': 'Bu deseni etkin dolgu deseni yapmak için tıklayın',
     'panels.stamps': 'Damgalar',
     'panels.transform': 'Dönüşüm',
     'pattern.applyAll': 'Tuvale uygula',

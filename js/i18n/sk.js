@@ -456,6 +456,7 @@ const sk = {
     'panel.reorderHint': 'Pravým tlačidlom presuniete tento panel nahor alebo nadol',
     'panel.collapseExpand.hint': 'Zbalí tento panel na záhlavie, alebo ho znova rozbalí',
     'panel.patterns': 'Vzory',
+    'pattern.selectHint': 'Kliknutím nastavíte tento vzor ako aktívny výplňový vzor',
     'panels.stamps': 'Pečiatky',
     'panels.transform': 'Transformácia',
     'pattern.applyAll': 'Použiť na plátno',

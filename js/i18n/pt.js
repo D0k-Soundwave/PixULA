@@ -456,6 +456,7 @@ const pt = {
     'panel.reorderHint': 'Clique com o botão direito para mover este painel para cima ou para baixo',
     'panel.collapseExpand.hint': 'Recolhe este painel para a sua barra de título, ou expande-o de novo',
     'panel.patterns': 'Padrões',
+    'pattern.selectHint': 'Clique para tornar este o padrão de preenchimento ativo',
     'panels.stamps': 'Carimbos',
     'panels.transform': 'Transformação',
     'pattern.applyAll': 'Aplicar à tela',

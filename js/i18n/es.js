@@ -456,6 +456,7 @@ const es = {
     'panel.reorderHint': 'Clic derecho para mover este panel arriba o abajo',
     'panel.collapseExpand.hint': 'Contrae este panel a su barra de título, o lo vuelve a expandir',
     'panel.patterns': 'Patrones',
+    'pattern.selectHint': 'Haga clic para convertir este patrón en el patrón de relleno activo',
     'panels.stamps': 'Sellos',
     'panels.transform': 'Transformar',
     'pattern.applyAll': 'Aplicar al lienzo',
