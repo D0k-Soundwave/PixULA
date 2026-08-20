@@ -145,6 +145,7 @@ const en = {
     'panel.moveUp': 'Move up',
     'panel.moveDown': 'Move down',
     'panel.reorderHint': 'Right-click to move this panel up or down',
+    'panel.collapseExpand.hint': 'Collapses this panel to its title bar, or expands it back',
     'panels.patterns': 'Patterns',
 
     'panels.patternLibrary': 'Pattern Library',
@@ -404,6 +405,7 @@ const en = {
     'layer.duplicate.hint': 'Duplicate layer',
     'layer.merge': 'Merge Down',
     'layer.mergeSelected': 'Merge',
+    'layer.mergeSelected.hint': 'Merges every selected layer down into the one below it',
     'layer.mergeSelected.hint': 'Merge selected layers',
     'layer.flatten': 'Flatten All',
     'layer.moveUp': 'Move Up',

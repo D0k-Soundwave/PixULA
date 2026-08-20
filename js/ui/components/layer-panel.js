@@ -110,7 +110,7 @@ class LayerPanelClass {
                     'layer.moveDown.hint', 'Move layer down',
                     'id="layer-move-down" class="layer-ctrl-btn"', 'icon-arrow-down')}
                 <span class="layer-ctrl-divider"></span>
-                <button type="button" id="merge-selected" class="layer-ctrl-btn layer-ctrl-wide" data-i18n="layer.mergeSelected" data-i18n-title="layer.mergeSelected.hint" title="${this._t('layer.mergeSelected.hint', 'Merge selected layers')}">${this._t('layer.mergeSelected', 'Merge')}</button>
+                <button type="button" id="merge-selected" class="layer-ctrl-btn layer-ctrl-wide" data-i18n="layer.mergeSelected" data-i18n-title-name="layer.mergeSelected" data-i18n-title="layer.mergeSelected.hint" title="${Helpers.composeTitle(this._t('layer.mergeSelected', 'Merge'), this._t('layer.mergeSelected.hint', 'Merges every selected layer down into the one below it'))}">${this._t('layer.mergeSelected', 'Merge')}</button>
             </div>
             <div id="layer-help" class="panel-help">
                 <small data-i18n="layer.help">${this._t('layer.help', 'Click: select | Ctrl+click: multi-select | Shift+click: range')}</small>

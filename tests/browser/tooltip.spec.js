@@ -101,19 +101,6 @@ test('every two-stage control in the main workspace chrome has a real descriptio
             for (const area of document.querySelectorAll(areaSelector)) {
                 for (const el of area.querySelectorAll(window.Tooltip.SELECTOR)) {
                     if (el.closest('#tool-options-panel-content')) continue;
-                    // KNOWN GAP, out of this batch's scope: .panel-collapse (every
-                    // sidebar panel's collapse/expand header button) and
-                    // #merge-selected (the Layers panel's Merge button) are matched
-                    // by SELECTOR but their title text was never given a real
-                    // composeTitle(name, hint) two-part description by Tasks 1-4 —
-                    // that work belongs to a separate, not-yet-committed session
-                    // (see this batch's progress.md pre-flight ruling on the
-                    // .panel-header drift, which is the same underlying gap).
-                    // Excluding here rather than leaving this test permanently red
-                    // for controls outside Task 5's file scope; found and reported
-                    // 2026-08-20 in task-5-report.md. Remove this exclusion once
-                    // that hint work lands.
-                    if (el.classList.contains('panel-collapse') || el.id === 'merge-selected') continue;
                     if (seen.has(el)) continue;
                     seen.add(el);
                     const { name, desc } = Helpers.splitTitle(el.getAttribute('title') || '');
