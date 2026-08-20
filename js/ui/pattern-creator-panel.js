@@ -82,10 +82,10 @@ class PatternCreatorPanelClass {
                     <button type="button" data-size="32">32&#215;32</button>
                 </div>
                 <div class="pc-toolbar">
-                    <span class="btn-captioned">${Helpers.captionHTML('tool.brush', 'Brush')}<button type="button" data-tool="brush"  class="tool-btn" data-i18n-title-name="tool.brush" data-i18n-aria-label="tool.brush" aria-label="${this._t('tool.brush', 'Brush')}" title="${this._t('tool.brush', 'Brush')}"><span class="tool-icon">B</span></button></span>
-                    <span class="btn-captioned">${Helpers.captionHTML('tool.eraser', 'Eraser')}<button type="button" data-tool="eraser" class="tool-btn" data-i18n-title-name="tool.eraser" data-i18n-aria-label="tool.eraser" aria-label="${this._t('tool.eraser', 'Eraser')}" title="${this._t('tool.eraser', 'Eraser')}"><span class="tool-icon">E</span></button></span>
-                    <span class="btn-captioned">${Helpers.captionHTML('shape.line', 'Line')}<button type="button" data-tool="line"   class="tool-btn" data-i18n-title-name="shape.line" data-i18n-aria-label="shape.line" aria-label="${this._t('shape.line', 'Line')}" title="${this._t('shape.line', 'Line')}"><span class="tool-icon">S</span></button></span>
-                    <span class="btn-captioned">${Helpers.captionHTML('tool.fill', 'Fill')}<button type="button" data-tool="fill"   class="tool-btn" data-i18n-title-name="tool.fill" data-i18n-aria-label="tool.fill" aria-label="${this._t('tool.fill', 'Fill')}" title="${this._t('tool.fill', 'Fill')}"><span class="tool-icon">F</span></button></span>
+                    ${Helpers.miniToolButton('brush', 'B', 'tool.brush', 'Brush', 'miniTool.brush.hint', 'Click or drag to set pixels')}
+                    ${Helpers.miniToolButton('eraser', 'E', 'tool.eraser', 'Eraser', 'tool.eraser.hint', 'Clear pixels back to the paper colour')}
+                    ${Helpers.miniToolButton('line', 'S', 'shape.line', 'Line', 'miniTool.line.hint', 'Drag to draw a straight line between two points')}
+                    ${Helpers.miniToolButton('fill', 'F', 'tool.fill', 'Fill', 'tool.fill.hint', 'Flood the area under the cursor out to its edges')}
                 </div>
                 <div class="pc-canvas-slot"></div>
                 <div class="pc-status"></div>

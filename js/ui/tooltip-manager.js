@@ -33,7 +33,7 @@
  */
 
 // Elements that opt into the styled fly-out tooltip.
-const SELECTOR = '.tool-btn, .panel-collapse, .layer-ctrl-btn, .panel-header';
+const SELECTOR = '.tool-btn, .panel-collapse, .layer-ctrl-btn, .panel-header, .app-dialog-close, #zoom-out, #zoom-in, #zoom-fit';
 const GAP = 8; // px between the anchor element and the tooltip
 
 /* Dwell timings.
@@ -342,6 +342,7 @@ class TooltipManagerClass {
 }
 
 window.Tooltip = new TooltipManagerClass();
+window.Tooltip.SELECTOR = SELECTOR;
 
 Logger.debug('Tooltip', 'Tooltip manager loaded');
 
