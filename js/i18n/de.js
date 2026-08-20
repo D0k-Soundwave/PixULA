@@ -519,6 +519,9 @@ const de = {
     'view.zoomIn': 'Vergroessern',
     'view.zoomOut': 'Verkleinern',
     'view.fitToWindow': 'An Fenster anpassen',
+    'view.zoomOut.hint': 'Wechselt zur nächstniedrigeren Zoomstufe',
+    'view.zoomIn.hint': 'Wechselt zur nächsthöheren Zoomstufe',
+    'view.zoomFit.hint': 'Skaliert die Leinwand auf die größte Zoomstufe, die ins Fenster passt',
     'view.actualSize': 'Tatsaechliche Groesse',
 
     // Help

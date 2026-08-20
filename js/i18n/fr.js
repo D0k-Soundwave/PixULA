@@ -519,6 +519,9 @@ const fr = {
     'view.zoomIn': 'Zoom avant',
     'view.zoomOut': 'Zoom arriere',
     'view.fitToWindow': 'Ajuster a la fenetre',
+    'view.zoomOut.hint': 'Passe au niveau de zoom inférieur suivant',
+    'view.zoomIn.hint': 'Passe au niveau de zoom supérieur suivant',
+    'view.zoomFit.hint': 'Ajuste le canevas au plus grand niveau de zoom qui tient dans la fenêtre',
     'view.actualSize': 'Taille reelle',
 
     // Help

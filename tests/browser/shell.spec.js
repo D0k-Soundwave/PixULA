@@ -558,6 +558,26 @@ test('status strip: zoom controls, grid toggles, readouts', async ({ page }) => 
     await expect(page.locator('#canvas-size')).toHaveText(/256\s*×\s*192/);
 });
 
+test('zoom in/out/fit buttons have real two-stage tooltips', async ({ page }) => {
+    await boot(page);
+    const cases = [
+        { id: '#zoom-out', hintKey: 'view.zoomOut.hint', shortcut: '-' },
+        { id: '#zoom-in', hintKey: 'view.zoomIn.hint', shortcut: '+' },
+        { id: '#zoom-fit', hintKey: 'view.zoomFit.hint', shortcut: null }
+    ];
+    for (const { id, hintKey, shortcut } of cases) {
+        const title = await page.getAttribute(id, 'title');
+        expect(title).toBeTruthy();
+        const { name, desc } = await page.evaluate(
+            (t) => Helpers.splitTitle(t), title);
+        expect(desc).toBeTruthy();
+        expect(desc).not.toBe(name);
+        const expectedHint = await page.evaluate((k) => window.I18n.t(k), hintKey);
+        expect(desc).toBe(expectedHint);
+        if (shortcut) expect(name).toContain(`(${shortcut})`);
+    }
+});
+
 test('Image > Screen Mode lists every registered mode as a radio', async ({ page }) => {
     await boot(page);
     await page.click('.menu-item[data-menu="image"] .menu-label');

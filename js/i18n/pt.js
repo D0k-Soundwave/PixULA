@@ -519,6 +519,9 @@ const pt = {
     'view.zoomIn': 'Ampliar',
     'view.zoomOut': 'Reduzir',
     'view.fitToWindow': 'Ajustar a janela',
+    'view.zoomOut.hint': 'Passa para o nível de zoom inferior seguinte',
+    'view.zoomIn.hint': 'Passa para o nível de zoom superior seguinte',
+    'view.zoomFit.hint': 'Ajusta a tela ao maior nível de zoom que cabe na janela',
     'view.actualSize': 'Tamanho real',
 
     // Help

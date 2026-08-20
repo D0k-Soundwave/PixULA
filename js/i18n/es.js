@@ -519,6 +519,9 @@ const es = {
     'view.zoomIn': 'Acercar',
     'view.zoomOut': 'Alejar',
     'view.fitToWindow': 'Ajustar a ventana',
+    'view.zoomOut.hint': 'Pasa al siguiente nivel de zoom inferior',
+    'view.zoomIn.hint': 'Pasa al siguiente nivel de zoom superior',
+    'view.zoomFit.hint': 'Ajusta el lienzo al mayor nivel de zoom que cabe en la ventana',
     'view.actualSize': 'Tamano real',
 
     // Help

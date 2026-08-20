@@ -519,6 +519,9 @@ const pl = {
     'view.zoomIn': 'Przybliz',
     'view.zoomOut': 'Oddal',
     'view.fitToWindow': 'Dopasuj do okna',
+    'view.zoomOut.hint': 'Przechodzi do niższego poziomu powiększenia',
+    'view.zoomIn.hint': 'Przechodzi do wyższego poziomu powiększenia',
+    'view.zoomFit.hint': 'Dopasowuje płótno do największego poziomu powiększenia mieszczącego się w oknie',
     'view.actualSize': 'Rzeczywisty rozmiar',
 
     // Help

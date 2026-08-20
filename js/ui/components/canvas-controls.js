@@ -91,7 +91,15 @@ class CanvasControlsClass {
         zoomOut.type = 'button';
         zoomOut.id = 'zoom-out';
         zoomOut.dataset.i18nAriaLabel = 'view.zoomOut';
+        zoomOut.dataset.i18nTitleName = 'view.zoomOut';
+        zoomOut.dataset.i18nTitle = 'view.zoomOut.hint';
+        zoomOut.dataset.shortcut = '-';
         zoomOut.setAttribute('aria-label', this._t('view.zoomOut', 'Zoom out'));
+        zoomOut.title = Helpers.composeTitle(
+            this._t('view.zoomOut', 'Zoom out'),
+            this._t('view.zoomOut.hint', 'Steps down to the next zoom level'),
+            '-'
+        );
         zoomOut.textContent = '-';
 
         // Zoom options generated from ZOOM_CONFIG — the single zoom source.
@@ -112,14 +120,28 @@ class CanvasControlsClass {
         zoomIn.type = 'button';
         zoomIn.id = 'zoom-in';
         zoomIn.dataset.i18nAriaLabel = 'view.zoomIn';
+        zoomIn.dataset.i18nTitleName = 'view.zoomIn';
+        zoomIn.dataset.i18nTitle = 'view.zoomIn.hint';
+        zoomIn.dataset.shortcut = '+';
         zoomIn.setAttribute('aria-label', this._t('view.zoomIn', 'Zoom in'));
+        zoomIn.title = Helpers.composeTitle(
+            this._t('view.zoomIn', 'Zoom in'),
+            this._t('view.zoomIn.hint', 'Steps up to the next zoom level'),
+            '+'
+        );
         zoomIn.textContent = '+';
 
         const zoomFit = document.createElement('button');
         zoomFit.type = 'button';
         zoomFit.id = 'zoom-fit';
         zoomFit.dataset.i18nAriaLabel = 'view.fitToWindow';
+        zoomFit.dataset.i18nTitleName = 'view.fitToWindow';
+        zoomFit.dataset.i18nTitle = 'view.zoomFit.hint';
         zoomFit.setAttribute('aria-label', this._t('view.fitToWindow', 'Fit to window'));
+        zoomFit.title = Helpers.composeTitle(
+            this._t('view.fitToWindow', 'Fit to window'),
+            this._t('view.zoomFit.hint', 'Scales the canvas to the largest zoom level that fits the window')
+        );
         zoomFit.dataset.i18n = 'zoom.fit';
         zoomFit.textContent = this._t('zoom.fit', 'Fit');
 

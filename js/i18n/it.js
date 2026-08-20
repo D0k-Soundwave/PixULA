@@ -519,6 +519,9 @@ const it = {
     'view.zoomIn': 'Ingrandisci',
     'view.zoomOut': 'Riduci',
     'view.fitToWindow': 'Adatta alla finestra',
+    'view.zoomOut.hint': 'Passa al livello di zoom inferiore successivo',
+    'view.zoomIn.hint': 'Passa al livello di zoom superiore successivo',
+    'view.zoomFit.hint': 'Adatta la tela al livello di zoom più grande che rientra nella finestra',
     'view.actualSize': 'Dimensione reale',
 
     // Help

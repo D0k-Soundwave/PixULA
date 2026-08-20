@@ -596,6 +596,9 @@ const en = {
     'view.zoomIn': 'Zoom in',
     'view.zoomOut': 'Zoom out',
     'view.fitToWindow': 'Fit to window',
+    'view.zoomOut.hint': 'Steps down to the next zoom level',
+    'view.zoomIn.hint': 'Steps up to the next zoom level',
+    'view.zoomFit.hint': 'Scales the canvas to the largest zoom level that fits the window',
     'view.actualSize': 'Actual Size',
 
     // Zoom

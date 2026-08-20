@@ -519,6 +519,9 @@ const cs = {
     'view.zoomIn': 'Priblizit',
     'view.zoomOut': 'Oddalit',
     'view.fitToWindow': 'Prizpusobit oknu',
+    'view.zoomOut.hint': 'Přejde na nižší úroveň přiblížení',
+    'view.zoomIn.hint': 'Přejde na vyšší úroveň přiblížení',
+    'view.zoomFit.hint': 'Přizpůsobí plátno největšímu přiblížení, které se vejde do okna',
     'view.actualSize': 'Skutecna velikost',
 
     // Help

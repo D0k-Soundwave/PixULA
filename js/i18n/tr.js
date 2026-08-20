@@ -519,6 +519,9 @@ const tr = {
     'view.zoomIn': 'Yakinlastir',
     'view.zoomOut': 'Uzaklastir',
     'view.fitToWindow': 'Pencereye sigdir',
+    'view.zoomOut.hint': 'Bir sonraki düşük yakınlaştırma düzeyine geçer',
+    'view.zoomIn.hint': 'Bir sonraki yüksek yakınlaştırma düzeyine geçer',
+    'view.zoomFit.hint': 'Tuvali pencereye sığan en büyük yakınlaştırma düzeyine ölçekler',
     'view.actualSize': 'Gercek boyut',
 
     // Help

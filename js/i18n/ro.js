@@ -519,6 +519,9 @@ const ro = {
     'view.zoomIn': 'Mareste',
     'view.zoomOut': 'Micsoreaza',
     'view.fitToWindow': 'Potriveste la fereastra',
+    'view.zoomOut.hint': 'Trece la nivelul de zoom inferior următor',
+    'view.zoomIn.hint': 'Trece la nivelul de zoom superior următor',
+    'view.zoomFit.hint': 'Ajustează pânza la cel mai mare nivel de zoom care încape în fereastră',
     'view.actualSize': 'Dimensiune reala',
 
     // Help
