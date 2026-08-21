@@ -1,9 +1,10 @@
 # App-wide hover tooltip coverage — design
 
-Status: approved in chat. Written 2026-08-20. Batch 1 (systemic fixes),
-batch 2 (main workspace sweep) and batch 3 (dialog sweep) shipped
-2026-08-20, 2026-08-20 and 2026-08-21 respectively — see §7. Batch 4 not
-yet planned.
+Status: approved in chat. Written 2026-08-20. All four batches shipped:
+batch 1 (systemic fixes) 2026-08-20, batch 2 (main workspace sweep)
+2026-08-20, batch 3 (dialog sweep) 2026-08-21 and batch 4 (generalized
+test coverage) 2026-08-21 — see §7. This closes the spec's execution
+plan; no batch 5 is planned.
 
 ## 1. Motivation
 
@@ -275,8 +276,72 @@ each independently tested before the next starts:
    each file into an object and can't see a duplicate literal key —
    deliberately NOT fixed on this branch (it predates batch 3), carried
    forward as a concrete batch-4 item instead (see §9).
-4. **Generalized test coverage**: widen `tooltip.spec.js` per §6, confirming
-   nothing from batches 1-3 slipped through.
+4. **Generalized test coverage — DONE, shipped 2026-08-21 (commits
+   92a47f4..ff92d01, worktree `tooltip-batch4`, branch `tooltip-batch4`
+   forked from main at `befa7a4` — the batch 3 merge commit — not yet
+   merged to main).** `tests/i18n-parity.test.js` gained a raw-source
+   (pre-`eval`) duplicate-key scan, since the existing eval-based loading
+   silently collapses a key defined twice in the same file to its last
+   definition — invisible to any check on the resulting object. This
+   immediately caught a real, pre-existing defect carried forward from
+   batch 3's own review: `layer.mergeSelected.hint` was defined twice in
+   all 13 locale files, with the name-restating second definition silently
+   winning; fixed by deleting the duplicate in all 13 files. Separately,
+   `tests/browser/tooltip.spec.js`'s sweep design was corrected: the
+   existing sweep queried `document.querySelectorAll(TooltipManager.SELECTOR)`
+   directly, which can never detect a class *dropped* from `SELECTOR`
+   (removing a class from the query used to find elements just makes them
+   invisible to it, not flagged) — this was also carried forward from
+   batch 3's review. Fixed by sweeping via the `data-i18n-title-name`
+   marker attribute instead (the universal marker every two-stage control
+   already sets) and separately asserting each match found that way is
+   also matched by `SELECTOR`, applied to both the existing main-workspace
+   sweep test and one new test that opens each of batch 3's seven dialogs
+   (Font Editor, Map Editor, Sprite Editor, Palette Editor, Tape Block,
+   Import, Workspace Presets manager) in turn and sweeps each one's body.
+
+   A significant organic finding: the strengthened design caught a REAL,
+   previously-undetected production bug unrelated to anything this batch
+   originally targeted — the Transform panel's Outline gap/thickness range
+   inputs (`.tp-og`, `.tp-os`) were fully wired with two-stage title
+   attributes since an earlier batch (commit `fb461be`) but were never
+   added to `TooltipManager.SELECTOR`, so they never actually got the
+   styled tooltip on hover despite passing their own dedicated test. Fixed
+   with a one-line `SELECTOR` addition alongside the test that found it —
+   the final whole-branch reviewer called this "the strongest possible
+   evidence the design works."
+
+   2 tasks executed via subagent-driven-development (fresh implementer
+   subagent per task, task review after each). One task needed a mid-task
+   recovery: the implementer hit an external API session-limit error
+   partway through and had to be resumed; on resume the controller briefly
+   misjudged the `.tp-og`/`.tp-os` fix as unrelated stray content and asked
+   for it to be reverted, but the implementer correctly pushed back with
+   evidence from its own tool history and kept the fix — independently
+   reverified as legitimate by both the task reviewer and the final
+   whole-branch reviewer (via `git show fb461be`). Full Playwright suite
+   green (306/306) on the branch, plus the final whole-branch review (also
+   clean, no Critical/Important findings, "Ready to merge: Yes").
+
+   Deviations found during implementation, worth recording: (i) two small
+   test-hygiene additions the plan didn't anticipate — a
+   `page.mouse.move(2, 2)` guard before each dialog sweep (a resting
+   cursor over a freshly-opened dialog can otherwise strip a title via
+   `TooltipManager`'s own hover-clearing behavior) and switching back to
+   `standard_ula` mode before building the Tape Block test's TAP file
+   (since the preceding Palette Editor section leaves the document in an
+   rgb333 mode, and `TAPFormat.export` requires the standard classic
+   layout); (ii) the final whole-branch review found two small residual
+   test gaps and asked for them to be closed in this same closing pass —
+   see this same commit for what was added: a direct
+   `TooltipManager.SELECTOR` membership assertion on `.pattern-item`
+   (`tests/browser/pattern-thumbnail-tooltip.spec.js`, the one control
+   whose name has no i18n key and so never sets `data-i18n-title-name`,
+   making it invisible to the new marker-based sweep) and an
+   at-least-one-match assertion on both sweeps (`tests/browser/tooltip.spec.js`),
+   closing the mirror-image gap where a sweep finding zero controls at all
+   would previously have passed just as silently as one finding only good
+   ones.
 
 Each batch: author English copy -> translate to 12 locales -> wire the
 mechanism -> `node tests/run-all.js` -> relevant Playwright specs -> report
@@ -377,3 +442,35 @@ back before starting the next batch.
   intact) with no tooltip ever actually appearing; batch 4's "generalized
   test coverage" widening should extend that sweep to walk each dialog's
   body while it's open, not just the main workspace chrome.
+
+  **Both resolved in batch 4**: (a) by the raw-source duplicate-key scan
+  added to `tests/i18n-parity.test.js`, which also fixed the specific
+  `layer.mergeSelected.hint` instance across all 13 locales; (b) by the
+  marker-attribute (`data-i18n-title-name`) plus SELECTOR-membership sweep
+  design in `tests/browser/tooltip.spec.js`, applied to all seven dialogs
+  batch 3 wired.
+- **New, discovered during the final whole-branch review of batch 4** (the
+  effort's last batch — recorded here for the historical record, since
+  there is no batch 5 to hand these off to): (a) the sweep design has one
+  small, correctly-scoped exception — `.pattern-item` (pattern library
+  thumbnails) composes a two-stage title but never sets
+  `data-i18n-title-name` (its name half is a user-supplied pattern name
+  with no i18n key, so there is nothing to attach that marker to), so it
+  was covered by the old SELECTOR-based sweep but not by the new
+  marker-based one — closed in this same batch by adding a direct
+  SELECTOR-membership assertion to that control's own dedicated spec
+  instead (`tests/browser/pattern-thumbnail-tooltip.spec.js`); (b) both
+  sweeps could previously report success on a `[]` empty result even if
+  nothing was found at all (a dialog failing to render its expected
+  controls, for instance) — the mirror-image gap to what this whole batch
+  closes — closed in this same batch by asserting each sweep actually
+  finds at least one matching control; (c) one piece of housekeeping the
+  final reviewer flagged as explicitly OUT of this batch's own scope,
+  worth a bullet so it isn't lost: `CLAUDE.md` still states figures (i18n
+  key count, browser spec file/test counts) that are now stale after four
+  batches of this work (measured reality: 1050 i18n keys, 306 tests across
+  52 files, vs. the file's stated 962/281/34) — `CLAUDE.md` itself names
+  `docs/CURRENT_STATE.md` as the authority for those figures, but that
+  file doesn't exist in this repo, so there is currently no doc carrying a
+  correct tally; this is a repo-hygiene item outside the tooltip-coverage
+  effort itself, not something this spec's own batches should absorb.

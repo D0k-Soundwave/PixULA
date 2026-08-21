@@ -93,8 +93,9 @@ test('every rail control has a description that is not its own name', async ({ p
  */
 test('every two-stage control in the main workspace chrome has a real description', async ({ page }) => {
     await boot(page);
-    const bad = await page.evaluate(() => {
+    const result = await page.evaluate(() => {
         const out = [];
+        let total = 0;
         const areas = [
             '#tool-rail', '#panels', '#zoom-controls', '.app-dialog-header',
             '#grid-controls', '#draw-modes', '#transform-panel'
@@ -118,6 +119,7 @@ test('every two-stage control in the main workspace chrome has a real descriptio
                     if (el.classList.contains('dir-pad-zone')) continue;
                     if (seen.has(el)) continue;
                     seen.add(el);
+                    total++;
                     if (!el.matches(window.Tooltip.SELECTOR)) {
                         out.push(`${el.className || el.tagName} carries data-i18n-title-name but TooltipManager.SELECTOR does not match it`);
                         continue;
@@ -129,9 +131,10 @@ test('every two-stage control in the main workspace chrome has a real descriptio
                 }
             }
         }
-        return out;
+        return { bad: out, total };
     });
-    expect(bad).toEqual([]);
+    expect(result.bad).toEqual([]);
+    expect(result.total).toBeGreaterThan(0);
 });
 
 /*
@@ -167,12 +170,17 @@ test('every two-stage control in every batch-3 dialog has a real description', a
         return page.evaluate(() => {
             const out = [];
             const body = document.querySelector('.app-dialog-body');
-            if (!body) return ['NO DIALOG BODY FOUND'];
+            if (!body) return { bad: ['NO DIALOG BODY FOUND'], total: 0 };
             // Sweep by the marker attribute, not by SELECTOR itself — a class
             // silently dropped from SELECTOR must show up as a failure here,
             // which querying FOR SELECTOR could never do (see the design note
-            // above Task 2).
+            // above Task 2). One deliberate exception: .pattern-item never
+            // sets this marker (its name is a user pattern name, not an i18n
+            // key) — its SELECTOR membership is checked separately in
+            // pattern-thumbnail-tooltip.spec.js instead.
+            let total = 0;
             for (const el of body.querySelectorAll('[data-i18n-title-name]')) {
+                total++;
                 if (!el.matches(window.Tooltip.SELECTOR)) {
                     out.push(`${el.className || el.tagName} carries data-i18n-title-name but TooltipManager.SELECTOR does not match it`);
                     continue;
@@ -182,7 +190,7 @@ test('every two-stage control in every batch-3 dialog has a real description', a
                     out.push(el.getAttribute('aria-label') || name || el.className);
                 }
             }
-            return out;
+            return { bad: out, total };
         });
     };
 
@@ -194,19 +202,25 @@ test('every two-stage control in every batch-3 dialog has a real description', a
     // Font Editor
     await page.click('.menu-item[data-menu="file"] .menu-label');
     await page.click('.menu-action[data-action="file:fontEditor"]');
-    expect(await sweepDialog(), 'Font Editor').toEqual([]);
+    const fontResult = await sweepDialog();
+    expect(fontResult.bad, 'Font Editor').toEqual([]);
+    expect(fontResult.total, 'Font Editor should sweep at least one control').toBeGreaterThan(0);
     await closeDialog();
 
     // Map Editor
     await page.click('.menu-item[data-menu="file"] .menu-label');
     await page.click('.menu-action[data-action="file:mapEditor"]');
-    expect(await sweepDialog(), 'Map Editor').toEqual([]);
+    const mapResult = await sweepDialog();
+    expect(mapResult.bad, 'Map Editor').toEqual([]);
+    expect(mapResult.total, 'Map Editor should sweep at least one control').toBeGreaterThan(0);
     await closeDialog();
 
     // Sprite Editor
     await page.click('.menu-item[data-menu="file"] .menu-label');
     await page.click('.menu-action[data-action="file:spriteEditor"]');
-    expect(await sweepDialog(), 'Sprite Editor').toEqual([]);
+    const spriteResult = await sweepDialog();
+    expect(spriteResult.bad, 'Sprite Editor').toEqual([]);
+    expect(spriteResult.total, 'Sprite Editor should sweep at least one control').toBeGreaterThan(0);
     await closeDialog();
 
     // Palette Editor — needs an editable-palette mode; rgb333 (Next) also
@@ -217,7 +231,9 @@ test('every two-stage control in every batch-3 dialog has a real description', a
     await page.waitForFunction(() => ACTIVE_SCREEN_MODE.id === 'layer2_256');
     await page.click('.menu-item[data-menu="image"] .menu-label');
     await page.click('.menu-action[data-action="image:editPalette"]');
-    expect(await sweepDialog(), 'Palette Editor').toEqual([]);
+    const paletteResult = await sweepDialog();
+    expect(paletteResult.bad, 'Palette Editor').toEqual([]);
+    expect(paletteResult.total, 'Palette Editor should sweep at least one control').toBeGreaterThan(0);
     await closeDialog();
 
     // Back to a standard screen layout: TAPFormat.export (below, for the
@@ -232,7 +248,9 @@ test('every two-stage control in every batch-3 dialog has a real description', a
         const buf = TAPFormat.export({ border: 0, name: 'test' });
         TapeBlockDialog.open(buf.buffer, 'test.tap');
     });
-    expect(await sweepDialog(), 'Tape Block').toEqual([]);
+    const tapeResult = await sweepDialog();
+    expect(tapeResult.bad, 'Tape Block').toEqual([]);
+    expect(tapeResult.total, 'Tape Block should sweep at least one control').toBeGreaterThan(0);
     await closeDialog();
 
     // Import dialog — a synthesized PNG through the real open flow, same
@@ -247,7 +265,9 @@ test('every two-stage control in every batch-3 dialog has a real description', a
         FileManager.loadFile(file);
     });
     await page.waitForSelector('.app-dialog-body', { timeout: 10000 });
-    expect(await sweepDialog(), 'Import').toEqual([]);
+    const importResult = await sweepDialog();
+    expect(importResult.bad, 'Import').toEqual([]);
+    expect(importResult.total, 'Import should sweep at least one control').toBeGreaterThan(0);
     await closeDialog();
 
     // Workspace Presets manager — seed one filled slot first so both the
@@ -255,7 +275,9 @@ test('every two-stage control in every batch-3 dialog has a real description', a
     await page.evaluate(() => PresetService.save(0, 'Batch 4 check', ['color']));
     await page.click('.menu-item[data-menu="settings"] .menu-label');
     await page.click('.menu-action[data-action="settings:presets"]');
-    expect(await sweepDialog(), 'Workspace Presets manager').toEqual([]);
+    const presetResult = await sweepDialog();
+    expect(presetResult.bad, 'Workspace Presets manager').toEqual([]);
+    expect(presetResult.total, 'Workspace Presets manager should sweep at least one control').toBeGreaterThan(0);
     await closeDialog();
 });
 
