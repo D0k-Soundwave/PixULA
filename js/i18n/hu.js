@@ -454,7 +454,6 @@ const hu = {
     'layer.moveDown.hint': 'Réteg mozgatása lefelé',
     'layer.mergeSelected': 'Összefésülés',
     'layer.mergeSelected.hint': 'Az összes kijelölt réteget egyesíti az alattuk lévővel',
-    'layer.mergeSelected.hint': 'Kijelölt rétegek összefésülése',
     'layer.selectForMerge': 'Kijelölés összevonáshoz',
     'layer.selectHint': 'Kattintás: kijelölés; dupla kattintás: átnevezés',
     'layer.visibility.show': 'Réteg megjelenítése',

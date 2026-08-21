@@ -454,7 +454,6 @@ const ro = {
     'layer.moveDown.hint': 'Mută stratul jos',
     'layer.mergeSelected': 'Unește',
     'layer.mergeSelected.hint': 'Combină toate straturile selectate cu cel de dedesubt',
-    'layer.mergeSelected.hint': 'Unește stratele selectate',
     'layer.selectForMerge': 'Selectează pentru îmbinare',
     'layer.selectHint': 'Clic pentru selectare; dublu clic pentru redenumire',
     'layer.visibility.show': 'Afișează stratul',

@@ -454,7 +454,6 @@ const sk = {
     'layer.moveDown.hint': 'Posunúť vrstvu dole',
     'layer.mergeSelected': 'Zlúčiť',
     'layer.mergeSelected.hint': 'Zlúči všetky vybrané vrstvy nadol do vrstvy pod nimi',
-    'layer.mergeSelected.hint': 'Zlúčiť vybrané vrstvy',
     'layer.selectForMerge': 'Vybrať na zlúčenie',
     'layer.selectHint': 'Kliknutím vyberiete; dvojklikom premenujete',
     'layer.visibility.show': 'Zobraziť vrstvu',

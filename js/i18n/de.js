@@ -454,7 +454,6 @@ const de = {
     'layer.moveDown.hint': 'Ebene nach unten',
     'layer.mergeSelected': 'Zusammenführen',
     'layer.mergeSelected.hint': 'Führt alle ausgewählten Ebenen mit der darunterliegenden zusammen',
-    'layer.mergeSelected.hint': 'Ausgewählte Ebenen zusammenführen',
     'layer.selectForMerge': 'Zum Zusammenführen auswählen',
     'layer.selectHint': 'Klicken zum Auswählen; Doppelklick zum Umbenennen',
     'layer.visibility.show': 'Ebene einblenden',

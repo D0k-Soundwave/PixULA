@@ -454,7 +454,6 @@ const pl = {
     'layer.moveDown.hint': 'Przesuń warstwę w dół',
     'layer.mergeSelected': 'Połącz',
     'layer.mergeSelected.hint': 'Scala wszystkie zaznaczone warstwy w dół, z warstwą pod nimi',
-    'layer.mergeSelected.hint': 'Połącz zaznaczone warstwy',
     'layer.selectForMerge': 'Zaznacz do scalenia',
     'layer.selectHint': 'Kliknij, aby zaznaczyć; kliknij dwukrotnie, aby zmienić nazwę',
     'layer.visibility.show': 'Pokaż warstwę',

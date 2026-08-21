@@ -454,7 +454,6 @@ const es = {
     'layer.moveDown.hint': 'Mover capa abajo',
     'layer.mergeSelected': 'Combinar',
     'layer.mergeSelected.hint': 'Combina todas las capas seleccionadas con la que está debajo',
-    'layer.mergeSelected.hint': 'Combinar capas seleccionadas',
     'layer.selectForMerge': 'Seleccionar para combinar',
     'layer.selectHint': 'Clic para seleccionar; doble clic para renombrar',
     'layer.visibility.show': 'Mostrar capa',

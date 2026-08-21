@@ -454,7 +454,6 @@ const fr = {
     'layer.moveDown.hint': 'Descendre le calque',
     'layer.mergeSelected': 'Fusionner',
     'layer.mergeSelected.hint': 'Fusionne tous les calques sélectionnés avec celui du dessous',
-    'layer.mergeSelected.hint': 'Fusionner les calques sélectionnés',
     'layer.selectForMerge': 'Sélectionner pour fusionner',
     'layer.selectHint': 'Cliquer pour sélectionner ; double-clic pour renommer',
     'layer.visibility.show': 'Afficher le calque',

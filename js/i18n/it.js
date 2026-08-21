@@ -454,7 +454,6 @@ const it = {
     'layer.moveDown.hint': 'Sposta livello giù',
     'layer.mergeSelected': 'Unisci',
     'layer.mergeSelected.hint': 'Unisce tutti i livelli selezionati con quello sottostante',
-    'layer.mergeSelected.hint': 'Unisci livelli selezionati',
     'layer.selectForMerge': 'Seleziona per unire',
     'layer.selectHint': 'Clic per selezionare; doppio clic per rinominare',
     'layer.visibility.show': 'Mostra livello',
