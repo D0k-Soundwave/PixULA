@@ -53,12 +53,17 @@ class SpriteEditorDialogClass {
         c.className = 'sprite-editor';
         this._content = c;
 
-        const mkBtn = (cls, i18n, fallback) => {
+        const mkBtn = (cls, i18n, fallback, hintI18n, hint) => {
             const b = document.createElement('button');
             b.type = 'button';
             b.className = `panel-button small ${cls}`;
             b.dataset.i18n = i18n;
             b.textContent = this._t(i18n, fallback);
+            if (hintI18n) {
+                b.dataset.i18nTitleName = i18n;
+                b.dataset.i18nTitle = hintI18n;
+                b.title = Helpers.composeTitle(this._t(i18n, fallback), this._t(hintI18n, hint));
+            }
             return b;
         };
         const row = (cls) => {
@@ -69,21 +74,28 @@ class SpriteEditorDialogClass {
 
         // ── Sheet navigation ────────────────────────────────────────────────
         const nav = row('sprite-editor-nav');
-        const mkNav = (cls, glyph, ariaI18n, aria) => {
+        const mkNav = (cls, glyph, ariaI18n, aria, hintI18n, hint) => {
             const b = document.createElement('button');
             b.type = 'button';
             b.className = `panel-button small ${cls}`;
             b.textContent = glyph; // directional glyph, not a translatable word
             b.dataset.i18nAriaLabel = ariaI18n;
             b.setAttribute('aria-label', this._t(ariaI18n, aria));
+            b.dataset.i18nTitleName = ariaI18n;
+            b.dataset.i18nTitle = hintI18n;
+            b.title = Helpers.composeTitle(this._t(ariaI18n, aria), this._t(hintI18n, hint));
             return b;
         };
-        const prev = mkNav('se-prev', '◀', 'sprite.prevSprite', 'Previous sprite');
+        const prev = mkNav('se-prev', '◀', 'sprite.prevSprite', 'Previous sprite',
+            'sprite.prevSprite.hint', 'Moves to the previous sprite in the sheet');
         const label = document.createElement('span');
         label.className = 'se-counter';
-        const next = mkNav('se-next', '▶', 'sprite.nextSprite', 'Next sprite');
-        const add = mkBtn('se-add', 'sprite.add', 'Add');
-        const remove = mkBtn('se-remove', 'sprite.remove', 'Remove');
+        const next = mkNav('se-next', '▶', 'sprite.nextSprite', 'Next sprite',
+            'sprite.nextSprite.hint', 'Moves to the next sprite in the sheet');
+        const add = mkBtn('se-add', 'sprite.add', 'Add',
+            'sprite.add.hint', 'Adds a new blank sprite after the current one (64 per sheet)');
+        const remove = mkBtn('se-remove', 'sprite.remove', 'Remove',
+            'sprite.remove.hint', 'Deletes the current sprite from the sheet');
         nav.append(prev, label, next, add, remove);
         c.appendChild(nav);
 
@@ -126,10 +138,14 @@ class SpriteEditorDialogClass {
 
         // ── Ops + depth + drawing index ────────────────────────────────────
         const ops = row('sprite-editor-ops');
-        const flipH = mkBtn('se-flip-h', 'sprite.flipH', 'Flip H');
-        const flipV = mkBtn('se-flip-v', 'sprite.flipV', 'Flip V');
-        const rot = mkBtn('se-rotate', 'sprite.rotate', 'Rotate');
-        const clear = mkBtn('se-clear', 'sprite.clear', 'Clear');
+        const flipH = mkBtn('se-flip-h', 'sprite.flipH', 'Flip H',
+            'sprite.flipH.hint', 'Mirrors the current sprite left-to-right');
+        const flipV = mkBtn('se-flip-v', 'sprite.flipV', 'Flip V',
+            'sprite.flipV.hint', 'Mirrors the current sprite top-to-bottom');
+        const rot = mkBtn('se-rotate', 'sprite.rotate', 'Rotate',
+            'sprite.rotate.hint', 'Rotates the current sprite 90 degrees clockwise');
+        const clear = mkBtn('se-clear', 'sprite.clear', 'Clear',
+            'sprite.clear.hint', 'Empties the current sprite back to fully transparent');
         ops.append(flipH, flipV, rot, clear);
 
         const depthLabel = document.createElement('label');
@@ -177,15 +193,19 @@ class SpriteEditorDialogClass {
         };
         const bx = mkNum('se-x', 9999);
         const by = mkNum('se-y', 9999);
-        const capture = mkBtn('se-capture', 'sprite.capture', 'Capture 16×16');
-        const stamp = mkBtn('se-stamp', 'sprite.stamp', 'Stamp to canvas');
+        const capture = mkBtn('se-capture', 'sprite.capture', 'Capture 16×16',
+            'sprite.capture.hint', 'Copies a 16×16 block from the canvas at X,Y into the current sprite');
+        const stamp = mkBtn('se-stamp', 'sprite.stamp', 'Stamp to canvas',
+            'sprite.stamp.hint', 'Draws the current sprite onto the canvas at X,Y');
         bridge.append(bx, by, capture, stamp);
         c.appendChild(bridge);
 
         // ── File row ────────────────────────────────────────────────────────
         const file = row('sprite-editor-file');
-        const importBtn = mkBtn('se-import', 'sprite.import', 'Import .spr…');
-        const exportBtn = mkBtn('se-export', 'sprite.export', 'Export .spr');
+        const importBtn = mkBtn('se-import', 'sprite.import', 'Import .spr…',
+            'sprite.import.hint', 'Replaces the whole sheet with one loaded from a .spr file');
+        const exportBtn = mkBtn('se-export', 'sprite.export', 'Export .spr',
+            'sprite.export.hint', 'Saves the whole sheet as a .spr file');
         const picker = document.createElement('input');
         picker.type = 'file';
         picker.accept = '.spr';
