@@ -71,9 +71,12 @@ class PresetControlsClass {
         const select = document.createElement('select');
         select.id = `${prefix}-select`;
         select.className = 'preset-bar-select';
+        select.dataset.i18nTitleName = 'toolPreset.load';
         select.dataset.i18nTitle = 'toolPreset.loadHint';
-        select.title = t('toolPreset.loadHint',
-            'Load a saved setting for the tool you are holding');
+        select.title = Helpers.composeTitle(
+            t('toolPreset.load', 'Load preset...'),
+            t('toolPreset.loadHint', 'Load a saved setting for the tool you are holding')
+        );
         row.appendChild(select);
 
         const save = document.createElement('button');
@@ -82,9 +85,12 @@ class PresetControlsClass {
         save.className = 'panel-button preset-bar-button';
         save.dataset.i18n = 'toolPreset.save';
         save.textContent = t('toolPreset.save', 'Save preset...');
+        save.dataset.i18nTitleName = 'toolPreset.save';
         save.dataset.i18nTitle = 'toolPreset.saveHint';
-        save.title = t('toolPreset.saveHint',
-            'Save the current settings of this tool under a name');
+        save.title = Helpers.composeTitle(
+            t('toolPreset.save', 'Save preset...'),
+            t('toolPreset.saveHint', 'Save the current settings of this tool under a name')
+        );
         row.appendChild(save);
 
         const handle = { element: row, scope: scopeId };
@@ -130,9 +136,12 @@ class PresetControlsClass {
             const ready = scope && PresetService.toolSupportsPresets(scope);
             save.disabled = !ready;
             save.dataset.i18nTitle = ready ? 'toolPreset.saveHint' : 'toolPreset.nothingToSave';
-            save.title = ready
-                ? t('toolPreset.saveHint', 'Save the current settings of this tool under a name')
-                : t('toolPreset.nothingToSave', 'Nothing to save yet');
+            save.title = Helpers.composeTitle(
+                t('toolPreset.save', 'Save preset...'),
+                ready
+                    ? t('toolPreset.saveHint', 'Save the current settings of this tool under a name')
+                    : t('toolPreset.nothingToSave', 'Nothing to save yet')
+            );
         };
 
         handle.setScope = (id) => { handle.scope = id; handle.refresh(); };
@@ -368,10 +377,11 @@ class PresetControlsClass {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'preset-panel-action';
-        btn.dataset.i18nTitle = i18n;
-        btn.title = t(i18n, fallback);
+        const name = t(i18n, fallback);
+        btn.dataset.i18nTitleName = i18n;
+        btn.title = Helpers.composeTitle(name, '');
         btn.dataset.i18nAriaLabel = i18n;
-        btn.setAttribute('aria-label', t(i18n, fallback));
+        btn.setAttribute('aria-label', name);
 
         const svg = document.createElementNS(SVG_NS, 'svg');
         svg.setAttribute('aria-hidden', 'true');

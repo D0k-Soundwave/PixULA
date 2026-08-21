@@ -97,10 +97,13 @@ class TouchModeStatusClass {
         // The label is recomposed on a locale change from this attribute, the
         // same way the draw-mode readout is (I18n._updateDOM).
         this._el.dataset.i18nTouchMode = on ? 'draws' : 'nav';
-        this._el.textContent = this.describeMode(on ? 'draws' : 'nav');
-        this._el.title = this._t('status.touchToggleHint',
-            'Whether a finger draws on the canvas. Pan, pinch and long-press work either way.');
+        const label = this.describeMode(on ? 'draws' : 'nav');
+        this._el.textContent = label;
+        this._el.dataset.i18nTitleName = on ? 'status.touchDraws' : 'status.touchNav';
         this._el.dataset.i18nTitle = 'status.touchToggleHint';
+        this._el.title = Helpers.composeTitle(label,
+            this._t('status.touchToggleHint',
+                'Whether a finger draws on the canvas. Pan, pinch and long-press work either way.'));
         this._el.setAttribute('aria-pressed', String(on));
         this._el.classList.toggle('is-off', !on);
 

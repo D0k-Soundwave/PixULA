@@ -95,25 +95,27 @@ test('every two-stage control in the main workspace chrome has a real descriptio
     await boot(page);
     const bad = await page.evaluate(() => {
         const out = [];
-        const areas = ['#tool-rail', '#panels', '#zoom-controls', '.app-dialog-header'];
+        const areas = [
+            '#tool-rail', '#panels', '#zoom-controls', '.app-dialog-header',
+            '#grid-controls', '#draw-modes', '#transform-panel'
+        ];
         const seen = new Set();
         for (const areaSelector of areas) {
             for (const area of document.querySelectorAll(areaSelector)) {
                 for (const el of area.querySelectorAll(window.Tooltip.SELECTOR)) {
                     if (el.closest('#tool-options-panel-content')) continue;
-                    // KNOWN GAP, out of this batch's scope: .panel-collapse (every
-                    // sidebar panel's collapse/expand header button) and
-                    // #merge-selected (the Layers panel's Merge button) are matched
-                    // by SELECTOR but their title text was never given a real
-                    // composeTitle(name, hint) two-part description by Tasks 1-4 —
-                    // that work belongs to a separate, not-yet-committed session
-                    // (see this batch's progress.md pre-flight ruling on the
-                    // .panel-header drift, which is the same underlying gap).
-                    // Excluding here rather than leaving this test permanently red
-                    // for controls outside Task 5's file scope; found and reported
-                    // 2026-08-20 in task-5-report.md. Remove this exclusion once
-                    // that hint work lands.
-                    if (el.classList.contains('panel-collapse') || el.id === 'merge-selected') continue;
+                    // KNOWN GAP, deliberately out of scope (see the batch 2
+                    // plan's Global Constraints): the shift dir-pad zones
+                    // (Helpers.buildDirPad()) are shared verbatim by the
+                    // Transform panel (shift the layer/selection) and the
+                    // Reference panel (shift the reference image) — one
+                    // hint text would be correct for one context and wrong
+                    // for the other, and the builder has no parameter to
+                    // vary it. They carry aria-label only, no title, by
+                    // design. Remove this exclusion once buildDirPad() (or
+                    // its two call sites) can express context-specific
+                    // hints.
+                    if (el.classList.contains('dir-pad-zone')) continue;
                     if (seen.has(el)) continue;
                     seen.add(el);
                     const { name, desc } = Helpers.splitTitle(el.getAttribute('title') || '');
