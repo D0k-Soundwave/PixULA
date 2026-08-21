@@ -737,8 +737,11 @@ const hu = {
     'import.scalingCrop': 'Vágás (kitöltés)',
     'import.method': 'Átalakítás',
     'import.methodSharp': 'Éles',
+    'import.methodSharp.hint': 'Cellánként az eredeti fénykép minden pixelét mintavételezi, nem a már átlagolt 64 képernyőpixelt - megőrzi az éleket és az apró részleteket, amelyeket a másik két módszer elveszít',
     'import.methodSmooth': 'Lágy',
+    'import.methodSmooth.hint': 'Szórást alkalmaz az eredményen - a legjobb átlagos tónus és szín normál nézési távolságból, cserébe közelről látható zajért',
     'import.methodFlat': 'Sík',
+    'import.methodFlat.hint': 'Szórás nélkül - a legtisztább blokkok, plakátszerűbb hatással',
 
     // Phase 9: GIF/ZED/SEV formats, tape block editor
     'format.gif': 'GIF-kép (.gif)',

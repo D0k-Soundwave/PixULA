@@ -737,8 +737,11 @@ const ro = {
     'import.scalingCrop': 'Decupare (umplere)',
     'import.method': 'Conversie',
     'import.methodSharp': 'Clar',
+    'import.methodSharp.hint': 'Eșantionează fiecare pixel al fotografiei originale per celulă, în loc de cei 64 de pixeli de ecran deja mediați - păstrează muchiile și detaliile mici pe care celelalte două metode le pierd',
     'import.methodSmooth': 'Fin',
+    'import.methodSmooth.hint': 'Aplică dither rezultatului - cel mai bun ton și cea mai bună culoare medii de la o distanță normală de vizionare, cu prețul zgomotului vizibil de aproape',
     'import.methodFlat': 'Plat',
+    'import.methodFlat.hint': 'Fără dither - cele mai curate blocuri, cu un aspect mai apropiat de un poster',
 
     // Phase 9: GIF/ZED/SEV formats, tape block editor
     'format.gif': 'Imagine GIF (.gif)',

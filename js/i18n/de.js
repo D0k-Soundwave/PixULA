@@ -737,8 +737,11 @@ const de = {
     'import.scalingCrop': 'Zuschneiden (füllen)',
     'import.method': 'Umwandlung',
     'import.methodSharp': 'Scharf',
+    'import.methodSharp.hint': 'Tastet pro Zelle jedes Pixel des Originalfotos ab statt der 64 bereits gemittelten Bildschirmpixel - erhält Kanten und feine Details, die die anderen beiden Methoden verlieren',
     'import.methodSmooth': 'Weich',
+    'import.methodSmooth.hint': 'Rastert das Ergebnis - der beste durchschnittliche Ton und die beste Farbe aus normalem Betrachtungsabstand, auf Kosten von sichtbarem Rauschen aus der Nähe',
     'import.methodFlat': 'Flach',
+    'import.methodFlat.hint': 'Kein Rastern - die saubersten Blöcke, mit einer plakativeren Optik',
 
     // Phase 9: GIF/ZED/SEV formats, tape block editor
     'format.gif': 'GIF-Bild (.gif)',

@@ -737,8 +737,11 @@ const it = {
     'import.scalingCrop': 'Ritaglia (riempi)',
     'import.method': 'Conversione',
     'import.methodSharp': 'Nitido',
+    'import.methodSharp.hint': 'Campiona ogni pixel della foto originale per cella invece dei 64 pixel dello schermo già mediati - mantiene i bordi e i piccoli dettagli che gli altri due metodi perdono',
     'import.methodSmooth': 'Morbido',
+    'import.methodSmooth.hint': 'Applica il dithering al risultato - il miglior tono e colore medi a una distanza di visione normale, a costo di un rumore visibile da vicino',
     'import.methodFlat': 'Piatto',
+    'import.methodFlat.hint': 'Nessun dithering - i blocchi più puliti, con un aspetto più simile a un poster',
 
     // Phase 9: GIF/ZED/SEV formats, tape block editor
     'format.gif': 'Immagine GIF (.gif)',

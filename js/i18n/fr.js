@@ -737,8 +737,11 @@ const fr = {
     'import.scalingCrop': 'Rogner (remplir)',
     'import.method': 'Conversion',
     'import.methodSharp': 'Net',
+    'import.methodSharp.hint': 'Échantillonne chaque pixel de la photo originale par cellule, au lieu des 64 pixels d\'écran déjà moyennés - conserve les contours et les petits détails que les deux autres méthodes perdent',
     'import.methodSmooth': 'Doux',
+    'import.methodSmooth.hint': 'Applique un tramage au résultat - le meilleur ton et la meilleure couleur moyens à une distance de visualisation normale, au prix d\'un bruit visible de près',
     'import.methodFlat': 'Plat',
+    'import.methodFlat.hint': 'Sans tramage - les blocs les plus nets, avec un rendu plus proche d\'une affiche',
 
     // Phase 9: GIF/ZED/SEV formats, tape block editor
     'format.gif': 'Image GIF (.gif)',

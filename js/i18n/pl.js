@@ -737,8 +737,11 @@ const pl = {
     'import.scalingCrop': 'Przytnij (wypełnij)',
     'import.method': 'Konwersja',
     'import.methodSharp': 'Ostry',
+    'import.methodSharp.hint': 'Próbkuje każdy piksel oryginalnego zdjęcia dla każdej komórki zamiast 64 już uśrednionych pikseli ekranu - zachowuje krawędzie i drobne szczegóły, które tracą pozostałe dwie metody',
     'import.methodSmooth': 'Gładki',
+    'import.methodSmooth.hint': 'Stosuje dithering do wyniku - najlepszy średni odcień i kolor z normalnej odległości oglądania, kosztem widocznego szumu z bliska',
     'import.methodFlat': 'Płaski',
+    'import.methodFlat.hint': 'Bez ditheringu - najczystsze bloki, o wyglądzie bardziej plakatowym',
 
     // Phase 9: GIF/ZED/SEV formats, tape block editor
     'format.gif': 'Obraz GIF (.gif)',

@@ -737,8 +737,11 @@ const tr = {
     'import.scalingCrop': 'Kırp (doldur)',
     'import.method': 'Dönüştürme',
     'import.methodSharp': 'Keskin',
+    'import.methodSharp.hint': 'Her hücre için, zaten ortalaması alınmış 64 ekran pikseli yerine orijinal fotoğrafın her pikselini örnekler - diğer iki yöntemin kaybettiği kenarları ve küçük ayrıntıları korur',
     'import.methodSmooth': 'Yumuşak',
+    'import.methodSmooth.hint': 'Sonuca tarama uygular - normal bir izleme mesafesinden en iyi ortalama ton ve rengi verir, yakından bakıldığında ise görünür gürültü pahasına',
     'import.methodFlat': 'Düz',
+    'import.methodFlat.hint': 'Tarama yok - en temiz bloklar, daha poster benzeri bir görünümle',
 
     // Phase 9: GIF/ZED/SEV formats, tape block editor
     'format.gif': 'GIF görüntüsü (.gif)',

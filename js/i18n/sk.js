@@ -737,8 +737,11 @@ const sk = {
     'import.scalingCrop': 'Orezať (vyplniť)',
     'import.method': 'Prevod',
     'import.methodSharp': 'Ostrý',
+    'import.methodSharp.hint': 'Pre každú bunku vzorkuje každý pixel pôvodnej fotografie namiesto 64 už spriemerovaných pixelov obrazovky - zachováva hrany a drobné detaily, ktoré ostatné dve metódy strácajú',
     'import.methodSmooth': 'Hladký',
+    'import.methodSmooth.hint': 'Aplikuje dithering na výsledok - najlepší priemerný tón a farbu z bežnej pozorovacej vzdialenosti, za cenu viditeľného šumu zblízka',
     'import.methodFlat': 'Plochý',
+    'import.methodFlat.hint': 'Bez ditheringu - najčistejšie bloky, s vzhľadom bližším plagátu',
 
     // Phase 9: GIF/ZED/SEV formats, tape block editor
     'format.gif': 'Obrázok GIF (.gif)',

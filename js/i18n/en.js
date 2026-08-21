@@ -757,8 +757,11 @@ const en = {
     'import.scalingCrop': 'Crop (fill)',
     'import.method': 'Conversion',
     'import.methodSharp': 'Sharp',
+    'import.methodSharp.hint': 'Samples every pixel of the original photo per cell instead of the 64 already-averaged screen pixels - keeps edges and small detail the other two lose',
     'import.methodSmooth': 'Smooth',
+    'import.methodSmooth.hint': 'Dithers the result - the best average tone and colour from a normal viewing distance, at the cost of visible noise up close',
     'import.methodFlat': 'Flat',
+    'import.methodFlat.hint': 'No dithering - the cleanest blocks, with a more poster-like look',
 
     // Phase 9: GIF/ZED/SEV formats, tape block editor
     'format.gif': 'GIF Image (.gif)',

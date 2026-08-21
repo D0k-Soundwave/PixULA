@@ -737,8 +737,11 @@ const ru = {
     'import.scalingCrop': 'Обрезать (заполнить)',
     'import.method': 'Преобразование',
     'import.methodSharp': 'Чёткое',
+    'import.methodSharp.hint': 'Для каждой ячейки берёт образцы из всех пикселей исходного фото, а не из уже усреднённых 64 пикселей экрана - сохраняет края и мелкие детали, которые теряют два других метода',
     'import.methodSmooth': 'Мягкое',
+    'import.methodSmooth.hint': 'Применяет дизеринг к результату - лучший средний тон и цвет при обычном расстоянии просмотра, ценой заметного шума вблизи',
     'import.methodFlat': 'Плоское',
+    'import.methodFlat.hint': 'Без дизеринга - самые чистые блоки, с более плакатным видом',
 
     // Phase 9: GIF/ZED/SEV formats, tape block editor
     'format.gif': 'Изображение GIF (.gif)',

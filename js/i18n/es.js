@@ -737,8 +737,11 @@ const es = {
     'import.scalingCrop': 'Recortar (llenar)',
     'import.method': 'Conversión',
     'import.methodSharp': 'Nítido',
+    'import.methodSharp.hint': 'Muestrea cada píxel de la foto original por celda en lugar de los 64 píxeles de pantalla ya promediados - conserva los bordes y los pequeños detalles que los otros dos métodos pierden',
     'import.methodSmooth': 'Suave',
+    'import.methodSmooth.hint': 'Aplica tramado al resultado - el mejor tono y color medios a una distancia de visión normal, a costa de un ruido visible de cerca',
     'import.methodFlat': 'Plano',
+    'import.methodFlat.hint': 'Sin tramado - los bloques más limpios, con un aspecto más parecido a un póster',
 
     // Phase 9: GIF/ZED/SEV formats, tape block editor
     'format.gif': 'Imagen GIF (.gif)',
