@@ -454,7 +454,6 @@ const ru = {
     'layer.moveDown.hint': 'Переместить слой вниз',
     'layer.mergeSelected': 'Объединить',
     'layer.mergeSelected.hint': 'Объединяет все выбранные слои с расположенным под ними',
-    'layer.mergeSelected.hint': 'Объединить выбранные слои',
     'layer.selectForMerge': 'Выбрать для объединения',
     'layer.selectHint': 'Щелчок — выбрать; двойной щелчок — переименовать',
     'layer.visibility.show': 'Показать слой',

@@ -454,7 +454,6 @@ const tr = {
     'layer.moveDown.hint': 'Katmanı aşağı taşı',
     'layer.mergeSelected': 'Birleştir',
     'layer.mergeSelected.hint': 'Seçili tüm katmanları altındaki katmanla birleştirir',
-    'layer.mergeSelected.hint': 'Seçili katmanları birleştir',
     'layer.selectForMerge': 'Birleştirme için seç',
     'layer.selectHint': 'Seçmek için tıklayın; yeniden adlandırmak için çift tıklayın',
     'layer.visibility.show': 'Katmanı göster',

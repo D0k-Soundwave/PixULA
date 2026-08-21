@@ -454,7 +454,6 @@ const pt = {
     'layer.moveDown.hint': 'Mover camada para baixo',
     'layer.mergeSelected': 'Unir',
     'layer.mergeSelected.hint': 'Funde todas as camadas selecionadas com a que está por baixo',
-    'layer.mergeSelected.hint': 'Unir camadas selecionadas',
     'layer.selectForMerge': 'Selecionar para combinar',
     'layer.selectHint': 'Clique para selecionar; duplo clique para renomear',
     'layer.visibility.show': 'Mostrar camada',

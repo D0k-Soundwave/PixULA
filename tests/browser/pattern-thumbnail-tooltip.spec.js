@@ -18,4 +18,12 @@ test('a pattern library thumbnail has a real two-stage tooltip', async ({ page }
     expect(name).toBeTruthy();
     expect(desc).toBeTruthy();
     expect(desc).not.toBe(name);
+
+    // .pattern-item is the one control in the app whose two-stage title has
+    // no data-i18n-title-name (its name half is a user pattern name, not an
+    // i18n key), so tooltip.spec.js's marker-attribute-based sweep cannot see
+    // it at all. This direct SELECTOR check is what would catch a future
+    // accidental removal of .pattern-item from TooltipManager.SELECTOR.
+    const inSelector = await item.evaluate((el) => el.matches(window.Tooltip.SELECTOR));
+    expect(inSelector, '.pattern-item must stay in TooltipManager.SELECTOR — it is the one control in the app that never sets data-i18n-title-name (its name is a user pattern name, not an i18n key), so the marker-attribute-based sweep in tooltip.spec.js cannot see it at all').toBe(true);
 });

@@ -421,7 +421,6 @@ const en = {
     'layer.merge': 'Merge Down',
     'layer.mergeSelected': 'Merge',
     'layer.mergeSelected.hint': 'Merges every selected layer down into the one below it',
-    'layer.mergeSelected.hint': 'Merge selected layers',
     'layer.flatten': 'Flatten All',
     'layer.moveUp': 'Move Up',
     'layer.moveUp.hint': 'Move layer up',

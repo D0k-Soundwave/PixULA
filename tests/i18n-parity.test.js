@@ -22,11 +22,32 @@ const I18N_DIR = path.join(__dirname, '..', 'js', 'i18n');
 const SOT = 'en';
 
 function loadTable(file) {
+  const text = fs.readFileSync(file, 'utf8');
   const win = {};
-  new Function('window', fs.readFileSync(file, 'utf8'))(win);
+  new Function('window', text)(win);
   const key = Object.keys(win).find((k) => k.startsWith('i18n_'));
   if (!key) throw new Error(`${path.basename(file)} did not set window.i18n_<code>`);
-  return { code: key.slice(5), table: win[key] };
+  return { code: key.slice(5), table: win[key], text };
+}
+
+/**
+ * Duplicate literal keys in a JS object-literal source file are invisible
+ * to loadTable() above: `eval`-based loading collapses `'k': 'a', 'k': 'b'`
+ * to the object `{k: 'b'}`, so a second, accidental definition of an
+ * existing key silently wins and every check downstream only ever sees the
+ * winner. This scans the raw TEXT instead, matching each top-level
+ * `'key.name':` line the same way every locale file writes one (single
+ * quotes, one key per line, per the established convention), and reports
+ * any key that appears more than once.
+ */
+function duplicateKeys(text) {
+  const counts = new Map();
+  const re = /^\s*'([^']+)'\s*:/gm;
+  let m;
+  while ((m = re.exec(text))) {
+    counts.set(m[1], (counts.get(m[1]) || 0) + 1);
+  }
+  return [...counts.entries()].filter(([, n]) => n > 1).map(([k]) => k);
 }
 
 const files = fs.readdirSync(I18N_DIR)
@@ -47,11 +68,13 @@ if (locales.length !== 13) {
   fail(`expected 13 locale files, found ${locales.length}: ${locales.map((l) => l.code).join(', ')}`);
 }
 
-for (const { code, table } of locales) {
+for (const { code, table, text } of locales) {
   const missing = enKeys.filter((k) => !(k in table));
   const extra = Object.keys(table).filter((k) => !(k in en.table));
   if (missing.length) fail(`${code}: missing ${missing.length} key(s): ${missing.join(', ')}`);
   if (extra.length)   fail(`${code}: extra ${extra.length} key(s): ${extra.join(', ')}`);
+  const dupes = duplicateKeys(text);
+  if (dupes.length) fail(`${code}: duplicate key(s) defined more than once: ${dupes.join(', ')}`);
 
   for (const [k, v] of Object.entries(table)) {
     if (typeof v !== 'string' || v.trim() === '') fail(`${code}: empty value for '${k}'`);

@@ -454,7 +454,6 @@ const cs = {
     'layer.moveDown.hint': 'Posunout vrstvu dolů',
     'layer.mergeSelected': 'Sloučit',
     'layer.mergeSelected.hint': 'Sloučí všechny vybrané vrstvy dolů do vrstvy pod nimi',
-    'layer.mergeSelected.hint': 'Sloučit vybrané vrstvy',
     'layer.selectForMerge': 'Vybrat ke sloučení',
     'layer.selectHint': 'Kliknutím vyberete; dvojklikem přejmenujete',
     'layer.visibility.show': 'Zobrazit vrstvu',
