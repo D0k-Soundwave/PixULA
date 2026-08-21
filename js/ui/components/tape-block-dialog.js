@@ -147,11 +147,15 @@ class TapeBlockDialogClass {
             const actions = document.createElement('span');
             actions.className = 'tape-block-actions';
             if (block.isScreen) {
-                actions.appendChild(this._actionButton('load', i, 'tape.load', 'Load', null));
+                actions.appendChild(this._actionButton('load', i, 'tape.load', 'Load', null,
+                    'tape.load.hint', 'Loads this SCREEN$ block into the document'));
             }
-            actions.appendChild(this._actionButton('up', i, 'tape.moveUp', 'Move up', 'icon-arrow-up'));
-            actions.appendChild(this._actionButton('down', i, 'tape.moveDown', 'Move down', 'icon-arrow-down'));
-            actions.appendChild(this._actionButton('remove', i, 'tape.remove', 'Remove', 'icon-trash'));
+            actions.appendChild(this._actionButton('up', i, 'tape.moveUp', 'Move up', 'icon-arrow-up',
+                'tape.moveUp.hint', 'Moves this block one place earlier on the tape'));
+            actions.appendChild(this._actionButton('down', i, 'tape.moveDown', 'Move down', 'icon-arrow-down',
+                'tape.moveDown.hint', 'Moves this block one place later on the tape'));
+            actions.appendChild(this._actionButton('remove', i, 'tape.remove', 'Remove', 'icon-trash',
+                'tape.remove.hint', 'Deletes this block from the tape'));
 
             row.appendChild(num);
             row.appendChild(desc);
@@ -184,12 +188,14 @@ class TapeBlockDialogClass {
      *        misaligns, fails to translate and renders as tofu where the font
      *        has no coverage, and this app already has a drawn icon for each.
      */
-    _actionButton(act, index, i18nKey, fallback, icon) {
+    _actionButton(act, index, i18nKey, fallback, icon, hintKey, hintFallback) {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'panel-button tape-block-btn';
         btn.dataset.act = act;
         btn.dataset.index = String(index);
+        const name = this._t(i18nKey, fallback);
+        const title = Helpers.composeTitle(name, this._t(hintKey, hintFallback));
         if (icon) {
             const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             svg.setAttribute('aria-hidden', 'true');
@@ -197,13 +203,17 @@ class TapeBlockDialogClass {
             use.setAttribute('href', `#${icon}`);
             svg.appendChild(use);
             btn.appendChild(svg);
-            btn.dataset.i18nTitle = i18nKey;
+            btn.dataset.i18nTitleName = i18nKey;
+            btn.dataset.i18nTitle = hintKey;
             btn.dataset.i18nAriaLabel = i18nKey;
-            btn.title = this._t(i18nKey, fallback);
-            btn.setAttribute('aria-label', this._t(i18nKey, fallback));
+            btn.title = title;
+            btn.setAttribute('aria-label', name);
         } else {
             btn.dataset.i18n = i18nKey;
-            btn.textContent = this._t(i18nKey, fallback);
+            btn.dataset.i18nTitleName = i18nKey;
+            btn.dataset.i18nTitle = hintKey;
+            btn.textContent = name;
+            btn.title = title;
         }
         return btn;
     }
