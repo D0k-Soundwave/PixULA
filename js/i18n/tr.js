@@ -752,7 +752,7 @@ const tr = {
     'tape.load': 'Yükle',
     'tape.load.hint': 'Bu SCREEN$ bloğunu belgeye yükler',
     'tape.remove': 'Kaldır',
-    'tape.remove.hint': 'Bu bloğu bantdan siler',
+    'tape.remove.hint': 'Bu bloğu banttan siler',
     'tape.moveUp': 'Yukarı taşı',
     'tape.moveUp.hint': 'Bu bloğu bantta bir yer öne taşır',
     'tape.moveDown': 'Aşağı taşı',
