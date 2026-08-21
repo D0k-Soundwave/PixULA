@@ -359,9 +359,11 @@ class PaletteEditorDialogClass {
         if (traits.fileKinds.length > 1) {
             kindSelect = document.createElement('select');
             kindSelect.className = 'palette-editor-kind';
+            kindSelect.dataset.i18nTitleName = 'palette.files';
             kindSelect.dataset.i18nTitle = 'palette.kindHint';
-            kindSelect.title = this._t('palette.kindHint',
-                'Which file form to write');
+            kindSelect.title = Helpers.composeTitle(
+                this._t('palette.files', 'Palette file'), this._t('palette.kindHint',
+                'Which file form to write'));
             for (const kind of traits.fileKinds) {
                 const opt = document.createElement('option');
                 opt.value = kind;
@@ -434,8 +436,9 @@ class PaletteEditorDialogClass {
         btn.className = 'panel-button palette-editor-tool-button';
         btn.dataset.i18n = i18n;
         btn.textContent = this._t(i18n, fallback);
+        btn.dataset.i18nTitleName = i18n;
         btn.dataset.i18nTitle = titleI18n;
-        btn.title = this._t(titleI18n, titleFallback);
+        btn.title = Helpers.composeTitle(this._t(i18n, fallback), this._t(titleI18n, titleFallback));
         btn.addEventListener('click', onClick);
         return btn;
     }
