@@ -423,7 +423,10 @@ class PresetDialogClass {
         btn.type = 'button';
         btn.className = 'panel-button preset-row-button';
         btn.dataset.i18n = i18n;
+        btn.dataset.i18nTitleName = i18n;
+        btn.dataset.i18nTitle = `${i18n}.hint`;
         btn.textContent = this._t(i18n, fallback);
+        btn.title = Helpers.composeTitle(this._t(i18n, fallback), this._t(`${i18n}.hint`, ''));
         btn.addEventListener('click', onClick);
         return btn;
     }
