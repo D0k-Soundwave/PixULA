@@ -1,8 +1,9 @@
 # App-wide hover tooltip coverage — design
 
-Status: approved in chat. Written 2026-08-20. Batch 1 (systemic fixes) and
-batch 2 (main workspace sweep) both shipped 2026-08-20 — see §7. Batches
-3-4 not yet planned.
+Status: approved in chat. Written 2026-08-20. Batch 1 (systemic fixes),
+batch 2 (main workspace sweep) and batch 3 (dialog sweep) shipped
+2026-08-20, 2026-08-20 and 2026-08-21 respectively — see §7. Batch 4 not
+yet planned.
 
 ## 1. Motivation
 
@@ -226,10 +227,54 @@ each independently tested before the next starts:
    pattern as the `.panel-collapse`/`#merge-selected` exclusion batch 1
    used and this batch just removed — carried forward as a real, still-
    open gap for whoever eventually parameterizes `buildDirPad()`.
-3. **Dialog sweep**: Font Editor, Map Editor, Sprite Editor, Palette
-3. **Dialog sweep**: Font Editor, Map Editor, Sprite Editor, Palette
-   Editor, Preset save/manage, Tape Block, Preferences, Import — whatever
-   the systemic fixes in batch 1 didn't already cover.
+3. **Dialog sweep — DONE, shipped 2026-08-21 (commits 3c28a2e..068c021,
+   worktree `tooltip-batch3`, branch `tooltip-batch3` forked from main at
+   `ae0dc40`, not yet merged to main).** Font Editor's 10 glyph-op buttons;
+   Map Editor's 4 tool buttons + 2 zoom buttons (the zoom hints reused
+   batch 1's own `view.zoomOut.hint`/`view.zoomIn.hint` rather than
+   duplicating them); Sprite Editor (its mini-tools row was deduped onto
+   the shared `Helpers.miniToolButton` builder alongside Font/Map Editor,
+   then its remaining 12 buttons — nav prev/next plus 10 ops/bridge/file
+   buttons — got real hints); Palette Editor (4 tool buttons + 1 kind
+   select — pure wiring, the hint content already existed in all 13
+   locales from an earlier pass and just needed the two-stage mechanism);
+   the Tape Block dialog's 4 row-action buttons; the Import dialog's 3
+   conversion-method panes (hint content drawn from the authoritative
+   source comment in `js/io/png-format.js`, which also gained a `hint`
+   field on `IMPORT_METHODS` as the single source of truth); and the
+   Workspace Presets manager's 5 row-action buttons (notably
+   disambiguating Load vs Replace, which are easy to confuse).
+
+   Explicitly OUT of scope, verified during planning with reasons:
+   Preferences dialog (every row already has a permanently visible hint
+   sentence, not hidden behind hover — a different, already-correct
+   mechanism), generic dialog-footer buttons app-wide (Close/Cancel/OK/
+   Save/etc, same reasoning batches 1-2 used to exclude `.panel-button`),
+   Companion dialog, Tool Preset save/rename dialog, Save Project dialog
+   (none have icon-only or genuinely unexplained controls), and
+   `CellGridEditor`'s own chrome (it's a bare canvas with no DOM chrome of
+   its own — every dialog that embeds it builds its own surrounding
+   toolbar, which the batch does cover).
+
+   8 tasks executed via subagent-driven-development (fresh implementer
+   subagent per task, task review after each — two tasks needed one fix
+   round each: Tape Block needed a French-preposition and Turkish-case-
+   ending translation correction; Palette Editor's test needed widening to
+   also cover the kind-select in an rgb333 mode, not just ULAplus), full
+   Playwright suite green (305/305) on the branch, plus the final whole-
+   branch review (also clean, no Critical findings).
+
+   Two deviations found during implementation, worth recording: (i) the
+   plan's Task 8 brief cited stale en.js line numbers for the anchor point
+   of the `preset.*` keys — the implementer located the real anchor by
+   grep instead, no duplicates resulted; (ii) the final whole-branch
+   review found one PRE-EXISTING defect unrelated to this batch's own new
+   work — `layer.mergeSelected.hint` is defined twice in all 13 locale
+   files (from an earlier batch), with the later (name-restating)
+   definition winning silently since `tests/i18n-parity.test.js` `eval`s
+   each file into an object and can't see a duplicate literal key —
+   deliberately NOT fixed on this branch (it predates batch 3), carried
+   forward as a concrete batch-4 item instead (see §9).
 4. **Generalized test coverage**: widen `tooltip.spec.js` per §6, confirming
    nothing from batches 1-3 slipped through.
 
@@ -274,8 +319,11 @@ back before starting the next batch.
   fresh at the start of batch 2/3 rather than trusted from the audit
   summary, since that pass explicitly flagged them as time-boxed-out.
   **Batch 2 covered its share**: Transform panel and grid toggles are
-  done (see §7 batch 2). Sprite Editor, Import/Save/Companion dialogs and
-  `CellGridEditor` chrome remain for batch 3 — genuinely not yet touched.
+  done (see §7 batch 2). **Batch 3 covered its share too**: Sprite Editor
+  and Import are done (see §7 batch 3); Save/Companion dialogs were found
+  to need no changes on inspection — no icon-only controls; `CellGridEditor`
+  chrome turned out to be a bare canvas with no chrome of its own, so there
+  was nothing there to fix.
 - **New, discovered during batch 1's own implementation** (not part of
   the original audit): `.panel-collapse` sidebar headers and
   `#merge-selected` in `layer-panel.js` were real, out-of-scope gaps for
@@ -304,4 +352,28 @@ back before starting the next batch.
   control that happens to receive programmatic/autofocus on its
   container's own open) when batch 3 sweeps the remaining dialogs, since
   several of them (Sprite Editor, Palette Editor, Import) may have their
-  own first-focusable-element in a similar position.
+  own first-focusable-element in a similar position. **Checked during
+  batch 3 and found already discharged**: the fix is systemic — `dialog.js`
+  redirects focus to the dialog element itself after `showModal()` (see
+  `js/ui/components/dialog.js` around lines 111-119), and Sprite Editor,
+  Palette Editor and Import all open via the shared `Dialog.open()`, so
+  none of them re-triggers the bug — confirmed by the final whole-branch
+  reviewer, no code change needed.
+- **New, discovered during the final whole-branch review of batch 3, for
+  batch 4 to pick up** — two things, neither of them batch 3's own job:
+  (a) the `layer.mergeSelected.hint` pre-existing duplicate-key defect
+  described in §7 batch 3, plus the systemic point behind it —
+  `tests/i18n-parity.test.js` `eval`s each locale file into an object, so a
+  duplicate literal key anywhere in any file is structurally invisible to
+  that test; a raw-source duplicate-key scan (a short regex over the file
+  text, not the evaluated object) should be added to that test, and would
+  have caught this on its own; (b) `tooltip.spec.js`'s own SELECTOR-sweep
+  test (the "every two-stage control ... has a real description" test) is
+  scoped to `#tool-rail, #panels, #zoom-controls, .app-dialog-header` and
+  never walks an OPEN dialog's body — so a class silently dropped or
+  mistyped in a future `TooltipManager.SELECTOR` edit inside any dialog
+  would leave every per-dialog spec in this batch green (they only check
+  that a title splits correctly, not that the SELECTOR match itself is
+  intact) with no tooltip ever actually appearing; batch 4's "generalized
+  test coverage" widening should extend that sweep to walk each dialog's
+  body while it's open, not just the main workspace chrome.

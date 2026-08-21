@@ -522,10 +522,10 @@ const Helpers = {
 
     /**
      * One button in the small brush/eraser/line/fill toolset shared by the
-     * Pattern Creator, Font Editor and Map Editor dialogs' CellGridEditor
-     * surface. Previously hand-copied identically into all three with no
-     * hover hint in any copy — this is the one source of truth now, so the
-     * three dialogs cannot drift from each other again.
+     * Pattern Creator, Font Editor, Map Editor and Sprite Editor dialogs'
+     * CellGridEditor surface. Previously hand-copied identically into each
+     * with no hover hint in any copy — this is the one source of truth now,
+     * so the dialogs cannot drift from each other again.
      * @param {string} tool         CellGridEditor tool id: 'brush'|'eraser'|'line'|'fill'
      * @param {string} letter       single-glyph icon shown on the button
      * @param {string} nameKey      i18n key for the button's name

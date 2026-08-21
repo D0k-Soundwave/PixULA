@@ -80,6 +80,11 @@ class ImportDialogClass {
                 cap.dataset.i18n = m.i18n;
                 cap.textContent = this._t(m.i18n, m.fallback);
 
+                const hintKey = `${m.i18n}.hint`;
+                pane.dataset.i18nTitleName = m.i18n;
+                pane.dataset.i18nTitle = hintKey;
+                pane.title = Helpers.composeTitle(this._t(m.i18n, m.fallback), this._t(hintKey, m.hint));
+
                 pane.appendChild(c);
                 pane.appendChild(cap);
                 pane.addEventListener('click', () => select(m));

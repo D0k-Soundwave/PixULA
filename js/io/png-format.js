@@ -32,11 +32,14 @@ const CELL_PIXELS = CS * CS;
  */
 const IMPORT_METHODS = [
   { id: 'sharp',  method: 'detail',   dithering: 'none',
-    i18n: 'import.methodSharp',  fallback: 'Sharp' },
+    i18n: 'import.methodSharp',  fallback: 'Sharp',
+    hint: 'Samples every pixel of the original photo per cell instead of the 64 already-averaged screen pixels - keeps edges and small detail the other two lose' },
   { id: 'smooth', method: 'standard', dithering: 'floyd-steinberg',
-    i18n: 'import.methodSmooth', fallback: 'Smooth' },
+    i18n: 'import.methodSmooth', fallback: 'Smooth',
+    hint: 'Dithers the result - the best average tone and colour from a normal viewing distance, at the cost of visible noise up close' },
   { id: 'flat',   method: 'standard', dithering: 'none',
-    i18n: 'import.methodFlat',   fallback: 'Flat' }
+    i18n: 'import.methodFlat',   fallback: 'Flat',
+    hint: 'No dithering - the cleanest blocks, with a more poster-like look' }
 ];
 
 /**
