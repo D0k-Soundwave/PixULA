@@ -105,22 +105,23 @@ class SpriteEditorDialogClass {
         c.appendChild(this._editor.element);
 
         // ── Mini-tools ──────────────────────────────────────────────────────
+        // Shared with Font Editor / Map Editor (Helpers.miniToolButton) rather
+        // than hand-rolled here a third time — see docs/superpowers/specs/
+        // 2026-08-20-tooltip-coverage-design.md §3.
         const tools = row('sprite-editor-tools');
-        for (const [tool, i18n, fb] of [
-            ['brush', 'tool.brush', 'Brush'],
-            ['eraser', 'tool.eraser', 'Eraser'],
-            ['line', 'shape.line', 'Line'],
-            ['fill', 'tool.fill', 'Fill']
-        ]) {
-            const b = mkBtn(`se-tool-${tool}`, i18n, fb);
+        tools.innerHTML = [
+            Helpers.miniToolButton('brush', 'B', 'tool.brush', 'Brush', 'miniTool.brush.hint', 'Click or drag to set pixels', true),
+            Helpers.miniToolButton('eraser', 'E', 'tool.eraser', 'Eraser', 'tool.eraser.hint', 'Clear pixels back to the paper colour'),
+            Helpers.miniToolButton('line', 'S', 'shape.line', 'Line', 'miniTool.line.hint', 'Drag to draw a straight line between two points'),
+            Helpers.miniToolButton('fill', 'F', 'tool.fill', 'Fill', 'tool.fill.hint', 'Flood the area under the cursor out to its edges')
+        ].join('');
+        tools.querySelectorAll('button[data-tool]').forEach((b) => {
             b.addEventListener('click', () => {
-                this._editor.setTool(tool);
-                tools.querySelectorAll('button').forEach((x) =>
+                this._editor.setTool(b.dataset.tool);
+                tools.querySelectorAll('button[data-tool]').forEach((x) =>
                     x.classList.toggle('active', x === b));
             });
-            if (tool === 'brush') b.classList.add('active');
-            tools.appendChild(b);
-        }
+        });
         c.appendChild(tools);
 
         // ── Ops + depth + drawing index ────────────────────────────────────
