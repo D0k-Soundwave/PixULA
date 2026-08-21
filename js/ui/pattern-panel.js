@@ -39,7 +39,9 @@ class PatternPanelClass {
         const panel = PanelSection.create({
             id: 'patterns-panel',
             titleI18n: 'panels.patternLibrary',
-            title: 'Pattern Library'
+            title: 'Pattern Library',
+            hintI18n: 'panels.patternLibrary.hint',
+            hint: 'Fill patterns for shading and dithering on a two-colour cell, plus any you have saved yourself. Right-click this header to move the whole panel up or down'
         });
         if (!panel) {
             Logger.error('PatternPanel', 'Could not create patterns panel');

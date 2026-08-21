@@ -69,7 +69,7 @@ test('Move down reorders the panel and persists across F5 (WINDOW_STATE)', async
     expect(restored).toEqual(after);
 });
 
-test('hovering a panel title bar names the panel and explains the right-click', async ({ page }) => {
+test('hovering a panel title bar names the panel, says what it is for, and explains the right-click', async ({ page }) => {
     await boot(page);
     const order = await panelOrder(page);
     const tip = page.locator('.app-tooltip');
@@ -81,9 +81,13 @@ test('hovering a panel title bar names the panel and explains the right-click', 
 
     await expect(tip).toBeVisible();
     await expect(desc).toBeVisible({ timeout: 5000 });
-    const expectedHint = await page.evaluate(() => window.I18n.t('panel.reorderHint'));
-    await expect(desc).toHaveText(expectedHint);
     expect(await name.textContent()).not.toBe('');
+    const descText = await desc.textContent();
+    expect(descText).toBeTruthy();
+    expect(descText).not.toBe(await name.textContent());
+    // Every panel's hint ends with the shared reorder instruction, so both
+    // what-this-panel-is-for AND the right-click explanation are present.
+    expect(descText).toMatch(/right-click/i);
 });
 
 test('clicking the canvas closes an open panel reorder menu', async ({ page }) => {

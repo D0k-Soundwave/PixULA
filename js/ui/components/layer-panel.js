@@ -63,7 +63,9 @@ class LayerPanelClass {
         const panel = PanelSection.create({
             id: 'layer-panel',
             titleI18n: 'panels.layers',
-            title: 'Layers'
+            title: 'Layers',
+            hintI18n: 'panels.layers.hint',
+            hint: 'Add, delete, reorder and merge layers, and set each one\'s opacity and blend mode. Right-click this header to move the whole panel up or down'
         });
         if (!panel) return;
 

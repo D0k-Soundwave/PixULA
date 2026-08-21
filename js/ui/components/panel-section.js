@@ -35,9 +35,14 @@ class PanelSectionClass {
      * @param {string} opts.titleI18n   - i18n key for the <h2>
      * @param {string} opts.title       - English fallback title
      * @param {boolean} [opts.collapsed] - initial state when nothing is persisted
+     * @param {string} [opts.hintI18n]  - i18n key for the header's hover hint
+     *   (what this panel is for; the right-click reorder instruction is
+     *   folded into the same sentence, since a header's title carries only
+     *   one hint key - see the comment at its call site below)
+     * @param {string} [opts.hint]      - English fallback for hintI18n
      * @returns {{ section: HTMLElement, content: HTMLElement, title: HTMLElement }}
      */
-    create({ id, titleI18n, title, collapsed = false }) {
+    create({ id, titleI18n, title, collapsed = false, hintI18n, hint }) {
         const host = document.getElementById('panels');
         const tpl = document.getElementById('tpl-panel');
         if (!host || !tpl) {
@@ -61,15 +66,19 @@ class PanelSectionClass {
         titleEl.textContent = this._t(titleI18n, title);
 
         // Hover hint: the header's own name (already visible as the h2) plus
-        // the right-click reorder hint, composed the same way every other
+        // what this specific panel is for, composed the same way every other
         // control's two-stage tooltip is (Helpers.composeTitle / I18n's
         // data-i18n-title + data-i18n-title-name pair keeps it live on a
-        // locale switch).
+        // locale switch). I18n.apply() re-composes from ONE key per header
+        // (data-i18n-title), so the right-click-to-reorder instruction -
+        // true of every panel alike - is folded into each panel's own hint
+        // sentence at the source (each hintI18n value ends with it) rather
+        // than composed from two separate keys here.
         header.dataset.i18nTitleName = titleI18n;
-        header.dataset.i18nTitle = 'panel.reorderHint';
+        header.dataset.i18nTitle = hintI18n;
         header.title = Helpers.composeTitle(
             this._t(titleI18n, title),
-            this._t('panel.reorderHint', 'Right-click to move this panel up or down')
+            this._t(hintI18n, hint)
         );
 
         const entry = { section, content, title: titleEl, button };

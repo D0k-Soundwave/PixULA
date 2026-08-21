@@ -24,7 +24,9 @@ class TransformPanelClass {
         const panel = PanelSection.create({
             id: 'transform-panel',
             titleI18n: 'panels.transform',
-            title: 'Transform'
+            title: 'Transform',
+            hintI18n: 'panels.transform.hint',
+            hint: 'Flip, rotate, scale and shift the current selection or layer. Right-click this header to move the whole panel up or down'
         });
         if (!panel) return;
 

@@ -54,7 +54,9 @@ class ToolPresetPanelClass {
         const panel = PanelSection.create({
             id: 'tool-preset-panel',
             titleI18n: 'panels.presets',
-            title: 'Presets'
+            title: 'Presets',
+            hintI18n: 'panels.presets.hint',
+            hint: 'Every tool\'s saved presets in one library - load, rename or delete any of them. Right-click this header to move the whole panel up or down'
         });
         if (!panel) {
             Logger.error('ToolPresetPanel', 'Could not create presets panel');

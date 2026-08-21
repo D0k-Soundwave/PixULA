@@ -36,7 +36,9 @@ class ReferenceLayerPanelClass {
             id: 'reference-panel',
             titleI18n: 'panels.reference',
             title: 'Reference',
-            collapsed: true
+            collapsed: true,
+            hintI18n: 'panels.reference.hint',
+            hint: 'A traced photo you can position and scale over the canvas as a drawing guide. Right-click this header to move the whole panel up or down'
         });
         if (!panel) return;
 

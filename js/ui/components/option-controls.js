@@ -57,7 +57,9 @@ class OptionControlsClass {
         const panel = PanelSection.create({
             id: 'tool-options-panel',
             titleI18n: 'panels.tools',
-            title: 'Tool Options'
+            title: 'Tool Options',
+            hintI18n: 'panels.tools.hint',
+            hint: 'The active tool\'s own settings - size, colours and everything specific to whatever is selected on the rail. Right-click this header to move the whole panel up or down'
         });
         if (!panel) {
             Logger.error('OptionControls', 'Could not create tool options panel');
