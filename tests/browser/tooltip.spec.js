@@ -7,7 +7,7 @@
  * one place and would make the suite a timing test.
  */
 const { test, expect } = require('@playwright/test');
-const { boot } = require('./helpers');
+const { boot, selectMode } = require('./helpers');
 
 test('rail buttons carry no printed caption', async ({ page }) => {
     await boot(page);
@@ -102,7 +102,7 @@ test('every two-stage control in the main workspace chrome has a real descriptio
         const seen = new Set();
         for (const areaSelector of areas) {
             for (const area of document.querySelectorAll(areaSelector)) {
-                for (const el of area.querySelectorAll(window.Tooltip.SELECTOR)) {
+                for (const el of area.querySelectorAll('[data-i18n-title-name]')) {
                     if (el.closest('#tool-options-panel-content')) continue;
                     // KNOWN GAP, deliberately out of scope (see the batch 2
                     // plan's Global Constraints): the shift dir-pad zones
@@ -118,6 +118,10 @@ test('every two-stage control in the main workspace chrome has a real descriptio
                     if (el.classList.contains('dir-pad-zone')) continue;
                     if (seen.has(el)) continue;
                     seen.add(el);
+                    if (!el.matches(window.Tooltip.SELECTOR)) {
+                        out.push(`${el.className || el.tagName} carries data-i18n-title-name but TooltipManager.SELECTOR does not match it`);
+                        continue;
+                    }
                     const { name, desc } = Helpers.splitTitle(el.getAttribute('title') || '');
                     if (!desc || desc === name) {
                         out.push(el.getAttribute('aria-label') || name || el.className);
@@ -128,6 +132,131 @@ test('every two-stage control in the main workspace chrome has a real descriptio
         return out;
     });
     expect(bad).toEqual([]);
+});
+
+/*
+ * The main-workspace sweep above never opens a dialog, so nothing in
+ * Font/Map/Sprite/Palette Editor, Tape Block, Import or the Workspace
+ * Presets manager was ever checked by it — those dialogs' own SELECTOR-
+ * matched controls (all wired in batch 3 of
+ * docs/superpowers/specs/2026-08-20-tooltip-coverage-design.md) had no
+ * mechanical check that the match actually fires; only a human reviewer
+ * catching a dropped or mistyped class kept it honest. This test opens
+ * each of those seven dialogs in turn and runs the exact same sweep
+ * against its body, closing it before the next one opens (the app boots
+ * once for the whole test).
+ */
+test('every two-stage control in every batch-3 dialog has a real description', async ({ page }) => {
+    await boot(page);
+
+    const sweepDialog = async () => {
+        // Several of the dialogs below open via page.evaluate (no real mouse
+        // move of their own), so the cursor can be left resting, from an
+        // earlier real click elsewhere in this test, exactly over a control
+        // in the dialog that just appeared under it. Chromium re-hit-tests on
+        // layout change and fires a genuine pointerover in that case, and
+        // TooltipManager.show() strips that control's `title` attribute (by
+        // design, to suppress the native OS tooltip) before the sweep below
+        // ever reads it — seen for real with the Import dialog's middle
+        // (smooth) pane landing under a menu click left over from the
+        // Palette Editor section. Moving the mouse off to a neutral corner
+        // first forces a real pointerout, which restores any stripped title
+        // via TooltipManager.hide(), so the sweep always sees the same title
+        // an actual reader would.
+        await page.mouse.move(2, 2);
+        return page.evaluate(() => {
+            const out = [];
+            const body = document.querySelector('.app-dialog-body');
+            if (!body) return ['NO DIALOG BODY FOUND'];
+            // Sweep by the marker attribute, not by SELECTOR itself — a class
+            // silently dropped from SELECTOR must show up as a failure here,
+            // which querying FOR SELECTOR could never do (see the design note
+            // above Task 2).
+            for (const el of body.querySelectorAll('[data-i18n-title-name]')) {
+                if (!el.matches(window.Tooltip.SELECTOR)) {
+                    out.push(`${el.className || el.tagName} carries data-i18n-title-name but TooltipManager.SELECTOR does not match it`);
+                    continue;
+                }
+                const { name, desc } = Helpers.splitTitle(el.getAttribute('title') || '');
+                if (!desc || desc === name) {
+                    out.push(el.getAttribute('aria-label') || name || el.className);
+                }
+            }
+            return out;
+        });
+    };
+
+    const closeDialog = async () => {
+        await page.keyboard.press('Escape');
+        await page.waitForFunction(() => !document.querySelector('.app-dialog-body'));
+    };
+
+    // Font Editor
+    await page.click('.menu-item[data-menu="file"] .menu-label');
+    await page.click('.menu-action[data-action="file:fontEditor"]');
+    expect(await sweepDialog(), 'Font Editor').toEqual([]);
+    await closeDialog();
+
+    // Map Editor
+    await page.click('.menu-item[data-menu="file"] .menu-label');
+    await page.click('.menu-action[data-action="file:mapEditor"]');
+    expect(await sweepDialog(), 'Map Editor').toEqual([]);
+    await closeDialog();
+
+    // Sprite Editor
+    await page.click('.menu-item[data-menu="file"] .menu-label');
+    await page.click('.menu-action[data-action="file:spriteEditor"]');
+    expect(await sweepDialog(), 'Sprite Editor').toEqual([]);
+    await closeDialog();
+
+    // Palette Editor — needs an editable-palette mode; rgb333 (Next) also
+    // renders the kind select, so it exercises more of the dialog than
+    // ULAplus alone would.
+    page.on('dialog', (d) => d.accept());
+    await selectMode(page, 'layer2_256');
+    await page.waitForFunction(() => ACTIVE_SCREEN_MODE.id === 'layer2_256');
+    await page.click('.menu-item[data-menu="image"] .menu-label');
+    await page.click('.menu-action[data-action="image:editPalette"]');
+    expect(await sweepDialog(), 'Palette Editor').toEqual([]);
+    await closeDialog();
+
+    // Back to a standard screen layout: TAPFormat.export (below, for the
+    // Tape Block dialog) requires it, and layer2_256 (just selected above)
+    // does not have it.
+    await selectMode(page, 'standard_ula');
+    await page.waitForFunction(() => ACTIVE_SCREEN_MODE.id === 'standard_ula');
+
+    // Tape Block dialog — built directly from a real in-memory TAP file,
+    // same as tests/browser/tape-block-tooltip.spec.js.
+    await page.evaluate(() => {
+        const buf = TAPFormat.export({ border: 0, name: 'test' });
+        TapeBlockDialog.open(buf.buffer, 'test.tap');
+    });
+    expect(await sweepDialog(), 'Tape Block').toEqual([]);
+    await closeDialog();
+
+    // Import dialog — a synthesized PNG through the real open flow, same
+    // as tests/browser/import-method-tooltip.spec.js.
+    await page.evaluate(async () => {
+        const c = document.createElement('canvas');
+        c.width = 64; c.height = 48;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#ff0000'; ctx.fillRect(0, 0, 64, 48);
+        const blob = await new Promise((r) => c.toBlob(r, 'image/png'));
+        const file = new File([blob], 'test.png', { type: 'image/png' });
+        FileManager.loadFile(file);
+    });
+    await page.waitForSelector('.app-dialog-body', { timeout: 10000 });
+    expect(await sweepDialog(), 'Import').toEqual([]);
+    await closeDialog();
+
+    // Workspace Presets manager — seed one filled slot first so both the
+    // filled-row and empty-row action buttons render.
+    await page.evaluate(() => PresetService.save(0, 'Batch 4 check', ['color']));
+    await page.click('.menu-item[data-menu="settings"] .menu-label');
+    await page.click('.menu-action[data-action="settings:presets"]');
+    expect(await sweepDialog(), 'Workspace Presets manager').toEqual([]);
+    await closeDialog();
 });
 
 /* Touch has no hover, so the whole tooltip hangs off press-and-hold. Real touch
