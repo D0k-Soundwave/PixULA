@@ -81,9 +81,11 @@ class SpriteEditorDialogClass {
             b.textContent = glyph; // directional glyph, not a translatable word
             b.dataset.i18nAriaLabel = ariaI18n;
             b.setAttribute('aria-label', this._t(ariaI18n, aria));
-            b.dataset.i18nTitleName = ariaI18n;
-            b.dataset.i18nTitle = hintI18n;
-            b.title = Helpers.composeTitle(this._t(ariaI18n, aria), this._t(hintI18n, hint));
+            if (hintI18n) {
+                b.dataset.i18nTitleName = ariaI18n;
+                b.dataset.i18nTitle = hintI18n;
+                b.title = Helpers.composeTitle(this._t(ariaI18n, aria), this._t(hintI18n, hint));
+            }
             return b;
         };
         const prev = mkNav('se-prev', '◀', 'sprite.prevSprite', 'Previous sprite',

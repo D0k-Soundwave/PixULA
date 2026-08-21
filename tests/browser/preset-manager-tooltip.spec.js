@@ -22,7 +22,7 @@ test('every Workspace Presets manager row action has a real two-stage tooltip', 
         expect(desc, `${label} description differs from name`).not.toBe(name);
     };
 
-    const filledRow = dlg.locator('.preset-row').filter({ hasNot: dlg.locator('.preset-row-empty') }).first();
+    const filledRow = dlg.locator('.preset-row:not(.preset-row-empty)').first();
     await checkTwoStage(filledRow.locator('[data-i18n="preset.load"]'), 'load');
     await checkTwoStage(filledRow.locator('[data-i18n="preset.replace"]'), 'replace');
     await checkTwoStage(filledRow.locator('[data-i18n="preset.export"]'), 'export');
