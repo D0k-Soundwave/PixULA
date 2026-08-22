@@ -62,17 +62,34 @@ const rrTiny = ShapeGenerator.generateShape('rounded-rectangle', { x1: 5, y1: 5,
 check('rounded-rect: degenerate bounds fall back cleanly', rrTiny.length > 0);
 
 // ── Parallelogram ──────────────────────────────────────────────────────────
-// Skew = 25% of width (12.5 -> 13 for a 50-wide drag): top edge runs
-// (left+skew,top)->(right,top), bottom edge (left,bottom)->(right-skew,bottom).
+// Skew = 25% of width (12.5 -> 13 for a 50-wide drag). The exact (unskewed)
+// corners sit on the diagonal the artist actually dragged - (10,10) to
+// (60,40) is a "\" drag, so top-left and bottom-right land exactly on the
+// press/release points and the OTHER diagonal (top-right, bottom-left) is
+// what carries the skew.
 const pg = ShapeGenerator.generateShape('parallelogram', bounds);
 const pgSet = new Set(pg.map(key));
 const skew = Math.round((60 - 10) * 0.25);
 check('parallelogram: generates points', pg.length > 0);
 check('parallelogram: stays inside its bounds', inBounds(pg, 10, 10, 60, 40));
-check('parallelogram: top-left corner is skewed', pgSet.has(`${10 + skew},10`) && !pgSet.has('10,10'));
-check('parallelogram: top-right corner present', pgSet.has('60,10'));
-check('parallelogram: bottom-left corner present', pgSet.has('10,40'));
-check('parallelogram: bottom-right corner is skewed', pgSet.has(`${60 - skew},40`) && !pgSet.has('60,40'));
+check('parallelogram: top-left corner is exact (the press point)', pgSet.has('10,10'));
+check('parallelogram: bottom-right corner is exact (the release point)', pgSet.has('60,40'));
+check('parallelogram: top-right corner is skewed', pgSet.has(`${60 - skew},10`) && !pgSet.has('60,10'));
+check('parallelogram: bottom-left corner is skewed', pgSet.has(`${10 + skew},40`) && !pgSet.has('10,40'));
+
+// Dragging the OTHER diagonal ("/": top-right to bottom-left) mirrors it -
+// now top-right and bottom-left are exact, top-left and bottom-right skewed.
+const pgMirrored = ShapeGenerator.generateShape('parallelogram',
+  { x1: 60, y1: 10, x2: 10, y2: 40 });
+const pgMirroredSet = new Set(pgMirrored.map(key));
+check('parallelogram (mirrored diagonal): top-right corner is exact (the press point)',
+  pgMirroredSet.has('60,10'));
+check('parallelogram (mirrored diagonal): bottom-left corner is exact (the release point)',
+  pgMirroredSet.has('10,40'));
+check('parallelogram (mirrored diagonal): top-left corner is skewed',
+  pgMirroredSet.has(`${10 + skew},10`) && !pgMirroredSet.has('10,10'));
+check('parallelogram (mirrored diagonal): bottom-right corner is skewed',
+  pgMirroredSet.has(`${60 - skew},40`) && !pgMirroredSet.has('60,40'));
 
 const pgFilled = ShapeGenerator.generateShape('parallelogram', bounds, { filled: true });
 const pgFilledSet = new Set(pgFilled.map(key));

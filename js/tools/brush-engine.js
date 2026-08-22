@@ -62,7 +62,7 @@ class BrushEngineClass {
         // per-tool state — see mapPressure() and the on/off check in
         // applyBrush(), both of which read StateManager live so a change in
         // Preferences takes effect on the artist's very next stamp.
-        this.flowRate = 100;
+        this.flowRate = 10;
 
         // Brush dynamics
         this.sizeVariation = 0;

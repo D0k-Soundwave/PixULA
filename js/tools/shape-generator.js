@@ -76,9 +76,8 @@ const ICON_ART = Object.freeze({
         const c = Math.round(max / 2);
         const petalR = Math.max(2, Math.round(max * 0.17));
         const ringR = Math.max(3, Math.round(max * 0.33));
-        const coreR = Math.max(1, Math.round(max * 0.1));
 
-        const pts = this._midpointCircle(c, c, coreR);
+        const pts = [];
         for (let i = 0; i < 6; i++) {
             const angle = -Math.PI / 2 + (i * Math.PI / 3);
             pts.push(...this._midpointCircle(
@@ -1587,11 +1586,9 @@ class ShapeGeneratorClass {
         const cy = centerY;
         const outerR = radius / Math.sqrt(2);
         const petalR = outerR * 0.4;
-        const centerR = outerR * 0.25;
 
-        // Build list of all circles (center + petals)
+        // Build list of petal circles
         const circles = [];
-        circles.push({ cx, cy, r: centerR, rSq: centerR * centerR });
 
         for (let i = 0; i < petals; i++) {
             const angle = (2 * Math.PI * i) / petals;
@@ -1781,15 +1778,37 @@ class ShapeGeneratorClass {
     }
 
     _generateParallelogram(bounds) {
-        const { left, right, top, bottom } = bounds;
+        const { left, right, top, bottom, deltaX, deltaY } = bounds;
         const width = right - left;
         const skew = Math.round(width * 0.25);
 
+        // The lean follows the drag diagonal, not just the drag's bounding
+        // box: left/right/top/bottom alone can't tell a top-left-to-bottom-
+        // right drag from its mirror image, since both produce the same box.
+        // It also has to keep the point the artist actually pressed down on
+        // (and the point they dragged to) as REAL corners of the shape - a
+        // parallelogram's parallel-sides constraint only leaves two exact
+        // corners, always on one diagonal, with the other diagonal inset by
+        // the skew - so that diagonal must be the one the artist dragged
+        // along, or the shape appears to start from a corner they never
+        // touched. A "\" diagonal (deltaX and deltaY sharing a sign - top-
+        // left to bottom-right, or that same drag reversed) keeps top-left
+        // and bottom-right exact; a "/" diagonal mirrors it, keeping top-
+        // right and bottom-left exact instead. A drag square to one axis
+        // (deltaX or deltaY zero) has no diagonal to read, so it falls back
+        // to the "\" pairing.
+        const mirrored = (deltaX < 0) === (deltaY < 0);
+
+        const topLeft = mirrored ? left : left + skew;
+        const topRight = mirrored ? right - skew : right;
+        const bottomLeft = mirrored ? left + skew : left;
+        const bottomRight = mirrored ? right : right - skew;
+
         const points = [];
-        points.push(...this._bresenhamLine(left + skew, top, right, top));
-        points.push(...this._bresenhamLine(left, bottom, right - skew, bottom));
-        points.push(...this._bresenhamLine(left + skew, top, left, bottom));
-        points.push(...this._bresenhamLine(right, top, right - skew, bottom));
+        points.push(...this._bresenhamLine(topLeft, top, topRight, top));
+        points.push(...this._bresenhamLine(bottomLeft, bottom, bottomRight, bottom));
+        points.push(...this._bresenhamLine(topLeft, top, bottomLeft, bottom));
+        points.push(...this._bresenhamLine(topRight, top, bottomRight, bottom));
 
         return points;
     }
@@ -2008,11 +2027,9 @@ class ShapeGeneratorClass {
         const cy = centerY;
         const outerR = radius / Math.sqrt(2);
         const petalR = outerR * 0.4;
-        const centerR = outerR * 0.25;
 
-        // Build list of all circles (center + petals)
+        // Build list of petal circles
         const circles = [];
-        circles.push({ cx, cy, r: centerR, rSq: centerR * centerR });
 
         for (let i = 0; i < petals; i++) {
             const angle = (2 * Math.PI * i) / petals;

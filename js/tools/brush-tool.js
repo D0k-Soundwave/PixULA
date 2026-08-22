@@ -127,7 +127,7 @@ class BrushToolClass extends ToolBase {
     { type: 'range',  key: 'size',      i18n: 'opt.size',      min: 1, max: 32, value: 1 },
     { type: 'select', key: 'distribution', i18n: 'opt.distribution', value: 'uniform', options: DISTRIBUTION_OPTS,
       showIf: SPRAY_SHOWIF },
-    { type: 'range',  key: 'flowRate',  i18n: 'opt.flow',      min: 1, max: 100, value: 100, unit: '%',
+    { type: 'range',  key: 'flowRate',  i18n: 'opt.flow',      min: 1, max: 100, value: 10, unit: '%',
       showIf: SCATTER_SHOWIF },
     { type: 'range',  key: 'weighting', i18n: 'opt.weighting', min: -100, max: 100, value: 0,
       showIf: SPRAY_UNIFORM_SHOWIF },

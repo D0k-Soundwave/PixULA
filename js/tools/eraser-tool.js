@@ -11,13 +11,13 @@
 class EraserToolClass extends ToolBase {
   /** Declarative options - rendered by OptionControls (contract in tool-base.js). */
   static optionsSchema = [
-    { type: 'range', key: 'size', i18n: 'opt.size', min: 1, max: 128, value: 1 }
+    { type: 'range', key: 'size', i18n: 'opt.size', min: 1, max: 128, value: 8 }
   ];
 
   constructor() {
     super(TOOLS.ERASER, 'Eraser');
     this.cursor = 'cell';
-    this.size = 1;
+    this.size = 8;
     this.lastPoint = null;
     // Pixels already cleared by the stroke in progress — see _eraseAt. Null
     // outside a stroke, so a single _eraseAt() call still writes its whole disc.
