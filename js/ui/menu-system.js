@@ -607,24 +607,16 @@ class MenuSystemClass {
             // Edit
             case 'edit:undo': UndoRedo.undo(); break;
             case 'edit:redo': UndoRedo.redo(); break;
-            case 'edit:cut': {
-                if (SelectionService.hasSelection()) {
-                    const sel = SelectionService.getSelection();
-                    SelectionService.copyToClipboard();
-                    SelectionService.deleteSelection();
-                    SelectionService.startFloatingPaste(sel.x, sel.y);
-                    SelectionService.clear();
-                }
+            case 'edit:cut':
+                SelectionService.copyOrCut(true);
                 break;
-            }
             case 'edit:copy':
-                if (SelectionService.hasSelection()) {
-                    SelectionService.copyToClipboard();
-                }
+                SelectionService.copyOrCut(false);
                 break;
             case 'edit:paste':
                 if (SelectionService.hasClipboard()) {
-                    SelectionService.startFloatingPaste(0, 0);
+                    const clip = SelectionService.clipboard;
+                    SelectionService.startFloatingPaste(clip.originX || 0, clip.originY || 0);
                     SelectionService.clear();
                 } else {
                     // No keyboard gesture here, so the paste-event path can't
@@ -1396,11 +1388,15 @@ class MenuSystemClass {
             this._renderPenControlRows(controls, profileId, readShape(), config.actions);
         };
 
-        profileSelect.addEventListener('change', render);
-        if (barrelsSelect) barrelsSelect.addEventListener('change', render);
-        if (eraserCheck) eraserCheck.addEventListener('change', render);
-        render();
-        this._initPenCheck(root.querySelector('#pref-pen-check'));
+        const penCheck = this._initPenCheck(root.querySelector('#pref-pen-check'));
+        const renderPenCheck = () => penCheck.setControls(
+            [PEN_CONTROLS.TIP.id, ...PenMap.controlsFor(profileSelect.value, readShape())]);
+        const renderAll = () => { render(); renderPenCheck(); };
+
+        profileSelect.addEventListener('change', renderAll);
+        if (barrelsSelect) barrelsSelect.addEventListener('change', renderAll);
+        if (eraserCheck) eraserCheck.addEventListener('change', renderAll);
+        renderAll();
     }
 
     /**
@@ -1459,27 +1455,36 @@ class MenuSystemClass {
 
     /**
      * The pen check: a box that prints what the browser ACTUALLY reports when
-     * each control is pressed against it. Vendor profiles are unverified claims
-     * (drivers remap buttons freely); this is the measurement that outranks
-     * them, and the only way to find out whether a second barrel button reaches
-     * the page at all.
+     * each control is pressed against it. It only shows the controls the
+     * current profile (and, for generic, the declared shape) claims to have -
+     * `setControls()` rebuilds the chip row from the same `PenMap.controlsFor()`
+     * list the action rows above it use, plus the tip. A chip for a button the
+     * chosen pen does not have would never light and would just read as a
+     * broken control instead of a nonexistent one.
      * @private
+     * @returns {{setControls: (controlIds: string[]) => void}}
      */
     _initPenCheck(box) {
-        if (!box) return;
+        if (!box) return { setControls() {} };
         const bits = box.querySelector('.pen-check__bits');
-        if (!bits) return;
+        if (!bits) return { setControls() {} };
 
-        const chips = {};
-        for (const key of Object.keys(PEN_CONTROLS)) {
-            const control = PEN_CONTROLS[key];
-            const chip = document.createElement('span');
-            chip.className = 'pen-check__bit';
-            chip.setAttribute('data-i18n', control.i18n);
-            chip.textContent = this._t(control.i18n, control.id);
-            bits.appendChild(chip);
-            chips[control.id] = chip;
-        }
+        let chips = {};
+        const setControls = (controlIds) => {
+            bits.textContent = '';
+            chips = {};
+            for (const controlId of controlIds) {
+                const control = Object.keys(PEN_CONTROLS)
+                    .map(k => PEN_CONTROLS[k]).find(c => c.id === controlId);
+                if (!control) continue;
+                const chip = document.createElement('span');
+                chip.className = 'pen-check__bit';
+                chip.setAttribute('data-i18n', control.i18n);
+                chip.textContent = this._t(control.i18n, control.id);
+                bits.appendChild(chip);
+                chips[control.id] = chip;
+            }
+        };
 
         const light = (e) => {
             if (e.pointerType !== 'pen') return;
@@ -1502,6 +1507,8 @@ class MenuSystemClass {
         // A barrel press is a right-click to the OS: keep the browser's own
         // menu out of the way while the user is testing the button.
         box.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        return { setControls };
     }
 
     /** @private */

@@ -115,8 +115,8 @@ check('every profile carries a label or an i18n key',
 
 // ── Real named models (docs/pen-info-table.md, 2026-08-18) ────────────────
 
-check('the vendor families expanded to a real, named model per profile (22)',
-    Object.keys(PEN_PROFILES).length === 22);
+check('the vendor families expanded to a real, named model per profile (23)',
+    Object.keys(PEN_PROFILES).length === 23);
 check('every non-generic profile carries a vendor group for the dropdown',
     Object.keys(PEN_PROFILES).filter(k => k !== 'generic')
         .every(k => typeof PEN_PROFILES[k].group === 'string' && PEN_PROFILES[k].group.length > 0));
@@ -163,9 +163,13 @@ check('all four Apple Pencil generations present nothing to assign',
 check('all three Samsung S Pen variants share one barrel, no eraser',
     ['sPenPhone', 'sPenTab', 'sPenFold']
         .every(id => PenMap.controlsFor(id).join(',') === 'barrel'));
-check('the three Microsoft pens have genuinely different shapes',
+// Slim Pen's top/end button is a real eraser control (Microsoft's own spec
+// sheet: "Eraser and top button") — the same web-visible shape as the round
+// Surface Pen's tail, despite the very different physical form factor. Only
+// the legacy 2-button pen is genuinely a different shape from the other two.
+check('the current Surface Pen and Slim Pen share one shape; the legacy pen adds a barrel',
     PenMap.controlsFor('surfacePen').join(',') === 'barrel,eraser' &&
     PenMap.controlsFor('surfacePenLegacy').join(',') === 'barrel,barrel2,eraser' &&
-    PenMap.controlsFor('surfaceSlimPen').join(',') === 'barrel');
+    PenMap.controlsFor('surfaceSlimPen').join(',') === 'barrel,eraser');
 
 summary();

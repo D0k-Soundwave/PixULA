@@ -260,8 +260,6 @@ const tr = {
     'opt.bold': 'Kalın',
     'opt.italic': 'İtalik',
     'text.hint': 'Konumlandırmak için imleci tuval üzerine getirin. Sol tık damgalar; sağ tık siler.',
-    'sel.wand': 'Sihirli değnek',
-    'sel.wand.hint': 'Tıkladığınız pikselle aynı olan bitişik lekeyi seçin',
     'sel.cell': 'Hücre ızgarası',
     'sel.cell.hint': 'Renk kurallarının işlediği bloklar olan öznitelik hücrelerinin tamamını seçin',
     'sel.lasso': 'Kement',

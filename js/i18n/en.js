@@ -300,8 +300,6 @@ const en = {
     'opt.italic': 'Italic',
     'text.hint': 'Move cursor over canvas to position. Left-click stamps; right-click erases.',
     // Selection
-    'sel.wand': 'Magic Wand',
-    'sel.wand.hint': 'Select the connected run of pixels matching the one you click',
     'sel.cell': 'Cell Grid',
     'sel.cell.hint': 'Select whole attribute cells, the blocks the colour rules work on',
     'sel.lasso': 'Lasso',

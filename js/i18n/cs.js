@@ -260,8 +260,6 @@ const cs = {
     'opt.bold': 'Tučné',
     'opt.italic': 'Kurzíva',
     'text.hint': 'Najeďte kurzorem na plátno pro umístění. Levé tlačítko razítkuje; pravé maže.',
-    'sel.wand': 'Kouzelná hůlka',
-    'sel.wand.hint': 'Vyberte souvislou plochu pixelů shodných s tím, na který kliknete',
     'sel.cell': 'Mřížka buněk',
     'sel.cell.hint': 'Vybírejte celé atributové buňky, bloky, jimiž se řídí barvy',
     'sel.lasso': 'Laso',

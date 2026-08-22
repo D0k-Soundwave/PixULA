@@ -260,8 +260,6 @@ const it = {
     'opt.bold': 'Grassetto',
     'opt.italic': 'Corsivo',
     'text.hint': 'Sposta il cursore sulla tela per posizionare. Clic sinistro timbra; clic destro cancella.',
-    'sel.wand': 'Bacchetta magica',
-    'sel.wand.hint': 'Selezionare la macchia contigua di pixel uguali a quello cliccato',
     'sel.cell': 'Griglia celle',
     'sel.cell.hint': 'Selezionare intere celle di attributi, i blocchi su cui agiscono i colori',
     'sel.lasso': 'Lazo',

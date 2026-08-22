@@ -1337,18 +1337,12 @@ class InputHandlerClass {
       {
         label: t('menu.edit.cut', 'Cut'),
         disabled: !hasSel,
-        action: () => {
-          const sel = SelectionService.getSelection();
-          SelectionService.copyToClipboard();
-          SelectionService.deleteSelection();
-          SelectionService.startFloatingPaste(sel ? sel.x : 0, sel ? sel.y : 0);
-          SelectionService.clear();
-        }
+        action: () => SelectionService.copyOrCut(true)
       },
       {
         label: t('menu.edit.copy', 'Copy'),
         disabled: !hasSel,
-        action: () => SelectionService.copyToClipboard()
+        action: () => SelectionService.copyOrCut(false)
       },
       {
         label: t('menu.edit.paste', 'Paste'),
@@ -1356,8 +1350,8 @@ class InputHandlerClass {
           !(navigator.clipboard && typeof navigator.clipboard.read === 'function'),
         action: () => {
           if (hasClip) {
-            const sel = SelectionService.getSelection();
-            SelectionService.startFloatingPaste(sel ? sel.x : 0, sel ? sel.y : 0);
+            const clip = SelectionService.clipboard;
+            SelectionService.startFloatingPaste(clip.originX || 0, clip.originY || 0);
             SelectionService.clear();
           } else if (window.FileManager) {
             FileManager.pasteFromSystemClipboard();
@@ -1720,7 +1714,7 @@ class InputHandlerClass {
     }
     if (ctrl && key === 'c') {
       e.preventDefault();
-      if (SelectionService.hasSelection()) SelectionService.copyToClipboard();
+      SelectionService.copyOrCut(false);
       return;
     }
     // Paste: internal clipboard first; otherwise leave the keydown
@@ -1729,20 +1723,15 @@ class InputHandlerClass {
     if (ctrl && key === 'v') {
       if (SelectionService.hasClipboard()) {
         e.preventDefault();
-        SelectionService.startFloatingPaste(0, 0);
+        const clip = SelectionService.clipboard;
+        SelectionService.startFloatingPaste(clip.originX || 0, clip.originY || 0);
         SelectionService.clear();
       }
       return;
     }
     if (ctrl && key === 'x') {
       e.preventDefault();
-      if (SelectionService.hasSelection()) {
-        const sel = SelectionService.getSelection();
-        SelectionService.copyToClipboard();
-        SelectionService.deleteSelection();
-        SelectionService.startFloatingPaste(sel.x, sel.y);
-        SelectionService.clear();
-      }
+      SelectionService.copyOrCut(true);
       return;
     }
 

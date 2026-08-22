@@ -725,7 +725,6 @@ test('selection modes are one-click rail buttons that drive the one SelectionToo
     const modes = {
         'select-lasso': 'freeform',
         'select-ellipse': 'ellipse',
-        'select-wand': 'wand',
         'select-cell': 'cell'
     };
     for (const [id, mode] of Object.entries(modes)) {

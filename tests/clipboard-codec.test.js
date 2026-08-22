@@ -66,6 +66,28 @@ for (const [w, h] of [[1, 1], [7, 3], [8, 8], [13, 21], [256, 192]]) {
     result === true, String(result));
 }
 
+// ── copy origin round-trips (paste must never depend on a live selection) ──
+{
+  const clip = makeClipboard(9, 9);
+  clip.originX = 58;
+  clip.originY = 58;
+  const dec = ClipboardCodec.decode(ClipboardCodec.encode(clip));
+  check('copy origin round-trips through encode/decode',
+    dec.originX === 58 && dec.originY === 58);
+
+  const clipAtZero = makeClipboard(4, 4);
+  clipAtZero.originX = 0;
+  clipAtZero.originY = 0;
+  const decZero = ClipboardCodec.decode(ClipboardCodec.encode(clipAtZero));
+  check('an origin of exactly (0,0) is not mistaken for "missing"',
+    decZero.originX === 0 && decZero.originY === 0);
+
+  const noOrigin = makeClipboard(4, 4);
+  const decNoOrigin = ClipboardCodec.decode(ClipboardCodec.encode(noOrigin));
+  check('a clipboard with no recorded origin decodes to (0,0), not undefined',
+    decNoOrigin.originX === 0 && decNoOrigin.originY === 0);
+}
+
 // JSON-serializability + size-cap sanity on the full-screen case
 {
   const enc = ClipboardCodec.encode(makeClipboard(256, 192));

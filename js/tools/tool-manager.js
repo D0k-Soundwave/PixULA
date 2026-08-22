@@ -103,7 +103,6 @@ class ToolManagerClassInternal {
   _selectionVariants = {
     [TOOLS.SELECT_LASSO]: { selectMode: 'freeform' },
     [TOOLS.SELECT_ELLIPSE]: { selectMode: 'ellipse' },
-    [TOOLS.SELECT_WAND]:  { selectMode: 'wand' },
     [TOOLS.SELECT_CELL]:  { selectMode: 'cell' }
   };
 
@@ -169,7 +168,7 @@ class ToolManagerClassInternal {
       tool.ensureSolidBrush();
     }
 
-    // The base Select button is the rectangle marquee, so leaving lasso/wand/
+    // The base Select button is the rectangle marquee, so leaving lasso/
     // cell and clicking it returns to the marquee rather than silently keeping
     // whichever mode was last active behind an icon that does not say so.
     if (toolId === TOOLS.SELECTION && typeof tool.setSelectMode === 'function') {

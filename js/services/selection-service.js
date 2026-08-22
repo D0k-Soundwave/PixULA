@@ -246,7 +246,17 @@ class SelectionServiceClass {
       width,
       height,
       pixels: [],
-      cells: []
+      cells: [],
+      // Where this was copied FROM. A separate Paste action can run an
+      // arbitrary amount later — a right-click Copy, then a right-click
+      // Paste, is two independent context-menu opens — and the selection
+      // that was active at copy time is not guaranteed to still be there
+      // (deselected by an unrelated click, another tool, etc). Every paste
+      // call site falls back to THIS rather than to a live selection or a
+      // hardcoded (0,0), so a paste can never land somewhere the artist
+      // cannot see: it always reappears where it was copied from.
+      originX: x,
+      originY: y
     };
 
     // Indexed modes (Phase 13): also capture the per-pixel palette indices
@@ -345,11 +355,26 @@ class SelectionServiceClass {
   }
 
   /**
-   * Cut the selection to clipboard
+   * Copy or cut the current selection into an immediately-usable floating
+   * stamp. Cut and Copy are otherwise the SAME operation -- copy to
+   * clipboard, drop a movable stamp back where the selection was, deselect
+   * -- differing only in whether the source pixels are erased first. Every
+   * entry point (the canvas context menu, Ctrl+C/Ctrl+X, the Edit menu) goes
+   * through this single method so the two can never drift out of step with
+   * each other again the way three separately hand-written copies of this
+   * sequence once did (Copy's copy lacked the startFloatingPaste/clear steps
+   * entirely, so it never produced anything to paste from).
+   * @param {boolean} erase - true for Cut: erase the source after copying
+   * @returns {boolean} true if a stamp was created
    */
-  cutToClipboard() {
+  copyOrCut(erase) {
+    if (!this.selection) return false;
+    const sel = this.selection;
     this.copyToClipboard();
-    this.deleteSelection();
+    if (erase) this.deleteSelection();
+    this.startFloatingPaste(sel.x, sel.y);
+    this.clear();
+    return true;
   }
 
   /**
@@ -2002,77 +2027,6 @@ class SelectionServiceClass {
     });
   }
 
-  /**
-   * Magic wand: flood-fill select all contiguous pixels matching the ink/paper state
-   * at (startX, startY) on the current layer.
-   * Builds a pixel-level boolean mask and passes it to setSelection().
-   * @param {number} startX - Starting pixel X
-   * @param {number} startY - Starting pixel Y
-   * @param {boolean} contiguous - true = contiguous flood-fill, false = select all matching pixels
-   */
-  selectByColor(startX, startY, contiguous = true) {
-    const layer = LayerManager.getCurrentLayer();
-    if (!layer) return;
-    if (!Validators.isValidPixelCoord(startX, startY)) return;
-
-    // Indexed modes match the exact palette index; classic modes the
-    // ink/paper state.
-    const indexed = ZX_SPECTRUM.PIXEL_DEPTH > 1;
-    const targetIsInk = layer.getPixelState(startX, startY);
-    const targetIndex = indexed ? layer.getPixelIndex(startX, startY) : 0;
-    const matches = indexed
-      ? (px, py) => layer.getPixelIndex(px, py) === targetIndex
-      : (px, py) => layer.getPixelState(px, py) === targetIsInk;
-    const W = ZX_SPECTRUM.WIDTH;
-    const H = ZX_SPECTRUM.HEIGHT;
-    const selected = new Uint8Array(W * H); // 1 = selected
-
-    if (contiguous) {
-      const visited = new Uint8Array(W * H);
-      const stack = [startY * W + startX];
-      while (stack.length) {
-        const idx = stack.pop();
-        if (visited[idx]) continue;
-        visited[idx] = 1;
-        const px = idx % W;
-        const py = (idx / W) | 0;
-        if (!matches(px, py)) continue;
-        selected[idx] = 1;
-        if (px > 0)     stack.push(idx - 1);
-        if (px < W - 1) stack.push(idx + 1);
-        if (py > 0)     stack.push(idx - W);
-        if (py < H - 1) stack.push(idx + W);
-      }
-    } else {
-      for (let py = 0; py < H; py++) {
-        for (let px = 0; px < W; px++) {
-          if (matches(px, py)) selected[py * W + px] = 1;
-        }
-      }
-    }
-
-    // Compute bounding box of selected region
-    let minX = W, minY = H, maxX = -1, maxY = -1;
-    for (let py = 0; py < H; py++) {
-      for (let px = 0; px < W; px++) {
-        if (selected[py * W + px]) {
-          if (px < minX) minX = px;
-          if (px > maxX) maxX = px;
-          if (py < minY) minY = py;
-          if (py > maxY) maxY = py;
-        }
-      }
-    }
-    if (maxX < 0) return; // nothing selected
-
-    const w = maxX - minX + 1;
-    const h = maxY - minY + 1;
-    const mask = Array.from({ length: h }, (_, ry) =>
-      Array.from({ length: w }, (_, rx) => selected[(minY + ry) * W + (minX + rx)] === 1)
-    );
-
-    this.setSelection({ x: minX, y: minY, width: w, height: h, mask });
-  }
 
   /**
    * Move selection by delta
@@ -2089,7 +2043,8 @@ class SelectionServiceClass {
       x: newX,
       y: newY,
       width: this.selection.width,
-      height: this.selection.height
+      height: this.selection.height,
+      mask: this.selection.mask
     });
   }
 }

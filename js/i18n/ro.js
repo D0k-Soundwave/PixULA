@@ -260,8 +260,6 @@ const ro = {
     'opt.bold': 'Aldin',
     'opt.italic': 'Cursiv',
     'text.hint': 'Mutați cursorul pe pânză pentru a poziționa. Clic stânga ștampilează; clic dreapta șterge.',
-    'sel.wand': 'Baghetă magică',
-    'sel.wand.hint': 'Selectează pata continuă de pixeli identici cu cel apăsat',
     'sel.cell': 'Grilă de celule',
     'sel.cell.hint': 'Selectează celule de atribute întregi, blocurile după care merg culorile',
     'sel.lasso': 'Laso',

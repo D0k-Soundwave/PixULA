@@ -260,8 +260,6 @@ const pl = {
     'opt.bold': 'Pogrubienie',
     'opt.italic': 'Kursywa',
     'text.hint': 'Przesuń kursor nad płótnem, aby ustawić. Lewy przycisk stempluje; prawy usuwa.',
-    'sel.wand': 'Różdżka',
-    'sel.wand.hint': 'Zaznacz spójną plamę pikseli takich jak kliknięty',
     'sel.cell': 'Siatka komórek',
     'sel.cell.hint': 'Zaznaczaj całe komórki atrybutów, bloki, którymi rządzą kolory',
     'sel.lasso': 'Lasso',

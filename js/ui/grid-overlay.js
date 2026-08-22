@@ -1023,7 +1023,7 @@ class GridOverlayClass {
      * Draw the selection border, rectangular or masked. A rectangular
      * selection (`mask` omitted) is treated as fully selected within (w, h) —
      * same boundary-tracing renderer either way, so a plain marquee and a
-     * lasso/ellipse/wand selection share one crisp outline style instead of
+     * lasso/ellipse selection share one crisp outline style instead of
      * two independently-drifting ones. Solid line, no dash, no animation —
      * matches the drag-in-progress preview, so committing a selection stays
      * one continuous look instead of jumping into a crawling marquee.

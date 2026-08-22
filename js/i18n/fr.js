@@ -260,8 +260,6 @@ const fr = {
     'opt.bold': 'Gras',
     'opt.italic': 'Italique',
     'text.hint': 'Déplacez le curseur sur le canevas pour positionner. Clic gauche tamponne; clic droit efface.',
-    'sel.wand': 'Baguette magique',
-    'sel.wand.hint': 'Sélectionner la plage de pixels contigus identiques à celui cliqué',
     'sel.cell': 'Grille de cellules',
     'sel.cell.hint': 'Sélectionner des cellules d\'attributs entières, les blocs que régissent les couleurs',
     'sel.lasso': 'Lasso',

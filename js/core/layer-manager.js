@@ -1176,6 +1176,20 @@ class LayerManagerClass {
           }
         }
       }
+
+      // The bounds clamp above only catches an out-of-range index -- it does
+      // NOT catch currentLayerIndex having been left pointing at some OTHER
+      // stamp layer that splice() shifted into the removed layer's slot (any
+      // stamp above the one just deleted moves down one index). Any op that
+      // reads "the current layer" -- copyToClipboard foremost -- would then
+      // silently read from that stray, usually-empty stamp instead of the
+      // artist's actual drawing layer. Found via: paste a stamp, leave it
+      // dangling, paste a second, cancel the second (Escape) -- current
+      // layer lands on the FIRST dangling stamp, not the drawing layer.
+      const current = this.layers[this.currentLayerIndex];
+      if (current && current.isStamp) {
+        this.currentLayerIndex = this.activeDrawLayerIndex;
+      }
     }
     StateManager.set('layer.current', this.currentLayerIndex);
   }

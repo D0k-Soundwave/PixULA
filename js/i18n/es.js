@@ -260,8 +260,6 @@ const es = {
     'opt.bold': 'Negrita',
     'opt.italic': 'Cursiva',
     'text.hint': 'Mueve el cursor sobre el lienzo para posicionar. Clic izquierdo estampa; clic derecho borra.',
-    'sel.wand': 'Varita mágica',
-    'sel.wand.hint': 'Seleccionar la mancha contigua de píxeles iguales al que pulsas',
     'sel.cell': 'Cuadrícula de celdas',
     'sel.cell.hint': 'Seleccionar celdas de atributos enteras, los bloques que rigen los colores',
     'sel.lasso': 'Lazo',

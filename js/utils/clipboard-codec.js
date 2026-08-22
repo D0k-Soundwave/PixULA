@@ -76,6 +76,12 @@ const ClipboardCodec = {
             mode: ACTIVE_SCREEN_MODE.id,
             w: width,
             h: height,
+            // Where this was copied from -- see SelectionService.copyToClipboard.
+            // Optional: 0 is a legitimate coordinate, so callers treat a missing
+            // value (older payload, or clipboard built without a selection) the
+            // same as 0 via `|| 0`, not as "must reject this payload".
+            ox: Number.isInteger(clipboard.originX) ? clipboard.originX : 0,
+            oy: Number.isInteger(clipboard.originY) ? clipboard.originY : 0,
             bits: this._toBase64(packed),
             cells: (cells || []).map(c => ({
                 x: c.relX,
@@ -163,7 +169,11 @@ const ClipboardCodec = {
             });
         }
 
-        const clipboard = { width, height, pixels, cells };
+        const clipboard = {
+            width, height, pixels, cells,
+            originX: Number.isInteger(payload.ox) ? payload.ox : 0,
+            originY: Number.isInteger(payload.oy) ? payload.oy : 0
+        };
 
         // Indexed payload: rebuild the index rows (mask bit clear -> −1)
         if (typeof payload.idx === 'string') {

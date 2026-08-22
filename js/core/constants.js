@@ -514,7 +514,6 @@ const TOOLS = Object.freeze({
     // Selection-mode rail buttons — variants on the one SelectionTool
     // (ToolManager._selectionVariants), the same routing the brush types use.
     // SELECTION itself hosts the rectangle marquee.
-    SELECT_WAND: 'select-wand',
     SELECT_CELL: 'select-cell',
     SELECT_LASSO: 'select-lasso',
     SELECT_ELLIPSE: 'select-ellipse',
@@ -684,9 +683,14 @@ const PEN_PROFILES = Object.freeze({
         barrels: 2, eraser: true
     }),
     surfaceSlimPen: Object.freeze({
-        // Slim Pen / Slim Pen 2: flat-edge side button, no tail at all.
+        // Slim Pen / Slim Pen 2: flat-edge side button, PLUS a real eraser -
+        // Microsoft's own fact sheet and support pages list it as "Eraser and
+        // top button" (the same control the round Surface Pen puts on its
+        // tail), not a plain shortcut button. Corrected 2026-08-22 - it had
+        // been coded as no-eraser, which the pen check UI used to mask by
+        // showing every control regardless of profile.
         id: 'surfaceSlimPen', label: 'Surface Slim Pen / Slim Pen 2', group: 'Microsoft',
-        barrels: 1, eraser: false
+        barrels: 1, eraser: true
     }),
 
     // ── Wacom ────────────────────────────────────────────────────────────
@@ -711,18 +715,31 @@ const PEN_PROFILES = Object.freeze({
         defaults: { barrel: PEN_ACTIONS.MENU.id, barrel2: PEN_ACTIONS.PAN.id }
     }),
     wacomAccessory: Object.freeze({
-        // Grip/Classic/Art/Airbrush/Finetip/Ballpoint/Inking pens: same
-        // button+eraser shape across the range. The Art Pen's barrel
-        // rotation and the Airbrush's analog wheel have no control here.
+        // Grip/Classic/Art/Airbrush/Inking pens: same button+eraser shape
+        // across the range. The Art Pen's barrel rotation and the Airbrush's
+        // analog wheel have no control here. Finetip and Ballpoint pens are
+        // NOT this shape — see wacomBareTip below.
         id: 'wacomAccessory',
         label: 'Wacom Grip / Classic / Art / Airbrush / Inking Pen', group: 'Wacom',
         barrels: 2, eraser: true
+    }),
+    wacomBareTip: Object.freeze({
+        // Finetip Pen / Ballpoint Pen (Intuos Pro Paper Edition): refillable
+        // real-ink nibs, no side buttons and no eraser at all per Wacom's own
+        // store pages — pressure only, nothing to assign.
+        id: 'wacomBareTip', label: 'Wacom Finetip Pen / Ballpoint Pen', group: 'Wacom',
+        barrels: 0, eraser: false
     }),
 
     // ── XP-Pen ───────────────────────────────────────────────────────────
     // Every line shares the same two-side-button, no-eraser shape and the
     // same "one button right-click, one a driver-configured Function Key"
     // real default — Function Key has no fixed real-world action to mirror.
+    // PA-series marketing calls this a "one-click toggle to eraser mode",
+    // which reads like a distinct hardware eraser sensor but is not — it is
+    // that same Function Key, with "switch to eraser" as one of the driver's
+    // assignable actions (verified 2026-08-22 against XP-Pen's own product
+    // pages: no PA model lists a separate eraser end).
     xppenX: Object.freeze({
         id: 'xppenX', label: 'XP-Pen X3 / X4 series', group: 'XP-Pen',
         barrels: 2, eraser: false
@@ -878,7 +895,6 @@ const TOOL_GROUPS = Object.freeze([
             Object.freeze({ id: TOOLS.SELECTION,    icon: 'icon-selection',    i18n: 'tool.select', hintI18n: 'tool.selection.hint', shortcut: 'M' }),
             Object.freeze({ id: TOOLS.SELECT_ELLIPSE, icon: 'icon-select-ellipse', i18n: 'sel.ellipse', hintI18n: 'sel.ellipse.hint' }),
             Object.freeze({ id: TOOLS.SELECT_LASSO, icon: 'icon-select-lasso', i18n: 'sel.lasso', hintI18n: 'sel.lasso.hint' }),
-            Object.freeze({ id: TOOLS.SELECT_WAND,  icon: 'icon-select-wand',  i18n: 'sel.wand',  hintI18n: 'sel.wand.hint' }),
             Object.freeze({ id: TOOLS.SELECT_CELL,  icon: 'icon-select-cell',  i18n: 'sel.cell',  hintI18n: 'sel.cell.hint' })
         ])
     }),

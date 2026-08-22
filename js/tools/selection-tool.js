@@ -12,7 +12,6 @@ class SelectionToolClass extends ToolBase {
   /** Declarative options - rendered by OptionControls (contract in tool-base.js). */
   static optionsSchema = [
     { type: 'select', key: 'selectMode', i18n: 'opt.mode', value: 'rectangle', options: [
-      { value: 'wand',      i18n: 'sel.wand' },
       { value: 'rectangle', i18n: 'common.rectangle' },
       { value: 'ellipse',   i18n: 'sel.ellipse' },
       { value: 'cell',      i18n: 'sel.cell' },
@@ -42,11 +41,11 @@ class SelectionToolClass extends ToolBase {
 
   /**
    * Set selection mode
-   * @param {string} mode - 'rectangle', 'ellipse', 'cell', 'freeform', or 'wand'
+   * @param {string} mode - 'rectangle', 'ellipse', 'cell', or 'freeform'
    */
   setSelectMode(mode) {
     if (mode === 'rectangle' || mode === 'ellipse' || mode === 'cell' ||
-        mode === 'freeform' || mode === 'wand') {
+        mode === 'freeform') {
       if (this._selectMode !== mode) {
         this.isSelecting = false;
         this._lassoPath = [];
@@ -66,14 +65,6 @@ class SelectionToolClass extends ToolBase {
     // Right-click clears selection
     if (e.button === 2) {
       SelectionService.clear();
-      EventBus.emit(EVENTS.CANVAS_RENDER);
-      return;
-    }
-
-    // Magic wand: immediate select-by-color on click, no drag needed
-    if (this._selectMode === 'wand') {
-      if (!e.shiftKey) SelectionService.clear();
-      SelectionService.selectByColor(pixelX, pixelY, true);
       EventBus.emit(EVENTS.CANVAS_RENDER);
       return;
     }
@@ -432,34 +423,6 @@ class SelectionToolClass extends ToolBase {
    * Clear selection (shortcut handler)
    */
   clearSelection() {
-    SelectionService.clear();
-    EventBus.emit(EVENTS.CANVAS_RENDER);
-  }
-
-  /**
-   * Copy selection to clipboard
-   */
-  copy() {
-    SelectionService.copyToClipboard();
-  }
-
-  /**
-   * Cut selection to clipboard
-   */
-  cut() {
-    SelectionService.cutToClipboard();
-    EventBus.emit(EVENTS.CANVAS_RENDER);
-  }
-
-  /**
-   * Paste from clipboard
-   */
-  paste() {
-    if (!SelectionService.hasClipboard()) return;
-    const selection = SelectionService.getSelection();
-    const x = selection ? selection.x : 0;
-    const y = selection ? selection.y : 0;
-    SelectionService.startFloatingPaste(x, y);
     SelectionService.clear();
     EventBus.emit(EVENTS.CANVAS_RENDER);
   }

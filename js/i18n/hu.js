@@ -260,8 +260,6 @@ const hu = {
     'opt.bold': 'Félkövér',
     'opt.italic': 'Dőlt',
     'text.hint': 'Mozgassa a kurzort a vászon fölé a pozicionáláshoz. Bal kattintás bélyegez; jobb kattintás töröl.',
-    'sel.wand': 'Varázspálca',
-    'sel.wand.hint': 'Jelöld ki a kattintott képponttal egyező összefüggő foltot',
     'sel.cell': 'Cellarács',
     'sel.cell.hint': 'Teljes attribútumcellákat jelölj ki, azokat a blokkokat, amelyekre a színszabály vonatkozik',
     'sel.lasso': 'Lasszó',

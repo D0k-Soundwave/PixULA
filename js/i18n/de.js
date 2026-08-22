@@ -260,8 +260,6 @@ const de = {
     'opt.bold': 'Fett',
     'opt.italic': 'Kursiv',
     'text.hint': 'Cursor über die Leinwand bewegen, um zu positionieren. Linksklick stempelt; Rechtsklick löscht.',
-    'sel.wand': 'Zauberstab',
-    'sel.wand.hint': 'Den zusammenhängenden Bereich gleicher Pixel um den Klick auswählen',
     'sel.cell': 'Zellraster',
     'sel.cell.hint': 'Ganze Attributzellen auswählen, die Blöcke, für die die Farbregeln gelten',
     'sel.lasso': 'Lasso',

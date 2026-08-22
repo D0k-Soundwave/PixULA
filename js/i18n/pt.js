@@ -260,8 +260,6 @@ const pt = {
     'opt.bold': 'Negrito',
     'opt.italic': 'Itálico',
     'text.hint': 'Mova o cursor sobre a tela para posicionar. Clique esquerdo carimba; clique direito apaga.',
-    'sel.wand': 'Varinha mágica',
-    'sel.wand.hint': 'Selecionar a mancha contígua de pixels iguais ao que clicar',
     'sel.cell': 'Grelha de células',
     'sel.cell.hint': 'Selecionar células de atributos inteiras, os blocos que as cores regem',
     'sel.lasso': 'Laço',

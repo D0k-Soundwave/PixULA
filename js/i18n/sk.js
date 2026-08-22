@@ -260,8 +260,6 @@ const sk = {
     'opt.bold': 'Tučné',
     'opt.italic': 'Kurzíva',
     'text.hint': 'Prejdite kurzorom na plátno pre umiestnenie. Ľavé tlačidlo pečiatkuje; pravé maže.',
-    'sel.wand': 'Čarovná palička',
-    'sel.wand.hint': 'Vyberte súvislú plochu pixelov zhodných s tým, na ktorý kliknete',
     'sel.cell': 'Mriežka buniek',
     'sel.cell.hint': 'Vyberajte celé atribútové bunky, bloky, ktorými sa riadia farby',
     'sel.lasso': 'Laso',
