@@ -1277,6 +1277,10 @@ class SelectionServiceClass {
     if (!targetLayer) return;
 
     const color = ColorManager.getCurrentSelection();
+    // The top-bar draw-mode selector governs a stamp exactly like a brush
+    // stroke — resolved once per call since a stamp write is a single
+    // ink-placing action, never an erase.
+    const mode = PixelDrawRoutine.resolveUserMode(true);
 
     const bgLayer = LayerManager.layers[0];
 
@@ -1304,16 +1308,19 @@ class SelectionServiceClass {
     // Stamp writes place exactly the stamp mask — never symmetry-mirrored
     PixelDrawRoutine.suspendMirror(() => {
       // Indexed modes (Phase 13): paint the stamp's palette indices (or the
-      // mask at the current indexed ink); attributes/XOR don't apply.
+      // mask at the current indexed ink), routed through the same resolved
+      // mode (Paper Recolour/XOR still mean something over an index grid).
       if (ZX_SPECTRUM.PIXEL_DEPTH > 1) {
-        this._paintIndexedStamp(data, targetLayer, color);
+        this._paintIndexedStamp(data, targetLayer, color, mode);
         return;
       }
 
-      // XOR mode: toggle ink <-> paper. When setting paper->ink, apply stamp's ink colour
-      // (and inherit paper from target). When erasing ink->paper, just clear the bit.
-      // Each pixel toggles at most once per drag — _xorStampToggled guards the
-      // overlap between successive rubber-stamp positions (see the constructor).
+      // The stamp's OWN "XOR mode" checkbox (LayerPanel) is a persisted,
+      // per-stamp feature independent of the global draw-mode selector and
+      // takes priority when engaged. Toggle ink <-> paper against the
+      // target's current pixel state. Each pixel toggles at most once per
+      // drag — _xorStampToggled guards the overlap between successive
+      // rubber-stamp positions (see the constructor).
       if (layer.xorMode) {
         for (let py = 0; py < h; py++) {
           const row = mask[py];
@@ -1335,7 +1342,9 @@ class SelectionServiceClass {
         return;
       }
 
-      // Normal mode: apply stamp ink to each ink pixel; paper remains inherited from target.
+      // Normal mode keeps the ink-only/inherited-paper paint the preview
+      // shows; every other resolved mode (Ink/Paper Recolour, Pixels Only,
+      // XOR) uses the plain current selection, exactly as BrushEngine does.
       for (let py = 0; py < h; py++) {
         const row = mask[py];
         if (!row) continue;
@@ -1343,7 +1352,8 @@ class SelectionServiceClass {
           if (!row[px]) continue;
           const cx = x + px, cy = y + py;
           if (Validators.isValidPixelCoord(cx, cy)) {
-            PixelDrawRoutine.draw(cx, cy, inkOnlyColor(cx, cy), DRAW_MODE.NORMAL, { layer: targetLayer });
+            const cs = mode === DRAW_MODE.NORMAL ? inkOnlyColor(cx, cy) : color;
+            PixelDrawRoutine.draw(cx, cy, cs, mode, { layer: targetLayer });
           }
         }
       }
@@ -1355,9 +1365,15 @@ class SelectionServiceClass {
    * stamp's own palette indices when it has them, else the mask at the
    * current indexed ink. Shared by stampAt and commitStamp (Phase 13).
    * Caller wraps in suspendMirror + batch.
+   * @param {Object} data - stamp data ({mask, indices, x, y, w, h})
+   * @param {Layer} targetLayer
+   * @param {Object} color - current colour selection
+   * @param {string} [mode] - resolved DRAW_MODE (default NORMAL); routed
+   *   through so Paper Recolour/XOR mean the same thing over an index grid
+   *   that they mean over classic attribute cells (see _applyIndexed).
    * @private
    */
-  _paintIndexedStamp(data, targetLayer, color) {
+  _paintIndexedStamp(data, targetLayer, color, mode = DRAW_MODE.NORMAL) {
     const { mask, indices, x, y, w, h } = data;
     for (let py = 0; py < h; py++) {
       const maskRow = mask ? mask[py] : null;
@@ -1372,7 +1388,7 @@ class SelectionServiceClass {
         if (!Validators.isValidPixelCoord(cx, cy)) continue;
         PixelDrawRoutine.draw(cx, cy,
           idx != null ? { ...color, index: idx } : color,
-          DRAW_MODE.NORMAL, { layer: targetLayer });
+          mode, { layer: targetLayer });
       }
     }
   }
@@ -1392,6 +1408,10 @@ class SelectionServiceClass {
     if (!targetLayer) return;
 
     const color = ColorManager.getCurrentSelection();
+    // The rubber-stamp's right button is the erase counterpart of stampAt's
+    // left button, so it resolves the SAME global draw-mode selector the
+    // same way a brush's right button would (isInk=false).
+    const mode = PixelDrawRoutine.resolveUserMode(false);
     PixelDrawRoutine.suspendMirror(() => {
       for (let py = 0; py < h; py++) {
         const row = mask[py];
@@ -1400,7 +1420,7 @@ class SelectionServiceClass {
           if (row[px]) {
             const cx = x + px, cy = y + py;
             if (Validators.isValidPixelCoord(cx, cy)) {
-              PixelDrawRoutine.draw(cx, cy, color, DRAW_MODE.ERASE, { layer: targetLayer });
+              PixelDrawRoutine.draw(cx, cy, color, mode, { layer: targetLayer });
             }
           }
         }
@@ -1446,6 +1466,9 @@ class SelectionServiceClass {
 
     const { mask, x, y, w, h } = data;
     const color = ColorManager.getCurrentSelection();
+    // The top-bar draw-mode selector governs the commit exactly as it would
+    // a brush stroke laying down the same ink.
+    const mode = PixelDrawRoutine.resolveUserMode(true);
     const bgLayer = LayerManager.layers[0];
 
     /**
@@ -1475,12 +1498,15 @@ class SelectionServiceClass {
 
     // Commits bake exactly the previewed stamp — never symmetry-mirrored
     PixelDrawRoutine.suspendMirror(() => {
-      // Indexed modes (Phase 13): bake the previewed indices/mask directly.
+      // Indexed modes (Phase 13): bake the previewed indices/mask directly,
+      // through the same resolved mode as the classic branch below.
       if (ZX_SPECTRUM.PIXEL_DEPTH > 1) {
-        this._paintIndexedStamp(data, target, color);
+        this._paintIndexedStamp(data, target, color, mode);
       } else
       if (layer.xorMode) {
-        // XOR mode: toggle ink <-> paper against the resolved target.
+        // The stamp's OWN "XOR mode" checkbox — a persisted, per-stamp
+        // feature independent of the global draw-mode selector — toggles
+        // ink <-> paper against the resolved target when engaged.
         for (let py = 0; py < h; py++) {
           const row = mask[py];
           if (!row) continue;
@@ -1496,7 +1522,9 @@ class SelectionServiceClass {
           }
         }
       } else {
-        // Normal mode: set ink bits; paper/flash inherited from the target.
+        // Normal mode keeps the ink-only/inherited-paper bake; every other
+        // resolved mode (Ink/Paper Recolour, Pixels Only, XOR) uses the
+        // plain current selection, exactly as BrushEngine does.
         for (let py = 0; py < h; py++) {
           const row = mask[py];
           if (!row) continue;
@@ -1504,7 +1532,8 @@ class SelectionServiceClass {
             if (!row[px]) continue;
             const cx = x + px, cy = y + py;
             if (Validators.isValidPixelCoord(cx, cy)) {
-              PixelDrawRoutine.draw(cx, cy, inkOnlyColor(cx, cy), DRAW_MODE.NORMAL, { layer: target });
+              const cs = mode === DRAW_MODE.NORMAL ? inkOnlyColor(cx, cy) : color;
+              PixelDrawRoutine.draw(cx, cy, cs, mode, { layer: target });
             }
           }
         }
@@ -1594,23 +1623,44 @@ class SelectionServiceClass {
     return null;
   }
 
-  /** Draw the clipboard pixels onto the floating layer at its current offset. @private */
+  /**
+   * Draw the clipboard pixels onto the floating layer at its current offset.
+   * The floating preview must show exactly what committing will produce, so
+   * it resolves the SAME top-bar draw mode a commit will bake with.
+   * @private
+   */
   _drawFloatingLayer() {
     const { pixels, width, height, x, y, colorSelection, floatingLayer } = this.floatingPaste;
 
     // Indexed modes (Phase 13): stamp cells carry palette indices — the
     // stamp's own indices when it was cut/copied in an indexed mode, else
-    // the mask painted with the current indexed ink. XOR previews don't
-    // apply (1-bit concept; the flag is ignored in indexed modes).
+    // the mask painted with the current indexed ink.
     if (ZX_SPECTRUM.PIXEL_DEPTH > 1) {
       this._drawFloatingLayerIndexed();
       return;
     }
 
-    // XOR mode — pre-compute (target XOR stamp_shape) into the floating layer's
-    // cells so the compositor can render the toggled result directly.
+    // The stamp's OWN "XOR mode" checkbox (LayerPanel) is a persisted,
+    // per-stamp feature independent of the global draw-mode selector, and
+    // takes priority when engaged: pre-compute (target XOR stamp_shape) into
+    // the floating layer's cells so the compositor can render the toggled
+    // result directly.
     if (floatingLayer.xorMode) {
       this._drawFloatingLayerXOR();
+      return;
+    }
+
+    // The global draw mode's own XOR entry needs the same "replace, don't
+    // OR-stack" compositing the checkbox above uses, but must not touch the
+    // persisted layer.xorMode flag (that would desync the UI checkbox and
+    // make commitStamp/stampAt run the WRONG bake branch). It has its own
+    // method and composites via a per-CELL flag instead — see
+    // LayerManager._composeCellData's cell.xorReplace check. XOR_PIXEL reuses
+    // the same preview: a stamp touches each pixel once, so the once-per-
+    // stroke gate that tells XOR and XOR_PIXEL apart never comes into play here.
+    const mode = PixelDrawRoutine.resolveUserMode(true);
+    if (mode === DRAW_MODE.XOR || mode === DRAW_MODE.XOR_PIXEL) {
+      this._drawFloatingLayerModeXOR(colorSelection);
       return;
     }
 
@@ -1651,18 +1701,130 @@ class SelectionServiceClass {
 
         if (!touched) continue;
 
-        // Ink colour from current selection; paper inherited from target so the
-        // stamp does not override the underlying layer's paper colour.
+        // Attributes inherited from the target (or background) — the
+        // starting point for every mode below, since Ink/Paper/Pixels Only
+        // only ever change PART of a cell's attributes/pixels and must leave
+        // the rest exactly as the target already shows it.
         const targetCell = targetLayer ? targetLayer.getCell(cx, cy) : null;
         const attrSource = (targetCell && targetCell.altered)
           ? targetCell
           : (bgLayer ? bgLayer.getCell(cx, cy) : null);
+        const srcInk    = attrSource ? attrSource.ink    : DEFAULT_CELL_ATTRS.ink;
+        const srcPaper  = attrSource ? attrSource.paper  : DEFAULT_CELL_ATTRS.paper;
+        const srcBright = attrSource ? attrSource.bright : DEFAULT_CELL_ATTRS.bright;
+        const srcFlash  = attrSource ? attrSource.flash  : DEFAULT_CELL_ATTRS.flash;
 
-        fpCell.ink    = colorSelection.ink;
-        fpCell.bright = colorSelection.bright;
-        fpCell.flash  = colorSelection.flash;
-        fpCell.paper  = attrSource ? attrSource.paper : 7;
+        fpCell.xorReplace = false;
+
+        if (mode === DRAW_MODE.PIXEL_ONLY) {
+          // Pixels Only never touches attributes — the floating layer's
+          // topmost-attrs-win compositing must be a visual no-op here.
+          fpCell.ink = srcInk; fpCell.paper = srcPaper;
+          fpCell.bright = srcBright; fpCell.flash = srcFlash;
+        } else if (mode === DRAW_MODE.INK) {
+          // Ink Recolour never places a pixel shape — undo the mask bits
+          // just OR'd in above so the composite shows only the target's own
+          // ink, recoloured.
+          fpCell.pixels.fill(0);
+          fpCell.ink    = colorSelection.inkTransparent ? srcInk : colorSelection.ink;
+          fpCell.paper  = srcPaper;
+          fpCell.bright = colorSelection.bright;
+          fpCell.flash  = colorSelection.flash;
+        } else if (mode === DRAW_MODE.PAPER) {
+          fpCell.pixels.fill(0);
+          fpCell.paper  = colorSelection.paperTransparent ? srcPaper : colorSelection.paper;
+          fpCell.ink    = srcInk;
+          fpCell.bright = colorSelection.bright;
+          fpCell.flash  = colorSelection.flash;
+        } else {
+          // Normal: ink colour from current selection; paper inherited from
+          // target so the stamp does not override the underlying paper.
+          fpCell.ink    = colorSelection.ink;
+          fpCell.bright = colorSelection.bright;
+          fpCell.flash  = colorSelection.flash;
+          fpCell.paper  = srcPaper;
+        }
+
         fpCell.altered = true;
+        LayerManager.deferCellCompose(cx, cy);
+      }
+    }
+  }
+
+  /**
+   * Live preview for the top-bar draw-mode selector's XOR entry — distinct
+   * from the per-stamp "XOR mode" checkbox (_drawFloatingLayerXOR): this one
+   * applies the CURRENT colour selection to the toggled pixels (mirroring
+   * DRAW_MODE.XOR / PixelDrawRoutine._applyXOR on commit) rather than
+   * inheriting the target's own attributes untouched. It composites through
+   * the same per-cell "replace, don't OR-stack" path as the checkbox
+   * (cell.xorReplace, checked by LayerManager._composeCellData) but sets that
+   * flag on the CELL rather than the layer, so it never touches the
+   * persisted layer.xorMode flag or its UI checkbox.
+   * @param {Object} colorSelection
+   * @private
+   */
+  _drawFloatingLayerModeXOR(colorSelection) {
+    const { pixels, width, height, x, y, floatingLayer } = this.floatingPaste;
+    const targetLayer = this._findTargetBelow(floatingLayer);
+    const bgLayer = LayerManager.layers[0];
+    const CW = ZX_SPECTRUM.CELL_WIDTH;
+    const CH = ZX_SPECTRUM.CELL_HEIGHT;
+
+    const startCellX = Math.max(0, ZX_COORDS.pixelToCell(x, y).x);
+    const startCellY = Math.max(0, ZX_COORDS.pixelToCell(x, y).y);
+    const endCellX = Math.min(ZX_SPECTRUM.GRID_COLS - 1, ZX_COORDS.pixelToCell(x + width - 1, y).x);
+    const endCellY = Math.min(ZX_SPECTRUM.GRID_ROWS - 1, ZX_COORDS.pixelToCell(x, y + height - 1).y);
+
+    for (let cy = startCellY; cy <= endCellY; cy++) {
+      for (let cx = startCellX; cx <= endCellX; cx++) {
+        const fpCell = floatingLayer.getCell(cx, cy);
+        if (!fpCell) continue;
+        const targetCell = targetLayer ? targetLayer.getCell(cx, cy) : null;
+
+        const stampMask = new Uint8Array(CH);
+        for (let ly = 0; ly < CH; ly++) {
+          const py = cy * CH + ly;
+          const stampY = py - y;
+          if (stampY < 0 || stampY >= height) continue;
+          const row = pixels[stampY];
+          if (!row) continue;
+          for (let lx = 0; lx < CW; lx++) {
+            const px = cx * CW + lx;
+            const stampX = px - x;
+            if (stampX < 0 || stampX >= width) continue;
+            if (row[stampX]) stampMask[ly] |= (1 << (CW - 1 - lx));
+          }
+        }
+
+        let touched = false;
+        for (let row = 0; row < CH; row++) { if (stampMask[row]) { touched = true; break; } }
+        if (!touched) { fpCell.xorReplace = false; continue; }
+
+        const targetPixels = (targetCell && targetCell.altered) ? targetCell.pixels : null;
+        for (let row = 0; row < CH; row++) {
+          fpCell.pixels[row] = (targetPixels ? targetPixels[row] : 0) ^ stampMask[row];
+        }
+
+        const attrSource = (targetCell && targetCell.altered)
+          ? targetCell
+          : (bgLayer ? bgLayer.getCell(cx, cy) : null);
+        const srcInk    = attrSource ? attrSource.ink    : DEFAULT_CELL_ATTRS.ink;
+        const srcPaper  = attrSource ? attrSource.paper  : DEFAULT_CELL_ATTRS.paper;
+        const srcBright = attrSource ? attrSource.bright : DEFAULT_CELL_ATTRS.bright;
+        const srcFlash  = attrSource ? attrSource.flash  : DEFAULT_CELL_ATTRS.flash;
+
+        // Mirrors _applyXOR exactly: bright/flash only move with whichever
+        // colour channel is actually being written; if both ink and paper
+        // are transparent, bright/flash are left as the target already has
+        // them too.
+        const touchesAttrs = !colorSelection.inkTransparent || !colorSelection.paperTransparent;
+        fpCell.ink    = colorSelection.inkTransparent   ? srcInk   : colorSelection.ink;
+        fpCell.paper  = colorSelection.paperTransparent ? srcPaper : colorSelection.paper;
+        fpCell.bright = touchesAttrs ? colorSelection.bright : srcBright;
+        fpCell.flash  = touchesAttrs ? colorSelection.flash  : srcFlash;
+        fpCell.altered = true;
+        fpCell.xorReplace = true;   // this cell IS the final composite for its position — never OR'd with layers below
 
         LayerManager.deferCellCompose(cx, cy);
       }
@@ -1673,7 +1835,17 @@ class SelectionServiceClass {
    * Indexed-mode stamp preview (Phase 13): write the stamp's palette
    * indices (or the mask at the current indexed ink) into the floating
    * layer's cell index grids; the compositor's indexed branch then shows
-   * the exact committed result.
+   * the exact committed result. Draw-mode aware like the classic branch:
+   * NORMAL/Pixels Only/Ink Recolour all collapse to painting the ink index
+   * (indexed cells have no separate ink/paper attribute — _applyIndexed
+   * already collapses these three the same way), Paper Recolour paints the
+   * paper index, and XOR/XOR_PIXEL toggle per pixel against the target's
+   * CURRENT index (a stamp touches each pixel once, so the two share this
+   * one preview path — the once-per-stroke gate that tells them apart never
+   * comes into play here). Unlike the classic XOR case this needs no
+   * compositor "replace" flag: indexed compositing already treats a negative
+   * index as transparent/pass-through per pixel, so writing the computed
+   * final value (including −1) is already correct.
    * @private
    */
   _drawFloatingLayerIndexed() {
@@ -1681,6 +1853,13 @@ class SelectionServiceClass {
     const CW = ZX_SPECTRUM.CELL_WIDTH;
     const CH = ZX_SPECTRUM.CELL_HEIGHT;
     const inkIdx = ColorManager.getIndexedInk();
+    const mode = PixelDrawRoutine.resolveUserMode(true);
+
+    let paperIdx = 0, targetLayer = null;
+    if (mode === DRAW_MODE.PAPER || mode === DRAW_MODE.XOR || mode === DRAW_MODE.XOR_PIXEL) {
+      paperIdx = ColorManager.getIndexedPaper();
+      targetLayer = this._findTargetBelow(floatingLayer);
+    }
 
     for (let py = 0; py < height; py++) {
       const maskRow = pixels[py];
@@ -1689,12 +1868,27 @@ class SelectionServiceClass {
       const cy = y + py;
       if (cy < 0 || cy >= ZX_SPECTRUM.HEIGHT) continue;
       for (let px = 0; px < width; px++) {
-        let value = -1;
-        if (idxRow && idxRow[px] != null && idxRow[px] >= 0) value = idxRow[px];
-        else if (!idxRow && maskRow && maskRow[px]) value = inkIdx;
-        if (value < 0) continue;
+        const masked = (idxRow && idxRow[px] != null && idxRow[px] >= 0) || (!idxRow && maskRow && maskRow[px]);
+        if (!masked) continue;
         const cx = x + px;
         if (cx < 0 || cx >= ZX_SPECTRUM.WIDTH) continue;
+
+        const carried = (idxRow && idxRow[px] != null && idxRow[px] >= 0) ? idxRow[px] : null;
+        let value;
+        if (mode === DRAW_MODE.PAPER) {
+          value = paperIdx;
+        } else if (mode === DRAW_MODE.XOR || mode === DRAW_MODE.XOR_PIXEL) {
+          const cand = carried != null ? carried : inkIdx;
+          const eraseIdx = (targetLayer && targetLayer.isBackground) ? paperIdx : -1;
+          const tCell = targetLayer ? targetLayer.getCell(Math.floor(cx / CW), Math.floor(cy / CH)) : null;
+          const current = (tCell && tCell.indices) ? tCell.indices[(cy % CH) * CW + (cx % CW)] : eraseIdx;
+          value = current === cand ? eraseIdx : cand;
+        } else {
+          // NORMAL / PIXEL_ONLY / INK all paint the ink index (or the
+          // stamp's own carried index) — identical outcome, so one branch.
+          value = carried != null ? carried : inkIdx;
+        }
+
         const cell = floatingLayer.getCell(Math.floor(cx / CW), Math.floor(cy / CH));
         if (!cell || !cell.indices) continue;
         cell.indices[(cy % CH) * CW + (cx % CW)] = value;

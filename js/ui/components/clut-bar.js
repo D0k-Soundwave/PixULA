@@ -734,7 +734,10 @@ class ClutBarClass {
 
     /** @private */
     _buildAttrOps(host) {
-        // Swap/Apply styled as left-toolbar tool buttons (caption above icon).
+        // Swap/Apply styled as left-toolbar tool buttons: icon-only, like the
+        // draw modes and Mirror toggles they sit inline with (2026-08-22) —
+        // the name and hint ride the tooltip; the whole run is captioned once
+        // by the "Drawing Modes" label in index.html.
         const mkToolBtn = (id, icon, i18n, fallback, hintI18n, hint) => {
             const btn = document.createElement('button');
             btn.type = 'button';
@@ -756,22 +759,20 @@ class ClutBarClass {
             svg.appendChild(use);
 
             btn.appendChild(svg);
-            return { btn, wrap: Helpers.captionWrap(btn, i18n, fallback) };
+            return btn;
         };
 
-        const transpose = mkToolBtn('attr-transpose', 'icon-attr-swap',
+        const transposeBtn = mkToolBtn('attr-transpose', 'icon-attr-swap',
             'attr.transpose', 'Swap',
             'attr.transpose.hint',
             'Switch between Ink and Paper colour');
-        const apply = mkToolBtn('attr-apply', 'icon-attr-apply',
+        const applyBtn = mkToolBtn('attr-apply', 'icon-attr-apply',
             'attr.apply', 'Recolour',
             'attr.apply.hint',
             'Change attributes to colours selected in palette');
-        const transposeBtn = transpose.btn;
-        const applyBtn = apply.btn;
 
-        host.appendChild(transpose.wrap);
-        host.appendChild(apply.wrap);
+        host.appendChild(transposeBtn);
+        host.appendChild(applyBtn);
 
         // Swap/Apply are interactive paint modes owned by the input handler.
         const toggleAttrMode = (mode) => {

@@ -593,7 +593,7 @@ class StateManagerClass {
    * tool combines its pixels with what is already on the layer. High-level
    * values (resolved to a DRAW_MODE constant per left/right button via
    * PixelDrawRoutine.resolveUserMode): 'normal', 'ink', 'paper',
-   * 'pixel_only', 'xor'.
+   * 'pixel_only', 'xor', 'xor_pixel'.
    * @returns {string}
    */
   getDrawMode() {
@@ -609,7 +609,7 @@ class StateManagerClass {
    * @param {string} mode
    */
   setDrawMode(mode) {
-    const valid = ['normal', 'ink', 'paper', 'pixel_only', 'xor'];
+    const valid = ['normal', 'ink', 'paper', 'pixel_only', 'xor', 'xor_pixel'];
     const next = valid.includes(mode) ? mode : 'normal';
     this.set('draw.mode', next);
     EventBus.emit(EVENTS.DRAW_MODE_CHANGED, { mode: next });

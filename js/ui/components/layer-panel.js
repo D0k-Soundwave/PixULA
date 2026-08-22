@@ -318,6 +318,8 @@ class LayerPanelClass {
     _startRename(nameEl, layer, layerIndex, rerender) {
         const input = document.createElement('input');
         input.type = 'text';
+        input.id = `layer-rename-${layerIndex}`;
+        input.name = `layer-rename-${layerIndex}`;
         input.value = layer.name;
         input.className = 'layer-rename-input';
 

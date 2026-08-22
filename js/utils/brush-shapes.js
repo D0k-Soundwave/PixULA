@@ -282,16 +282,33 @@ const BrushShapes = {
      * angles BETWEEN these stair-step into irregular jaggies that read as
      * noise rather than as hatching, which is why the angle is a choice from
      * this set and never a free variable. `deg` labels the UI only.
+     *
+     * 16 directions (doubled from the original 8, 2026-08-22): every a/b pair
+     * with |a|,|b| <= 3, one Farey mediant slotted between each original
+     * neighbour (e.g. (3,1) between (1,0) and (2,1)). Denominator 4+ was
+     * tried and rejected — at this canvas's resolution those slopes read as
+     * noise, the same call the original 8 already made. This is the ONE
+     * list: the fixed-angle dropdown (`HATCH_ANGLE_OPTS` in brush-tool.js)
+     * and 'follow' mode (`snapHatchAngle` below) both read it directly, so
+     * there is no second place that can fall behind.
      */
     HATCH_ANGLES: Object.freeze([
         Object.freeze({ id: '0',   a:  1, b: 0, deg: 0 }),
+        Object.freeze({ id: '18',  a:  3, b: 1, deg: 18.4 }),
         Object.freeze({ id: '27',  a:  2, b: 1, deg: 26.6 }),
+        Object.freeze({ id: '34',  a:  3, b: 2, deg: 33.7 }),
         Object.freeze({ id: '45',  a:  1, b: 1, deg: 45 }),
+        Object.freeze({ id: '56',  a:  2, b: 3, deg: 56.3 }),
         Object.freeze({ id: '63',  a:  1, b: 2, deg: 63.4 }),
+        Object.freeze({ id: '72',  a:  1, b: 3, deg: 71.6 }),
         Object.freeze({ id: '90',  a:  0, b: 1, deg: 90 }),
+        Object.freeze({ id: '108', a: -1, b: 3, deg: 108.4 }),
         Object.freeze({ id: '117', a: -1, b: 2, deg: 116.6 }),
+        Object.freeze({ id: '124', a: -2, b: 3, deg: 123.7 }),
         Object.freeze({ id: '135', a: -1, b: 1, deg: 135 }),
-        Object.freeze({ id: '153', a: -2, b: 1, deg: 153.4 })
+        Object.freeze({ id: '146', a: -3, b: 2, deg: 146.3 }),
+        Object.freeze({ id: '153', a: -2, b: 1, deg: 153.4 }),
+        Object.freeze({ id: '162', a: -3, b: 1, deg: 161.6 })
     ]),
 
     /**
@@ -300,7 +317,8 @@ const BrushShapes = {
      * @returns {{a: number, b: number, id: string, deg: number}}
      */
     hatchDirection(id) {
-        return BrushShapes.HATCH_ANGLES.find(h => h.id === id) || BrushShapes.HATCH_ANGLES[2];
+        return BrushShapes.HATCH_ANGLES.find(h => h.id === id) ||
+            BrushShapes.HATCH_ANGLES.find(h => h.id === '45');
     },
 
     /**
@@ -311,11 +329,24 @@ const BrushShapes = {
      * moire of stamps that each restart the pattern, and what makes a SECOND
      * pass at another angle interlock with the first into a true cross-hatch.
      *
-     * Ink coverage is exactly `thickness / spacing` at EVERY angle — the
-     * projection `-b*px + a*py` visits each residue equally often, because one
-     * of its coefficients is always +/-1. So the two dials are an exact tone
-     * control by construction, the same guarantee the ordered pattern ramp
-     * makes, rather than something eyeballed per angle.
+     * Ink coverage is `thickness / spacing` (to integer-rounding) at EVERY
+     * angle — the projection `-b*px + a*py` visits each residue equally
+     * often on any one row, because one of its coefficients is always +/-1.
+     * So the two dials are a tone control by construction, the same
+     * guarantee the ordered pattern ramp makes, rather than something
+     * eyeballed per angle.
+     *
+     * That projection's own unit step covers `len = hypot(a, b)` PIXELS of
+     * real on-screen distance perpendicular to the line, not one — a 45deg
+     * pass has len=1.41, a shallow one like 18deg has len=3.16. Left alone,
+     * the same spacing/thickness numbers would then draw 45deg lines ~41%
+     * closer together than 0deg ones, and the shallowest angles up to 3.16x
+     * closer — which is exactly why they used to look nearly solid. `spacing`
+     * and `thickness` are scaled by `len` before use so the dials mean the
+     * same physical on-screen distance at every angle (0/90, len=1, are
+     * unchanged); the trade is that at the smallest `spacing` values the
+     * tone ratio can drift a few percent off its nominal value, the ordinary
+     * cost of fitting a rational fraction onto a small integer period.
      *
      * @param {number} px - Canvas X
      * @param {number} py - Canvas Y
@@ -325,8 +356,9 @@ const BrushShapes = {
      * @returns {boolean}
      */
     onHatchLine(px, py, dir, spacing, thickness) {
-        const s = Math.max(2, Math.round(spacing));
-        const t = clamp(Math.round(thickness), 1, s);
+        const len = Math.hypot(dir.a, dir.b);
+        const s = Math.max(2, Math.round(spacing * len));
+        const t = clamp(Math.round(thickness * len), 1, s);
         const v = -dir.b * px + dir.a * py;
         return (((v % s) + s) % s) < t;
     },
@@ -340,13 +372,23 @@ const BrushShapes = {
      * boundary between two neighbouring angles would flicker between them every
      * few pixels; the angle only changes once a new candidate is clearly better.
      *
+     * The default margin must stay below the smallest score gap between any
+     * exact match and its closest neighbour in HATCH_ANGLES (~0.0077 for the
+     * 16-angle set, computed from the tightest ~7deg spacing) — otherwise a
+     * `currentId` left over from a PREVIOUS stroke (HatchBrush never resets
+     * `_followId` itself, only the tracking that feeds it) can outrank a
+     * movement that is exactly, unambiguously aligned with a different
+     * candidate, and 'follow' mode gets stuck on the last stroke's angle.
+     * That headroom shrank when the angle set doubled (was 0.06 against 8
+     * angles ~22.5deg apart); this default shrank with it.
+     *
      * @param {number} dx @param {number} dy - Smoothed movement vector
      * @param {string|null} currentId - The angle currently held
      * @param {number} [margin] - How much better a rival must be to win
      * @returns {string|null} An angle id, or null when the vector is too short
      *                        to carry a direction (caller holds what it had)
      */
-    snapHatchAngle(dx, dy, currentId = null, margin = 0.06) {
+    snapHatchAngle(dx, dy, currentId = null, margin = 0.005) {
         const len = Math.sqrt(dx * dx + dy * dy);
         if (len < 0.5) return null;
 

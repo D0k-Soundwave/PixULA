@@ -111,7 +111,7 @@ const S = [ // f: "ext" = external tool, "hw" = hardware
   { k:"p4.c2", t:"Header contents", s:[
     "Look at the top header bar.",
     "Left side: a menu bar reading File · Edit · View · Layer · Image · Settings · Help.",
-    "Right side: language selector (13 language names, English…Русский), theme selector (6 themes), interface-size selector (85%–200%), and a “Speak” checkbox."],
+    "Right side: language selector (13 language names, English…Русский), interface-size selector (85%–200%), and a “Speak” checkbox. Theme has no header control — it's Settings > Theme only."],
     x:"All listed controls present, in that arrangement." },
   { k:"p4.c3", t:"Left rail contents & order", s:[
     "Look at the left rail, top to bottom.",
@@ -128,8 +128,8 @@ const S = [ // f: "ext" = external tool, "hw" = hardware
     x:"After reload, Transform is still collapsed and Reference still expanded." },
   { k:"p4.c6", t:"Status strip contents", s:[
     "Look at the strip under the canvas and the status bar at the bottom.",
-    "Expect zoom controls: − / percentage dropdown / + / Fit; grid toggles 1×1, 8×8, 16×16; Mirror H/V buttons; Snap; a Screen mode selector; cursor + cell readout on the right when hovering the canvas."],
-    x:"All present. (Mirror/Snap/mode selector are later-phase additions — they belong there.)" },
+    "Expect zoom controls: − / percentage dropdown / + / Fit; grid toggles 1×1, 8×8, 16×16; Snap; a Screen mode selector; cursor + cell readout on the right when hovering the canvas. (Mirror H/V/H+V buttons live in the top colour bar, beside the draw modes.)"],
+    x:"All present. (Snap/mode selector are later-phase additions — they belong there.)" },
   { k:"p4.c7", t:"Ctrl+wheel over chrome steps UI scale", s:[
     "Put the mouse over the right sidebar (not the canvas).",
     "Hold Ctrl and scroll the wheel up, then down.",
@@ -431,21 +431,21 @@ const S = [ // f: "ext" = external tool, "hw" = hardware
     x:"Labels wrap or grow — never clip or overflow their buttons." },
  ]},
  { t:"Theme switch", items:[
-  { k:"p6.t1", t:"6 translated theme names + persisted boot theme", s:[
-    "Open the theme selector — six names, translated if you're in a foreign locale.",
+  { k:"p6.t1", t:"8 translated theme names + persisted boot theme", s:[
+    "Open Settings > Theme — eight names, translated if you're in a foreign locale.",
     "Pick one, F5."],
     x:"Boots back into the picked theme." },
-  { k:"p6.t2", t:"All six themes render completely", s:[
-    "Switch through dark, light, midnight, nord, dracula, sepia.",
+  { k:"p6.t2", t:"All eight themes render completely", s:[
+    "Switch through dark, light, midnight, nord, dracula, sepia, crimson, citrus.",
     "Each time glance at: header, rails, dialogs (open one), scrollbars, toggle states (press a grid toggle)."],
     x:"Every surface takes the theme; active toggles are visible on the light themes; no unstyled white/black patches." },
   { k:"p6.t3", t:"Grid overlay colours re-read on switch", s:[
     "Enable the 8×8 and 16×16 grids. Switch dark -> light -> sepia."],
     x:"Grid line colours change with the theme (red/blue on dark; darker variants on light/sepia)." },
-  { k:"p6.t4", t:"Menu toggles <-> header selector sync", s:[
-    "Settings > Light Theme — the header selector should jump to Light.",
-    "Change the selector to Dark — the menu checkmarks follow."],
-    x:"Both directions stay in sync." },
+  { k:"p6.t4", t:"Menu checkmarks track the active theme", s:[
+    "Settings > Theme > Light — the Light row should get the checkmark.",
+    "Settings > Theme > Dark — the checkmark moves to Dark, Light's clears."],
+    x:"Exactly one theme is checked at a time, matching what's applied." },
   { k:"p6.t5", t:"Theme F5 + reset", s:[
     "Pick a non-dark theme, F5 (persists).",
     "Settings > Reset All Preferences (confirm)."],
@@ -574,7 +574,7 @@ const S = [ // f: "ext" = external tool, "hw" = hardware
  ]},
  { t:"Symmetry drawing mode", items:[
   { k:"p8.s1", t:"Mirror buttons present + off-toggle", s:[
-    "Find the Mirror label with H and V buttons beside the grid controls.",
+    "Find the Mirror H / V / H+V icon buttons in the top colour bar, beside the draw modes.",
     "Click H (lights). Click H again (turns off). Click H then V (both = quad mode)."],
     x:"Buttons toggle individually; clicking the active one turns it off; labels localized." },
   { k:"p8.s2", t:"All tools mirror", s:[

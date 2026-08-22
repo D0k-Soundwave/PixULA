@@ -11,6 +11,11 @@
  * component-state tokens (--on-accent / --state-* / --checker-*) on the two
  * light themes — those defaults are white-based rgba values that vanish on
  * light surfaces.
+ *
+ * Eight themes total (dark default in variables.css :root + 7 blocks here):
+ * light, midnight, nord, dracula, sepia, crimson, citrus. Accent hues sit on
+ * an evenly-spaced 8-way wheel (45 degrees apart) so no two themes read as
+ * near-duplicates — see ThemeManager's header comment for the full table.
  */
 
 @layer themes {
@@ -31,9 +36,9 @@
     --border-color: #d0d0d0;
     --border-light: #e0e0e0;
 
-    --accent-primary: #0055aa;
-    --accent-primary-rgb: 0, 85, 170;
-    --accent-secondary: #3388dd;
+    --accent-primary: #b31a80;
+    --accent-primary-rgb: 179, 26, 128;
+    --accent-secondary: #dd3ca7;
     --accent-success: #008866;
     --accent-warning: #cc8800;
     --accent-error: #cc2222;
@@ -44,7 +49,7 @@
     --glass-border: rgba(0, 0, 0, 0.1);
     --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
 
-    --accent-bg:    rgba(0, 85, 170, 0.12);
+    --accent-bg:    rgba(179, 26, 128, 0.12);
     --input-bg:     #e8e8e8;
     --btn-bg:       #ffffff;
 
@@ -70,6 +75,39 @@
     --grid-pixel-color: #888888;
     --grid-cell-color:  #cc0000;
     --grid-block-color: #0000cc;
+
+    /* Tool icon identity colours — see the method note on the dark-theme
+       block in variables.css. Same hues, re-lightened for this surface. */
+    --tool-color-brush:           #9d3925;
+    --tool-color-spray:           #1e804b;
+    --tool-color-fade:            #7f259d;
+    --tool-color-pattern:         #74781c;
+    --tool-color-hatch:           #25759d;
+    --tool-color-eraser:          #9d2552;
+    --tool-color-fill:            #27841f;
+    --tool-color-gradient:        #3e259d;
+    --tool-color-shape:           #9d6125;
+    --tool-color-eyedropper:      #1e806c;
+    --tool-color-selection:       #9d2593;
+    --tool-color-select-ellipse:  #587c1d;
+    --tool-color-select-lasso:    #254d9d;
+    --tool-color-select-wand:     #9d252a;
+    --tool-color-select-cell:     #1f8438;
+    --tool-color-text:            #66259d;
+    --tool-color-pattern-creator: #80701e;
+    --tool-color-zoom:            #207b88;
+    --tool-color-transform:       #9d256b;
+    --tool-color-line:            #3a801e;
+
+    --tool-color-dm-normal:       #25259d;
+    --tool-color-dm-ink:          #9d4825;
+    --tool-color-dm-paper:        #1e8057;
+    --tool-color-dm-pixel-only:   #8e259d;
+    --tool-color-dm-xor:          #68781c;
+    --tool-color-attr-swap:       #25669d;
+    --tool-color-attr-recolour:   #9d2542;
+    --tool-color-attr-bright:     #1f8424;
+    --tool-color-attr-flash:      #4d259d;
 }
 
 /* ── Midnight Indigo Theme ───────────────────────────────────────────────
@@ -89,8 +127,8 @@
     --border-color: #2a313a;
     --border-light: #3d444d;
 
-    --accent-primary: #58a6ff;
-    --accent-primary-rgb: 88, 166, 255;
+    --accent-primary: #5882ff;
+    --accent-primary-rgb: 88, 130, 255;
     --accent-secondary: #56d4dd;
     --accent-success: #3fb950;
     --accent-warning: #d29922;
@@ -102,10 +140,43 @@
     --glass-border: rgba(255, 255, 255, 0.08);
     --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
 
-    --accent-bg: rgba(88, 166, 255, 0.14);
-    --overlay-rotation-handle: #58a6ff;
+    --accent-bg: rgba(88, 130, 255, 0.14);
+    --overlay-rotation-handle: #5882ff;
     --overlay-outline:       rgba(120, 190, 255, 0.9);
     --overlay-outline-brush: rgba(120, 190, 255, 0.6);
+
+    /* Tool icon identity colours — see the method note on the dark-theme
+       block in variables.css. Same hues, re-lightened for this surface. */
+    --tool-color-brush:           #dc7d6a;
+    --tool-color-spray:           #6adc9e;
+    --tool-color-fade:            #c06adc;
+    --tool-color-pattern:         #d7dc6a;
+    --tool-color-hatch:           #6ab6dc;
+    --tool-color-eraser:          #dc6a95;
+    --tool-color-fill:            #74dc6a;
+    --tool-color-gradient:        #8973de;
+    --tool-color-shape:           #dca36a;
+    --tool-color-eyedropper:      #6adcc5;
+    --tool-color-selection:       #dc6ad2;
+    --tool-color-select-ellipse:  #b1dc6a;
+    --tool-color-select-lasso:    #6a90dc;
+    --tool-color-select-wand:     #dc6a6f;
+    --tool-color-select-cell:     #6adc87;
+    --tool-color-text:            #a86adc;
+    --tool-color-pattern-creator: #dcc96a;
+    --tool-color-zoom:            #6acedc;
+    --tool-color-transform:       #dc6aac;
+    --tool-color-line:            #8bdc6a;
+
+    --tool-color-dm-normal:       #7777df;
+    --tool-color-dm-ink:          #dc8c6a;
+    --tool-color-dm-paper:        #6adcad;
+    --tool-color-dm-pixel-only:   #ce6adc;
+    --tool-color-dm-xor:          #c9dc6a;
+    --tool-color-attr-swap:       #6aa8dc;
+    --tool-color-attr-recolour:   #dc6a86;
+    --tool-color-attr-bright:     #6adc6f;
+    --tool-color-attr-flash:      #946edd;
 }
 
 /* ── Nord Theme ──────────────────────────────────────────────────────────
@@ -142,6 +213,39 @@
     --overlay-rotation-handle: #88c0d0;
     --overlay-outline:       rgba(143, 188, 187, 0.9);
     --overlay-outline-brush: rgba(143, 188, 187, 0.6);
+
+    /* Tool icon identity colours — see the method note on the dark-theme
+       block in variables.css. Same hues, re-lightened for this surface. */
+    --tool-color-brush:           #e0a194;
+    --tool-color-spray:           #81daaa;
+    --tool-color-fade:            #d19ce2;
+    --tool-color-pattern:         #d7da81;
+    --tool-color-hatch:           #81bcda;
+    --tool-color-eraser:          #e29cb6;
+    --tool-color-fill:            #88da81;
+    --tool-color-gradient:        #b5a8e6;
+    --tool-color-shape:           #daad81;
+    --tool-color-eyedropper:      #81dac8;
+    --tool-color-selection:       #e094da;
+    --tool-color-select-ellipse:  #b8da81;
+    --tool-color-select-lasso:    #98b0e1;
+    --tool-color-select-wand:     #e29c9f;
+    --tool-color-select-cell:     #81da97;
+    --tool-color-text:            #c5a0e3;
+    --tool-color-pattern-creator: #dacc81;
+    --tool-color-zoom:            #81cfda;
+    --tool-color-transform:       #e198c3;
+    --tool-color-line:            #9ada81;
+
+    --tool-color-dm-normal:       #a8a8e6;
+    --tool-color-dm-ink:          #dda188;
+    --tool-color-dm-paper:        #81dab5;
+    --tool-color-dm-pixel-only:   #d898e1;
+    --tool-color-dm-xor:          #cbda81;
+    --tool-color-attr-swap:       #84b3db;
+    --tool-color-attr-recolour:   #e29cad;
+    --tool-color-attr-bright:     #81da85;
+    --tool-color-attr-flash:      #baa4e5;
 }
 
 /* ── Dracula Theme ───────────────────────────────────────────────────────
@@ -177,6 +281,39 @@
     --overlay-rotation-handle: #ff79c6;
     --overlay-outline:       rgba(189, 147, 249, 0.9);
     --overlay-outline-brush: rgba(189, 147, 249, 0.6);
+
+    /* Tool icon identity colours — see the method note on the dark-theme
+       block in variables.css. Same hues, re-lightened for this surface. */
+    --tool-color-brush:           #dc7d6a;
+    --tool-color-spray:           #6adc9e;
+    --tool-color-fade:            #c77be0;
+    --tool-color-pattern:         #d7dc6a;
+    --tool-color-hatch:           #6ab6dc;
+    --tool-color-eraser:          #df779e;
+    --tool-color-fill:            #74dc6a;
+    --tool-color-gradient:        #9e8be4;
+    --tool-color-shape:           #dca36a;
+    --tool-color-eyedropper:      #6adcc5;
+    --tool-color-selection:       #dd6ed4;
+    --tool-color-select-ellipse:  #b1dc6a;
+    --tool-color-select-lasso:    #7799df;
+    --tool-color-select-wand:     #e07b7f;
+    --tool-color-select-cell:     #6adc87;
+    --tool-color-text:            #b783e2;
+    --tool-color-pattern-creator: #dcc96a;
+    --tool-color-zoom:            #6acedc;
+    --tool-color-transform:       #de73b1;
+    --tool-color-line:            #8bdc6a;
+
+    --tool-color-dm-normal:       #908fe5;
+    --tool-color-dm-ink:          #dc8c6a;
+    --tool-color-dm-paper:        #6adcad;
+    --tool-color-dm-pixel-only:   #d173de;
+    --tool-color-dm-xor:          #c9dc6a;
+    --tool-color-attr-swap:       #6aa8dc;
+    --tool-color-attr-recolour:   #df7790;
+    --tool-color-attr-bright:     #6adc6f;
+    --tool-color-attr-flash:      #a687e3;
 }
 
 /* ── Sepia Theme (warm light) ────────────────────────────────────────────
@@ -237,6 +374,184 @@
     --grid-pixel-color: #7a6a50;
     --grid-cell-color:  #b23b2e;
     --grid-block-color: #3a4ba0;
+
+    /* Tool icon identity colours — see the method note on the dark-theme
+       block in variables.css. Same hues, re-lightened for this surface. */
+    --tool-color-brush:           #893524;
+    --tool-color-spray:           #217d4b;
+    --tool-color-fade:            #702489;
+    --tool-color-pattern:         #6d711e;
+    --tool-color-hatch:           #246789;
+    --tool-color-eraser:          #89244a;
+    --tool-color-fill:            #297d21;
+    --tool-color-gradient:        #392489;
+    --tool-color-shape:           #895724;
+    --tool-color-eyedropper:      #217d6a;
+    --tool-color-selection:       #892480;
+    --tool-color-select-ellipse:  #577920;
+    --tool-color-select-lasso:    #244689;
+    --tool-color-select-wand:     #892428;
+    --tool-color-select-cell:     #217d38;
+    --tool-color-text:            #5b2489;
+    --tool-color-pattern-creator: #7d6e21;
+    --tool-color-zoom:            #237985;
+    --tool-color-transform:       #89245f;
+    --tool-color-line:            #3c7d21;
+
+    --tool-color-dm-normal:       #252489;
+    --tool-color-dm-ink:          #894224;
+    --tool-color-dm-paper:        #217d57;
+    --tool-color-dm-pixel-only:   #7d2489;
+    --tool-color-dm-xor:          #66751f;
+    --tool-color-attr-swap:       #245b89;
+    --tool-color-attr-recolour:   #89243d;
+    --tool-color-attr-bright:     #217d25;
+    --tool-color-attr-flash:      #462489;
+}
+
+/* ── Crimson Theme ───────────────────────────────────────────────────────
+   Bold dark theme, red-family accent. Sits at the 0-degree slot of the
+   8-theme hue wheel (see the theme-count note in variables.css) — the one
+   hue family the original 6-theme set had no representative in. Primary
+   accent is deliberately pink-leaning garnet (hue ~350) rather than pure
+   red so it reads apart from --accent-error (hue ~15, orange-red); the two
+   would collide if both sat on the same red. */
+[data-theme="crimson"] {
+    --bg-primary: #170d0d;
+    --bg-secondary: #1f1414;
+    --bg-tertiary: #2b1a1a;
+    --bg-hover: #3a2222;
+    --bg-active: #482a2a;
+
+    --text-primary: #f2e6e6;
+    --text-secondary: #b89999;
+    --text-muted: #7a5c5c;
+
+    --border-color: #3d2424;
+    --border-light: #4d2e2e;
+
+    --accent-primary: #e4445e;
+    --accent-primary-rgb: 228, 68, 94;
+    --accent-secondary: #ea8696;
+    --accent-success: #4cbb6c;
+    --accent-warning: #e0a030;
+    --accent-error: #ea693e;
+    --accent-error-rgb: 234, 105, 62;
+
+    --glass-bg: rgba(23, 13, 13, 0.85);
+    --glass-bg-solid: rgba(23, 13, 13, 0.96);
+    --glass-border: rgba(248, 230, 230, 0.08);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+
+    --accent-bg: rgba(228, 68, 94, 0.16);
+    --overlay-rotation-handle: #e4445e;
+    --overlay-outline:       rgba(230, 140, 150, 0.9);
+    --overlay-outline-brush: rgba(230, 140, 150, 0.6);
+
+    /* Tool icon identity colours — see the method note on the dark-theme
+       block in variables.css. Same hues, re-lightened for this surface. */
+    --tool-color-brush:           #dc7d6a;
+    --tool-color-spray:           #6adc9e;
+    --tool-color-fade:            #c06adc;
+    --tool-color-pattern:         #d7dc6a;
+    --tool-color-hatch:           #6ab6dc;
+    --tool-color-eraser:          #dc6a95;
+    --tool-color-fill:            #74dc6a;
+    --tool-color-gradient:        #8973de;
+    --tool-color-shape:           #dca36a;
+    --tool-color-eyedropper:      #6adcc5;
+    --tool-color-selection:       #dc6ad2;
+    --tool-color-select-ellipse:  #b1dc6a;
+    --tool-color-select-lasso:    #6a90dc;
+    --tool-color-select-wand:     #dc6a6f;
+    --tool-color-select-cell:     #6adc87;
+    --tool-color-text:            #a86adc;
+    --tool-color-pattern-creator: #dcc96a;
+    --tool-color-zoom:            #6acedc;
+    --tool-color-transform:       #dc6aac;
+    --tool-color-line:            #8bdc6a;
+
+    --tool-color-dm-normal:       #7777df;
+    --tool-color-dm-ink:          #dc8c6a;
+    --tool-color-dm-paper:        #6adcad;
+    --tool-color-dm-pixel-only:   #ce6adc;
+    --tool-color-dm-xor:          #c9dc6a;
+    --tool-color-attr-swap:       #6aa8dc;
+    --tool-color-attr-recolour:   #dc6a86;
+    --tool-color-attr-bright:     #6adc6f;
+    --tool-color-attr-flash:      #946edd;
+}
+
+/* ── Citrus Theme ────────────────────────────────────────────────────────
+   Warm dark theme, chartreuse/lime-family accent (hue ~88 degrees) over a
+   gruvbox-inspired warm brown-black surface. Fills the yellow-green slot
+   of the hue wheel — the family furthest from every other theme's accent,
+   including Sepia's orange (~28 degrees), which this theme's own warm
+   background otherwise brushes up against. */
+[data-theme="citrus"] {
+    --bg-primary: #1d1a14;
+    --bg-secondary: #262219;
+    --bg-tertiary: #332d1f;
+    --bg-hover: #423a28;
+    --bg-active: #504632;
+
+    --text-primary: #f0ead9;
+    --text-secondary: #b3a889;
+    --text-muted: #7d7259;
+
+    --border-color: #453d29;
+    --border-light: #554b33;
+
+    --accent-primary: #84c639;
+    --accent-primary-rgb: 132, 198, 57;
+    --accent-secondary: #b0d685;
+    --accent-success: #3fb970;
+    --accent-warning: #e0a030;
+    --accent-error: #d9534f;
+    --accent-error-rgb: 217, 83, 79;
+
+    --glass-bg: rgba(29, 26, 20, 0.85);
+    --glass-bg-solid: rgba(29, 26, 20, 0.96);
+    --glass-border: rgba(240, 234, 217, 0.08);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+
+    --accent-bg: rgba(132, 198, 57, 0.16);
+    --overlay-rotation-handle: #84c639;
+    --overlay-outline:       rgba(180, 220, 140, 0.9);
+    --overlay-outline-brush: rgba(180, 220, 140, 0.6);
+
+    /* Tool icon identity colours — see the method note on the dark-theme
+       block in variables.css. Same hues, re-lightened for this surface. */
+    --tool-color-brush:           #dc7d6a;
+    --tool-color-spray:           #6adc9e;
+    --tool-color-fade:            #c06adc;
+    --tool-color-pattern:         #d7dc6a;
+    --tool-color-hatch:           #6ab6dc;
+    --tool-color-eraser:          #dc6a95;
+    --tool-color-fill:            #74dc6a;
+    --tool-color-gradient:        #8973de;
+    --tool-color-shape:           #dca36a;
+    --tool-color-eyedropper:      #6adcc5;
+    --tool-color-selection:       #dc6ad2;
+    --tool-color-select-ellipse:  #b1dc6a;
+    --tool-color-select-lasso:    #6a90dc;
+    --tool-color-select-wand:     #dc6a6f;
+    --tool-color-select-cell:     #6adc87;
+    --tool-color-text:            #a86adc;
+    --tool-color-pattern-creator: #dcc96a;
+    --tool-color-zoom:            #6acedc;
+    --tool-color-transform:       #dc6aac;
+    --tool-color-line:            #8bdc6a;
+
+    --tool-color-dm-normal:       #7777df;
+    --tool-color-dm-ink:          #dc8c6a;
+    --tool-color-dm-paper:        #6adcad;
+    --tool-color-dm-pixel-only:   #ce6adc;
+    --tool-color-dm-xor:          #c9dc6a;
+    --tool-color-attr-swap:       #6aa8dc;
+    --tool-color-attr-recolour:   #dc6a86;
+    --tool-color-attr-bright:     #6adc6f;
+    --tool-color-attr-flash:      #946edd;
 }
 
 } /* @layer themes */

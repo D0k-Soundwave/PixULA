@@ -7,13 +7,15 @@
 const { test, expect } = require('@playwright/test');
 const { boot, reload } = require('./helpers');
 
-test('header: menu bar, language/theme/size selectors, speak toggle', async ({ page }) => {
+test('header: menu bar, language/size selectors, speak toggle', async ({ page }) => {
     await boot(page);
     const menus = await page.$$eval('#menu-bar .menu-item .menu-label',
         els => els.map(e => e.textContent.trim()));
     expect(menus).toEqual(['File', 'Edit', 'View', 'Layer', 'Image', 'Settings', 'Help']);
     expect(await page.$$eval('#language-selector option', o => o.length)).toBe(13);
-    expect(await page.$$eval('#theme-selector option', o => o.length)).toBe(6);
+    // Theme has no header control — Settings > Theme is the sole picker
+    // (see i18n-themes.spec.js).
+    await expect(page.locator('#theme-selector')).toHaveCount(0);
     await expect(page.locator('#font-scale-selector')).toBeAttached();
     await expect(page.locator('#tts-toggle')).toBeAttached();
 });
@@ -89,29 +91,33 @@ test('every row of the colour bar sits on one baseline and one pitch',
                 .filter((s) => document.querySelector(`#toolbar-attrs ${s}`)).length
         }));
         expect(split.swatchesInMarks).toBe(0);
-        // Draw modes first, Swap/Recolour after XOR (moved 2026-08-10).
-        expect(split.marks).toEqual(['normal', 'ink', 'paper', 'pixel_only', 'xor',
+        // Draw modes first, then Mirror H/V/H+V (moved 2026-08-22), then
+        // Swap/Recolour after that (moved 2026-08-10).
+        expect(split.marks).toEqual(['normal', 'ink', 'paper', 'pixel_only', 'xor', 'xor_pixel',
+            'symmetry-h-toggle', 'symmetry-v-toggle', 'symmetry-quad-toggle',
             'attr-transpose', 'attr-apply']);
         expect(split.attrsGroupKeeps).toBe(3);
 
-        // One pitch for every icon in the marks run, whatever its caption's
-        // length - and they share the row's width evenly, so it fills the bar
+        // The marks run is icon-only (2026-08-22 — captioning every one of
+        // eleven buttons individually is what pushed the bar to two rows at
+        // window widths it used to fit): one shared "Drawing Modes" caption
+        // above the row instead, every icon the bar's one shared size.
         const pitch = await page.evaluate(() => {
-            const cells = [...document.querySelectorAll(
-                '#color-bar-controls .btn-captioned:not(.caption-wide)')]
+            const label = document.getElementById('marks-group-label');
+            const cells = [...document.querySelectorAll('#marks-icons-row button')]
                 .filter((el) => el.offsetParent !== null);
             const rect = (c) => c.getBoundingClientRect();
-            const row = document.getElementById('color-bar-controls').getBoundingClientRect();
             return {
                 n: cells.length,
                 widths: [...new Set(cells.map((c) => Math.round(rect(c).width)))],
-                // How much of the row the run actually covers
-                covered: (rect(cells[cells.length - 1]).right - rect(cells[0]).left) / row.width
+                labelText: label ? label.textContent.trim() : null,
+                labelAboveIcons: label ? rect(label).bottom <= rect(cells[0]).top + 1 : false
             };
         });
-        expect(pitch.n).toBe(7);                    // Swap, Recolour + 5 draw modes
+        expect(pitch.n).toBe(11);        // Swap, Recolour + 6 draw modes + 3 mirror toggles
         expect(pitch.widths).toHaveLength(1);
-        expect(pitch.covered).toBeGreaterThan(0.98);
+        expect(pitch.labelText).toBeTruthy();
+        expect(pitch.labelAboveIcons).toBe(true);
 
         /*
          * Ink and paper are ONE thing - the pair of colours a cell is made of.
@@ -130,13 +136,18 @@ test('every row of the colour bar sits on one baseline and one pitch',
             return {
                 blocks: blocks.length,
                 gapInSwatches: between / swatch,
-                widestInnerGap: Math.max(...inside.slice(1).map(
-                    (r, i) => r.left - inside[i].right))
+                // Relative to swatch size, not a fixed CSS px - ColorBarFit
+                // can now GROW the bar past scale 1 (2026-08-22) when there
+                // is room to spare, and a fixed px threshold tuned for
+                // scale ~1 reads a merely-scaled-up rounding artifact as a
+                // real gap.
+                widestInnerGapRatio: Math.max(...inside.slice(1).map(
+                    (r, i) => r.left - inside[i].right)) / swatch
             };
         });
         expect(pair.blocks).toBe(2);                       // ink, paper
         expect(pair.gapInSwatches).toBeCloseTo(1, 1);      // one colour box apart
-        expect(pair.widestInnerGap).toBeLessThan(4);       // and touching within a block
+        expect(pair.widestInnerGapRatio).toBeLessThan(0.15); // and touching within a block
 
         const bar = await page.evaluate(() => {
             const controls = [...document.querySelectorAll(
@@ -172,22 +183,35 @@ test('every row of the colour bar sits on one baseline and one pitch',
          * Bottom-aligning means a control that LOST its caption would still
          * line up, so geometry alone cannot catch that - and an inline label
          * beside the swatches is exactly what this replaced. Assert the
-         * mechanism instead: every control is inside a caption wrapper, every
-         * caption is the shared .btn-label, and nothing carries a label of its
-         * own devising.
+         * mechanism instead: every control OUTSIDE the marks run is inside a
+         * caption wrapper, every one of those captions is the shared
+         * .btn-label, and nothing carries a label of its own devising.
+         * The marks run (draw modes, Mirror, Swap/Recolour) is the one
+         * deliberate exception (2026-08-22): icon-only, captioned once as a
+         * whole by #marks-group-label rather than per button - asserted
+         * separately below, including that its own caption shares the same
+         * typography .btn-label uses everywhere else.
          */
         const captions = await page.evaluate(() => {
             const uncaptioned = [...document.querySelectorAll(
                 '#color-bar .color-swatch, #color-bar button, #color-bar select, #color-bar .clut-bit')]
-                .filter((el) => el.offsetParent !== null && !el.closest('.btn-captioned'))
+                .filter((el) => el.offsetParent !== null && !el.closest('#marks-icons-row')
+                    && !el.closest('.btn-captioned'))
                 .map((el) => el.id || el.className);
             const labels = [...document.querySelectorAll('#color-bar .btn-label')];
+            const groupLabel = document.getElementById('marks-group-label');
+            const styleOf = (l) => {
+                const cs = getComputedStyle(l);
+                return `${cs.fontSize}|${cs.fontWeight}|${cs.textAlign}`;
+            };
+            const marksIconsCaptioned = [...document.querySelectorAll('#marks-icons-row button')]
+                .filter((el) => el.offsetParent !== null && el.closest('.btn-captioned'))
+                .map((el) => el.id || el.className);
             return {
                 uncaptioned,
-                styles: [...new Set(labels.map((l) => {
-                    const cs = getComputedStyle(l);
-                    return `${cs.fontSize}|${cs.fontWeight}|${cs.textAlign}`;
-                }))],
+                styles: [...new Set(labels.map(styleOf))],
+                groupLabelStyle: groupLabel ? styleOf(groupLabel) : null,
+                marksIconsCaptioned,
                 // No control may carry a label the caption mechanism did not build
                 strays: document.querySelectorAll('#color-bar label:not(.clut-bit)').length
             };
@@ -195,6 +219,8 @@ test('every row of the colour bar sits on one baseline and one pitch',
         expect(captions.uncaptioned).toEqual([]);
         // One distinct style, whatever the font-scale setting makes it
         expect(captions.styles).toHaveLength(1);
+        expect(captions.groupLabelStyle).toBe(captions.styles[0]);
+        expect(captions.marksIconsCaptioned).toEqual([]);
         expect(captions.strays).toBe(0);
     });
 
@@ -448,7 +474,7 @@ test('top bar: global draw-mode selector drives StateManager and persists', asyn
     // was retired with it. StateManager rejects the value, so a document saved
     // in that mode comes back Normal rather than in a mode with no way out.
     const modes = await page.$$eval('#draw-modes button[data-draw-mode]', b => b.map(x => x.dataset.drawMode));
-    expect(modes).toEqual(['normal', 'ink', 'paper', 'pixel_only', 'xor']);
+    expect(modes).toEqual(['normal', 'ink', 'paper', 'pixel_only', 'xor', 'xor_pixel']);
     const retired = await page.evaluate(() => {
         StateManager.setDrawMode('attributes_only');
         return StateManager.getDrawMode();
@@ -542,6 +568,19 @@ test('panel collapse state persists across F5 (WINDOW_STATE)', async ({ page }) 
     await page.waitForTimeout(300); // persistence debounce
     await reload(page);
     const after = await page.evaluate(() => PanelSection.isCollapsed('transform-panel'));
+    expect(after).toBe(before);
+});
+
+test('panel visibility (whole-panel add/remove) persists across F5 (WINDOW_STATE)', async ({ page }) => {
+    await boot(page);
+    const before = await page.evaluate(() => {
+        const was = PanelSection.isVisible('layer-panel');
+        PanelSection.setVisible('layer-panel', !was);
+        return !was;
+    });
+    await page.waitForTimeout(300); // persistence debounce
+    await reload(page);
+    const after = await page.evaluate(() => PanelSection.isVisible('layer-panel'));
     expect(after).toBe(before);
 });
 

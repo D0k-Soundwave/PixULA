@@ -1146,14 +1146,39 @@ class HatchBrush extends BaseBrush {
         this.thickness = 1;
         this.nib = 'round';         // 'round' | 'square'
 
-        // 'follow' state: a smoothed movement vector and the angle it settled
-        // on. Reset per stroke via resetStroke().
+        // 'follow' state: the point the stroke started at, and the angle it
+        // settled on. Reset per stroke via resetStroke(). Once the stroke's
+        // DISPLACEMENT FROM ITS START — not the delta between two samples —
+        // is long enough to resolve a direction, that angle LOCKS for the
+        // rest of the stroke: re-snapping on every move would turn a curved
+        // gesture into a lattice that shifts mid-stroke.
+        //
+        // Tracking has to key off displacement-from-start, not consecutive
+        // samples, because a single sample's own step is typically only 1-3
+        // canvas pixels — enough to represent 0/45/90 exactly, but a 1-3px
+        // integer vector cannot represent a shallower ratio like 3:1 or 3:2
+        // at all, so per-sample tracking could never lock onto 8 of this
+        // brush's 16 angles regardless of the actual gesture. The vector
+        // from the stroke's start point grows every sample and converges on
+        // the true drawn direction once it is long enough to tell the
+        // angles apart; see LOCK_DISTANCE below for how long that is.
         this._followId = '45';
-        this._dirX = 0;
-        this._dirY = 0;
-        this._lastX = null;
-        this._lastY = null;
+        this._startX = null;
+        this._startY = null;
+        this._locked = false;
     }
+
+    /**
+     * Minimum start-to-here distance (canvas px) before 'follow' mode may
+     * lock. C: the tightest gap between two HATCH_ANGLES is ~7.12deg (the
+     * angle set's own geometry, computed in brush-shapes.js); resolving that
+     * gap against +/-0.5px of pixel-grid rounding needs a displacement of at
+     * least 0.5 / sin(7.12deg / 2) =~ 8.1px. 12px keeps a margin above that
+     * floor for ordinary mouse/pen jitter without making the settle window
+     * (which draws using whatever direction it has resolved SO FAR, exactly
+     * as before this brush had a lock at all) long enough to see on canvas.
+     */
+    static LOCK_DISTANCE = 12;
 
     /**
      * The nib envelope. Like the basic crosshatch before it, the hover outline
@@ -1189,32 +1214,35 @@ class HatchBrush extends BaseBrush {
 
     /** Stroke-direction tracking restarts per stroke. */
     resetStroke() {
-        this._dirX = 0;
-        this._dirY = 0;
-        this._lastX = null;
-        this._lastY = null;
+        this._startX = null;
+        this._startY = null;
+        this._locked = false;
     }
 
     /**
-     * Feed the smoothed stroke direction that 'follow' mode snaps from. The
-     * EMA is the difference between "hatching follows my gesture" and "the
-     * angle flickers with every tremor"; the snap adds hysteresis on top.
+     * Feed the stroke's displacement-from-start into 'follow' mode's snap,
+     * refining `_followId` as the vector grows, until it is long enough
+     * (LOCK_DISTANCE) to trust -- from then on this stroke is locked to it
+     * and further motion is ignored. See the constructor comment for why
+     * this keys off displacement-from-start rather than consecutive-sample
+     * deltas: the latter can only ever resolve 8 of this brush's 16 angles.
      * @private
      */
     _trackDirection(x, y) {
-        if (this._lastX !== null) {
-            const dx = x - this._lastX;
-            const dy = y - this._lastY;
-            if (dx !== 0 || dy !== 0) {
-                const k = 0.35;
-                this._dirX = this._dirX * (1 - k) + dx * k;
-                this._dirY = this._dirY * (1 - k) + dy * k;
-                const snapped = BrushShapes.snapHatchAngle(this._dirX, this._dirY, this._followId);
-                if (snapped) this._followId = snapped;
-            }
+        if (this._locked) return;
+        if (this._startX === null) {
+            this._startX = x;
+            this._startY = y;
+            return;
         }
-        this._lastX = x;
-        this._lastY = y;
+        const dx = x - this._startX;
+        const dy = y - this._startY;
+        const dist = Math.hypot(dx, dy);
+        if (dist < 0.5) return;
+
+        const snapped = BrushShapes.snapHatchAngle(dx, dy, this._followId);
+        if (snapped) this._followId = snapped;
+        if (dist >= HatchBrush.LOCK_DISTANCE) this._locked = true;
     }
 
     /** The direction actually hatched with right now. @private */

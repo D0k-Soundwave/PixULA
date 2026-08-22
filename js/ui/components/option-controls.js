@@ -25,6 +25,49 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
  */
 const SHAPE_ICON_SIZE = 25;
 
+/**
+ * Wire a button to fire `fn` once on press and then keep firing it while
+ * held, instead of requiring a fresh click per step. Mouse/touch/pen all
+ * drive it through pointer events; a plain click (keyboard Enter/Space,
+ * which never fires pointerdown) still fires `fn` exactly once.
+ * @param {HTMLElement} btn
+ * @param {Function} fn
+ */
+function attachRepeatPress(btn, fn) {
+    const REPEAT_DELAY = 400; // ms before the first repeat - A, matches the tooltip dwell precedent
+    const REPEAT_INTERVAL = 60; // ms between repeats while held - A
+    let delayTimer = null;
+    let repeatTimer = null;
+    let firedByPointer = false;
+
+    const stop = () => {
+        clearTimeout(delayTimer);
+        clearInterval(repeatTimer);
+        delayTimer = null;
+        repeatTimer = null;
+    };
+
+    btn.addEventListener('pointerdown', (e) => {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        firedByPointer = true;
+        fn();
+        delayTimer = setTimeout(() => {
+            repeatTimer = setInterval(fn, REPEAT_INTERVAL);
+        }, REPEAT_DELAY);
+    });
+    btn.addEventListener('pointerup', stop);
+    btn.addEventListener('pointerleave', stop);
+    btn.addEventListener('pointercancel', stop);
+
+    // A mouse/touch/pen click follows its pointerdown - skip it so the
+    // press isn't counted twice; a keyboard-activated click has no
+    // preceding pointerdown and must still step once.
+    btn.addEventListener('click', () => {
+        if (firedByPointer) { firedByPointer = false; return; }
+        fn();
+    });
+}
+
 /** English fallback until the i18n layer lands (Phase 6). */
 function t(key, fallback) {
     if (window.I18n && typeof I18n.t === 'function') {
@@ -38,6 +81,8 @@ function t(key, fallback) {
 }
 
 class OptionControlsClass {
+    static _sliderCounter = 0;
+
     constructor() {
         this.contentArea = null;
         this.titleElement = null;
@@ -752,6 +797,8 @@ class OptionControlsClass {
 
         const num = document.createElement('input');
         num.type = 'number';
+        num.id = `${range.id || range.name || `slider-${++OptionControlsClass._sliderCounter}`}-num`;
+        num.name = num.id;
         num.className = 'slider-num';
         num.min = String(min);
         num.max = String(max);
@@ -807,9 +854,10 @@ class OptionControlsClass {
             if (e.key === 'Enter') { e.preventDefault(); commitNum(); num.blur(); }
         });
 
-        // +/- by the slider's own step (1 where none is set)
-        minusBtn.addEventListener('click', () => setValue((parseFloat(range.value) || 0) - step));
-        plusBtn.addEventListener('click',  () => setValue((parseFloat(range.value) || 0) + step));
+        // +/- by the slider's own step (1 where none is set); holding the
+        // button repeats it instead of requiring a click per step.
+        attachRepeatPress(minusBtn, () => setValue((parseFloat(range.value) || 0) - step));
+        attachRepeatPress(plusBtn,  () => setValue((parseFloat(range.value) || 0) + step));
     }
 }
 

@@ -92,6 +92,8 @@ class ImageSourceClass {
         return new Promise((resolve) => {
             const input = document.createElement('input');
             input.type = 'file';
+            input.id = 'image-source-file-input';
+            input.name = 'image-source-file-input';
             input.accept = 'image/*';
             input.hidden = true;
             input.addEventListener('change', () => {

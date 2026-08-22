@@ -192,6 +192,8 @@ class PaletteEditorDialogClass {
         // Hidden native picker, retargeted per swatch click
         const picker = document.createElement('input');
         picker.type = 'color';
+        picker.id = 'palette-editor-picker';
+        picker.name = 'palette-editor-picker';
         picker.className = 'palette-editor-picker';
         picker.setAttribute('aria-hidden', 'true');
         picker.tabIndex = -1;
@@ -296,6 +298,8 @@ class PaletteEditorDialogClass {
         // A picker with no dialog behind it: created, clicked, discarded.
         const loader = document.createElement('input');
         loader.type = 'file';
+        loader.id = 'palette-load-file-input';
+        loader.name = 'palette-load-file-input';
         loader.accept = '.pal,.npl';
         loader.hidden = true;
         loader.addEventListener('change', async (event) => {
@@ -342,6 +346,8 @@ class PaletteEditorDialogClass {
         if (!traits.scratch) {
             const loader = document.createElement('input');
             loader.type = 'file';
+            loader.id = 'palette-editor-loader';
+            loader.name = 'palette-editor-loader';
             loader.accept = '.pal,.npl';
             loader.hidden = true;
             loader.addEventListener('change', (e) => this._loadFile(e, content, traits));
@@ -358,6 +364,8 @@ class PaletteEditorDialogClass {
         let kindSelect = null;
         if (traits.fileKinds.length > 1) {
             kindSelect = document.createElement('select');
+            kindSelect.id = 'palette-editor-kind';
+            kindSelect.name = 'palette-editor-kind';
             kindSelect.className = 'palette-editor-kind';
             kindSelect.dataset.i18nTitleName = 'palette.files';
             kindSelect.dataset.i18nTitle = 'palette.kindHint';
@@ -382,6 +390,8 @@ class PaletteEditorDialogClass {
 
         const imagePicker = document.createElement('input');
         imagePicker.type = 'file';
+        imagePicker.id = 'palette-editor-image-picker';
+        imagePicker.name = 'palette-editor-image-picker';
         imagePicker.accept = 'image/*';
         imagePicker.hidden = true;
         imagePicker.addEventListener('change', (e) => this._buildFromImage(e, content, traits));

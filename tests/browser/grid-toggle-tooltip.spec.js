@@ -1,9 +1,9 @@
 'use strict';
 /**
- * The grid-size, snap and mirror toggle buttons (js/ui/components/
- * canvas-controls.js) all carry real two-stage tooltips. The snap and
- * mirror buttons already had a real hint sentence as a flat title; the
- * grid-size buttons had none at all.
+ * The grid-size and snap toggle buttons (js/ui/components/canvas-controls.js)
+ * and the mirror toggle buttons (js/ui/components/draw-mode-bar.js) all carry
+ * real two-stage tooltips. The snap and mirror buttons already had a real
+ * hint sentence as a flat title; the grid-size buttons had none at all.
  */
 const { test, expect } = require('@playwright/test');
 const { boot } = require('./helpers');

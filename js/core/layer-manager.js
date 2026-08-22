@@ -1483,7 +1483,12 @@ class LayerManagerClass {
    * sub-screen compose paths. XOR-mode stamp layers take the cell over
    * entirely (pixels pre-computed as target XOR shape, attrs copied from
    * the target); otherwise ink pixels OR-stack and the topmost altered
-   * layer's attributes win.
+   * layer's attributes win. A cell flagged `xorReplace` (set by
+   * SelectionService for the top-bar draw-mode selector's XOR entry, as
+   * opposed to the per-stamp XOR-mode checkbox above) gets the same
+   * take-the-cell-over treatment, scoped to just that cell rather than the
+   * whole layer — so a stamp preview can show a correct XOR composite
+   * without touching the persisted layer.xorMode flag or its UI checkbox.
    * @param {Array} alteredLayers - [{ layer, cell, index }] bottom -> top
    * @param {Object|null} bgCell - Background layer's cell
    * @param {number} cellH - Active cell height
@@ -1493,7 +1498,7 @@ class LayerManagerClass {
   _composeCellData(alteredLayers, bgCell, cellH) {
     let xorEntry = null;
     for (let i = alteredLayers.length - 1; i >= 0; i--) {
-      if (alteredLayers[i].layer.xorMode) { xorEntry = alteredLayers[i]; break; }
+      if (alteredLayers[i].layer.xorMode || alteredLayers[i].cell.xorReplace) { xorEntry = alteredLayers[i]; break; }
     }
 
     let attrs;

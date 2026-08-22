@@ -250,6 +250,23 @@ for (let y = 130; y <= 160; y++) {
 check('gradient: committed ink pixels inside rect', gradInk > 0);
 check('gradient: density rises along the axis', gradRight > gradLeft);
 
+// Additive, not a replacement: existing ink under the gradient's "paper"
+// side must survive. Dithered off gives a deterministic hard 50% split so
+// the paper/ink halves are known ahead of the draw.
+PixelDrawRoutine.beginBatch();
+PixelDrawRoutine.draw(212, 25, ColorManager.getCurrentSelection(), DRAW_MODE.NORMAL);
+PixelDrawRoutine.endBatch();
+check('gradient setup: pre-existing pixel is ink before the gradient runs', isInk(212, 25));
+
+const gradient = ToolManager.getCurrentTool();
+gradient.setDithered(false);
+down(210, 10, ev());
+up(250, 40, ev());       // phase 1: lock 41x31 rect (centre ~230,25)
+down(212, 25, ev());
+up(248, 25, ev());       // phase 2: commit L->R linear; 212 lands in the paper half, 248 in the ink half
+check('gradient: pre-existing ink under the gradient\'s paper half survives (additive, not replaced)',
+  isInk(212, 25));
+check('gradient: the ink half still gets drawn', isInk(246, 25));
 
 // ── Text tool (ZX ROM mask -> floating stamp) ──────────────────────────────
 ToolManager.selectTool(TOOLS.TEXT);

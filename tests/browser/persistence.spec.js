@@ -164,7 +164,7 @@ test('internal clipboard persists across F5: paste enabled at boot, same pixels'
 test('grid snap and symmetry mode persist across F5', async ({ page }) => {
     await boot(page);
     await page.keyboard.press('Shift+s');
-    await page.click('#grid-controls button[data-i18n="view.mirrorH"]');
+    await page.click('#symmetry-h-toggle');
     await page.waitForTimeout(400);
 
     page.on('dialog', (d) => d.accept());

@@ -17,13 +17,14 @@
  * 2. 'input' then 'change' fire synchronously, in the same tick, with no
  *    paint in between. Every ordinary slider is fine with that - its value
  *    just stays where the stepper left it. The Transform panel's image
- *    rotation slider (js/ui/components/transform-panel.js) is different: by
- *    design it commits and resets its own displayed value back to 0 (a
- *    relative "jog" control, not a persistent one). Committing directly
- *    inside the synchronous 'change' handler reset the display to 0 before
- *    the browser ever painted the incremented value, so a stepper click
- *    looked completely inert even though it silently rotated the image by
- *    one degree and committed an undo action.
+ *    rotation slider (js/ui/components/transform-panel.js) is an absolute
+ *    angle gauge: the thumb sits at the picture's current rotation and
+ *    stays there once committed. At the time this bug was found, though, a
+ *    commit reset the display back to 0 (a since-removed design), and
+ *    committing directly inside the synchronous 'change' handler reset the
+ *    display before the browser ever painted the incremented value - so a
+ *    stepper click looked completely inert even though it silently rotated
+ *    the image by one degree and committed an undo action.
  *
  * 3. The real bug (2) was hiding: committing after EVERY single stepper
  *    click meant every click re-snapshotted the ALREADY-ROUNDED result as
@@ -102,8 +103,9 @@ test('image-rotation stepper click is visible before it resets, and actually com
     const last = await page.evaluate(() => UndoRedo.peekLast());
     expect(last.label).toBe('Rotate image');
 
-    // Settles back to 0, the control's normal resting state.
-    await expect(row.locator('input[type="range"]')).toHaveValue('0', { timeout: 3000 });
+    // The thumb stays at the committed angle rather than snapping back to
+    // centre - it's an absolute angle gauge, not a jog control that resets.
+    await expect(row.locator('input[type="range"]')).toHaveValue('1', { timeout: 3000 });
 });
 
 test('a burst of image-rotation stepper clicks shares one undo entry and actually rotates content near the pivot', async ({ page }) => {
@@ -136,9 +138,14 @@ test('a burst of image-rotation stepper clicks shares one undo entry and actuall
         await plus.click();
         await page.waitForTimeout(20); // well under the commit-idle debounce
     }
-    await expect(row.locator('input[type="range"]')).toHaveValue('0', { timeout: 3000 });
+    // The gauge already reads the full 90° the burst reached - it's an
+    // absolute-angle readout, not a per-click jog amount that only settles
+    // once the debounced commit fires.
+    await expect(row.locator('input[type="range"]')).toHaveValue('90');
 
-    // One coalesced undo entry for the whole burst, not ninety.
+    // The commit itself is still debounced; wait for it before checking the
+    // undo stack. One coalesced entry for the whole burst, not ninety.
+    await page.waitForFunction((n) => UndoRedo.undoStack.length > n, before, { timeout: 3000 });
     const after = await page.evaluate(() => UndoRedo.undoStack.length);
     expect(after - before).toBe(1);
 

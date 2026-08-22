@@ -3,13 +3,18 @@
 
 /**
  * ColorBarFit — keeps the top colour bar's own icon size independent of
- * --ui-scale once the interface-size setting would otherwise push its
- * content past two rows. Every other chrome region (#header, #toolbar,
- * #panels, #status-bar, #canvas-controls) scales 1:1 with the artist's
- * chosen interface size; this bar alone can dial its OWN zoom back
- * (--colorbar-scale, multiplied into --ui-scale for #color-bar's zoom in
- * css/layout.css) so its swatches and icons shrink just enough to keep
- * fitting two rows, rather than fragmenting further at high magnification.
+ * --ui-scale, dialling it EITHER way to make the best use of the room
+ * available. Every other chrome region (#header, #toolbar, #panels,
+ * #status-bar, #canvas-controls) scales 1:1 with the artist's chosen
+ * interface size; this bar alone can dial its OWN zoom (--colorbar-scale,
+ * multiplied into --ui-scale for #color-bar's zoom in css/layout.css) up or
+ * down: shrink when the interface-size setting would otherwise push its
+ * content past two rows (fragmenting further at high magnification), or grow
+ * (2026-08-22) when a wide window leaves the bar's natural size with room to
+ * spare, so that space becomes bigger icons rather than empty margin — a
+ * single comfortably-fitting row is grown to fill it, and a bar that already
+ * needs two rows at its natural size is grown to fill THOSE properly,
+ * without either ever being pushed into a row it did not already need.
  *
  * The indexed Next palette (the 256-entry scrolling grid) is the documented
  * exception to "always wrap, never scroll" — it is a single element that
@@ -61,6 +66,12 @@ class ColorBarFitClass {
         // needed, so it is where the search below gives up rather than
         // shrinking icons to nothing.
         this.FLOOR = 0.15;
+        // The largest scale worth growing to when there is room to spare
+        // (2026-08-22) - A: not measured for this bar specifically, chosen to
+        // match the interface-size selector's own 200% ceiling elsewhere in
+        // the app (app-settings.js) rather than invent a second convention
+        // for "how big is too big" for a scaled control.
+        this.MAX_SCALE = 2;
         // How close the search gets to the true largest-scale-that-fits
         // before it stops refining, in scale units (so ~1% of the full
         // 0-1 range) - fine enough that nobody would see the difference
@@ -116,26 +127,31 @@ class ColorBarFitClass {
     }
 
     /**
-     * Recompute --colorbar-scale to the LARGEST scale that still fits
-     * MAX_ROWS rows, minus a safety margin - not just the first one tried,
-     * and not landing exactly on the edge either.
+     * Recompute --colorbar-scale to make the best use of whatever room the
+     * bar has, in whichever direction the natural (scale 1) size calls for:
+     * SHRINK if that natural size already overflows past MAX_ROWS (the
+     * original 2026-08-10 behaviour), or GROW if it does not, so a wide
+     * window's slack space goes into bigger, more legible icons instead of
+     * sitting unused beside a bar still rendered at its base size. Either
+     * way the target is the row count the content ALREADY has at scale 1 -
+     * growing never pushes it into a row it did not already need, which is
+     * what keeps a comfortably-one-row window at one row instead of
+     * ballooning icons until a second row becomes "worth it" too.
      *
-     * A fixed ladder of steps (1, 0.9, 0.8, ...) was tried first and
-     * reverted (2026-08-10): row count does not fall smoothly as the scale
-     * shrinks, it drops in jumps - a coarse ladder can step straight from
-     * "3 rows" past "the largest scale that gives 2" down to a much
-     * smaller one that happens to give 1, so the bar visibly shrank far
-     * more than it needed to. Binary search between a known-fitting FLOOR
-     * and a known-not-fitting scale converges on the true edge instead.
+     * Both directions binary-search rather than step a fixed ladder (1, 0.9,
+     * 0.8, ... or 1, 1.1, 1.2, ...): row count does not change smoothly with
+     * scale, it jumps at the point content stops fitting a row, and a coarse
+     * ladder can step straight past the true edge to a much smaller (or,
+     * growing, a much larger) value than the content actually allows -
+     * found the shrinking way round, 2026-08-10.
      *
-     * The edge itself turned out not to be safe to land on (also
-     * 2026-08-12): a scale measured as "just fits two rows" in this
-     * component's OWN reading can still wrap to three on the SAME machine,
-     * because that reading and the browser's actual paint are two
-     * separate rounding passes over the same fractional-DPR layout, and
-     * they do not always agree to the pixel. _margined() steps back from
-     * the edge rather than trusting it exactly; the floor is exempt since
-     * it is already the smallest size this component will use.
+     * The edge itself turned out not to be safe to land on either (also
+     * 2026-08-12): a scale measured as "just fits" in this component's OWN
+     * reading can still wrap to one row more on the SAME machine, because
+     * that reading and the browser's actual paint are two separate rounding
+     * passes over the same fractional-DPR layout, and they do not always
+     * agree to the pixel. _margined() steps back from the edge in whichever
+     * direction it was approached, rather than trusting it exactly.
      */
     refit() {
         if (!this._bar) return;
@@ -145,20 +161,57 @@ class ColorBarFitClass {
         }
 
         this._setScale(1);
-        if (this._rowCount() <= this.MAX_ROWS) {
-            this._setScale(this._margined(1));
-            return; // no shrink needed
+        const naturalRows = this._rowCount();
+
+        if (naturalRows > this.MAX_ROWS) {
+            this._shrinkToFit(this.MAX_ROWS);
+        } else {
+            this._growToFill(naturalRows);
         }
+    }
 
+    /**
+     * Binary search DOWN from scale 1 for the largest scale that keeps the
+     * bar within `targetRows` - used when even the natural (scale 1) size
+     * already needs more rows than that. The floor is exempt from the
+     * safety margin since it is already the smallest size this component
+     * will use.
+     * @private
+     */
+    _shrinkToFit(targetRows) {
         this._setScale(this.FLOOR);
-        if (this._rowCount() > this.MAX_ROWS) return; // floor is the best available; leave it as-is
+        if (this._rowCount() > targetRows) return; // floor is the best available; leave it as-is
 
-        // Invariant through the loop: lo fits (<= MAX_ROWS), hi does not.
+        // Invariant through the loop: lo fits (<= targetRows), hi does not.
         let lo = this.FLOOR, hi = 1;
         while (hi - lo > this.PRECISION) {
             const mid = (lo + hi) / 2;
             this._setScale(mid);
-            if (this._rowCount() <= this.MAX_ROWS) lo = mid; else hi = mid;
+            if (this._rowCount() <= targetRows) lo = mid; else hi = mid;
+        }
+        this._setScale(this._margined(lo));
+    }
+
+    /**
+     * Binary search UP from scale 1 for the largest scale that still fits
+     * within `targetRows` - the row count the bar's content already needs at
+     * scale 1, so growing fills whatever room is going spare without ever
+     * spilling into an extra row it did not already have.
+     * @private
+     */
+    _growToFill(targetRows) {
+        this._setScale(this.MAX_SCALE);
+        if (this._rowCount() <= targetRows) {
+            this._setScale(this._margined(this.MAX_SCALE));
+            return; // even the ceiling still fits at the natural row count
+        }
+
+        // Invariant through the loop: lo fits (<= targetRows), hi does not.
+        let lo = 1, hi = this.MAX_SCALE;
+        while (hi - lo > this.PRECISION) {
+            const mid = (lo + hi) / 2;
+            this._setScale(mid);
+            if (this._rowCount() <= targetRows) lo = mid; else hi = mid;
         }
         this._setScale(this._margined(lo));
     }

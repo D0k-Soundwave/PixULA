@@ -233,6 +233,7 @@ class PixelDrawRoutineClass {
       case 'ink':             return DRAW_MODE.INK;
       case 'paper':           return DRAW_MODE.PAPER;
       case 'xor':             return DRAW_MODE.XOR;
+      case 'xor_pixel':       return DRAW_MODE.XOR_PIXEL;
       default:                return isInk ? DRAW_MODE.NORMAL : DRAW_MODE.NORMAL_ERASE;
     }
   }
@@ -304,6 +305,9 @@ class PixelDrawRoutineClass {
     // painted a row of stamps instead of a stroke: the overlaps cancelled and
     // only the non-overlapping fringes survived. The batch is the stroke, so
     // each pixel flips on its first write and is inert for the rest of it.
+    // XOR_PIXEL is the other side of that trade: it deliberately skips this
+    // gate, so every write really does toggle — a stroke crossing itself
+    // cancels visibly, which is the literal bitwise XOR some artists want.
     if (mode === DRAW_MODE.XOR && this.isInBatch) {
       const xorKey = `${layer.id}:${pixelY * ZX_SPECTRUM.WIDTH + pixelX}`;
       if (this._xorStroke.has(xorKey)) return;
@@ -372,6 +376,7 @@ class PixelDrawRoutineClass {
         break;
 
       case DRAW_MODE.XOR:
+      case DRAW_MODE.XOR_PIXEL:
         this._applyXOR(cell, localX, localY, colorSelection);
         break;
 
@@ -479,8 +484,10 @@ class PixelDrawRoutineClass {
    *   ERASE — transparency index (−1) on upper layers; the indexed paper
    *     on the background (which has no transparency)
    *   PAPER — paint the indexed paper index
-   *   XOR — toggle: a pixel already at the drawing index erases, anything
-   *     else takes the drawing index (the closest 1-bit-XOR analogue)
+   *   XOR / XOR_PIXEL — toggle: a pixel already at the drawing index erases,
+   *     anything else takes the drawing index (the closest 1-bit-XOR
+   *     analogue); the two differ only in the caller's stroke-dedup gate,
+   *     never here
    *   ATTRIBUTES_ONLY — no-op (indexed cells have no attributes)
    * @returns {boolean} false when the mode is a no-op
    * @private
@@ -515,6 +522,7 @@ class PixelDrawRoutineClass {
         cell.indices[pos] = paperIdx;
         break;
       case DRAW_MODE.XOR:
+      case DRAW_MODE.XOR_PIXEL:
         cell.indices[pos] = cell.indices[pos] === inkIdx ? eraseIdx : inkIdx;
         break;
       case DRAW_MODE.ATTRIBUTES_ONLY:
@@ -741,6 +749,9 @@ class PixelDrawRoutineClass {
 
   /**
    * XOR draw — toggle pixel bit (ArtStudio OVER mode). Also updates attributes.
+   * Shared by DRAW_MODE.XOR (once-per-stroke, gated further up in draw()) and
+   * DRAW_MODE.XOR_PIXEL (every write) — the toggle math is identical, only
+   * how often this gets called differs.
    * @private
    */
   _applyXOR(cell, localX, localY, colorSelection) {

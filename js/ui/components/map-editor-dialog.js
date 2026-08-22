@@ -88,13 +88,13 @@ class MapEditorDialogClass {
                 <div class="me-tile-editor-slot"></div>
                 <div class="me-attr-row">
                     <label><span data-i18n="color.ink">${this._t('color.ink', 'Ink')}</span>
-                        <select class="me-ink">${colorOptions}</select></label>
+                        <select class="me-ink" id="me-ink" name="me-ink">${colorOptions}</select></label>
                     <label><span data-i18n="color.paper">${this._t('color.paper', 'Paper')}</span>
-                        <select class="me-paper">${colorOptions}</select></label>
+                        <select class="me-paper" id="me-paper" name="me-paper">${colorOptions}</select></label>
                 </div>
                 <div class="me-attr-row">
-                    <label><input type="checkbox" class="me-bright"> <span data-i18n="color.bright">${this._t('color.bright', 'Bright')}</span></label>
-                    <label><input type="checkbox" class="me-flash"> <span data-i18n="color.flash">${this._t('color.flash', 'Flash')}</span></label>
+                    <label><input type="checkbox" class="me-bright" id="me-bright" name="me-bright"> <span data-i18n="color.bright">${this._t('color.bright', 'Bright')}</span></label>
+                    <label><input type="checkbox" class="me-flash" id="me-flash" name="me-flash"> <span data-i18n="color.flash">${this._t('color.flash', 'Flash')}</span></label>
                 </div>
             </div>
             <div class="me-center">
@@ -112,12 +112,12 @@ class MapEditorDialogClass {
                     </div>
                     <div class="me-tool-group">
                         <label><span data-i18n="map.width">${this._t('map.width', 'Width')}</span>
-                            <input type="number" class="me-width" min="1" max="${MapService.MAX_DIM}"></label>
+                            <input type="number" class="me-width" id="me-width" name="me-width" min="1" max="${MapService.MAX_DIM}"></label>
                         <label><span data-i18n="map.height">${this._t('map.height', 'Height')}</span>
-                            <input type="number" class="me-height" min="1" max="${MapService.MAX_DIM}"></label>
+                            <input type="number" class="me-height" id="me-height" name="me-height" min="1" max="${MapService.MAX_DIM}"></label>
                         <button type="button" class="pc-btn me-resize" data-i18n="map.resize">${this._t('map.resize', 'Resize')}</button>
                     </div>
-                    <input type="text" class="me-name" placeholder="${this._t('map.name', 'Map name...')}" data-i18n-placeholder="map.name">
+                    <input type="text" class="me-name" id="me-name" name="me-name" placeholder="${this._t('map.name', 'Map name...')}" data-i18n-placeholder="map.name">
                 </div>
                 <div class="me-viewport">
                     <div class="me-sizer"></div>
@@ -128,7 +128,7 @@ class MapEditorDialogClass {
                     <button type="button" class="pc-btn me-render" data-i18n="map.renderToCanvas">${this._t('map.renderToCanvas', 'Render to Canvas')}</button>
                     <button type="button" class="pc-btn me-capture" data-i18n="map.captureScreen">${this._t('map.captureScreen', 'Capture Screen')}</button>
                     <button type="button" class="pc-btn me-import" data-i18n="map.import">${this._t('map.import', 'Import...')}</button>
-                    <select class="me-export-format">
+                    <select class="me-export-format" id="me-export-format" name="me-export-format">
                         <option value="zxtm">ZXTM</option>
                         <option value="zxm">ZXM</option>
                         <option value="asm">ASM</option>
@@ -139,7 +139,7 @@ class MapEditorDialogClass {
                         <option value="next-bin">Next BIN</option>
                     </select>
                     <button type="button" class="pc-btn me-export" data-i18n="map.export">${this._t('map.export', 'Export')}</button>
-                    <input type="file" class="me-file-input" accept=".zxtm,.zxm" hidden>
+                    <input type="file" class="me-file-input" id="me-file-input" name="me-file-input" accept=".zxtm,.zxm" hidden>
                 </div>
             </div>
         `;

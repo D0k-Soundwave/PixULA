@@ -56,9 +56,9 @@
     --border-color: #404040;
     --border-light: #505050;
 
-    --accent-primary: #6c5ce7;
-    --accent-primary-rgb: 108, 92, 231;
-    --accent-secondary: #a29bfe;
+    --accent-primary: #3ecf6e;
+    --accent-primary-rgb: 62, 207, 110;
+    --accent-secondary: #88dca4;
     --accent-success: #00b894;
     --accent-warning: #fdcb6e;
     --accent-error: #d63031;
@@ -82,6 +82,49 @@
     --state-active-bg: rgba(255, 255, 255, 0.25);
     --checker-light:   #666666;
     --checker-dark:    #444444;
+
+    /* Tool icon identity colours (dark theme — the default). One hue per
+       tool, spaced by the golden angle (137.508deg) so any two RAIL-ADJACENT
+       tools land far apart on the wheel, then each lightness nudged until it
+       clears 3.3:1 contrast against both --btn-bg and --bg-hover (measured,
+       WCAG relative luminance). The icon's own shape is still the primary
+       identifier — this set is vividness, not a second identity channel, so
+       it does not attempt full pairwise CVD distinctness across all 20.
+       Applied by .tool-btn[data-tool] in components.css; every other theme
+       in themes.css overrides the whole block for its own surfaces. */
+    --tool-color-brush:           #e08c7b;
+    --tool-color-spray:           #6adc9e;
+    --tool-color-fade:            #ce8be4;
+    --tool-color-pattern:         #d7dc6a;
+    --tool-color-hatch:           #6ab6dc;
+    --tool-color-eraser:          #e387aa;
+    --tool-color-fill:            #74dc6a;
+    --tool-color-gradient:        #a898e7;
+    --tool-color-shape:           #dca36a;
+    --tool-color-eyedropper:      #6adcc5;
+    --tool-color-selection:       #e17fd9;
+    --tool-color-select-ellipse:  #b1dc6a;
+    --tool-color-select-lasso:    #83a3e2;
+    --tool-color-select-wand:     #e48b8f;
+    --tool-color-select-cell:     #6adc87;
+    --tool-color-text:            #be8fe5;
+    --tool-color-pattern-creator: #dcc96a;
+    --tool-color-zoom:            #6acedc;
+    --tool-color-transform:       #e387bc;
+    --tool-color-line:            #8bdc6a;
+
+    /* Same system, continued for the top colour bar's icon buttons — draw
+       modes, the two attribute ops (Swap/Recolour) and the Bright/Flash
+       toggles. Golden-angle index picks up where the tool set left off. */
+    --tool-color-dm-normal:       #9c9ce8;
+    --tool-color-dm-ink:          #dd8f6e;
+    --tool-color-dm-paper:        #6adcad;
+    --tool-color-dm-pixel-only:   #d683e2;
+    --tool-color-dm-xor:          #c9dc6a;
+    --tool-color-attr-swap:       #6aa8dc;
+    --tool-color-attr-recolour:   #e3879e;
+    --tool-color-attr-bright:     #6adc6f;
+    --tool-color-attr-flash:      #af94e6;
 
     /* Hairline around the picture itself, separating it from the ZX border
        colour that fills the rest of the canvas iframe. It follows the theme

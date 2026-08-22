@@ -63,7 +63,7 @@ const dirOf = (id) => BrushShapes.hatchDirection(id);
 
 // ── The angle set ───────────────────────────────────────────────────────────
 
-check('8 curated angles are published', BrushShapes.HATCH_ANGLES.length === 8);
+check('16 curated angles are published', BrushShapes.HATCH_ANGLES.length === 16);
 check('every angle is an integer direction (pixel-clean by construction)',
   BrushShapes.HATCH_ANGLES.every(h =>
     Number.isInteger(h.a) && Number.isInteger(h.b) && (h.a !== 0 || h.b !== 0)));
@@ -94,29 +94,69 @@ check('lattice depends on absolute position, not on any stamp origin',
   BrushShapes.onHatchLine(37, 61, dirOf('45'), 5, 2) ===
   BrushShapes.onHatchLine(37, 61, dirOf('45'), 5, 2));
 
-// ── Tone is EXACTLY thickness/spacing, at every angle ───────────────────────
+// ── Coverage matches onHatchLine's OWN derived ratio, at every angle ───────
+//
+// onHatchLine scales spacing/thickness by len = hypot(a, b) internally (see
+// its docblock) so the physical on-screen spacing stays equal to the dial
+// value at every angle, not just 0/90 — a 45deg pass otherwise packed its
+// lines ~41% closer than a 0deg one for the same two numbers, and the
+// shallowest of the 16 angles up to 3.16x closer. That means the exact
+// ratio actually drawn is t'/s' (the len-scaled, rounded pair), which can
+// drift a few percent from the raw thickness/spacing at small spacing
+// values — the ordinary cost of fitting a rational fraction onto a small
+// integer period. This checks the MEASURED coverage matches that derived
+// ratio precisely (validating the row-invariant claim empirically); the
+// physical-spacing block below checks the len-scaling itself.
 
 let toneOk = true;
 const toneReport = [];
 for (const h of BrushShapes.HATCH_ANGLES) {
-  for (const [s, t] of [[2, 1], [4, 1], [4, 2], [8, 1], [8, 3], [5, 2]]) {
+  for (const [spacing, thickness] of [[2, 1], [4, 1], [4, 2], [8, 1], [8, 3], [5, 2]]) {
     let ink = 0, total = 0;
     for (let y = 0; y < 40; y++) {
       for (let x = 0; x < 40; x++) {
         total++;
-        if (BrushShapes.onHatchLine(x, y, h, s, t)) ink++;
+        if (BrushShapes.onHatchLine(x, y, h, spacing, thickness)) ink++;
       }
     }
+    const len = Math.hypot(h.a, h.b);
+    const s = Math.max(2, Math.round(spacing * len));
+    const t = Math.max(1, Math.min(s, Math.round(thickness * len)));
     const expected = t / s;
     const actual = ink / total;
     if (Math.abs(actual - expected) > 0.02) {
       toneOk = false;
-      toneReport.push(`${h.deg}° s=${s} t=${t}: ${actual.toFixed(3)} != ${expected.toFixed(3)}`);
+      toneReport.push(`${h.deg}° s=${spacing} t=${thickness}: ${actual.toFixed(3)} != ${expected.toFixed(3)}`);
     }
   }
 }
-check(`coverage === thickness/spacing at every angle${toneReport.length ? ' — ' + toneReport[0] : ''}`,
+check(`coverage matches onHatchLine's own derived ratio at every angle${toneReport.length ? ' — ' + toneReport[0] : ''}`,
   toneOk);
+
+// ── Physical line spacing is angle-invariant ────────────────────────────────
+//
+// This is the property the len-scaling exists for: the SAME spacing dial
+// value must land on roughly the same real on-screen distance between
+// lines at every angle, not a distance that shrinks the steeper the angle
+// gets. `internalPeriod / len` recovers the physical period onHatchLine
+// actually draws with; +/-1px covers the rounding needed to land on an
+// integer internal period.
+
+let spacingOk = true;
+const spacingReport = [];
+for (const h of BrushShapes.HATCH_ANGLES) {
+  for (const spacing of [2, 4, 8, 16]) {
+    const len = Math.hypot(h.a, h.b);
+    const internalPeriod = Math.max(2, Math.round(spacing * len));
+    const physicalPeriod = internalPeriod / len;
+    if (Math.abs(physicalPeriod - spacing) > 1) {
+      spacingOk = false;
+      spacingReport.push(`${h.deg}° spacing=${spacing}: physical=${physicalPeriod.toFixed(2)}`);
+    }
+  }
+}
+check(`physical line spacing stays within 1px of the dial at every angle${spacingReport.length ? ' — ' + spacingReport[0] : ''}`,
+  spacingOk);
 
 check('thickness is clamped to spacing (never more than solid)',
   BrushShapes.onHatchLine(3, 7, dirOf('0'), 4, 99) === true);
@@ -275,9 +315,38 @@ for (let i = 0; i < 12; i++) BrushEngine.applyBrush(40, 40 + i * 3, 1.0, true); 
 check(`follow: a vertical sweep settles on 90 degrees (got ${hatch._followId})`,
   hatch._followId === '90');
 
+// A straight continuous-angle drag, sampled at pixel resolution, does NOT
+// walk in exact (a,b) steps — consecutive ROUNDED points give a Bresenham-
+// like sequence of small, locally-coarser steps (e.g. a true 18.4deg line's
+// first few samples look a lot like 2:1, not 3:1). Tracking displacement
+// FROM STROKE START, not the delta between two samples, is what lets the
+// true ratio emerge once the vector is long enough — this is the
+// regression test for the bug where per-sample tracking could never
+// resolve 8 of the 16 angles, no matter how the stroke was actually drawn.
+{
+  let allAnglesReachable = true;
+  const unreached = [];
+  for (const h of BrushShapes.HATCH_ANGLES) {
+    tool.setHatchAngle('follow');
+    BrushEngine.startDrawingSession();
+    const rad = h.deg * Math.PI / 180;
+    for (let k = 1; k <= 40; k++) {
+      const x = Math.round(40 + Math.cos(rad) * k);
+      const y = Math.round(40 + Math.sin(rad) * k);
+      BrushEngine.applyBrush(x, y, 1.0, true);
+    }
+    if (hatch._followId !== h.id) {
+      allAnglesReachable = false;
+      unreached.push(`${h.deg}° -> got ${hatch._followId}`);
+    }
+  }
+  check(`follow mode resolves every one of the 16 angles from a real (rounded) drag${unreached.length ? ' — ' + unreached[0] : ''}`,
+    allAnglesReachable);
+}
+
 BrushEngine.startDrawingSession();
 check('follow: startDrawingSession resets the direction tracking',
-  hatch._lastX === null && hatch._dirX === 0 && hatch._dirY === 0);
+  hatch._startX === null && hatch._locked === false);
 
 // A fixed angle ignores the stroke direction entirely.
 tool.setHatchAngle('135');

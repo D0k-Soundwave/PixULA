@@ -778,11 +778,39 @@ class GridOverlayClass {
      */
     _renderCompositorPreview(ctx, canvas, affectedCells, inkSet, paperSet, colorSelection, activeLayerIndex) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (affectedCells.size === 0) return;
 
         const cellW = ZX_SPECTRUM.CELL_WIDTH;
         const cellH = ZX_SPECTRUM.CELL_HEIGHT;
         const layers = LayerManager.layers;
         const bgLayer = layers[0];
+
+        // Every touched pixel is written straight into one RGBA buffer and
+        // painted with a single putImageData, instead of a fillStyle+fillRect
+        // pair per pixel. A full-canvas gradient preview used to issue tens
+        // of thousands of canvas-API calls on every pointermove; this issues
+        // one, regardless of how many pixels are affected. The buffer only
+        // spans the bounding box of affectedCells - cells inside the box but
+        // not in the set are left at alpha 0 (transparent), matching the old
+        // behaviour of simply never drawing them (the clearRect above already
+        // cleared that area).
+        let minCX = Infinity, minCY = Infinity, maxCX = -Infinity, maxCY = -Infinity;
+        for (const key of affectedCells) {
+            const comma = key.indexOf(',');
+            const cellX = parseInt(key.slice(0, comma), 10);
+            const cellY = parseInt(key.slice(comma + 1), 10);
+            if (cellX < minCX) minCX = cellX;
+            if (cellX > maxCX) maxCX = cellX;
+            if (cellY < minCY) minCY = cellY;
+            if (cellY > maxCY) maxCY = cellY;
+        }
+
+        const bboxX = minCX * cellW;
+        const bboxY = minCY * cellH;
+        const bboxW = (maxCX - minCX + 1) * cellW;
+        const bboxH = (maxCY - minCY + 1) * cellH;
+        const imgData = ctx.createImageData(bboxW, bboxH);
+        const buf = imgData.data;
 
         for (const key of affectedCells) {
             const comma = key.indexOf(',');
@@ -845,18 +873,27 @@ class GridOverlayClass {
             const t = ColorManager.attrToIndices(compositeAttrs);
             const inkRGB   = ColorManager.getRGB(t.ink);
             const paperRGB = ColorManager.getRGB(t.paper);
-            const inkHex   = Helpers.rgbToHex(inkRGB[0], inkRGB[1], inkRGB[2]);
-            const paperHex = Helpers.rgbToHex(paperRGB[0], paperRGB[1], paperRGB[2]);
 
-            // Render every pixel of the cell — fully opaque, pixel-perfect match of final canvas
+            // Write every pixel of the cell straight into the shared buffer —
+            // fully opaque, pixel-perfect match of final canvas.
+            const cellOffX = baseX - bboxX;
+            const cellOffY = baseY - bboxY;
             for (let row = 0; row < cellH; row++) {
+                const rowBits = compositePixels[row];
+                const py = cellOffY + row;
                 for (let col = 0; col < cellW; col++) {
-                    const isInk = (compositePixels[row] >> (cellW - 1 - col)) & 1;
-                    ctx.fillStyle = isInk ? inkHex : paperHex;
-                    ctx.fillRect(baseX + col, baseY + row, 1, 1);
+                    const isInk = (rowBits >> (cellW - 1 - col)) & 1;
+                    const rgb = isInk ? inkRGB : paperRGB;
+                    const idx = (py * bboxW + cellOffX + col) * 4;
+                    buf[idx]     = rgb[0];
+                    buf[idx + 1] = rgb[1];
+                    buf[idx + 2] = rgb[2];
+                    buf[idx + 3] = 255;
                 }
             }
         }
+
+        ctx.putImageData(imgData, bboxX, bboxY);
     }
 
     /** Function preview context (for tools that need direct access). */

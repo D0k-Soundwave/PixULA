@@ -166,10 +166,10 @@ Manual matrix (run in browser, old app open side by side):
 - [x] de / hu / ru: left rail (Swap/Apply stacked rows), menus, zoom strip — nothing clips at 100–200% UI scale (Fit button grows with its label; the selector's top preset was 300% until it was retired 2026-08-10, see js/ui/components/colorbar-fit.js) — AUTO (browser: i18n-themes.spec; scrollWidth/Height sweep at min+max scale — found and fixed the zoom-fit vertical clip)
 
 ### Theme switch
-- [x] Theme selector lists 6 translated names; boots into the theme persisted pre-Phase-6 (interim 'theme' key) — AUTO (browser: i18n-themes.spec)
-- [x] dark / light / midnight / nord / dracula / sepia all render: chrome surfaces, text, accents, dialogs, scrollbars (color-scheme), toggle states visible on light themes — AUTO (browser: i18n-themes.spec; data-theme + distinct --bg-primary per theme. Visual accent/scrollbar nuance: manual)
+- [x] Settings > Theme lists 8 translated names (no header control since 2026-08-21); boots into the theme persisted pre-Phase-6 (interim 'theme' key) — AUTO (browser: i18n-themes.spec)
+- [x] dark / light / midnight / nord / dracula / sepia / crimson / citrus all render: chrome surfaces, text, accents, dialogs, scrollbars (color-scheme), toggle states visible on light themes — AUTO (browser: i18n-themes.spec; data-theme + distinct --bg-primary per theme. Visual accent/scrollbar nuance: manual)
 - [ ] Grid overlay colours re-read from tokens on switch (8×8 red/16×16 blue on dark; darker variants on light/sepia)
-- [x] Settings -> Light/Dark Theme menu toggles track the active theme and update the header selector; selector changes update the menu checks — AUTO (browser: i18n-themes.spec)
+- [x] Settings > Theme menu checkmarks track the active theme (sole picker) — AUTO (browser: i18n-themes.spec)
 - [ ] Theme persists across F5; Reset All Preferences returns to dark — PART: F5 persistence AUTO (browser: i18n-themes.spec); manual: Reset All returns to dark
 
 ## Phase 7 — parity sign-off + quick wins (2026-07-04)
@@ -322,7 +322,7 @@ Manual matrix (deferred to the end-of-rebuild consolidated pass):
 - [ ] Right-button drag draws an erasing curve; undo removes a committed curve in one step
 
 ### Symmetry drawing mode
-- [ ] Mirror label + H / V / H+V buttons appear beside the grid controls, localized; clicking the active mode turns it off
+- [ ] Mirror H / V / H+V icon buttons appear in the top colour bar beside the draw modes, localized; clicking the active mode turns it off
 - [x] With H on: brush, eraser, spray, shapes, fill, bezier and pattern strokes all appear mirrored left<->right; V mirrors topup/downbottom; H+V draws in all four quadrants — AUTO (node: symmetry-draw.test.js; H/V/quad through the real core stack)
 - [x] One undo removes both/all sides of a mirrored stroke — AUTO (node: symmetry-draw.test.js)
 - [x] Paste/stamp commit, transforms (flip/rotate/shift/scale), attr paint Swap/Apply and pattern area fills are NOT mirrored — AUTO (node: symmetry-draw.test.js; suspendMirror/options.mirror exemptions)

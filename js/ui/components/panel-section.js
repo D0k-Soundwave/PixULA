@@ -8,14 +8,25 @@
  * Transform, Tool Options, Reference), wires the collapse/expand header and
  * persists each section's open/closed state across reloads (Storage
  * WINDOW_STATE store — replaces the old app.js _setupPanelCollapse block).
+ *
+ * Two independent axes, each persisted under its own key: **collapse**
+ * (isCollapsed/setCollapsed/toggle) folds a present panel down to its title
+ * bar via the header's own arrow; **visibility** (isVisible/setVisible/
+ * toggleVisibility) adds or removes the whole section — header included —
+ * from #panels, which is what the View menu's panel checkboxes drive.
+ * Collapsing a hidden panel (or vice versa) is fine: the two states are
+ * independent, so removing a panel remembers whatever collapse state it had
+ * when it comes back.
  */
 class PanelSectionClass {
     constructor() {
         this.STORE_KEY = 'panelCollapse';
+        this.VISIBILITY_KEY = 'panelVisibility';
         this.ORDER_KEY = 'panelOrder';
         /** @type {Map<string, { section, content, title, button }>} */
         this._sections = new Map();
         this._restored = null; // persisted collapse states (async)
+        this._restoredVisibility = null; // persisted whole-section visibility (async)
         this._restoredOrder = null; // persisted panel order (async)
     }
 
@@ -85,6 +96,7 @@ class PanelSectionClass {
         this._sections.set(id, entry);
 
         this._setCollapsedDom(entry, collapsed);
+        this._setVisibleDom(entry, true); // default: present in the sidebar
 
         header.addEventListener('click', () => {
             const expanded = button.getAttribute('aria-expanded') === 'true';
@@ -102,6 +114,9 @@ class PanelSectionClass {
         // Apply any persisted state that resolved before this panel existed
         if (this._restored && Object.prototype.hasOwnProperty.call(this._restored, content.id)) {
             this._setCollapsedDom(entry, !this._restored[content.id]);
+        }
+        if (this._restoredVisibility && Object.prototype.hasOwnProperty.call(this._restoredVisibility, id)) {
+            this._setVisibleDom(entry, this._restoredVisibility[id]);
         }
         if (this._restoredOrder && this._restoredOrder.includes(id)) {
             this._applyOrder(this._restoredOrder);
@@ -150,9 +165,27 @@ class PanelSectionClass {
         for (const extra of entry.extras || []) {
             extra.style.display = collapsed ? 'none' : '';
         }
+        // The one fact for "is this panel open" — covers header-click
+        // collapse, setCollapsed(), and restore()'s persisted state alike,
+        // so any listener (the View-menu checkboxes) stays right regardless
+        // of which of those changed it.
+        EventBus.emit(EVENTS.PANEL_COLLAPSE_CHANGED, { id: entry.section.id, expanded: !collapsed });
     }
 
-    /** Persist all sections' states. @private */
+    /**
+     * Add or remove a whole section from the sidebar — distinct from collapse:
+     * collapse folds a present panel to its title bar, this takes the panel out
+     * of #panels' layout entirely (header included), the way the View menu's
+     * panel checkboxes are meant to work. Collapse state is left untouched
+     * underneath, so re-adding a panel restores whatever collapse state it had.
+     * @private
+     */
+    _setVisibleDom(entry, visible) {
+        entry.section.style.display = visible ? '' : 'none';
+        EventBus.emit(EVENTS.PANEL_VISIBILITY_CHANGED, { id: entry.section.id, visible });
+    }
+
+    /** Persist all sections' collapse states. @private */
     _save() {
         if (!window.Storage) return;
         const states = {};
@@ -161,6 +194,17 @@ class PanelSectionClass {
         }
         const store = (Storage.STORES && Storage.STORES.WINDOW_STATE) || 'window-state';
         Promise.resolve(Storage.set(this.STORE_KEY, states, store)).catch(() => {});
+    }
+
+    /** Persist all sections' whole-panel visibility. @private */
+    _saveVisibility() {
+        if (!window.Storage) return;
+        const states = {};
+        for (const [id, entry] of this._sections.entries()) {
+            states[id] = entry.section.style.display !== 'none';
+        }
+        const store = (Storage.STORES && Storage.STORES.WINDOW_STATE) || 'window-state';
+        Promise.resolve(Storage.set(this.VISIBILITY_KEY, states, store)).catch(() => {});
     }
 
     /** Show the Move up/Move down context menu for a panel's title bar. @private */
@@ -233,8 +277,9 @@ class PanelSectionClass {
         if (!window.Storage) return;
         const store = (Storage.STORES && Storage.STORES.WINDOW_STATE) || 'window-state';
         try {
-            const [states, order] = await Promise.all([
+            const [states, visibility, order] = await Promise.all([
                 Storage.get(this.STORE_KEY, store),
+                Storage.get(this.VISIBILITY_KEY, store),
                 Storage.get(this.ORDER_KEY, store)
             ]);
             if (states) {
@@ -243,6 +288,14 @@ class PanelSectionClass {
                     const key = entry.content.id;
                     if (Object.prototype.hasOwnProperty.call(states, key)) {
                         this._setCollapsedDom(entry, !states[key]);
+                    }
+                }
+            }
+            if (visibility) {
+                this._restoredVisibility = visibility;
+                for (const [id, entry] of this._sections.entries()) {
+                    if (Object.prototype.hasOwnProperty.call(visibility, id)) {
+                        this._setVisibleDom(entry, visibility[id]);
                     }
                 }
             }
@@ -267,11 +320,32 @@ class PanelSectionClass {
         this._save();
     }
 
-    /** Toggle a section (menu View actions). Returns the new expanded state. */
+    /** Toggle a section's collapse (its own header arrow). Returns the new expanded state. */
     toggle(id) {
         const collapsed = this.isCollapsed(id);
         this.setCollapsed(id, !collapsed);
         return collapsed; // was collapsed -> now expanded
+    }
+
+    /** Is a whole section currently present in the sidebar? */
+    isVisible(id) {
+        const entry = this._sections.get(id);
+        return entry ? entry.section.style.display !== 'none' : false;
+    }
+
+    /** Add (true) or remove (false) a whole section from the sidebar (persisted). */
+    setVisible(id, visible) {
+        const entry = this._sections.get(id);
+        if (!entry) return;
+        this._setVisibleDom(entry, visible);
+        this._saveVisibility();
+    }
+
+    /** Toggle a section's presence in the sidebar (menu View actions). Returns the new visible state. */
+    toggleVisibility(id) {
+        const visible = this.isVisible(id);
+        this.setVisible(id, !visible);
+        return !visible;
     }
 }
 

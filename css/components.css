@@ -73,25 +73,18 @@
     pointer-events: none;
 }
 
-.menu-action.menu-toggle::before {
-    content: '';
-    display: inline-block;
-    width: 1em;
-    flex: 0 0 1em;
+/* The checked state highlights the whole row (same translucent-tint
+   convention as the current-layer row, .layer-item.current) rather than
+   drawing a glyph — a glyph needed its own gutter reserved on every toggle
+   row whether checked or not, and read as an arrow/chevron rather than a
+   clear "selected" mark at menu-item size. */
+.menu-action.menu-toggle.checked {
+    background: var(--accent-bg);
+    color: var(--accent-primary);
 }
 
-/* A CSS-drawn tick (rotated border corner, same technique as
-   .panel-collapse::before) rather than literal text — 'yes' wrapped inside
-   the 1em gutter into two lines and was never localised in the first place. */
-.menu-action.menu-toggle.checked::before {
-    content: '';
-    width: 0.5em;
-    height: 0.85em;
-    border-right: 0.16em solid var(--accent-primary);
-    border-bottom: 0.16em solid var(--accent-primary);
-    transform: rotate(40deg);
-    transform-origin: bottom left;
-    margin-left: 0.3em;
+.menu-action.menu-toggle.checked:hover {
+    background: var(--accent-bg);
 }
 
 .menu-shortcut {
@@ -298,6 +291,63 @@
     width: 28px;
     height: 28px;
 }
+
+/* ===== Tool icon identity colours =====
+   Every real tool gets its own hue (--tool-color-* in variables.css /
+   themes.css, one set per theme) so the rail reads as more than a stack of
+   grey glyphs. It is applied as `color` on the BUTTON, not the icon, so it
+   works for both the SVG rail glyphs (fill: currentColor above) and the
+   plain-text letter icons the pattern-creator/font/map/sprite dialogs' mini
+   toolbars use (Helpers.miniToolButton) — both are the same tool identity in
+   miniature and share this rule via data-tool. `:not(.active)` is what keeps
+   the active-tool accent override (below) in sole control of that state —
+   tool colour is a rest/hover cue only, never competing with "which tool is
+   selected". Option-grids stay neutral — they render as .tool-btn but carry
+   no data-tool matching a real tool id, and an option value (brush shape,
+   dither pattern) has no fixed identity to colour consistently. The top
+   colour bar's draw-mode buttons and attribute ops get the same treatment
+   below, on their own token set, since they're the same kind of dull
+   monochrome row even though they aren't "tools" in the TOOLS-registry
+   sense. */
+.tool-btn[data-tool="brush"]:not(.active)           { color: var(--tool-color-brush); }
+.tool-btn[data-tool="spray"]:not(.active)           { color: var(--tool-color-spray); }
+.tool-btn[data-tool="fade"]:not(.active)            { color: var(--tool-color-fade); }
+.tool-btn[data-tool="pattern"]:not(.active)         { color: var(--tool-color-pattern); }
+.tool-btn[data-tool="hatch"]:not(.active)           { color: var(--tool-color-hatch); }
+.tool-btn[data-tool="eraser"]:not(.active)          { color: var(--tool-color-eraser); }
+.tool-btn[data-tool="fill"]:not(.active)            { color: var(--tool-color-fill); }
+.tool-btn[data-tool="gradient"]:not(.active)        { color: var(--tool-color-gradient); }
+.tool-btn[data-tool="shape"]:not(.active)           { color: var(--tool-color-shape); }
+.tool-btn[data-tool="eyedropper"]:not(.active)      { color: var(--tool-color-eyedropper); }
+.tool-btn[data-tool="selection"]:not(.active)       { color: var(--tool-color-selection); }
+.tool-btn[data-tool="select-ellipse"]:not(.active)  { color: var(--tool-color-select-ellipse); }
+.tool-btn[data-tool="select-lasso"]:not(.active)    { color: var(--tool-color-select-lasso); }
+.tool-btn[data-tool="select-wand"]:not(.active)     { color: var(--tool-color-select-wand); }
+.tool-btn[data-tool="select-cell"]:not(.active)     { color: var(--tool-color-select-cell); }
+.tool-btn[data-tool="text"]:not(.active)            { color: var(--tool-color-text); }
+.tool-btn[data-tool="pattern-creator"]:not(.active) { color: var(--tool-color-pattern-creator); }
+.tool-btn[data-tool="zoom"]:not(.active)            { color: var(--tool-color-zoom); }
+.tool-btn[data-tool="transform"]:not(.active)       { color: var(--tool-color-transform); }
+.tool-btn[data-tool="line"]:not(.active)            { color: var(--tool-color-line); }
+
+/* Top colour bar — draw modes (draw-mode-bar.js, data-draw-mode) and the
+   Swap/Recolour attribute ops (clut-bar.js, plain ids — they're a pair, not
+   a registry). Same :not(.active) rule: clut-bar's own .active handling
+   (the warning-colour outline for the two MODAL ops) is untouched. */
+.tool-btn[data-draw-mode="normal"]:not(.active)     { color: var(--tool-color-dm-normal); }
+.tool-btn[data-draw-mode="ink"]:not(.active)        { color: var(--tool-color-dm-ink); }
+.tool-btn[data-draw-mode="paper"]:not(.active)      { color: var(--tool-color-dm-paper); }
+.tool-btn[data-draw-mode="pixel_only"]:not(.active) { color: var(--tool-color-dm-pixel-only); }
+.tool-btn[data-draw-mode="xor"]:not(.active)        { color: var(--tool-color-dm-xor); }
+#attr-transpose:not(.active)                        { color: var(--tool-color-attr-swap); }
+#attr-apply:not(.active)                            { color: var(--tool-color-attr-recolour); }
+
+/* Bright/Flash toggles (clut-bar.js) are <label class="flash-btn"> wrapping
+   a checkbox, not .tool-btn, and already switch to accent bg + on-accent
+   icon when checked (.flash-btn:has(input:checked) above) — the identity
+   colour applies only outside that state, same rule as everywhere else. */
+.flash-btn:has(#bright-toggle):not(:has(input:checked)) { color: var(--tool-color-attr-bright); }
+.flash-btn:has(#flash-toggle):not(:has(input:checked))  { color: var(--tool-color-attr-flash); }
 
 /* ===== Icon captions =====
    Every icon control names itself: a one-keyword caption sits ABOVE the
@@ -727,23 +777,36 @@
     font-size: var(--font-size-sm);
 }
 
-/* The draw modes and Swap/Recolour are ONE run, in that DOM order (XOR then
-   Swap/Recolour). `display: contents` dissolves the two section boxes so all
-   seven cells are siblings in #color-bar-controls — which is what lets them
-   share the width EVENLY. Kept as separate sections because two different
-   components own them (ClutBar, DrawModeBar) and ClutBar still hides
-   #attr-tools whole in the modes that have no cell attributes; an inline
-   `display: none` still beats this. */
-#color-bar-controls #attr-tools,
-#color-bar-controls #draw-modes {
+/* The draw modes, Mirror and Swap/Recolour are ONE run, in that DOM order
+   (the draw modes, then Mirror H/V/H+V, then Swap/Recolour). `display:
+   contents` dissolves the three section boxes so every button is a direct
+   sibling in #marks-icons-row (css/layout.css) — the inner row that #color-
+   bar-controls's own "Drawing Modes" caption sits above. Kept as separate
+   sections because two different components own them (ClutBar, DrawModeBar)
+   and ClutBar still hides #attr-tools whole in the modes that have no cell
+   attributes; an inline `display: none` still beats this. */
+#marks-icons-row #attr-tools,
+#marks-icons-row #draw-modes,
+#marks-icons-row #mirror-modes {
     display: contents;
 }
 
-/* Every icon cell takes an equal share of the row: same basis, same grow, so
-   they come out the same width however much room there is. The 39px button
-   stays centred in whatever the cell becomes. */
-#color-bar-controls .btn-captioned {
-    flex: 1 0 var(--clut-cell-size);
+/* One caption for the whole run (2026-08-22) — replaced a caption under
+   EVERY button (Normal, Ink RC, ..., XOR Px, M.H, ..., Swap, Recolour): with
+   the XOR / Pixel mode added, that pitch alone needed 11 x 56px, and the run
+   still had Mirror and Swap/Recolour beside it, which is what pushed the
+   whole colour bar to two rows well below the window widths it used to fit.
+   The buttons are bare icons now (sized by #color-bar button/.tool-btn,
+   css/utilities.css) instead of --clut-cell-size cells, which is most of the
+   room this bought back. Typography matches .btn-label (css/components.css)
+   so it reads as the same caption system as Ink/Paper/Bright/Flash/Border. */
+.toolbar-group-label {
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    line-height: 1.1;
+    text-align: center;
+    color: var(--text-primary);
+    pointer-events: none;
 }
 
 @media (pointer: coarse) {
@@ -1001,7 +1064,8 @@
     gap: 4px;
 }
 
-.tool-option > label {
+.tool-option > label,
+.tool-option > .tp-shift-heading {
     font-size: var(--font-size-xs);
     color: var(--text-secondary);
     display: flex;

@@ -19,6 +19,18 @@ class MenuSystemClass {
 
         this._boundDocClickHandler = null;
         this._boundDocKeydownHandler = null;
+
+        // PanelSection section id -> View-menu checkbox item id, read by the
+        // EVENTS.PANEL_VISIBILITY_CHANGED listener below. Patterns is not
+        // here: its section visibility is automatic (pattern-brush context),
+        // not a menu-reachable toggle. Presets is not here either — it has
+        // its own showPresetsPanel-preference visibility, synced separately.
+        this._PANEL_MENU_ITEM_BY_SECTION = {
+            'reference-panel':    'panel-reference',
+            'tool-options-panel': 'panel-tools',
+            'layer-panel':        'panel-layers',
+            'transform-panel':    'panel-transform'
+        };
     }
 
     /** English fallback until i18n lands (Phase 6). @private */
@@ -183,12 +195,15 @@ class MenuSystemClass {
                         { id: 'mirror-both', label: 'H+V',        action: 'view:mirrorBoth', toggle: true, i18n: 'view.mirrorBoth' }
                     ]},
                     { type: 'separator' },
-                    // Every collapsible sidebar panel, not just two of six —
-                    // each also has its own inline collapse header, this is
-                    // the menu-reachable equivalent.
+                    // Every collapsible sidebar panel except Patterns, which
+                    // has its own inline collapse header, this is the
+                    // menu-reachable equivalent. Patterns is left out: its
+                    // whole section auto-shows/hides on the pattern brush
+                    // context (PatternPanel._updatePanelVisibility), and a
+                    // manual collapse toggle here would only ever be visible
+                    // while that context already shows the panel.
                     { id: 'panel-layers', label: 'Layers', action: 'view:toggleLayers', toggle: true, i18n: 'panels.layers' },
                     { id: 'panel-transform', label: 'Transform', action: 'view:toggleTransform', toggle: true, i18n: 'panels.transform' },
-                    { id: 'panel-patterns', label: 'Patterns', action: 'view:togglePatterns', toggle: true, i18n: 'panels.patternLibrary' },
                     { id: 'panel-reference', label: 'Reference Panel', action: 'view:toggleReference', toggle: true },
                     { id: 'panel-tools', label: 'Tool Options', action: 'view:toggleToolOptions', toggle: true },
                     { id: 'panel-presets', label: 'Tool Presets', action: 'view:toggleToolPresets', toggle: true, i18n: 'panels.presets' }
@@ -258,16 +273,17 @@ class MenuSystemClass {
                     { id: 'presets', label: 'Workspace Presets...', action: 'settings:presets' },
                     { id: 'companion', label: 'Companion...', action: 'settings:companion' },
                     { type: 'separator' },
-                    // All 6 themes, matching the header selector — the old
-                    // Light/Dark pair reached only 2 of them, a second,
-                    // narrower control for the same setting.
+                    // All 8 themes — the sole theme picker (a header <select>
+                    // duplicated this until 2026-08-21; removed as redundant).
                     { id: 'theme', label: 'Theme', i18n: 'menu.settings.theme', items: [
                         { id: 'theme-dark',     label: 'Dark',     action: 'settings:themeDark',     toggle: true, i18n: 'theme.dark' },
                         { id: 'theme-light',    label: 'Light',    action: 'settings:themeLight',    toggle: true, i18n: 'theme.light' },
                         { id: 'theme-midnight', label: 'Midnight', action: 'settings:themeMidnight', toggle: true, i18n: 'theme.midnight' },
                         { id: 'theme-nord',     label: 'Nord',     action: 'settings:themeNord',     toggle: true, i18n: 'theme.nord' },
                         { id: 'theme-dracula',  label: 'Dracula',  action: 'settings:themeDracula',  toggle: true, i18n: 'theme.dracula' },
-                        { id: 'theme-sepia',    label: 'Sepia',    action: 'settings:themeSepia',    toggle: true, i18n: 'theme.sepia' }
+                        { id: 'theme-sepia',    label: 'Sepia',    action: 'settings:themeSepia',    toggle: true, i18n: 'theme.sepia' },
+                        { id: 'theme-crimson',  label: 'Crimson',  action: 'settings:themeCrimson',  toggle: true, i18n: 'theme.crimson' },
+                        { id: 'theme-citrus',   label: 'Citrus',   action: 'settings:themeCitrus',   toggle: true, i18n: 'theme.citrus' }
                     ]},
                     { type: 'separator' },
                     { id: 'reset-preferences', label: 'Reset All Preferences', action: 'settings:resetAll' }
@@ -431,6 +447,28 @@ class MenuSystemClass {
         // facts (both can also change from the canvas-controls rail).
         EventBus.on(EVENTS.SYMMETRY_CHANGED, ({ mode }) => this._updateMirrorToggles(mode));
         EventBus.on(EVENTS.GRID_SNAP_CHANGED, ({ snap }) => this._updateToggleState('grid-snap', !!snap));
+
+        // Keep each View-menu panel checkbox in sync with PanelSection's own
+        // visibility fact — fired on creation, on restore() resolving
+        // persisted state, and on setVisible()/toggleVisibility() from
+        // anywhere else, so the menu reflects reality on load and stays right
+        // however the panel was added or removed (not only via this menu).
+        EventBus.on(EVENTS.PANEL_VISIBILITY_CHANGED, ({ id, visible }) => {
+            const itemId = this._PANEL_MENU_ITEM_BY_SECTION[id];
+            if (itemId) this._updateToggleState(itemId, visible);
+        });
+
+        // Presets' whole-panel visibility rides on the showPresetsPanel
+        // preference (also flipped from Preferences > General), not on
+        // PanelSection — see the view:toggleToolPresets case above.
+        EventBus.on(EVENTS.STATE_CHANGED, (data) => {
+            if (data && data.path === 'showPresetsPanel') {
+                this._updateToggleState('panel-presets', !!data.newValue);
+            }
+        });
+        if (window.StateManager) {
+            this._updateToggleState('panel-presets', StateManager.get('showPresetsPanel') === true);
+        }
     }
 
     /**
@@ -635,36 +673,22 @@ class MenuSystemClass {
             case 'view:mirrorH':    StateManager.setSymmetryMode('h');    break;
             case 'view:mirrorV':    StateManager.setSymmetryMode('v');    break;
             case 'view:mirrorBoth': StateManager.setSymmetryMode('quad'); break;
-            case 'view:toggleReference': {
-                const expanded = PanelSection.toggle('reference-panel');
-                this._updateToggleState('panel-reference', expanded);
-                break;
-            }
-            case 'view:toggleToolOptions': {
-                const expanded = PanelSection.toggle('tool-options-panel');
-                this._updateToggleState('panel-tools', expanded);
-                break;
-            }
-            case 'view:toggleLayers': {
-                const expanded = PanelSection.toggle('layer-panel');
-                this._updateToggleState('panel-layers', expanded);
-                break;
-            }
-            case 'view:toggleTransform': {
-                const expanded = PanelSection.toggle('transform-panel');
-                this._updateToggleState('panel-transform', expanded);
-                break;
-            }
-            case 'view:togglePatterns': {
-                const expanded = PanelSection.toggle('patterns-panel');
-                this._updateToggleState('panel-patterns', expanded);
-                break;
-            }
-            case 'view:toggleToolPresets': {
-                const expanded = PanelSection.toggle('tool-preset-panel');
-                this._updateToggleState('panel-presets', expanded);
-                break;
-            }
+            // Adds/removes the whole panel from the sidebar (PanelSection's
+            // visibility axis, not its collapse axis — see panel-section.js).
+            // The menu's own checked state is not set here — it follows
+            // EVENTS.PANEL_VISIBILITY_CHANGED (see _attachEvents), the same
+            // fact any other caller of setVisible/toggleVisibility fires, so
+            // the two paths can never disagree.
+            case 'view:toggleReference':   PanelSection.toggleVisibility('reference-panel');    break;
+            case 'view:toggleToolOptions': PanelSection.toggleVisibility('tool-options-panel'); break;
+            case 'view:toggleLayers':      PanelSection.toggleVisibility('layer-panel');        break;
+            case 'view:toggleTransform':   PanelSection.toggleVisibility('transform-panel');    break;
+            // Presets is not on PanelSection's visibility axis: its whole-panel
+            // show/hide is already owned by the showPresetsPanel preference
+            // (ToolPresetPanel._syncVisibility, also set from Preferences >
+            // General), so the menu flips that same flag rather than layering
+            // a second, competing visibility mechanism onto one panel.
+            case 'view:toggleToolPresets': StateManager.set('showPresetsPanel', !StateManager.get('showPresetsPanel')); break;
 
             // Layer
             case 'layer:new':       LayerManager.addLayer(); break;
@@ -712,6 +736,8 @@ class MenuSystemClass {
             case 'settings:themeNord':     this._setTheme('nord');     break;
             case 'settings:themeDracula':  this._setTheme('dracula');  break;
             case 'settings:themeSepia':    this._setTheme('sepia');    break;
+            case 'settings:themeCrimson':  this._setTheme('crimson');  break;
+            case 'settings:themeCitrus':   this._setTheme('citrus');   break;
             case 'settings:resetAll':       this._resetAllPreferences();  break;
 
             // Help
@@ -1566,7 +1592,7 @@ class MenuSystemClass {
 
     /** @private */
     _updateThemeToggles(activeTheme) {
-        for (const id of ['dark', 'light', 'midnight', 'nord', 'dracula', 'sepia']) {
+        for (const id of ['dark', 'light', 'midnight', 'nord', 'dracula', 'sepia', 'crimson', 'citrus']) {
             this._updateToggleState(`theme-${id}`, activeTheme === id);
         }
     }
@@ -1599,6 +1625,7 @@ class MenuSystemClass {
                 Storage.delete('gridSnap'),
                 Storage.delete('touchDrawing'),
                 Storage.delete('panelCollapse', Storage.STORES.WINDOW_STATE),
+                Storage.delete('panelVisibility', Storage.STORES.WINDOW_STATE),
                 Storage.delete('panelOrder', Storage.STORES.WINDOW_STATE)
             ]).then(() => location.reload());
         }

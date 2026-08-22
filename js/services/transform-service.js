@@ -300,6 +300,7 @@ class TransformServiceClass {
     this._applyBufferWithAttrs(output, area);
     PixelDrawRoutine.endBatch();
 
+    EventBus.emit(EVENTS.TRANSFORM_FIXED_ROTATE, { degrees: 90 });
     Logger.debug('TransformService', 'Rotate 90 CW applied');
   }
 
@@ -336,6 +337,7 @@ class TransformServiceClass {
     this._applyBufferWithAttrs(output, area);
     PixelDrawRoutine.endBatch();
 
+    EventBus.emit(EVENTS.TRANSFORM_FIXED_ROTATE, { degrees: -90 });
     Logger.debug('TransformService', 'Rotate 90 CCW applied');
   }
 
@@ -353,6 +355,7 @@ class TransformServiceClass {
     this._applyBufferWithAttrs(rotated, area);
     PixelDrawRoutine.endBatch();
 
+    EventBus.emit(EVENTS.TRANSFORM_FIXED_ROTATE, { degrees: 180 });
     Logger.debug('TransformService', 'Rotate 180 applied');
   }
 

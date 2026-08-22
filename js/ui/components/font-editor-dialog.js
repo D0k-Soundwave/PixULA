@@ -61,13 +61,13 @@ class FontEditorDialogClass {
                 <canvas class="fe-glyph-grid"></canvas>
                 <div class="fe-row">
                     <label><span data-i18n="font.coverage">${this._t('font.coverage', 'Charset')}</span>
-                        <select class="fe-coverage">
+                        <select class="fe-coverage" id="fe-coverage" name="fe-coverage">
                             <option value="ASCII" data-i18n="font.coverageAscii">${this._t('font.coverageAscii', '96 chars (32–127)')}</option>
                             <option value="FULL" data-i18n="font.coverageFull">${this._t('font.coverageFull', '256 chars (0–255)')}</option>
                         </select></label>
                 </div>
                 <div class="me-section-title" data-i18n="font.library">${this._t('font.library', 'Font Library')}</div>
-                <select class="fe-library" size="5"></select>
+                <select class="fe-library" id="fe-library" name="fe-library" size="5"></select>
                 <div class="fe-row">
                     <button type="button" class="pc-btn fe-lib-save" data-i18n="font.save">${this._t('font.save', 'Save')}</button>
                     <button type="button" class="pc-btn fe-lib-load" data-i18n="font.load">${this._t('font.load', 'Load')}</button>
@@ -84,7 +84,7 @@ class FontEditorDialogClass {
                     </div>
                     <div class="me-tool-group">
                         <label><span data-i18n="font.width">${this._t('font.width', 'Width')}</span>
-                            <select class="fe-width">
+                            <select class="fe-width" id="fe-width" name="fe-width">
                                 <option value="4">4×8</option>
                                 <option value="6">6×8</option>
                                 <option value="8">8×8</option>
@@ -115,16 +115,16 @@ class FontEditorDialogClass {
                     <button type="button" class="pc-btn fe-rom" data-i18n="font.loadRom">${this._t('font.loadRom', 'Load ROM Font')}</button>
                     <div class="me-tool-group">
                         <label><span data-i18n="font.cellX">${this._t('font.cellX', 'Cell X')}</span>
-                            <input type="number" class="fe-cell-x" min="0" max="${ZX_SPECTRUM.GRID_COLS - 1}" value="0"></label>
+                            <input type="number" class="fe-cell-x" id="fe-cell-x" name="fe-cell-x" min="0" max="${ZX_SPECTRUM.GRID_COLS - 1}" value="0"></label>
                         <label><span data-i18n="font.cellY">${this._t('font.cellY', 'Cell Y')}</span>
-                            <input type="number" class="fe-cell-y" min="0" max="${ZX_SPECTRUM.GRID_ROWS - 1}" value="0"></label>
+                            <input type="number" class="fe-cell-y" id="fe-cell-y" name="fe-cell-y" min="0" max="${ZX_SPECTRUM.GRID_ROWS - 1}" value="0"></label>
                         <button type="button" class="pc-btn fe-capture" data-i18n="font.capture">${this._t('font.capture', 'Capture Cell')}</button>
                     </div>
                 </div>
                 <div class="me-toolbar">
-                    <input type="text" class="fe-name" placeholder="${this._t('font.name', 'Font name...')}" data-i18n-placeholder="font.name">
+                    <input type="text" class="fe-name" id="fe-name" name="fe-name" placeholder="${this._t('font.name', 'Font name...')}" data-i18n-placeholder="font.name">
                     <button type="button" class="pc-btn fe-import" data-i18n="font.import">${this._t('font.import', 'Import...')}</button>
-                    <select class="fe-export-format">
+                    <select class="fe-export-format" id="fe-export-format" name="fe-export-format">
                         <option value="ch8">CH8</option>
                         <option value="ch6">CH6</option>
                         <option value="ch4">CH4</option>
@@ -135,7 +135,7 @@ class FontEditorDialogClass {
                         <option value="bin">BIN</option>
                     </select>
                     <button type="button" class="pc-btn fe-export" data-i18n="font.export">${this._t('font.export', 'Export')}</button>
-                    <input type="file" class="fe-file-input" accept=".ch4,.ch6,.ch8,.chr,.chx" hidden>
+                    <input type="file" class="fe-file-input" id="fe-file-input" name="fe-file-input" accept=".ch4,.ch6,.ch8,.chr,.chx" hidden>
                 </div>
                 <div class="me-toolbar">
                     <button type="button" class="pc-btn fe-system-font font-editor-system-font-btn" data-i18n="font.fromSystemFont">${this._t('font.fromSystemFont', 'From System Font...')}</button>

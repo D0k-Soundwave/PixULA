@@ -209,6 +209,8 @@ class PresetDialogClass {
 
             const box = document.createElement('input');
             box.type = 'checkbox';
+            box.id = `preset-scope-${slice.id}`;
+            box.name = `preset-scope-${slice.id}`;
             box.value = slice.id;
             box.checked = preselected ? preselected.includes(slice.id) : !!slice.defaultOn;
             boxes.push(box);
@@ -250,6 +252,8 @@ class PresetDialogClass {
         // somebody else lands in the first free slot (never over one in use).
         const picker = document.createElement('input');
         picker.type = 'file';
+        picker.id = 'preset-file-input';
+        picker.name = 'preset-file-input';
         picker.accept = `.${PresetCodec.EXTENSION}`;
         picker.className = 'preset-file-input';
         picker.setAttribute('aria-hidden', 'true');
@@ -322,6 +326,8 @@ class PresetDialogClass {
                 // setup — they are labelling, not saving.
                 const name = document.createElement('input');
                 name.type = 'text';
+                name.id = `preset-row-name-${slot}`;
+                name.name = `preset-row-name-${slot}`;
                 name.className = 'preset-row-name';
                 name.value = preset.name;
                 name.maxLength = PresetCodec.MAX_NAME;
@@ -335,6 +341,8 @@ class PresetDialogClass {
 
                 const description = document.createElement('input');
                 description.type = 'text';
+                description.id = `preset-row-description-${slot}`;
+                description.name = `preset-row-description-${slot}`;
                 description.className = 'preset-row-description';
                 description.value = preset.description || '';
                 description.maxLength = PresetCodec.MAX_DESCRIPTION;

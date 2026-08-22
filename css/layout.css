@@ -135,22 +135,33 @@ body {
     z-index: var(--z-toolbar);
 }
 
-/* The marks group: the draw modes then Swap and Recolour, inline, one run at
-   one pitch, Swap/Recolour after XOR. It rides beside the colour group while
-   there is room and drops below as one piece when there is not. Its icons
-   share the width evenly — see the flex-basis on the cells in
-   css/components.css. */
+/* The marks group: one "Drawing Modes" caption over the draw modes, Mirror
+   and Swap/Recolour, captioned as a whole the way Ink/Paper caption their own
+   swatch groups (_captionGroup, css/components.css) — a column of [label,
+   icon row], centred. It rides beside the colour group while there is room
+   and drops below as one piece when there is not. */
 #color-bar-controls {
+    display: flex;
+    flex-direction: column;
+    /* This box is the bar's ONLY flex-grow item (css/components.css), so it
+       is usually wider than its own children need - without this the label
+       and icon row cluster at ITS left edge, leaving the same off-centre
+       look the outer #color-bar rule above fixes for a line that has no
+       grown item. */
+    align-items: center;
+    gap: 2px 0;
+}
+
+/* The icon-only run itself (draw modes, Mirror, Swap/Recolour) — its own
+   wrapping row, sized to its content rather than stretched to the label's
+   column width. */
+#marks-icons-row {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
     align-items: flex-end;
-    /* This box is the bar's ONLY flex-grow item (css/components.css), so it
-       is usually wider than its own children need - without this they
-       cluster at ITS left edge, leaving the same off-centre look the outer
-       #color-bar rule above fixes for a line that has no grown item. */
     justify-content: center;
-    gap: var(--space-sm) 0;
+    gap: var(--space-sm) 4px;
 }
 
 

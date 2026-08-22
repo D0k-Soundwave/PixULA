@@ -62,14 +62,6 @@
                     <option value="tr">Türkçe</option>
                     <option value="ru">Русский</option>
                 </select>
-                <select id="theme-selector" name="theme" aria-label="Theme">
-                    <option value="dark" data-i18n="theme.dark">Dark</option>
-                    <option value="light" data-i18n="theme.light">Light</option>
-                    <option value="midnight" data-i18n="theme.midnight">Midnight</option>
-                    <option value="nord" data-i18n="theme.nord">Nord</option>
-                    <option value="dracula" data-i18n="theme.dracula">Dracula</option>
-                    <option value="sepia" data-i18n="theme.sepia">Sepia</option>
-                </select>
                 <select id="font-scale-selector" name="font-scale" aria-label="Interface size" data-i18n-aria-label="a11y.textSize" title="Interface size">
                     <option value="0.85">85%</option>
                     <option value="1" selected>100%</option>
@@ -99,9 +91,10 @@
                  ATTRS: the Bright/Flash bits and the Border — cell/screen
                  attributes, not swatches, but riding right after the
                  palette rather than with the marks. MARKS: how a stroke
-                 combines with what is already there — the draw modes, with
-                 Swap and Recolour after them because they are attribute ops,
-                 not colours.
+                 combines with what is already there — the draw modes, then
+                 Mirror (also a stroke-shaping mode, not a colour), then
+                 Swap and Recolour because they are attribute ops, not
+                 colours.
                  They are three SEPARATE flex items (not #toolbar-attrs
                  nested inside the palette group, tried 2026-08-10 and
                  reverted) specifically so ordinary flex-wrap packs them
@@ -122,12 +115,25 @@
                 <div id="border-host" class="toolbar-section"></div>
             </div>
             <div id="color-bar-controls">
-                <!-- Global draw-mode selector (DrawModeBar): icon buttons in the
-                     left-toolbar style; drives StateManager's document-wide mode. -->
-                <div id="draw-modes" class="toolbar-section"></div>
-                <!-- Swap / Recolour (ClutBar) sit INLINE with the draw modes,
-                     after XOR: one run, one pitch, no group gap between them. -->
-                <div id="attr-tools" class="toolbar-section clut-attrs"></div>
+                <!-- One caption for the whole icon-only run below (draw modes,
+                     Mirror, Swap/Recolour), captioned the same way Ink/Paper
+                     caption their swatch groups (css/components.css
+                     _captionGroup) — text above, the row of controls below,
+                     both centred as one column. -->
+                <span id="marks-group-label" class="toolbar-group-label" data-i18n="dm.groupLabel">Drawing Modes</span>
+                <div id="marks-icons-row">
+                    <!-- Global draw-mode selector (DrawModeBar): icon buttons in
+                         the left-toolbar style; drives StateManager's
+                         document-wide mode. -->
+                    <div id="draw-modes" class="toolbar-section"></div>
+                    <!-- Mirror (symmetry drawing) toggles (DrawModeBar) — filed
+                         next to the draw modes because it changes how every
+                         stroke lands, exactly like they do. -->
+                    <div id="mirror-modes" class="toolbar-section" role="group" aria-label="Mirror"></div>
+                    <!-- Swap / Recolour (ClutBar) sit INLINE with the draw modes,
+                         after XOR: one run, one pitch, no group gap between them. -->
+                    <div id="attr-tools" class="toolbar-section clut-attrs"></div>
+                </div>
             </div>
         </div>
 
@@ -352,7 +358,10 @@
         <symbol id="icon-spray" viewBox="0 0 24 24"><circle cx="12" cy="8" r="1"/><circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="8" cy="9" r="1"/><circle cx="16" cy="9" r="1"/><circle cx="11" cy="11" r="1"/><circle cx="13" cy="11" r="1"/><path d="M12 14c-3 0-5 2-5 4v4h10v-4c0-2-2-4-5-4z"/></symbol>
         <symbol id="icon-hatch" viewBox="0 0 24 24"><path d="M3 9L9 3M3 15L15 3M7 19L19 7M11 21L21 11M17 21L21 17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
         <symbol id="icon-fade" viewBox="0 0 24 24"><rect x="2" y="6" width="6" height="12" fill="currentColor"/><g fill="currentColor"><circle cx="10.5" cy="7" r="1"/><circle cx="10.5" cy="10" r="1"/><circle cx="10.5" cy="13" r="1"/><circle cx="10.5" cy="16" r="1"/><circle cx="13.5" cy="8.5" r="1"/><circle cx="13.5" cy="12" r="1"/><circle cx="13.5" cy="15.5" r="1"/><circle cx="16.5" cy="8" r="1"/><circle cx="16.5" cy="13" r="1"/><circle cx="19.5" cy="11" r="1"/></g></symbol>
-        <symbol id="icon-eyedropper" viewBox="0 0 24 24"><path d="M20.71 5.63l-2.34-2.34a1.003 1.003 0 00-1.42 0l-3.12 3.12-1.41-1.42-1.42 1.42 1.42 1.41L3 17.25V21h3.75l9.42-9.42 1.41 1.42 1.42-1.42-1.41-1.41 3.12-3.12c.39-.39.39-1.03 0-1.42z"/></symbol>
+        <!-- Eyedropper: a proper bulb pipette (round bulb, collar, tapered
+             stem, a drop at the tip) tilted to the diagonal every other
+             hand tool in this sprite (brush, hatch) already draws at. -->
+        <symbol id="icon-eyedropper" viewBox="0 0 24 24"><g transform="rotate(40 12 12)" fill="currentColor"><ellipse cx="12" cy="5.2" rx="4.6" ry="4.2"/><rect x="10.3" y="9" width="3.4" height="1.6"/><path d="M9.7 10.6 L14.3 10.6 L12 20.2 Z"/><circle cx="12" cy="22.2" r="1.3"/></g></symbol>
         <symbol id="icon-shapes" viewBox="0 0 24 24"><rect x="2" y="10" width="10" height="10" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="16" cy="8" r="6" stroke="currentColor" stroke-width="2" fill="none"/></symbol>
         <symbol id="icon-bezier" viewBox="0 0 24 24"><path d="M4 19C7 8 17 8 20 19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="2" y="17" width="4" height="4" fill="currentColor"/><rect x="18" y="17" width="4" height="4" fill="currentColor"/><circle cx="12" cy="6" r="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v2.5" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="1.5 1.5"/></symbol>
         <symbol id="icon-gradient" viewBox="0 0 24 24"><rect x="3" y="3" width="3" height="18" fill="currentColor" opacity="1"/><rect x="6" y="3" width="3" height="18" fill="currentColor" opacity="0.8"/><rect x="9" y="3" width="3" height="18" fill="currentColor" opacity="0.6"/><rect x="12" y="3" width="3" height="18" fill="currentColor" opacity="0.4"/><rect x="15" y="3" width="3" height="18" fill="currentColor" opacity="0.2"/><rect x="18" y="3" width="3" height="18" fill="currentColor" opacity="0.05"/></symbol>
@@ -414,7 +423,26 @@
         <symbol id="icon-dm-pixels" viewBox="0 0 24 24"><rect x="3" y="3" width="5" height="5" fill="currentColor"/><rect x="16" y="3" width="5" height="5" fill="currentColor"/><rect x="9.5" y="9.5" width="5" height="5" fill="currentColor"/><rect x="3" y="16" width="5" height="5" fill="currentColor"/><rect x="16" y="16" width="5" height="5" fill="currentColor"/></symbol>
         <symbol id="icon-dm-ink" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4 4v16h16z" fill="currentColor"/></symbol>
         <symbol id="icon-dm-paper" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4 4h16v16z" fill="currentColor"/></symbol>
-        <symbol id="icon-dm-xor" viewBox="0 0 24 24"><circle cx="9" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="15" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+        <!-- XOR / Over: two overlapping squares drawn as ONE path with
+             fill-rule evenodd, so the overlap cancels out and only the
+             two squares' exclusive areas render - the actual boolean XOR
+             of the two shapes, not a plain Venn outline. -->
+        <symbol id="icon-dm-xor" viewBox="0 0 24 24"><path fill-rule="evenodd" fill="currentColor" d="M3 3H14V14H3Z M10 10H21V21H10Z"/></symbol>
+        <!-- XOR / Pixel: the same true-XOR squares as XOR / Over, with a
+             small checker pair dropped into the hollow overlap - the
+             per-pixel toggle, shown with the same checker motif the app
+             already uses for per-pixel transparency (--checker-* tokens). -->
+        <symbol id="icon-dm-xor-pixel" viewBox="0 0 24 24"><path fill-rule="evenodd" fill="currentColor" d="M3 3H14V14H3Z M10 10H21V21H10Z"/><rect x="10" y="10" width="2" height="2" fill="currentColor"/><rect x="12" y="12" width="2" height="2" fill="currentColor"/></symbol>
+        <!-- Mirror (symmetry drawing) toggles (top colour bar) — the dashed
+             line is the axis reflected across; one asymmetric flag is drawn
+             SOLID (the original) and its mirror is drawn HOLLOW (the
+             reflection) - fill vs. outline is what reads as "mirrored",
+             not two arrows diverging. mirror-v is mirror-h rotated 90deg;
+             mirror-quad extends the same solid/hollow language to both
+             axes at once (one solid corner, three hollow ghosts). -->
+        <symbol id="icon-mirror-h" viewBox="0 0 24 24"><path d="M12 2v20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-dasharray="3 2"/><path d="M4 6h5v9l-5 3z" fill="currentColor"/><path d="M20 6h-5v9l5 3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+        <symbol id="icon-mirror-v" viewBox="0 0 24 24"><g transform="rotate(90 12 12)"><path d="M12 2v20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-dasharray="3 2"/><path d="M4 6h5v9l-5 3z" fill="currentColor"/><path d="M20 6h-5v9l5 3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></g></symbol>
+        <symbol id="icon-mirror-quad" viewBox="0 0 24 24"><path d="M12 2v20M2 12h20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-dasharray="3 2"/><path d="M4 4L9 4L9 9Z" fill="currentColor"/><path d="M20 4L15 4L15 9Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M4 20L9 20L9 15Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M20 20L15 20L15 15Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
         <!-- BRIGHT / FLASH attribute-bit toggles (top colour bar) -->
         <symbol id="icon-bright" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><g stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.64 5.64l2.12 2.12M16.24 16.24l2.12 2.12M18.36 5.64l-2.12 2.12M7.76 16.24l-2.12 2.12"/></g></symbol>
         <symbol id="icon-flash" viewBox="0 0 24 24"><path d="M13.35 3L5.7 13.35h4.95L9.75 21 18.3 10.2h-4.95z" fill="currentColor"/></symbol>

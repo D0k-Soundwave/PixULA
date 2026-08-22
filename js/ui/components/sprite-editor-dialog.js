@@ -156,6 +156,8 @@ class SpriteEditorDialogClass {
         depthSpan.dataset.i18n = 'sprite.depth';
         depthSpan.textContent = this._t('sprite.depth', 'Depth');
         const depthSel = document.createElement('select');
+        depthSel.id = 'se-depth';
+        depthSel.name = 'se-depth';
         for (const d of [8, 4]) {
             const o = document.createElement('option');
             o.value = String(d);
@@ -173,6 +175,8 @@ class SpriteEditorDialogClass {
         idxSpan.textContent = this._t('sprite.drawIndex', 'Index');
         const idxInput = document.createElement('input');
         idxInput.type = 'number';
+        idxInput.id = 'se-index';
+        idxInput.name = 'se-index';
         idxInput.min = '0';
         idxInput.max = String(SpriteService.maxIndex());
         idxInput.value = String(this._drawIndex);
@@ -188,6 +192,8 @@ class SpriteEditorDialogClass {
             const i = document.createElement('input');
             i.type = 'number';
             i.className = cls;
+            i.id = cls;
+            i.name = cls;
             i.min = '0';
             i.max = String(max);
             i.value = '0';
@@ -210,6 +216,8 @@ class SpriteEditorDialogClass {
             'sprite.export.hint', 'Saves the whole sheet as a .spr file');
         const picker = document.createElement('input');
         picker.type = 'file';
+        picker.id = 'se-file-input';
+        picker.name = 'se-file-input';
         picker.accept = '.spr';
         picker.hidden = true;
         file.append(importBtn, exportBtn, picker);

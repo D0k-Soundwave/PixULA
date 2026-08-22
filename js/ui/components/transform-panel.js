@@ -54,24 +54,24 @@ class TransformPanelClass {
         content.innerHTML = `
           <div class="tp-stamp-section" hidden>
             <div class="tool-option">
-              <label><input type="checkbox" class="tp-xor" data-i18n-title-name="transform.xorMode" data-i18n-title="transform.xorMode.hint"> <span data-i18n="transform.xorMode">XOR Mode</span></label>
+              <label><input type="checkbox" class="tp-xor" id="tp-xor" name="tp-xor" data-i18n-title-name="transform.xorMode" data-i18n-title="transform.xorMode.hint"> <span data-i18n="transform.xorMode">XOR Mode</span></label>
             </div>
             <hr class="tool-option-separator">
             <div class="tool-option">
-              <label><span data-i18n="transform.scaleX">Scale X</span>: <span class="tp-sx-val">100%</span></label>
-              <input type="range" class="tp-sx" min="10" max="400" step="5" value="100" data-i18n-title-name="transform.scaleX" data-i18n-title="transform.scaleX.hint">
+              <label for="tp-sx"><span data-i18n="transform.scaleX">Scale X</span>: <span class="tp-sx-val">100%</span></label>
+              <input type="range" class="tp-sx" id="tp-sx" name="tp-sx" min="10" max="400" step="5" value="100" data-i18n-title-name="transform.scaleX" data-i18n-title="transform.scaleX.hint">
             </div>
             <div class="tool-option">
-              <label><span data-i18n="transform.scaleY">Scale Y</span>: <span class="tp-sy-val">100%</span></label>
-              <input type="range" class="tp-sy" min="10" max="400" step="5" value="100" data-i18n-title-name="transform.scaleY" data-i18n-title="transform.scaleY.hint">
+              <label for="tp-sy"><span data-i18n="transform.scaleY">Scale Y</span>: <span class="tp-sy-val">100%</span></label>
+              <input type="range" class="tp-sy" id="tp-sy" name="tp-sy" min="10" max="400" step="5" value="100" data-i18n-title-name="transform.scaleY" data-i18n-title="transform.scaleY.hint">
             </div>
             <div class="tool-option">
-              <label><span data-i18n="transform.rotate">Rotate</span>: <span class="tp-rot-val">0&#xb0;</span></label>
-              <input type="range" class="tp-rot" min="-180" max="180" step="1" value="0" data-i18n-title-name="transform.rotate" data-i18n-title="transform.rotate.hint">
+              <label for="tp-rot"><span data-i18n="transform.rotate">Rotate</span>: <span class="tp-rot-val">0&#xb0;</span></label>
+              <input type="range" class="tp-rot" id="tp-rot" name="tp-rot" min="-180" max="180" step="1" value="0" data-i18n-title-name="transform.rotate" data-i18n-title="transform.rotate.hint">
             </div>
             <div class="tool-option">
-              <label data-i18n="transform.shape">Shape</label>
-              <select class="tp-warp" data-i18n-title-name="transform.shape" data-i18n-title="transform.shape.hint">
+              <label for="tp-warp" data-i18n="transform.shape">Shape</label>
+              <select class="tp-warp" id="tp-warp" name="tp-warp" data-i18n-title-name="transform.shape" data-i18n-title="transform.shape.hint">
                 <option value="none" data-i18n="transform.warp.none">None</option>
                 <option value="arch-up" data-i18n="transform.warp.archUp">Arch Up</option>
                 <option value="arch-down" data-i18n="transform.warp.archDown">Arch Down</option>
@@ -91,8 +91,8 @@ class TransformPanelClass {
           </div>
           <div class="tp-image-section">
             <div class="tool-option">
-              <label><span data-i18n="transform.rotate">Rotate</span>: <span class="tp-img-rot-val">0&#xb0;</span></label>
-              <input type="range" class="tp-img-rot" min="-180" max="180" step="1" value="0" data-i18n-title-name="transform.rotate" data-i18n-title="transform.rotate.hint">
+              <label for="tp-img-rot"><span data-i18n="transform.rotate">Rotate</span>: <span class="tp-img-rot-val">0&#xb0;</span></label>
+              <input type="range" class="tp-img-rot" id="tp-img-rot" name="tp-img-rot" min="-180" max="180" step="1" value="0" data-i18n-title-name="transform.rotate" data-i18n-title="transform.rotate.hint">
             </div>
           </div>
           <div class="tool-option">
@@ -106,20 +106,20 @@ class TransformPanelClass {
             <div class="button-row">
               <button type="button" class="panel-button small" data-tp-transform="outline" data-i18n-title-name="transform.outline" data-i18n-title="transform.outline.hint">&#x25AD; <span data-i18n="transform.outline">Outline</span></button>
             </div>
-            <label><span data-i18n="transform.gap">Gap</span>: <span class="tp-og-val">1</span>px</label>
-            <input type="range" class="tp-og" min="0" max="8" value="1" data-i18n-title-name="transform.gap" data-i18n-title="transform.gap.hint">
-            <label><span data-i18n="transform.thickness">Thickness</span>: <span class="tp-os-val">1</span>px</label>
-            <input type="range" class="tp-os" min="1" max="8" value="1" data-i18n-title-name="transform.thickness" data-i18n-title="transform.thickness.hint">
+            <label for="tp-og"><span data-i18n="transform.gap">Gap</span>: <span class="tp-og-val">1</span>px</label>
+            <input type="range" class="tp-og" id="tp-og" name="tp-og" min="0" max="8" value="1" data-i18n-title-name="transform.gap" data-i18n-title="transform.gap.hint">
+            <label for="tp-os"><span data-i18n="transform.thickness">Thickness</span>: <span class="tp-os-val">1</span>px</label>
+            <input type="range" class="tp-os" id="tp-os" name="tp-os" min="1" max="8" value="1" data-i18n-title-name="transform.thickness" data-i18n-title="transform.thickness.hint">
           </div>
           <div class="tool-option tp-group tp-shift-group">
-            <label data-i18n="transform.shift">Shift</label>
+            <span class="tp-shift-heading" data-i18n="transform.shift">Shift</span>
             <div class="dir-pad-slot"></div>
             <div class="tp-shift-opts">
-              <select class="tp-shift-step" data-i18n-aria-label="transform.shiftStep" aria-label="Shift step" data-i18n-title-name="transform.shiftStep" data-i18n-title="transform.shiftStep.hint">
+              <select class="tp-shift-step" id="tp-shift-step" name="tp-shift-step" data-i18n-aria-label="transform.shiftStep" aria-label="Shift step" data-i18n-title-name="transform.shiftStep" data-i18n-title="transform.shiftStep.hint">
                 <option value="1" data-i18n="transform.shiftStep.pixel">1 pixel</option>
                 <option value="cell" data-i18n="transform.shiftStep.cell">1 cell</option>
               </select>
-              <label><input type="checkbox" class="tp-shift-wrap" checked data-i18n-title-name="transform.shiftWrap" data-i18n-title="transform.shiftWrap.hint"> <span data-i18n="transform.shiftWrap">Wrap around</span></label>
+              <label><input type="checkbox" class="tp-shift-wrap" id="tp-shift-wrap" name="tp-shift-wrap" checked data-i18n-title-name="transform.shiftWrap" data-i18n-title="transform.shiftWrap.hint"> <span data-i18n="transform.shiftWrap">Wrap around</span></label>
             </div>
           </div>
         `;
@@ -226,43 +226,116 @@ class TransformPanelClass {
         });
 
         // ── Image rotation slider ─────────────────────────────────────────
-        // Live preview: snapshot the layer/selection on first input, rotate
-        // from that snapshot on every tick (avoids accumulated quality loss
-        // WITHIN one drag), commit one undo entry once the interaction
-        // settles, reset to 0.
+        // The control is an absolute angle gauge: the thumb sits at the
+        // picture's current total rotation from its ORIGINAL (pre-any-
+        // rotation) pixels, and stays there after a commit rather than
+        // snapping back to centre. Critically, every tick — in this drag AND
+        // in any later one on the same subject — rotates that one pristine
+        // snapshot by the thumb's absolute value, never the already-rotated
+        // canvas by a delta. rotateFromSnapshot() special-cases degrees===0
+        // to return the source buffer untouched, so dragging back to 0 is
+        // always a byte-exact restore of the original, no matter how many
+        // separate drags and debounced commits happened in between - each
+        // commit only ever bakes ONE nearest-neighbour requantization away
+        // from the pristine source, never a chain of them compounding.
         //
-        // "Once the interaction settles" is load-bearing, not cosmetic. Each
-        // rotation is nearest-neighbour: a point at radius r only crosses a
-        // pixel boundary once r*sin(degrees) passes ~0.5px. At 1 degree that
-        // needs r > ~28px, so anything closer to the pivot than that is
-        // rotated to the SAME pixel it started at - correct for that single
-        // degree, not a bug. The bug was committing (which snapshots the
-        // ALREADY-ROUNDED result as the new starting point) after every
-        // single stepper click: content inside that radius rounds back to
-        // itself on every fresh snapshot, forever, no matter how many clicks
-        // accumulate - the centre of a shape visibly never rotated while the
-        // outer rim eventually did, because only the rim ever crossed the
-        // threshold on any individual click. A drag never hit this, because
-        // 'change' only ever fired once, at release - every tick mid-drag
-        // rotated the CURRENT click's full angle from the one original
-        // snapshot, so nothing was ever re-quantized until the final commit.
-        // The fix is the same shape a drag already has: let a burst of
-        // stepper clicks share one open snapshot and commit only after the
-        // clicks stop, instead of after each one.
+        // Earlier versions re-snapshotted from the CANVAS at the start of
+        // every new interaction, so a pause mid-drag (triggering the commit
+        // below) baked in that tick's rounding, and the next interaction
+        // rotated that already-rounded result again - two lossy roundings
+        // stacked, so returning to "0" was a rotation by minus the second
+        // angle applied to already-corrupted pixels, not a true restore.
+        //
+        // The pristine snapshot is held for as long as the SUBJECT doesn't
+        // change (same layer, same selection/canvas bounds) - see
+        // subjectKey(). It's captured once, on the first rotation of that
+        // subject, and only ever replaced when the subject itself changes or
+        // a fixed 90/180 rotation bakes in a hard turn (both already
+        // invalidate the gauge's reading for the same reason). One accepted
+        // edge case: painting on this exact area via some OTHER tool while
+        // the gauge sits away from 0, then rotating again without first
+        // returning to 0, replays the rotation from the PRE-paint pixels and
+        // loses that paint. Returning the gauge to 0 (or changing the
+        // subject) first avoids it; the common path — drag, pause, drag,
+        // release — never touches another tool mid-gesture and is unaffected.
+        //
+        // The −180..180 range this rides on is not a limitation: any
+        // orientation reachable by rotating is within 180° of some other
+        // orientation the other way (a 200° turn looks identical to a −160°
+        // one), so the range already covers every distinct angle. What it
+        // does mean is a single drag can't wind past ±180 — matches a real
+        // protractor, not a wind-up dial.
+        //
+        // "Once the interaction settles" (the commit debounce below) still
+        // matters for UNDO grouping, even though it no longer gates snapshot
+        // freshness: without it, a burst of stepper clicks would each open
+        // and close their own undo action instead of sharing one.
         const imgRot    = content.querySelector('.tp-img-rot');
         const imgRotVal = content.querySelector('.tp-img-rot-val');
-        let _imgRotSnap = null;
-        let _imgRotArea = null;
+        let _imgRotSnap = null;      // pristine (never-rotated-this-subject) buffer
+        let _imgRotArea = null;      // area _imgRotSnap was captured from
         let _imgRotOpen = false;
         let _imgRotCommitTimer = null;
+        let _imgRotSubjectKey = null;
+
+        // Layer identity + geometry together, so switching the active layer
+        // counts as a new subject even if the selection bounds are unchanged
+        // (the retained snapshot would otherwise describe the WRONG layer's
+        // pixels once reused).
+        const subjectKey = () => {
+            const area = TransformService._getWorkArea();
+            return `${LayerManager.currentLayerIndex}:${area.x},${area.y},${area.width},${area.height}`;
+        };
+
+        const showImgRot = (val) => {
+            imgRot.value = val;
+            imgRotVal.textContent = `${val}°`;
+        };
+
+        // Recentres the gauge and drops the pristine snapshot — a genuinely
+        // new subject (different layer/selection, or a baked-in fixed
+        // rotation) makes both meaningless; the next rotation re-captures.
+        const resetImgRotGauge = (key) => {
+            _imgRotSubjectKey = key;
+            _imgRotSnap = null;
+            _imgRotArea = null;
+            showImgRot(0);
+        };
+
+        // Catches the subject changing (a new selection made, the selection
+        // cleared/moved/resized, or the active layer switched) as soon as it
+        // happens, rather than waiting for the artist to start rotating
+        // again - the gauge should already read 0 by the time they look at
+        // it. Piggybacks on CANVAS_RENDER (already the sync signal every
+        // other live readout in this panel uses) rather than a dedicated
+        // selection event, since none exists; a re-render is cheap to
+        // re-check against.
+        EventBus.on(EVENTS.CANVAS_RENDER, () => {
+            if (_imgRotOpen) return;
+            const key = subjectKey();
+            if (key !== _imgRotSubjectKey) resetImgRotGauge(key);
+        });
+
+        // A fixed 90/180 rotation (TransformService, Image menu) bakes in a
+        // hard turn — the gauge's angle (and the pristine snapshot it was
+        // measured from) no longer describe the picture, even though the
+        // subject itself hasn't changed.
+        EventBus.on(EVENTS.TRANSFORM_FIXED_ROTATE, () => {
+            if (_imgRotOpen) return;
+            resetImgRotGauge(null);
+        });
 
         const beginImgRot = () => {
             if (_imgRotOpen) return false;
-            const area = TransformService._getWorkArea();
-            const snap = TransformService._copyToBufferWithAttrs(area);
-            if (!snap) return false;
-            _imgRotArea = area;
-            _imgRotSnap = snap;
+            const key = subjectKey();
+            if (key !== _imgRotSubjectKey) resetImgRotGauge(key);
+            if (!_imgRotSnap) {
+                const area = TransformService._getWorkArea();
+                const snap = TransformService._copyToBufferWithAttrs(area);
+                if (!snap) return false;
+                _imgRotArea = area;
+                _imgRotSnap = snap;
+            }
             UndoRedo.beginAction('Rotate image');
             _imgRotOpen = true;
             return true;
@@ -273,17 +346,15 @@ class TransformPanelClass {
             if (!_imgRotOpen) return;
             UndoRedo.endAction();
             _imgRotOpen = false;
-            _imgRotSnap = null;
-            _imgRotArea = null;
-            imgRot.value = 0;
-            imgRotVal.textContent = '0°';
+            // _imgRotSnap/_imgRotArea deliberately live on - they're the
+            // pristine reference for this subject, reused by any further
+            // rotation until the subject itself changes (see above).
         };
 
         // A real drag's 'change' fires once, at release - committing right
         // then is already correct. A stepper click's 'change' fires on every
         // click; waiting this long after the LAST one before committing lets
-        // a burst of clicks share the drag's one-snapshot, one-commit shape
-        // instead of each click re-quantizing an already-rounded result.
+        // a burst of clicks share one undo action instead of ninety.
         // [A] chosen to comfortably exceed a deliberate next click, never
         // measured against real click cadence.
         const IMG_ROT_COMMIT_IDLE_MS = 500;
@@ -293,10 +364,10 @@ class TransformPanelClass {
         };
 
         imgRot.addEventListener('input', (e) => {
-            const deg = parseInt(e.target.value, 10) || 0;
-            imgRotVal.textContent = `${deg}°`;
+            const val = parseInt(e.target.value, 10) || 0;
             if (!_imgRotOpen && !beginImgRot()) return;
-            TransformService.rotateFromSnapshot(_imgRotSnap, _imgRotArea, deg);
+            imgRotVal.textContent = `${val}°`;
+            TransformService.rotateFromSnapshot(_imgRotSnap, _imgRotArea, val);
             CanvasSystem.requestRender();
         });
 

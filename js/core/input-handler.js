@@ -1412,8 +1412,8 @@ class InputHandlerClass {
     if (snap && StateManager.getGridSnap() && this._snapContextActive()) {
       const cellW = ZX_SPECTRUM.CELL_WIDTH;
       const cellH = ZX_SPECTRUM.CELL_HEIGHT;
-      px = Math.floor(px / cellW) * cellW;
-      py = Math.floor(py / cellH) * cellH;
+      px = Math.round(px / cellW) * cellW;
+      py = Math.round(py / cellH) * cellH;
     }
     return { x: px, y: py };
   }
@@ -1636,6 +1636,19 @@ class InputHandlerClass {
     const stepX = snap ? ZX_SPECTRUM.CELL_WIDTH : prefStep;
     const stepY = snap ? ZX_SPECTRUM.CELL_HEIGHT : prefStep;
     const step = dir.dx !== 0 ? stepX : stepY;
+
+    // Gradient tool, phase 2 (axis drag locked in): arrows nudge the axis
+    // endpoint at the same step used everywhere else, rather than moving a
+    // stamp or a selection - neither exists yet at this point in the
+    // gesture. Checked first since phase 2 doesn't normally coexist with a
+    // floating stamp or an active selection.
+    const activeTool = ToolManager.getCurrentTool();
+    if (activeTool && activeTool.id === TOOLS.GRADIENT && activeTool._phase === 'gradient' && activeTool.endPoint) {
+      e.preventDefault();
+      activeTool.endPoint = { x: activeTool.endPoint.x + dir.dx * step, y: activeTool.endPoint.y + dir.dy * step };
+      activeTool._updatePreview();
+      return;
+    }
 
     if (SelectionService.isFloating()) {
       e.preventDefault();

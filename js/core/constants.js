@@ -471,7 +471,8 @@ const DRAW_MODE = Object.freeze({
     PIXEL_ONLY: 'pixel_only',   // draw pixel bit, preserve all cell attributes
     INK: 'ink',                 // recolour ONLY the cell's ink attribute (+ flash), no pixels
     PAPER: 'paper',             // recolour ONLY the cell's paper attribute (+ flash), no pixels
-    XOR: 'xor'                  // toggle pixel bit (ArtStudio OVER)
+    XOR: 'xor',                 // toggle pixel bit (ArtStudio OVER), once per STROKE
+    XOR_PIXEL: 'xor_pixel'      // toggle pixel bit on every write, no once-per-stroke gate
 });
 
 /**
@@ -1005,6 +1006,8 @@ const EVENTS = Object.freeze({
     UI_LANGUAGE_CHANGE: 'ui:languageChange',
     UI_SCALE_CHANGED: 'ui:scaleChanged',
     THEME_CHANGED: 'theme:changed',
+    PANEL_COLLAPSE_CHANGED: 'ui:panelCollapseChanged',
+    PANEL_VISIBILITY_CHANGED: 'ui:panelVisibilityChanged',
 
     // File events
     FILE_NEW: 'file:new',
@@ -1079,6 +1082,12 @@ const EVENTS = Object.freeze({
 
     // Attribute paint mode
     ATTR_PAINT_MODE: 'attr:paintMode',
+
+    // Transform events — a fixed-angle rotation (90/180) was baked into the
+    // document via TransformService, as opposed to the transform panel's
+    // live free-angle slider. The panel listens for this to reset the
+    // cumulative-rotation readout it keeps beside that slider.
+    TRANSFORM_FIXED_ROTATE: 'transform:fixedRotate',
 
     // State events
     STATE_CHANGED: 'state:changed',

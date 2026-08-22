@@ -9,6 +9,15 @@ const { boot } = require('./helpers');
 
 const tool = (page) => page.evaluate(() => ToolManager.currentTool?.id);
 
+async function pixelPoint(page, px, py) {
+    const box = await page.frameLocator('#canvas-frame').locator('#main-canvas').boundingBox();
+    const dims = await page.evaluate(() => ({ w: ZX_SPECTRUM.WIDTH, h: ZX_SPECTRUM.HEIGHT }));
+    return {
+        x: box.x + (px + 0.5) * box.width / dims.w,
+        y: box.y + (py + 0.5) * box.height / dims.h
+    };
+}
+
 test('every registry shortcut selects its tool', async ({ page }) => {
     await boot(page);
     const map = await page.evaluate(() =>
@@ -169,6 +178,43 @@ test('keys typed into inputs/selects never trigger shortcuts', async ({ page }) 
     expect(await tool(page)).toBe('brush');
 });
 
+test('Gradient tool phase 2: arrow keys nudge the axis endpoint, Shift+drag snaps it', async ({ page }) => {
+    await boot(page);
+    await page.keyboard.press('d'); // gradient shortcut
+
+    const p1a = await pixelPoint(page, 40, 40);
+    const p1b = await pixelPoint(page, 80, 80);
+    await page.mouse.move(p1a.x, p1a.y);
+    await page.mouse.down();
+    await page.mouse.move(p1b.x, p1b.y, { steps: 2 });
+    await page.mouse.up();   // phase 1 -> phase 2; endPoint starts at the release cursor
+
+    const endPoint = () => page.evaluate(() => ({ ...ToolManager.getCurrentTool().endPoint }));
+    const before = await endPoint();
+
+    await page.keyboard.press('ArrowRight');
+    const afterRight = await endPoint();
+    expect(afterRight.x).toBeGreaterThan(before.x);
+    expect(afterRight.y).toBe(before.y);
+
+    await page.keyboard.press('ArrowDown');
+    const afterDown = await endPoint();
+    expect(afterDown.y).toBeGreaterThan(afterRight.y);
+    expect(afterDown.x).toBe(afterRight.x);
+
+    // Shift-held drag snaps the axis to a 15deg step instead of following
+    // the raw pointer.
+    const startPoint = await page.evaluate(() => ({ ...ToolManager.getCurrentTool().startPoint }));
+    const rawTarget = await pixelPoint(page, startPoint.x + 33, startPoint.y + 5); // ~8.6deg off-axis
+    await page.keyboard.down('Shift');
+    await page.mouse.move(rawTarget.x, rawTarget.y, { steps: 3 });
+    await page.keyboard.up('Shift');
+    const snapped = await endPoint();
+    // Nearest 15deg step to ~8.6deg is 15deg: y/x should read close to tan(15deg).
+    const ratio = (snapped.y - startPoint.y) / (snapped.x - startPoint.x);
+    expect(Math.abs(ratio - Math.tan(15 * Math.PI / 180))).toBeLessThan(0.05);
+});
+
 test('controls are Tab-reachable with a visible focus indicator', async ({ page }) => {
     await boot(page);
     await page.focus('#language-selector');
@@ -186,5 +232,5 @@ test('controls are Tab-reachable with a visible focus indicator', async ({ page 
         seen.add(info.id);
         expect(info.hasRing, `focus ring on ${info.id}`).toBe(true);
     }
-    expect(seen.size).toBeGreaterThanOrEqual(6); // focus actually moves
+    expect(seen.size).toBeGreaterThanOrEqual(5); // focus actually moves (one fewer header control since the theme selector's removal, 2026-08-21)
 });

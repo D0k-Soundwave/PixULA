@@ -48,42 +48,61 @@ test('locale persists across F5', async ({ page }) => {
     await expect(page.locator('.menu-item[data-menu="file"] .menu-label')).toHaveText('Fichier');
 });
 
-test('all 6 themes apply as data-theme token overrides and persist', async ({ page }) => {
+// Theme has no header control — Settings > Theme is the sole picker (a
+// header <select> duplicated it until 2026-08-21; removed as redundant).
+const THEME_IDS = ['dark', 'light', 'midnight', 'nord', 'dracula', 'sepia', 'crimson', 'citrus'];
+
+async function pickTheme(page, id) {
+    const action = 'settings:theme' + id[0].toUpperCase() + id.slice(1);
+    await page.click('.menu-item[data-menu="settings"] .menu-label');
+    await page.click('.menu-action--parent[data-id="theme"]');
+    await page.click(`.menu-action[data-action="${action}"]`);
+}
+
+function isChecked(page, id) {
+    return page.$eval(`.menu-action[data-id="theme-${id}"]`,
+        el => el.classList.contains('checked') || el.getAttribute('aria-checked') === 'true');
+}
+
+test('all 8 themes apply as data-theme token overrides and persist', async ({ page }) => {
     await boot(page);
-    const themes = await page.$$eval('#theme-selector option', o => o.map(x => x.value));
-    expect(themes).toEqual(['dark', 'light', 'midnight', 'nord', 'dracula', 'sepia']);
+    const menuIds = await page.$$eval('#menu-theme .menu-action[data-id^="theme-"]',
+        els => els.map(e => e.dataset.id.replace(/^theme-/, '')));
+    expect(new Set(menuIds)).toEqual(new Set(THEME_IDS));
 
     const bgOf = () => page.evaluate(() =>
         getComputedStyle(document.documentElement).getPropertyValue('--bg-primary').trim());
     const seen = new Set();
-    for (const t of themes) {
-        await page.selectOption('#theme-selector', t);
+    for (const t of THEME_IDS) {
+        await pickTheme(page, t);
         const attr = await page.getAttribute('html', 'data-theme');
         expect(attr).toBe(t);
         seen.add(await bgOf());
     }
     expect(seen.size).toBeGreaterThanOrEqual(4); // distinct surfaces (some themes may share)
 
-    await page.selectOption('#theme-selector', 'sepia');
+    await pickTheme(page, 'sepia');
     await page.waitForTimeout(300);
     await reload(page);
     expect(await page.getAttribute('html', 'data-theme')).toBe('sepia');
 });
 
-test('Settings menu Theme submenu tracks the header selector and vice versa', async ({ page }) => {
+test('Settings menu Theme submenu checkmarks track the active theme', async ({ page }) => {
     await boot(page);
-    await page.click('.menu-item[data-menu="settings"] .menu-label');
-    await page.click('.menu-action--parent[data-id="theme"]');
-    await page.click('.menu-action[data-action="settings:themeLight"]');
+    await pickTheme(page, 'light');
     expect(await page.getAttribute('html', 'data-theme')).toBe('light');
-    expect(await page.inputValue('#theme-selector')).toBe('light');
-
-    await page.selectOption('#theme-selector', 'dark');
     await page.click('.menu-item[data-menu="settings"] .menu-label');
     await page.click('.menu-action--parent[data-id="theme"]');
-    const darkChecked = await page.$eval('.menu-action[data-id="theme-dark"]',
-        el => el.classList.contains('checked') || el.getAttribute('aria-checked') === 'true');
-    expect(darkChecked).toBe(true);
+    expect(await isChecked(page, 'light')).toBe(true);
+    expect(await isChecked(page, 'dark')).toBe(false);
+    await page.keyboard.press('Escape');
+
+    await pickTheme(page, 'citrus');
+    expect(await page.getAttribute('html', 'data-theme')).toBe('citrus');
+    await page.click('.menu-item[data-menu="settings"] .menu-label');
+    await page.click('.menu-action--parent[data-id="theme"]');
+    expect(await isChecked(page, 'citrus')).toBe(true);
+    expect(await isChecked(page, 'light')).toBe(false);
     await page.keyboard.press('Escape');
 });
 

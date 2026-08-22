@@ -34,6 +34,40 @@ class GradientToolClass extends ToolBase {
       { value: 'conical',   i18n: 'gt.conical' },
       { value: 'spiral',    i18n: 'gt.spiral' }
     ]},
+    // 'drag' is the exact point phase 1 was dragged from - a corner for
+    // rectangle/square/none/triangle. Circle is dragged from its centre
+    // outward already, so drag and centre coincide there; not hidden for it,
+    // since that IS the honest answer for that shape, not a broken control.
+    // The eight named positions are the shape's bounding-box edges/corners.
+    { type: 'select', key: 'startAnchor', i18n: 'opt.startAnchor', value: 'centre', options: [
+      { value: 'centre',       i18n: 'common.centre' },
+      { value: 'drag',         i18n: 'sa.drag' },
+      { value: 'top',          i18n: 'sa.top' },
+      { value: 'bottom',       i18n: 'sa.bottom' },
+      { value: 'left',         i18n: 'sa.left' },
+      { value: 'right',        i18n: 'sa.right' },
+      { value: 'topLeft',      i18n: 'sa.topLeft' },
+      { value: 'topRight',     i18n: 'sa.topRight' },
+      { value: 'bottomLeft',   i18n: 'sa.bottomLeft' },
+      { value: 'bottomRight',  i18n: 'sa.bottomRight' }
+    ]},
+    // Wrap/repeat/mirror and the gamma curve below both act on the RAW
+    // position 'reflected' never produces (it is its own fixed one-time
+    // mirror, not a cyclic shape - see _getGradientPosition) - hidden there
+    // since they would be dead controls.
+    { type: 'select', key: 'wrapMode', i18n: 'opt.wrapMode', value: 'clamp',
+      showIf: { key: 'gradientType', notIn: ['reflected'] }, options: [
+      { value: 'clamp',  i18n: 'wm.clamp' },
+      { value: 'repeat', i18n: 'wm.repeat' },
+      { value: 'mirror', i18n: 'wm.mirror' }
+    ]},
+    // 0 is a real, meaningful value here (see _applyWrap) - a flat, position-
+    // independent dithered texture wash, not a degenerate placeholder.
+    { type: 'range', key: 'repeatCount', i18n: 'opt.repeatCount', min: 0, max: 8, value: 1,
+      showIf: { all: [{ key: 'gradientType', notIn: ['reflected'] }, { key: 'wrapMode', notIn: ['clamp'] }] } },
+    { type: 'range', key: 'gammaCurve', i18n: 'opt.gammaCurve', min: 0.25, max: 4, value: 1, step: 0.05,
+      showIf: { key: 'gradientType', notIn: ['reflected'] } },
+    { type: 'range', key: 'bias', i18n: 'opt.bias', min: -50, max: 50, value: 0 },
     { type: 'range', key: 'gradientSteps', i18n: 'opt.steps', min: 1, max: 16, value: 1 },
     // Dither grain is the Bayer matrix size; only used while Dithered is on
     // (off = a single hard threshold), so hide it when Dithered is off.
@@ -44,7 +78,8 @@ class GradientToolClass extends ToolBase {
       { value: 8, i18n: 'dg.fine' }
     ]},
     { type: 'check', key: 'dithered',        i18n: 'opt.dithered',  value: true },
-    { type: 'check', key: 'shapeConstraint', i18n: 'opt.shapeFill', value: false }
+    { type: 'check', key: 'shapeConstraint', i18n: 'opt.shapeFill', value: false },
+    { type: 'check', key: 'lockAxis',        i18n: 'opt.lockAxis', value: false }
   ];
 
   constructor() {
@@ -83,6 +118,33 @@ class GradientToolClass extends ToolBase {
     // Geometric fill shape: 'none' | 'circle' | 'square' | 'rectangle' | 'triangle'
     this._fillShape = 'none';
 
+    // Midpoint bias: shifts the ink/paper threshold in _shouldBeInk without
+    // moving the axis. -50..50, 0 = no shift (the original 50% split).
+    this._bias = 0;
+
+    // Ease/gamma curve applied to the gradient position before step
+    // quantization. 1 = linear (no-op, byte-identical to pre-gamma output).
+    this._gammaCurve = 1;
+
+    // Wrap stage: 'clamp' (default, matches original per-type clamping) |
+    // 'repeat' | 'mirror'. repeatCount only matters when wrapMode != 'clamp'.
+    this._wrapMode = 'clamp';
+    this.repeatCount = 1;
+
+    // Lock axis: reuse the last committed axis' angle/ratio (relative to its
+    // shape's half-diagonal) as the phase-2 starting point for the NEXT
+    // shape, scaled to that shape's own bounds. null until a gradient has
+    // been committed with lockAxis on.
+    this._lockAxis = false;
+    this._lockedAxisSnapshot = null;   // { angle, ratio }
+
+    // Where the axis starts, on the shape's bounding box: 'centre' (default),
+    // 'drag' (the exact point phase 1 was dragged from - a corner for
+    // rectangle/square/none/triangle, the same point as centre for circle
+    // since that shape is already dragged from its centre outward), or one
+    // of the eight named edge/corner positions (see _anchorPoint).
+    this._startAnchor = 'centre';
+
     // ── Two-phase state ─────────────────────────────────────────────────────
     // Phase 1 — drag to define the shape/region bounding box
     // Phase 2 — drag inside the shape to define gradient direction/origin
@@ -94,6 +156,29 @@ class GradientToolClass extends ToolBase {
     // Gradient axis — set during phase 2
     this.startPoint = null;
     this.endPoint   = null;
+
+    // Coalesces phase-2 preview updates to one per animation frame. A pen or
+    // a fast mouse can fire many pointermove events between two paints, and
+    // _updatePreview's compositor simulation is not cheap enough to redo per
+    // event — this pending handle makes a burst of moves collapse into the
+    // single call the next frame actually needs.
+    this._previewRAF = null;
+
+    // Any option change (gradient type, wrap mode, start point, bias, gamma,
+    // steps, dithered...) reshapes the preview without moving the pointer -
+    // nothing else would trigger a redraw, so it would sit stale until the
+    // next mouse move. Mirrors bezier-tool's CANVAS_ZOOM listener: only the
+    // active tool, only mid-gesture (phase 2 - no locked shape yet in phase 1
+    // means nothing to refresh).
+    EventBus.on(EVENTS.TOOL_OPTIONS, () => {
+      if (!window.ToolManager || ToolManager.getCurrentTool() !== this) return;
+      if (this._phase !== 'gradient' || !this._shapeBounds) return;
+      // startAnchor may be what changed - startPoint is fixed at phase-2
+      // entry, so re-derive it from the locked bounds rather than leaving it
+      // stale until the next shape.
+      this.startPoint = this._anchorPoint(this._shapeBounds);
+      this._scheduleUpdatePreview();
+    });
   }
 
   _createDitherPatterns() {
@@ -153,6 +238,42 @@ class GradientToolClass extends ToolBase {
     }
   }
 
+  getBias() { return this._bias; }
+  setBias(v) { this._bias = clamp(parseInt(v, 10) || 0, -50, 50); }
+
+  getGammaCurve() { return this._gammaCurve; }
+  setGammaCurve(v) {
+    const n = parseFloat(v);
+    this._gammaCurve = Number.isFinite(n) ? clamp(n, 0.25, 4) : 1;
+  }
+
+  getWrapMode() { return this._wrapMode; }
+  setWrapMode(v) {
+    const valid = ['clamp', 'repeat', 'mirror'];
+    if (valid.includes(v)) this._wrapMode = v;
+  }
+
+  getRepeatCount() { return this.repeatCount; }
+  setRepeatCount(v) {
+    // 0 is a real, meaningful value (the flat-texture special case in
+    // _applyWrap) - parseInt(v)||1 would silently coerce it back to 1.
+    const n = parseInt(v, 10);
+    this.repeatCount = clamp(Number.isFinite(n) ? n : 1, 0, 8);
+  }
+
+  getLockAxis() { return this._lockAxis; }
+  setLockAxis(v) {
+    this._lockAxis = Boolean(v);
+    if (!this._lockAxis) this._lockedAxisSnapshot = null;
+  }
+
+  getStartAnchor() { return this._startAnchor; }
+  setStartAnchor(v) {
+    const valid = ['centre', 'drag', 'top', 'bottom', 'left', 'right',
+      'topLeft', 'topRight', 'bottomLeft', 'bottomRight'];
+    if (valid.includes(v)) this._startAnchor = v;
+  }
+
   // ── Tool deactivation ──────────────────────────────────────────────────────
 
   deactivate() {
@@ -184,7 +305,7 @@ class GradientToolClass extends ToolBase {
     } else {
       // Phase 2: show reversed/normal preview while button held; commit on pointer-up
       this.isReverseMode = e.button === 2;
-      this.endPoint = { x: pixelX, y: pixelY };
+      this.endPoint = this._snapEndPoint(pixelX, pixelY, e);
       this._updatePreview();
     }
   }
@@ -195,9 +316,10 @@ class GradientToolClass extends ToolBase {
       this._shapeEndPoint = { x: pixelX, y: pixelY };
       this._updateShapePreview();
     } else {
-      // Phase 2 drag (button held) — same as hover
-      this.endPoint = { x: pixelX, y: pixelY };
-      this._updatePreview();
+      // Phase 2 drag (button held) — same as hover. Coalesced to one
+      // _updatePreview per frame; see _scheduleUpdatePreview.
+      this.endPoint = this._snapEndPoint(pixelX, pixelY, e);
+      this._scheduleUpdatePreview();
     }
   }
 
@@ -219,11 +341,12 @@ class GradientToolClass extends ToolBase {
       this._updatePreview();
     } else {
       // Phase 2: commit gradient; button at release determines reverse
-      this.endPoint = { x: pixelX, y: pixelY };
+      this.endPoint = this._snapEndPoint(pixelX, pixelY, e);
       const rect    = this._shapeBounds;
       const reverse = e.button === 2;
       this.clearPreview();
       if (rect && rect.width >= 1 && this.startPoint && this.endPoint) {
+        this._captureAxisSnapshot(rect);
         this._drawGradient(rect, reverse);
       }
       this._resetAll();
@@ -241,8 +364,25 @@ class GradientToolClass extends ToolBase {
 
   onPointerHover(pixelX, pixelY, e) {
     if (this._phase !== 'gradient') return;
-    this.endPoint = { x: pixelX, y: pixelY };
-    this._updatePreview();
+    this.endPoint = this._snapEndPoint(pixelX, pixelY, e);
+    this._scheduleUpdatePreview();
+  }
+
+  // Shift held during phase 2 snaps the axis (startPoint -> pointer) to the
+  // nearest 15deg increment, preserving distance from startPoint. No Shift:
+  // passes the raw pointer position through unchanged.
+  _snapEndPoint(pixelX, pixelY, e) {
+    if (!e || !e.shiftKey || !this.startPoint) return { x: pixelX, y: pixelY };
+    const sx = this.startPoint.x, sy = this.startPoint.y;
+    const dx = pixelX - sx, dy = pixelY - sy;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist === 0) return { x: pixelX, y: pixelY };
+    const stepRad = 15 * Math.PI / 180;
+    const snappedAngle = Math.round(Math.atan2(dy, dx) / stepRad) * stepRad;
+    return {
+      x: Math.round(sx + dist * Math.cos(snappedAngle)),
+      y: Math.round(sy + dist * Math.sin(snappedAngle))
+    };
   }
 
   /**
@@ -258,6 +398,7 @@ class GradientToolClass extends ToolBase {
   // ── State helpers ──────────────────────────────────────────────────────────
 
   _resetAll() {
+    this._cancelScheduledPreview();
     this._phase           = 'shape';
     this._shapeStartPoint = null;
     this._shapeEndPoint   = null;
@@ -269,13 +410,116 @@ class GradientToolClass extends ToolBase {
     this._cachedFloodRegion = null;
   }
 
-  // Set up startPoint/endPoint when entering phase 2.
-  // startPoint is fixed at the shape centre; endPoint is the current cursor position.
+  // Runs _updatePreview at most once per animation frame no matter how many
+  // pointer events arrive in between — a burst of pointermove/hover events
+  // between two paints would otherwise redo the same expensive compositor
+  // simulation for nothing, since only the last position before a repaint is
+  // ever seen.
+  _scheduleUpdatePreview() {
+    if (this._previewRAF !== null) return;
+    const raf = (typeof window !== 'undefined' && window.requestAnimationFrame)
+      ? window.requestAnimationFrame.bind(window)
+      : (cb) => setTimeout(cb, 16);
+    this._previewRAF = raf(() => {
+      this._previewRAF = null;
+      this._updatePreview();
+    });
+  }
+
+  _cancelScheduledPreview() {
+    if (this._previewRAF === null) return;
+    if (typeof window !== 'undefined' && window.cancelAnimationFrame) {
+      window.cancelAnimationFrame(this._previewRAF);
+    } else {
+      clearTimeout(this._previewRAF);
+    }
+    this._previewRAF = null;
+  }
+
+  // Set up startPoint/endPoint when entering phase 2. startPoint comes from
+  // _anchorPoint (centre, the phase-1 drag point, or a named edge/corner).
+  // endPoint is the current cursor position UNLESS lockAxis is on and a
+  // prior commit left a snapshot, in which case it is pre-filled from that
+  // snapshot's angle/ratio scaled to this shape's own reach (_axisReach) —
+  // still just a starting point, since the artist can drag (or click away)
+  // to override it like any other preview.
   _enterGradientPhase(bounds, cursorX, cursorY) {
-    const cx = Math.round(bounds.x + (bounds.width  - 1) / 2);
-    const cy = Math.round(bounds.y + (bounds.height - 1) / 2);
+    const { x: cx, y: cy } = this._anchorPoint(bounds);
     this.startPoint = { x: cx, y: cy };
-    this.endPoint   = { x: cursorX, y: cursorY };
+
+    if (this._lockAxis && this._lockedAxisSnapshot) {
+      const { angle, ratio } = this._lockedAxisSnapshot;
+      const dist = ratio * this._axisReach(bounds);
+      this.endPoint = {
+        x: Math.round(cx + dist * Math.cos(angle)),
+        y: Math.round(cy + dist * Math.sin(angle))
+      };
+    } else {
+      this.endPoint = { x: cursorX, y: cursorY };
+    }
+  }
+
+  // Where the axis starts on the shape's bounding box, per startAnchor.
+  // 'drag' falls back to the bounding-box centre if _shapeStartPoint is
+  // somehow unset (defensive - it is always set at the top of onPointerDown
+  // before this can run). The four named corners and edges are plain
+  // bounding-box arithmetic; circle/triangle/flood-fill shapes all still use
+  // their own bounding box here, same as every other reference in this file.
+  _anchorPoint(bounds) {
+    const cxMid = Math.round(bounds.x + (bounds.width  - 1) / 2);
+    const cyMid = Math.round(bounds.y + (bounds.height - 1) / 2);
+    const x1 = bounds.x, y1 = bounds.y;
+    const x2 = bounds.x + bounds.width  - 1;
+    const y2 = bounds.y + bounds.height - 1;
+
+    switch (this._startAnchor) {
+      case 'drag':         return this._shapeStartPoint ? { ...this._shapeStartPoint } : { x: cxMid, y: cyMid };
+      case 'top':          return { x: cxMid, y: y1 };
+      case 'bottom':       return { x: cxMid, y: y2 };
+      case 'left':         return { x: x1, y: cyMid };
+      case 'right':        return { x: x2, y: cyMid };
+      case 'topLeft':      return { x: x1, y: y1 };
+      case 'topRight':     return { x: x2, y: y1 };
+      case 'bottomLeft':   return { x: x1, y: y2 };
+      case 'bottomRight':  return { x: x2, y: y2 };
+      default:              return { x: cxMid, y: cyMid };   // 'centre'
+    }
+  }
+
+  // How far a shape's axis can reasonably reach from its start point, used
+  // to scale a locked axis onto a differently-sized shape - the distance to
+  // the FARTHEST point the anchor could reasonably point at. Centre: any
+  // corner, half-diagonal. A cardinal edge (top/bottom/left/right): the
+  // opposite far corner, using the HALF dimension the anchor is already
+  // centred on and the FULL dimension it sits at the edge of. A corner or
+  // the drag point: the opposite corner, full diagonal. Using the wrong one
+  // would make a locked axis overshoot or undershoot on the next,
+  // differently-sized shape.
+  _axisReach(bounds) {
+    switch (this._startAnchor) {
+      case 'centre':
+        return Math.hypot(bounds.width / 2, bounds.height / 2);
+      case 'top': case 'bottom':
+        return Math.hypot(bounds.width / 2, bounds.height);
+      case 'left': case 'right':
+        return Math.hypot(bounds.width, bounds.height / 2);
+      default:   // 'drag' and the four corners
+        return Math.hypot(bounds.width, bounds.height);
+    }
+  }
+
+  // Snapshot the just-committed axis (angle + distance-as-a-fraction-of-the-
+  // shape's-reach, see _axisReach) for lockAxis to replay on the next shape.
+  // Skipped when the axis has zero length or the shape is a single point -
+  // nothing meaningful to lock onto, and dividing by a zero reach would
+  // produce NaN. Leaves any existing snapshot in place in that case.
+  _captureAxisSnapshot(bounds) {
+    if (!this._lockAxis || !this.startPoint || !this.endPoint) return;
+    const dx = this.endPoint.x - this.startPoint.x, dy = this.endPoint.y - this.startPoint.y;
+    const dist = Math.hypot(dx, dy);
+    const reach = this._axisReach(bounds);
+    if (dist === 0 || reach === 0) return;
+    this._lockedAxisSnapshot = { angle: Math.atan2(dy, dx), ratio: dist / reach };
   }
 
   // Compute the shape bounding rect from _shapeStartPoint/_shapeEndPoint.
@@ -350,12 +594,19 @@ class GradientToolClass extends ToolBase {
 
   // ── Drawing ────────────────────────────────────────────────────────────────
 
+  // Additive: the gradient only ADDS ink where its density function calls
+  // for it. A position the function does not reach is left completely
+  // untouched - no pixel clear, no attribute stamp - so drawing a gradient
+  // over existing artwork shades it instead of replacing it. Before this,
+  // every "paper" position in the rect/shape ran through resolveUserMode's
+  // erase branch (NORMAL_ERASE under the default draw mode), which cleared
+  // the pixel AND re-stamped the cell's ink/paper/bright/flash - wiping out
+  // whatever was underneath the non-ink half of the gradient.
   _drawGradient(rect, reverse) {
     if (rect.width < 1 || rect.height < 1) return;
 
     const color = ColorManager.getCurrentSelection();
     const skipInk   = color.inkTransparent;
-    const skipPaper = color.paperTransparent;
     const region    = this._cachedFloodRegion;
     const encodeKey = region ? (x, y) => (y << 16) | x : null;
     const checkShape = !this._shapeConstraint && this._fillShape !== 'none';
@@ -376,27 +627,37 @@ class GradientToolClass extends ToolBase {
         }
         if (reverse) gradientPos = 1 - gradientPos;
 
-        const shouldBeInk = this._shouldBeInk(pixelX, pixelY, gradientPos);
-        if (shouldBeInk && skipInk) continue;
-        if (!shouldBeInk && skipPaper) continue;
-        PixelDrawRoutine.draw(pixelX, pixelY, color, PixelDrawRoutine.resolveUserMode(shouldBeInk));
+        if (!this._shouldBeInk(pixelX, pixelY, gradientPos) || skipInk) continue;
+        PixelDrawRoutine.draw(pixelX, pixelY, color, PixelDrawRoutine.resolveUserMode(true));
       }
     }
 
     PixelDrawRoutine.endBatch();
   }
 
-  // Gradient position (0–1) based on the gradient axis (startPoint -> endPoint).
+  // Gradient position (0-1) based on the gradient axis (startPoint -> endPoint).
+  // Each type computes a RAW value first - unclamped for the monotonic types
+  // (linear/radial/diamond/square: can run past 1 beyond the axis/radius),
+  // already-cyclic for conical/spiral (0-1 via their own modulo). That raw
+  // value passes through the shared wrap stage (_applyWrap: clamp/repeat/
+  // mirror, the wrapMode/repeatCount options) and then gamma
+  // (this._gammaCurve, an ease curve on the 0-1 result) before the caller
+  // quantizes it into steps. With the defaults (wrapMode 'clamp', gamma 1)
+  // this reproduces the exact pre-refactor output for every type.
+  // 'reflected' is excluded — it is its own fixed one-time mirror on the raw
+  // linear ratio, not a cyclic shape, so wrap/gamma don't apply to it.
   _getGradientPosition(pixelX, pixelY) {
     const sx = this.startPoint.x, sy = this.startPoint.y;
     const dx = this.endPoint.x - sx, dy = this.endPoint.y - sy;
     const lenSq = dx * dx + dy * dy;
+    let raw;
 
     switch (this.gradientType) {
       case 'linear': {
         if (lenSq === 0) return 0.5;
         const px = pixelX - sx, py = pixelY - sy;
-        return clamp((px * dx + py * dy) / lenSq, 0, 1);
+        raw = (px * dx + py * dy) / lenSq;
+        break;
       }
       case 'reflected': {
         if (lenSq === 0) return 0.5;
@@ -408,23 +669,27 @@ class GradientToolClass extends ToolBase {
         const r = Math.sqrt(lenSq);
         if (r === 0) return 0.5;
         const px = pixelX - sx, py = pixelY - sy;
-        return Math.min(1, Math.sqrt(px * px + py * py) / r);
+        raw = Math.sqrt(px * px + py * py) / r;
+        break;
       }
       case 'diamond': {
         const r = Math.sqrt(lenSq);
         if (r === 0) return 0.5;
-        return Math.min(1, (Math.abs(pixelX - sx) + Math.abs(pixelY - sy)) / r);
+        raw = (Math.abs(pixelX - sx) + Math.abs(pixelY - sy)) / r;
+        break;
       }
       case 'square': {
         const r = Math.sqrt(lenSq);
         if (r === 0) return 0.5;
-        return clamp(Math.max(Math.abs(pixelX - sx), Math.abs(pixelY - sy)) / r, 0, 1);
+        raw = Math.max(Math.abs(pixelX - sx), Math.abs(pixelY - sy)) / r;
+        break;
       }
       case 'conical': {
         if (lenSq === 0) return 0.5;
         const refAngle   = Math.atan2(dy, dx);
         const pixelAngle = Math.atan2(pixelY - sy, pixelX - sx);
-        return ((pixelAngle - refAngle) / (2 * Math.PI) + 1) % 1;
+        raw = ((pixelAngle - refAngle) / (2 * Math.PI) + 1) % 1;
+        break;
       }
       case 'spiral': {
         const r = Math.sqrt(lenSq);
@@ -432,20 +697,56 @@ class GradientToolClass extends ToolBase {
         const radialPos  = Math.min(1, Math.sqrt((pixelX - sx) ** 2 + (pixelY - sy) ** 2) / r);
         const refAngle   = Math.atan2(dy, dx);
         const angularPos = ((Math.atan2(pixelY - sy, pixelX - sx) - refAngle) / (2 * Math.PI) + 1) % 1;
-        return (radialPos + angularPos) % 1;
+        raw = (radialPos + angularPos) % 1;
+        break;
       }
       default:
         return 0.5;
     }
+
+    const wrapped = this._applyWrap(raw);
+    return this._gammaCurve === 1 ? wrapped : Math.pow(wrapped, this._gammaCurve);
+  }
+
+  // Shared wrap stage for every gradient type except 'reflected' (see above).
+  // 'clamp' (default) reproduces the original per-type Math.min(1,...)/clamp
+  // behaviour exactly. 'repeat'/'mirror' multiply raw by repeatCount first,
+  // so a repeatCount of N gives N stripes (linear), rings (radial/diamond/
+  // square) or wedges (conical/spiral) instead of one clamped pass.
+  _applyWrap(raw) {
+    if (this._wrapMode === 'clamp' || !this._wrapMode) return clamp(raw, 0, 1);
+
+    const n = clamp(Math.round(this.repeatCount), 0, 8);
+    // 0 repeats: raw*0 would collapse to a constant 0 (all-paper, invisible)
+    // rather than a genuine texture. Special-cased to the midpoint instead -
+    // an intentional "ignore the gradient direction, show only the dither
+    // pattern" flat-wash mode, not a degenerate edge case.
+    if (n === 0) return 0.5;
+    const scaled = raw * n;
+
+    if (this._wrapMode === 'mirror') {
+      let t = scaled % 2;
+      if (t < 0) t += 2;
+      return t <= 1 ? t : 2 - t;
+    }
+
+    // 'repeat': sawtooth via positive modulo.
+    let t = scaled % 1;
+    if (t < 0) t += 1;
+    return t;
   }
 
   _shouldBeInk(pixelX, pixelY, gradientPos) {
     const value = Math.min(63, Math.floor(gradientPos * 64));
+    // Bias shifts the split point on the same 0-63 scale as value/threshold;
+    // 0 = no shift, so the default reproduces the original fixed 31 exactly.
+    // Positive bias LOWERS the threshold (more values pass) -> more ink.
+    const offset = this._bias ? Math.round((this._bias / 100) * 63) : 0;
     // Dithered OFF: a single hard threshold at the midpoint — no Bayer matrix,
     // so ditherScale/grain has no bearing and the gradient reads as solid bands.
-    if (this._dithered === false) return value > 31;
+    if (this._dithered === false) return value > clamp(31 - offset, 0, 63);
     const size      = this.ditherScale;
-    const threshold = this._activeDitherMatrix[pixelY % size][pixelX % size];
+    const threshold = clamp(this._activeDitherMatrix[pixelY % size][pixelX % size] - offset, 0, 63);
     return value > threshold;
   }
 
@@ -485,11 +786,13 @@ class GradientToolClass extends ToolBase {
 
     const colorSelection = ColorManager.getCurrentSelection();
     const skipInk        = colorSelection.inkTransparent;
-    const skipPaper      = colorSelection.paperTransparent;
     const region         = this._cachedFloodRegion;
     const encodeKey      = region ? (x, y) => (y << 16) | x : null;
     const checkShape     = !this._shapeConstraint && this._fillShape !== 'none';
 
+    // Additive preview, mirroring _drawGradient: only the pixels the gradient
+    // will actually ADD show as pending ink. gradientPaprSet stays empty -
+    // the gradient never clears a pixel, so nothing previews as erased.
     for (let y = 0; y < rect.height; y++) {
       for (let x = 0; x < rect.width; x++) {
         const pixelX = rect.x + x;
@@ -504,13 +807,10 @@ class GradientToolClass extends ToolBase {
         }
         if (this.isReverseMode) gradientPos = 1 - gradientPos;
 
-        const isInk = this._shouldBeInk(pixelX, pixelY, gradientPos);
-        if (isInk && skipInk) continue;
-        if (!isInk && skipPaper) continue;
+        if (!this._shouldBeInk(pixelX, pixelY, gradientPos) || skipInk) continue;
 
         affectedCells.add(Math.floor(pixelX / ZX_SPECTRUM.CELL_WIDTH) + ',' + Math.floor(pixelY / ZX_SPECTRUM.CELL_HEIGHT));
-        if (isInk) gradientInkSet.add(pixelX + ',' + pixelY);
-        else        gradientPaprSet.add(pixelX + ',' + pixelY);
+        gradientInkSet.add(pixelX + ',' + pixelY);
       }
     }
 

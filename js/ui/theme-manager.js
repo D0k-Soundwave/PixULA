@@ -3,7 +3,10 @@
 
 /**
  * ThemeManager — applies application themes.
- * Available themes: dark, light, midnight, nord, dracula, sepia.
+ * Available themes: dark, light, midnight, nord, dracula, sepia, crimson,
+ * citrus — accent hues spaced 45 degrees apart around the wheel: crimson 0,
+ * sepia ~28, citrus ~88, dark ~140, nord ~191, midnight ~225, dracula ~262,
+ * light ~320. 6 dark-family + 2 light-family (light, sepia).
  *
  * Ported from H:\smsh and conformed:
  *  - Themes are pure token-override blocks in css/themes.css keyed off the
@@ -18,7 +21,8 @@
  *    on to show through.
  *  - Facts go up via EVENTS.THEME_CHANGED; GridOverlay re-reads its grid
  *    colours from the CSS tokens on that fact, MenuSystem syncs its
- *    Light/Dark toggles, AppSettings syncs the header selector.
+ *    Settings > Theme submenu checkmarks — the only theme picker (a header
+ *    <select> duplicated it until 2026-08-21; removed as redundant).
  *
  * Boot: init() reads the persisted 'theme' Storage key — the same key the
  * AppSettings interim path saved under, so pre-Phase-6 choices are honoured.
@@ -26,7 +30,7 @@
 class ThemeManagerClass {
     constructor() {
         this.currentTheme = 'dark';
-        this._validThemes = ['dark', 'light', 'midnight', 'nord', 'dracula', 'sepia'];
+        this._validThemes = ['dark', 'light', 'midnight', 'nord', 'dracula', 'sepia', 'crimson', 'citrus'];
     }
 
     async init() {

@@ -90,7 +90,7 @@ class PatternCreatorPanelClass {
                 <div class="pc-canvas-slot"></div>
                 <div class="pc-status"></div>
                 <div class="pc-actions">
-                    <input type="text" class="pc-name" placeholder="${this._t('pc.namePlaceholder', 'Pattern name...')}" data-i18n-placeholder="pc.namePlaceholder">
+                    <input type="text" class="pc-name" id="pc-name" name="pc-name" placeholder="${this._t('pc.namePlaceholder', 'Pattern name...')}" data-i18n-placeholder="pc.namePlaceholder">
                     <button type="button" class="pc-btn pc-save" data-i18n="pc.save">${this._t('pc.save', 'Save')}</button>
                     <button type="button" class="pc-btn pc-from-selection" data-i18n="pc.fromSelection">${this._t('pc.fromSelection', 'From Selection')}</button>
                     <button type="button" class="pc-btn pc-clear" data-i18n="pc.clear">${this._t('pc.clear', 'Clear')}</button>
@@ -98,7 +98,7 @@ class PatternCreatorPanelClass {
                 <div class="pc-actions">
                     <button type="button" class="pc-btn pc-export" data-i18n="pc.exportPng">${this._t('pc.exportPng', 'Export PNG')}</button>
                     <button type="button" class="pc-btn pc-import-file" data-i18n="pc.importPng">${this._t('pc.importPng', 'Import PNG')}</button>
-                    <input type="file" class="pc-file-input" accept=".png,image/png" hidden>
+                    <input type="file" class="pc-file-input" id="pc-file-input" name="pc-file-input" accept=".png,image/png" hidden>
                 </div>
             </div>
             <div class="pc-preview">

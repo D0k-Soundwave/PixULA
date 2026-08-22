@@ -421,19 +421,26 @@ class CanvasSystemClass {
   }
 
   /**
-   * Largest whole zoom level whose effective footprint fits the viewport
-   * (with headroom for the iframe's scrollbars so a snug fit isn't clipped).
+   * Largest whole zoom level whose effective footprint fits the viewport.
+   * No safety margin: the iframe's own scrollbar (when the canvas overflows
+   * ITS document) never shrinks `iframe.clientWidth`/`clientHeight` as
+   * measured from the outer document, so a snug fit needs no headroom — a
+   * flat px margin here previously made Fit stop a whole level early
+   * whenever the true fit landed within that margin of the boundary
+   * (measured 2026-08-22: at DPR 1 and DPR 2 a 40px margin picked 200%
+   * while 300% rendered with zero overflow). Uses the same rounding as
+   * `updateCanvasSize()` so this predicts exactly what gets rendered.
    * @returns {number} Zoom percentage
    */
   fitZoom() {
     const { width, height } = this.getViewportSize();
     if (!width || !height) return ZOOM_CONFIG.DEFAULT;
-    const availW = width - 40;
-    const availH = height - 40;
     const levels = ZOOM_CONFIG.LEVELS;
     for (let i = levels.length - 1; i >= 0; i--) {
       const s = this.getScaleFor(levels[i]);
-      if (ZX_SPECTRUM.WIDTH * s <= availW && ZX_SPECTRUM.HEIGHT * s <= availH) {
+      const scaledW = Math.round(ZX_SPECTRUM.WIDTH * s);
+      const scaledH = Math.round(ZX_SPECTRUM.HEIGHT * s);
+      if (scaledW <= width && scaledH <= height) {
         return levels[i];
       }
     }
@@ -1019,6 +1026,9 @@ class CanvasSystemClass {
   /**
    * Zoom so a canvas-pixel rect fills the viewport (largest fitting LEVELS
    * entry) and centre the view on it — marquee zoom and fit-to-selection.
+   * No safety margin, for the same reason as `fitZoom()`: the iframe's own
+   * scrollbar never shrinks the outer viewport size this checks against, so
+   * a flat px margin only made this stop a level early.
    * @param {number} x - Rect left (canvas pixels)
    * @param {number} y - Rect top
    * @param {number} w - Rect width
@@ -1027,13 +1037,11 @@ class CanvasSystemClass {
   zoomToRect(x, y, w, h) {
     if (!(w > 0) || !(h > 0)) return;
     const { width, height } = this.getViewportSize();
-    const availW = Math.max(40, width - 40);
-    const availH = Math.max(40, height - 40);
     const levels = ZOOM_CONFIG.LEVELS;
     let target = ZOOM_CONFIG.MIN;
     for (let i = levels.length - 1; i >= 0; i--) {
       const s = this.getScaleFor(levels[i]);
-      if (w * s <= availW && h * s <= availH) {
+      if (w * s <= width && h * s <= height) {
         target = levels[i];
         break;
       }

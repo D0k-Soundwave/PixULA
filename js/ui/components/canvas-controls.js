@@ -258,68 +258,7 @@ class CanvasControlsClass {
             snapBtn.setAttribute('aria-pressed', String(!!data.snap));
             Storage.set('gridSnap', !!data.snap).catch(() => {});
         });
-
-        this._buildSymmetryControls(host);
     }
-
-    /**
-     * Symmetry (mirror-while-drawing) toggle group. Modes are exclusive:
-     * clicking the active mode turns symmetry off. Every tool inherits the
-     * mode via the PixelDrawRoutine seam; the buttons only command
-     * StateManager and render from the SYMMETRY_CHANGED fact.
-     * @private
-     */
-    _buildSymmetryControls(host) {
-        const label = document.createElement('span');
-        label.className = 'control-label';
-        const labelText = document.createElement('span');
-        labelText.dataset.i18n = 'view.mirror';
-        labelText.dataset.i18nTitle = 'view.mirror.hint';
-        labelText.title = this._t('view.mirror.hint',
-            'Mirror drawing across the canvas centre — every tool draws on both sides');
-        labelText.textContent = this._t('view.mirror', 'Mirror');
-        label.appendChild(labelText);
-        label.appendChild(document.createTextNode(':'));
-        host.appendChild(label);
-
-        const defs = [
-            { mode: 'h',    i18n: 'view.mirrorH',    fallback: 'H' },
-            { mode: 'v',    i18n: 'view.mirrorV',    fallback: 'V' },
-            { mode: 'quad', i18n: 'view.mirrorBoth', fallback: 'H+V' }
-        ];
-
-        const buttons = new Map();
-        for (const def of defs) {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.id = `symmetry-${def.mode}-toggle`;
-            btn.className = 'grid-toggle';
-            btn.dataset.i18n = def.i18n;
-            btn.dataset.i18nTitleName = def.i18n;
-            btn.dataset.i18nTitle = 'view.mirror.hint';
-            btn.title = Helpers.composeTitle(
-                this._t(def.i18n, def.fallback),
-                this._t('view.mirror.hint', 'Mirror drawing across the canvas centre — every tool draws on both sides')
-            );
-            btn.textContent = this._t(def.i18n, def.fallback);
-            btn.setAttribute('aria-pressed', String(StateManager.getSymmetryMode() === def.mode));
-            btn.addEventListener('click', () => {
-                const next = StateManager.getSymmetryMode() === def.mode ? 'off' : def.mode;
-                StateManager.setSymmetryMode(next);
-            });
-            host.appendChild(btn);
-            buttons.set(def.mode, btn);
-        }
-
-        // Render from the fact + persist under its own Storage key
-        EventBus.on(EVENTS.SYMMETRY_CHANGED, (data) => {
-            for (const [mode, btn] of buttons) {
-                btn.setAttribute('aria-pressed', String(data.mode === mode));
-            }
-            Storage.set('symmetryMode', data.mode).catch(() => {});
-        });
-    }
-
 
     // ── Cursor position ──────────────────────────────────────────────────────
 

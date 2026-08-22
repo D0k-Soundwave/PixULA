@@ -2,12 +2,13 @@
 (function() {
 
 /**
- * AppSettings — header controls: language, theme, and interface (UI) scale.
+ * AppSettings — header controls: language and interface (UI) scale.
  *
- * Extracted from the old app.js (_setupThemeSelector, _setupLanguageSelector,
- * _setupFontScale). Theme and language delegate to ThemeManager / I18n when
- * those land (Phase 6); until then the selectors apply what they can locally
- * (data-theme attribute; language selection is persisted for Phase 6 pickup).
+ * Extracted from the old app.js (_setupLanguageSelector, _setupFontScale).
+ * Language delegates to I18n when it lands (Phase 6); until then the
+ * selector applies what it can locally (persisted for Phase 6 pickup). Theme
+ * has its own picker, ThemeManager, reached only via Settings > Theme — no
+ * header control (removed 2026-08-21; it was a plain duplicate of the menu).
  *
  * The UI scale sets --ui-scale on :root, which `zoom`-scales every chrome
  * region (and multiplies the #app grid tracks) so the whole interface scales
@@ -18,50 +19,12 @@ class AppSettingsClass {
     constructor() {
         this.SCALE_KEY = 'uiFontScale';
         this.LANG_KEY = 'locale';
-        this.THEME_KEY = 'theme';
     }
 
     init() {
-        this._setupThemeSelector();
         this._setupLanguageSelector();
         this._setupUiScale();
         Logger.info('AppSettings', 'Initialized');
-    }
-
-    /** @private */
-    _setupThemeSelector() {
-        const themeSelector = document.getElementById('theme-selector');
-        if (!themeSelector) return;
-
-        if (window.ThemeManager) {
-            themeSelector.value = ThemeManager.getTheme();
-            themeSelector.addEventListener('change', () => {
-                ThemeManager.setTheme(themeSelector.value);
-            });
-            // Render from the fact so menu-driven changes (Settings -> Light/
-            // Dark Theme) keep the selector in sync.
-            EventBus.on(EVENTS.THEME_CHANGED, ({ theme }) => {
-                if (themeSelector.value !== theme) themeSelector.value = theme;
-            });
-        } else {
-            // Interim (until Phase 6 ports ThemeManager + themes.css): apply
-            // the data-theme attribute and persist so the choice carries over.
-            const root = document.documentElement;
-            if (window.Storage) {
-                Promise.resolve(Storage.get(this.THEME_KEY)).then((v) => {
-                    if (v) {
-                        root.dataset.theme = v;
-                        themeSelector.value = v;
-                        EventBus.emit(EVENTS.THEME_CHANGED, { theme: v });
-                    }
-                }).catch(() => {});
-            }
-            themeSelector.addEventListener('change', () => {
-                root.dataset.theme = themeSelector.value;
-                if (window.Storage) Promise.resolve(Storage.set(this.THEME_KEY, themeSelector.value)).catch(() => {});
-                EventBus.emit(EVENTS.THEME_CHANGED, { theme: themeSelector.value });
-            });
-        }
     }
 
     /** @private */

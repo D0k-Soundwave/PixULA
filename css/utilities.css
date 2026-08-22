@@ -115,6 +115,23 @@ legend {
     max-width: var(--clut-cell-size);
 }
 
+/* Mirror captions are composed from two i18n keys ("Mirror" + the axis
+   name — draw-mode-bar.js), and "Mirror H+V" runs past one line at the
+   fixed cell pitch in several locales. `caption-wide` (above) does not fix
+   that HERE: this cell still shares its width evenly with its siblings
+   (components.css, #color-bar-controls .btn-captioned), so it only grows
+   past the pitch when the row has spare width to give it, and wraps to a
+   second row — taller than its neighbours — the moment it does not.
+   Ellipsizing instead keeps every mirror cell the same height as its
+   siblings at every window width; the full name is still on the tooltip
+   and aria-label (DrawModeBar._refreshMirrorLabels), so nothing the
+   caption can't show is lost. */
+#mirror-modes .btn-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 /* Selects must never clip their selected option's text */
 select {
     max-width: 100%;
