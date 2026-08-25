@@ -103,6 +103,17 @@ legend {
     aspect-ratio: auto;
 }
 
+/* Colour rail: Bright/Flash toggles share the swatch's fixed size, mirroring
+   the bar's --clut-btn-size square; no plain buttons or .tool-btn in the rail. */
+#color-rail .clut-bit {
+    box-sizing: border-box;
+    height: var(--clut-btn-size);
+    width: var(--clut-btn-size);
+    min-height: var(--clut-btn-size);
+    min-width: var(--clut-btn-size);
+    padding: 0;
+}
+
 /* A caption never sets the pitch: it wraps inside --clut-cell-size, whatever
    its cell grows to (css/components.css). The clamp is on the LABEL, not the
    cell, precisely so a cell CAN grow to share the row without the caption
