@@ -192,6 +192,12 @@
 
     /* ===== SIZING ===== */
     --toolbar-width: 128px;         /* 2-wide tool grid + padding + room for the vertical scrollbar */
+    /* Two swatch columns (--clut-btn-size, css/variables.css below) + gap +
+       padding + room for the vertical scrollbar — same reasoning as
+       --toolbar-width above. [C], not yet measured against real rendered
+       content (docs/superpowers/specs/2026-08-25-colour-rail-design.md S:9) —
+       tune once the rail is on screen. */
+    --colorrail-width: 140px;
     --panel-width: 280px;
     --header-height: 40px;
     --status-height: 24px;

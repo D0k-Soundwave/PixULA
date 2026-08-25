@@ -307,8 +307,9 @@ class AppClass {
         MenuSystem.init('menu-bar');
         AppSettings.init();
 
-        // Colour bar (ClutBar builds #toolbar-color before BorderControl appends to it)
-        // + left rail tools
+        // Colour rail + top strip (ClutBar builds #toolbar-color, now inside
+        // #color-rail, before BorderControl appends #border-host inside
+        // #color-bar) + left rail tools
         ClutBar.init();
         BorderControl.initialize();
         DrawModeBar.init();

@@ -19,17 +19,22 @@ body {
 #app {
     display: grid;
     grid-template-areas:
-        "header   header   header"
-        "toolbar  colorbar panels"
-        "toolbar  canvas   panels"
-        "status   status   status";
+        "header   header    header   header"
+        "toolbar  colorrail colorbar panels"
+        "toolbar  colorrail canvas   panels"
+        "status   status    status   status";
     /* Fixed tracks scale with --ui-scale so the chrome regions (which are
        `zoom`-scaled by the same factor) get the room their content needs.
-       The colour bar row is `auto` — sized to its content — and only spans
-       the canvas column between the two rails. The 1fr canvas row takes the
-       remaining space. */
+       The colour rail is a fixed-width column, full height like #toolbar —
+       see #color-rail below. The colour bar row is `auto` — sized to its
+       content — and only spans the canvas column between the rail and
+       #panels. The 1fr canvas row takes the remaining space. */
     grid-template-rows: calc(var(--header-height) * var(--ui-scale)) auto 1fr calc(var(--status-height) * var(--ui-scale));
-    grid-template-columns: calc(var(--toolbar-width) * var(--ui-scale)) 1fr calc(var(--panel-width) * var(--ui-scale));
+    grid-template-columns:
+        calc(var(--toolbar-width) * var(--ui-scale))
+        calc(var(--colorrail-width) * var(--ui-scale))
+        1fr
+        calc(var(--panel-width) * var(--ui-scale));
     /* 100% (not 100vh): body's height chain is pinned to the real viewport
        above, and 100vh can exceed it on mobile UA chrome. */
     height: 100%;
@@ -39,9 +44,13 @@ body {
 /* UI scale: `zoom` uniformly scales every descendant (text, icons, swatches,
    spacing, borders) of each chrome region. The canvas viewport/iframe is
    deliberately excluded so the drawing surface and its coordinate math are
-   never affected — the canvas has its own separate zoom control. */
+   never affected — the canvas has its own separate zoom control. #color-rail
+   joins this plain block (2026-08-25) — its swatches scale only with
+   --ui-scale, unlike #color-bar below, which ColorBarFit multiplies by a
+   second, independent scale of its own. */
 #header,
 #toolbar,
+#color-rail,
 #panels,
 #status-bar,
 #canvas-controls {
@@ -79,6 +88,25 @@ body {
     background: var(--bg-secondary);
     border-right: 1px solid var(--border-color);
     overflow-y: auto;
+    z-index: var(--z-toolbar);
+}
+
+/* Vertical colour rail — every screen mode's palette swatches (ClutBar),
+   between the tool rail and the drawing area (2026-08-25). Fixed width
+   (--colorrail-width above); content reflows into a narrow multi-column
+   grid (css/components.css) rather than being auto-scaled, and scrolls
+   vertically when it doesn't fit — never sideways. */
+#color-rail {
+    grid-area: colorrail;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+    overflow-y: auto;
+    overflow-x: hidden;
     z-index: var(--z-toolbar);
 }
 
@@ -349,12 +377,15 @@ body {
 @media (max-width: 1024px) {
     #app {
         grid-template-areas:
-            "header   header"
-            "toolbar  colorbar"
-            "toolbar  canvas"
-            "status   status";
+            "header   header    header"
+            "toolbar  colorrail colorbar"
+            "toolbar  colorrail canvas"
+            "status   status    status";
         grid-template-rows: calc(var(--header-height) * var(--ui-scale)) auto 1fr calc(var(--status-height) * var(--ui-scale));
-        grid-template-columns: calc(var(--toolbar-width) * var(--ui-scale)) 1fr;
+        grid-template-columns:
+            calc(var(--toolbar-width) * var(--ui-scale))
+            calc(var(--colorrail-width) * var(--ui-scale))
+            1fr;
     }
 
     #panels {
