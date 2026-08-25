@@ -17,6 +17,15 @@
  * Collapsing a hidden panel (or vice versa) is fine: the two states are
  * independent, so removing a panel remembers whatever collapse state it had
  * when it comes back.
+ *
+ * A section created with `persistVisibility: false` (Presets) opts OUT of
+ * the generic visibility sweep entirely — setVisible() still moves it and
+ * fires PANEL_VISIBILITY_CHANGED like any other section, but
+ * _saveVisibility()/restore() never touch its entry, because something
+ * else (a preference) already owns when it shows and calls setVisible()
+ * itself; without the opt-out, this component's own blanket
+ * save-everything/restore-everything would silently fight that owner for
+ * the same DOM property.
  */
 class PanelSectionClass {
     constructor() {
@@ -51,9 +60,19 @@ class PanelSectionClass {
      *   folded into the same sentence, since a header's title carries only
      *   one hint key - see the comment at its call site below)
      * @param {string} [opts.hint]      - English fallback for hintI18n
+     * @param {boolean} [opts.persistVisibility] - Default true. False opts a
+     *   section OUT of the generic whole-panel visibility sweep
+     *   (_saveVisibility()/restore()) — for a panel like Presets whose
+     *   visibility is already driven by its own separate fact (a
+     *   preference) and calls setVisible() itself to reach the DOM; without
+     *   this, _saveVisibility() still snapshots its CURRENT display any
+     *   time some OTHER panel is toggled, and restore() later reapplies
+     *   that stale snapshot over whatever the owning fact just set —
+     *   exactly the desync between the sidebar and the View menu's
+     *   checkbox this flag exists to prevent.
      * @returns {{ section: HTMLElement, content: HTMLElement, title: HTMLElement }}
      */
-    create({ id, titleI18n, title, collapsed = false, hintI18n, hint }) {
+    create({ id, titleI18n, title, collapsed = false, hintI18n, hint, persistVisibility = true }) {
         const host = document.getElementById('panels');
         const tpl = document.getElementById('tpl-panel');
         if (!host || !tpl) {
@@ -92,7 +111,7 @@ class PanelSectionClass {
             this._t(hintI18n, hint)
         );
 
-        const entry = { section, content, title: titleEl, button };
+        const entry = { section, content, title: titleEl, button, persistVisibility };
         this._sections.set(id, entry);
 
         this._setCollapsedDom(entry, collapsed);
@@ -115,7 +134,8 @@ class PanelSectionClass {
         if (this._restored && Object.prototype.hasOwnProperty.call(this._restored, content.id)) {
             this._setCollapsedDom(entry, !this._restored[content.id]);
         }
-        if (this._restoredVisibility && Object.prototype.hasOwnProperty.call(this._restoredVisibility, id)) {
+        if (persistVisibility && this._restoredVisibility
+            && Object.prototype.hasOwnProperty.call(this._restoredVisibility, id)) {
             this._setVisibleDom(entry, this._restoredVisibility[id]);
         }
         if (this._restoredOrder && this._restoredOrder.includes(id)) {
@@ -201,6 +221,7 @@ class PanelSectionClass {
         if (!window.Storage) return;
         const states = {};
         for (const [id, entry] of this._sections.entries()) {
+            if (entry.persistVisibility === false) continue;
             states[id] = entry.section.style.display !== 'none';
         }
         const store = (Storage.STORES && Storage.STORES.WINDOW_STATE) || 'window-state';
@@ -294,6 +315,7 @@ class PanelSectionClass {
             if (visibility) {
                 this._restoredVisibility = visibility;
                 for (const [id, entry] of this._sections.entries()) {
+                    if (entry.persistVisibility === false) continue;
                     if (Object.prototype.hasOwnProperty.call(visibility, id)) {
                         this._setVisibleDom(entry, visibility[id]);
                     }
@@ -338,7 +360,17 @@ class PanelSectionClass {
         const entry = this._sections.get(id);
         if (!entry) return;
         this._setVisibleDom(entry, visible);
-        this._saveVisibility();
+        // _saveVisibility() snapshots EVERY section's current display, not
+        // just this one — safe once restore() has applied real persisted
+        // state, but restore() is fired without awaiting (app.js) and a
+        // persistVisibility:false section (Presets) calls setVisible() from
+        // its own init(), which runs before restore()'s async read
+        // resolves. Skipping the blanket persist for THIS entry's own
+        // change is what stops that boot-time call from overwriting every
+        // other panel's real persisted visibility with pre-restore
+        // defaults — a persistVisibility:false section never contributes
+        // to or triggers that snapshot at all.
+        if (entry.persistVisibility !== false) this._saveVisibility();
     }
 
     /** Toggle a section's presence in the sidebar (menu View actions). Returns the new visible state. */

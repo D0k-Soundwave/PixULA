@@ -56,7 +56,12 @@ class ToolPresetPanelClass {
             titleI18n: 'panels.presets',
             title: 'Presets',
             hintI18n: 'panels.presets.hint',
-            hint: 'Every tool\'s saved presets in one library - load, rename or delete any of them. Right-click this header to move the whole panel up or down'
+            hint: 'Every tool\'s saved presets in one library - load, rename or delete any of them. Right-click this header to move the whole panel up or down',
+            // Visibility here is driven by showPresetsPanel, not the View
+            // menu's generic add/remove — opt out of PanelSection's own
+            // save/restore sweep so it can't reapply a stale snapshot over
+            // whatever the preference just set (see panel-section.js).
+            persistVisibility: false
         });
         if (!panel) {
             Logger.error('ToolPresetPanel', 'Could not create presets panel');
@@ -88,7 +93,12 @@ class ToolPresetPanelClass {
     /** @private */
     _syncVisibility() {
         if (!this._panelSection) return;
-        this._panelSection.style.display = StateManager.get('showPresetsPanel') ? '' : 'none';
+        // Routed through PanelSection.setVisible() rather than a direct
+        // style.display write, so this is the ONE place that moves the
+        // section (it also fires PANEL_VISIBILITY_CHANGED, which is what
+        // lets the View menu's checkbox stay in sync — see menu-system.js's
+        // _PANEL_MENU_ITEM_BY_SECTION).
+        PanelSection.setVisible('tool-preset-panel', StateManager.get('showPresetsPanel') === true);
     }
 
     /** @private */

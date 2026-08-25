@@ -23,13 +23,19 @@ class MenuSystemClass {
         // PanelSection section id -> View-menu checkbox item id, read by the
         // EVENTS.PANEL_VISIBILITY_CHANGED listener below. Patterns is not
         // here: its section visibility is automatic (pattern-brush context),
-        // not a menu-reachable toggle. Presets is not here either — it has
-        // its own showPresetsPanel-preference visibility, synced separately.
+        // not a menu-reachable toggle. Presets IS here even though its
+        // whole-panel visibility is driven by the showPresetsPanel
+        // preference rather than a direct view:togglePresets action — it
+        // still reaches the DOM through PanelSection.setVisible() (see
+        // ToolPresetPanel._syncVisibility()), which fires this same event,
+        // so one listener keeps every panel's checkbox honest regardless of
+        // what triggered the change.
         this._PANEL_MENU_ITEM_BY_SECTION = {
             'reference-panel':    'panel-reference',
             'tool-options-panel': 'panel-tools',
             'layer-panel':        'panel-layers',
-            'transform-panel':    'panel-transform'
+            'transform-panel':    'panel-transform',
+            'tool-preset-panel':  'panel-presets'
         };
     }
 
@@ -457,18 +463,6 @@ class MenuSystemClass {
             const itemId = this._PANEL_MENU_ITEM_BY_SECTION[id];
             if (itemId) this._updateToggleState(itemId, visible);
         });
-
-        // Presets' whole-panel visibility rides on the showPresetsPanel
-        // preference (also flipped from Preferences > General), not on
-        // PanelSection — see the view:toggleToolPresets case above.
-        EventBus.on(EVENTS.STATE_CHANGED, (data) => {
-            if (data && data.path === 'showPresetsPanel') {
-                this._updateToggleState('panel-presets', !!data.newValue);
-            }
-        });
-        if (window.StateManager) {
-            this._updateToggleState('panel-presets', StateManager.get('showPresetsPanel') === true);
-        }
     }
 
     /**
@@ -685,11 +679,14 @@ class MenuSystemClass {
             case 'view:toggleToolOptions': PanelSection.toggleVisibility('tool-options-panel'); break;
             case 'view:toggleLayers':      PanelSection.toggleVisibility('layer-panel');        break;
             case 'view:toggleTransform':   PanelSection.toggleVisibility('transform-panel');    break;
-            // Presets is not on PanelSection's visibility axis: its whole-panel
-            // show/hide is already owned by the showPresetsPanel preference
-            // (ToolPresetPanel._syncVisibility, also set from Preferences >
-            // General), so the menu flips that same flag rather than layering
-            // a second, competing visibility mechanism onto one panel.
+            // Presets' whole-panel show/hide is still owned by the
+            // showPresetsPanel preference (also set from Preferences >
+            // General) rather than a direct toggleVisibility() call here —
+            // but that preference reaches PanelSection.setVisible() itself
+            // (ToolPresetPanel._syncVisibility), which is what fires the
+            // same PANEL_VISIBILITY_CHANGED fact the checkbox above follows,
+            // so there is still only one thing this menu item's checked
+            // state can disagree with: the panel's own last preference read.
             case 'view:toggleToolPresets': StateManager.set('showPresetsPanel', !StateManager.get('showPresetsPanel')); break;
 
             // Layer
