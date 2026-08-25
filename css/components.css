@@ -536,15 +536,13 @@
 }
 
 /* ===== Top colour bar — horizontal layout =====
-   ClutBar builds the SAME DOM regardless of where the cluster lives; these
-   rules lay that DOM out horizontally for the top #color-bar and enlarge the
-   hit targets for pen/touch. Everything stays token-driven — no colour
-   literals, no JS layout. The fixed16 order runs left->right, across the
-   three top-level groups (#toolbar-color · #toolbar-attrs · #color-bar-controls),
-   all at one shared pitch (one palette-icon block):
-     Ink colours · ink transparent   (gap)
-     Paper colours · paper transparent   (one palette-icon pitch)
-     Bright/Flash · Border   (one palette-icon pitch)   draw modes · Swap · Recolour */
+   ClutBar builds the SAME DOM regardless of where the cluster lives (the
+   rail-specific rules for it are further down this file, under "Vertical
+   colour rail"). These rules lay out what's LEFT in the top #color-bar
+   since the palette swatches moved to #color-rail (2026-08-25): Border
+   (#toolbar-attrs) and the marks group (#color-bar-controls), enlarging hit
+   targets for pen/touch. Everything stays token-driven — no colour
+   literals, no JS layout. */
 /* Every control in the bar is captioned above (Helpers.captionWrap) and every
    control is --clut-btn-size tall, so aligning the BOTTOM edges puts every
    swatch, toggle, dropdown and icon button on one baseline. Centring instead
@@ -564,32 +562,15 @@
     border-bottom: none;
 }
 
-/* The three GROUPS size to the bar; the nested sections inside them keep the
-   .toolbar-section default of not growing or shrinking. This has to live here
-   rather than in css/layout.css: `#color-bar .toolbar-section { flex: 0 0
-   auto }` above is in a LATER @layer, and a layer beats specificity.
+/* The nested sections inside keep the .toolbar-section default of not growing
+   or shrinking. This has to live here rather than in css/layout.css: `#color-
+   bar .toolbar-section { flex: 0 0 auto }` above is in a LATER @layer, and a
+   layer beats specificity.
 
-   #toolbar-color holds ONLY #clut-cluster now (no grow: it hugs the
-   swatches' own width rather than bloating into leftover row space, which
-   is what keeps #toolbar-attrs sitting right after paper instead of
-   stranded past an invisibly-padded box) — shrink stays live, so #clut-
-   cluster can still absorb the whole difference by scrolling itself, and
-   the palette group is NEVER wider than the bar at every window width,
-   every interface size and every screen mode, including the 256-entry
-   indexed palettes at ~2700px of swatches, which could never have fitted.
-   #toolbar-attrs (Bright/Flash/Border) is fixed to its own content width.
-   #color-bar-controls (the marks group) keeps the ONLY grow in this row —
-   tried splitting it 50/50 with the palette group (2026-08-09) and tried
-   nesting #toolbar-attrs inside the palette group so it could only ever
-   drop to a line of its own (2026-08-10); both reverted; see the DOM-order
-   comment in index.html for why three plain siblings, not two or a nest,
-   is what lets the bar settle on two rows across the widest range of
-   interface-size settings. */
-#color-bar > #toolbar-color {
-    flex: 0 1 auto;
-    min-width: 0;
-}
-
+   #toolbar-attrs (Border only, since Bright/Flash moved to #color-rail
+   2026-08-25) is fixed to its own content width. #color-bar-controls (the
+   marks group) keeps the ONLY grow in this row, so it centres in whatever
+   width Border leaves it. */
 #color-bar > #toolbar-attrs {
     flex: 0 0 auto;
 }
@@ -728,30 +709,10 @@
     text-wrap: balance;
 }
 
-/* ── One button control for the whole colour bar ──────────────────────────
-   Every button in #color-bar shares ONE size, --clut-btn-size (the swatch
-   height), so the row reads as one system. The token lives here; the sizing
-   that enforces it lives in css/utilities.css because it must win over the
-   generic `button { min-width: 0 }` reset there (@layer order, not
-   specificity). Any button added to the bar later inherits it automatically.
-
-   --clut-cell-size is the CAPTION's width, and therefore the pitch every icon
-   control sits on. It is bigger than the button because a caption is text and
-   text is longer in most languages than in English. 56px is measured, not
-   chosen (M, 2026-08-09, tools measurement over all 13 locales at scale 1):
-   the widest single caption word is 81.1px (fr "CLIGNOTANT") and the widest
-   whole caption 98.8px (tr "Yeniden renklendir"), so no sane pitch keeps
-   everything on one line - the question is only how many lines it takes. At
-   39px (button width) fr needs 3 lines and tr needs 4; at 54px tr still needs
-   3; 56px is the SMALLEST width at which no locale exceeds two lines, which
-   is the budget the bar's height was set for. English fits on one.
-   It carries no unit arithmetic because the whole chrome scales by `zoom`
-   (--ui-scale), so a px token already tracks the interface-size setting. */
 #color-bar {
-    --clut-btn-size: 39px;
     --clut-cell-size: 56px;
     /* ColorBarFit's own knob (js/ui/components/colorbar-fit.js) — 1 until it
-       decides the bar needs to shrink to keep fitting two rows; see the
+       decides the bar needs to shrink to keep fitting one row; see the
        zoom formula in css/layout.css. */
     --colorbar-scale: 1;
 }
@@ -810,7 +771,7 @@
 }
 
 @media (pointer: coarse) {
-    #color-bar { --clut-btn-size: 44px; }
+    :root { --clut-btn-size: 44px; }
 }
 
 /* Indexed Next palettes scroll sideways with the bar. Small palettes (<=16)
@@ -844,6 +805,90 @@
     /* The left-rail preview wells fill their grid column; nudge the whole
        block wider so fingertips land, keeping the tool-rail width. */
     #color-preview .clut-preview { min-height: 48px; }
+}
+
+/* ===== Vertical colour rail — column layout (2026-08-25) =====
+   ClutBar builds the SAME DOM used in every mode; these rules lay it out as
+   a narrow column instead of #color-bar's horizontal row. Swatches keep a
+   FIXED pixel size (--clut-btn-size) rather than stretching to the rail's
+   width — the "fixed size, scales only with --ui-scale" requirement is a
+   sizing rule, not a "no reflow" rule: the ARRANGEMENT adapts (2 columns
+   instead of 8-across), the swatch size never does. */
+#color-rail #clut-cluster {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+#color-rail #clut-cluster > * {
+    flex: 0 0 auto;
+}
+
+/* One colour channel: colour swatches · transparent box, stacked, under its
+   caption (Ink/Paper). */
+#color-rail .clut-channel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Swatch rows (Ink/Paper, ULANext normal/bright, the Timex scheme row, the
+   16-or-fewer indexed palette): a fixed 2-column grid, not the horizontal
+   row #color-bar uses. .clut-selector rows (ULAplus CLUT digits, GigaScreen
+   view) are excluded — see the "Vertical colour rail — selector rows"
+   section further down, added in Task 3. */
+#color-rail .clut-row:not(.clut-selector) {
+    display: grid;
+    grid-template-columns: repeat(2, var(--clut-btn-size));
+    gap: 3px;
+}
+
+/* Divider between ULAplus ink/paper halves or ULANext normal/bright rows:
+   horizontal in a column layout, not vertical. */
+#color-rail .clut-divider {
+    width: 100%;
+    height: 1px;
+    background: var(--border-light);
+    margin: var(--space-xs) 0;
+}
+
+#color-rail .color-swatch {
+    width: var(--clut-btn-size);
+    height: var(--clut-btn-size);
+    min-height: 0;
+    aspect-ratio: auto;
+}
+
+/* Sits below its channel's swatch grid, not beside it. */
+#color-rail .clut-transparent-box {
+    margin-top: 2px;
+}
+
+/* Bright / Flash: still a small horizontal pair, they fit the rail's width
+   easily side by side. */
+#color-rail .clut-bits {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+/* The native checkbox drives state/AT but the icon shows it — hide the box. */
+#color-rail .clut-bit input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* A caption is more likely to need to wrap in a narrow rail than it ever
+   was across a wide bar. */
+#color-rail .btn-label {
+    overflow-wrap: break-word;
+    text-wrap: balance;
 }
 
 /* ===== Panel chrome (tpl-panel) ===== */

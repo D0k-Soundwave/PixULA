@@ -198,6 +198,12 @@
        content (docs/superpowers/specs/2026-08-25-colour-rail-design.md S:9) —
        tune once the rail is on screen. */
     --colorrail-width: 140px;
+    /* Shared by #color-bar's buttons/select and #color-rail's swatches — one
+       size for every control either region contains, so the two read as one
+       system even though they scale independently (css/layout.css). Moved
+       here from a #color-bar-only definition 2026-08-25 when #color-rail
+       started needing it too. */
+    --clut-btn-size: 39px;
     --panel-width: 280px;
     --header-height: 40px;
     --status-height: 24px;

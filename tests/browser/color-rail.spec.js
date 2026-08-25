@@ -39,3 +39,34 @@ test('the colour rail exists between the tool rail and the canvas, and holds the
     expect(structure.toolbarLeftOfRail).toBe(true);
     expect(structure.railLeftOfCanvas).toBe(true);
 });
+
+/*
+ * Ink and paper are ONE thing - the pair of colours a cell is made of - so
+ * in the vertical rail they stack with a gap between the groups, reading as
+ * a column the way the old horizontal bar read as a row. Each 8-swatch
+ * block is a fixed 2-column grid, not stretched to the rail's width, so a
+ * screen-mode change can never resize a swatch.
+ */
+test('classic mode: Ink then Paper stack vertically in the rail, each a fixed 2-column grid', async ({ page }) => {
+    await boot(page);
+
+    const layout = await page.evaluate(() => {
+        const blocks = [...document.querySelectorAll('#clut-cluster > .btn-captioned')];
+        const inkRow = blocks[0].querySelector('.clut-row');
+        const swatches = [...inkRow.querySelectorAll('.color-swatch')];
+        const rects = swatches.map((s) => s.getBoundingClientRect());
+        return {
+            blocks: blocks.length,
+            inkAboveOrLeftOfPaper: blocks[0].getBoundingClientRect().bottom <=
+                blocks[1].getBoundingClientRect().top + 1,
+            swatchWidths: [...new Set(rects.map((r) => Math.round(r.width)))],
+            firstRowPair: Math.abs(rects[0].top - rects[1].top) < 1,
+            thirdDropsRow: rects[2].top > rects[0].top + 1
+        };
+    });
+    expect(layout.blocks).toBe(2); // ink, paper
+    expect(layout.inkAboveOrLeftOfPaper).toBe(true);
+    expect(layout.swatchWidths).toHaveLength(1);
+    expect(layout.firstRowPair).toBe(true);
+    expect(layout.thirdDropsRow).toBe(true);
+});
