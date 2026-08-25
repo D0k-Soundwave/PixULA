@@ -94,9 +94,11 @@ body {
 
 /* Vertical colour rail — every screen mode's palette swatches (ClutBar),
    between the tool rail and the drawing area (2026-08-25). Fixed width
-   (--colorrail-width above); content reflows into a narrow multi-column
-   grid (css/components.css) rather than being auto-scaled, and scrolls
-   vertically when it doesn't fit — never sideways. */
+   (--colorrail-width above), sized for ONE swatch column: content stacks
+   single-file (css/components.css) rather than being auto-scaled, and
+   scrolls vertically so every colour stays reachable — never sideways.
+   scrollbar-width: thin keeps that one column from having to share its
+   already-narrow width with a full-size scrollbar. */
 #color-rail {
     grid-area: colorrail;
     display: flex;
@@ -108,6 +110,7 @@ body {
     border-right: 1px solid var(--border-color);
     overflow-y: auto;
     overflow-x: hidden;
+    scrollbar-width: thin;
     z-index: var(--z-toolbar);
 }
 
