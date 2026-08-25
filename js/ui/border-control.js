@@ -62,10 +62,7 @@ class BorderControlClass {
         // Flash and the swatch groups instead of carrying an inline label.
         const row = Helpers.captionWrap(select, 'color.border', 'Border');
         row.id = 'border-select-row';
-        // A dropdown is wider than an icon button, so it opts out of the
-        // caption clamp (css/utilities.css) that would otherwise crop the
-        // selected colour's name.
-        row.classList.add('border-select-row', 'caption-wide');
+        row.classList.add('border-select-row');
         if (window.I18n && typeof I18n.apply === 'function') I18n.apply(row);
         host.appendChild(row);
         this._select = select;

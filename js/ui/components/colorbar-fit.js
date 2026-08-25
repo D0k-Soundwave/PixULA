@@ -169,8 +169,8 @@ class ColorBarFitClass {
      * clean integer: native display scaling (Windows "125%", "150%"...)
      * is exactly what produces a fractional DPR, and fractional DPR is
      * what forces the browser to round CSS-pixel layout to physical
-     * pixels unevenly across many small elements (18 swatches, a dozen
-     * icon buttons) - each one a few tenths of a physical pixel off
+     * pixels unevenly across many small elements (a dozen icon buttons, the
+     * Border select) - each one a few tenths of a physical pixel off
      * compounds into several real CSS pixels of difference by the far
      * edge of a row, which is what actually flips a razor's-edge wrap
      * decision between two runs of the identical page.
@@ -239,7 +239,11 @@ class ColorBarFitClass {
      */
     _rowCount() {
         const tops = new Set();
-        const els = this._bar.querySelectorAll('.color-swatch, button, select, .clut-bit');
+        // Swatches and .clut-bit toggles can no longer live in #color-bar —
+        // they moved to #color-rail 2026-08-25 (tests/browser/shell.spec.js
+        // asserts #color-bar has zero .color-swatch elements) — so only
+        // buttons and the Border select remain to query for.
+        const els = this._bar.querySelectorAll('button, select');
         for (const el of els) {
             if (el.offsetParent === null) continue;
             tops.add(Math.round(el.getBoundingClientRect().top / 10));

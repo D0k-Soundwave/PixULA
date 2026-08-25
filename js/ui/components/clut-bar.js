@@ -2,9 +2,15 @@
 (function() {
 
 /**
- * ClutBar — top colour bar: colour cluster + attribute operations.
- * Lives in the #color-bar strip above the canvas (moved out of the left
- * rail); the DOM it builds is layout-agnostic and CSS re-flows it there.
+ * ClutBar — colour cluster + attribute operations, split across two chrome
+ * regions since 2026-08-25 (docs/superpowers/specs/2026-08-25-colour-rail-
+ * design.md): the palette swatches and the Bright/Flash bit toggles live in
+ * the vertical #color-rail (between the tool rail and the canvas), while
+ * Swap/Recolour (attr ops) stayed in the top #color-bar strip, inline with
+ * the draw modes and Mirror. The DOM this class builds is layout-agnostic
+ * either way — CSS re-flows it (a fixed 2-column swatch grid in the rail;
+ * the bar's own horizontal row for the attr-ops buttons) rather than this
+ * file knowing where any of it lives.
  *
  * The live Ink / Paper preview wells are NOT part of the cluster — they are a
  * single labelled block built once (`_buildPreviewBlock`) at the top of the
@@ -14,7 +20,8 @@
  * The cluster REBUILDS on screen-mode changes and on BRIGHT/FLASH changes
  * (the bit toggles double as the shown palette bank).
  *
- *   fixed16 modes — the ink/paper split layout (left->right, one row):
+ *   fixed16 modes — the ink/paper split layout (stacked top-to-bottom in the
+ *     rail, each an 8-swatch group in a fixed 2-column grid):
  *     8 ink colours · ink transparent box ·
  *     8 paper colours · paper transparent box ·
  *     Bright toggle · Flash toggle
@@ -25,13 +32,15 @@
  *   GigaScreen additionally gets the sub-screen view toggle.
  *
  *   ulaplus64 mode — CLUT selector (0–3) + the active CLUT's ink half and
- *     paper half as separate single-role rows.
- *   rgb333 (ULANext) — the classic normal/bright rows over the Next palette.
+ *     paper half as separate single-role rows, one above the other.
+ *   rgb333 (ULANext) — the classic normal/bright rows over the Next palette,
+ *     stacked with a divider between them.
  *   timexMono — the 8 hi-res colour schemes. indexed Next — the palette
- *     index grid (picking is index-based).
+ *     index grid (picking is index-based; a 2-column grid up to 16 entries,
+ *     a denser 4-column grid at 256).
  *
  *   attr ops -> Swap/Apply enter InputHandler attr paint modes (styled as
- *              left-toolbar tool buttons).
+ *              left-toolbar tool buttons), still rendered in #color-bar.
  */
 class ClutBarClass {
     constructor() {
@@ -136,9 +145,6 @@ class ClutBarClass {
      */
     _captionGroup(el, i18n, fallback) {
         const wrap = Helpers.captionWrap(el, i18n, fallback);
-        // Wider than an icon button, so it opts out of the caption clamp that
-        // keeps a stray icon label from running away (css/utilities.css)
-        wrap.classList.add('caption-wide');
         wrap.firstChild.setAttribute('aria-hidden', 'true');
         return wrap;
     }
@@ -146,8 +152,9 @@ class ClutBarClass {
     /** @private */
     _buildColorCluster(host) {
         // One mode-dependent container, rebuilt on mode/bit changes. #toolbar-color
-        // holds only this cluster — Bright/Flash and Border are a separate
-        // #toolbar-attrs sibling in the top #color-bar (css/components.css).
+        // holds only this cluster — Bright/Flash are a sibling #colour-bits
+        // section in the same #color-rail; Border is a separate #toolbar-attrs
+        // section in the top #color-bar (css/components.css).
         this._cluster = document.createElement('div');
         this._cluster.id = 'clut-cluster';
         this._swatchHost = this._cluster;
@@ -181,9 +188,11 @@ class ClutBarClass {
         const bits = this._bitsHost;
         if (bits) bits.textContent = '';
 
-        // Every model lays its groups/rows out on one horizontal line (CSS keeps
-        // #clut-cluster a flex row) so the header height stays constant across
-        // modes; wide palettes scroll sideways with the #color-bar.
+        // Every model lays its groups/rows out in one vertical stack (CSS keeps
+        // #color-rail #clut-cluster a flex column, css/components.css) so the
+        // rail's width stays constant across modes; wide palettes (the
+        // 256-entry indexed grid) scroll vertically WITH the rail, never
+        // sideways.
 
         // Attribute ops act on cell attributes — hidden where cells have none
         // (Timex hi-res ignores them; indexed Next modes don't have them).
@@ -458,8 +467,12 @@ class ClutBarClass {
         wrap.dataset.i18nAriaLabel = 'clut.indexedPalette';
 
         const n = ZX_SPECTRUM.PALETTE_SIZE;
-        // Large palettes (256) go two-up at half height so the pair matches a
-        // single full-size row; small ones (<=16) stay one full-size row.
+        // Small palettes (<=16) fall into the rail's standard 2-column swatch
+        // grid (css/components.css #color-rail .clut-row); large ones (256)
+        // go dense — a narrower 4-column grid of smaller swatches, so the
+        // rail scrolls a manageable distance instead of a very tall 2-wide
+        // column (css/components.css #color-rail .indexed-palette-grid.
+        // indexed-dense).
         if (n > 16) wrap.classList.add('indexed-dense');
         for (let i = 0; i < n; i++) {
             const sw = document.createElement('div');
@@ -511,12 +524,18 @@ class ClutBarClass {
         return row;
     }
 
-    /** @private */
+    /**
+     * Only ever rendered inside #color-rail (between the ULAplus ink/paper
+     * halves or the ULANext normal/bright rows), which lays it out as a
+     * horizontal rule (`#color-rail .clut-divider`, css/components.css) —
+     * hence the orientation below.
+     * @private
+     */
     _makeDivider() {
         const divider = document.createElement('div');
         divider.className = 'clut-divider';
         divider.setAttribute('role', 'separator');
-        divider.setAttribute('aria-orientation', 'vertical');
+        divider.setAttribute('aria-orientation', 'horizontal');
         return divider;
     }
 

@@ -194,9 +194,12 @@
     --toolbar-width: 128px;         /* 2-wide tool grid + padding + room for the vertical scrollbar */
     /* Two swatch columns (--clut-btn-size, css/variables.css below) + gap +
        padding + room for the vertical scrollbar — same reasoning as
-       --toolbar-width above. [C], not yet measured against real rendered
-       content (docs/superpowers/specs/2026-08-25-colour-rail-design.md S:9) —
-       tune once the rail is on screen. */
+       --toolbar-width above. [M] 2026-08-25, verified now that the rail is on
+       screen: tests/browser/color-rail.spec.js's per-mode width sweep drives
+       every SCREEN_MODES entry at four viewport widths and asserts the rail
+       never overflows its own column or scrolls sideways — this figure was
+       [C] (computed, unmeasured against real content) before that test
+       existed. */
     --colorrail-width: 140px;
     /* Shared by #color-bar's buttons/select and #color-rail's swatches — one
        size for every control either region contains, so the two read as one

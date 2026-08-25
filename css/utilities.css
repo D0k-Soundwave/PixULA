@@ -114,17 +114,16 @@ legend {
     padding: 0;
 }
 
-/* Mirror captions are composed from two i18n keys ("Mirror" + the axis
-   name — draw-mode-bar.js), and "Mirror H+V" runs past one line at the
-   fixed cell pitch in several locales. `caption-wide` (above) does not fix
-   that HERE: this cell still shares its width evenly with its siblings
-   (components.css, #color-bar-controls .btn-captioned), so it only grows
-   past the pitch when the row has spare width to give it, and wraps to a
-   second row — taller than its neighbours — the moment it does not.
-   Ellipsizing instead keeps every mirror cell the same height as its
-   siblings at every window width; the full name is still on the tooltip
-   and aria-label (DrawModeBar._refreshMirrorLabels), so nothing the
-   caption can't show is lost. */
+/* Mirror captions used to be composed from two i18n keys ("Mirror" + the
+   axis name — draw-mode-bar.js) and could run past one line at the fixed
+   cell pitch in several locales, back when each mirror button carried a
+   visible caption. Since the 2026-08-22 icon-only pass (see the
+   .toolbar-group-label comment, css/components.css) draw-modes/mirror-modes
+   buttons are bare icons with no .btn-label at all — the name lives only in
+   the tooltip and aria-label (DrawModeBar._refreshMirrorLabels) — so this
+   rule currently matches nothing. Left in place rather than removed, in case
+   a caption is ever reintroduced here; the ellipsizing behaviour it would
+   apply is still the right one for a fixed-height icon row. */
 #mirror-modes .btn-label {
     white-space: nowrap;
     overflow: hidden;
