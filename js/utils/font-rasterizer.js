@@ -50,10 +50,9 @@ const FALLBACK_DESCENT = 0.2;
 const FAMILY = 'PixULA-SystemFontRaster';
 
 /**
- * FontRasterizer — turns real font bytes (TTF/OTF, served raw by the
- * companion) into PixULA's bitmap glyph model, entirely client-side. No
- * font-rendering code runs in the companion at all (design spec §6.3) -
- * this is the ONLY place outline-to-bitmap conversion happens, using the
+ * FontRasterizer — turns real font bytes (TTF/OTF, read from a `blob()`
+ * off `queryLocalFonts()` - see FontEditorDialog._openSystemFontPicker)
+ * into PixULA's bitmap glyph model, entirely client-side, using the
  * standard FontFace + Canvas 2D APIs already available in every browser
  * this app targets.
  *

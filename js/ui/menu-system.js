@@ -991,15 +991,6 @@ class MenuSystemClass {
                 <input type="checkbox" id="pref-show-presets-panel" name="pref-show-presets-panel">
                 <span data-i18n="pref.showPresetsPanel">${this._t('pref.showPresetsPanel', 'Show Presets panel in sidebar')}</span>
             </label>
-            <div class="pref-block" id="pref-companion">
-                <div class="pref-block__label" data-i18n="pref.companion">${this._t('pref.companion', 'Companion')}</div>
-                <div class="pref-block__hint" data-i18n="pref.companionHint">${this._t('pref.companionHint', 'A small local program that gives the backup folder and reference photos prompt-free access, and the Font Editor real OS fonts. Optional - everything works without it.')}</div>
-                <label class="pref-row">
-                    <input type="checkbox" id="pref-companion-enabled" name="pref-companion-enabled">
-                    <span data-i18n="pref.companionUse">${this._t('pref.companionUse', 'Use Companion')}</span>
-                </label>
-                <div class="pref-block__status" id="pref-companion-status"></div>
-            </div>
             <div class="pref-block" id="pref-backup">
                 <div class="pref-block__label" data-i18n="pref.backupFolder">${this._t('pref.backupFolder', 'Backup folder')}</div>
                 <div class="pref-block__hint" data-i18n="pref.backupHint">${this._t('pref.backupHint', 'Each autosave also writes the whole document here as a numbered version, so you can go back to any of them.')}</div>
@@ -1093,7 +1084,6 @@ class MenuSystemClass {
             </div>
         `;
         this._initPenPreferences(content);
-        this._initCompanionPreferences(content);
         this._initBackupPreferences(content);
         this._initPrivacyPreferences(content);
         // Reflect the live state (seeded from Storage at boot)
@@ -1221,89 +1211,6 @@ class MenuSystemClass {
         renderDisk();
         renderUsage();
         EventBus.on(EVENTS.BACKUP_STATE_CHANGED, renderDisk);
-    }
-
-    /**
-     * Wire the Preferences Companion block: one switch that pairs (if
-     * needed) and applies to every companion-capable feature at once -
-     * Backup and Reference. System fonts need no wiring here:
-     * FontEditorDialog already checks CompanionBridgeService.getProvider()
-     * directly, so it starts working the instant this pairs, with no
-     * separate flag of its own - this switch is what Backup/Reference get
-     * to match that same always-available-once-paired behaviour, replacing
-     * the two per-feature checkboxes (and the separate Settings >
-     * Companion... dialog) an earlier pass built. Per-feature toggling
-     * turned out to solve a problem nobody had: the companion, once paired,
-     * is strictly more capable for every feature, so there was never a real
-     * reason to want it on for one and off for another.
-     *
-     * The companion arms pairing automatically at launch (main.go) -
-     * running the process is itself the proof a human is at the machine -
-     * so the FIRST time this switch is turned on in a session, pair()
-     * resolves immediately with no tray interaction needed. Turning it off
-     * again does not drop the pairing itself (CompanionBridgeService keeps
-     * its token) - it only routes Backup/Reference back to the browser, so
-     * turning it back on later the same session is instant too.
-     * @private
-     */
-    _initCompanionPreferences(root) {
-        const block = root.querySelector('#pref-companion');
-        if (!block) return;
-
-        const enabled = block.querySelector('#pref-companion-enabled');
-        const status = block.querySelector('#pref-companion-status');
-
-        const render = () => {
-            enabled.checked = BackupService.getProviderKind() === 'companion';
-            status.textContent = enabled.checked
-                ? this._t('pref.companionOn',
-                    'On - the backup folder and reference photos use it.')
-                : this._t('pref.companionOff', 'Off - everything uses the browser.');
-        };
-
-        // A folder/handle chosen under the OLD backend is meaningless to the
-        // new one - BackupService._permission() trusts _providerKind alone
-        // and would otherwise report "granted" for a handle the new backend
-        // can't use. Forgetting the link (not the files) forces a fresh
-        // Choose Folder under whichever backend is now active.
-        const applyProviderKind = async (kind) => {
-            if (BackupService.isConfigured) await BackupService.forgetFolder();
-            BackupService.setProviderKind(kind);
-            ReferenceLayerService.setProviderKind(kind);
-        };
-
-        enabled.addEventListener('change', async () => {
-            if (!enabled.checked) {
-                await applyProviderKind('browser');
-                render();
-                return;
-            }
-
-            if (!CompanionBridgeService.getProvider()) {
-                status.textContent = this._t('pref.companionConnecting', 'Looking for the companion...');
-                const running = await CompanionBridgeService.checkStatus();
-                if (!running) {
-                    enabled.checked = false;
-                    status.textContent = this._t('pref.companionNotRunning',
-                        'Companion not running - start it, then try again.');
-                    return;
-                }
-                try {
-                    await CompanionBridgeService.pair();
-                } catch (error) {
-                    Logger.warn('MenuSystem', 'Companion pairing failed', error);
-                    enabled.checked = false;
-                    status.textContent = this._t('pref.companionPairFailed',
-                        'Could not pair with the companion.');
-                    return;
-                }
-            }
-
-            await applyProviderKind('companion');
-            render();
-        });
-
-        render();
     }
 
     /**
