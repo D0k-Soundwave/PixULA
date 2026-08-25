@@ -912,6 +912,12 @@ const pt = {
     'font.status.imported': 'Tipo de letra importado.',
     'font.status.importFailed': 'Falha na importação: {error}',
     'font.status.exported': 'Tipo de letra exportado.',
+    'font.fromSystemFont': 'De tipo de letra do sistema...',
+    'font.chooseSystemFont': 'Escolher tipo de letra do sistema',
+    'font.pointSize': 'Tamanho em pontos',
+    'font.generate': 'Gerar',
+    'font.systemFontUnsupported': 'Este navegador não consegue listar os tipos de letra instalados.',
+    'font.systemFontGenerated': 'Gerado a partir de {family}',
 
     // Screen modes + ULAplus (Phase 12a)
     'mode.standardUla': 'ULA padrão',

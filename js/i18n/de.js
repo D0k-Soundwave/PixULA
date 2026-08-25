@@ -912,6 +912,12 @@ const de = {
     'font.status.imported': 'Schrift importiert.',
     'font.status.importFailed': 'Import fehlgeschlagen: {error}',
     'font.status.exported': 'Schrift exportiert.',
+    'font.fromSystemFont': 'Aus Systemschriftart...',
+    'font.chooseSystemFont': 'Systemschriftart wählen',
+    'font.pointSize': 'Schriftgröße',
+    'font.generate': 'Erzeugen',
+    'font.systemFontUnsupported': 'Dieser Browser kann installierte Schriftarten nicht auflisten.',
+    'font.systemFontGenerated': 'Erzeugt aus {family}',
 
     // Screen modes + ULAplus (Phase 12a)
     'mode.standardUla': 'Standard-ULA',

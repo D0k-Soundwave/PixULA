@@ -137,6 +137,9 @@ class FontEditorDialogClass {
                     <button type="button" class="pc-btn fe-export" data-i18n="font.export">${this._t('font.export', 'Export')}</button>
                     <input type="file" class="fe-file-input" id="fe-file-input" name="fe-file-input" accept=".ch4,.ch6,.ch8,.chr,.chx" hidden>
                 </div>
+                <div class="me-toolbar">
+                    <button type="button" class="pc-btn fe-system-font font-editor-system-font-btn" data-i18n="font.fromSystemFont">${this._t('font.fromSystemFont', 'From System Font...')}</button>
+                </div>
                 <div class="fe-status pc-status font-editor-status"></div>
             </div>
         `;
@@ -286,6 +289,8 @@ class FontEditorDialogClass {
         c.querySelector('.fe-file-input').addEventListener('change', e => this._importFile(e));
         c.querySelector('.fe-export').addEventListener('click',
             () => this._export(c.querySelector('.fe-export-format').value));
+
+        c.querySelector('.fe-system-font').addEventListener('click', () => this._openSystemFontPicker());
     }
 
     _runOp(op) {
@@ -479,6 +484,118 @@ class FontEditorDialogClass {
         } catch (err) {
             this._status(err.message);
         }
+    }
+
+    // ─── System font ────────────────────────────────────────────────────
+
+    /**
+     * File > Font Editor... > From System Font... — pick one of the real
+     * OS fonts `queryLocalFonts()` enumerates and rasterize it into the
+     * working font's glyph coverage. All outline-to-bitmap conversion runs
+     * client-side in FontRasterizer (Canvas 2D).
+     *
+     * Unlike the text tool's font-FAMILY list (TextTool._enumerateFonts,
+     * always FontProbe.detect() - see its own comment for why
+     * queryLocalFonts() was dropped there), this is a deliberate, explicit
+     * click on a button whose only job is "get me a real system font's
+     * bytes" - the permission prompt it raises is the expected cost of that
+     * action, not a surprise sitting behind an ordinary reload. FontProbe
+     * cannot substitute here regardless: it detects family NAMES by
+     * measurement, never font bytes, and rasterizing needs the bytes.
+     * @private
+     */
+    async _openSystemFontPicker() {
+        if (typeof window.queryLocalFonts !== 'function') {
+            this._status(this._t('font.systemFontUnsupported',
+                'This browser cannot list installed fonts.'));
+            return;
+        }
+
+        let fonts;
+        try {
+            fonts = await window.queryLocalFonts();
+        } catch (error) {
+            Logger.warn('FontEditorDialog', 'queryLocalFonts failed', error);
+            this._status(error.message);
+            return;
+        }
+
+        const select = document.createElement('select');
+        select.className = 'font-editor-system-font-select';
+        for (const f of fonts) {
+            const opt = document.createElement('option');
+            opt.value = f.postscriptName;
+            opt.textContent = `${f.family} (${f.style})`;
+            select.appendChild(opt);
+        }
+
+        const sizeInput = document.createElement('input');
+        sizeInput.type = 'number';
+        sizeInput.className = 'font-editor-system-font-size';
+        sizeInput.value = '12';
+        sizeInput.min = '4';
+        sizeInput.max = '96';
+        sizeInput.setAttribute('aria-label', this._t('font.pointSize', 'Point size'));
+        sizeInput.title = this._t('font.pointSize', 'Point size');
+
+        const widthSelect = document.createElement('select');
+        widthSelect.className = 'font-editor-system-font-width';
+        widthSelect.setAttribute('aria-label', this._t('font.width', 'Width'));
+        for (const w of FontService.WIDTHS) {
+            const opt = document.createElement('option');
+            opt.value = String(w);
+            opt.textContent = `${w}×8`;
+            widthSelect.appendChild(opt);
+        }
+        widthSelect.value = String(FontService.width);
+
+        const generateBtn = document.createElement('button');
+        generateBtn.type = 'button';
+        generateBtn.className = 'panel-button font-editor-system-font-generate';
+        generateBtn.dataset.i18n = 'font.generate';
+        generateBtn.textContent = this._t('font.generate', 'Generate');
+        generateBtn.addEventListener('click', async () => {
+            const chosen = fonts.find((f) => f.postscriptName === select.value);
+            if (!chosen) {
+                this._status(this._t('font.status.noFont', 'Select a library font first.'));
+                return;
+            }
+            const pointSize = parseInt(sizeInput.value, 10) || 12;
+            const cellWidth = parseInt(widthSelect.value, 10);
+
+            try {
+                const blob = await chosen.blob();
+                const bytes = await blob.arrayBuffer();
+                const coverage = FontService.getCoverage();
+                const glyphs = await FontRasterizer.rasterize(bytes, {
+                    pointSize, cellWidth,
+                    firstCode: coverage.firstCode, count: coverage.count
+                });
+                // Apply the width only once rasterization has actually produced
+                // glyphs to match it - setWidth() is destructive (crops existing
+                // glyphs to the new width), so doing it first left a mismatched,
+                // half-cropped font behind whenever rasterize() threw.
+                FontService.setWidth(cellWidth);
+                glyphs.forEach((bytesRow, i) => FontService.setGlyph(coverage.firstCode + i, bytesRow));
+                Dialog.close('font-editor-system-font');
+                this._status(this._t('font.systemFontGenerated', 'Generated from {family}',
+                    { family: chosen.family }));
+            } catch (error) {
+                Logger.warn('FontEditorDialog', 'System font generation failed', error);
+                this._status(error.message);
+            }
+        });
+
+        const wrap = document.createElement('div');
+        wrap.className = 'fe-system-font-picker fe-row';
+        wrap.append(select, sizeInput, widthSelect, generateBtn);
+
+        Dialog.open({
+            id: 'font-editor-system-font',
+            titleI18n: 'font.chooseSystemFont',
+            title: 'Choose System Font',
+            content: wrap
+        });
     }
 
     // ─── Shared refresh / status ──────────────────────────────────────────

@@ -912,6 +912,12 @@ const sk = {
     'font.status.imported': 'Písmo importované.',
     'font.status.importFailed': 'Import zlyhal: {error}',
     'font.status.exported': 'Písmo exportované.',
+    'font.fromSystemFont': 'Zo systémového písma...',
+    'font.chooseSystemFont': 'Vybrať systémové písmo',
+    'font.pointSize': 'Veľkosť písma',
+    'font.generate': 'Vygenerovať',
+    'font.systemFontUnsupported': 'Tento prehliadač nedokáže vypísať nainštalované písma.',
+    'font.systemFontGenerated': 'Vygenerované z {family}',
 
     // Screen modes + ULAplus (Phase 12a)
     'mode.standardUla': 'Štandardná ULA',

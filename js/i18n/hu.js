@@ -912,6 +912,12 @@ const hu = {
     'font.status.imported': 'Betűkészlet importálva.',
     'font.status.importFailed': 'Az importálás nem sikerült: {error}',
     'font.status.exported': 'Betűkészlet exportálva.',
+    'font.fromSystemFont': 'Rendszer-betűkészletből...',
+    'font.chooseSystemFont': 'Rendszer-betűkészlet kiválasztása',
+    'font.pointSize': 'Pontméret',
+    'font.generate': 'Létrehozás',
+    'font.systemFontUnsupported': 'Ez a böngésző nem tudja felsorolni a telepített betűkészleteket.',
+    'font.systemFontGenerated': 'Létrehozva ebből: {family}',
 
     // Screen modes + ULAplus (Phase 12a)
     'mode.standardUla': 'Szabványos ULA',

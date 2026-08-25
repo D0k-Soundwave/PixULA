@@ -10,10 +10,38 @@
  * documented benign exception: Chrome logs it on reload for the canvas
  * iframe and then falls back correctly, so it is cosmetic.
  */
+const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
 
 const APP_URL = pathToFileURL(path.resolve(__dirname, '..', '..', 'index.html')).href;
+
+/** First installed TTF/TTC we can find, whatever platform this runs on. */
+const FONT_CANDIDATES = [
+    'C:/Windows/Fonts/arial.ttf',
+    'C:/Windows/Fonts/segoeui.ttf',
+    'C:/Windows/Fonts/verdana.ttf',
+    'C:/Windows/Fonts/tahoma.ttf',
+    '/System/Library/Fonts/Supplemental/Arial.ttf',
+    '/System/Library/Fonts/Helvetica.ttc',
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+    '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf'
+];
+
+/**
+ * Locate a real installed font file for specs that need to rasterize one -
+ * one list, shared, so font-rasterizer.spec.js and system-font-import.spec.js
+ * can't drift onto two different candidate sets.
+ * @returns {string|null}
+ */
+function findInstalledFont() {
+    for (const p of FONT_CANDIDATES) {
+        try {
+            if (fs.statSync(p).isFile()) return p;
+        } catch (e) { /* next candidate */ }
+    }
+    return null;
+}
 
 const BENIGN_CONSOLE = [
     /unique security origins/i,   // srcdoc iframe on file:// (documented)
@@ -76,4 +104,4 @@ async function selectMode(page, modeId) {
     await page.click(`.menu-action[data-id="mode-${modeId}"]`);
 }
 
-module.exports = { APP_URL, boot, reload, collectConsole, app, selectMode };
+module.exports = { APP_URL, boot, reload, collectConsole, app, selectMode, findInstalledFont, FONT_CANDIDATES };

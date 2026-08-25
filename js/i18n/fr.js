@@ -912,6 +912,12 @@ const fr = {
     'font.status.imported': 'Police importée.',
     'font.status.importFailed': 'Échec de l’import : {error}',
     'font.status.exported': 'Police exportée.',
+    'font.fromSystemFont': 'Depuis une police système...',
+    'font.chooseSystemFont': 'Choisir une police système',
+    'font.pointSize': 'Taille en points',
+    'font.generate': 'Générer',
+    'font.systemFontUnsupported': 'Ce navigateur ne peut pas lister les polices installées.',
+    'font.systemFontGenerated': 'Généré à partir de {family}',
 
     // Screen modes + ULAplus (Phase 12a)
     'mode.standardUla': 'ULA standard',

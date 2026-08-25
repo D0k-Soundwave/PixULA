@@ -913,6 +913,12 @@ const es = {
     'font.status.imported': 'Fuente importada.',
     'font.status.importFailed': 'Error al importar: {error}',
     'font.status.exported': 'Fuente exportada.',
+    'font.fromSystemFont': 'Desde fuente del sistema...',
+    'font.chooseSystemFont': 'Elegir fuente del sistema',
+    'font.pointSize': 'Tamaño de punto',
+    'font.generate': 'Generar',
+    'font.systemFontUnsupported': 'Este navegador no puede listar las fuentes instaladas.',
+    'font.systemFontGenerated': 'Generado a partir de {family}',
 
     // Screen modes + ULAplus (Phase 12a)
     'mode.standardUla': 'ULA estándar',

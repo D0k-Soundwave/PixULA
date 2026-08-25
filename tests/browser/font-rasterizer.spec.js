@@ -11,32 +11,10 @@
  * the bitmaps contain real, plausible letterforms.
  */
 const fs = require('fs');
-const path = require('path');
 const { test, expect } = require('@playwright/test');
-const { boot } = require('./helpers');
+const { boot, findInstalledFont, FONT_CANDIDATES } = require('./helpers');
 
-/** First installed font file we can find, whatever platform this runs on. */
-const FONT_CANDIDATES = [
-    'C:/Windows/Fonts/arial.ttf',
-    'C:/Windows/Fonts/segoeui.ttf',
-    'C:/Windows/Fonts/verdana.ttf',
-    'C:/Windows/Fonts/tahoma.ttf',
-    '/System/Library/Fonts/Supplemental/Arial.ttf',
-    '/System/Library/Fonts/Helvetica.ttc',
-    '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-    '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf'
-];
-
-function findFont() {
-    for (const p of FONT_CANDIDATES) {
-        try {
-            if (fs.statSync(p).isFile()) return p;
-        } catch (e) { /* next candidate */ }
-    }
-    return null;
-}
-
-const FONT_PATH = findFont();
+const FONT_PATH = findInstalledFont();
 
 /** Rasterize in the page and bring the rows back as plain arrays. */
 async function rasterize(page, fontPath, opts) {
@@ -62,7 +40,7 @@ function art(label, rows, cellWidth) {
 }
 
 test.describe('FontRasterizer with a real font', () => {
-    test.skip(!FONT_PATH, 'no installed TTF found on this machine to rasterize');
+    test.skip(!FONT_PATH, `no installed TTF found (checked: ${FONT_CANDIDATES.join(', ')})`);
 
     test('produces real, non-blank, non-saturated letterforms', async ({ page }) => {
         await boot(page);
