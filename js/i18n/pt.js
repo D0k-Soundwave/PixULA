@@ -912,12 +912,6 @@ const pt = {
     'font.status.imported': 'Tipo de letra importado.',
     'font.status.importFailed': 'Falha na importação: {error}',
     'font.status.exported': 'Tipo de letra exportado.',
-    'font.fromSystemFont': 'De tipo de letra do sistema...',
-    'font.chooseSystemFont': 'Escolher tipo de letra do sistema',
-    'font.pointSize': 'Tamanho em pontos',
-    'font.generate': 'Gerar',
-    'font.systemFontNeedsCompanion': 'Ligue o Companheiro (Definições > Companheiro...) para usar tipos de letra do sistema.',
-    'font.systemFontGenerated': 'Gerado a partir de {family}',
 
     // Screen modes + ULAplus (Phase 12a)
     'mode.standardUla': 'ULA padrão',
@@ -1084,14 +1078,6 @@ const pt = {
     'cap.pick': 'Escolher',
 
     // User presets (named, slotted setups)
-    'menu.settings.companion': 'Companheiro...',
-    'companion.title': 'Companheiro',
-    'companion.refresh': 'Verificar novamente',
-    'companion.connect': 'Ligar',
-    'companion.notRunning': 'O companheiro não está em execução',
-    'companion.notConnected': 'Companheiro em execução, não ligado',
-    'companion.connected': 'Ligado',
-    'companion.waiting': 'Clique em Ativar Emparelhamento no ícone do companheiro na barra de tarefas...',
     'menu.settings.presets': 'Predefinições do ambiente...',
     'preset.full': 'Todas as posições estão ocupadas. Liberte uma no gestor de predefinições.',
     'preset.name': 'Nome',

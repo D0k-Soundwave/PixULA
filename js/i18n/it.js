@@ -912,12 +912,6 @@ const it = {
     'font.status.imported': 'Font importato.',
     'font.status.importFailed': 'Importazione non riuscita: {error}',
     'font.status.exported': 'Font esportato.',
-    'font.fromSystemFont': 'Da carattere di sistema...',
-    'font.chooseSystemFont': 'Scegli carattere di sistema',
-    'font.pointSize': 'Dimensione in punti',
-    'font.generate': 'Genera',
-    'font.systemFontNeedsCompanion': 'Collega il Compagno (Impostazioni > Compagno...) per usare i caratteri di sistema.',
-    'font.systemFontGenerated': 'Generato da {family}',
 
     // Screen modes + ULAplus (Phase 12a)
     'mode.standardUla': 'ULA standard',
@@ -1084,14 +1078,6 @@ const it = {
     'cap.pick': 'Scegli',
 
     // User presets (named, slotted setups)
-    'menu.settings.companion': 'Compagno...',
-    'companion.title': 'Compagno',
-    'companion.refresh': 'Controlla di nuovo',
-    'companion.connect': 'Connetti',
-    'companion.notRunning': 'Compagno non in esecuzione',
-    'companion.notConnected': 'Compagno in esecuzione, non connesso',
-    'companion.connected': 'Connesso',
-    'companion.waiting': 'Fai clic su Abilita associazione nell\'icona del compagno nella barra delle applicazioni...',
     'menu.settings.presets': 'Preimpostazioni ambiente...',
     'preset.full': 'Tutte le posizioni sono occupate. Liberane una nella gestione preimpostazioni.',
     'preset.name': 'Nome',

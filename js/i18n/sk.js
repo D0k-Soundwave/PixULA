@@ -912,12 +912,6 @@ const sk = {
     'font.status.imported': 'Písmo importované.',
     'font.status.importFailed': 'Import zlyhal: {error}',
     'font.status.exported': 'Písmo exportované.',
-    'font.fromSystemFont': 'Zo systémového písma...',
-    'font.chooseSystemFont': 'Vybrať systémové písmo',
-    'font.pointSize': 'Veľkosť v bodoch',
-    'font.generate': 'Vygenerovať',
-    'font.systemFontNeedsCompanion': 'Pripojte Spoločníka (Nastavenia > Spoločník...), aby ste mohli používať systémové písma.',
-    'font.systemFontGenerated': 'Vygenerované z {family}',
 
     // Screen modes + ULAplus (Phase 12a)
     'mode.standardUla': 'Štandardná ULA',
@@ -1084,14 +1078,6 @@ const sk = {
     'cap.pick': 'Vybrať',
 
     // User presets (named, slotted setups)
-    'menu.settings.companion': 'Spoločník...',
-    'companion.title': 'Spoločník',
-    'companion.refresh': 'Skontrolovať znova',
-    'companion.connect': 'Pripojiť',
-    'companion.notRunning': 'Spoločník nebeží',
-    'companion.notConnected': 'Spoločník beží, nepripojené',
-    'companion.connected': 'Pripojené',
-    'companion.waiting': 'Kliknite na Povoliť párovanie v ikone spoločníka na paneli úloh...',
     'menu.settings.presets': 'Predvoľby pracovnej plochy...',
     'preset.full': 'Všetky pozície sú obsadené. Najprv jednu uvoľnite v správcovi predvolieb.',
     'preset.name': 'Názov',

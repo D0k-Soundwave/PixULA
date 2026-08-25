@@ -912,12 +912,6 @@ const ro = {
     'font.status.imported': 'Fontul a fost importat.',
     'font.status.importFailed': 'Importul a eșuat: {error}',
     'font.status.exported': 'Fontul a fost exportat.',
-    'font.fromSystemFont': 'Din font de sistem...',
-    'font.chooseSystemFont': 'Alege font de sistem',
-    'font.pointSize': 'Dimensiune în puncte',
-    'font.generate': 'Generează',
-    'font.systemFontNeedsCompanion': 'Conectați Însoțitorul (Setări > Însoțitor...) pentru a folosi fonturile de sistem.',
-    'font.systemFontGenerated': 'Generat din {family}',
 
     // Screen modes + ULAplus (Phase 12a)
     'mode.standardUla': 'ULA standard',
@@ -1084,14 +1078,6 @@ const ro = {
     'cap.pick': 'Alege',
 
     // User presets (named, slotted setups)
-    'menu.settings.companion': 'Însoțitor...',
-    'companion.title': 'Însoțitor',
-    'companion.refresh': 'Verifică din nou',
-    'companion.connect': 'Conectare',
-    'companion.notRunning': 'Însoțitorul nu rulează',
-    'companion.notConnected': 'Însoțitorul rulează, neconectat',
-    'companion.connected': 'Conectat',
-    'companion.waiting': 'Faceți clic pe Activare împerechere din pictograma însoțitorului din bara de sistem...',
     'menu.settings.presets': 'Presetări spațiu de lucru...',
     'preset.full': 'Toate pozițiile sunt ocupate. Eliberează una în managerul de presetări.',
     'preset.name': 'Nume',

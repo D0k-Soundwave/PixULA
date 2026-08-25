@@ -912,12 +912,6 @@ const ru = {
     'font.status.imported': 'Шрифт импортирован.',
     'font.status.importFailed': 'Ошибка импорта: {error}',
     'font.status.exported': 'Шрифт экспортирован.',
-    'font.fromSystemFont': 'Из системного шрифта...',
-    'font.chooseSystemFont': 'Выбрать системный шрифт',
-    'font.pointSize': 'Размер в пунктах',
-    'font.generate': 'Создать',
-    'font.systemFontNeedsCompanion': 'Подключите Компаньона (Настройки > Компаньон...), чтобы использовать системные шрифты.',
-    'font.systemFontGenerated': 'Создано из {family}',
 
     // Screen modes + ULAplus (Phase 12a)
     'mode.standardUla': 'Стандартный ULA',
@@ -1084,14 +1078,6 @@ const ru = {
     'cap.pick': 'Выбрать',
 
     // User presets (named, slotted setups)
-    'menu.settings.companion': 'Компаньон...',
-    'companion.title': 'Компаньон',
-    'companion.refresh': 'Проверить снова',
-    'companion.connect': 'Подключить',
-    'companion.notRunning': 'Компаньон не запущен',
-    'companion.notConnected': 'Компаньон запущен, не подключен',
-    'companion.connected': 'Подключено',
-    'companion.waiting': 'Нажмите Разрешить сопряжение в значке компаньона в системном трее...',
     'menu.settings.presets': 'Пресеты рабочей среды...',
     'preset.full': 'Все ячейки заняты. Сначала освободите одну в менеджере пресетов.',
     'preset.name': 'Название',

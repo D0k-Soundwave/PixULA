@@ -912,12 +912,6 @@ const hu = {
     'font.status.imported': 'Betűkészlet importálva.',
     'font.status.importFailed': 'Az importálás nem sikerült: {error}',
     'font.status.exported': 'Betűkészlet exportálva.',
-    'font.fromSystemFont': 'Rendszer-betűkészletből...',
-    'font.chooseSystemFont': 'Rendszer-betűkészlet kiválasztása',
-    'font.pointSize': 'Pontméret',
-    'font.generate': 'Létrehozás',
-    'font.systemFontNeedsCompanion': 'Csatlakoztassa a Kísérőt (Beállítások > Kísérő...) a rendszer-betűkészletek használatához.',
-    'font.systemFontGenerated': 'Létrehozva ebből: {family}',
 
     // Screen modes + ULAplus (Phase 12a)
     'mode.standardUla': 'Szabványos ULA',
@@ -1084,14 +1078,6 @@ const hu = {
     'cap.pick': 'Kiválasztás',
 
     // User presets (named, slotted setups)
-    'menu.settings.companion': 'Kísérő...',
-    'companion.title': 'Kísérő',
-    'companion.refresh': 'Ellenőrzés újra',
-    'companion.connect': 'Csatlakozás',
-    'companion.notRunning': 'A kísérő nem fut',
-    'companion.notConnected': 'A kísérő fut, nincs csatlakoztatva',
-    'companion.connected': 'Csatlakoztatva',
-    'companion.waiting': 'Kattintson a Párosítás engedélyezése elemre a kísérő tálcaikonján...',
     'menu.settings.presets': 'Munkakörnyezet-készletek...',
     'preset.full': 'Minden hely foglalt. Előbb szabadítson fel egyet a készletkezelőben.',
     'preset.name': 'Név',

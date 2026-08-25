@@ -110,45 +110,16 @@ class ImageSourceClass {
     }
 
     /**
-     * Read the file back from a stored handle.
+     * Read the file back from a stored FileSystemFileHandle.
      *
-     * Two shapes reach here, and the shape is what decides how to read it -
-     * never a session-local "which provider is preferred" flag. A handle
-     * can be restored from a preset captured in an earlier session (its own
-     * or a companion install's), so it has to resolve by what it actually
-     * IS, not by whatever this session happens to be configured for right
-     * now. Trusting a flag instead of the value's own shape is exactly the
-     * bug `BackupService` shipped and then had to fix (see
-     * `js/services/backup-service.js` `initialize()` and its
-     * `_isValidFolderRef`/shape-inference comment) - this starts with that
-     * fix already applied rather than repeating the mistake:
-     *
-     *   - a `FileSystemFileHandle` (has `.getFile`) -> the existing browser
-     *     FSA permission dance, unchanged.
-     *   - a companion-shaped `{folderId, relPath}` (design spec s6.2) ->
-     *     read through whatever `CompanionBridgeService.getProvider()`
-     *     returns RIGHT NOW, re-derived on every call rather than cached,
-     *     so a pairing that lapsed since the handle was captured reads back
-     *     as "unreachable" (-> thumbnail), never as a thrown error.
-     *
-     * Returns null for every ordinary reason either path can fail - moved,
-     * renamed, deleted, permission declined, companion not paired - because
-     * all of them mean the same thing to the caller: use the thumbnail.
-     * @param {Object} handle - FileSystemFileHandle, a companion-shaped
-     *   {folderId, relPath, fileName?, mimeType?}, or a stub in tests
+     * Returns null for every ordinary reason this can fail - moved, renamed,
+     * deleted, permission declined - because all of them mean the same thing
+     * to the caller: use the thumbnail.
+     * @param {Object} handle - FileSystemFileHandle, or a stub in tests
      * @returns {Promise<File|null>}
      */
     async fileFromHandle(handle) {
-        if (!handle) return null;
-        if (typeof handle.getFile === 'function') return this._browserFileFromHandle(handle);
-        if (typeof handle.folderId === 'string' && typeof handle.relPath === 'string') {
-            return this._companionFileFromHandle(handle);
-        }
-        return null;
-    }
-
-    /** @private */
-    async _browserFileFromHandle(handle) {
+        if (!handle || typeof handle.getFile !== 'function') return null;
         try {
             if (typeof handle.queryPermission === 'function') {
                 let state = await handle.queryPermission({ mode: 'read' });
@@ -162,33 +133,6 @@ class ImageSourceClass {
             Logger.info('ImageSource', 'Linked file unavailable; using thumbnail', error);
             return null;
         }
-    }
-
-    /** @private */
-    async _companionFileFromHandle(handle) {
-        const provider = window.CompanionBridgeService && CompanionBridgeService.getProvider();
-        if (!provider) {
-            Logger.info('ImageSource', 'Companion not paired; using thumbnail');
-            return null;
-        }
-        try {
-            const bytes = await provider.readFile(handle.folderId, handle.relPath);
-            const name = handle.fileName || handle.relPath.split('/').pop() || 'image';
-            return new File([bytes], name, { type: handle.mimeType || this._guessMimeType(name) });
-        } catch (error) {
-            Logger.info('ImageSource', 'Linked file unavailable; using thumbnail', error);
-            return null;
-        }
-    }
-
-    /** Extension -> MIME, for the companion path (no browser File to read a type from). @private */
-    _guessMimeType(name) {
-        const ext = String(name).split('.').pop().toLowerCase();
-        const MIME_BY_EXT = {
-            png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
-            gif: 'image/gif', bmp: 'image/bmp', webp: 'image/webp'
-        };
-        return MIME_BY_EXT[ext] || 'application/octet-stream';
     }
 
     /**

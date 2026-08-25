@@ -912,12 +912,6 @@ const fr = {
     'font.status.imported': 'Police importée.',
     'font.status.importFailed': 'Échec de l’import : {error}',
     'font.status.exported': 'Police exportée.',
-    'font.fromSystemFont': 'Depuis une police système...',
-    'font.chooseSystemFont': 'Choisir une police système',
-    'font.pointSize': 'Taille en points',
-    'font.generate': 'Générer',
-    'font.systemFontNeedsCompanion': 'Connectez le Compagnon (Paramètres > Compagnon...) pour utiliser les polices système.',
-    'font.systemFontGenerated': 'Généré à partir de {family}',
 
     // Screen modes + ULAplus (Phase 12a)
     'mode.standardUla': 'ULA standard',
@@ -1084,14 +1078,6 @@ const fr = {
     'cap.pick': 'Choisir',
 
     // User presets (named, slotted setups)
-    'menu.settings.companion': 'Compagnon...',
-    'companion.title': 'Compagnon',
-    'companion.refresh': 'Vérifier à nouveau',
-    'companion.connect': 'Connecter',
-    'companion.notRunning': 'Le compagnon n\'est pas lancé',
-    'companion.notConnected': 'Compagnon lancé, non connecté',
-    'companion.connected': 'Connecté',
-    'companion.waiting': 'Cliquez sur Activer le jumelage dans l\'icône du compagnon dans la zone de notification...',
     'menu.settings.presets': 'Préréglages d\'espace...',
     'preset.full': 'Tous les emplacements sont occupés. Supprimez-en un dans le gestionnaire.',
     'preset.name': 'Nom',

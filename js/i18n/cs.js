@@ -912,12 +912,6 @@ const cs = {
     'font.status.imported': 'Písmo importováno.',
     'font.status.importFailed': 'Import selhal: {error}',
     'font.status.exported': 'Písmo exportováno.',
-    'font.fromSystemFont': 'Ze systémového písma...',
-    'font.chooseSystemFont': 'Vybrat systémové písmo',
-    'font.pointSize': 'Velikost v bodech',
-    'font.generate': 'Vygenerovat',
-    'font.systemFontNeedsCompanion': 'Připojte Společníka (Nastavení > Společník...) pro použití systémových písem.',
-    'font.systemFontGenerated': 'Vygenerováno z {family}',
 
     // Screen modes + ULAplus (Phase 12a)
     'mode.standardUla': 'Standardní ULA',
@@ -1084,14 +1078,6 @@ const cs = {
     'cap.pick': 'Vybrat',
 
     // User presets (named, slotted setups)
-    'menu.settings.companion': 'Společník...',
-    'companion.title': 'Společník',
-    'companion.refresh': 'Zkontrolovat znovu',
-    'companion.connect': 'Připojit',
-    'companion.notRunning': 'Společník neběží',
-    'companion.notConnected': 'Společník běží, nepřipojeno',
-    'companion.connected': 'Připojeno',
-    'companion.waiting': 'Klikněte na Povolit párování v ikoně společníka v systémové liště...',
     'menu.settings.presets': 'Předvolby pracovní plochy...',
     'preset.full': 'Všechny pozice jsou obsazené. Nejprve jednu uvolněte ve správci předvoleb.',
     'preset.name': 'Název',

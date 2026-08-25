@@ -271,9 +271,6 @@ class AppClass {
         // lists are populated on their first render rather than after it
         await PresetService.restorePersisted();
         await PresetService.restoreToolPresets();
-        // Companion bridge pairing token (Phase 10, Task 10): restore the stored
-        // token so a paired session survives a reload without re-pairing
-        await CompanionBridgeService.init();
     }
 
     /** Phase 4: register the tools; shape and brush-type variants ride on

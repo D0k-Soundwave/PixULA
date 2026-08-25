@@ -16,7 +16,7 @@ const Storage = {
      * release, changing either needs a migration that copies every store
      * across first. */
     DB_NAME: 'pixula',
-    DB_VERSION: 8,
+    DB_VERSION: 7,
     STORES: {
         PREFERENCES: 'preferences',
         PATTERNS: 'patterns',
@@ -27,8 +27,7 @@ const Storage = {
         FONTS: 'fonts',
         PRESETS: 'presets',
         PRESET_ASSETS: 'preset-assets',
-        TOOL_PRESETS: 'tool-presets',
-        COMPANION: 'companion'
+        TOOL_PRESETS: 'tool-presets'
     },
 
     db: null,
@@ -139,13 +138,6 @@ const Storage = {
                 // will eventually be read wrong.
                 if (!db.objectStoreNames.contains(this.STORES.TOOL_PRESETS)) {
                     db.createObjectStore(this.STORES.TOOL_PRESETS, { keyPath: 'key' });
-                }
-
-                // v8: optional companion file-access bridge - one record
-                // holding the pairing token, the chosen port (if ever made
-                // configurable), and the authorized-folder list mirror.
-                if (!db.objectStoreNames.contains(this.STORES.COMPANION)) {
-                    db.createObjectStore(this.STORES.COMPANION, { keyPath: 'key' });
                 }
             };
         });

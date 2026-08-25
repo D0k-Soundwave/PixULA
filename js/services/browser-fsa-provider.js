@@ -3,12 +3,10 @@
 
 /**
  * BrowserFSAProvider — today's File System Access API behaviour, wrapped
- * behind FileAccessProvider so BackupService/ReferenceLayerService can
- * treat it identically to CompanionFileProvider. folderRef IS the
- * FileSystemDirectoryHandle; permission handling (queryPermission /
- * requestPermission, the 'prompt' reset on browser restart) stays exactly
- * as it always worked - this class does not change that behaviour, only
- * relocates it behind the shared interface.
+ * behind FileAccessProvider. folderRef IS the FileSystemDirectoryHandle;
+ * permission handling (queryPermission / requestPermission, the 'prompt'
+ * reset on browser restart) stays exactly as it always worked - this class
+ * does not change that behaviour, only relocates it behind the interface.
  */
 class BrowserFSAProvider extends FileAccessProvider {
     isAvailable() {

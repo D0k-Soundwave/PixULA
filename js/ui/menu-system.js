@@ -271,7 +271,6 @@ class MenuSystemClass {
                 items: [
                     { id: 'preferences', label: 'Preferences...', action: 'settings:preferences' },
                     { id: 'presets', label: 'Workspace Presets...', action: 'settings:presets' },
-                    { id: 'companion', label: 'Companion...', action: 'settings:companion' },
                     { type: 'separator' },
                     // All 8 themes — the sole theme picker (a header <select>
                     // duplicated this until 2026-08-21; removed as redundant).
@@ -721,7 +720,6 @@ class MenuSystemClass {
             // Settings
             case 'settings:preferences': this._showPreferences(); break;
             case 'settings:presets': PresetDialog.open(); break;
-            case 'settings:companion': CompanionDialog.open(); break;
             case 'settings:themeDark':     this._setTheme('dark');     break;
             case 'settings:themeLight':    this._setTheme('light');    break;
             case 'settings:themeMidnight': this._setTheme('midnight'); break;

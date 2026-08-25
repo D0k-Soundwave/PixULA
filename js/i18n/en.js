@@ -933,12 +933,6 @@ const en = {
     'font.status.imported': 'Font imported.',
     'font.status.importFailed': 'Import failed: {error}',
     'font.status.exported': 'Font exported.',
-    'font.fromSystemFont': 'From System Font...',
-    'font.chooseSystemFont': 'Choose System Font',
-    'font.pointSize': 'Point size',
-    'font.generate': 'Generate',
-    'font.systemFontNeedsCompanion': 'Connect the Companion (Settings > Companion...) to use system fonts.',
-    'font.systemFontGenerated': 'Generated from {family}',
 
     // Screen modes + ULAplus (Phase 12a)
     'mode.standardUla': 'Standard ULA',
@@ -1106,16 +1100,6 @@ const en = {
     'cap.flipH': 'Flip H',
     'cap.flipV': 'Flip V',
     'cap.pick': 'Pick',
-
-    // Companion bridge (Settings > Companion...)
-    'menu.settings.companion': 'Companion...',
-    'companion.title': 'Companion',
-    'companion.refresh': 'Check Again',
-    'companion.connect': 'Connect',
-    'companion.notRunning': 'Companion not running',
-    'companion.notConnected': 'Companion running, not connected',
-    'companion.connected': 'Connected',
-    'companion.waiting': 'Click Enable Pairing in the companion tray icon...',
 
     // User presets (named, slotted setups)
     'menu.settings.presets': 'Workspace Presets...',

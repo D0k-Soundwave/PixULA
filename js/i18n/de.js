@@ -912,12 +912,6 @@ const de = {
     'font.status.imported': 'Schrift importiert.',
     'font.status.importFailed': 'Import fehlgeschlagen: {error}',
     'font.status.exported': 'Schrift exportiert.',
-    'font.fromSystemFont': 'Aus Systemschriftart...',
-    'font.chooseSystemFont': 'Systemschriftart wählen',
-    'font.pointSize': 'Punktgröße',
-    'font.generate': 'Erzeugen',
-    'font.systemFontNeedsCompanion': 'Verbinden Sie den Begleiter (Einstellungen > Begleiter...), um Systemschriftarten zu verwenden.',
-    'font.systemFontGenerated': 'Erzeugt aus {family}',
 
     // Screen modes + ULAplus (Phase 12a)
     'mode.standardUla': 'Standard-ULA',
@@ -1084,14 +1078,6 @@ const de = {
     'cap.pick': 'Auswählen',
 
     // User presets (named, slotted setups)
-    'menu.settings.companion': 'Begleiter...',
-    'companion.title': 'Begleiter',
-    'companion.refresh': 'Erneut prüfen',
-    'companion.connect': 'Verbinden',
-    'companion.notRunning': 'Begleiter läuft nicht',
-    'companion.notConnected': 'Begleiter läuft, nicht verbunden',
-    'companion.connected': 'Verbunden',
-    'companion.waiting': 'Klicken Sie auf Kopplung aktivieren im Symbol des Begleiters in der Taskleiste...',
     'menu.settings.presets': 'Arbeitsbereich-Voreinstellungen...',
     'preset.full': 'Alle Plätze sind belegt. Löschen Sie zuerst einen in der Voreinstellungsverwaltung.',
     'preset.name': 'Name',

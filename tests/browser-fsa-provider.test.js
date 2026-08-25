@@ -32,7 +32,7 @@ async function run() {
     // chooseFolder() must call showDirectoryPicker with NO `id` option. The
     // FSA spec restricts `id` to [A-Za-z0-9_-] and 32 characters; the real
     // label this app passes ('PixULA Backups', BackupService's
-    // COMPANION_FOLDER_LABEL) has a space in it, so passing it as `id` makes
+    // BACKUP_FOLDER_LABEL) has a space in it, so passing it as `id` makes
     // Chrome throw a TypeError before any picker opens - i.e. the Backup
     // Folder picker could not be configured at all. This test uses that real
     // label, and a picker stub that enforces the spec's own constraint.
