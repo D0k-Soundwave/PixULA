@@ -70,3 +70,58 @@ test('classic mode: Ink then Paper stack vertically in the rail, each a fixed 2-
     expect(layout.firstRowPair).toBe(true);
     expect(layout.thirdDropsRow).toBe(true);
 });
+
+/*
+ * The colour rail is a FIXED width - it never grows to accommodate a wider
+ * mode's palette. Unlike the old top #color-bar (which wrapped a swatch
+ * block that didn't fit), the rail scrolls VERTICALLY instead: every
+ * swatch is reachable by scrolling, none is ever permanently clipped.
+ */
+test.describe('the colour rail stays within its fixed width, in every screen mode', () => {
+    for (const width of [1024, 1366, 1600, 2560]) {
+        test(`at ${width}px`, async ({ page }) => {
+            await page.setViewportSize({ width, height: 900 });
+            await boot(page);
+            page.on('dialog', (d) => d.accept()); // lossy mode-switch confirms
+
+            const modes = await page.evaluate(() => Object.values(SCREEN_MODES).map((m) => m.id));
+            const tooWide = [];
+            for (const id of modes) {
+                await page.evaluate((m) => ScreenModeService.switchMode(m), id);
+                const bad = await page.evaluate((m) => {
+                    const rail = document.getElementById('color-rail');
+                    const group = document.getElementById('toolbar-color');
+                    const over = group.offsetWidth - rail.clientWidth;
+                    if (over > 1) return `${m}: group +${over}px`;
+                    if (rail.scrollWidth > rail.clientWidth + 1) return `${m}: rail scrolls sideways`;
+                    return null;
+                }, id);
+                if (bad) tooWide.push(bad);
+            }
+            expect(tooWide).toEqual([]);
+        });
+    }
+});
+
+test('the 256-entry indexed palette scrolls vertically, and every swatch is reachable', async ({ page }) => {
+    await boot(page);
+    page.on('dialog', (d) => d.accept());
+    await page.evaluate(() => ScreenModeService.switchMode('layer2_256'));
+
+    const before = await page.evaluate(() => {
+        const rail = document.getElementById('color-rail');
+        return { scrollHeight: rail.scrollHeight, clientHeight: rail.clientHeight };
+    });
+    expect(before.scrollHeight).toBeGreaterThan(before.clientHeight);
+
+    const reached = await page.evaluate(() => {
+        const rail = document.getElementById('color-rail');
+        rail.scrollTop = rail.scrollHeight;
+        const swatches = document.querySelectorAll('#indexed-palette-grid .color-swatch');
+        const last = swatches[swatches.length - 1];
+        const r = last.getBoundingClientRect();
+        const railBox = rail.getBoundingClientRect();
+        return r.top >= railBox.top - 0.5 && r.bottom <= railBox.bottom + 0.5;
+    });
+    expect(reached).toBe(true);
+});

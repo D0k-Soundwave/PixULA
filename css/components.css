@@ -891,6 +891,50 @@
     text-wrap: balance;
 }
 
+/* ULAplus CLUT selector (0-3) and the GigaScreen view toggle (Blend/A/B):
+   button-styled controls, not swatches, so they keep their own natural
+   width (a text label like "Blend" would clip inside a fixed swatch-width
+   grid column) and simply wrap within the rail's fixed width. */
+#color-rail .clut-row.clut-selector {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 3px;
+}
+
+/* Next indexed palettes (up to 256 entries): the 16-or-fewer case already
+   gets the standard 2-column swatch grid from .clut-row above (it matches
+   both .clut-row and .indexed-palette-grid); the 256-entry case goes dense
+   — more, smaller columns, so the rail scrolls a manageable distance
+   instead of a very tall two-wide column. Row-flow (the default), not
+   column-flow: the rail scrolls VERTICALLY, unlike the old horizontal
+   #color-bar version this replaces. The global .indexed-palette-grid rule
+   sets max-height: 40vh for the #color-bar version; we must NOT apply that
+   here, so the content can expand and the rail itself scrolls instead. */
+#color-rail .indexed-palette-grid {
+    max-height: none;
+    overflow-y: visible;
+}
+
+#color-rail .indexed-palette-grid.indexed-dense {
+    grid-template-columns: repeat(4, 18px);
+}
+
+#color-rail .indexed-palette-grid.indexed-dense .color-swatch {
+    width: 18px;
+    height: 18px;
+}
+
+@media (pointer: coarse) {
+    #color-rail .indexed-palette-grid.indexed-dense {
+        grid-template-columns: repeat(4, 22px);
+    }
+    #color-rail .indexed-palette-grid.indexed-dense .color-swatch {
+        width: 22px;
+        height: 22px;
+    }
+}
+
 /* ===== Panel chrome (tpl-panel) ===== */
 
 .panel {
