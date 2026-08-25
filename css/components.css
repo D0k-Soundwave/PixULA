@@ -551,9 +551,10 @@
    moment a translated caption wrapped to two lines. */
 #color-bar .toolbar-section {
     width: auto;
-    /* Keep each section at its content width; when the combined width exceeds
-       the canvas column the bar scrolls sideways (overflow-x) rather than
-       squishing controls until their labels clip. */
+    /* Keep each section at its content width rather than squishing controls
+       until their labels clip; ColorBarFit (js/ui/components/colorbar-fit.js)
+       is what actually keeps the bar's total content inside the canvas
+       column, by shrinking --colorbar-scale until it fits one row. */
     flex: 0 0 auto;
     flex-direction: row;
     align-items: flex-end;
@@ -660,6 +661,18 @@
    width — the "fixed size, scales only with --ui-scale" requirement is a
    sizing rule, not a "no reflow" rule: the ARRANGEMENT adapts (2 columns
    instead of 8-across), the swatch size never does. */
+/* The base .toolbar-section rule (above) draws a border-bottom + padding-
+   bottom meant for sections that sit beside others in a row (#color-bar,
+   which explicitly cancels it on its own #color-bar .toolbar-section rule).
+   In the rail the two sections (#toolbar-color, #colour-bits) stack
+   vertically with #color-rail's own `gap` (css/layout.css) already reading
+   as the space between them, so the inherited border would print as a stray
+   line under the palette group for no reason — cancelled here to match. */
+#color-rail .toolbar-section {
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
 #color-rail #clut-cluster {
     display: flex;
     flex-direction: column;
@@ -762,7 +775,15 @@
     overflow-y: visible;
 }
 
-#color-rail .indexed-palette-grid.indexed-dense {
+/* Three classes, not two: the element built by ClutBar._buildIndexedGrid
+   carries clut-row, indexed-palette-grid AND indexed-dense together, and
+   `#color-rail .clut-row:not(.clut-selector)` above also sets
+   grid-template-columns on that same element at EQUAL specificity (one id +
+   two classes each) — so without the extra .clut-row here, which selector
+   wins would depend only on source order in this file, silently, with
+   nothing to catch a future reordering. Matching all three classes bumps
+   this to one id + three classes so it always wins regardless of order. */
+#color-rail .clut-row.indexed-palette-grid.indexed-dense {
     grid-template-columns: repeat(4, 18px);
 }
 
@@ -772,7 +793,7 @@
 }
 
 @media (pointer: coarse) {
-    #color-rail .indexed-palette-grid.indexed-dense {
+    #color-rail .clut-row.indexed-palette-grid.indexed-dense {
         grid-template-columns: repeat(4, 22px);
     }
     #color-rail .indexed-palette-grid.indexed-dense .color-swatch {

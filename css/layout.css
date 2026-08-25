@@ -5,10 +5,10 @@
  */
 
 /* The page itself never scrolls — the app fills the viewport exactly and
-   scrolling lives ONLY inside the regions that own it (#toolbar, #panels,
-   #canvas-viewport). Anything that would overflow the page (fractional
-   `zoom` rounding, transient off-screen nodes) is clipped instead of
-   surfacing as a browser scrollbar. */
+   scrolling lives ONLY inside the regions that own it (#toolbar, #color-rail,
+   #panels, #canvas-viewport). Anything that would overflow the page
+   (fractional `zoom` rounding, transient off-screen nodes) is clipped instead
+   of surfacing as a browser scrollbar. */
 html,
 body {
     height: 100%;
@@ -61,8 +61,9 @@ body {
    (default 1, css/components.css) — the one region ColorBarFit
    (js/ui/components/colorbar-fit.js) can dial back on its own, shrinking
    this bar's icons independently of every other chrome region, specifically
-   to keep its content fitting two rows at interface sizes where it
-   otherwise would not. See the row-count rationale further down this file. */
+   to keep its content fitting ONE row (always — never two, since 2026-08-25)
+   at interface sizes where it otherwise would not. See the row-count
+   rationale further down this file. */
 #color-bar {
     zoom: calc(var(--ui-scale) * var(--colorbar-scale));
 }
@@ -110,29 +111,25 @@ body {
     z-index: var(--z-toolbar);
 }
 
-/* Top colour bar — spans the canvas column only (between the two rails),
-   directly under the header. Scrolls sideways if the active mode's palette is
-   wider than the canvas column (e.g. the 256-entry indexed palettes).
+/* Top colour bar — a slim strip spanning the canvas column only (between the
+   two rails), directly under the header. Since 2026-08-25 (docs/superpowers/
+   specs/2026-08-25-colour-rail-design.md) every screen mode's palette
+   swatches live in the vertical #color-rail instead, so this strip carries
+   only the attributes group (#toolbar-attrs — Border, now that Bright/Flash
+   moved to the rail too) and the marks controls (#color-bar-controls — draw
+   modes, Mirror, Swap/Recolour): two plain flex siblings, neither of them a
+   palette.
 
-   ONE row while it fits; a second only when the width genuinely runs out —
-   which the screen mode (a 256-entry indexed palette is far wider than a
-   16-colour one), the window and the interface-size setting all decide, so it
-   is not a thing to fix in advance. The bar earns its height rather than
-   spending it.
-
-   WHERE it breaks is fixed, though: the palette (#toolbar-color), the
-   attributes (#toolbar-attrs — Bright, Flash, Border) and the marks
-   controls (#color-bar-controls) are three plain flex siblings at one
-   shared column-gap (one palette-icon block, below), which is what lets
-   ordinary flex-wrap pack them freely — a group that does not fit joins
-   whatever follows it on the next line instead of always claiming a whole
-   line to itself, so the bar tends to settle on two rows across a much
-   wider range of interface-size settings than a hard "one group per row"
-   rule would (see the DOM-order rationale in index.html and the flex
-   rationale in css/components.css beside the .toolbar-section rule it has
-   to beat — later @layer wins over specificity). Before this grouping the
-   draw modes moved to a different place whenever the active mode changed
-   the palette's width. */
+   Guaranteed to render as exactly ONE row, always, by ColorBarFit
+   (js/ui/components/colorbar-fit.js), which shrinks this bar's own icon
+   scale (--colorbar-scale below) independently of every other chrome region
+   until the content fits — see the class comment there for the search. Before
+   the palette moved out, this bar targeted TWO rows and could grow as well as
+   shrink; both needs left with the swatches, and so did the reason to scroll
+   sideways — with no palette left to outgrow the canvas column, the
+   `overflow-x: auto` below is a safety net for pathological cases rather
+   than something this bar's ordinary content (Border + a dozen icon buttons)
+   ever reaches. */
 #color-bar {
     grid-area: colorbar;
     display: flex;
@@ -193,9 +190,12 @@ body {
 }
 
 
-/* A mode with no attribute bits leaves #colour-bits empty; without this it
-   would still spend a --space-lg gap on nothing. */
-#color-bar .toolbar-section:empty {
+/* A mode with no attribute bits leaves #colour-bits empty (ClutBar clears it
+   for every mode except classic fixed16 — 9 of 14 screen modes); without this
+   rule it would still spend a layout gap on nothing. Every .toolbar-section
+   in the app lives in either #color-bar or #color-rail, so one unscoped
+   selector covers both regions rather than needing a rule per region. */
+.toolbar-section:empty {
     display: none;
 }
 
