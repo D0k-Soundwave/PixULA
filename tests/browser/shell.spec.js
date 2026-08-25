@@ -180,6 +180,21 @@ test.describe('the top strip is always exactly one row', () => {
 });
 
 /*
+ * The one-row guarantee is exercised above only in the boot default (classic
+ * fixed16). Since the palette moved out of #color-bar (2026-08-25), a screen-
+ * mode switch no longer changes what #color-bar itself contains — but
+ * ColorBarFit re-measures on EVENTS.SCREEN_MODE_CHANGED (js/ui/components/
+ * colorbar-fit.js), and #toolbar-attrs (Border) does gain/lose content across
+ * modes nothing here had covered switching TO.
+ */
+test('the top strip stays exactly one row after switching screen mode', async ({ page }) => {
+    await boot(page);
+    page.on('dialog', (d) => d.accept()); // lossy mode-switch confirm
+    await page.evaluate(() => ScreenModeService.switchMode('ula_plus'));
+    expect(await barRows(page)).toBe(1);
+});
+
+/*
  * ColorBarFit (js/ui/components/colorbar-fit.js): the top strip must never
  * wrap to a second row, at any interface-size setting or window width from
  * 1024px up. This is the same shrink-only binary search the bar always

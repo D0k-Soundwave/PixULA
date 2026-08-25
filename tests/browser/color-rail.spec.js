@@ -103,6 +103,33 @@ test.describe('the colour rail stays within its fixed width, in every screen mod
     }
 });
 
+/*
+ * The rail's core sizing rule (css/layout.css): it scales with --ui-scale
+ * like every other chrome region and has NO independent multiplier of its
+ * own — unlike #color-bar, which ColorBarFit dials back separately via
+ * --colorbar-scale. Only ever exercised above at the default scale (1); this
+ * pins the claim at a scale where a stray independent factor would actually
+ * show up as either overflow or a `zoom` value that disagrees with
+ * --ui-scale.
+ */
+test('the rail scales only by --ui-scale, with no independent multiplier, at a non-default scale', async ({ page }) => {
+    await boot(page);
+    await page.selectOption('#font-scale-selector', '2');
+    await page.waitForTimeout(250);
+
+    const result = await page.evaluate(() => {
+        const rail = document.getElementById('color-rail');
+        return {
+            hasHorizontalOverflow: rail.scrollWidth > rail.clientWidth + 1,
+            railZoom: getComputedStyle(rail).zoom,
+            uiScale: getComputedStyle(document.documentElement)
+                .getPropertyValue('--ui-scale').trim()
+        };
+    });
+    expect(result.hasHorizontalOverflow).toBe(false);
+    expect(parseFloat(result.railZoom)).toBe(parseFloat(result.uiScale));
+});
+
 test('the 256-entry indexed palette scrolls vertically, and every swatch is reachable', async ({ page }) => {
     await boot(page);
     page.on('dialog', (d) => d.accept());
