@@ -101,31 +101,48 @@ test('the font family select is populated from detection, ZX ROM first',
         expect(r.count).toBeGreaterThanOrEqual(r.detected + 1);
     });
 
-test('a failed enumeration is not cached for the session', async ({ page }) => {
+test('queryLocalFonts is never called - it can show a real browser permission dialog',
+    async ({ page }) => {
+        await boot(page);
+
+        // Regression pin: a persistent, un-mockable "This file wants to use
+        // the fonts on your computer" dialog appeared on this exact file://
+        // app (found 2026-08-23) - the text tool used to call
+        // window.queryLocalFonts() unconditionally (later, on a companion-
+        // backed branch, it was tried as a fallback). It must never be
+        // called at all any more, under any circumstance.
+        const r = await page.evaluate(() => {
+            let called = false;
+            window.queryLocalFonts = async () => { called = true; return []; };
+
+            const tool = ToolManager.getTool(TOOLS.TEXT);
+            tool._cachedFonts = null;
+            tool._enumerateFonts();
+            tool._cachedFonts = null;
+
+            return called;
+        });
+
+        expect(r).toBe(false);
+    });
+
+test('the library changing invalidates the cached font list', async ({ page }) => {
     await boot(page);
 
-    // queryLocalFonts resolving empty is a FAILURE, not an answer: the old code
-    // cached the fallback on the first call and could never recover.
-    const r = await page.evaluate(async () => {
+    const r = await page.evaluate(() => {
         const tool = ToolManager.getTool(TOOLS.TEXT);
         tool._cachedFonts = null;
 
-        const real = window.queryLocalFonts;
-        window.queryLocalFonts = async () => [];         // the file:// behaviour
-        const viaProbe = await tool._enumerateFonts();
-        const cachedAfterFailure = tool._cachedFonts;
+        const first = tool._enumerateFonts();
+        const stillCached = tool._enumerateFonts() === first; // same array instance
 
-        // Now let it succeed, as it would over http(s) with permission granted
-        window.queryLocalFonts = async () => [{ family: 'Pretend Sans' }];
-        const viaApi = await tool._enumerateFonts();
-        window.queryLocalFonts = real;
-        tool._cachedFonts = null;
+        EventBus.emit(EVENTS.FONT_LIBRARY_CHANGED);
+        const invalidated = tool._cachedFonts === null;
 
-        return { probeCount: viaProbe.length, cachedAfterFailure,
-                 apiWon: viaApi.includes('Pretend Sans'), apiCount: viaApi.length };
+        return { stillCached, invalidated, count: first.length };
     });
 
-    expect(r.probeCount).toBeGreaterThan(20);
-    expect(r.cachedAfterFailure).toBeNull();   // nothing pinned
-    expect(r.apiWon).toBe(true);               // the later success takes over
+    expect(r.count).toBeGreaterThan(20);
+    expect(r.stillCached).toBe(true);
+    expect(r.invalidated).toBe(true);
 });

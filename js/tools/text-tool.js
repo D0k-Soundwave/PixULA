@@ -161,49 +161,33 @@ class TextToolClass extends ToolBase {
    * The fontFamily select's `dynamic` hook. Its result REPLACES the schema
    * options (OptionControls contract), so every bitmap font must be in it.
    *
-   * TWO SOURCES, IN ORDER OF TRUTH.
+   * ALWAYS `FontProbe.detect()`, NEVER `window.queryLocalFonts()` and never
+   * a server/companion call. That browser API used to be tried first and
+   * preferred whenever it enumerated successfully, but it gates behind
+   * Chrome's persistent Local Font Access permission dialog, and it turns
+   * out to actually SHOW that dialog on `file://` (found 2026-08-23, from a
+   * real screenshot: an uninvited "This file wants to use the fonts on your
+   * computer" prompt on ANY reload that lands on the text tool - a prior
+   * version of this comment claimed the permission "reads prompt but no
+   * prompt is ever shown", measured 2026-08-07; that was wrong, or stopped
+   * being true in a later Chrome). `FontProbe.detect()` finds real installed
+   * fonts by canvas measurement, with zero permission of any kind, at the
+   * cost of only finding families on its own candidate list - on this
+   * machine it finds ~64 where the old hardcoded list named 16, several of
+   * which were not even installed (measured 2026-08-07).
    *
-   * `queryLocalFonts()` genuinely enumerates - it returns families nobody
-   * thought to ask about - so it is tried first and its answer wins. It needs
-   * a granted permission, and over `file://` it resolves with an EMPTY ARRAY
-   * rather than throwing: the permission reads "prompt" and no prompt is ever
-   * shown (measured 2026-08-07, Chrome). An empty result is therefore a
-   * FAILURE, not "no fonts installed", and must not be mistaken for an answer.
-   *
-   * `FontProbe.detect()` is the fallback and works everywhere, at the cost of
-   * only finding families on its candidate list. On this machine it finds ~64
-   * where the old hardcoded list named 16, several of which were not even
-   * installed (measured 2026-08-07).
-   *
-   * ONLY A REAL ENUMERATION IS CACHED PERMANENTLY. The old code cached the
-   * fallback on the first call, so a session that asked once before the
-   * permission existed was pinned to sixteen names until reload, even if a
-   * later call would have succeeded. The probe result is cached inside
-   * FontProbe (it cannot change while the page is open), but queryLocalFonts
-   * is retried on every enumeration until it yields something.
+   * Cached on `this` (invalidated by `EVENTS.FONT_LIBRARY_CHANGED`, since
+   * `bitmapFonts` depends on the library) - `FontProbe` holds its own
+   * internal cache too, but concatenating `bitmapFonts` + `detect()` on
+   * every call is pointless work the select does not need repeated.
    */
-  async _enumerateFonts() {
+  _enumerateFonts() {
     if (this._cachedFonts) return this._cachedFonts;
 
     const bitmapFonts = ['ZX ROM', ...this._libraryFontOptions()];
-
-    try {
-      if (typeof window.queryLocalFonts === 'function') {
-        const fonts = await window.queryLocalFonts();
-        const families = [...new Set(fonts.map(f => f.family))].sort();
-        if (families.length) {
-          this._cachedFonts = [...bitmapFonts, ...families];
-          return this._cachedFonts;
-        }
-      }
-    } catch (e) {
-      Logger.debug('TextTool', 'queryLocalFonts unavailable; probing instead');
-    }
-
-    // Not cached on `this`: FontProbe holds its own, and leaving this path
-    // uncached is what lets a later queryLocalFonts success take over.
     const detected = window.FontProbe ? FontProbe.detect() : [];
-    return [...bitmapFonts, ...(detected.length ? detected : ['sans-serif', 'serif', 'monospace'])];
+    this._cachedFonts = [...bitmapFonts, ...(detected.length ? detected : ['sans-serif', 'serif', 'monospace'])];
+    return this._cachedFonts;
   }
 
   // ── Canvas interaction ────────────────────────────────────────────────────
