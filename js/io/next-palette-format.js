@@ -50,7 +50,7 @@ class NextPaletteFormatClass {
     return {
       parse: (buffer) => this.parse(ext, buffer),
       export: () => this.export(ext),
-      exportAndDownload: (filename) => this.exportAndDownload(ext, filename)
+      exportAndDownload: (filename, options, handle) => this.exportAndDownload(ext, filename, handle)
     };
   }
 
@@ -186,10 +186,10 @@ class NextPaletteFormatClass {
    * @param {string} ext - 'pal' | 'npl'
    * @param {string} filename
    */
-  exportAndDownload(ext, filename) {
+  async exportAndDownload(ext, filename, handle = null) {
     let name = filename || `palette.${ext}`;
     if (!name.toLowerCase().endsWith(`.${ext}`)) name = `${name}.${ext}`;
-    FormatRegistry.download(this.export(ext), name);
+    return FormatRegistry.download(this.export(ext), name, undefined, handle);
   }
 }
 

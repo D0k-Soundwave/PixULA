@@ -571,13 +571,14 @@ class MapEditorDialogClass {
         }
     }
 
-    _export(format) {
+    async _export(format) {
         const base = (MapService.name || 'map').replace(/[^\w\- ]+/g, '').trim() || 'map';
         try {
+            let saved;
             if (format === 'zxtm') {
-                MapFormat.exportAndDownload(`${base}.zxtm`);
+                saved = await MapFormat.exportAndDownload(`${base}.zxtm`);
             } else if (format === 'zxm') {
-                ZXMFormat.exportAndDownload(`${base}.zxm`);
+                saved = await ZXMFormat.exportAndDownload(`${base}.zxm`);
             } else if (format.startsWith('next-')) {
                 // ZX Spectrum Next tilemap export (Phase 13): ula-cell tiles
                 // convert to 4bpp Next tile definitions at export time
@@ -589,7 +590,7 @@ class MapEditorDialogClass {
                 const ext = format.slice(5);
                 const data = DevFormat.generateNextTilemap(ext, `${base}_map`, MapService.toDocument());
                 const mime = ext === 'bin' ? 'application/octet-stream' : 'text/plain';
-                FormatRegistry.download(data, `${base}_next.${ext}`, mime);
+                saved = await FormatRegistry.download(data, `${base}_next.${ext}`, mime);
             } else {
                 if (MapService.tileCount() > 255) {
                     this._status(this._t('map.status.tooManyTilesDev',
@@ -598,9 +599,9 @@ class MapEditorDialogClass {
                 }
                 const data = DevFormat.generateMap(format, `${base}_map`, MapService.toDocument());
                 const mime = format === 'bin' ? 'application/octet-stream' : 'text/plain';
-                FormatRegistry.download(data, `${base}_map.${format}`, mime);
+                saved = await FormatRegistry.download(data, `${base}_map.${format}`, mime);
             }
-            this._status(this._t('map.status.exported', 'Map exported.'));
+            if (saved !== false) this._status(this._t('map.status.exported', 'Map exported.'));
         } catch (err) {
             this._status(err.message);
         }

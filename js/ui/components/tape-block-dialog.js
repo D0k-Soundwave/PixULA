@@ -102,7 +102,7 @@ class TapeBlockDialogClass {
                 },
                 {
                     i18n: 'tape.saveTape', label: 'Save tape', primary: true,
-                    onClick: () => { this._saveTape(); return false; }
+                    onClick: async () => { await this._saveTape(); return false; }
                 },
                 { i18n: 'dialog.close', label: 'Close' }
             ],
@@ -299,12 +299,12 @@ class TapeBlockDialogClass {
      * Serialize the edited block list and download it (the one download path).
      * @private
      */
-    _saveTape() {
+    async _saveTape() {
         const { ext, handler, header, blocks, filename } = this._state;
         const bytes = ext === 'tzx'
             ? handler.serializeBlocks({ header, blocks })
             : handler.serializeBlocks(blocks);
-        FormatRegistry.download(bytes, filename);
+        await FormatRegistry.download(bytes, filename);
     }
 }
 

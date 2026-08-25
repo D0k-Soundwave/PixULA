@@ -131,14 +131,14 @@ class TAPFormatClass {
    * @param {string} filename - Filename for download
    * @param {Object} options - Export options (border colour, tape name)
    */
-  exportAndDownload(filename = 'image.tap', options = {}) {
+  async exportAndDownload(filename = 'image.tap', options = {}, handle = null) {
     if (!options.name) {
       options = Object.assign({}, options, {
         name: filename.replace(/\.tap$/i, '')
       });
     }
     const name = filename.endsWith('.tap') ? filename : `${filename}.tap`;
-    FormatRegistry.download(this.export(options), name);
+    return FormatRegistry.download(this.export(options), name, undefined, handle);
   }
 
   /**

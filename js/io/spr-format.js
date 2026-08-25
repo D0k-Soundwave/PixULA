@@ -25,7 +25,7 @@ class SpriteFormatClass {
     });
     FormatRegistry.registerExport('spr', {
       export: () => this.export(),
-      exportAndDownload: (filename) => this.exportAndDownload(filename)
+      exportAndDownload: (filename, options, handle) => this.exportAndDownload(filename, handle)
     });
     Logger.info('SpriteFormat', 'Initialized (spr)');
   }
@@ -125,10 +125,10 @@ class SpriteFormatClass {
   }
 
   /** @param {string} filename */
-  exportAndDownload(filename) {
+  async exportAndDownload(filename, handle = null) {
     let name = filename || 'sprites.spr';
     if (!name.toLowerCase().endsWith('.spr')) name = `${name}.spr`;
-    FormatRegistry.download(this.export(), name);
+    return FormatRegistry.download(this.export(), name, undefined, handle);
   }
 }
 

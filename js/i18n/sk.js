@@ -344,6 +344,7 @@ const sk = {
     'menu.file.save': 'Uložiť projekt',
     'menu.file.saveAs': 'Uložiť projekt ako...',
     'menu.file.export': 'Uložiť...',
+    'menu.file.exportOptions': 'Exportovať s možnosťami...',
     'menu.file.import': 'Načítať...',
     'menu.edit.undo': 'Späť',
     'menu.edit.redo': 'Znova',

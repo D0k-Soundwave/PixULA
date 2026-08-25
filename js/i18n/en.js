@@ -35,6 +35,7 @@ const en = {
     'menu.file.save': 'Save Project',
     'menu.file.saveAs': 'Save Project As...',
     'menu.file.export': 'Save...',
+    'menu.file.exportOptions': 'Export with Options...',
     'menu.file.import': 'Load...',
     // Edit menu
     'menu.edit.undo': 'Undo',

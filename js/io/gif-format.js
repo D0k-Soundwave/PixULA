@@ -135,9 +135,9 @@ class GIFFormatClass {
    * @param {string} filename - Filename
    * @param {Object} options - Export options
    */
-  exportAndDownload(filename = 'image.gif', options = {}) {
+  async exportAndDownload(filename = 'image.gif', options = {}, handle = null) {
     const name = filename.endsWith('.gif') ? filename : `${filename}.gif`;
-    FormatRegistry.download(this.export(options), name, 'image/gif');
+    return FormatRegistry.download(this.export(options), name, 'image/gif', handle);
   }
 
   // ── Screen decoding (pure byte math on SCR-format bytes) ─────────────────

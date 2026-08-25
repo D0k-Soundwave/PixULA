@@ -90,7 +90,7 @@ class ZXMFormatClass {
     });
     FormatRegistry.registerExport('zxp', {
       export: () => this.exportZxp(),
-      exportAndDownload: (filename) => this.exportZxpAndDownload(filename)
+      exportAndDownload: (filename, options, handle) => this.exportZxpAndDownload(filename, handle)
     });
     Logger.info('ZXMFormat', 'Initialized (zxm/zxp)');
   }
@@ -255,10 +255,10 @@ class ZXMFormatClass {
   }
 
   /** @param {string} filename */
-  exportZxpAndDownload(filename = 'image.zxp') {
+  async exportZxpAndDownload(filename = 'image.zxp', handle = null) {
     let name = filename || 'image.zxp';
     if (!name.toLowerCase().endsWith('.zxp')) name = `${name}.zxp`;
-    FormatRegistry.download(this.exportZxp(), name);
+    return FormatRegistry.download(this.exportZxp(), name, undefined, handle);
   }
 
   /**
@@ -288,9 +288,9 @@ class ZXMFormatClass {
    * Export and trigger browser download (via the one FormatRegistry path)
    * @param {string} filename - Target filename
    */
-  exportAndDownload(filename = 'map.zxm') {
+  async exportAndDownload(filename = 'map.zxm', options = {}, handle = null) {
     const name = filename.endsWith('.zxm') ? filename : `${filename}.zxm`;
-    FormatRegistry.download(this.export(), name, 'text/plain');
+    return FormatRegistry.download(this.export(), name, 'text/plain', handle);
   }
 
   // ── Pure text codec (Node-tested against synthetic documents) ───────────

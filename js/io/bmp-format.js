@@ -97,9 +97,9 @@ class BMPFormatClass {
    * @param {string} filename - Filename
    * @param {Object} options - Export options
    */
-  exportAndDownload(filename = 'image.bmp', options = {}) {
+  async exportAndDownload(filename = 'image.bmp', options = {}, handle = null) {
     const name = filename.endsWith('.bmp') ? filename : `${filename}.bmp`;
-    FormatRegistry.download(this.export(options), name, 'image/bmp');
+    return FormatRegistry.download(this.export(options), name, 'image/bmp', handle);
   }
 }
 

@@ -551,11 +551,11 @@ class PaletteEditorDialogClass {
     }
 
     /** @private */
-    _saveFile(kind, traits) {
+    async _saveFile(kind, traits) {
         try {
             let name = `palette.${kind}`;
             if (!name.toLowerCase().endsWith(`.${kind}`)) name += `.${kind}`;
-            FormatRegistry.download(traits.encode(kind), name);
+            await FormatRegistry.download(traits.encode(kind), name);
         } catch (error) {
             Logger.warn('PaletteEditorDialog', 'Palette save failed', error);
             alert(error.message || this._t('palette.saveFailed', 'The palette could not be saved.'));

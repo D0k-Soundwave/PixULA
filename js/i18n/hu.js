@@ -344,6 +344,7 @@ const hu = {
     'menu.file.save': 'Projekt mentése',
     'menu.file.saveAs': 'Projekt mentése másként...',
     'menu.file.export': 'Mentés...',
+    'menu.file.exportOptions': 'Exportálás beállításokkal...',
     'menu.file.import': 'Betöltés...',
     'menu.edit.undo': 'Visszavonás',
     'menu.edit.redo': 'Újra',

@@ -74,14 +74,14 @@ class MapFormatClass {
    * Export and trigger browser download (via the one FormatRegistry path)
    * @param {string} filename - Target filename
    */
-  exportAndDownload(filename = 'map.zxtm') {
+  async exportAndDownload(filename = 'map.zxtm', options = {}, handle = null) {
     const name = filename.endsWith('.zxtm') ? filename : `${filename}.zxtm`;
     const data = this.export();
     if (!data) {
       EventBus.emit(EVENTS.FILE_ERROR, { message: 'Map could not be encoded' });
-      return;
+      return false;
     }
-    FormatRegistry.download(data, name, 'application/json');
+    return FormatRegistry.download(data, name, 'application/json', handle);
   }
 }
 

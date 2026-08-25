@@ -78,11 +78,11 @@ class JPGFormatClass {
    * @param {string} filename - Filename
    * @param {Object} options - Export options
    */
-  async exportAndDownload(filename = 'image.jpg', options = {}) {
+  async exportAndDownload(filename = 'image.jpg', options = {}, handle = null) {
     const blob = await this.export(options);
     // Ensure correct extension
     const name = filename.match(/\.(jpg|jpeg)$/i) ? filename : `${filename}.jpg`;
-    FormatRegistry.download(blob, name, 'image/jpeg');
+    return FormatRegistry.download(blob, name, 'image/jpeg', handle);
   }
 }
 

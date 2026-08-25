@@ -72,9 +72,9 @@ class SEVFormatClass {
    * Export and trigger browser download (via the one FormatRegistry path)
    * @param {string} filename - Filename
    */
-  exportAndDownload(filename = 'image.sev') {
+  async exportAndDownload(filename = 'image.sev', options = {}, handle = null) {
     const name = filename.endsWith('.sev') ? filename : `${filename}.sev`;
-    FormatRegistry.download(this.export(), name);
+    return FormatRegistry.download(this.export(), name, undefined, handle);
   }
 
   // ── Pure byte math (Node-tested) ─────────────────────────────────────────

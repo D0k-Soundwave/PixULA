@@ -344,6 +344,7 @@ const fr = {
     'menu.file.save': 'Enregistrer le projet',
     'menu.file.saveAs': 'Enregistrer le projet sous...',
     'menu.file.export': 'Enregistrer...',
+    'menu.file.exportOptions': 'Exporter avec options...',
     'menu.file.import': 'Charger...',
     'menu.edit.undo': 'Annuler',
     'menu.edit.redo': 'Rétablir',

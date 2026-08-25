@@ -300,8 +300,8 @@ class SpriteEditorDialogClass {
                 say(err.message);
             }
         });
-        exportBtn.addEventListener('click', () => {
-            SpriteFormat.exportAndDownload('sprites.spr');
+        exportBtn.addEventListener('click', async () => {
+            await SpriteFormat.exportAndDownload('sprites.spr');
         });
 
         this._onChanged = () => syncSurface();

@@ -2,6 +2,43 @@
 (function() {
 
 /**
+ * Every extension File > Save.../exportViaNativePicker() offers in the
+ * native dialog's "Save as type" list, with a plain-English description (OS
+ * dialog chrome isn't run through PixULA's own i18n) and MIME type. Same
+ * extension set _showExportDialog()'s dropdown offers (js/ui/menu-system.js)
+ * - kept as a literal list rather than derived from FormatRegistry, since
+ * FormatRegistry has no format-vs-picture-vs-document distinction (it would
+ * also list .pixula here, which Save Project already owns) and no
+ * human-readable description or MIME per extension to draw from.
+ */
+const EXPORT_PICKER_TYPES = Object.freeze([
+  ['scr', 'ZX Spectrum Screen', 'application/octet-stream'],
+  ['zxp', 'ZX-Paintbrush Image', 'text/plain'],
+  ['mlt', 'Timex/Multicolor Screen 8x1', 'application/octet-stream'],
+  ['ifl', 'Multicolor Screen 8x2', 'application/octet-stream'],
+  ['hrg', 'Timex Hi-res Screen', 'application/octet-stream'],
+  ['img', 'GigaScreen Image', 'application/octet-stream'],
+  ['nxi', 'Next Layer 2 Image', 'application/octet-stream'],
+  ['sl2', 'Next Layer 2 Dump', 'application/octet-stream'],
+  ['slr', 'Next LoRes Dump', 'application/octet-stream'],
+  ['ctile', 'BIFROST ColorTiles', 'application/octet-stream'],
+  ['tap', 'ZX Spectrum Tape', 'application/octet-stream'],
+  ['tzx', 'ZX Spectrum Tape TZX', 'application/octet-stream'],
+  ['png', 'PNG Image', 'image/png'],
+  ['bmp', 'BMP Image', 'image/bmp'],
+  ['jpg', 'JPEG Image', 'image/jpeg'],
+  ['gif', 'GIF Image', 'image/gif'],
+  ['zed', 'ZX-Editor Document', 'application/octet-stream'],
+  ['sev', 'SevenuP Graphic', 'application/octet-stream'],
+  ['pal', 'Palette', 'application/octet-stream'],
+  ['npl', 'Next Palette', 'application/octet-stream'],
+  ['asm', 'Assembly Source', 'text/plain'],
+  ['c', 'C Array Source', 'text/plain'],
+  ['bin', 'Raw Bitmap Only', 'application/octet-stream'],
+  ['atr', 'Attributes Only', 'application/octet-stream']
+]);
+
+/**
  * File Manager
  *
  * Unified interface for file operations:
@@ -15,6 +52,11 @@ class FileManagerClass {
   constructor() {
     this.currentFilename = null;
     this.hasUnsavedChanges = false;
+    // The handle from the last successful native Save/Save As - lets a
+    // repeat Ctrl+S write straight back to it with NO dialog at all, the
+    // same way any desktop app's Save behaves after the first Save As.
+    // Session-only: never persisted, so a reload always asks once again.
+    this._fileHandle = null;
     this._boundHandlers = {};
   }
 
@@ -216,6 +258,7 @@ class FileManagerClass {
     // Reset file state
     this.currentFilename = null;
     this.hasUnsavedChanges = false;
+    this._fileHandle = null;
 
     EventBus.emit(EVENTS.FILE_NEW);
     // Refresh the layer panel and any order-dependent UI (the reset rebuilt the stack).
@@ -355,6 +398,11 @@ class FileManagerClass {
 
       this.currentFilename = file.name;
       this.hasUnsavedChanges = false;
+      // The open picker (a plain <input type=file>) gives a File, never a
+      // handle - a stale handle from a PREVIOUS save must not silently
+      // catch this newly-opened document's next Ctrl+S and overwrite the
+      // wrong file on disk.
+      this._fileHandle = null;
 
       this._addToRecent(file.name);
       EventBus.emit(EVENTS.FILE_OPEN, { filename: file.name });
@@ -369,36 +417,104 @@ class FileManagerClass {
   }
 
   /**
-   * Save current file (or Save As if no current file)
+   * Save current file (or Save As if no current file) - silent when a
+   * handle is already open (repeat Ctrl+S), matching any desktop app.
    * @returns {Promise<boolean>} True if saved successfully
    */
   async save() {
+    if (this._fileHandle) {
+      return this._writeProjectToHandle(this._fileHandle);
+    }
     if (!this.currentFilename) {
       return this.saveAs();
     }
-
     return this.saveToFile(this.currentFilename);
   }
 
   /**
-   * Save As (prompt for filename)
+   * Save As - a real native Save dialog, not a hand-rolled one.
+   *
+   * `showSaveFilePicker()` IS the artist's consent (a native OS dialog they
+   * drove themselves), so this needs no separate permission step - and
+   * unlike the old flow, it asks exactly once: `SaveDialog` used to prompt
+   * for a filename and then `FormatRegistry.download()` would ALSO open a
+   * native picker for the same information, which is why this bypasses
+   * both and writes straight to the handle the artist just chose.
+   *
+   * Default to `.pixula`, the only format that keeps the document. It was
+   * `image.scr`, which is 6,912 bytes of one composited screen - so
+   * accepting the default on a 32-layer picture silently discarded 31 of
+   * them. The artist can still retype a different extension in the native
+   * dialog - that lands on `saveToFile()`'s existing ext-aware path (still
+   * a native picker inside `FormatRegistry.download()`, just one more step
+   * for the rare case, rather than complicating the common one).
    * @returns {Promise<boolean>} True if saved successfully
    */
   async saveAs() {
-    /*
-     * Default to `.pixula`, the only format that keeps the document.
-     *
-     * It was `image.scr`, which is 6,912 bytes of one composited screen - so
-     * accepting the default on a 32-layer picture silently discarded 31 of
-     * them. Every other extension still works exactly as before; typing
-     * `.scr` remains how you hand a picture to an emulator.
-     */
     const defaultName = this.currentFilename || 'image.pixula';
+
+    if (typeof window.showSaveFilePicker !== 'function') {
+      return this._saveAsLegacy(defaultName);
+    }
+
+    let handle;
+    try {
+      handle = await window.showSaveFilePicker({
+        suggestedName: defaultName,
+        types: [{ description: 'PixULA Project', accept: { 'application/gzip': ['.pixula'] } }]
+      });
+    } catch (error) {
+      if (error && error.name === 'AbortError') return false;
+      Logger.warn('FileManager', 'showSaveFilePicker failed; falling back', error);
+      return this._saveAsLegacy(defaultName);
+    }
+
+    if (FormatRegistry.getExtension(handle.name) !== 'pixula') {
+      return this.saveToFile(handle.name);
+    }
+    return this._writeProjectToHandle(handle);
+  }
+
+  /**
+   * The pre-File-System-Access-API path: a text-field dialog for the name,
+   * then `saveToFile()`'s existing download route. Only reached when
+   * `showSaveFilePicker` is unavailable (Firefox, Safari) or itself failed
+   * for a reason other than the artist cancelling.
+   * @private
+   */
+  async _saveAsLegacy(defaultName) {
     const filename = await SaveDialog.show(defaultName);
-
     if (!filename) return false;
-
     return this.saveToFile(filename);
+  }
+
+  /**
+   * Write the live document straight to an already-chosen handle - the
+   * fast path for both a fresh `.pixula` Save As and every repeat Ctrl+S
+   * after it. No dialog, no `FormatRegistry.download()` detour (that owns
+   * its OWN native-picker call, which would be a second, redundant prompt
+   * here).
+   * @private
+   */
+  async _writeProjectToHandle(handle) {
+    try {
+      const bytes = await ProjectFormat.export();
+      const writable = await handle.createWritable();
+      await writable.write(bytes instanceof Blob ? bytes : new Blob([bytes]));
+      await writable.close();
+
+      this._fileHandle = handle;
+      this.currentFilename = handle.name;
+      this.hasUnsavedChanges = false;
+      this._addToRecent(handle.name);
+      EventBus.emit(EVENTS.FILE_SAVE, { filename: handle.name });
+      Logger.info('FileManager', `Saved: ${handle.name}`);
+      return true;
+    } catch (error) {
+      Logger.error('FileManager', `Save failed: ${error.message}`);
+      EventBus.emit(EVENTS.FILE_ERROR, { message: `Failed to save: ${error.message}` });
+      return false;
+    }
   }
 
   /**
@@ -437,6 +553,11 @@ class FileManagerClass {
 
       this.currentFilename = filename;
       this.hasUnsavedChanges = false;
+      // This path has no live handle to reuse (a blob download, or a
+      // format-specific adapter that opened its own picker) - a stale
+      // handle from an EARLIER .pixula save must not catch this file's
+      // next Ctrl+S.
+      this._fileHandle = null;
 
       this._addToRecent(filename);
       EventBus.emit(EVENTS.FILE_SAVE, { filename });
@@ -503,7 +624,7 @@ class FileManagerClass {
    * @param {Object} options - Export options
    * @returns {boolean} True if exported successfully
    */
-  exportAs(format, options = {}) {
+  async exportAs(format, options = {}) {
     const handler = FormatRegistry.getExportHandler(format);
 
     if (!handler) {
@@ -518,8 +639,68 @@ class FileManagerClass {
     const filename = `${baseName}.${format}`;
 
     try {
-      handler.exportAndDownload(filename, options);
-      return true;
+      const written = await handler.exportAndDownload(filename, options);
+      return written !== false;
+    } catch (error) {
+      Logger.error('FileManager', `Export failed: ${error.message}`);
+      EventBus.emit(EVENTS.FILE_ERROR, { message: error.message });
+      return false;
+    }
+  }
+
+  /**
+   * File > Save... - a real native Save dialog whose "Save as type" list IS
+   * the format picker, so the artist chooses format and location in ONE
+   * dialog instead of a hand-rolled dropdown followed by a browser download
+   * with no location choice at all. This was the actual complaint behind
+   * this method's existence (2026-08-24): a menu item literally labelled
+   * "Save..." was internally an "export" action wearing that label, and
+   * opened the old format-then-download flow regardless.
+   *
+   * Extra per-format options (GIF animation, TAP border colour) have no
+   * native-dialog equivalent - File > Export with Options... still reaches
+   * `_showExportDialog()` for those, unchanged.
+   *
+   * Callable only where `window.showSaveFilePicker` exists - the io layer
+   * has no business opening `MenuSystem`'s format-select dialog itself, so
+   * that fallback decision belongs to the menu action that dispatches here
+   * (see `_handleMenuAction` in menu-system.js), not to this method.
+   * @returns {Promise<boolean>}
+   */
+  async exportViaNativePicker() {
+    const baseName = this.currentFilename
+      ? this.currentFilename.replace(/\.[^.]+$/, '')
+      : 'image';
+
+    let handle;
+    try {
+      handle = await window.showSaveFilePicker({
+        suggestedName: `${baseName}.scr`,
+        types: EXPORT_PICKER_TYPES.map(([ext, description, mime]) =>
+          ({ description, accept: { [mime]: [`.${ext}`] } }))
+      });
+    } catch (error) {
+      if (error && error.name === 'AbortError') return false;
+      Logger.error('FileManager', `Save picker failed: ${error.message}`);
+      EventBus.emit(EVENTS.FILE_ERROR, { message: `Failed to save: ${error.message}` });
+      return false;
+    }
+
+    const ext = FormatRegistry.getExtension(handle.name);
+    const handler = FormatRegistry.getExportHandler(ext);
+    if (!handler) {
+      Logger.error('FileManager', `Unsupported export format: .${ext}`);
+      EventBus.emit(EVENTS.FILE_ERROR, { message: `Cannot save as .${ext}` });
+      return false;
+    }
+
+    try {
+      // Passing `handle` through is what stops exportAndDownload() (and the
+      // FormatRegistry.download() it calls) opening a SECOND native picker
+      // for the same information - it writes straight to the location
+      // already chosen above.
+      const written = await handler.exportAndDownload(handle.name, {}, handle);
+      return written !== false;
     } catch (error) {
       Logger.error('FileManager', `Export failed: ${error.message}`);
       EventBus.emit(EVENTS.FILE_ERROR, { message: error.message });

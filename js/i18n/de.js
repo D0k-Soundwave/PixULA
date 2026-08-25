@@ -344,6 +344,7 @@ const de = {
     'menu.file.save': 'Projekt speichern',
     'menu.file.saveAs': 'Projekt speichern unter...',
     'menu.file.export': 'Speichern...',
+    'menu.file.exportOptions': 'Exportieren mit Optionen...',
     'menu.file.import': 'Laden...',
     'menu.edit.undo': 'Rückgängig',
     'menu.edit.redo': 'Wiederholen',

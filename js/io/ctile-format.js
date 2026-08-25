@@ -174,10 +174,10 @@ class CtileFormatClass {
   }
 
   /** @param {string} filename */
-  exportAndDownload(filename) {
+  async exportAndDownload(filename, options = {}, handle = null) {
     let name = filename || 'tiles.ctile';
     if (!name.toLowerCase().endsWith('.ctile')) name = `${name}.ctile`;
-    FormatRegistry.download(this.export(), name);
+    return FormatRegistry.download(this.export(), name, undefined, handle);
   }
 }
 

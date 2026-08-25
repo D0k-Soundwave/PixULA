@@ -344,6 +344,7 @@ const ru = {
     'menu.file.save': 'Сохранить проект',
     'menu.file.saveAs': 'Сохранить проект как...',
     'menu.file.export': 'Сохранить...',
+    'menu.file.exportOptions': 'Экспорт с параметрами...',
     'menu.file.import': 'Загрузить...',
     'menu.edit.undo': 'Отменить',
     'menu.edit.redo': 'Повторить',

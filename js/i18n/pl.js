@@ -344,6 +344,7 @@ const pl = {
     'menu.file.save': 'Zapisz projekt',
     'menu.file.saveAs': 'Zapisz projekt jako...',
     'menu.file.export': 'Zapisz...',
+    'menu.file.exportOptions': 'Eksportuj z opcjami...',
     'menu.file.import': 'Wczytaj...',
     'menu.edit.undo': 'Cofnij',
     'menu.edit.redo': 'Ponów',

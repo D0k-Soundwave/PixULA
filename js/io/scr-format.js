@@ -334,9 +334,9 @@ class SCRFormatClass {
    * Export and trigger browser download (via the one FormatRegistry path)
    * @param {string} filename - Filename for download
    */
-  exportAndDownload(filename = 'image.scr') {
+  async exportAndDownload(filename = 'image.scr', options = {}, handle = null) {
     const name = filename.endsWith('.scr') ? filename : `${filename}.scr`;
-    FormatRegistry.download(this.export(), name);
+    return FormatRegistry.download(this.export(), name, undefined, handle);
   }
 
   /**

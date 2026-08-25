@@ -470,17 +470,18 @@ class FontEditorDialogClass {
         }
     }
 
-    _export(format) {
+    async _export(format) {
         const base = (FontService.name || 'font').replace(/[^\w\- ]+/g, '').trim() || 'font';
         try {
+            let saved;
             if (FontFormat.EXTENSIONS.includes(format)) {
-                FontFormat.exportAndDownload(`${base}.${format}`);
+                saved = await FontFormat.exportAndDownload(`${base}.${format}`);
             } else {
                 const data = DevFormat.generateFont(format, `${base}_font`, FontService.toDocument());
                 const mime = format === 'bin' ? 'application/octet-stream' : 'text/plain';
-                FormatRegistry.download(data, `${base}_font.${format}`, mime);
+                saved = await FormatRegistry.download(data, `${base}_font.${format}`, mime);
             }
-            this._status(this._t('font.status.exported', 'Font exported.'));
+            if (saved !== false) this._status(this._t('font.status.exported', 'Font exported.'));
         } catch (err) {
             this._status(err.message);
         }

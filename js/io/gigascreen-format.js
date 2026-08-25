@@ -59,7 +59,7 @@ class GigascreenFormatClass {
     return {
       parse: (buffer) => this.parse(ext, buffer),
       export: () => this.export(),
-      exportAndDownload: (filename) => this.exportAndDownload(filename)
+      exportAndDownload: (filename, options, handle) => this.exportAndDownload(filename, handle)
     };
   }
 
@@ -298,10 +298,10 @@ class GigascreenFormatClass {
   }
 
   /** @param {string} filename */
-  exportAndDownload(filename) {
+  async exportAndDownload(filename, handle = null) {
     let name = filename || 'image.img';
     if (!name.toLowerCase().endsWith('.img')) name = `${name}.img`;
-    FormatRegistry.download(this.export(), name);
+    return FormatRegistry.download(this.export(), name, undefined, handle);
   }
 }
 

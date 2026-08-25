@@ -83,9 +83,9 @@ class ZEDFormatClass {
    * Export and trigger browser download (via the one FormatRegistry path)
    * @param {string} filename - Filename
    */
-  exportAndDownload(filename = 'image.zed') {
+  async exportAndDownload(filename = 'image.zed', options = {}, handle = null) {
     const name = filename.endsWith('.zed') ? filename : `${filename}.zed`;
-    FormatRegistry.download(this.export(), name);
+    return FormatRegistry.download(this.export(), name, undefined, handle);
   }
 
   // ── Pure byte math (Node-tested) ─────────────────────────────────────────

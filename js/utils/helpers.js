@@ -412,13 +412,58 @@ const Helpers = {
     },
 
     /**
-     * Download data as a file
-     * @param {Blob|string} data - Data to download
-     * @param {string} filename - Filename
+     * Save data to a file, preferring a real native Save dialog.
+     *
+     * `showSaveFilePicker` gives the artist an actual OS dialog - a real
+     * folder to navigate, a real filename to edit, no silent drop into
+     * Downloads - the same File System Access API `ImageSource`/
+     * `BackupService` already use for Open/folder pickers on this exact
+     * `file://` app (so it is known to work here, not just in theory).
+     * The anchor-click/blob-download trick below only ever gave the
+     * browser's OWN download location with zero choice - kept as the
+     * fallback for engines without the API (Firefox, Safari) and for the
+     * rare case the native call itself throws for a reason other than the
+     * artist cancelling.
+     * @param {Blob|string} data - Data to save
+     * @param {string} filename - Suggested filename
      * @param {string} mimeType - MIME type (for string data)
+     * @param {?FileSystemFileHandle} [handle] - a location already chosen by
+     *   an EARLIER showSaveFilePicker() call (e.g. FileManager picking the
+     *   format from the extension the artist typed) - write straight there
+     *   instead of opening a SECOND, redundant native dialog for the same
+     *   information.
+     * @returns {Promise<boolean>} false only if the artist cancelled the
+     *   native picker - a fallback download always "succeeds" from here
      */
-    downloadFile(data, filename, mimeType = 'application/octet-stream') {
+    async downloadFile(data, filename, mimeType = 'application/octet-stream', handle = null) {
         const blob = data instanceof Blob ? data : new Blob([data], { type: mimeType });
+
+        if (handle) {
+            const writable = await handle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+            return true;
+        }
+
+        if (typeof window.showSaveFilePicker === 'function') {
+            try {
+                const dot = filename.lastIndexOf('.');
+                const ext = dot > 0 ? filename.slice(dot) : '';
+                const handle = await window.showSaveFilePicker({
+                    suggestedName: filename,
+                    types: ext ? [{ description: ext.slice(1).toUpperCase(), accept: { [mimeType]: [ext] } }] : undefined
+                });
+                const writable = await handle.createWritable();
+                await writable.write(blob);
+                await writable.close();
+                return true;
+            } catch (error) {
+                if (error && error.name === 'AbortError') return false; // the artist cancelled
+                Logger.warn('Helpers', 'showSaveFilePicker failed; falling back to a browser download', error);
+                // fall through to the anchor-click path below
+            }
+        }
+
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -427,6 +472,7 @@ const Helpers = {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+        return true;
     },
 
     /**

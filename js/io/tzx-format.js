@@ -303,12 +303,12 @@ class TZXFormatClass {
    * @param {string} filename - Filename for download
    * @param {Object} options - Export options (border colour, tape name)
    */
-  exportAndDownload(filename = 'image.tzx', options = {}) {
+  async exportAndDownload(filename = 'image.tzx', options = {}, handle = null) {
     if (!options.name) {
       options = Object.assign({}, options, { name: filename.replace(/\.tzx$/i, '') });
     }
     const name = filename.endsWith('.tzx') ? filename : `${filename}.tzx`;
-    FormatRegistry.download(this.export(options), name);
+    return FormatRegistry.download(this.export(options), name, undefined, handle);
   }
 }
 

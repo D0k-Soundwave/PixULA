@@ -142,8 +142,7 @@ class PresetFormatClass {
       return false;
     }
 
-    FormatRegistry.download(data, name, 'application/json');
-    return true;
+    return FormatRegistry.download(data, name, 'application/json');
   }
 }
 

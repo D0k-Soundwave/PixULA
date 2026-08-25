@@ -344,6 +344,7 @@ const tr = {
     'menu.file.save': 'Projeyi kaydet',
     'menu.file.saveAs': 'Projeyi farklı kaydet...',
     'menu.file.export': 'Kaydet...',
+    'menu.file.exportOptions': 'Seçeneklerle dışa aktar...',
     'menu.file.import': 'Yükle...',
     'menu.edit.undo': 'Geri al',
     'menu.edit.redo': 'Yinele',

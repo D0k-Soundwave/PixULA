@@ -344,6 +344,7 @@ const pt = {
     'menu.file.save': 'Guardar projeto',
     'menu.file.saveAs': 'Guardar projeto como...',
     'menu.file.export': 'Guardar...',
+    'menu.file.exportOptions': 'Exportar com opções...',
     'menu.file.import': 'Carregar...',
     'menu.edit.undo': 'Desfazer',
     'menu.edit.redo': 'Refazer',

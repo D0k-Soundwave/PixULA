@@ -344,6 +344,7 @@ const es = {
     'menu.file.save': 'Guardar proyecto',
     'menu.file.saveAs': 'Guardar proyecto como...',
     'menu.file.export': 'Guardar...',
+    'menu.file.exportOptions': 'Exportar con opciones...',
     'menu.file.import': 'Cargar...',
     'menu.edit.undo': 'Deshacer',
     'menu.edit.redo': 'Rehacer',

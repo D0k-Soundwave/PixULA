@@ -344,6 +344,7 @@ const ro = {
     'menu.file.save': 'Salvează proiectul',
     'menu.file.saveAs': 'Salvează proiectul ca...',
     'menu.file.export': 'Salvează...',
+    'menu.file.exportOptions': 'Exportă cu opțiuni...',
     'menu.file.import': 'Încarcă...',
     'menu.edit.undo': 'Anulează',
     'menu.edit.redo': 'Refă',

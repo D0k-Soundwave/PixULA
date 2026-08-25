@@ -161,10 +161,10 @@ class PNGFormatClass {
    * @param {string} filename - Filename
    * @param {Object} options - Export options
    */
-  async exportAndDownload(filename = 'image.png', options = {}) {
+  async exportAndDownload(filename = 'image.png', options = {}, handle = null) {
     const blob = await this.export(options);
     const name = filename.endsWith('.png') ? filename : `${filename}.png`;
-    FormatRegistry.download(blob, name, 'image/png');
+    return FormatRegistry.download(blob, name, 'image/png', handle);
   }
 
   /**

@@ -344,6 +344,7 @@ const cs = {
     'menu.file.save': 'Uložit projekt',
     'menu.file.saveAs': 'Uložit projekt jako...',
     'menu.file.export': 'Uložit...',
+    'menu.file.exportOptions': 'Exportovat s možnostmi...',
     'menu.file.import': 'Načíst...',
     'menu.edit.undo': 'Zpět',
     'menu.edit.redo': 'Znovu',

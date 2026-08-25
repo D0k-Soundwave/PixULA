@@ -90,9 +90,17 @@ class DialogClass {
                 if (btn.id) el.id = btn.id;
                 if (btn.i18n) el.dataset.i18n = btn.i18n;
                 el.textContent = this._t(btn.i18n, btn.label || '');
-                el.addEventListener('click', () => {
-                    const keepOpen = btn.onClick ? btn.onClick(dialog) === false : false;
-                    if (!keepOpen) this.close(id);
+                el.addEventListener('click', async () => {
+                    // Promise.resolve() wrapping makes both shapes identical:
+                    // a plain sync return behaves exactly as before (resolves
+                    // on the same microtask), while an async onClick's real
+                    // native-picker wait (Save/Export dialogs) is genuinely
+                    // awaited before deciding whether to close - without
+                    // this, an async handler's returned Promise is never
+                    // === false, so the dialog closed immediately regardless
+                    // of what it eventually resolved to.
+                    const result = await Promise.resolve(btn.onClick ? btn.onClick(dialog) : undefined);
+                    if (result !== false) this.close(id);
                 });
                 footer.appendChild(el);
             }

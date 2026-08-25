@@ -78,7 +78,7 @@ class FontFormatClass {
       const adapter = {
         parse: (buffer) => this.parse(buffer, ext),
         export: () => this.export(ext),
-        exportAndDownload: (filename) => this.exportAndDownload(filename)
+        exportAndDownload: (filename, options, handle) => this.exportAndDownload(filename, handle)
       };
       FormatRegistry.registerImport(ext, adapter);
       FormatRegistry.registerExport(ext, adapter);
@@ -117,13 +117,13 @@ class FontFormatClass {
    * path); format chosen by filename extension.
    * @param {string} filename - Target filename
    */
-  exportAndDownload(filename = 'font.ch8') {
+  async exportAndDownload(filename = 'font.ch8', handle = null) {
     const ext = FormatRegistry.getExtension(filename);
     if (!this.EXTENSIONS.includes(ext)) {
       EventBus.emit(EVENTS.FILE_ERROR, { message: `Not a font extension: .${ext}` });
-      return;
+      return false;
     }
-    FormatRegistry.download(this.export(ext), filename, 'application/octet-stream');
+    return FormatRegistry.download(this.export(ext), filename, 'application/octet-stream', handle);
   }
 
   // ── Pure byte math (Node-tested) ─────────────────────────────────────────

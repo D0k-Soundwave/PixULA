@@ -50,7 +50,7 @@ class TimexFormatClass {
     return {
       parse: (buffer) => this.parseHrg(buffer),
       export: () => this.exportHrg(),
-      exportAndDownload: (filename) => this.exportAndDownloadHrg(filename)
+      exportAndDownload: (filename, options, handle) => this.exportAndDownloadHrg(filename, handle)
     };
   }
 
@@ -153,10 +153,10 @@ class TimexFormatClass {
   }
 
   /** @param {string} filename */
-  exportAndDownloadHrg(filename) {
+  async exportAndDownloadHrg(filename, handle = null) {
     let name = filename || 'image.hrg';
     if (!name.toLowerCase().endsWith('.hrg')) name = `${name}.hrg`;
-    FormatRegistry.download(this.exportHrg(), name);
+    return FormatRegistry.download(this.exportHrg(), name, undefined, handle);
   }
 
   // ── Pure byte math (Node-tested) ──────────────────────────────────────────

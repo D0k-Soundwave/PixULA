@@ -48,17 +48,24 @@ class FormatRegistryClass {
   }
 
   /**
-   * The single download path for every export in the app.
-   * Wraps the bytes in a Blob, triggers the browser download (via Helpers,
-   * the one owner of object-URL code), and announces the export on the bus.
+   * The single save path for every export in the app.
+   * Wraps the bytes in a Blob and hands them to Helpers.downloadFile()
+   * (native Save dialog first, browser-download fallback - the one owner
+   * of object-URL code), then announces the export on the bus.
    * @param {Uint8Array|ArrayBuffer|Blob|string} data - File content
-   * @param {string} filename - Download filename (extension identifies the format)
+   * @param {string} filename - Suggested filename (extension identifies the format)
    * @param {string} [mimeType] - MIME type for non-Blob data
+   * @param {?FileSystemFileHandle} [handle] - a location already chosen by
+   *   an earlier native picker call - write straight there instead of
+   *   opening a second one for the same information.
+   * @returns {Promise<boolean>} false only if the artist cancelled the native picker
    */
-  download(data, filename, mimeType = 'application/octet-stream') {
-    Helpers.downloadFile(data, filename, mimeType);
+  async download(data, filename, mimeType = 'application/octet-stream', handle = null) {
+    const saved = await Helpers.downloadFile(data, filename, mimeType, handle);
+    if (!saved) return false;
     EventBus.emit(EVENTS.FILE_EXPORT, { format: this.getExtension(filename), filename });
     Logger.info('FormatRegistry', `Download triggered: ${filename}`);
+    return true;
   }
 
   /**

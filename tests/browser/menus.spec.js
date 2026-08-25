@@ -16,7 +16,7 @@ test('File menu lists all actions incl. the four editor dialogs', async ({ page 
     await openMenu(page, 'file');
     const ids = await page.$$eval('.menu-item[data-menu="file"] .menu-action',
         els => els.map(e => e.dataset.id));
-    for (const want of ['new', 'save', 'save-as', 'export', 'import',
+    for (const want of ['new', 'save', 'save-as', 'export', 'export-options', 'import',
         'tape-blocks', 'map-editor', 'font-editor', 'sprite-editor']) {
         expect(ids).toContain(want);
     }
@@ -170,10 +170,14 @@ test('Settings preferences dialog and Help about/shortcuts dialogs open and clos
     await page.keyboard.press('Escape');
 });
 
-test('Export dialog opens with format list and tape border override', async ({ page }) => {
+test('Export with Options dialog opens with format list and tape border override', async ({ page }) => {
     await boot(page);
     await openMenu(page, 'file');
-    await page.click('.menu-action[data-action="file:export"]');
+    // file:export (File > Save...) now opens a native showSaveFilePicker
+    // dialog instead - see native-save.spec.js. The hand-rolled
+    // format-select dialog with per-format options (TAP border, GIF
+    // animate) lives at file:exportOptions (File > Export with Options...).
+    await page.click('.menu-action[data-action="file:exportOptions"]');
     const dlg = page.locator('.dialog, dialog, [role="dialog"]').first();
     await expect(dlg).toBeVisible();
     const selects = await dlg.locator('select').count();

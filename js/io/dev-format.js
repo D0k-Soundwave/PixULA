@@ -100,13 +100,13 @@ class DevFormatClass {
    * @param {string} filename - Target filename (extension decides the format)
    * @param {Object} options - Unused; kept for handler-contract symmetry
    */
-  exportAndDownload(filename = 'image.asm', options = {}) {
+  async exportAndDownload(filename = 'image.asm', options = {}, handle = null) {
     const ext = FormatRegistry.getExtension(filename) || 'asm';
     const base = filename.replace(/\.[^.]+$/, '');
     const data = this.generate(ext, base);
 
     const mime = (ext === 'asm' || ext === 'c') ? 'text/plain' : 'application/octet-stream';
-    FormatRegistry.download(data, filename, mime);
+    return FormatRegistry.download(data, filename, mime, handle);
   }
 
   /**
