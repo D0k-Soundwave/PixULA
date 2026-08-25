@@ -754,11 +754,14 @@ class MenuSystemClass {
      * @private
      */
     _showExportDialog() {
-        // Mode-gated handlers (nxi/sl2 need an indexed mode, pal/npl an
-        // editable palette) refuse with a localized message on OK.
+        // Only formats the ACTIVE screen mode can actually export (e.g.
+        // nxi/sl2 need an indexed mode, pal/npl an editable palette) are
+        // listed at all — FormatRegistry.isExportCompatible() is backed by
+        // each handler's own canExport(), so this can't drift from the
+        // gates the handlers themselves enforce.
         const formats = ['scr', 'zxp', 'mlt', 'ifl', 'hrg', 'img', 'nxi', 'sl2', 'slr', 'ctile',
             'tap', 'tzx', 'png', 'bmp', 'jpg', 'gif', 'zed', 'sev', 'pal', 'npl',
-            'asm', 'c', 'bin', 'atr'];
+            'asm', 'c', 'bin', 'atr'].filter((ext) => FormatRegistry.isExportCompatible(ext));
         const borderNames = ['black', 'blue', 'red', 'magenta', 'green', 'cyan', 'yellow', 'white'];
 
         const content = document.createElement('div');

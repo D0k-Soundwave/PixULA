@@ -172,4 +172,12 @@ check('ZED: bad signature rejected',
     ZEDFormat.decodeToScreen(noBlocks).success === false);
 }
 
+// canExport() mirrors the standard-layout gate export() throws on
+__setActiveScreenMode('multicolor_8x2');
+check('ZED canExport false in multicolor_8x2', ZEDFormat.canExport() === false);
+check('SEV canExport false in multicolor_8x2', SEVFormat.canExport() === false);
+__setActiveScreenMode('standard_ula');
+check('ZED canExport true in standard_ula', ZEDFormat.canExport() === true);
+check('SEV canExport true in standard_ula', SEVFormat.canExport() === true);
+
 summary();

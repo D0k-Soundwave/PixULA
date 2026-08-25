@@ -51,6 +51,7 @@ class NXIFormatClass {
     return {
       parse: (buffer) => this.parse(ext, buffer),
       export: () => this.export(ext),
+      canExport: () => this.canExport(),
       exportAndDownload: (filename, options, handle) => this.exportAndDownload(ext, filename, handle)
     };
   }
@@ -222,6 +223,17 @@ class NXIFormatClass {
    * @param {string} ext - 'nxi' | 'sl2'
    * @returns {Uint8Array}
    */
+  /**
+   * Whether export(ext) would succeed in the active mode — the
+   * non-throwing mirror used to filter the Save dialogs before the artist
+   * picks a format. Same condition for nxi/sl2/slr — ext is unused, kept
+   * only so the adapter's shape matches export()'s.
+   * @returns {boolean}
+   */
+  canExport() {
+    return ACTIVE_SCREEN_MODE.pixelDepth !== 1;
+  }
+
   export(ext) {
     const mode = ACTIVE_SCREEN_MODE;
     if (mode.pixelDepth === 1) {

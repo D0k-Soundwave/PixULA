@@ -96,4 +96,11 @@ check('reject bad signature', TZXFormat.parse(new Uint8Array(20).buffer).success
 const noScreen = new Uint8Array([...[...SIG].map(c => c.charCodeAt(0)), 0x1A, 1, 20, ...id10([0xFF, 1, 2, 3, 0xFF])]);
 check('report missing screen', TZXFormat.parse(noScreen.buffer).success === false);
 
+// canExport() delegates to TAPFormat.canExport() (TZX builds its blocks
+// from TAPFormat.export(), so it shares the same standard-layout gate)
+__setActiveScreenMode('multicolor_8x1');
+check('TZX canExport false in multicolor_8x1', TZXFormat.canExport() === false);
+__setActiveScreenMode('standard_ula');
+check('TZX canExport true in standard_ula', TZXFormat.canExport() === true);
+
 summary();

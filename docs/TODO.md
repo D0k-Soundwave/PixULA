@@ -11,22 +11,6 @@ not by when it was found.
 
 ## Should do soon
 
-**File > Save...'s native "Save as type" list may not show every format as
-its own distinct choice.** `FileManager.exportViaNativePicker()`
-(`js/io/file-manager.js`, `EXPORT_PICKER_TYPES`) builds one `{description,
-accept}` entry per extension for `showSaveFilePicker()`, but roughly half of
-them (scr, mlt, ifl, hrg, img, nxi, sl2, slr, ctile, tap, tzx, zed, sev, pal,
-npl, bin, atr) share the same generic `application/octet-stream` MIME key -
-not yet checked against the REAL native dialog whether Chrome renders each
-as its own clearly separate line regardless (likely, since `description`
-differs per entry) or visually/functionally groups entries that share an
-`accept` MIME bucket. If it does group them, the fix is cheap: `accept`'s
-keys don't have to be real registered MIME types, so a per-format synthetic
-key (`application/x-pixula-scr`, `application/x-pixula-mlt`, ...) would
-force each extension into its own bucket. Needs a human actually opening
-the dialog and looking, not a stubbed-picker test - `showSaveFilePicker`
-can't be driven by Playwright at all.
-
 **Manual verification that every native-picker export format produces a
 correct file, not just non-empty bytes.** The automated coverage
 (`tests/browser/native-save.spec.js`) stubs `showSaveFilePicker()` and

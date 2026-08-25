@@ -87,4 +87,18 @@ check('parse reports missing screen',
   TAPFormat.parse(new Uint8Array(tapBlock(0xFF, [1, 2, 3])).buffer).success === false);
 check('border clamps without throwing', TAPFormat.export({ border: 99 }).length > 0);
 
+// canExport() mirrors the standard-layout gate export() throws on
+__setActiveScreenMode('standard_ula');
+check('TAP canExport true in standard_ula', TAPFormat.canExport() === true);
+__setActiveScreenMode('ula_plus');
+check('TAP canExport true in ula_plus', TAPFormat.canExport() === true);
+__setActiveScreenMode('multicolor_8x1');
+check('TAP canExport false in multicolor_8x1', TAPFormat.canExport() === false);
+{
+  let threw = false;
+  try { TAPFormat.export({ border: 0, name: 'x' }); } catch (e) { threw = true; }
+  check('TAP export throws when canExport is false', threw === true);
+}
+__setActiveScreenMode('standard_ula');
+
 summary();

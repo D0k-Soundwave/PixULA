@@ -33,6 +33,16 @@ class TZXFormatClass {
   }
 
   /**
+   * Whether export() would succeed in the active mode — delegates to
+   * TAPFormat.canExport() since TZX builds its blocks from
+   * TAPFormat.export() and shares its standard-layout gate.
+   * @returns {boolean}
+   */
+  canExport() {
+    return TAPFormat.canExport();
+  }
+
+  /**
    * Export current image as TZX
    * @param {Object} options - { border: 0-7, name: string } (passed to TAPFormat)
    * @returns {Uint8Array} Complete TZX file data

@@ -59,6 +59,16 @@ class SEVFormatClass {
    * Export the current image as SEV bytes.
    * @returns {Uint8Array} Complete SEV file (v0.8, single frame, no mask)
    */
+  /**
+   * Whether export() would succeed in the active mode — the non-throwing
+   * mirror used to filter the Save dialogs before the artist picks a
+   * format.
+   * @returns {boolean}
+   */
+  canExport() {
+    return Helpers.hasStandardScreenLayout();
+  }
+
   export() {
     // SEV is a standard-layout format (8+1-byte 8×8 cells) — Phase 12a gate
     Helpers.assertStandardScreenLayout();

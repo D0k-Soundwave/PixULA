@@ -46,6 +46,7 @@ class MulticolorFormatClass {
     return {
       parse: (buffer) => this.parse(ext, buffer),
       export: () => this.export(ext),
+      canExport: () => this.canExport(ext),
       exportAndDownload: (filename, options, handle) => this.exportAndDownload(ext, filename, handle)
     };
   }
@@ -81,6 +82,21 @@ class MulticolorFormatClass {
   }
 
   // ── Export ────────────────────────────────────────────────────────────────
+
+  /**
+   * Whether export(ext) would succeed in the active mode — the
+   * non-throwing mirror used to filter the Save dialogs before the artist
+   * picks a format.
+   * @param {string} ext - 'mlt' | 'ifl'
+   * @returns {boolean}
+   */
+  canExport(ext) {
+    const mode = ext === 'ifl'
+      ? SCREEN_MODES.MULTICOLOR_8x2
+      : SCREEN_MODES.MULTICOLOR_8x1;
+    return ACTIVE_SCREEN_MODE.paletteModel === 'fixed16'
+      && ACTIVE_SCREEN_MODE.attrCellH >= mode.attrCellH;
+  }
 
   /**
    * Export the composited document as the variant's bytes, converting the

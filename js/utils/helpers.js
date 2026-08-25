@@ -40,17 +40,37 @@ const Helpers = {
     },
 
     /**
+     * Whether the active screen mode has the standard 8×8-cell 256×192
+     * layout — the non-throwing twin of assertStandardScreenLayout(), for
+     * callers (a format's canExport()) that want a yes/no instead of a
+     * catch block.
+     * @returns {boolean}
+     */
+    hasStandardScreenLayout() {
+        return ZX_SPECTRUM.CELL_HEIGHT === SCREEN_MODES.STANDARD_ULA.attrCellH &&
+            ZX_SPECTRUM.WIDTH === SCREEN_MODES.STANDARD_ULA.width &&
+            ZX_SPECTRUM.PIXEL_DEPTH === 1;
+    },
+
+    /**
      * Throw when the active screen mode lacks the standard 8×8-cell 256×192
      * layout — the shared gate for classic 6912-byte SCREEN$-family exports
      * (Phase 12a; multicolor modes have no SCREEN$ representation).
      */
     assertStandardScreenLayout() {
-        if (ZX_SPECTRUM.CELL_HEIGHT !== SCREEN_MODES.STANDARD_ULA.attrCellH ||
-            ZX_SPECTRUM.WIDTH !== SCREEN_MODES.STANDARD_ULA.width ||
-            ZX_SPECTRUM.PIXEL_DEPTH !== 1) {
+        if (!this.hasStandardScreenLayout()) {
             throw new Error(this.localizedMessage('mode.formatNeedsStandard',
                 'This format needs a standard screen layout — switch to Standard ULA or ULAplus mode first.'));
         }
+    },
+
+    /**
+     * Whether the active mode uses the classic 1-bit ink/paper cell model —
+     * the non-throwing twin of assertClassicPixelModel().
+     * @returns {boolean}
+     */
+    hasClassicPixelModel() {
+        return ZX_SPECTRUM.PIXEL_DEPTH === 1;
     },
 
     /**
@@ -59,7 +79,7 @@ const Helpers = {
      * cell-attribute features under the indexed Next modes (Phase 13).
      */
     assertClassicPixelModel() {
-        if (ZX_SPECTRUM.PIXEL_DEPTH !== 1) {
+        if (!this.hasClassicPixelModel()) {
             throw new Error(this.localizedMessage('mode.needsClassicPixels',
                 'This works in the classic ink/paper modes only — the current mode uses indexed pixels.'));
         }

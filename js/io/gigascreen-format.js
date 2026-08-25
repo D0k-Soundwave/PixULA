@@ -59,6 +59,7 @@ class GigascreenFormatClass {
     return {
       parse: (buffer) => this.parse(ext, buffer),
       export: () => this.export(),
+      canExport: () => this.canExport(),
       exportAndDownload: (filename, options, handle) => this.exportAndDownload(filename, handle)
     };
   }
@@ -281,6 +282,16 @@ class GigascreenFormatClass {
     }
     return SCRFormat.screenBytesFromLayer(
       LayerManager.flattenVisible({ gigaScreen: n }));
+  }
+
+  /**
+   * Whether export() would succeed in the active mode — the non-throwing
+   * mirror used to filter the Save dialogs before the artist picks a
+   * format.
+   * @returns {boolean}
+   */
+  canExport() {
+    return (ACTIVE_SCREEN_MODE.screens || 1) === 2;
   }
 
   /**

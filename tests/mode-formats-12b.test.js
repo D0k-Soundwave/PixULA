@@ -210,6 +210,23 @@ LayerManager.initialize();
   threw = false;
   try { CtileFormat.export(); } catch (e) { threw = true; }
   check('.ctile export gates outside 8×1', threw);
+
+  // canExport() mirrors each handler's own throw/no-throw
+  check('TimexFormat canExport false outside timex_hires', TimexFormat.canExport() === false);
+  check('GigascreenFormat canExport false outside gigascreen', GigascreenFormat.canExport() === false);
+  check('CtileFormat canExport false outside 8×1', CtileFormat.canExport() === false);
+
+  __setActiveScreenMode('timex_hires');
+  check('TimexFormat canExport true in timex_hires', TimexFormat.canExport() === true);
+  __setActiveScreenMode('gigascreen');
+  check('GigascreenFormat canExport true in gigascreen', GigascreenFormat.canExport() === true);
+  __setActiveScreenMode('multicolor_8x1');
+  check('CtileFormat canExport true in multicolor_8x1', CtileFormat.canExport() === true);
+  __setActiveScreenMode('ula_plus_8x1');
+  check('CtileFormat canExport false in ula_plus_8x1 (not fixed16)', CtileFormat.canExport() === false);
+
+  __setActiveScreenMode('standard_ula');
+  AttributeSystem.clearAll();
 }
 
 // ─── GigaScreen .img / .mg / GIF ────────────────────────────────────────────

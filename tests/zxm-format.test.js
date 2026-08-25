@@ -170,4 +170,20 @@ check('rejects elements that are not cell-multiples', (() => {
   return F.parseText(blankScreen() + '\r\n' + el + '\r\n[End of file]\r\n').success === false;
 })());
 
+// ── canExportZxp() mirrors exportZxp()'s throw/no-throw across modes ───────
+{
+  const compatible = ['standard_ula', 'multicolor_8x4', 'multicolor_8x2',
+    'multicolor_8x1', 'ula_plus', 'ula_plus_8x1'];
+  const incompatible = ['timex_hires', 'gigascreen', 'layer2_256'];
+  for (const id of compatible) {
+    __setActiveScreenMode(id);
+    check(`zxp canExport true in ${id}`, F.canExportZxp() === true);
+  }
+  for (const id of incompatible) {
+    __setActiveScreenMode(id);
+    check(`zxp canExport false in ${id}`, F.canExportZxp() === false);
+  }
+  __setActiveScreenMode('standard_ula');
+}
+
 summary();

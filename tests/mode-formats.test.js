@@ -127,6 +127,19 @@ let threw = false;
 try { IFL.export(); } catch (e) { threw = true; }
 check('ifl export from 8×1 gates (would coarsen)', threw);
 
+// MulticolorFormat.canExport(ext) mirrors export(ext)'s throw/no-throw
+{
+  __setActiveScreenMode('multicolor_8x1');
+  check('mlt canExport true in multicolor_8x1', MulticolorFormat.canExport('mlt') === true);
+  check('ifl canExport false in multicolor_8x1 (would coarsen)',
+    MulticolorFormat.canExport('ifl') === false);
+  __setActiveScreenMode('ula_plus');
+  check('mlt canExport false in ula_plus (not fixed16)', MulticolorFormat.canExport('mlt') === false);
+  __setActiveScreenMode('standard_ula');
+  check('mlt canExport true in standard_ula', MulticolorFormat.canExport('mlt') === true);
+  check('ifl canExport true in standard_ula', MulticolorFormat.canExport('ifl') === true);
+}
+
 // From standard (8×8), .mlt export refines losslessly: every pixel line of a
 // cell carries the same attribute byte
 __setActiveScreenMode('standard_ula');
@@ -195,6 +208,22 @@ __setActiveScreenMode('multicolor_8x1');
 threw = false;
 try { SCRFormat.export(); } catch (e) { threw = true; }
 check('scr export gates in multicolor modes', threw);
+
+// SCRFormat.canExport() mirrors export()'s throw/no-throw across modes —
+// used by FormatRegistry.isExportCompatible() to filter the Save dialogs
+// before the artist picks a format, not just report failure after.
+{
+  const compatible = ['standard_ula', 'ula_plus', 'multicolor_8x1', 'ula_plus_8x1', 'timex_hires'];
+  const incompatible = ['multicolor_8x4', 'multicolor_8x2', 'gigascreen', 'layer2_256'];
+  for (const id of compatible) {
+    __setActiveScreenMode(id);
+    check(`SCR canExport true in ${id}`, SCRFormat.canExport() === true);
+  }
+  for (const id of incompatible) {
+    __setActiveScreenMode(id);
+    check(`SCR canExport false in ${id}`, SCRFormat.canExport() === false);
+  }
+}
 
 // Classic sizes still import (and switch back to standard)
 __setActiveScreenMode('standard_ula');

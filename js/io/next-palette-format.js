@@ -50,6 +50,7 @@ class NextPaletteFormatClass {
     return {
       parse: (buffer) => this.parse(ext, buffer),
       export: () => this.export(ext),
+      canExport: () => this.canExport(),
       exportAndDownload: (filename, options, handle) => this.exportAndDownload(ext, filename, handle)
     };
   }
@@ -163,6 +164,17 @@ class NextPaletteFormatClass {
    * @param {string} [ext] - 'pal' | 'npl' (default 'pal')
    * @returns {Uint8Array}
    */
+  /**
+   * Whether export() would succeed in the active mode — the non-throwing
+   * mirror used to filter the Save dialogs before the artist picks a
+   * format. Same condition for pal/npl.
+   * @returns {boolean}
+   */
+  canExport() {
+    const model = ACTIVE_SCREEN_MODE.paletteModel;
+    return model === 'ulaplus64' || model === 'rgb333';
+  }
+
   export(ext = 'pal') {
     const model = ACTIVE_SCREEN_MODE.paletteModel;
     if (model === 'ulaplus64') {

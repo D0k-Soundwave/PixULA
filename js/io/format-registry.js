@@ -105,6 +105,23 @@ class FormatRegistryClass {
   }
 
   /**
+   * Whether a format can be exported in the ACTIVE screen mode — what a
+   * Save UI asks before offering a format, rather than after the artist
+   * picks one and the handler throws. Delegates to the handler's own
+   * canExport() when it registered one (the per-format mode gates already
+   * living in js/io/*.js); a handler with no canExport() is valid in every
+   * mode (png/bmp/jpg/gif); an unregistered extension has nothing to
+   * export at all.
+   * @param {string} extension - File extension
+   * @returns {boolean}
+   */
+  isExportCompatible(extension) {
+    const handler = this.getExportHandler(extension);
+    if (!handler) return false;
+    return typeof handler.canExport === 'function' ? handler.canExport() : true;
+  }
+
+  /**
    * Get list of supported import formats
    * @returns {string[]} Array of extensions
    */

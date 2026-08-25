@@ -204,6 +204,15 @@ enter('standard_ula');
   let threw = false;
   try { NextPaletteFormat.export(); } catch (e) { threw = true; }
   check('.pal export refuses in fixed-palette modes', threw);
+
+  // canExport() mirrors export()'s throw/no-throw across palette models
+  check('.pal canExport false in standard_ula (fixed16)', NextPaletteFormat.canExport() === false);
+  enter('ula_plus');
+  check('.pal canExport true in ula_plus (ulaplus64)', NextPaletteFormat.canExport() === true);
+  enter('layer2_256');
+  check('.pal canExport true in layer2_256 (rgb333)', NextPaletteFormat.canExport() === true);
+  enter('timex_hires');
+  check('.pal canExport false in timex_hires (timexMono)', NextPaletteFormat.canExport() === false);
 }
 
 // .slr (Next BASIC LoRes save) routes through the same size table
@@ -319,6 +328,14 @@ enter('layer2_256');
   threw = false;
   try { MulticolorFormat.export('mlt'); } catch (e) { threw = true; }
   check('.mlt export gates in indexed modes (fixed16 rule)', threw);
+
+  // NXIFormat.canExport() mirrors export()'s throw/no-throw. A bare mode
+  // switch (not enter(), which reinitializes layers) — the GIF block right
+  // after this one depends on the layer2_256 document still being here.
+  check('NXI canExport true in an indexed mode', NXIFormat.canExport() === true);
+  __setActiveScreenMode('standard_ula');
+  check('NXI canExport false in a classic mode', NXIFormat.canExport() === false);
+  __setActiveScreenMode('layer2_256');
 }
 
 // ─── GIF export follows the source mode's palette (no fixed16 gate) ─────────

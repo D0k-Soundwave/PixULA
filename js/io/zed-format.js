@@ -70,6 +70,16 @@ class ZEDFormatClass {
    * Export the current image as ZED bytes.
    * @returns {Uint8Array} Complete ZED document
    */
+  /**
+   * Whether export() would succeed in the active mode — the non-throwing
+   * mirror used to filter the Save dialogs before the artist picks a
+   * format.
+   * @returns {boolean}
+   */
+  canExport() {
+    return Helpers.hasStandardScreenLayout();
+  }
+
   export() {
     // ZED is a standard-layout format (24 lines × 32 cells) — Phase 12a gate
     Helpers.assertStandardScreenLayout();

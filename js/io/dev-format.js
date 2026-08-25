@@ -59,6 +59,16 @@ class DevFormatClass {
   }
 
   /**
+   * Whether generate() would succeed in the active mode — delegates to
+   * SCRFormat.canExport() since generate() calls SCRFormat.export()
+   * internally and inherits its gate. Same condition for asm/c/bin/atr.
+   * @returns {boolean}
+   */
+  canExport() {
+    return SCRFormat.canExport();
+  }
+
+  /**
    * Generate export data for one of the developer formats
    * @param {string} ext - 'asm' | 'c' | 'bin' | 'atr'
    * @param {string} name - Base name used for labels/identifiers

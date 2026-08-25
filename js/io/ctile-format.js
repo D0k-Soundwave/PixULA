@@ -125,6 +125,17 @@ class CtileFormatClass {
    * canvas. 8×1 fixed-palette mode only.
    * @returns {Uint8Array}
    */
+  /**
+   * Whether export() would succeed in the active mode — the non-throwing
+   * mirror used to filter the Save dialogs before the artist picks a
+   * format.
+   * @returns {boolean}
+   */
+  canExport() {
+    const mode = ACTIVE_SCREEN_MODE;
+    return mode.attrCellH === 1 && mode.paletteModel === 'fixed16';
+  }
+
   export() {
     const mode = ACTIVE_SCREEN_MODE;
     if (mode.attrCellH !== 1 || mode.paletteModel !== 'fixed16') {

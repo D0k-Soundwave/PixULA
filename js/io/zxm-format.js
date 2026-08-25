@@ -90,6 +90,7 @@ class ZXMFormatClass {
     });
     FormatRegistry.registerExport('zxp', {
       export: () => this.exportZxp(),
+      canExport: () => this.canExportZxp(),
       exportAndDownload: (filename, options, handle) => this.exportZxpAndDownload(filename, handle)
     });
     Logger.info('ZXMFormat', 'Initialized (zxm/zxp)');
@@ -207,6 +208,18 @@ class ZXMFormatClass {
    * palette block. Other palette/pixel models have no ZXP representation.
    * @returns {Uint8Array} UTF-8 text
    */
+  /**
+   * Whether exportZxp() would succeed in the active mode — the
+   * non-throwing mirror used to filter the Save dialogs before the artist
+   * picks a format.
+   * @returns {boolean}
+   */
+  canExportZxp() {
+    const mode = ACTIVE_SCREEN_MODE;
+    return (mode.pixelDepth || 1) === 1 && (mode.screens || 1) !== 2
+      && (mode.paletteModel === 'fixed16' || mode.paletteModel === 'ulaplus64');
+  }
+
   exportZxp() {
     const mode = ACTIVE_SCREEN_MODE;
     if ((mode.pixelDepth || 1) !== 1 || (mode.screens || 1) === 2

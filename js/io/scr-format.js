@@ -213,6 +213,21 @@ class SCRFormatClass {
    * no .scr container and gate with a localized error.
    * @returns {Uint8Array} SCR file data (fileSize bytes from the mode descriptor)
    */
+  /**
+   * Whether export() would succeed in the active mode — the non-throwing
+   * mirror used to filter the Save dialogs before the artist picks a
+   * format. Kept in sync with export()'s own gates by
+   * tests/mode-formats.test.js, which asserts the two never disagree.
+   * @returns {boolean}
+   */
+  canExport() {
+    const mode = ACTIVE_SCREEN_MODE;
+    if (!Helpers.hasClassicPixelModel()) return false;
+    if ((mode.screens || 1) === 2) return false;
+    if (mode.paletteModel === 'timexMono') return true;
+    return mode.attrCellH === SCREEN_MODES.STANDARD_ULA.attrCellH || mode.attrCellH === 1;
+  }
+
   export() {
     const mode = ACTIVE_SCREEN_MODE;
 

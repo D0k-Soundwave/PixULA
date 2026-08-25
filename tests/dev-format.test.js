@@ -4,7 +4,8 @@ const { installStubs, loadModule, check, summary } = require('./helpers/zx-stubs
 const testScreen = new Uint8Array(6912);
 for (let i = 0; i < 6912; i++) testScreen[i] = i & 0xFF;
 
-installStubs({ SCRFormat: { export: () => testScreen.slice() } });
+let scrCanExport = true;
+installStubs({ SCRFormat: { export: () => testScreen.slice(), canExport: () => scrCanExport } });
 loadModule('js/io/dev-format.js');
 
 const text = (u8) => Buffer.from(u8).toString('utf8');
@@ -42,5 +43,12 @@ check('c arrays terminated', (c.match(/};/g) || []).length === 2);
 let threw = false;
 try { DevFormat.generate('xyz', 'a'); } catch { threw = true; }
 check('unknown extension throws', threw);
+
+// --- canExport() delegates to SCRFormat.canExport() ---
+// (generate() calls SCRFormat.export() internally, so asm/c/bin/atr inherit
+// its mode gate — this is the same condition, not a separate one)
+check('DevFormat.canExport delegates true', DevFormat.canExport() === true);
+scrCanExport = false;
+check('DevFormat.canExport delegates false', DevFormat.canExport() === false);
 
 summary();

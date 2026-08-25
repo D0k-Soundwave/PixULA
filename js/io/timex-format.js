@@ -50,8 +50,19 @@ class TimexFormatClass {
     return {
       parse: (buffer) => this.parseHrg(buffer),
       export: () => this.exportHrg(),
+      canExport: () => this.canExport(),
       exportAndDownload: (filename, options, handle) => this.exportAndDownloadHrg(filename, handle)
     };
+  }
+
+  /**
+   * Whether exportHrg()/exportHires() would succeed in the active mode —
+   * the non-throwing mirror used to filter the Save dialogs before the
+   * artist picks a format.
+   * @returns {boolean}
+   */
+  canExport() {
+    return ACTIVE_SCREEN_MODE.paletteModel === 'timexMono';
   }
 
   // ── Import ────────────────────────────────────────────────────────────────

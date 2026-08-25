@@ -10,32 +10,41 @@
  * FormatRegistry has no format-vs-picture-vs-document distinction (it would
  * also list .pixula here, which Save Project already owns) and no
  * human-readable description or MIME per extension to draw from.
+ *
+ * MIME keys are synthetic (`application/x-pixula-<ext>`) rather than the
+ * generic `application/octet-stream` for every format with no real
+ * registered type: `showSaveFilePicker`'s `accept` key never leaves the
+ * page, so it doesn't need to be a real MIME type, but Chrome's native
+ * "Save as type" dropdown groups entries that share one - confirmed
+ * 2026-08-24 by opening the real dialog, seventeen formats collapsed into
+ * one "octet-stream" line. A distinct key per format gives each its own
+ * line.
  */
 const EXPORT_PICKER_TYPES = Object.freeze([
-  ['scr', 'ZX Spectrum Screen', 'application/octet-stream'],
+  ['scr', 'ZX Spectrum Screen', 'application/x-pixula-scr'],
   ['zxp', 'ZX-Paintbrush Image', 'text/plain'],
-  ['mlt', 'Timex/Multicolor Screen 8x1', 'application/octet-stream'],
-  ['ifl', 'Multicolor Screen 8x2', 'application/octet-stream'],
-  ['hrg', 'Timex Hi-res Screen', 'application/octet-stream'],
-  ['img', 'GigaScreen Image', 'application/octet-stream'],
-  ['nxi', 'Next Layer 2 Image', 'application/octet-stream'],
-  ['sl2', 'Next Layer 2 Dump', 'application/octet-stream'],
-  ['slr', 'Next LoRes Dump', 'application/octet-stream'],
-  ['ctile', 'BIFROST ColorTiles', 'application/octet-stream'],
-  ['tap', 'ZX Spectrum Tape', 'application/octet-stream'],
-  ['tzx', 'ZX Spectrum Tape TZX', 'application/octet-stream'],
+  ['mlt', 'Timex/Multicolor Screen 8x1', 'application/x-pixula-mlt'],
+  ['ifl', 'Multicolor Screen 8x2', 'application/x-pixula-ifl'],
+  ['hrg', 'Timex Hi-res Screen', 'application/x-pixula-hrg'],
+  ['img', 'GigaScreen Image', 'application/x-pixula-img'],
+  ['nxi', 'Next Layer 2 Image', 'application/x-pixula-nxi'],
+  ['sl2', 'Next Layer 2 Dump', 'application/x-pixula-sl2'],
+  ['slr', 'Next LoRes Dump', 'application/x-pixula-slr'],
+  ['ctile', 'BIFROST ColorTiles', 'application/x-pixula-ctile'],
+  ['tap', 'ZX Spectrum Tape', 'application/x-pixula-tap'],
+  ['tzx', 'ZX Spectrum Tape TZX', 'application/x-pixula-tzx'],
   ['png', 'PNG Image', 'image/png'],
   ['bmp', 'BMP Image', 'image/bmp'],
   ['jpg', 'JPEG Image', 'image/jpeg'],
   ['gif', 'GIF Image', 'image/gif'],
-  ['zed', 'ZX-Editor Document', 'application/octet-stream'],
-  ['sev', 'SevenuP Graphic', 'application/octet-stream'],
-  ['pal', 'Palette', 'application/octet-stream'],
-  ['npl', 'Next Palette', 'application/octet-stream'],
+  ['zed', 'ZX-Editor Document', 'application/x-pixula-zed'],
+  ['sev', 'SevenuP Graphic', 'application/x-pixula-sev'],
+  ['pal', 'Palette', 'application/x-pixula-pal'],
+  ['npl', 'Next Palette', 'application/x-pixula-npl'],
   ['asm', 'Assembly Source', 'text/plain'],
   ['c', 'C Array Source', 'text/plain'],
-  ['bin', 'Raw Bitmap Only', 'application/octet-stream'],
-  ['atr', 'Attributes Only', 'application/octet-stream']
+  ['bin', 'Raw Bitmap Only', 'application/x-pixula-bin'],
+  ['atr', 'Attributes Only', 'application/x-pixula-atr']
 ]);
 
 /**
@@ -672,11 +681,20 @@ class FileManagerClass {
       ? this.currentFilename.replace(/\.[^.]+$/, '')
       : 'image';
 
+    // Offer only formats the ACTIVE screen mode can actually export (e.g.
+    // a GigaScreen document has no .scr, an indexed Next mode has no .tap)
+    // — showSaveFilePicker can't disable a type, only omit it, so filtering
+    // here is the only way to keep the artist from picking a format that
+    // would just throw a save-failed error a moment later.
+    const compatibleTypes = EXPORT_PICKER_TYPES.filter(([ext]) =>
+      FormatRegistry.isExportCompatible(ext));
+    const defaultExt = compatibleTypes.length ? compatibleTypes[0][0] : 'scr';
+
     let handle;
     try {
       handle = await window.showSaveFilePicker({
-        suggestedName: `${baseName}.scr`,
-        types: EXPORT_PICKER_TYPES.map(([ext, description, mime]) =>
+        suggestedName: `${baseName}.${defaultExt}`,
+        types: compatibleTypes.map(([ext, description, mime]) =>
           ({ description, accept: { [mime]: [`.${ext}`] } }))
       });
     } catch (error) {

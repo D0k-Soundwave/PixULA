@@ -155,6 +155,16 @@ class TAPFormatClass {
     return SCRFormat.export().subarray(0, this.SCREEN_SIZE);
   }
 
+  /**
+   * Whether export() would succeed in the active mode — the non-throwing
+   * mirror used to filter the Save dialogs before the artist picks a
+   * format.
+   * @returns {boolean}
+   */
+  canExport() {
+    return Helpers.hasStandardScreenLayout();
+  }
+
   // ── Block-level editing API (Phase 9) ─────────────────────────────────────
   // Pure byte math: each parsed block keeps its raw bytes (including the
   // 2-byte length prefix), so serializeBlocks() of an unmodified list is
