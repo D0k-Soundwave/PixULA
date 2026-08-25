@@ -626,7 +626,6 @@ const es = {
     'pref.defaultScreenMode': 'Modo de pantalla del documento nuevo',
     'pref.defaultScreenModeHint': 'El modo de pantalla con el que Archivo > Nuevo inicia un lienzo en blanco.',
     'pref.confirmClear': 'Confirmar antes de borrar',
-    'pref.showPresetsPanel': 'Mostrar el panel de preajustes en la barra lateral',
     'pref.restoreOnBoot': 'Ofrecer restaurar trabajo sin guardar al iniciar',
     'pref.restoreOnBootHint': 'Desactivado, cada sesión empieza con un lienzo en blanco. El guardado automático de arriba sigue funcionando como protección ante fallos dentro de la sesión - esto solo decide si alguna vez se vuelve a ofrecer.',
     'pref.backupFolder': 'Carpeta de copias de seguridad',

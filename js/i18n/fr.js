@@ -626,7 +626,6 @@ const fr = {
     'pref.defaultScreenMode': 'Mode d\'écran du nouveau document',
     'pref.defaultScreenModeHint': 'Le mode d\'écran dans lequel Fichier > Nouveau démarre une toile vierge.',
     'pref.confirmClear': 'Confirmer avant d\'effacer',
-    'pref.showPresetsPanel': 'Afficher le panneau Préréglages dans la barre latérale',
     'pref.restoreOnBoot': 'Proposer de restaurer le travail non enregistré au démarrage',
     'pref.restoreOnBootHint': 'Désactivé, chaque session démarre avec un canevas vierge. L\'enregistrement automatique ci-dessus continue de fonctionner comme protection contre les plantages pendant la session - ceci décide seulement s\'il est un jour reproposé.',
     'pref.backupFolder': 'Dossier de sauvegarde',

@@ -626,7 +626,6 @@ const it = {
     'pref.defaultScreenMode': 'Modalità schermo del nuovo documento',
     'pref.defaultScreenModeHint': 'La modalità schermo con cui File > Nuovo avvia una tela vuota.',
     'pref.confirmClear': 'Conferma prima di cancellare',
-    'pref.showPresetsPanel': 'Mostra il pannello Preimpostazioni nella barra laterale',
     'pref.restoreOnBoot': 'Proponi di ripristinare il lavoro non salvato all\'avvio',
     'pref.restoreOnBootHint': 'Disattivato, ogni sessione inizia con una tela vuota. Il salvataggio automatico sopra continua comunque a funzionare come protezione in caso di arresto anomalo durante la sessione - questo decide solo se verrà mai riproposto.',
     'pref.backupFolder': 'Cartella dei backup',

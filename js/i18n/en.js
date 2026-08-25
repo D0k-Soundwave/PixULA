@@ -587,7 +587,6 @@ const en = {
     'pref.defaultScreenMode': 'New document screen type',
     'pref.defaultScreenModeHint': 'The screen mode File > New starts a blank canvas in.',
     'pref.confirmClear': 'Confirm before clearing',
-    'pref.showPresetsPanel': 'Show Presets panel in sidebar',
     'pref.restoreOnBoot': 'Offer to restore unsaved work on start',
     'pref.restoreOnBootHint': 'Off starts every session with a blank canvas. Autosave still runs on its own interval above, in case of a crash within the session - this only decides whether it is ever offered back.',
     'pref.backupFolder': 'Backup folder',

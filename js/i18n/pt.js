@@ -626,7 +626,6 @@ const pt = {
     'pref.defaultScreenMode': 'Modo de ecrã do novo documento',
     'pref.defaultScreenModeHint': 'O modo de ecrã em que Ficheiro > Novo inicia uma tela em branco.',
     'pref.confirmClear': 'Confirmar antes de limpar',
-    'pref.showPresetsPanel': 'Mostrar o painel de predefinições na barra lateral',
     'pref.restoreOnBoot': 'Oferecer restaurar trabalho não salvo ao iniciar',
     'pref.restoreOnBootHint': 'Desligado, cada sessão começa com uma tela em branco. A gravação automática acima continua a funcionar como proteção contra falhas durante a sessão - isto só decide se alguma vez é oferecida de novo.',
     'pref.backupFolder': 'Pasta de cópias de segurança',

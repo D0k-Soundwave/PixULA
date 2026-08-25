@@ -135,6 +135,32 @@ test('preferences checkboxes reflect live state when reopened', async ({ page })
     await page.keyboard.press('Escape');
 });
 
+test('the Presets sidebar toggle has no checkbox of its own in Preferences, and the View menu setting survives an unrelated Preferences save',
+    async ({ page }) => {
+        await boot(page);
+
+        // The View menu is the only surviving control for this.
+        await page.click('.menu-item[data-menu="view"] .menu-label');
+        await page.click('.menu-action[data-action="view:toggleToolPresets"]');
+        const onAfterToggle = await page.evaluate(() => StateManager.get('showPresetsPanel'));
+        expect(onAfterToggle).toBe(true);
+
+        await page.click('.menu-item[data-menu="settings"] .menu-label');
+        await page.click('.menu-action[data-action="settings:preferences"]');
+        const dlg = page.locator('.dialog, dialog, [role="dialog"]').first();
+        await expect(dlg).toBeVisible();
+        await expect(dlg.locator('#pref-show-presets-panel')).toHaveCount(0);
+
+        // Saving Preferences for something unrelated must not reset the
+        // View-menu-driven preference back to its default.
+        await dlg.locator('#pref-confirm-clear').click();
+        await dlg.locator('button.primary').click();
+
+        await reload(page);
+        const afterUnrelatedSave = await page.evaluate(() => StateManager.get('showPresetsPanel'));
+        expect(afterUnrelatedSave).toBe(true);
+    });
+
 test('internal clipboard persists across F5: paste enabled at boot, same pixels', async ({ page }) => {
     await boot(page);
     await drawSeed(page);

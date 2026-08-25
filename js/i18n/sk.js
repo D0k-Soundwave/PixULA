@@ -626,7 +626,6 @@ const sk = {
     'pref.defaultScreenMode': 'Režim obrazovky nového dokumentu',
     'pref.defaultScreenModeHint': 'Režim obrazovky, v ktorom Súbor > Nový vytvorí prázdne plátno.',
     'pref.confirmClear': 'Pred vymazaním potvrdiť',
-    'pref.showPresetsPanel': 'Zobraziť panel Predvoľby v bočnom paneli',
     'pref.restoreOnBoot': 'Ponúknuť obnovenie neuloženej práce pri štarte',
     'pref.restoreOnBootHint': 'Vypnuté znamená, že každé sedenie začína prázdnym plátnom. Automatické ukladanie vyššie naďalej funguje ako ochrana pred pádom počas sedenia - toto nastavenie iba rozhoduje, či bude niekedy znova ponúknuté.',
     'pref.backupFolder': 'Priečinok záloh',

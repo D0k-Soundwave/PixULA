@@ -626,7 +626,6 @@ const hu = {
     'pref.defaultScreenMode': 'Új dokumentum képernyőmódja',
     'pref.defaultScreenModeHint': 'Az a képernyőmód, amelyben a Fájl > Új üres vásznat indít.',
     'pref.confirmClear': 'Megerősítés törlés előtt',
-    'pref.showPresetsPanel': 'Készletek panel megjelenítése az oldalsávon',
     'pref.restoreOnBoot': 'Induláskor ajánlja fel a mentetlen munka visszaállítását',
     'pref.restoreOnBootHint': 'Kikapcsolva minden munkamenet üres vászonnal indul. A fenti automatikus mentés továbbra is fut a munkameneten belüli összeomlás elleni védelemként - ez csak azt dönti el, hogy valaha felajánlásra kerül-e újra.',
     'pref.backupFolder': 'Biztonsági mentés mappája',

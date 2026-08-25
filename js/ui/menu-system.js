@@ -987,10 +987,6 @@ class MenuSystemClass {
                 <input type="checkbox" id="pref-confirm-clear" name="pref-confirm-clear" checked>
                 <span data-i18n="pref.confirmClear">${this._t('pref.confirmClear', 'Confirm before clearing')}</span>
             </label>
-            <label class="pref-row">
-                <input type="checkbox" id="pref-show-presets-panel" name="pref-show-presets-panel">
-                <span data-i18n="pref.showPresetsPanel">${this._t('pref.showPresetsPanel', 'Show Presets panel in sidebar')}</span>
-            </label>
             <div class="pref-block" id="pref-backup">
                 <div class="pref-block__label" data-i18n="pref.backupFolder">${this._t('pref.backupFolder', 'Backup folder')}</div>
                 <div class="pref-block__hint" data-i18n="pref.backupHint">${this._t('pref.backupHint', 'Each autosave also writes the whole document here as a numbered version, so you can go back to any of them.')}</div>
@@ -1108,8 +1104,6 @@ class MenuSystemClass {
         if (restoreOnBoot) restoreOnBoot.checked = StateManager.get('restoreOnBoot') !== false;
         const confirmClear = content.querySelector('#pref-confirm-clear');
         if (confirmClear) confirmClear.checked = StateManager.get('confirmClear') !== false;
-        const showPresetsPanel = content.querySelector('#pref-show-presets-panel');
-        if (showPresetsPanel) showPresetsPanel.checked = StateManager.get('showPresetsPanel') === true;
         const resetDrawMode = content.querySelector('#pref-reset-draw-mode');
         if (resetDrawMode) resetDrawMode.checked = StateManager.get('resetDrawModeOnTool') === true;
         const nudgeStep = content.querySelector('#pref-nudge-step');
@@ -1532,7 +1526,6 @@ class MenuSystemClass {
         const defaultScreenModeEl = dialog.querySelector('#pref-default-screen-mode');
         const restoreOnBoot = dialog.querySelector('#pref-restore-on-boot');
         const confirmClear = dialog.querySelector('#pref-confirm-clear');
-        const showPresetsPanel = dialog.querySelector('#pref-show-presets-panel');
         const resetDrawMode = dialog.querySelector('#pref-reset-draw-mode');
         const nudgeStepEl = dialog.querySelector('#pref-nudge-step');
         const nudgeStep = nudgeStepEl ? clamp(parseInt(nudgeStepEl.value, 10) || 1, 1, 32) : 1;
@@ -1557,7 +1550,6 @@ class MenuSystemClass {
         if (defaultScreenModeEl) StateManager.set('defaultScreenMode', defaultScreenModeEl.value);
         if (restoreOnBoot) StateManager.set('restoreOnBoot', restoreOnBoot.checked);
         if (confirmClear) StateManager.set('confirmClear', confirmClear.checked);
-        if (showPresetsPanel) StateManager.set('showPresetsPanel', showPresetsPanel.checked);
         if (resetDrawMode) StateManager.set('resetDrawModeOnTool', resetDrawMode.checked);
         if (nudgeStepEl) StateManager.set('nudgeStep', nudgeStep);
         // The drawing switch has a second home in the status bar, so it goes
@@ -1594,7 +1586,10 @@ class MenuSystemClass {
             defaultScreenMode: defaultScreenModeEl?.value,
             restoreOnBoot: restoreOnBoot?.checked,
             confirmClear: confirmClear?.checked,
-            showPresetsPanel: showPresetsPanel?.checked,
+            // No checkbox of its own — the View menu's Tool Presets toggle
+            // is the only control now, and it already writes straight
+            // through to StateManager, which is the live truth here.
+            showPresetsPanel: StateManager.get('showPresetsPanel') === true,
             resetDrawModeOnTool: resetDrawMode?.checked,
             nudgeStep,
             // touchDrawing is deliberately absent: it persists under its own

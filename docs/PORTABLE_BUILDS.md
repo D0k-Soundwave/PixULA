@@ -1,11 +1,14 @@
 # PixULA contained build
 
 `PixULA_Distilled/` holds a portable, self-contained copy of the app
-(gitignored — it is generated, not source): `index.html` + `css/` + `js/`.
-Runs from `file://` (double-click `index.html`; no server, no install, no
+(gitignored — it is generated, not source): `PixULA.html` + `css/` + `js/`.
+Runs from `file://` (double-click `PixULA.html`; no server, no install, no
 internet).
 
-It is byte-faithful to the source — same code, same load order.
+It is byte-faithful to the source — same code, same load order. The only
+difference from the source is the entry file's name: `index.html` is copied
+to `PixULA.html` (2026-08-24). The dev tree's own `index.html` keeps its
+name and is never touched.
 
 A single-file build with every stylesheet and script inlined
 (`PixULA_Distilled/PixULA_Inline/`, formerly `PixULA_Micro/PixULA_Inline/`)

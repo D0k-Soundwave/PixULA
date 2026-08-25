@@ -626,7 +626,6 @@ const pl = {
     'pref.defaultScreenMode': 'Tryb ekranu nowego dokumentu',
     'pref.defaultScreenModeHint': 'Tryb ekranu, w którym Plik > Nowy tworzy pusty obszar roboczy.',
     'pref.confirmClear': 'Potwierdź przed wyczyszczeniem',
-    'pref.showPresetsPanel': 'Pokaż panel Ustawienia na pasku bocznym',
     'pref.restoreOnBoot': 'Proponuj przywrócenie niezapisanej pracy przy starcie',
     'pref.restoreOnBootHint': 'Wyłączone oznacza, że każda sesja zaczyna się od pustego płótna. Autozapis powyżej nadal działa jako zabezpieczenie na wypadek awarii w trakcie sesji - to ustawienie decyduje tylko, czy zostanie kiedykolwiek zaproponowany ponownie.',
     'pref.backupFolder': 'Folder kopii zapasowych',

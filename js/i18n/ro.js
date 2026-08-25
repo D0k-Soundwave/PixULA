@@ -626,7 +626,6 @@ const ro = {
     'pref.defaultScreenMode': 'Modul de ecran pentru document nou',
     'pref.defaultScreenModeHint': 'Modul de ecran în care Fișier > Nou pornește un canvas gol.',
     'pref.confirmClear': 'Confirmă înainte de golire',
-    'pref.showPresetsPanel': 'Afișează panoul Presetări în bara laterală',
     'pref.restoreOnBoot': 'Oferă restaurarea lucrării nesalvate la pornire',
     'pref.restoreOnBootHint': 'Dezactivat, fiecare sesiune începe cu o pânză goală. Salvarea automată de mai sus continuă să funcționeze ca protecție împotriva unei blocări în timpul sesiunii - aceasta decide doar dacă va mai fi vreodată oferită înapoi.',
     'pref.backupFolder': 'Dosarul copiilor de rezervă',
