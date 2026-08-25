@@ -138,6 +138,35 @@ test('the reference image survives a .pixula round-trip embedded, not as a stand
         expect(r.height).toBe(48);
     });
 
+test('loading a project with no reference image clears one left over from before the load',
+    async ({ page }) => {
+        await boot(page);
+
+        const r = await page.evaluate(async () => {
+            // A project that never had a reference photo - captured before
+            // any image is loaded this session, exactly like a real artist's
+            // project that never used one.
+            const emptyBytes = await ProjectFormat.encode(App._getProjectData());
+
+            const c = document.createElement('canvas');
+            c.width = 32; c.height = 32;
+            c.getContext('2d').fillRect(0, 0, 32, 32);
+            ReferenceLayerService.loadImage(c.toDataURL('image/png'));
+            await new Promise((done) => {
+                const off = EventBus.on(EVENTS.REFERENCE_LOADED, () => { off(); done(); });
+            });
+
+            const before = ReferenceLayerService.hasImage();
+            await ProjectFormat.parse(emptyBytes);
+            await new Promise((done) => setTimeout(done, 50));
+
+            return { before, after: ReferenceLayerService.hasImage() };
+        });
+
+        expect(r.before).toBe(true);
+        expect(r.after).toBe(false);
+    });
+
 test('an oversized reference image is downscaled to the embed cap', async ({ page }) => {
     await boot(page);
     // Longest edge well past ProjectFormat.REFERENCE_IMAGE_MAX_PX (4096).
@@ -157,6 +186,40 @@ test('an oversized reference image is downscaled to the embed cap', async ({ pag
     expect(r.width).toBeLessThanOrEqual(r.cap);
     expect(r.width).toBeGreaterThan(0);
 });
+
+test('File > Load Project... opens a .pixula through FileManager without a bogus error',
+    async ({ page }) => {
+        await boot(page);
+
+        const r = await page.evaluate(async () => {
+            LayerManager.addLayer();
+            const bytes = await ProjectFormat.encode(App._getProjectData());
+            const file = new File([bytes], 'test.pixula');
+
+            const errors = [];
+            const off = EventBus.on(EVENTS.FILE_ERROR, (e) => errors.push(e.message));
+
+            const success = await FileManager.loadFile(file);
+            off();
+
+            return {
+                success,
+                errors,
+                currentFilename: FileManager.currentFilename,
+                hasUnsavedChanges: FileManager.hasChanges()
+            };
+        });
+
+        // The real bug this pins: ProjectFormat.parse() used to return a bare
+        // boolean while FileManager.loadFile() reads {success, error} - every
+        // OTHER format handler's contract - so `!result.success` was true even
+        // on a clean load, logging Logger.error('FileManager', undefined) and
+        // skipping currentFilename/hasUnsavedChanges/the recent-files entry.
+        expect(r.errors).toEqual([]);
+        expect(r.success).toBe(true);
+        expect(r.currentFilename).toBe('test.pixula');
+        expect(r.hasUnsavedChanges).toBe(false);
+    });
 
 test('a pre-slices project (only the old "state" block) still restores through the fallback',
     async ({ page }) => {

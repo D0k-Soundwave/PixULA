@@ -1358,14 +1358,40 @@ PresetServiceClass.SLICES = Object.freeze([
             // reference image travels this way (the file is self-contained,
             // never a key into this session's PRESET_ASSETS), while a slot/
             // tool preset still goes through `preset.asset`.
-            const asset = value.assetData
-                ? value.assetData
-                : (preset && preset.asset ? await PresetService.loadAsset(preset.asset) : null);
-            if (!asset) {
-                Logger.warn('PresetService', 'Reference image missing for preset');
+            if (value.assetData) {
+                await this._applyAsset(value.assetData);
                 return;
             }
 
+            if (!preset || !preset.asset) {
+                // The captured state genuinely had no reference image - match
+                // it, rather than leaving whatever is currently loaded (from
+                // BEFORE this apply ran) sitting on screen. restoreState()
+                // above never touches the image itself, only transform/
+                // visibility, so without this a project saved with no
+                // reference photo - the common case - silently kept showing
+                // whichever photo happened to be loaded already.
+                ReferenceLayerService.clearImage();
+                return;
+            }
+
+            const asset = await PresetService.loadAsset(preset.asset);
+            if (!asset) {
+                // Here the captured state DID have an image, but the store
+                // record is gone (a pruned/corrupted PRESET_ASSETS entry) -
+                // warn rather than erase an unrelated photo currently on
+                // screen over a lookup failure that has nothing to do with it.
+                Logger.warn('PresetService', 'Reference image missing for preset');
+                return;
+            }
+            await this._applyAsset(asset);
+        },
+
+        /**
+         * Load a resolved asset (inline or store-fetched) into the panel.
+         * @param {{handle: ?Object, dataUrl: ?string, thumbnail: ?boolean}} asset
+         */
+        async _applyAsset(asset) {
             // The link first: it is the real photo, at the resolution the
             // artist is actually tracing from.
             if (asset.handle && window.ImageSource) {

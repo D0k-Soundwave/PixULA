@@ -204,13 +204,27 @@ class ProjectFormatClass {
 
     // --- FormatRegistry adapters ---------------------------------------
 
-    /** Import: hand the parsed document to the app's own restore path. */
+    /**
+     * Import: hand the parsed document to the app's own restore path.
+     *
+     * Returns `{success, error}`, the contract every OTHER format handler's
+     * parse() already follows (see e.g. SCRFormat.importScreen) - this one
+     * used to return a bare boolean, which FileManager.loadFile() reads as
+     * `result.success` regardless: `true.success` and `false.success` are
+     * both `undefined`, so `!result.success` was ALWAYS true and every
+     * `.pixula` opened through File > Load Project... logged
+     * Logger.error('FileManager', undefined) and quietly skipped
+     * currentFilename/hasUnsavedChanges/the recent-files entry, even on a
+     * clean load. Nothing caught it because every existing caller of this
+     * method (autosave restore, the backup round-trip test) calls it
+     * directly, bypassing FileManager.loadFile() entirely.
+     */
     async parse(data) {
         const project = await this.decode(data);
-        if (!project) return false;
+        if (!project) return { success: false, error: 'Not a valid .pixula project file' };
         await App._loadProjectData(project);
         LayerManager.composeToCanvas();
-        return true;
+        return { success: true };
     }
 
     /** Export: the live document as bytes. */
