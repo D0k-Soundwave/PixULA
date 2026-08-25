@@ -90,45 +90,68 @@ ToolManager.selectTool('fade');
 check('a variant type survives selection (ensureSolidBrush only fires for Brush)',
   BrushEngine.currentBrush === 'fade');
 
-// ── A brush arrives at a size where it IS that brush ───────────────────────
+// ── Each brush family remembers its OWN size ───────────────────────────────
 //
 // Measured floors (docs/MINIMUM_SIZES.md, tools/measure-min-brushes.js): below
 // them the spray lays one particle, the hatch misses its own lattice at some
-// positions on the grid, and a pattern dab shows a fragment of a tile. Picking
-// the tool raises the size to the floor; it never lowers it, and nothing is
-// removed from the slider.
+// positions on the grid, and a pattern dab shows a fragment of a tile — so a
+// family with no size of its own yet starts AT its floor on first arrival.
+// Past that, each family keeps whatever the artist sets it to, completely
+// independently of every other family: picking Spray must never hand you
+// whatever the plain Brush was last left on, and vice versa — reported
+// 2026-08-25 as "setting the spray brush default size to 4 also affected the
+// normal brush default size", traced to every brush type sharing ONE
+// BrushEngine.currentSize field. round/square are the one deliberate
+// exception: they are brush SHAPE, not brush TYPE, and keep sharing a size.
 
-const FLOORS = { spray: 4, hatch: 4, pattern: 8 };
+const DEFAULTS = { spray: 4, hatch: 4, pattern: 8, fade: 3 };
 
-for (const [railId, floor] of Object.entries(FLOORS)) {
+for (const [railId, def] of Object.entries(DEFAULTS)) {
   const brush = ToolManager.tools.get(TOOLS.BRUSH);
-
-  brush.setSize(1);                       // the size the last brush was left on
   ToolManager.selectTool(railId);
-  check(`picking '${railId}' at size 1 arrives at size ${floor}`,
-    brush.getSize() === floor, `got ${brush.getSize()}`);
-
-  brush.setSize(24);                      // an artist working big keeps their size
-  ToolManager.selectTool(TOOLS.BRUSH);
-  ToolManager.selectTool(railId);
-  check(`picking '${railId}' at size 24 leaves it at 24`,
-    brush.getSize() === 24, `got ${brush.getSize()}`);
+  check(`'${railId}' starts at its own default size ${def} on first arrival`,
+    brush.getSize() === def, `got ${brush.getSize()}`);
 }
 
+// Independence: changing one family's size must not move any other family's,
+// and must not be lost when the artist steps away and comes back.
 {
-  // The fade has no floor: at one pixel a fade is still a fade, the dither
-  // threshold simply decides that pixel.
   const brush = ToolManager.tools.get(TOOLS.BRUSH);
-  brush.setSize(1);
-  ToolManager.selectTool('fade');
-  check('the fade brush keeps size 1 - a one-pixel fade is still a fade',
+
+  ToolManager.selectTool(TOOLS.BRUSH);
+  brush.setSize(1);                       // the pencil - the base Brush's own size
+
+  ToolManager.selectTool('spray');
+  brush.setSize(20);                      // spray's own size, set independently
+
+  ToolManager.selectTool(TOOLS.BRUSH);
+  check("switching back to Brush after sizing Spray keeps Brush's own size (the reported bug)",
     brush.getSize() === 1, `got ${brush.getSize()}`);
 
-  // And neither do round and square: size 1 is the pencil, which is the point.
-  brush.setSize(1);
+  ToolManager.selectTool('spray');
+  check('spray kept the size it was set to across the round trip',
+    brush.getSize() === 20, `got ${brush.getSize()}`);
+
+  ToolManager.selectTool('hatch');
+  check("hatch is unaffected by spray's size change - still its own untouched default",
+    brush.getSize() === 4, `got ${brush.getSize()}`);
+
+  ToolManager.selectTool('pattern');
+  check('pattern is unaffected too - still its own untouched default',
+    brush.getSize() === 8, `got ${brush.getSize()}`);
+}
+
+// round and square are brush SHAPE, not brush TYPE - they deliberately keep
+// sharing one size (the grouping this suite otherwise pins as independent).
+{
+  const brush = ToolManager.tools.get(TOOLS.BRUSH);
   ToolManager.selectTool(TOOLS.BRUSH);
-  check('the base Brush keeps size 1 - that is the pencil',
-    brush.getSize() === 1, `got ${brush.getSize()}`);
+  brush.setBrushType('round');
+  brush.setSize(12);
+  brush.setBrushType('square');
+  check('round and square keep sharing ONE size - only the shape differs',
+    brush.getSize() === 12, `got ${brush.getSize()}`);
+  brush.setBrushType('round');
 }
 
 // ── The fade measures from the start point by default ─────────────────────

@@ -35,7 +35,7 @@ const en = {
     'menu.file.save': 'Save Project',
     'menu.file.saveAs': 'Save Project As...',
     'menu.file.export': 'Save...',
-    'menu.file.exportOptions': 'Export with Options...',
+    'menu.file.exportAs': 'Save Image As...',
     'menu.file.import': 'Load...',
     // Edit menu
     'menu.edit.undo': 'Undo',
@@ -557,7 +557,6 @@ const en = {
     'dialog.preferences': 'Preferences',
     'dialog.about': 'About',
     'dialog.exportFormat': 'Export format',
-    'dialog.borderColor': 'Border colour',
     'color.border': 'Border',
     'color.borderDefault': 'Theme default',
 
@@ -793,7 +792,6 @@ const en = {
     'format.gif': 'GIF Image (.gif)',
     'format.zed': 'ZX-Editor document (.zed)',
     'format.sev': 'SevenuP graphic (.sev)',
-    'dialog.gifAnimate': 'Animate FLASH cells (two-frame loop)',
     'menu.file.tapeBlocks': 'Tape Blocks...',
     'dialog.tapeBlocks': 'Tape Blocks',
     'tape.addScreen': 'Add current screen',

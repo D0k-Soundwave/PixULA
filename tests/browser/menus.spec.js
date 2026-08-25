@@ -16,7 +16,7 @@ test('File menu lists all actions incl. the four editor dialogs', async ({ page 
     await openMenu(page, 'file');
     const ids = await page.$$eval('.menu-item[data-menu="file"] .menu-action',
         els => els.map(e => e.dataset.id));
-    for (const want of ['new', 'save', 'save-as', 'export', 'export-options', 'import',
+    for (const want of ['new', 'save', 'save-as', 'export', 'export-as', 'import',
         'tape-blocks', 'map-editor', 'font-editor', 'sprite-editor']) {
         expect(ids).toContain(want);
     }
@@ -170,17 +170,26 @@ test('Settings preferences dialog and Help about/shortcuts dialogs open and clos
     await page.keyboard.press('Escape');
 });
 
-test('Export with Options dialog opens with format list and tape border override', async ({ page }) => {
+test('Save Image As lists every export format directly in the menu, no dialog, no GIF', async ({ page }) => {
+    // 2026-08-25: "Export with Options..." (a format-select dialog with a
+    // TAP/TZX border override and a GIF-animate checkbox) was withdrawn.
+    // Picking a format now happens entirely in the menu itself, one leaf per
+    // format under File > Save Image As - see menu-system.js's EXPORT_FORMATS.
+    // No per-format options remain (border override dropped; GIF withdrawn
+    // from every export path, though js/io/gif-format.js's encoder and its
+    // own tests are untouched).
     await boot(page);
     await openMenu(page, 'file');
-    // file:export (File > Save...) now opens a native showSaveFilePicker
-    // dialog instead - see native-save.spec.js. The hand-rolled
-    // format-select dialog with per-format options (TAP border, GIF
-    // animate) lives at file:exportOptions (File > Export with Options...).
-    await page.click('.menu-action[data-action="file:exportOptions"]');
-    const dlg = page.locator('.dialog, dialog, [role="dialog"]').first();
-    await expect(dlg).toBeVisible();
-    const selects = await dlg.locator('select').count();
-    expect(selects).toBeGreaterThanOrEqual(1);
+    await page.click('.menu-action--parent[data-id="export-as"]');
+    await page.waitForSelector('#menu-export-as.visible', { state: 'visible' });
+
+    const ids = await page.$$eval('#menu-export-as > .menu-action',
+        els => els.map(e => e.dataset.id));
+    for (const want of ['export-as-scr', 'export-as-tap', 'export-as-tzx', 'export-as-png']) {
+        expect(ids).toContain(want);
+    }
+    expect(ids).not.toContain('export-as-gif');
+
     await page.keyboard.press('Escape');
+    await expect(page.locator('.dialog, dialog, [role="dialog"]')).toHaveCount(0);
 });

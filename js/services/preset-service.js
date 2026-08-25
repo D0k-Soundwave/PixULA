@@ -1137,14 +1137,14 @@ PresetServiceClass.SLICES = Object.freeze([
 
             // Options first, then selection: selecting rebuilds the options
             // panel from the tool's getters, so the panel shows what we set.
+            // Each brush variant's size landed in its OWN remembered slot
+            // above (applyToolOptions passes the tool id through to
+            // BrushTool#setSize), so selecting here just picks which type is
+            // active — nothing left to restore or protect from a floor.
             for (const [id, values] of Object.entries(value.tools || {})) {
                 PresetServiceClass.applyToolOptions(id, values);
             }
-            // keepSize because selecting a brush VARIANT otherwise raises the
-            // size to that variant's floor (spray, hatch, pattern), throwing
-            // away the size the line above just restored. The floor is for a
-            // fresh button press; a preset has already said what size it wants.
-            if (value.active) ToolManager.selectTool(value.active, { keepSize: true });
+            if (value.active) ToolManager.selectTool(value.active);
         }
     },
 
@@ -1476,6 +1476,13 @@ PresetServiceClass.SLICES = Object.freeze([
  * `preset: false` opts out — the text tool's typed string does, because nobody
  * wants yesterday's caption back with their brush.
  *
+ * `toolId` is passed as a trailing argument to every getter, not just to
+ * BrushTool's — harmless for the rest, which don't declare the parameter and
+ * so ignore it. BrushTool's getSize(toolId) is the one that cares: several
+ * rail ids (spray/hatch/pattern/fade) share this ONE tool instance, each with
+ * its own remembered size, so a capture for 'spray' must read spray's size
+ * specifically rather than whatever type the instance is showing right now.
+ *
  * @param {string} toolId
  * @returns {Object|null}
  */
@@ -1492,7 +1499,7 @@ PresetServiceClass.captureToolOptions = function(toolId) {
         const getter = 'get' + entry.key.charAt(0).toUpperCase() + entry.key.slice(1);
         if (typeof tool[getter] !== 'function') continue;
 
-        const value = tool[getter]();
+        const value = tool[getter](toolId);
         const type = typeof value;
         if (value === null || type === 'boolean' || type === 'string' ||
             (type === 'number' && Number.isFinite(value))) {
@@ -1504,7 +1511,9 @@ PresetServiceClass.captureToolOptions = function(toolId) {
 
 /**
  * Push saved option values back down a tool's setters — the same path
- * OptionControls uses when the user moves a slider.
+ * OptionControls uses when the user moves a slider. `toolId` is passed
+ * through for the same reason captureToolOptions passes it to the getter —
+ * see that doc comment.
  * @param {string} toolId @param {Object} values
  */
 PresetServiceClass.applyToolOptions = function(toolId, values) {
@@ -1521,7 +1530,7 @@ PresetServiceClass.applyToolOptions = function(toolId, values) {
 
         const setterName = entry.setter ||
             ('set' + entry.key.charAt(0).toUpperCase() + entry.key.slice(1));
-        if (typeof tool[setterName] === 'function') tool[setterName](value);
+        if (typeof tool[setterName] === 'function') tool[setterName](value, toolId);
     }
 };
 

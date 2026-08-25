@@ -54,6 +54,12 @@ class BrushEngineClass {
         this.currentSize = 1;
         // Shape is inherent to each brush type (SolidBrush subclasses)
 
+        // Each brush FAMILY (see BRUSH_FAMILY_OF) remembers its own size,
+        // independently of every other family — see setBrush()/setSize() and
+        // the BRUSH_FAMILY_DEFAULT_SIZE table below. Populated lazily: a
+        // family with no entry yet is reading its default for the first time.
+        this._sizeByFamily = new Map();
+
         // Mask cache to avoid regenerating the same shapes every stamp
         this._patternCache = new Map();
         this._maxCacheSize = 64; // Limit cache size to prevent unbounded growth
@@ -136,6 +142,9 @@ class BrushEngineClass {
 
         if (this.brushes.has(name)) {
             this.currentBrush = name;
+            // Arrive with THIS family's own remembered size, not whatever
+            // family was active a moment ago — see getSizeForFamily().
+            this.currentSize = this.getSizeForFamily(this.familyOf(name));
             EventBus.emit(EVENTS.BRUSH_TYPE_CHANGED, { type: name, size: this.currentSize });
             return true;
         }
@@ -143,12 +152,69 @@ class BrushEngineClass {
     }
 
     /**
+     * The size-memory family a brush type belongs to. round/square are brush
+     * SHAPE, not brush TYPE, so they deliberately share one family ('solid');
+     * every other type — including the currently rail-unreachable crosshatch,
+     * folded in defensively — is its own family. @see BRUSH_FAMILY_DEFAULT_SIZE
+     * @param {string} brushType
+     * @returns {string}
+     */
+    familyOf(brushType) {
+        return BRUSH_SIZE_FAMILY[brushType] || 'solid';
+    }
+
+    /**
+     * The size family a brush-variant TOOLS rail id targets, or null for a
+     * non-brush tool id. @see BRUSH_FAMILY_BY_TOOL_ID
+     * @param {string} toolId
+     * @returns {string|null}
+     */
+    familyForToolId(toolId) {
+        return BRUSH_FAMILY_BY_TOOL_ID[toolId] || null;
+    }
+
+    /**
+     * This family's remembered size, or its floor if the artist has never set
+     * one this session (see BRUSH_FAMILY_DEFAULT_SIZE).
+     * @param {string} family
+     * @returns {number}
+     */
+    getSizeForFamily(family) {
+        return this._sizeByFamily.has(family)
+            ? this._sizeByFamily.get(family)
+            : (BRUSH_FAMILY_DEFAULT_SIZE[family] ?? 1);
+    }
+
+    /**
+     * Set a specific family's remembered size directly, WITHOUT requiring
+     * that family to be the active brush type. Used only by PresetService
+     * (see familyForToolId's doc) — live drawing always goes through
+     * setSize(), which targets whatever family is currently active. Updates
+     * currentSize too when the family in question happens to be the active
+     * one, so the options panel reflects it immediately.
+     * @param {string} family
+     * @param {number} size
+     */
+    setSizeForFamily(family, size) {
+        const clamped = BrushShapes.nearestAllowedSize(size, 32);
+        this._sizeByFamily.set(family, clamped);
+        if (family === this.familyOf(this.currentBrush)) {
+            this.currentSize = clamped;
+            EventBus.emit(EVENTS.BRUSH_SIZE_CHANGED, { size: clamped });
+        }
+    }
+
+    /**
      * Set brush size. Sizes flagged in BRUSH_SHAPE_OVERRIDES as producing a
      * poor round shape are skipped in favour of the nearest size that isn't.
+     * Writes into the CURRENT brush type's own family — every other family's
+     * remembered size is untouched (this is the fix for "setting the spray
+     * brush's size also changed the plain brush's size").
      * @param {number} size - Size in pixels (1-32)
      */
     setSize(size) {
         this.currentSize = BrushShapes.nearestAllowedSize(size, 32);
+        this._sizeByFamily.set(this.familyOf(this.currentBrush), this.currentSize);
         EventBus.emit(EVENTS.BRUSH_SIZE_CHANGED, { size: this.currentSize });
     }
 
@@ -384,6 +450,57 @@ class BrushEngineClass {
         this._patternCache.clear();
     }
 }
+
+/**
+ * Retired brush ids that still resolve. `stipple-poisson` folded into spray as
+ * its Poisson distribution sub-mode; the id lands on spray so a persisted tool
+ * selection never dangles. @see BrushEngineClass#setBrush
+ */
+/**
+ * Which size-memory family each brush TYPE belongs to. round and square are
+ * brush SHAPE, not brush TYPE — the compact selector under the base Brush
+ * button switches between them — so both map to 'solid' and keep sharing one
+ * size; crosshatch is folded in defensively too (no rail button reaches it
+ * directly today — Fade's delegate-brush picker reads its own field rather
+ * than switching BrushEngine.currentBrush — but a size home avoids surprises
+ * if that ever changes). Every other type is its own family.
+ * @see BrushEngineClass#familyOf
+ */
+const BRUSH_SIZE_FAMILY = Object.freeze({
+    round: 'solid', square: 'solid', crosshatch: 'solid',
+    spray: 'spray', pattern: 'pattern', hatch: 'hatch', fade: 'fade'
+});
+
+/**
+ * Each family's size on first arrival, before the artist has set one this
+ * session. Measured floors (docs/MINIMUM_SIZES.md, tools/measure-min-
+ * brushes.js): below them the spray lays one particle, the hatch misses its
+ * own lattice at some positions on the grid, and a pattern dab shows a
+ * fragment of a tile. 'solid' has none — size 1 on the base Brush is the
+ * pencil, which is the point of it. 'fade' has no correctness floor either
+ * (at size 1 a fade is still a fade, the dither threshold simply decides
+ * that one pixel) — its 3 is a starting preference, not a measured minimum.
+ */
+const BRUSH_FAMILY_DEFAULT_SIZE = Object.freeze({
+    solid: 1, spray: 4, hatch: 4, pattern: 8, fade: 3
+});
+
+/**
+ * The TOOLS rail-id -> size family for a brush-variant tool id, used only by
+ * PresetService to target a specific family's stored size directly (a saved
+ * preset applies every tool id's options onto the one shared BrushTool
+ * instance BEFORE selecting which type is actually active — see
+ * BrushToolClass#getSize/#setSize). Live drawing never needs this: it always
+ * asks after the type is already selected, so BrushEngine.currentBrush
+ * already answers it.
+ */
+const BRUSH_FAMILY_BY_TOOL_ID = Object.freeze({
+    [TOOLS.BRUSH]: 'solid',
+    [TOOLS.SPRAY]: 'spray',
+    [TOOLS.PATTERN]: 'pattern',
+    [TOOLS.HATCH]: 'hatch',
+    [TOOLS.FADE]: 'fade'
+});
 
 /**
  * Retired brush ids that still resolve. `stipple-poisson` folded into spray as

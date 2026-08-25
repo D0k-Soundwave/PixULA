@@ -50,6 +50,29 @@ Next tilemap dev export.
 | `.z80` / `.szx` | Snapshot formats (we rip screens from .sna only) | .z80 v1-3 RAM paging + .szx zlib blocks needed |
 | `.vid` / `.flc` | Video/animation containers | Out of editor scope for now |
 
+## SAM Coupé formats not yet supported
+
+The SAM Coupé (Miles Gordon Technology, 1989) is a distinct machine, not a
+ZX-family clone or Next-ecosystem member — its own 128-colour palette and
+four hardware modes (1: 256×192 1bpp, 8×8 attribute cells, Spectrum-
+compatible; 2: 256×192 1bpp, 8×1 attribute cells; 3: 512×192 2bpp direct
+pixel, 4 colours; 4: 256×192 4bpp direct pixel, 16 colours) would need their
+own palette codec and mode descriptors on the 12a seam before any of its
+formats could import as real editable pixels rather than a flattened
+composite. Researched 2026-08-25 from RECOIL's format list; **not yet
+cross-checked against RECOIL's own source** the way every ZX-family row
+above is (`recoil.c`'s exact byte layouts/headers) — do that before
+implementing, per this project's usual method for a new format.
+
+| Ext | What it is (per RECOIL's format list) | Notes for a future implementation |
+|---|---|---|
+| `.ss1` | Mode 1 screen dump, 256×192, 128-colour palette | Structurally close to .scr's classic path; needs the SAM 128-colour codec, not ULAPLUS/NEXTRGB333 |
+| `.ss2` | Mode 2 screen dump, 256×192, 128-colour palette, 8×1 attribute cells | Parallels MULTICOLOR_8x1's attribute model; different palette |
+| `.ss3` | Mode 3 screen dump, 512×192, 4-colour (2bpp) direct pixel | No cell attributes at all — closer in shape to the Next indexed modes |
+| `.ss4` / `.scs4` | Mode 4 screen dump, 256×192, 16-colour (4bpp) direct pixel | SAM's most-used native mode; same "no attribute" shape as .ss3 |
+| `.ssx` | Flexible/mode-tagged variant, up to 512×192 | Mode carried in the file itself rather than fixed by extension |
+| `.lce` | 256×384, 2 frames | Purpose unconfirmed — likely a paint program's own layered/dual-screen format, not a plain mode dump |
+
 ## Known partial-support decisions (documented losses)
 
 - `.hrg`, `.mg1`, `.mg2`, `.mg4`: only the FIRST sub-screen imports (our

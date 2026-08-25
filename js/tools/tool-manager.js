@@ -64,32 +64,19 @@ class ToolManagerClassInternal {
    * the shape variants ride on ShapeTool: selecting one pins BrushEngine to
    * its type. Round and square are NOT here — they stay under the base BRUSH
    * button (the Round/Square selector in the brush options).
+   *
+   * Each type arrives at its OWN remembered size (BrushEngine.familyOf /
+   * BRUSH_FAMILY_DEFAULT_SIZE own that now — measured floors, in
+   * docs/MINIMUM_SIZES.md, for a family's first arrival this session) rather
+   * than whatever size a different brush type was last left on, so there is
+   * no size bookkeeping left to do here at all.
    * @private
    */
-  /**
-   * `startSize` is the smallest size at which the brush is THAT BRUSH rather
-   * than a pencil wearing its name, measured in docs/MINIMUM_SIZES.md (rerun
-   * with `node tools/measure-min-brushes.js`):
-   *
-   *   spray    4  - at 3 and below a stamp lays one or two particles, which is
-   *                 a pencil with a wobble
-   *   hatch    4  - at the default spacing of 4, smaller stamps miss the
-   *                 lattice entirely at some positions on the grid and the
-   *                 stroke silently drops out
-   *   pattern  8  - the smallest tile the library ships; a dab under one tile
-   *                 shows a fragment of the design rather than the design
-   *
-   * It is a FLOOR ON ARRIVAL, not a setting: picking the tool raises the size
-   * to it, and everything below stays on the slider for whoever wants it.
-   * Fade has none - at one pixel a fade is still a fade, the dither threshold
-   * simply decides that pixel - and neither do round and square on the base
-   * Brush button, where size 1 is the pencil and that is the point of it.
-   */
   _brushVariants = {
-    [TOOLS.SPRAY]:               { brushType: 'spray',   startSize: 4 },
-    [TOOLS.FADE]:                { brushType: 'fade' },
-    [TOOLS.PATTERN]:             { brushType: 'pattern', startSize: 8 },
-    [TOOLS.HATCH]:               { brushType: 'hatch',   startSize: 4 }
+    [TOOLS.SPRAY]:                { brushType: 'spray' },
+    [TOOLS.FADE]:                 { brushType: 'fade' },
+    [TOOLS.PATTERN]:              { brushType: 'pattern' },
+    [TOOLS.HATCH]:                { brushType: 'hatch' }
   };
 
   /**
@@ -109,13 +96,9 @@ class ToolManagerClassInternal {
   /**
    * Select and activate a tool by ID
    * @param {string} toolId - ID of tool to select
-   * @param {Object} [options] - `keepSize: true` skips a brush variant's
-   *   starting-size floor. The floor is for a fresh button press, where the
-   *   user has stated no size; a caller RESTORING a size has stated one, and
-   *   raising it would silently discard what it just put back (PresetService).
    * @returns {boolean} True if tool was selected successfully
    */
-  selectTool(toolId, options = {}) {
+  selectTool(toolId) {
     let tool = this.tools.get(toolId);
     let effectiveToolId = toolId;
 
@@ -132,17 +115,12 @@ class ToolManagerClassInternal {
       }
     } else if (!tool && this._brushVariants[toolId]) {
       // Brush-type variants ride on the one BrushTool, like the shape variants.
+      // setBrushType -> BrushEngine.setBrush() arrives at THIS type's own
+      // remembered (or default) size on its own; nothing to do here.
       const variant = this._brushVariants[toolId];
       tool = this.tools.get(TOOLS.BRUSH);
       if (tool && typeof tool.setBrushType === 'function') {
         tool.setBrushType(variant.brushType);
-        // Arrive at a size where the brush is what its button says it is. The
-        // options panel is rebuilt from the tool's getters right after this,
-        // so the slider shows the raised size.
-        if (variant.startSize && !options.keepSize &&
-            typeof tool.raiseSizeTo === 'function') {
-          tool.raiseSizeTo(variant.startSize);
-        }
         effectiveToolId = toolId;
       }
     } else if (!tool && this._selectionVariants[toolId]) {

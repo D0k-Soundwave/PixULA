@@ -288,34 +288,36 @@ class BrushToolClass extends ToolBase {
   }
 
   /**
-   * Set brush size
+   * Set brush size. Every brush TYPE (spray, hatch, pattern, fade — round and
+   * square share one as brush SHAPE) remembers its own size independently;
+   * see BrushEngine.familyOf. `toolId` is set only by PresetService, which
+   * applies a saved preset's per-tool values onto this one shared instance
+   * BEFORE selecting which type ends up active, so it must be able to target
+   * a specific family directly rather than "whichever type is active right
+   * now" (that ambient form is what OptionControls' live slider uses, and is
+   * exactly right for it).
    * @param {number} size - Brush size (1-32)
+   * @param {string} [toolId] - A brush-variant TOOLS rail id, targeting that
+   *   family's size directly instead of the currently active one
    */
-  setSize(size) {
-    BrushEngine.setSize(size);
+  setSize(size, toolId) {
+    const family = toolId && BrushEngine.familyForToolId(toolId);
+    if (family) {
+      BrushEngine.setSizeForFamily(family, size);
+    } else {
+      BrushEngine.setSize(size);
+    }
     Logger.debug('BrushTool', `Size set to ${size}`);
   }
 
   /**
-   * Get current brush size
+   * Get brush size. See setSize() for what `toolId` is for.
+   * @param {string} [toolId]
    * @returns {number}
    */
-  getSize() {
-    return BrushEngine.currentSize;
-  }
-
-  /**
-   * Bring the size UP to a floor, never down.
-   *
-   * Picking the spray, the hatch or the pattern brush should hand you that
-   * brush rather than a pencil that will behave like one at the size you
-   * happened to leave the last brush on (see ToolManager._brushVariants for
-   * the measured floors). Raising only: an artist working at 24 px keeps 24.
-   *
-   * @param {number} size - Smallest size at which this brush is itself
-   */
-  raiseSizeTo(size) {
-    if (BrushEngine.currentSize < size) this.setSize(size);
+  getSize(toolId) {
+    const family = toolId && BrushEngine.familyForToolId(toolId);
+    return family ? BrushEngine.getSizeForFamily(family) : BrushEngine.currentSize;
   }
 
   getBrushType() {

@@ -148,30 +148,37 @@ Two consequences worth stating plainly:
 | fade | **fade length >= 4 x stamp spacing [M]** | the stroke jumps from solid to nothing without showing its dither bands |
 | pattern | **tile size (8, 16 or 32)** for a whole tile in one dab | a dab shows a fragment; a dragged stroke still tiles correctly at any size |
 
-### These floors are wired into the tool rail
+### Each brush type remembers its own size
 
 A brush should hand you the brush its button names, not a pencil behaving like
-one at whatever size the last brush was left on. Picking the spray, the hatch
-or the pattern brush therefore RAISES the size to its floor
-(`ToolManager._brushVariants`, pinned by `tests/brush-variants.test.js`):
+one at whatever size a DIFFERENT brush type was left on. Round and square are
+brush SHAPE rather than brush TYPE and deliberately keep sharing one size;
+every other type (spray, hatch, pattern, fade) remembers its own,
+independently, for the session (`BrushEngine._sizeByFamily`,
+`BRUSH_FAMILY_DEFAULT_SIZE` in `js/tools/brush-engine.js`, pinned by
+`tests/brush-variants.test.js`). A family with no size of its own yet (first
+arrival this session) starts at its default:
 
-| rail button | arrives at | because below it |
+| rail button | starts at | because below it |
 |---|---|---|
 | Spray | **4** | a stamp lays one or two particles: a pencil with a wobble |
 | Hatch | **4** | stamps miss the lattice at some positions and the stroke drops out |
 | Pattern | **8** | a dab under one tile shows a fragment of the design |
+| Fade | **3** | a starting preference, not a measured floor - see below |
+| Brush (round/square) | **1** | the pencil - see below |
 
-It raises, never lowers - an artist working at 24 px keeps 24 - and nothing is
-removed from the slider: every size from 1 up is still there for whoever wants
-it.
+Past that first arrival, each family keeps whatever the artist sets it to -
+an artist working at 24 px keeps 24 - and nothing is removed from the slider:
+every size from 1 up is still there for whoever wants it.
 
-**Two brushes deliberately have no floor.** The fade keeps size 1, because at
-one pixel a fade is still a fade: the dither threshold simply decides that one
-pixel. And the base Brush (round and square) keeps size 1, because **size 1 is
-the pencil** - the single most-used setting in pixel art, and a documented
-invariant of this app. The measurement's "a round brush is only round from
-size 3" answers a different question (when the round/square choice starts to
-matter), not "is it usable".
+**Two brush types have no correctness floor at all** - their default above is
+a starting preference, not a measured minimum. The fade is usable at any size,
+because at one pixel a fade is still a fade: the dither threshold simply
+decides that one pixel. And the base Brush (round and square) defaults to
+size 1, because **size 1 is the pencil** - the single most-used setting in
+pixel art, and a documented invariant of this app. The measurement's "a round
+brush is only round from size 3" answers a different question (when the
+round/square choice starts to matter), not "is it usable".
 
 ### Everything else was already at or above its floor
 

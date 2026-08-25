@@ -481,9 +481,15 @@ class PixelDrawRoutineClass {
    *   NORMAL / TRANSPARENT / PIXEL_ONLY — write the drawing index (an
    *     explicit `colorSelection.index` wins, else ColorManager's indexed
    *     ink; clipboard/stamp paths pass per-pixel indices through here)
-   *   ERASE — transparency index (−1) on upper layers; the indexed paper
-   *     on the background (which has no transparency)
-   *   PAPER — paint the indexed paper index
+   *   PAPER / NORMAL_ERASE — write the indexed paper index as a real value on
+   *     the current layer. The right button paints paper, exactly as the
+   *     classic path stamps cell.paper: it is not the same as declining to
+   *     colour the pixel, so it must never fall through to the transparency
+   *     index below (that silently reverted every right-click on an upper
+   *     layer to "nothing was drawn here", the same as the eraser tool).
+   *   ERASE / ERASE_ALL — the transparency index (−1) on upper layers, so the
+   *     pixel inherits whatever the layer below shows; the indexed paper on
+   *     the background (which has no layer below to inherit from)
    *   XOR / XOR_PIXEL — toggle: a pixel already at the drawing index erases,
    *     anything else takes the drawing index (the closest 1-bit-XOR
    *     analogue); the two differ only in the caller's stroke-dedup gate,
@@ -511,15 +517,17 @@ class PixelDrawRoutineClass {
       case DRAW_MODE.INK:
         cell.indices[pos] = inkIdx;
         break;
-      // No attributes exist in an indexed mode, so the three erase flavours
-      // collapse to the same thing here.
-      case DRAW_MODE.ERASE:
+      // Right button: a real, opaque write of the paper index on the current
+      // layer - never the transparency index, which would silently make it
+      // the eraser tool instead.
+      case DRAW_MODE.PAPER:
       case DRAW_MODE.NORMAL_ERASE:
+        cell.indices[pos] = paperIdx;
+        break;
+      // The primitive and the eraser tool: let the pixel inherit from below.
+      case DRAW_MODE.ERASE:
       case DRAW_MODE.ERASE_ALL:
         cell.indices[pos] = eraseIdx;
-        break;
-      case DRAW_MODE.PAPER:
-        cell.indices[pos] = paperIdx;
         break;
       case DRAW_MODE.XOR:
       case DRAW_MODE.XOR_PIXEL:

@@ -324,15 +324,11 @@ class PresetControlsClass {
 
     /**
      * Load a preset from the library, taking its tool in hand first.
-     *
-     * `keepSize` because selecting a brush VARIANT raises the size to that
-     * variant's floor, which would throw away the size the preset is about to
-     * restore — the floor is for a fresh button press, and this is not one.
      * @param {string} scopeId @param {string} name
      */
     loadFromLibrary(scopeId, name) {
         if (!PresetService.getPresetScope(scopeId) && ToolManager.getTool(scopeId)) {
-            ToolManager.selectTool(scopeId, { keepSize: true });
+            ToolManager.selectTool(scopeId);
         }
         PresetService.applyToolPreset(scopeId, name);
     }

@@ -76,10 +76,11 @@ class TextToolClass extends ToolBase {
       if (!this._fixedSize || !this._text.trim()) return;
       if (this._disengaged) return;
       if (!window.SelectionService) return;
-      if (!SelectionService.isFloating()) {
-        this._createPreviewStamp(data.x, data.y);
-      } else {
+      if (this._ownStampFloating()) {
+        this._textStampActive = true;
         SelectionService.moveStampPreview(data.x, data.y);
+      } else {
+        this._createPreviewStamp(data.x, data.y);
       }
     });
   }
@@ -193,16 +194,35 @@ class TextToolClass extends ToolBase {
   // ── Canvas interaction ────────────────────────────────────────────────────
 
   onPointerDown(pixelX, pixelY, e) {
-    // When a stamp is the current stamp, pointer-down is handled entirely by
-    // input-handler and this method is NOT called.
-    // We only reach here when no stamp is engaged yet.
+    // When the text tool's OWN stamp is the current stamp, pointer-down is
+    // handled entirely by input-handler and this method is NOT called. We
+    // reach here either with no stamp engaged, or with some OTHER tool's
+    // stamp (e.g. a clipboard paste) still floating from before this tool
+    // was selected — ToolManager.selectTool() moves the current layer off a
+    // stamp on tool switch, so a foreign stamp no longer intercepts clicks.
     const text = this._text.trim();
     if (text && this._fixedSize > 0) {
       this._disengaged = false;
-      if (window.SelectionService && !SelectionService.isFloating()) {
+      if (window.SelectionService && !this._ownStampFloating()) {
         this._createPreviewStamp(pixelX, pixelY);
       }
     }
+  }
+
+  /**
+   * True when the currently floating stamp (if any) is one THIS tool
+   * created. `fontInfo` is set only by TextTool's own
+   * `startFloatingPasteFromMask` calls — every other caller (clipboard
+   * paste, system-clipboard image paste) leaves it null — so it is the
+   * reliable "is this stamp mine" check, unlike a blanket
+   * `SelectionService.isFloating()`, which is also true for a stamp left
+   * floating by an entirely different tool.
+   * @private
+   */
+  _ownStampFloating() {
+    if (!window.SelectionService || !SelectionService.isFloating()) return false;
+    const fp = SelectionService.floatingPaste;
+    return !!(fp && fp.fontInfo);
   }
 
   onPointerMove(pixelX, pixelY, e) {

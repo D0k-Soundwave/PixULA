@@ -5,11 +5,15 @@
  * Every extension File > Save.../exportViaNativePicker() offers in the
  * native dialog's "Save as type" list, with a plain-English description (OS
  * dialog chrome isn't run through PixULA's own i18n) and MIME type. Same
- * extension set _showExportDialog()'s dropdown offers (js/ui/menu-system.js)
- * - kept as a literal list rather than derived from FormatRegistry, since
- * FormatRegistry has no format-vs-picture-vs-document distinction (it would
- * also list .pixula here, which Save Project already owns) and no
- * human-readable description or MIME per extension to draw from.
+ * extension set EXPORT_FORMATS offers (js/ui/menu-system.js's File > Save
+ * Image As submenu and its _showExportDialog() fallback) - kept as a
+ * literal list rather than derived from FormatRegistry, since FormatRegistry
+ * has no format-vs-picture-vs-document distinction (it would also list
+ * .pixula here, which Save Project already owns) and no human-readable
+ * description or MIME per extension to draw from. GIF is deliberately
+ * absent - withdrawn from every export path in the app 2026-08-25 (the
+ * encoder in js/io/gif-format.js stays, untouched and still tested; nothing
+ * in the UI reaches it any more).
  *
  * MIME keys are synthetic (`application/x-pixula-<ext>`) rather than the
  * generic `application/octet-stream` for every format with no real
@@ -36,7 +40,6 @@ const EXPORT_PICKER_TYPES = Object.freeze([
   ['png', 'PNG Image', 'image/png'],
   ['bmp', 'BMP Image', 'image/bmp'],
   ['jpg', 'JPEG Image', 'image/jpeg'],
-  ['gif', 'GIF Image', 'image/gif'],
   ['zed', 'ZX-Editor Document', 'application/x-pixula-zed'],
   ['sev', 'SevenuP Graphic', 'application/x-pixula-sev'],
   ['pal', 'Palette', 'application/x-pixula-pal'],
@@ -666,14 +669,20 @@ class FileManagerClass {
    * "Save..." was internally an "export" action wearing that label, and
    * opened the old format-then-download flow regardless.
    *
-   * Extra per-format options (GIF animation, TAP border colour) have no
-   * native-dialog equivalent - File > Export with Options... still reaches
-   * `_showExportDialog()` for those, unchanged.
+   * File > Save Image As (one menu leaf per format, straight into
+   * FileManager.exportAs()) is the OTHER way to reach the same native
+   * picker/download-fallback pair, for an artist who wants to name the
+   * format up front instead of choosing it inside the OS dialog. Between the
+   * two, every format and every export path in the app goes through the
+   * system's own save mechanism - no in-app export dialog remains
+   * (2026-08-25; "Export with Options..." and its GIF-animation/TAP-border
+   * per-format extras are gone, not just this method's problem to route
+   * around any more).
    *
    * Callable only where `window.showSaveFilePicker` exists - the io layer
    * has no business opening `MenuSystem`'s format-select dialog itself, so
    * that fallback decision belongs to the menu action that dispatches here
-   * (see `_handleMenuAction` in menu-system.js), not to this method.
+   * (see `_executeAction` in menu-system.js), not to this method.
    * @returns {Promise<boolean>}
    */
   async exportViaNativePicker() {

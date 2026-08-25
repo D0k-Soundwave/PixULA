@@ -2,6 +2,43 @@
 (function() {
 
 /**
+ * Every picture-export format File > Save Image As offers, and the format
+ * list `_showExportDialog()` falls back to on engines with no native Save
+ * picker (Firefox, Safari) — one array so the two paths cannot drift onto
+ * different sets. This is the full catalogue; both call sites still filter
+ * it live through FormatRegistry.isExportCompatible() (mode-dependent).
+ *
+ * GIF export was withdrawn from the UI 2026-08-25 (menu only — the encoder
+ * in js/io/gif-format.js, its tests and its animate-FLASH option stay
+ * exactly as they were, simply unreached from anywhere in the app).
+ */
+const EXPORT_FORMATS = Object.freeze([
+    ['scr',   'ZX Spectrum Screen (.scr)'],
+    ['zxp',   'ZX-Paintbrush Image (.zxp)'],
+    ['mlt',   'Timex/Multicolor Screen 8\u00d71 (.mlt)'],
+    ['ifl',   'Multicolor Screen 8\u00d72 (.ifl)'],
+    ['hrg',   'Timex Hi-res Screen (.hrg)'],
+    ['img',   'GigaScreen Image (.img)'],
+    ['nxi',   'Next Layer 2 Image (.nxi)'],
+    ['sl2',   'Next Layer 2 Dump (.sl2)'],
+    ['slr',   'Next LoRes Dump (.slr)'],
+    ['ctile', 'BIFROST ColorTiles (.ctile)'],
+    ['tap',   'ZX Spectrum Tape (.tap)'],
+    ['tzx',   'ZX Spectrum Tape TZX (.tzx)'],
+    ['png',   'PNG Image (.png)'],
+    ['bmp',   'BMP Image (.bmp)'],
+    ['jpg',   'JPEG Image (.jpg)'],
+    ['zed',   'ZX-Editor document (.zed)'],
+    ['sev',   'SevenuP graphic (.sev)'],
+    ['pal',   'Palette (.pal)'],
+    ['npl',   'Next Palette (.npl)'],
+    ['asm',   'Assembly source (.asm)'],
+    ['c',     'C array source (.c)'],
+    ['bin',   'Raw bitmap only (.bin)'],
+    ['atr',   'Attributes only (.atr)']
+]);
+
+/**
  * MenuSystem - Application menu bar
  * Provides File, Edit, View, Layer, Image, Settings and Help menus.
  *
@@ -88,6 +125,7 @@ class MenuSystemClass {
             this._updateThemeToggles(ThemeManager.getTheme());
         }
         this._updateModeToggles();
+        this._updateExportAsMenuState();
         this._updateMirrorToggles();
         if (window.StateManager) this._updateToggleState('grid-snap', StateManager.getGridSnap());
 
@@ -130,6 +168,21 @@ class MenuSystemClass {
     }
 
     /**
+     * Disable each Save Image As leaf the active screen mode can't actually
+     * export (e.g. nxi/sl2 need an indexed mode) — same gate
+     * _showExportDialog() filters its format list through, just applied as
+     * enabled/disabled instead of "listed at all", since a static menu tree
+     * can't be rebuilt per mode.
+     * @private
+     */
+    _updateExportAsMenuState() {
+        if (!window.FormatRegistry) return;
+        for (const [ext] of EXPORT_FORMATS) {
+            this.setItemEnabled('export-as-' + ext, FormatRegistry.isExportCompatible(ext));
+        }
+    }
+
+    /**
      * Build the menu structure
      * @private
      */
@@ -142,7 +195,19 @@ class MenuSystemClass {
                     { id: 'new', label: 'New', shortcut: 'Ctrl+N', action: 'file:new' },
                     { id: 'import', label: 'Load...', shortcut: 'Ctrl+O', action: 'file:import' },
                     { id: 'export', label: 'Save...', shortcut: 'Ctrl+E', action: 'file:export' },
-                    { id: 'export-options', label: 'Export with Options...', action: 'file:exportOptions' },
+                    // One leaf per picture format, in place of the old
+                    // "Export with Options..." dialog — picking a format here
+                    // IS the option; each leaf goes straight to the OS's own
+                    // save picker (or its browser-download fallback) for that
+                    // one format, exactly like Save... does, just without
+                    // asking the artist to pick a format inside an app dialog
+                    // first. Disabled per format live — see
+                    // _updateExportAsMenuState().
+                    { id: 'export-as', label: 'Save Image As', i18n: 'menu.file.exportAs',
+                      items: EXPORT_FORMATS.map(([ext, label]) => ({
+                          id: 'export-as-' + ext, label, i18n: 'format.' + ext,
+                          action: 'file:exportAs:' + ext
+                      })) },
                     { type: 'separator' },
                     { id: 'load-project', label: 'Load Project...', action: 'file:loadProject' },
                     { id: 'save', label: 'Save Project', shortcut: 'Ctrl+S', action: 'file:save' },
@@ -446,8 +511,12 @@ class MenuSystemClass {
 
         EventBus.on(EVENTS.THEME_CHANGED, ({ theme }) => this._updateThemeToggles(theme));
 
-        // Keep the Image-menu mode radios in sync with the mode fact
-        EventBus.on(EVENTS.SCREEN_MODE_CHANGED, () => this._updateModeToggles());
+        // Keep the Image-menu mode radios, and Save Image As's per-format
+        // availability, in sync with the mode fact
+        EventBus.on(EVENTS.SCREEN_MODE_CHANGED, () => {
+            this._updateModeToggles();
+            this._updateExportAsMenuState();
+        });
 
         // Keep the View-menu Mirror radios and Snap toggle in sync with their
         // facts (both can also change from the canvas-controls rail).
@@ -582,6 +651,14 @@ class MenuSystemClass {
      * @private
      */
     _executeAction(actionId) {
+        // File > Save Image As leaves carry their format in the action id
+        // itself ('file:exportAs:tap') rather than one switch case per
+        // format — see the File menu's export-as submenu in _buildMenus().
+        if (actionId.startsWith('file:exportAs:')) {
+            FileManager.exportAs(actionId.slice('file:exportAs:'.length));
+            return;
+        }
+
         switch (actionId) {
             // File
             case 'file:new':    FileManager.newFile();  break;
@@ -597,7 +674,6 @@ class MenuSystemClass {
                     this._showExportDialog();
                 }
                 break;
-            case 'file:exportOptions': this._showExportDialog(); break;
             case 'file:loadProject': FileManager.loadProjectFile(); break;
             case 'file:loadPalette': PaletteEditorDialog.loadFromFile(); break;
             case 'file:savePalette': PaletteEditorDialog.saveToFile(); break;
@@ -748,56 +824,33 @@ class MenuSystemClass {
     }
 
     /**
-     * Show export format dialog (Dialog component; the border picked here is a
-     * one-off override for this export only — it must not change the document
-     * border chosen via the left-rail Border dropdown).
+     * Show the export format dialog — the Save.../Ctrl+E fallback on engines
+     * with no native Save picker (Firefox, Safari), where the File > Save
+     * Image As submenu's per-format leaves have no OS dialog to land in.
+     * Only formats the ACTIVE screen mode can actually export (e.g. nxi/sl2
+     * need an indexed mode, pal/npl an editable palette) are listed at all —
+     * FormatRegistry.isExportCompatible() is backed by each handler's own
+     * canExport(), so this can't drift from the gates the handlers
+     * themselves enforce. No per-format options (TAP/TZX border, GIF
+     * animate) — those were withdrawn 2026-08-25 along with "Export with
+     * Options...", the dialog they used to live in; every export now always
+     * uses the document's own current border colour.
      * @private
      */
     _showExportDialog() {
-        // Only formats the ACTIVE screen mode can actually export (e.g.
-        // nxi/sl2 need an indexed mode, pal/npl an editable palette) are
-        // listed at all — FormatRegistry.isExportCompatible() is backed by
-        // each handler's own canExport(), so this can't drift from the
-        // gates the handlers themselves enforce.
-        const formats = ['scr', 'zxp', 'mlt', 'ifl', 'hrg', 'img', 'nxi', 'sl2', 'slr', 'ctile',
-            'tap', 'tzx', 'png', 'bmp', 'jpg', 'gif', 'zed', 'sev', 'pal', 'npl',
-            'asm', 'c', 'bin', 'atr'].filter((ext) => FormatRegistry.isExportCompatible(ext));
-        const borderNames = ['black', 'blue', 'red', 'magenta', 'green', 'cyan', 'yellow', 'white'];
+        const formats = EXPORT_FORMATS.filter(([ext]) => FormatRegistry.isExportCompatible(ext));
 
         const content = document.createElement('div');
         content.className = 'export-dialog-body';
         content.innerHTML = `
             <label for="export-format" data-i18n="dialog.exportFormat">${this._t('dialog.exportFormat', 'Export format')}</label>
             <select id="export-format" class="dialog-select">
-                ${formats.map(f => `<option value="${f}" data-i18n="format.${f}">${this._t('format.' + f, f.toUpperCase())}</option>`).join('')}
+                ${formats.map(([ext, label]) =>
+                    `<option value="${ext}" data-i18n="format.${ext}">${this._t('format.' + ext, label)}</option>`).join('')}
             </select>
-            <div id="export-tape-options" hidden>
-                <label for="export-border" data-i18n="dialog.borderColor">${this._t('dialog.borderColor', 'Border colour')}</label>
-                <select id="export-border" class="dialog-select">
-                    ${borderNames.map((name, idx) =>
-                        `<option value="${idx}" data-i18n="color.${name}">${this._t('color.' + name, name.charAt(0).toUpperCase() + name.slice(1))}</option>`).join('')}
-                </select>
-            </div>
-            <div id="export-gif-options" hidden>
-                <label class="dialog-check-row">
-                    <input type="checkbox" id="export-gif-animate">
-                    <span data-i18n="dialog.gifAnimate">${this._t('dialog.gifAnimate', 'Animate FLASH cells (two-frame loop)')}</span>
-                </label>
-            </div>
         `;
 
         const formatSelect = content.querySelector('#export-format');
-        const tapeOptions = content.querySelector('#export-tape-options');
-        const borderSelect = content.querySelector('#export-border');
-        const gifOptions = content.querySelector('#export-gif-options');
-        const gifAnimate = content.querySelector('#export-gif-animate');
-
-        borderSelect.value = String(ColorManager.getBorder());
-        formatSelect.addEventListener('change', () => {
-            const isTape = formatSelect.value === 'tap' || formatSelect.value === 'tzx';
-            tapeOptions.hidden = !isTape;
-            gifOptions.hidden = formatSelect.value !== 'gif';
-        });
 
         Dialog.open({
             id: 'export-dialog',
@@ -814,15 +867,7 @@ class MenuSystemClass {
                     // the artist has even chosen a location, and what leaves
                     // it open again if they cancelled the native one.
                     onClick: async () => {
-                        const format = formatSelect.value;
-                        const exportOptions = {};
-                        if ((format === 'tap' || format === 'tzx') && borderSelect) {
-                            exportOptions.border = parseInt(borderSelect.value, 10) || 0;
-                        }
-                        if (format === 'gif' && gifAnimate) {
-                            exportOptions.animated = gifAnimate.checked;
-                        }
-                        const saved = await FileManager.exportAs(format, exportOptions);
+                        const saved = await FileManager.exportAs(formatSelect.value);
                         return saved !== false;
                     }
                 }

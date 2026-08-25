@@ -197,10 +197,32 @@ await PS.saveToolPreset('fade', 'soft fade');
 check('a rail variant files under its own id, not its class',
   PS.listToolPresets('fade').length === 1 && PS.listToolPresets('brush').length === 2);
 
+// A workspace preset's 'tool' slice (PresetServiceClass.SLICES in
+// preset-service.js) walks every registered tool id and applies each one's
+// captured options onto this ONE shared BrushTool instance BEFORE selecting
+// which type ends up active. So applying spray's size must land in spray's
+// own family even while some other type is the one currently active — never
+// in whatever family happens to be live at that moment (the reported bug,
+// one layer down: BrushEngine.familyForToolId is what makes this possible).
+// `size` only, no `brushType`, isolates the size targeting from the type switch.
+brush.setBrushType('pattern');
+brush.setSize(8);
+global.PresetServiceClass.applyToolOptions('spray', { size: 20 });
+check("applying spray's size while pattern is active writes SPRAY's own family",
+  BrushEngine.getSizeForFamily('spray') === 20);
+check("...and does not touch pattern's own remembered size",
+  BrushEngine.getSizeForFamily('pattern') === 8);
+check('pattern is still the active type, still showing its own untouched size',
+  BrushEngine.currentBrush === 'pattern' && brush.getSize() === 8);
+brush.setBrushType('spray');
+check('switching to spray afterward shows the size that was targeted at it',
+  brush.getSize() === 20);
+brush.setBrushType('pattern'); // leave state tidy for what follows
+
 // ── Overwrite, rename, delete ───────────────────────────────────────────────
 
-brush.setSize(3);
 brush.setBrushType('round');
+brush.setSize(3);
 const before = PS.getToolPreset('brush', '1px pencil').created;
 await PS.saveToolPreset('brush', '1px pencil');
 check('re-saving a name replaces it in place rather than adding a twin',
