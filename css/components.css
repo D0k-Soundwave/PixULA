@@ -727,12 +727,13 @@
     margin-top: 2px;
 }
 
-/* Bright / Flash: still a small horizontal pair, they fit the rail's width
-   easily side by side. */
+/* Bright / Flash: stacked one above the other, same as every other rail
+   control — never side by side, so the column stays exactly one control
+   wide throughout. */
 #color-rail .clut-bits {
     display: flex;
-    flex-direction: row;
-    align-items: flex-end;
+    flex-direction: column;
+    align-items: center;
     gap: 4px;
 }
 

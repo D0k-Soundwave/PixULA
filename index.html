@@ -130,12 +130,13 @@
              available height (the 256-entry Next grid, mainly); never
              scrolls sideways. -->
         <aside id="color-rail" role="toolbar" aria-label="Colours" aria-orientation="vertical">
+            <!-- Bright/Flash (ClutBar; per-mode, empty where the mode has no
+                 attribute bits) and the GigaScreen sub-screen view toggle —
+                 first in the rail, above the swatches. -->
+            <div id="colour-bits" class="toolbar-section"></div>
             <div id="toolbar-color" class="toolbar-section">
                 <!-- Swatch cluster (ClutBar) is prepended here. -->
             </div>
-            <!-- Bright/Flash (ClutBar; per-mode, empty where the mode has no
-                 attribute bits) and the GigaScreen sub-screen view toggle -->
-            <div id="colour-bits" class="toolbar-section"></div>
         </aside>
 
         <!-- Central canvas area -->
