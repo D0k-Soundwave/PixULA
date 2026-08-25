@@ -137,11 +137,18 @@ class ImageSourceClass {
 
     /**
      * A downscaled data URL of an already-loaded image.
+     *
+     * Two callers, two size/quality points on the same function: a preset's
+     * ~30 KB stand-in (the defaults) and a `.pixula` project's embedded
+     * reference copy (ProjectFormat.REFERENCE_IMAGE_MAX_PX/_QUALITY - larger
+     * and higher fidelity, since a project has no handle to fall back on and
+     * this IS the picture the artist traces from from then on).
      * @param {HTMLImageElement} img
      * @param {number} [maxPx]
+     * @param {number} [quality] - JPEG quality, 0-1
      * @returns {string} data URL, or '' if it could not be drawn
      */
-    thumbnail(img, maxPx = THUMB_MAX_PX) {
+    thumbnail(img, maxPx = THUMB_MAX_PX, quality = THUMB_QUALITY) {
         if (!img || !img.naturalWidth || !img.naturalHeight) return '';
 
         // Downscale only: an image already smaller than the box is kept as it
@@ -160,7 +167,7 @@ class ImageSourceClass {
             // JPEG: a photograph's thumbnail is a third the size of the PNG and
             // the artefacts do not matter at this size. PNG would keep alpha,
             // which a tracing reference does not need.
-            return canvas.toDataURL('image/jpeg', THUMB_QUALITY);
+            return canvas.toDataURL('image/jpeg', quality);
         } catch (error) {
             Logger.warn('ImageSource', 'Thumbnail encode failed', error);
             return '';

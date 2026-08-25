@@ -166,11 +166,22 @@ class PresetServiceClass {
     /**
      * Read the current setup for the named slices.
      * @param {Array<string>} sliceIds
+     * @param {Object} [options]
+     * @param {number} [options.referenceMaxPx] - passed to the reference
+     *   slice's capture (ImageSource.thumbnail's size cap); omit for the
+     *   preset-sized default
+     * @param {number} [options.referenceQuality] - same, for JPEG quality
+     * @param {boolean} [options.embedReferenceAsset] - keep the reference
+     *   slice's image INLINE on `slices.reference.assetData` instead of
+     *   lifting it into the returned `asset` field. ProjectFormat wants this:
+     *   a `.pixula` is a self-contained file with no content-addressed store
+     *   of its own to lift the image into.
      * @returns {{ slices: Object, asset: Object|null, meta: Object }}
      */
-    capture(sliceIds) {
+    capture(sliceIds, options) {
         const wanted = Array.isArray(sliceIds) && sliceIds.length
             ? sliceIds : this.getSliceIds();
+        const opts = options || {};
 
         const slices = {};
         let asset = null;
@@ -179,16 +190,19 @@ class PresetServiceClass {
             if (!wanted.includes(slice.id)) continue;
             let value = null;
             try {
-                value = slice.capture();
+                value = slice.id === 'reference'
+                    ? slice.capture(opts.referenceMaxPx, opts.referenceQuality)
+                    : slice.capture();
             } catch (error) {
                 Logger.warn('PresetService', `Slice ${slice.id} failed to capture`, error);
                 continue;
             }
             if (value === null || value === undefined) continue;
 
-            // The reference slice hands back its image separately: the picture
-            // is content-addressed in its own store so slots can share it.
-            if (slice.id === 'reference' && value.assetData) {
+            // The reference slice hands back its image separately by default:
+            // the picture is content-addressed in its own store so slots can
+            // share it. embedReferenceAsset keeps it inline instead.
+            if (slice.id === 'reference' && value.assetData && !opts.embedReferenceAsset) {
                 asset = value.assetData;
                 value = { ...value };
                 delete value.assetData;
@@ -344,27 +358,67 @@ class PresetServiceClass {
         const preset = this.get(slot);
         if (!preset) return null;
 
-        const wanted = Array.isArray(sliceIds) && sliceIds.length
-            ? sliceIds : Object.keys(preset.slices);
         const modeMatches = this.matchesActiveMode(preset);
+        const { applied, skipped } = await this._applySliceValues(
+            preset.slices, sliceIds, modeMatches, preset.asset);
+
+        EventBus.emit(EVENTS.PRESET_APPLIED, {
+            slot, preset, applied, skipped, modeMatches
+        });
+        return { applied, skipped };
+    }
+
+    /**
+     * Apply slice data that was never a stored slot preset - inline data
+     * straight off a decoded `.pixula`. Mode is not checked (always treated
+     * as matching): a project restores into the screen mode it recorded a
+     * few lines earlier in App._loadProjectData, before this runs, so a
+     * genuine mismatch cannot happen the way it can when recalling a preset
+     * captured under a different mode than the one currently active.
+     * @param {Object} slicesData - {sliceId: value}, reference's value may
+     *   carry its image inline on `.assetData`
+     * @param {Array<string>|null} [sliceIds] - restrict to these, default all present
+     * @returns {Promise<{ applied: Array<string>, skipped: Array<string> }>}
+     */
+    async applyCapturedSlices(slicesData, sliceIds = null) {
+        return this._applySliceValues(slicesData, sliceIds, true, null);
+    }
+
+    /**
+     * The slice-walking loop shared by apply() (a stored slot, mode-checked,
+     * asset resolved from the content-addressed store) and
+     * applyCapturedSlices() (inline data, no slot, no store lookup) - one
+     * place that knows how to walk SLICES, not two that could drift.
+     *
+     * NOTHING A PRESET OR PROJECT APPLIES THIS WAY IS UNDOABLE, because
+     * nothing it applies is the document. That was not always true: the
+     * palette used to be a slice, it edited the document, and applying it
+     * opened one UndoRedo action so a single Ctrl+Z put it back. The palette
+     * became a FILE (Image > Edit Palette…, File > Load/Save Palette…) on
+     * 2026-08-07 and the slice went with it, which left no document-touching
+     * slice and no reason to open an action here. If one is ever added back,
+     * the machinery it needs is in the history of this file — including the
+     * subtlety that cost a bug: endAction() pushes and clears the redo stack
+     * whenever an action was opened, so an action opened for a slice that
+     * then gets skipped destroys a redo the user could still want.
+     * @param {Object} slicesData
+     * @param {Array<string>|null} sliceIds
+     * @param {boolean} modeMatches
+     * @param {?string} assetKey - store key the reference slice falls back
+     *   to when its value carries no inline `assetData`
+     * @returns {Promise<{ applied: Array<string>, skipped: Array<string> }>}
+     * @private
+     */
+    async _applySliceValues(slicesData, sliceIds, modeMatches, assetKey) {
+        const wanted = Array.isArray(sliceIds) && sliceIds.length
+            ? sliceIds : Object.keys(slicesData || {});
 
         const applied = [];
         const skipped = [];
 
-        // NOTHING A PRESET APPLIES IS UNDOABLE, because nothing it applies is
-        // the document. That was not always true: the palette used to be a
-        // slice, it edited the document, and applying it opened one UndoRedo
-        // action so a single Ctrl+Z put it back. The palette became a FILE
-        // (Image > Edit Palette…, File > Load/Save Palette…) on 2026-08-07 and
-        // the slice went with it, which left no document-touching slice and no
-        // reason to open an action here. If one is ever added back, the
-        // machinery it needs is in the history of this file — including the
-        // subtlety that cost a bug: endAction() pushes and clears the redo
-        // stack whenever an action was opened, so an action opened for a slice
-        // that then gets skipped destroys a redo the user could still want.
         for (const slice of PresetServiceClass.SLICES) {
             if (!wanted.includes(slice.id)) continue;
-            if (!Object.prototype.hasOwnProperty.call(preset.slices, slice.id)) continue;
+            if (!slicesData || !Object.prototype.hasOwnProperty.call(slicesData, slice.id)) continue;
 
             // Colour meanings are mode-specific; a mismatch skips rather
             // than silently painting the wrong colour (see matchesActiveMode).
@@ -374,7 +428,7 @@ class PresetServiceClass {
             }
 
             try {
-                await slice.apply(preset.slices[slice.id], preset);
+                await slice.apply(slicesData[slice.id], { asset: assetKey });
                 applied.push(slice.id);
             } catch (error) {
                 Logger.warn('PresetService', `Slice ${slice.id} failed to apply`, error);
@@ -382,9 +436,6 @@ class PresetServiceClass {
             }
         }
 
-        EventBus.emit(EVENTS.PRESET_APPLIED, {
-            slot, preset, applied, skipped, modeMatches
-        });
         return { applied, skipped };
     }
 
@@ -1238,7 +1289,12 @@ PresetServiceClass.SLICES = Object.freeze([
          * JSON, which cannot carry a handle at all. Both preset libraries get
          * this, because both come through here.
          */
-        capture() {
+        /**
+         * @param {number} [maxPx] - overrides the preset-sized default (see
+         *   ImageSource.thumbnail) - ProjectFormat passes its own, larger cap
+         * @param {number} [quality] - JPEG quality override, same reason
+         */
+        capture(maxPx, quality) {
             const state = ReferenceLayerService.getState();
             if (!state) return null;
 
@@ -1258,7 +1314,7 @@ PresetServiceClass.SLICES = Object.freeze([
             if (typeof url === 'string' && url.startsWith('data:image/')) {
                 const info = ReferenceLayerService.getImageInfo();
                 const thumb = window.ImageSource
-                    ? ImageSource.thumbnail(ReferenceLayerService.image) : '';
+                    ? ImageSource.thumbnail(ReferenceLayerService.image, maxPx, quality) : '';
                 value.assetData = {
                     // Fall back to the full image only where the thumbnail
                     // could not be drawn at all; a placement with no picture is
@@ -1297,8 +1353,14 @@ PresetServiceClass.SLICES = Object.freeze([
                 fileName: value.fileName
             });
 
-            if (!preset || !preset.asset) return;
-            const asset = await PresetService.loadAsset(preset.asset);
+            // An INLINE asset (embedded directly on the captured value) takes
+            // priority over the content-addressed store lookup - a .pixula's
+            // reference image travels this way (the file is self-contained,
+            // never a key into this session's PRESET_ASSETS), while a slot/
+            // tool preset still goes through `preset.asset`.
+            const asset = value.assetData
+                ? value.assetData
+                : (preset && preset.asset ? await PresetService.loadAsset(preset.asset) : null);
             if (!asset) {
                 Logger.warn('PresetService', 'Reference image missing for preset');
                 return;

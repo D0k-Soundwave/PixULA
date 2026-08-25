@@ -415,7 +415,7 @@ class AppClass {
             }
 
             if (confirm(I18n.t('msg.autosaveFound', { age: ageText }))) {
-                this._loadProjectData(autosaveData);
+                await this._loadProjectData(autosaveData);
                 Logger.info('App', 'Autosave restored');
             } else {
                 // User declined, clear the stale autosave
@@ -503,10 +503,36 @@ class AppClass {
         return (window.FileManager && FileManager.currentFilename) || 'Untitled';
     }
 
-    /** Snapshot the document for autosave. @private */
+    /**
+     * Snapshot the document for autosave / `.pixula`.
+     *
+     * `slices` is the SAME six `PresetServiceClass.SLICES` a workspace preset
+     * captures - tool, colour, drawing modifiers, pattern, reference image +
+     * placement, view - reusing their capture() rather than a second,
+     * bespoke set of fields that could drift from what presets already do.
+     * The reference image is embedded (not the preset-sized thumbnail: see
+     * ProjectFormat's doc comment for the full reasoning), and its
+     * FileSystemFileHandle is dropped unconditionally - it cannot survive
+     * JSON regardless, the same reason PresetCodec.encodeFile drops it for a
+     * shared `.zxpreset`.
+     * @private
+     */
     _getProjectData() {
+        // embedReferenceAsset keeps the image inline on slices.reference.
+        // assetData rather than lifted into a separate returned `asset` -
+        // there is no content-addressed store to lift it into here.
+        const { slices } = PresetService.capture(ProjectFormat.SLICE_IDS, {
+            referenceMaxPx: ProjectFormat.REFERENCE_IMAGE_MAX_PX,
+            referenceQuality: ProjectFormat.REFERENCE_IMAGE_QUALITY,
+            embedReferenceAsset: true
+        });
+        if (slices.reference && slices.reference.assetData) {
+            // Never the handle - it cannot survive JSON regardless of policy.
+            slices.reference.assetData.handle = null;
+        }
+
         return {
-            version: 1,
+            version: 2,
             timestamp: Date.now(),
             screenMode: ScreenModeService.getModeId(),
             ulaplusRegisters: ColorManager.ulaplusRegisters
@@ -515,26 +541,20 @@ class AppClass {
                 ? Array.from(ColorManager.nextRegisters) : null,
             timexHiresInk: ColorManager.getTimexHiresInk(),
             layers: LayerManager.getAllLayers(),
-            state: {
-                tool: StateManager.getCurrentTool(),
-                // Read from ColorManager, the owner. The top-level 'ink'/'paper'
-                // state paths are written once at boot and never again —
-                // ColorManager.setInk writes 'color.ink' — so snapshotting them
-                // recorded the boot defaults and restore reset the artist's
-                // colour to black on white (found 2026-08-06 while building the
-                // preset slices, which read the same state).
-                ink: ColorManager.getInk(),
-                paper: ColorManager.getPaper(),
-                bright: ColorManager.getBright(),
-                flash: ColorManager.getFlash(),
-                border: ColorManager.getBorder(),
-                zoom: StateManager.getZoom()
-            }
+            slices
         };
     }
 
-    /** Restore an autosave snapshot over the boot defaults. @private */
-    _loadProjectData(data) {
+    /**
+     * Restore an autosave snapshot / opened `.pixula` over the boot defaults.
+     *
+     * `data.slices` is the current shape (version 2+); `data.state` is read
+     * as a fallback so a file saved before this change still restores its
+     * narrower tool/colour/zoom set rather than nothing at all - `slices`
+     * always wins where both are present, since it is a strict superset.
+     * @private
+     */
+    async _loadProjectData(data) {
         // Mode first (raw — the layer data below already matches its
         // geometry), then the ULAplus palette it may reference.
         if (data.screenMode && data.screenMode !== ScreenModeService.getModeId()) {
@@ -557,7 +577,10 @@ class AppClass {
             EventBus.emit(EVENTS.LAYER_ORDER);
         }
 
-        if (data.state) {
+        if (data.slices) {
+            await PresetService.applyCapturedSlices(data.slices);
+        } else if (data.state) {
+            // Pre-2026-08-23 file/autosave shape.
             if (data.state.tool) ToolManager.selectTool(data.state.tool);
             // Through ColorManager so the colour bar and the drawing gate both
             // see the restored selection (see _getProjectData above).

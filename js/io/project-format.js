@@ -12,11 +12,46 @@
  * which is what versioned autosave needs.
  *
  * WHAT IT IS. Exactly the payload `App._getProjectData()` already produces and
- * `App._loadProjectData()` already restores - layers, screen mode, both palette
- * register files, the Timex hi-res ink, and the tool/colour/zoom state. That is
- * deliberate: the autosave record in IndexedDB and this file are THE SAME
- * OBJECT, so a restore path that works for one cannot rot for the other. Adding
- * a field to the snapshot puts it in the file for free.
+ * `App._loadProjectData()` already restores. That is deliberate: the autosave
+ * record in IndexedDB and this file are THE SAME OBJECT, so a restore path
+ * that works for one cannot rot for the other. Adding a field to the snapshot
+ * puts it in the file for free. Two parts:
+ *
+ *   - The document itself: layers, screen mode, both palette register files,
+ *     the Timex hi-res ink.
+ *   - `slices`: the SAME six `PresetServiceClass.SLICES` a workspace preset
+ *     captures (tool - every tool's options, not just which is active - plus
+ *     colour, drawing modifiers, pattern, reference image + placement, and
+ *     view), applied through `PresetService.applyCapturedSlices()` - one
+ *     mechanism, not a second one reimplemented here. Everything genuinely
+ *     app-level (theme, locale, pen mapping, autosave interval - `pref.*`
+ *     Storage keys) stays OUT, matching every mainstream art tool surveyed
+ *     when this scope was decided (2026-08-23): none of them put install
+ *     preferences in a document either. The undo/redo stack ALSO stays out,
+ *     on purpose - no mainstream tool persists a live command stack across a
+ *     save/reopen, and PixULA's own history is byte-budget-capped precisely
+ *     because it was built assuming it never has to survive one.
+ *
+ * THE REFERENCE IMAGE IS EMBEDDED, NOT LINKED. Every other place a reference
+ * photo travels (a preset, a `.zxpreset` file) keeps a link-plus-thumbnail
+ * ONLY - never the photo - because a preset is a small, frequently-recalled
+ * settings snippet and embedding cost 1.94 GiB once, unbounded, across a
+ * whole library (M, 2026-08-07). Neither risk applies to a `.pixula`: it is
+ * one file, one image, saved because the artist explicitly asked to save
+ * THIS project, not accumulated silently in a database. And a
+ * `FileSystemFileHandle` cannot survive JSON regardless of policy - the
+ * SAME reason `PresetCodec.encodeFile` already drops it for a shared
+ * `.zxpreset` - so "link only" would mean re-locating the source photo on
+ * every single reopen, including seconds later on the same machine. So
+ * `.pixula` embeds the image itself (via `ImageSource.thumbnail()`, same
+ * function presets use, at REFERENCE_IMAGE_MAX_PX/_QUALITY instead of the
+ * preset-sized default) and drops the handle unconditionally.
+ * REFERENCE_IMAGE_MAX_PX is a reasoned starting figure, not a measured one
+ * [C, 2026-08-23]: PixULA's largest working canvas is 640x256
+ * (LAYER2_640) and a reference is only ever traced at some zoom multiple of
+ * that, so resolution past what a generous tracing-zoom ceiling could ever
+ * show buys nothing - it was not checked against a corpus of real reference
+ * photos, so treat it as the one figure in this file worth revisiting.
  *
  * ON DISK. gzip of the UTF-8 JSON, via the platform's own CompressionStream -
  * no library, and the app stays dependency-free. It matters at this size: a
@@ -24,7 +59,8 @@
  * 2026-08-07). Where CompressionStream is missing the plain JSON is written
  * instead; decode sniffs the gzip magic (1f 8b) and handles either, so files
  * stay readable across both paths and a `.pixula` written by an older build
- * still opens.
+ * still opens - `App._loadProjectData()` still reads a pre-slices file's
+ * `state` block for exactly that reason.
  *
  * NOT A PICTURE FORMAT. No emulator or converter reads this - it is ours. Use
  * SCR/PNG/NXI to hand the artwork to anything else.
@@ -64,10 +100,28 @@ const TA_TAG = '$ta';
 /** Bumped only for a change decode cannot infer; the payload carries its own `version`. */
 const CONTAINER_VERSION = 1;
 
+/*
+ * The embedded reference image's size/quality cap - see the doc comment
+ * above ("THE REFERENCE IMAGE IS EMBEDDED, NOT LINKED") for the reasoning
+ * and its provenance ([C], not measured against real photos).
+ */
+const REFERENCE_IMAGE_MAX_PX = 4096;
+const REFERENCE_IMAGE_QUALITY = 0.9;
+
+/** Every slice a project restores - see the doc comment above. */
+const PROJECT_SLICE_IDS = Object.freeze(['tool', 'color', 'drawing', 'pattern', 'reference', 'view']);
+
 class ProjectFormatClass {
     constructor() {
         this.extension = 'pixula';
         this.mimeType = 'application/gzip';
+        // Instance properties, not class statics: window.ProjectFormat is
+        // the singleton every caller actually holds, and a class-static
+        // (ProjectFormatClass.X) is invisible from an instance without
+        // reaching through .constructor first.
+        this.REFERENCE_IMAGE_MAX_PX = REFERENCE_IMAGE_MAX_PX;
+        this.REFERENCE_IMAGE_QUALITY = REFERENCE_IMAGE_QUALITY;
+        this.SLICE_IDS = PROJECT_SLICE_IDS;
     }
 
     /** Is the platform's gzip available? @returns {boolean} */
@@ -154,7 +208,7 @@ class ProjectFormatClass {
     async parse(data) {
         const project = await this.decode(data);
         if (!project) return false;
-        App._loadProjectData(project);
+        await App._loadProjectData(project);
         LayerManager.composeToCanvas();
         return true;
     }
