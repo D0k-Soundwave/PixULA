@@ -114,18 +114,6 @@ legend {
     padding: 0;
 }
 
-/* A caption never sets the pitch: it wraps inside --clut-cell-size, whatever
-   its cell grows to (css/components.css). The clamp is on the LABEL, not the
-   cell, precisely so a cell CAN grow to share the row without the caption
-   spreading onto one long line and changing where it breaks - the 56px is
-   measured against every locale and must not move with the window width.
-   `caption-wide` opts out the groups that are genuinely wider than a cell -
-   the Ink and Paper swatch blocks and the Border dropdown - whose width is
-   set by their contents. */
-#color-bar .btn-captioned:not(.caption-wide) > .btn-label {
-    max-width: var(--clut-cell-size);
-}
-
 /* Mirror captions are composed from two i18n keys ("Mirror" + the axis
    name — draw-mode-bar.js), and "Mirror H+V" runs past one line at the
    fixed cell pitch in several locales. `caption-wide` (above) does not fix

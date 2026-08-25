@@ -2,76 +2,63 @@
 (function() {
 
 /**
- * ColorBarFit — keeps the top colour bar's own icon size independent of
- * --ui-scale, dialling it EITHER way to make the best use of the room
- * available. Every other chrome region (#header, #toolbar, #panels,
- * #status-bar, #canvas-controls) scales 1:1 with the artist's chosen
- * interface size; this bar alone can dial its OWN zoom (--colorbar-scale,
- * multiplied into --ui-scale for #color-bar's zoom in css/layout.css) up or
- * down: shrink when the interface-size setting would otherwise push its
- * content past two rows (fragmenting further at high magnification), or grow
- * (2026-08-22) when a wide window leaves the bar's natural size with room to
- * spare, so that space becomes bigger icons rather than empty margin — a
- * single comfortably-fitting row is grown to fill it, and a bar that already
- * needs two rows at its natural size is grown to fill THOSE properly,
- * without either ever being pushed into a row it did not already need.
+ * ColorBarFit — keeps the top strip's own icon size independent of
+ * --ui-scale, dialling it DOWN (never up — see history below) to guarantee
+ * the strip renders as exactly ONE row, at every interface-size setting and
+ * window width. Every other chrome region (#header, #toolbar, #color-rail,
+ * #panels, #status-bar, #canvas-controls) scales 1:1 with the artist's
+ * chosen interface size; this strip alone can dial its OWN zoom
+ * (--colorbar-scale, multiplied into --ui-scale for #color-bar's zoom in
+ * css/layout.css) down when the interface-size setting would otherwise wrap
+ * it to a second row.
  *
- * The indexed Next palette (the 256-entry scrolling grid) is the documented
- * exception to "always wrap, never scroll" — it is a single element that
- * cannot wrap, so shrinking icons would not buy it a second row and only
- * makes it harder to use. It opts out entirely (--colorbar-scale stays 1).
+ * Until 2026-08-25 this bar also carried every screen mode's palette
+ * swatches, needed a two-row target instead of one, and grew as well as
+ * shrunk when a wide window left room to spare. Both are gone: the palette
+ * moved to the fixed-size #color-rail (docs/superpowers/specs/
+ * 2026-08-25-colour-rail-design.md), which does not need (and must not
+ * have) an independent auto-fit at all, and the growing behaviour is
+ * dropped outright — it was never requested for this bar's remaining
+ * content (draw modes, Mirror, Swap/Recolour, Border) and was one more
+ * thing that could visibly move during a resize.
  *
  * There is a combination no amount of shrinking here can fix: #color-bar
- * sits in the #app grid's middle (1fr) column, flanked by #toolbar and
- * #panels, whose tracks are calc(--toolbar-width * --ui-scale) and
- * calc(--panel-width * --ui-scale) - fixed, NOT reduced by
- * --colorbar-scale, because they are a different region entirely. At
- * (128 + 280) = 408px base width (css/variables.css), those two tracks
- * alone can reach a narrow window's full width at a high enough scale,
- * leaving #color-bar's own column at zero regardless of what happens
- * inside it - fixing that would mean shrinking the tool rail and side
- * panels too, well beyond this bar. THIS is why the interface-size
- * selector's presets stop at 200% (index.html; 85%-300% until
- * 2026-08-10): measured that day, every window width from 1024px up
- * reaches two rows at every preset up to 200%, and 250%/300% were the
- * only presets that could still land on the unfixable combination on an
- * ordinary laptop-width window - so the ceiling was lowered rather than
- * carrying a known-broken corner behind a selector option. A value
- * stored before that change is clamped to the new max on restore
- * (js/ui/components/app-settings.js).
+ * sits in the #app grid's middle (1fr) column, flanked by #toolbar,
+ * #color-rail and #panels, whose tracks are fixed, NOT reduced by
+ * --colorbar-scale, because they are different regions entirely. At a high
+ * enough interface-size setting those fixed tracks alone can reach a narrow
+ * window's full width, leaving #color-bar's own column at zero regardless
+ * of what happens inside it. THIS is why the interface-size selector's
+ * presets stop at 200% (index.html) — see the git history on this file for
+ * the 2026-08-10 measurement that set that ceiling.
  *
- * #color-bar's own grid-computed width is NOT trusted as the "how much
- * room do I have" answer, because it can be wrong: `zoom` on a grid item
- * and the browser's own automatic-minimum-size accounting for that item
- * have been seen (2026-08-12, a 2560x1440 display) to disagree with the
- * grid column's actual size, in a way this component's own layout reads
- * cannot tell apart from "there just is not enough room" - so it looked
- * indistinguishable from correct behaviour in every automated check, and
- * only ever reproduced on real hardware. #canvas-area shares the exact
- * same grid column (css/layout.css grid-template-areas) but carries no
- * zoom of its own, so it is a clean, second, independent reading of that
- * column's true width. _pinWidth() below forces #color-bar's own layout
- * width (in ITS zoomed frame, so divided by the current combined zoom
- * before writing it) to match #canvas-area's, every time --colorbar-scale
- * changes as well as every refit - so whatever the grid+zoom disagreement
- * was, this component now measures rows against the real number instead
- * of whatever its own zoomed self-report said.
+ * #color-bar's own grid-computed width is NOT trusted as the "how much room
+ * do I have" answer, because it can be wrong: `zoom` on a grid item and the
+ * browser's own automatic-minimum-size accounting for that item have been
+ * seen (2026-08-12, a 2560x1440 display) to disagree with the grid column's
+ * actual size, in a way this component's own layout reads cannot tell apart
+ * from "there just is not enough room" - so it looked indistinguishable from
+ * correct behaviour in every automated check, and only ever reproduced on
+ * real hardware. #canvas-area shares the exact same grid column
+ * (css/layout.css grid-template-areas) but carries no zoom of its own, so it
+ * is a clean, second, independent reading of that column's true width.
+ * _pinWidth() below forces #color-bar's own layout width (in ITS zoomed
+ * frame, so divided by the current combined zoom before writing it) to
+ * match #canvas-area's, every time --colorbar-scale changes as well as
+ * every refit - so whatever the grid+zoom disagreement was, this component
+ * now measures rows against the real number instead of whatever its own
+ * zoomed self-report said.
  */
 class ColorBarFitClass {
     constructor() {
-        this.MAX_ROWS = 2;
+        // The strip must never wrap - see the class doc comment.
+        this.MAX_ROWS = 1;
         // The smallest scale worth trying - established by testing down to
         // an 800px-wide window at the interface-size selector's 200%
         // ceiling (tests/browser/shell.spec.js); nothing below it was ever
         // needed, so it is where the search below gives up rather than
         // shrinking icons to nothing.
         this.FLOOR = 0.15;
-        // The largest scale worth growing to when there is room to spare
-        // (2026-08-22) - A: not measured for this bar specifically, chosen to
-        // match the interface-size selector's own 200% ceiling elsewhere in
-        // the app (app-settings.js) rather than invent a second convention
-        // for "how big is too big" for a scaled control.
-        this.MAX_SCALE = 2;
         // How close the search gets to the true largest-scale-that-fits
         // before it stops refining, in scale units (so ~1% of the full
         // 0-1 range) - fine enough that nobody would see the difference
@@ -127,46 +114,29 @@ class ColorBarFitClass {
     }
 
     /**
-     * Recompute --colorbar-scale to make the best use of whatever room the
-     * bar has, in whichever direction the natural (scale 1) size calls for:
-     * SHRINK if that natural size already overflows past MAX_ROWS (the
-     * original 2026-08-10 behaviour), or GROW if it does not, so a wide
-     * window's slack space goes into bigger, more legible icons instead of
-     * sitting unused beside a bar still rendered at its base size. Either
-     * way the target is the row count the content ALREADY has at scale 1 -
-     * growing never pushes it into a row it did not already need, which is
-     * what keeps a comfortably-one-row window at one row instead of
-     * ballooning icons until a second row becomes "worth it" too.
+     * Recompute --colorbar-scale to keep the strip within MAX_ROWS (1),
+     * shrinking from scale 1 only if the natural size already wraps.
      *
-     * Both directions binary-search rather than step a fixed ladder (1, 0.9,
-     * 0.8, ... or 1, 1.1, 1.2, ...): row count does not change smoothly with
-     * scale, it jumps at the point content stops fitting a row, and a coarse
-     * ladder can step straight past the true edge to a much smaller (or,
-     * growing, a much larger) value than the content actually allows -
-     * found the shrinking way round, 2026-08-10.
+     * Binary-searches rather than stepping a fixed ladder (1, 0.9, 0.8, ...):
+     * row count does not change smoothly with scale, it jumps at the point
+     * content stops fitting a row, and a coarse ladder can step straight
+     * past the true edge to a much smaller value than the content actually
+     * allows - found 2026-08-10.
      *
-     * The edge itself turned out not to be safe to land on either (also
-     * 2026-08-12): a scale measured as "just fits" in this component's OWN
+     * The edge itself turned out not to be safe to land on either
+     * (2026-08-12): a scale measured as "just fits" in this component's OWN
      * reading can still wrap to one row more on the SAME machine, because
      * that reading and the browser's actual paint are two separate rounding
      * passes over the same fractional-DPR layout, and they do not always
-     * agree to the pixel. _margined() steps back from the edge in whichever
-     * direction it was approached, rather than trusting it exactly.
+     * agree to the pixel. _margined() steps back from the edge, rather than
+     * trusting it exactly.
      */
     refit() {
         if (!this._bar) return;
-        if (window.ZX_SPECTRUM && ZX_SPECTRUM.PIXEL_DEPTH > 1) {
-            this._setScale(1);
-            return;
-        }
 
         this._setScale(1);
-        const naturalRows = this._rowCount();
-
-        if (naturalRows > this.MAX_ROWS) {
+        if (this._rowCount() > this.MAX_ROWS) {
             this._shrinkToFit(this.MAX_ROWS);
-        } else {
-            this._growToFill(naturalRows);
         }
     }
 
@@ -184,30 +154,6 @@ class ColorBarFitClass {
 
         // Invariant through the loop: lo fits (<= targetRows), hi does not.
         let lo = this.FLOOR, hi = 1;
-        while (hi - lo > this.PRECISION) {
-            const mid = (lo + hi) / 2;
-            this._setScale(mid);
-            if (this._rowCount() <= targetRows) lo = mid; else hi = mid;
-        }
-        this._setScale(this._margined(lo));
-    }
-
-    /**
-     * Binary search UP from scale 1 for the largest scale that still fits
-     * within `targetRows` - the row count the bar's content already needs at
-     * scale 1, so growing fills whatever room is going spare without ever
-     * spilling into an extra row it did not already have.
-     * @private
-     */
-    _growToFill(targetRows) {
-        this._setScale(this.MAX_SCALE);
-        if (this._rowCount() <= targetRows) {
-            this._setScale(this._margined(this.MAX_SCALE));
-            return; // even the ceiling still fits at the natural row count
-        }
-
-        // Invariant through the loop: lo fits (<= targetRows), hi does not.
-        let lo = 1, hi = this.MAX_SCALE;
         while (hi - lo > this.PRECISION) {
             const mid = (lo + hi) / 2;
             this._setScale(mid);

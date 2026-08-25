@@ -580,123 +580,6 @@
     min-width: 0;
 }
 
-/* Every palette model lays its groups/rows out on ONE horizontal line so the
-   header keeps a constant height across screen modes; the #color-bar scrolls
-   sideways when a mode's palette is wider than the canvas column. fixed16 =
-   ink group · paper group · bit toggles; ULAplus = CLUT selector · ink half ·
-   paper half; ULANext = normal · bright; indexed = the scrolling swatch grid. */
-#color-bar #clut-cluster {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-end;
-    /* Ink and paper are ONE thing - the pair of colours a cell is made of -
-       so they are set one colour box apart and no further. Spreading them to
-       the ends of the row (justify-content: space-between, which this
-       replaced) filled the width but read as two unrelated palettes.
-       Column gap only: a wrapped row must not inherit a 39px gutter. */
-    column-gap: var(--clut-btn-size);
-    row-gap: var(--space-xs);
-    justify-content: flex-start;
-    /* The cluster is #toolbar-color's only child, so its own grow/shrink is
-       what #toolbar-color's (flex: 0 1 auto, above) ultimately hands down —
-       grow is moot either way since the parent never bloats past it, so this
-       stays 1 1 auto (matching every other flex item's default expectation)
-       and gives it back down to nothing (min-width: 0) when the row is tight
-       — the colour group is never wider than the bar.
-       WRAP first: a swatch block drops to its own line and every colour stays
-       on screen. Scrolling would be shorter, but it hides colours behind an
-       overlay scrollbar that takes no space and so does not announce itself -
-       measured 2026-08-09 at 1366px: 2 of 18 swatches off view, nothing to say
-       so. A colour the artist cannot see is the palette equivalent of a mode
-       they cannot see. Scroll is kept only for the one item that CANNOT wrap:
-       the indexed Next grid, a single element ~2700px wide. */
-    flex: 1 1 auto;
-    flex-wrap: wrap;
-    align-content: flex-end;
-    min-width: 0;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: thin;
-    /* .active-ink's outline sits 1px off the swatch and is 2px wide, so it
-       paints 3px past the swatch's own box - past this box's edges too, for
-       whichever swatch is first/last in a row or on the last wrapped line.
-       overflow here clips at the padding edge, not the content edge, so
-       padding reserves the room the outline paints into and the matching
-       negative margin gives it back, leaving every OTHER box's size and
-       position exactly as they were. Without it the ring was clipped flat
-       on that edge - worse at some --ui-scale values than others (rounding
-       of the sub-pixel outline width), which read as "scaling broke it"
-       when the room was simply never reserved. */
-    padding: 4px;
-    margin: -4px;
-}
-
-/* Nothing inside the scrolling cluster shrinks. Flex items shrink by default,
-   and a swatch block that shrinks does not drop swatches — the swatches are
-   no-shrink themselves, so they spill out of a narrower wrapper and get
-   CLIPPED. Holding the blocks at their size is what makes the cluster
-   overflow, which is what makes it scroll. */
-#color-bar #clut-cluster > * {
-    flex: 0 0 auto;
-}
-
-/* One colour channel: colour swatches · transparent box, under its caption. */
-#color-bar .clut-channel {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-end;
-    gap: 4px;
-}
-
-#color-bar .clut-row {
-    display: flex;
-    flex-direction: row;
-    gap: 3px;
-    align-items: flex-end;
-}
-
-/* Rows sit side by side on the single-line bar, so the separator between the
-   ULAplus ink/paper halves (and the ULANext normal/bright rows) is vertical. */
-#color-bar .clut-divider {
-    width: 1px;
-    height: auto;
-    min-height: 24px;
-    align-self: stretch;
-    margin: 0 var(--space-xs);
-}
-
-#color-bar .color-swatch {
-    width: 39px;
-    height: 39px;
-    min-height: 0;
-    aspect-ratio: auto;
-    flex: 0 0 auto;
-}
-
-#color-bar .clut-transparent-box {
-    margin-left: 2px;
-}
-
-/* Bright / Flash are full-size icon toggles, in cells like every other. */
-#color-bar .clut-bits {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-end;
-}
-
-/* ── One pitch, everywhere in the bar ─────────────────────────────────────
-   Every captioned icon control is exactly one button wide, so every cluster
-   shares the same pitch and the icons sit on one grid across the whole
-   controls line. A caption wider than its button (Recolour, Paper RC) used
-   to widen that one wrapper and centre the button inside it, leaving 4px
-   between two icons and 10px between the next two.
-   The caption WRAPS to fit rather than setting the pitch, so the grid is even
-   in every language. --clut-cell-size is what makes that survivable: see the
-   token below. */
-#color-bar .btn-captioned:not(.caption-wide) {
-    width: var(--clut-cell-size);
-}
-
 /* Break at a space before chopping a word. .btn-label's own default is
    `anywhere`, which is right where a caption's min-content width decides the
    width of the column it sits in - but here the width is FIXED, so `anywhere`
@@ -710,20 +593,10 @@
 }
 
 #color-bar {
-    --clut-cell-size: 56px;
     /* ColorBarFit's own knob (js/ui/components/colorbar-fit.js) — 1 until it
        decides the bar needs to shrink to keep fitting one row; see the
        zoom formula in css/layout.css. */
     --colorbar-scale: 1;
-}
-
-/* The native checkbox drives state/AT but the icon shows it — hide the box. */
-#color-bar .clut-bit input {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    opacity: 0;
-    pointer-events: none;
 }
 
 /* Border picker is a <select>, not a button, so it needs its own match to the
@@ -774,34 +647,7 @@
     :root { --clut-btn-size: 44px; }
 }
 
-/* Indexed Next palettes scroll sideways with the bar. Small palettes (<=16)
-   sit in one full-size row; the 256-entry palettes go dense — two half-height
-   rows whose pair occupies the SAME height as one full row (18+18+3px gap =
-   39px), which also halves the horizontal scroll length. */
-#color-bar .indexed-palette-grid {
-    display: grid;
-    grid-auto-flow: column;
-    grid-template-rows: auto;
-    grid-template-columns: none;
-    grid-auto-columns: max-content;
-    gap: 3px;
-    max-height: none;
-    overflow: visible;
-}
-
-#color-bar .indexed-palette-grid.indexed-dense {
-    grid-template-rows: repeat(2, auto);
-}
-
-#color-bar .indexed-palette-grid.indexed-dense .color-swatch {
-    width: 18px;
-    height: 18px;
-}
-
 @media (pointer: coarse) {
-    #color-bar .color-swatch { width: 44px; height: 44px; }
-    /* Dense 256-palette rows stay two-up but grow to a usable tap size. */
-    #color-bar .indexed-palette-grid.indexed-dense .color-swatch { width: 22px; height: 22px; }
     /* The left-rail preview wells fill their grid column; nudge the whole
        block wider so fingertips land, keeping the tool-rail width. */
     #color-preview .clut-preview { min-height: 48px; }

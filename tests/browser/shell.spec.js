@@ -20,9 +20,11 @@ test('header: menu bar, language/size selectors, speak toggle', async ({ page })
     await expect(page.locator('#tts-toggle')).toBeAttached();
 });
 
-test('top colour bar: flash, 2×8 CLUT, wells, border, attr ops; left rail = tool registry', async ({ page }) => {
+test('colour rail: flash, 2×8 CLUT; left rail = tool registry; top strip keeps border + attr ops', async ({ page }) => {
     await boot(page);
-    await expect(page.locator('#flash-toggle')).toBeAttached();
+    // Bright/Flash and the swatch cluster live in the vertical colour rail
+    // between the tool rail and the canvas, not the top strip (2026-08-25).
+    await expect(page.locator('#color-rail #flash-toggle')).toBeAttached();
 
     const clut = await page.evaluate(() => {
         const rows = [...document.querySelectorAll('#clut-cluster .clut-row')];
@@ -30,9 +32,9 @@ test('top colour bar: flash, 2×8 CLUT, wells, border, attr ops; left rail = too
     });
     expect(clut).toEqual([8, 8]); // ink row + paper row
 
-    // The colour cluster, Border dropdown and attr ops live in the top
-    // #color-bar; the Ink/Paper preview wells moved to #color-preview at the
-    // top of the left tool rail.
+    // The Ink/Paper preview wells live in #color-preview at the top of the
+    // left tool rail; Border and the attr ops (Swap/Recolour) stay on the
+    // top #color-bar strip.
     const rail = await page.evaluate(() => ({
         wells: [...document.querySelectorAll('#color-preview .color-swatch[role="button"]')].length,
         selects: [...document.querySelectorAll('#color-bar select')].length,
@@ -57,260 +59,149 @@ test('top colour bar: flash, 2×8 CLUT, wells, border, attr ops; left rail = too
 });
 
 /*
- * However many rows the colour bar takes, each has to read as one.
- *
- * Every control is the same size, captioned above by the same mechanism
- * (Helpers.captionWrap), and sits on one --clut-cell-size pitch, so a row
- * shares a baseline and an even grid. None of that held until 2026-08-09:
- * Ink, Paper and Border carried inline labels of their own while Bright,
- * Flash, Swap and the draw modes were captioned, centring the mixture pushed
- * Bright and Flash 7px below the swatches beside them, and a caption wider
- * than its button widened that one wrapper so the icons sat at irregular
- * intervals. Geometry, because that is the only form in which "aligned" can
- * be asserted.
+ * The top strip (#color-bar) now carries only Border and the marks group
+ * (draw modes, Mirror, Swap/Recolour) — the palette cluster moved to
+ * #color-rail 2026-08-25 (see tests/browser/color-rail.spec.js). Every
+ * control here is still the same size and sits on one baseline.
  */
-test('every row of the colour bar sits on one baseline and one pitch',
-    async ({ page }) => {
-        await boot(page);
+test('every row of the top strip sits on one baseline and one pitch', async ({ page }) => {
+    await boot(page);
 
-        /*
-         * The bar is cut by what a control DOES: palette (which colour),
-         * attrs (Bright/Flash/Border - cell/screen attributes, its own
-         * sibling group so it can wrap independently of the swatches) and
-         * marks (how a stroke combines). Swap and Recolour belong to marks:
-         * they are attribute OPS, and they sit inline with the draw modes
-         * rather than off with the swatches or with Bright/Flash/Border.
-         */
-        const split = await page.evaluate(() => ({
-            swatchesInMarks: document.querySelectorAll('#color-bar-controls .color-swatch').length,
-            marks: [...document.querySelectorAll('#color-bar-controls button')]
-                .map((b) => b.id || b.dataset.drawMode),
-            // Bright/Flash and Border are their own block, one palette-icon
-            // pitch after the paper clut.
-            attrsGroupKeeps: ['#bright-toggle', '#flash-toggle', '#border-select']
-                .filter((s) => document.querySelector(`#toolbar-attrs ${s}`)).length
-        }));
-        expect(split.swatchesInMarks).toBe(0);
-        // Draw modes first, then Mirror H/V/H+V (moved 2026-08-22), then
-        // Swap/Recolour after that (moved 2026-08-10).
-        expect(split.marks).toEqual(['normal', 'ink', 'paper', 'pixel_only', 'xor', 'xor_pixel',
-            'symmetry-h-toggle', 'symmetry-v-toggle', 'symmetry-quad-toggle',
-            'attr-transpose', 'attr-apply']);
-        expect(split.attrsGroupKeeps).toBe(3);
+    const split = await page.evaluate(() => ({
+        swatchesInMarks: document.querySelectorAll('#color-bar-controls .color-swatch').length,
+        swatchesInColorBar: document.querySelectorAll('#color-bar .color-swatch').length,
+        marks: [...document.querySelectorAll('#color-bar-controls button')]
+            .map((b) => b.id || b.dataset.drawMode),
+        attrsGroupKeeps: ['#border-select'].filter((s) => document.querySelector(`#toolbar-attrs ${s}`)).length,
+        bitsMovedOut: ['#bright-toggle', '#flash-toggle'].filter((s) => document.querySelector(`#toolbar-attrs ${s}`)).length
+    }));
+    expect(split.swatchesInMarks).toBe(0);
+    expect(split.swatchesInColorBar).toBe(0); // no swatches on the top strip at all now
+    expect(split.marks).toEqual(['normal', 'ink', 'paper', 'pixel_only', 'xor', 'xor_pixel',
+        'symmetry-h-toggle', 'symmetry-v-toggle', 'symmetry-quad-toggle',
+        'attr-transpose', 'attr-apply']);
+    expect(split.attrsGroupKeeps).toBe(1); // just Border now
+    expect(split.bitsMovedOut).toBe(0);    // Bright/Flash live in #color-rail
 
-        // The marks run is icon-only (2026-08-22 — captioning every one of
-        // eleven buttons individually is what pushed the bar to two rows at
-        // window widths it used to fit): one shared "Drawing Modes" caption
-        // above the row instead, every icon the bar's one shared size.
-        const pitch = await page.evaluate(() => {
-            const label = document.getElementById('marks-group-label');
-            const cells = [...document.querySelectorAll('#marks-icons-row button')]
-                .filter((el) => el.offsetParent !== null);
-            const rect = (c) => c.getBoundingClientRect();
-            return {
-                n: cells.length,
-                widths: [...new Set(cells.map((c) => Math.round(rect(c).width)))],
-                labelText: label ? label.textContent.trim() : null,
-                labelAboveIcons: label ? rect(label).bottom <= rect(cells[0]).top + 1 : false
-            };
-        });
-        expect(pitch.n).toBe(11);        // Swap, Recolour + 6 draw modes + 3 mirror toggles
-        expect(pitch.widths).toHaveLength(1);
-        expect(pitch.labelText).toBeTruthy();
-        expect(pitch.labelAboveIcons).toBe(true);
+    const pitch = await page.evaluate(() => {
+        const label = document.getElementById('marks-group-label');
+        const cells = [...document.querySelectorAll('#marks-icons-row button')]
+            .filter((el) => el.offsetParent !== null);
+        const rect = (c) => c.getBoundingClientRect();
+        return {
+            n: cells.length,
+            widths: [...new Set(cells.map((c) => Math.round(rect(c).width)))],
+            labelText: label ? label.textContent.trim() : null,
+            labelAboveIcons: label ? rect(label).bottom <= rect(cells[0]).top + 1 : false
+        };
+    });
+    expect(pitch.n).toBe(11);        // Swap, Recolour + 6 draw modes + 3 mirror toggles
+    expect(pitch.widths).toHaveLength(1);
+    expect(pitch.labelText).toBeTruthy();
+    expect(pitch.labelAboveIcons).toBe(true);
 
-        /*
-         * Ink and paper are ONE thing - the pair of colours a cell is made of.
-         * They sit exactly one colour box apart, so they read as a pair; when
-         * the cluster was spread to fill the row instead they read as two
-         * unrelated palettes. The swatches inside each block stay touching,
-         * because a gap between two colours reads as a boundary.
-         */
-        const pair = await page.evaluate(() => {
-            const blocks = [...document.querySelectorAll('#clut-cluster > .btn-captioned')];
-            const swatch = document.querySelector('.color-swatch').getBoundingClientRect().width;
-            const between = blocks[1].getBoundingClientRect().left -
-                            blocks[0].getBoundingClientRect().right;
-            const inside = [...blocks[0].querySelectorAll('.clut-row .color-swatch')]
-                .map((s) => s.getBoundingClientRect());
-            return {
-                blocks: blocks.length,
-                gapInSwatches: between / swatch,
-                // Relative to swatch size, not a fixed CSS px - ColorBarFit
-                // can now GROW the bar past scale 1 (2026-08-22) when there
-                // is room to spare, and a fixed px threshold tuned for
-                // scale ~1 reads a merely-scaled-up rounding artifact as a
-                // real gap.
-                widestInnerGapRatio: Math.max(...inside.slice(1).map(
-                    (r, i) => r.left - inside[i].right)) / swatch
-            };
-        });
-        expect(pair.blocks).toBe(2);                       // ink, paper
-        expect(pair.gapInSwatches).toBeCloseTo(1, 1);      // one colour box apart
-        expect(pair.widestInnerGapRatio).toBeLessThan(0.15); // and touching within a block
-
-        const bar = await page.evaluate(() => {
-            const controls = [...document.querySelectorAll(
-                '#color-bar .color-swatch, #color-bar button, #color-bar select, #color-bar .clut-bit')]
-                .filter((el) => el.offsetParent !== null);
-            const round = (n) => Math.round(n * 10) / 10;
-            // Group by the row each control wrapped onto, then report the
-            // distinct top/bottom edges and heights within each row
-            const rows = new Map();
-            for (const el of controls) {
-                const r = el.getBoundingClientRect();
-                const key = round(Math.round(r.top / 40));   // coarse row bucket
-                if (!rows.has(key)) rows.set(key, []);
-                rows.get(key).push({ top: round(r.top), h: round(r.height) });
-            }
-            return [...rows.values()].map((row) => ({
-                count: row.length,
-                tops: [...new Set(row.map((c) => c.top))],
-                heights: [...new Set(row.map((c) => c.h))]
-            }));
-        });
-
-        expect(bar.length).toBeGreaterThan(0);
-        for (const row of bar) {
-            expect(row.count).toBeGreaterThan(1);
-            // One top edge and one height per row: nothing sits high or low,
-            // and no control is a different size from the swatches
-            expect(row.tops).toHaveLength(1);
-            expect(row.heights).toHaveLength(1);
+    const bar = await page.evaluate(() => {
+        const controls = [...document.querySelectorAll('#color-bar button, #color-bar select')]
+            .filter((el) => el.offsetParent !== null);
+        const round = (n) => Math.round(n * 10) / 10;
+        const rows = new Map();
+        for (const el of controls) {
+            const r = el.getBoundingClientRect();
+            const key = round(Math.round(r.top / 40));
+            if (!rows.has(key)) rows.set(key, []);
+            rows.get(key).push({ top: round(r.top), h: round(r.height) });
         }
-
-        /*
-         * Bottom-aligning means a control that LOST its caption would still
-         * line up, so geometry alone cannot catch that - and an inline label
-         * beside the swatches is exactly what this replaced. Assert the
-         * mechanism instead: every control OUTSIDE the marks run is inside a
-         * caption wrapper, every one of those captions is the shared
-         * .btn-label, and nothing carries a label of its own devising.
-         * The marks run (draw modes, Mirror, Swap/Recolour) is the one
-         * deliberate exception (2026-08-22): icon-only, captioned once as a
-         * whole by #marks-group-label rather than per button - asserted
-         * separately below, including that its own caption shares the same
-         * typography .btn-label uses everywhere else.
-         */
-        const captions = await page.evaluate(() => {
-            const uncaptioned = [...document.querySelectorAll(
-                '#color-bar .color-swatch, #color-bar button, #color-bar select, #color-bar .clut-bit')]
-                .filter((el) => el.offsetParent !== null && !el.closest('#marks-icons-row')
-                    && !el.closest('.btn-captioned'))
-                .map((el) => el.id || el.className);
-            const labels = [...document.querySelectorAll('#color-bar .btn-label')];
-            const groupLabel = document.getElementById('marks-group-label');
-            const styleOf = (l) => {
-                const cs = getComputedStyle(l);
-                return `${cs.fontSize}|${cs.fontWeight}|${cs.textAlign}`;
-            };
-            const marksIconsCaptioned = [...document.querySelectorAll('#marks-icons-row button')]
-                .filter((el) => el.offsetParent !== null && el.closest('.btn-captioned'))
-                .map((el) => el.id || el.className);
-            return {
-                uncaptioned,
-                styles: [...new Set(labels.map(styleOf))],
-                groupLabelStyle: groupLabel ? styleOf(groupLabel) : null,
-                marksIconsCaptioned,
-                // No control may carry a label the caption mechanism did not build
-                strays: document.querySelectorAll('#color-bar label:not(.clut-bit)').length
-            };
-        });
-        expect(captions.uncaptioned).toEqual([]);
-        // One distinct style, whatever the font-scale setting makes it
-        expect(captions.styles).toHaveLength(1);
-        expect(captions.groupLabelStyle).toBe(captions.styles[0]);
-        expect(captions.marksIconsCaptioned).toEqual([]);
-        expect(captions.strays).toBe(0);
+        return [...rows.values()].map((row) => ({
+            count: row.length,
+            tops: [...new Set(row.map((c) => c.top))],
+            heights: [...new Set(row.map((c) => c.h))]
+        }));
     });
 
+    expect(bar.length).toBe(1); // ALWAYS exactly one row now
+    for (const row of bar) {
+        expect(row.count).toBeGreaterThan(1);
+        expect(row.tops).toHaveLength(1);
+        expect(row.heights).toHaveLength(1);
+    }
+
+    const captions = await page.evaluate(() => {
+        const uncaptioned = [...document.querySelectorAll('#color-bar button, #color-bar select')]
+            .filter((el) => el.offsetParent !== null && !el.closest('#marks-icons-row')
+                && !el.closest('.btn-captioned'))
+            .map((el) => el.id || el.className);
+        const labels = [...document.querySelectorAll('#color-bar .btn-label')];
+        const groupLabel = document.getElementById('marks-group-label');
+        const styleOf = (l) => {
+            const cs = getComputedStyle(l);
+            return `${cs.fontSize}|${cs.fontWeight}|${cs.textAlign}`;
+        };
+        const marksIconsCaptioned = [...document.querySelectorAll('#marks-icons-row button')]
+            .filter((el) => el.offsetParent !== null && el.closest('.btn-captioned'))
+            .map((el) => el.id || el.className);
+        return {
+            uncaptioned,
+            styles: [...new Set(labels.map(styleOf))],
+            groupLabelStyle: groupLabel ? styleOf(groupLabel) : null,
+            marksIconsCaptioned,
+            strays: document.querySelectorAll('#color-bar label:not(.clut-bit)').length
+        };
+    });
+    expect(captions.uncaptioned).toEqual([]);
+    expect(captions.styles).toHaveLength(1);
+    expect(captions.groupLabelStyle).toBe(captions.styles[0]);
+    expect(captions.marksIconsCaptioned).toEqual([]);
+    expect(captions.strays).toBe(0);
+});
+
 /*
- * The bar EARNS its second row. It is chrome above the artwork, so a row it
- * did not need is canvas the artist did not get, and whether it needs one is
- * not knowable in advance: the screen mode decides how wide the palette is (a
- * 256-entry indexed palette against a 16-colour one), and the window and the
- * interface-size setting decide how much room that has to fit in. So the bar
- * is one wrapping row, not two fixed lines - measured 2026-08-09 at scale 1
- * in en: one row from ~2200px of viewport, two below it, and one row up to
- * interface size 125%.
+ * The top strip is now small enough (Border + 11 marks icons) that
+ * ColorBarFit's job changed from "keep it to two rows" to "keep it to
+ * exactly one, always" — see js/ui/components/colorbar-fit.js. Unlike the
+ * old two-row bar, there is no width at which a second row is acceptable.
  */
 const barRows = (page) => page.evaluate(() => {
     const tops = new Set();
-    for (const el of document.querySelectorAll(
-        '#color-bar .color-swatch, #color-bar button, #color-bar select, #color-bar .clut-bit')) {
+    for (const el of document.querySelectorAll('#color-bar button, #color-bar select')) {
         if (el.offsetParent === null) continue;
         tops.add(Math.round(el.getBoundingClientRect().top / 20));
     }
     return tops.size;
 });
 
-test.describe('the colour bar spends only the height it needs', () => {
-    test.describe('given room for everything', () => {
-        test.use({ viewport: { width: 2560, height: 900 } });
-
-        test('it is a single row', async ({ page }) => {
+test.describe('the top strip is always exactly one row', () => {
+    for (const width of [1024, 1366, 1600, 2560]) {
+        test(`at ${width}px`, async ({ page }) => {
+            await page.setViewportSize({ width, height: 900 });
             await boot(page);
             expect(await barRows(page)).toBe(1);
         });
-    });
-
-    test.describe('given a narrow window', () => {
-        test.use({ viewport: { width: 1366, height: 900 } });
-
-        test('it wraps, the marks group stays whole, and nothing overflows',
-            async ({ page }) => {
-                await boot(page);
-                expect(await barRows(page)).toBeGreaterThan(1);
-
-                // The marks run is never split: Swap, Recolour and the five
-                // draw modes stay on one line together, which is the grouping
-                // the whole run exists for
-                const marksRows = await page.evaluate(() => {
-                    const tops = new Set();
-                    for (const b of document.querySelectorAll('#color-bar-controls button')) {
-                        if (b.offsetParent === null) continue;
-                        tops.add(Math.round(b.getBoundingClientRect().top / 20));
-                    }
-                    return tops.size;
-                });
-                expect(marksRows).toBe(1);
-            });
-    });
+    }
 });
 
 /*
- * ColorBarFit (js/ui/components/colorbar-fit.js): raising the interface-size
- * setting used to fragment the bar into three, four, five+ short rows well
- * before any other chrome region showed a problem, because #color-bar's own
- * icons grew with --ui-scale while the column they sit in did not (found
- * 2026-08-10). #color-bar now scales by --ui-scale times its own
- * --colorbar-scale (css/layout.css), and this component dials that second
- * factor down - independently of every other region - until the bar's
- * content fits two rows again, or the floor is reached.
+ * ColorBarFit (js/ui/components/colorbar-fit.js): the top strip must never
+ * wrap to a second row, at any interface-size setting or window width from
+ * 1024px up. This is the same shrink-only binary search the bar always
+ * used, just retargeted from "fits two rows" to "fits one, always" now that
+ * the palette cluster (the thing that used to make two rows necessary)
+ * lives in #color-rail instead — see docs/superpowers/specs/
+ * 2026-08-25-colour-rail-design.md.
  *
- * This holds across the whole interface-size range at every window width
- * tested, from 1024px up. It does NOT hold at every width for every scale
- * this component could in principle be asked to reach - #toolbar and
- * #panels are a DIFFERENT region, scaling by plain --ui-scale with no floor
- * of their own ((--toolbar-width + --panel-width) = 408px base,
- * css/variables.css), so past a high enough scale those two tracks alone
- * can exceed a narrow window and leave #color-bar's own grid column at
- * zero regardless of --colorbar-scale - no amount of shrinking inside it
- * can conjure a column that isn't there. That is exactly why the
- * interface-size selector's presets stop at 200% (85%-300% until
- * 2026-08-10, index.html): every window width from 1024px up reaches two
- * rows at every preset the selector now offers, so the impossible
- * combination is simply not reachable through it any more. A value stored
- * from before the presets were narrowed is clamped to the new max on
- * restore (js/ui/components/app-settings.js) rather than reapplying a
- * scale the selector can no longer even show as selected.
+ * As before, this does NOT hold at every width for every scale this
+ * component could in principle be asked to reach — #toolbar, #color-rail
+ * and #panels are different regions with no floor of their own, so past a
+ * high enough combined width those tracks alone can exceed a narrow window
+ * and leave #color-bar's own grid column at zero regardless of
+ * --colorbar-scale. That is exactly why the interface-size selector's
+ * presets stop at 200%.
  */
-test.describe('ColorBarFit keeps the bar at two rows across interface sizes', () => {
+test.describe('ColorBarFit keeps the top strip at one row across interface sizes', () => {
     for (const width of [1024, 1366, 1600]) {
         test.describe(`at ${width}px`, () => {
             test.use({ viewport: { width, height: 900 } });
             for (const scale of ['1.25', '1.5', '2']) {
-                test(`${Math.round(scale * 100)}% still gets two rows`,
+                test(`${Math.round(scale * 100)}% still gets one row`,
                     async ({ page }) => {
                         await boot(page);
                         await page.selectOption('#font-scale-selector', scale);
@@ -318,8 +209,7 @@ test.describe('ColorBarFit keeps the bar at two rows across interface sizes', ()
                         const result = await page.evaluate(() => {
                             const bar = document.getElementById('color-bar');
                             const tops = new Set();
-                            for (const el of document.querySelectorAll(
-                                '#color-bar .color-swatch, #color-bar button, #color-bar select, #color-bar .clut-bit')) {
+                            for (const el of document.querySelectorAll('#color-bar button, #color-bar select')) {
                                 if (el.offsetParent === null) continue;
                                 tops.add(Math.round(el.getBoundingClientRect().top / 10));
                             }
@@ -328,7 +218,7 @@ test.describe('ColorBarFit keeps the bar at two rows across interface sizes', ()
                                 hasHorizontalOverflow: bar.scrollWidth > bar.clientWidth + 1
                             };
                         });
-                        expect(result.rows).toBeLessThanOrEqual(2);
+                        expect(result.rows).toBe(1);
                         expect(result.hasHorizontalOverflow).toBe(false);
                     });
             }
@@ -353,31 +243,10 @@ test.describe('ColorBarFit keeps the bar at two rows across interface sizes', ()
             expect(after.uiScale).toBe('2');
         });
 
-    /*
-     * A scale ColorBarFit measures as "exactly two rows" in its OWN read
-     * can still paint as three on the SAME machine (found 2026-08-12, a
-     * 2560x1440 display at 125% Windows scaling): its row count and the
-     * browser's actual layout are two separate roundings of the same
-     * fractional-device-pixel-ratio geometry, and a scale landing exactly
-     * on the boundary between them has zero margin for the two to
-     * disagree. ColorBarFit._margined() backs off from that edge by an
-     * amount that grows with how far window.devicePixelRatio sits from a
-     * whole number - fractional scaling (Windows "125%", "150%"...) is
-     * exactly what produces a fractional DPR. This does not (cannot,
-     * confirmed on real hardware but never reproduced by Playwright's DPR
-     * emulation) prove the margin is large enough for every real display -
-     * it pins that the margin EXISTS and scales with DPR, so a future
-     * change cannot silently zero it out the way the original edge-exact
-     * search did.
-     */
     test('the safety margin actually grows at a fractional device pixel ratio',
         async ({ page }) => {
             const scaleAt = async (dpr) => {
                 await page.setViewportSize({ width: 1024, height: 900 });
-                // deviceScaleFactor is fixed per browser context in Playwright,
-                // not settable mid-test - reload with a fresh context field
-                // instead by re-navigating; simplest is two separate contexts,
-                // so this drives dpr via emulation on THIS page's CDP session.
                 const client = await page.context().newCDPSession(page);
                 await client.send('Emulation.setDeviceMetricsOverride', {
                     width: 1024, height: 900, deviceScaleFactor: dpr, mobile: false
@@ -391,80 +260,8 @@ test.describe('ColorBarFit keeps the bar at two rows across interface sizes', ()
             };
             const atIntegerDpr = await scaleAt(1);
             const atFractionalDpr = await scaleAt(1.25);
-            // Same content, same width, same interface-size - the only
-            // difference is DPR, so any gap in the settled scale is the
-            // margin's own DPR term, not a coincidence of what fit.
             expect(atFractionalDpr).toBeLessThan(atIntegerDpr);
         });
-
-    test('the indexed Next grid opts out - it scrolls by design, shrinking it would not help',
-        async ({ page }) => {
-            await boot(page);
-            page.on('dialog', (d) => d.accept()); // classic->indexed warns (lossy)
-            await page.evaluate(() => ScreenModeService.switchMode('layer2_256'));
-            await page.selectOption('#font-scale-selector', '2');
-            await page.waitForTimeout(250);
-            const scale = await page.evaluate(() =>
-                getComputedStyle(document.getElementById('color-bar'))
-                    .getPropertyValue('--colorbar-scale').trim());
-            expect(scale).toBe('1');
-        });
-});
-
-/*
- * The colour group is NEVER wider than the bar - at any window width, any
- * interface size, in any screen mode. It wraps a swatch block onto its own
- * line rather than overflowing, so Bright, Flash and Border keep their place
- * at the right end instead of being pushed off it, and no swatch ends up
- * behind an overlay scrollbar that takes no space and announces nothing.
- * The one exception it cannot wrap is the indexed Next grid - a single
- * element ~2700px wide - which scrolls inside the group, leaving the group
- * itself within the bar.
- */
-test.describe('the colour group fits the bar', () => {
-    for (const width of [1024, 1366, 1600, 2560]) {
-        test(`at ${width}px, in every screen mode`, async ({ page }) => {
-            await page.setViewportSize({ width, height: 900 });
-            await boot(page);
-
-            const modes = await page.evaluate(
-                () => Object.values(SCREEN_MODES).map((m) => m.id));
-            const tooWide = [];
-            for (const id of modes) {
-                await page.evaluate((m) => ScreenModeService.switchMode(m), id);
-                const bad = await page.evaluate((m) => {
-                    const bar = document.getElementById('color-bar');
-                    const group = document.getElementById('toolbar-color');
-                    // offsetWidth both sides: getBoundingClientRect is scaled
-                    // by the chrome's `zoom` and would not compare like for like
-                    const over = group.offsetWidth - bar.clientWidth;
-                    if (over > 1) return `${m}: group +${over}px`;
-
-                    const offRight = ['#bright-toggle', '#flash-toggle', '#border-select']
-                        .map((s) => document.querySelector(s))
-                        .filter((el) => el && el.offsetParent &&
-                            el.getBoundingClientRect().right >
-                                document.documentElement.clientWidth + 0.5).length;
-                    if (offRight) return `${m}: ${offRight} control(s) off screen`;
-
-                    // ...and it fits by WRAPPING, not by hiding colours behind
-                    // an overlay scrollbar. The indexed grid is the documented
-                    // exception: 256 swatches in one element that cannot wrap.
-                    if (ZX_SPECTRUM.PIXEL_DEPTH > 1) return null;
-                    const cluster = document.getElementById('clut-cluster');
-                    const box = cluster.getBoundingClientRect();
-                    const hidden = [...cluster.querySelectorAll('.color-swatch')]
-                        .filter((s) => {
-                            const r = s.getBoundingClientRect();
-                            return r.right > box.right + 0.5 || r.left < box.left - 0.5;
-                        }).length;
-                    return hidden ? `${m}: ${hidden} swatch(es) out of view` : null;
-                }, id);
-                if (bad) tooWide.push(bad);
-            }
-            expect(tooWide).toEqual([]);
-        });
-    }
 });
 
 test('top bar: global draw-mode selector drives StateManager and persists', async ({ page }) => {
