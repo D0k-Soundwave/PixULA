@@ -103,14 +103,15 @@ legend {
     aspect-ratio: auto;
 }
 
-/* Colour rail: Bright/Flash toggles share the swatch's fixed size, mirroring
-   the bar's --clut-btn-size square; no plain buttons or .tool-btn in the rail. */
+/* Colour rail: Bright/Flash toggles share the swatch's fixed size
+   (--rail-icon-size, not the bar's --clut-btn-size - the two regions size
+   independently); no plain buttons or .tool-btn in the rail. */
 #color-rail .clut-bit {
     box-sizing: border-box;
-    height: var(--clut-btn-size);
-    width: var(--clut-btn-size);
-    min-height: var(--clut-btn-size);
-    min-width: var(--clut-btn-size);
+    height: var(--rail-icon-size);
+    width: var(--rail-icon-size);
+    min-height: var(--rail-icon-size);
+    min-width: var(--rail-icon-size);
     padding: 0;
 }
 

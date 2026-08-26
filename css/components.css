@@ -706,7 +706,7 @@
    rows" section further down, added in Task 3. */
 #color-rail .clut-row:not(.clut-selector) {
     display: grid;
-    grid-template-columns: var(--clut-btn-size);
+    grid-template-columns: var(--rail-icon-size);
     gap: 3px;
 }
 
@@ -719,9 +719,14 @@
     margin: var(--space-xs) 0;
 }
 
+/* --rail-icon-size, not --clut-btn-size: this is the default for every
+   swatch in the rail EXCEPT the 256-entry dense grid, which overrides it
+   back down to its own small size below (.indexed-dense .color-swatch) -
+   at higher specificity, so it wins regardless of which rule comes first
+   in this file. */
 #color-rail .color-swatch {
-    width: var(--clut-btn-size);
-    height: var(--clut-btn-size);
+    width: var(--rail-icon-size);
+    height: var(--rail-icon-size);
     min-height: 0;
     aspect-ratio: auto;
 }
@@ -771,7 +776,7 @@
     gap: 3px;
 }
 
-/* ULAplus CLUT selector (0-3): a fixed 2x2 grid of --clut-btn-size squares,
+/* ULAplus CLUT selector (0-3): a fixed 2x2 grid of --rail-icon-size squares,
    the same size as every swatch and toggle in the rail, rather than small
    text buttons wrapping freely - one glance reads as "four equal choices"
    the way a real hardware CLUT bank switch would. Three classes (not two)
@@ -781,8 +786,8 @@
    on source order alone. */
 #color-rail .clut-row.clut-selector.clut-picker {
     display: grid;
-    grid-template-columns: repeat(2, var(--clut-btn-size));
-    grid-template-rows: repeat(2, var(--clut-btn-size));
+    grid-template-columns: repeat(2, var(--rail-icon-size));
+    grid-template-rows: repeat(2, var(--rail-icon-size));
     gap: 3px;
 }
 
@@ -799,15 +804,15 @@
    instead, the same mechanism .clut-picker already relies on above. */
 #color-rail .clut-row.clut-selector.giga-picker {
     display: grid;
-    grid-template-columns: repeat(2, var(--clut-btn-size));
-    grid-template-rows: repeat(2, var(--clut-btn-size));
+    grid-template-columns: repeat(2, var(--rail-icon-size));
+    grid-template-rows: repeat(2, var(--rail-icon-size));
     gap: 3px;
 }
 
 #color-rail .clut-picker .clut-select-btn,
 #color-rail .giga-picker .clut-select-btn {
-    width: var(--clut-btn-size);
-    height: var(--clut-btn-size);
+    width: var(--rail-icon-size);
+    height: var(--rail-icon-size);
     padding: 0;
     display: flex;
     align-items: center;
@@ -817,7 +822,7 @@
 
 /* Overrides the shared button-sizing rule's width above - same specificity
    (one id + two classes/attributes each), so it must come AFTER that rule
-   in source order to win. Height stays the single-icon --clut-btn-size;
+   in source order to win. Height stays the single-icon --rail-icon-size;
    only the width stretches across the spanned grid-column pair. */
 #color-rail .giga-picker [data-giga-view="blend"] {
     grid-column: span 2;
@@ -826,17 +831,19 @@
 
 /* Next indexed palettes (up to 256 entries): the 16-or-fewer case already
    gets the standard one-column swatch grid from .clut-row above (it
-   matches both .clut-row and .indexed-palette-grid); the 256-entry case
-   goes dense - half-size swatches, several columns wide, so a "row" of
-   colour reads at roughly the same width AND the same height as one
-   normal-size icon elsewhere in the rail (two 18px rows + their gap =
-   39px, the exact height of one --clut-btn-size icon), instead of one
-   full-size swatch shrunk to the point of looking sparse in a rail this
-   wide. Row-flow (the default), not column-flow: the rail scrolls
-   VERTICALLY, unlike the old horizontal #color-bar version this replaces.
-   The global .indexed-palette-grid rule sets max-height: 40vh for the
-   #color-bar version; we must NOT apply that here, so the content can
-   expand and the rail itself scrolls instead. */
+   matches both .clut-row and .indexed-palette-grid), at the full
+   --rail-icon-size; the 256-entry case deliberately stays its OWN small
+   "dense" size (18-22px, below) regardless of how big --rail-icon-size
+   grows, rather than tracking it - at --rail-icon-size there is no
+   per-swatch detail to gain from a bigger box, and 256 of them at full
+   size would be a very long scroll for nothing. Dense goes several
+   columns wide instead of one, so a "row" of colour still reads as a
+   reasonable width in a rail this wide rather than one small swatch
+   looking lost in the middle of it. Row-flow (the default), not
+   column-flow: the rail scrolls VERTICALLY, unlike the old horizontal
+   #color-bar version this replaces. The global .indexed-palette-grid rule
+   sets max-height: 40vh for the #color-bar version; we must NOT apply that
+   here, so the content can expand and the rail itself scrolls instead. */
 #color-rail .indexed-palette-grid {
     max-height: none;
     overflow-y: visible;
@@ -851,7 +858,7 @@
    nothing to catch a future reordering. Matching all three classes bumps
    this to one id + three classes so it always wins regardless of order.
    4 columns of 18px (+3 3px gaps) = 81px, comfortably inside the rail's
-   ~96px usable width (--colorrail-width 112px minus its own padding) —
+   ~124px usable width (--colorrail-width 140px minus its own padding) —
    measured 2026-08-26, re-check against tests/browser/color-rail.spec.js's
    width sweep before changing either figure. */
 #color-rail .clut-row.indexed-palette-grid.indexed-dense {
@@ -863,15 +870,14 @@
     height: 18px;
 }
 
-/* Fewer columns at the coarse-pointer swatch size (22px): 4 columns would
-   be 97px, 1px over the same ~96px usable width - close enough to risk
-   flipping between fitting and clipping on a fractional-DPR display, so
-   this drops to 3 rather than shrinking the tap-sized swatch to make 4
-   fit. "Two rows in one icon's height" is a fine-pointer nicety, not a
-   promise this keeps at every pointer type or column count. */
+/* Same 4 columns at the coarse-pointer swatch size (22px): 4 x 22px + 3
+   gaps = 97px, comfortably inside the wider ~124px usable width (this used
+   to be a tighter fit at the rail's earlier, narrower size - re-check
+   against tests/browser/color-rail.spec.js's width sweep before changing
+   either figure). */
 @media (pointer: coarse) {
     #color-rail .clut-row.indexed-palette-grid.indexed-dense {
-        grid-template-columns: repeat(3, 22px);
+        grid-template-columns: repeat(4, 22px);
     }
     #color-rail .indexed-palette-grid.indexed-dense .color-swatch {
         width: 22px;

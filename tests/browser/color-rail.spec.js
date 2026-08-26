@@ -180,6 +180,39 @@ test.describe('the colour rail stays within its fixed width, in every screen mod
 });
 
 /*
+ * Every mode below 256 colours uses --rail-icon-size, chosen to match the
+ * left tool rail's Ink/Paper preview wells (#color-preview .clut-preview) -
+ * growing this is deliberately its OWN token, never --clut-btn-size, so
+ * #color-bar's buttons (draw modes, Mirror, Swap/Recolour, Border) stay
+ * exactly the size they were regardless of what the rail's icons do.
+ */
+test('rail icons match the left tool rail\'s Ink/Paper preview wells, and the top strip is unaffected', async ({ page }) => {
+    await boot(page);
+    page.on('dialog', (d) => d.accept());
+
+    const barButtonHeightAt = () => page.evaluate(() =>
+        document.querySelector('#color-bar button').getBoundingClientRect().height);
+    const barButtonHeightBefore = await barButtonHeightAt();
+
+    for (const mode of ['standard_ula', 'ula_plus', 'gigascreen', 'timex_hires', 'ulanext']) {
+        await page.evaluate((m) => ScreenModeService.switchMode(m), mode);
+        await page.waitForTimeout(150);
+        const result = await page.evaluate(() => {
+            const preview = document.getElementById('ink-color').getBoundingClientRect();
+            const swatch = document.querySelector('#clut-cluster .color-swatch, #clut-selector .clut-select-btn');
+            return {
+                previewSize: preview.width,
+                swatchSize: swatch ? swatch.getBoundingClientRect().width : null
+            };
+        });
+        expect(result.swatchSize).not.toBeNull();
+        expect(Math.round(result.swatchSize)).toBe(Math.round(result.previewSize));
+    }
+
+    expect(await barButtonHeightAt()).toBe(barButtonHeightBefore);
+});
+
+/*
  * The rail's core sizing rule (css/layout.css): it scales with --ui-scale
  * like every other chrome region and has NO independent multiplier of its
  * own — unlike #color-bar, which ColorBarFit dials back separately via
@@ -231,15 +264,17 @@ test('the 256-entry indexed palette scrolls vertically, and every swatch is reac
 
 /*
  * The 256-entry dense grid is half-size swatches, several columns wide -
- * not a single shrunk column - so two rows of it occupy the same height as
- * one normal-size icon elsewhere in the rail (2 x 18px + their gap = 39px,
- * --clut-btn-size exactly). Selecting a swatch near the grid's own right
- * edge must not push its active-ink outline past the rail's own visible
- * bounds - #color-rail clips horizontally (overflow-x: hidden), and an
- * outline that lands outside that box is silently cropped, not just
- * ugly.
+ * not a single shrunk column - so a "row" of colour reads as a reasonable
+ * width in the rail rather than one small swatch looking lost in it. Dense
+ * stays its own small size regardless of how big --rail-icon-size grows
+ * for every other mode (below 256 colours) - 256 of them at full size
+ * would be a very long scroll for no benefit. Selecting a swatch near the
+ * grid's own right edge must not push its active-ink outline past the
+ * rail's own visible bounds - #color-rail clips horizontally
+ * (overflow-x: hidden), and an outline that lands outside that box is
+ * silently cropped, not just ugly.
  */
-test('the 256-entry dense grid is several half-size columns, two rows per icon height, markers included', async ({ page }) => {
+test('the 256-entry dense grid is several half-size columns, its own size regardless of the rail icon size, markers included', async ({ page }) => {
     await boot(page);
     page.on('dialog', (d) => d.accept());
     await page.evaluate(() => ScreenModeService.switchMode('layer2_256'));
@@ -266,24 +301,26 @@ test('the 256-entry dense grid is several half-size columns, two rows per icon h
             (parseFloat(inkStyle.outlineOffset) || 0);
         const paperRect = neighbour.getBoundingClientRect();
 
+        const railIconSize = parseFloat(getComputedStyle(document.documentElement)
+            .getPropertyValue('--rail-icon-size'));
+
         return {
             columns: cols,
             rowCount: rowTops.length,
-            twoRowHeight: rowTops.length >= 2
-                ? (Math.max(...rowTops) - Math.min(...rowTops)) + first8[0].height
-                : null,
+            denseSwatchSize: first8[0].width,
+            railIconSize,
             hasActiveInk: rightMost.classList.contains('active-ink'),
             hasActivePaper: neighbour.classList.contains('active-paper'),
             inkOutlineWithinRail: (inkRect.left - outlineReach) >= railRect.left - 0.5 &&
                 (inkRect.right + outlineReach) <= railRect.right + 0.5,
-            paperMarkerWithinSwatch: paperRect.width > 0 && paperRect.height > 0,
-            oneIconHeight: parseFloat(getComputedStyle(document.documentElement)
-                .getPropertyValue('--clut-btn-size'))
+            paperMarkerWithinSwatch: paperRect.width > 0 && paperRect.height > 0
         };
     });
     expect(layout.columns).toBeGreaterThan(1); // several columns, not the one-column swatch list
     expect(layout.rowCount).toBe(2); // first 8 swatches span exactly two rows
-    expect(layout.twoRowHeight).toBeCloseTo(layout.oneIconHeight, 0);
+    // Dense stays small on its own terms, independent of the (larger) icon
+    // size every other mode's swatches now use.
+    expect(layout.denseSwatchSize).toBeLessThan(layout.railIconSize);
     expect(layout.hasActiveInk).toBe(true);
     expect(layout.hasActivePaper).toBe(true);
     expect(layout.inkOutlineWithinRail).toBe(true);
