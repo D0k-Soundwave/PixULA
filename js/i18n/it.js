@@ -639,6 +639,7 @@ const it = {
     'pref.backupReady': 'Backup in {folder}.',
     'pref.backupLast': 'Backup in {folder}. Ultimo salvataggio: {file}.',
     'pref.privacy': 'Privacy',
+    'pref.accessibility': 'Accessibilità',
     'pref.privacyStatement': 'Questo programma non ha alcun accesso alla rete. Nulla di ciò che disegni, e nulla su come lo usi, viene inviato da nessuna parte: non c\'è alcun server, nessuna analisi e nessun codice di terze parti. Ciò che conserva resta su questa macchina, per te.',
     'pref.privacyStored': 'Salvato in questo browser',
     'pref.privacyDisk': 'Scritto fuori dal browser',

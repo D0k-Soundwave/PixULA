@@ -4,7 +4,10 @@
 /**
  * Border Control
  *
- * A "Border" dropdown under the CLUTs in the left-rail colour cluster.
+ * A "Border" dropdown in the HEADER (moved there 2026-08-26 from the
+ * drawing-modes toolbar — a plain select like its language/interface-size
+ * neighbours, no caption above it, matching the header's own minimal style
+ * rather than the rail/top-strip's captioned-icon convention).
  * The default option ("Theme default") leaves the area around the canvas on
  * the UI theme's background; picking one of the 8 colours (0-7 — the real
  * border has no BRIGHT) previews it around the canvas via the
@@ -23,11 +26,9 @@ class BorderControlClass {
 
     /**
      * Build the UI and restore the persisted border choice.
-     * Called from App.init() Phase 5 (after ClutBar has built #toolbar-color).
+     * Called from App.init() Phase 5.
      */
     initialize() {
-        // The border colour is a control, not one of the document's colours,
-        // so it sits on the colour bar's controls line, not the palette line.
         const host = document.getElementById('border-host');
         if (!host) {
             Logger.warn('BorderControl', 'border-host section not found');
@@ -37,10 +38,9 @@ class BorderControlClass {
         const select = document.createElement('select');
         select.id = 'border-select';
         select.dataset.i18nTitle = 'color.border';
-        // The caption below is a visual sibling, not a <label for>, so the
-        // control names itself for AT the way the bar's buttons do.
         select.dataset.i18nAriaLabel = 'color.border';
         select.setAttribute('aria-label', 'Border');
+        select.title = 'Border';
 
         const defOpt = document.createElement('option');
         defOpt.value = 'default';
@@ -57,14 +57,8 @@ class BorderControlClass {
             select.appendChild(opt);
         });
 
-        // Captioned above, centred — the one caption style the whole colour
-        // bar uses (Helpers.captionWrap), so Border lines up with Bright,
-        // Flash and the swatch groups instead of carrying an inline label.
-        const row = Helpers.captionWrap(select, 'color.border', 'Border');
-        row.id = 'border-select-row';
-        row.classList.add('border-select-row');
-        if (window.I18n && typeof I18n.apply === 'function') I18n.apply(row);
-        host.appendChild(row);
+        if (window.I18n && typeof I18n.apply === 'function') I18n.apply(select);
+        host.appendChild(select);
         this._select = select;
 
         select.addEventListener('change', () => {

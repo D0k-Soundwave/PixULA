@@ -639,6 +639,7 @@ const ro = {
     'pref.backupReady': 'Copii de rezervă în {folder}.',
     'pref.backupLast': 'Copii de rezervă în {folder}. Ultima salvare: {file}.',
     'pref.privacy': 'Confidențialitate',
+    'pref.accessibility': 'Accesibilitate',
     'pref.privacyStatement': 'Acest program nu are niciun fel de acces la rețea. Nimic din ce desenezi și nimic despre felul în care îl folosești nu este trimis nicăieri - nu există server, nu există analiză și nu există cod de la terți. Ce păstrează rămâne pe această mașină, pentru tine.',
     'pref.privacyStored': 'Stocat în acest browser',
     'pref.privacyDisk': 'Scris în afara browserului',

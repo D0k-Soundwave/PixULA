@@ -639,6 +639,7 @@ const hu = {
     'pref.backupReady': 'Mentés ide: {folder}.',
     'pref.backupLast': 'Mentés ide: {folder}. Utoljára mentve: {file}.',
     'pref.privacy': 'Adatvédelem',
+    'pref.accessibility': 'Akadálymentesítés',
     'pref.privacyStatement': 'Ennek a programnak semmilyen hálózati hozzáférése nincs. Semmi, amit rajzolsz, és semmi arról, hogyan használod, nem kerül sehová - nincs kiszolgáló, nincs analitika és nincs harmadik féltől származó kód. Amit megőriz, ezen a gépen marad, neked.',
     'pref.privacyStored': 'Ebben a böngészőben tárolva',
     'pref.privacyDisk': 'A böngészőn kívülre írva',

@@ -26,7 +26,7 @@ class A11yAnnouncerClass {
 
     init() {
         this._region = document.getElementById('a11y-announcer');
-        this._wireTtsToggle();
+        this._loadTtsState();
 
         EventBus.on(EVENTS.TOOL_SELECTED, (data) => {
             const id = data && data.currentTool;
@@ -77,9 +77,29 @@ class A11yAnnouncerClass {
         } catch (e) { /* speech unavailable — ignore */ }
     }
 
-    /** @private */
-    _wireTtsToggle() {
-        const ttsToggle = document.getElementById('tts-toggle');
+    /**
+     * Load the saved TTS preference at boot, independent of whether any
+     * checkbox for it exists yet — speech must work from the very first
+     * announcement of a session, not only after the artist has opened
+     * Settings > Preferences once. @private
+     */
+    _loadTtsState() {
+        if (!window.Storage) return;
+        Promise.resolve(Storage.get('ttsEnabled')).then((v) => {
+            this._tts = !!v;
+        }).catch(() => {});
+    }
+
+    /**
+     * Wire the Speak checkbox wherever one currently exists (Settings >
+     * Preferences, moved there 2026-08-26 from the header). Unlike most of
+     * this component's setup, this is NOT boot-time-only: the Preferences
+     * dialog is rebuilt from scratch every time it opens, so MenuSystem
+     * calls this again on every open rather than once at init().
+     * @param {ParentNode} [root=document]
+     */
+    wireTtsToggle(root) {
+        const ttsToggle = (root || document).querySelector('#tts-toggle');
         if (!ttsToggle) return;
 
         if (!this._ttsSupported) {
@@ -88,13 +108,7 @@ class A11yAnnouncerClass {
             return;
         }
 
-        if (window.Storage) {
-            Promise.resolve(Storage.get('ttsEnabled')).then((v) => {
-                this._tts = !!v;
-                ttsToggle.checked = !!v;
-            }).catch(() => {});
-        }
-
+        ttsToggle.checked = this._tts;
         ttsToggle.addEventListener('change', () => {
             this._tts = ttsToggle.checked;
             if (window.Storage) Promise.resolve(Storage.set('ttsEnabled', this._tts)).catch(() => {});

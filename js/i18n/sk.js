@@ -639,6 +639,7 @@ const sk = {
     'pref.backupReady': 'Zálohuje sa do {folder}.',
     'pref.backupLast': 'Zálohuje sa do {folder}. Naposledy uložené {file}.',
     'pref.privacy': 'Súkromie',
+    'pref.accessibility': 'Prístupnosť',
     'pref.privacyStatement': 'Tento program nemá žiadny prístup k sieti. Nič, čo nakreslíte, ani nič o tom, ako ho používate, sa nikam neodosiela - nie je tu žiadny server, žiadna analytika a žiadny kód tretích strán. Čo si uchováva, zostáva na tomto počítači, pre vás.',
     'pref.privacyStored': 'Uložené v tomto prehliadači',
     'pref.privacyDisk': 'Zapísané mimo prehliadača',

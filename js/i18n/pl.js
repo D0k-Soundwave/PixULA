@@ -639,6 +639,7 @@ const pl = {
     'pref.backupReady': 'Kopie zapasowe w {folder}.',
     'pref.backupLast': 'Kopie zapasowe w {folder}. Ostatnio zapisano {file}.',
     'pref.privacy': 'Prywatność',
+    'pref.accessibility': 'Dostępność',
     'pref.privacyStatement': 'Ten program nie ma żadnego dostępu do sieci. Nic, co narysujesz, ani nic o tym, jak go używasz, nie jest nigdzie wysyłane - nie ma serwera, analityki ani kodu innych firm. To, co przechowuje, zostaje na tym komputerze, dla ciebie.',
     'pref.privacyStored': 'Przechowywane w tej przeglądarce',
     'pref.privacyDisk': 'Zapisane poza przeglądarką',

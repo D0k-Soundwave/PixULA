@@ -639,6 +639,7 @@ const cs = {
     'pref.backupReady': 'Zálohuje se do {folder}.',
     'pref.backupLast': 'Zálohuje se do {folder}. Naposledy uloženo {file}.',
     'pref.privacy': 'Soukromí',
+    'pref.accessibility': 'Přístupnost',
     'pref.privacyStatement': 'Tento program nemá žádný přístup k síti. Nic, co nakreslíte, ani nic o tom, jak jej používáte, se nikam neodesílá - není zde žádný server, žádná analytika a žádný kód třetích stran. Co si uchovává, zůstává na tomto počítači, pro vás.',
     'pref.privacyStored': 'Uloženo v tomto prohlížeči',
     'pref.privacyDisk': 'Zapsáno mimo prohlížeč',

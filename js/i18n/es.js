@@ -639,6 +639,7 @@ const es = {
     'pref.backupReady': 'Copias de seguridad en {folder}.',
     'pref.backupLast': 'Copias de seguridad en {folder}. Último guardado: {file}.',
     'pref.privacy': 'Privacidad',
+    'pref.accessibility': 'Accesibilidad',
     'pref.privacyStatement': 'Este programa no tiene ningún acceso a la red. Nada de lo que dibujes, ni nada sobre cómo lo usas, se envía a ninguna parte: no hay servidor, ni analíticas, ni código de terceros. Lo que guarda se queda en esta máquina, para ti.',
     'pref.privacyStored': 'Guardado en este navegador',
     'pref.privacyDisk': 'Escrito fuera del navegador',

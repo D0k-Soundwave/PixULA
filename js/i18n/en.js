@@ -600,6 +600,7 @@ const en = {
     'pref.backupReady': 'Backing up to {folder}.',
     'pref.backupLast': 'Backing up to {folder}. Last saved {file}.',
     'pref.privacy': 'Privacy',
+    'pref.accessibility': 'Accessibility',
     'pref.privacyStatement': 'This program has no network access of any kind. Nothing you draw, and nothing about how you use it, is ever sent anywhere - there is no server, no analytics and no third-party code. What it keeps is kept on this machine, for you.',
     'pref.privacyStored': 'Stored in this browser',
     'pref.privacyDisk': 'Written outside the browser',

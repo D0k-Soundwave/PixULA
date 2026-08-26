@@ -7,7 +7,7 @@
 const { test, expect } = require('@playwright/test');
 const { boot, reload } = require('./helpers');
 
-test('header: menu bar, language/size selectors, speak toggle', async ({ page }) => {
+test('header: menu bar, language/size selectors, Border', async ({ page }) => {
     await boot(page);
     const menus = await page.$$eval('#menu-bar .menu-item .menu-label',
         els => els.map(e => e.textContent.trim()));
@@ -17,10 +17,37 @@ test('header: menu bar, language/size selectors, speak toggle', async ({ page })
     // (see i18n-themes.spec.js).
     await expect(page.locator('#theme-selector')).toHaveCount(0);
     await expect(page.locator('#font-scale-selector')).toBeAttached();
-    await expect(page.locator('#tts-toggle')).toBeAttached();
+    // Border moved here from the drawing-modes toolbar (2026-08-26); Speak
+    // moved OUT, into Settings > Preferences (see the Preferences test below).
+    await expect(page.locator('#header-controls #border-select')).toBeAttached();
+    await expect(page.locator('#tts-toggle')).toHaveCount(0);
 });
 
-test('colour rail: flash, 2×8 CLUT; left rail = tool registry; top strip keeps border + attr ops', async ({ page }) => {
+/*
+ * Speak (text-to-speech for UI announcements) moved from a header checkbox
+ * into Settings > Preferences (2026-08-26). Unlike most preferences here,
+ * it applies live via its own change listener rather than waiting for OK -
+ * see js/ui/components/a11y-announcer.js.
+ */
+test('Preferences: Speak toggle applies live and persists', async ({ page }) => {
+    await boot(page);
+    await page.evaluate(() => MenuSystem._showPreferences());
+
+    const toggle = page.locator('#dialog-preferences-dialog #tts-toggle');
+    await expect(toggle).toBeAttached();
+    expect(await toggle.isChecked()).toBe(false);
+
+    await toggle.check();
+    expect(await page.evaluate(() => Storage.get('ttsEnabled'))).toBe(true);
+
+    // Cancel, not OK — Speak already applied live, so it must survive a
+    // Cancel exactly as the rest of the dialog's fields do not.
+    await page.locator('#dialog-preferences-dialog .app-dialog-footer button:not(.primary)').click();
+    await page.evaluate(() => MenuSystem._showPreferences());
+    expect(await page.locator('#dialog-preferences-dialog #tts-toggle').isChecked()).toBe(true);
+});
+
+test('colour rail: flash, 2×8 CLUT; left rail = tool registry; top strip keeps attr ops', async ({ page }) => {
     await boot(page);
     // Bright/Flash and the swatch cluster live in the vertical colour rail
     // between the tool rail and the canvas, not the top strip (2026-08-25).
@@ -33,15 +60,19 @@ test('colour rail: flash, 2×8 CLUT; left rail = tool registry; top strip keeps 
     expect(clut).toEqual([8, 8]); // ink row + paper row
 
     // The Ink/Paper preview wells live in #color-preview at the top of the
-    // left tool rail; Border and the attr ops (Swap/Recolour) stay on the
-    // top #color-bar strip.
+    // left tool rail; the attr ops (Swap/Recolour) stay on the top #color-bar
+    // strip; Border is in the header (#header-controls), not #color-bar, since
+    // 2026-08-26.
     const rail = await page.evaluate(() => ({
         wells: [...document.querySelectorAll('#color-preview .color-swatch[role="button"]')].length,
-        selects: [...document.querySelectorAll('#color-bar select')].length,
+        colorBarHasNoSelect: document.querySelectorAll('#color-bar select').length === 0,
+        borderSelectInHeader: [...document.querySelectorAll('#header-controls select')]
+            .some((s) => s.id === 'border-select'),
         attrOps: [...document.querySelectorAll('#attr-tools button')].length
     }));
     expect(rail.wells).toBeGreaterThanOrEqual(2);
-    expect(rail.selects).toBeGreaterThanOrEqual(1);
+    expect(rail.colorBarHasNoSelect).toBe(true);
+    expect(rail.borderSelectInHeader).toBe(true);
     expect(rail.attrOps).toBeGreaterThanOrEqual(2); // Swap + Apply (cycle buttons removed 2026-07-08)
 
     // Tool rail is generated from the TOOLS registry — assert it matches.
@@ -72,16 +103,22 @@ test('every row of the top strip sits on one baseline and one pitch', async ({ p
         swatchesInColorBar: document.querySelectorAll('#color-bar .color-swatch').length,
         marks: [...document.querySelectorAll('#color-bar-controls button')]
             .map((b) => b.id || b.dataset.drawMode),
-        attrsGroupKeeps: ['#border-select'].filter((s) => document.querySelector(`#toolbar-attrs ${s}`)).length,
-        bitsMovedOut: ['#bright-toggle', '#flash-toggle'].filter((s) => document.querySelector(`#toolbar-attrs ${s}`)).length
+        // Border moved to the header (2026-08-26) — #color-bar has no
+        // <select> of its own left at all, and #border-select lives in
+        // #header-controls instead.
+        colorBarHasNoSelect: document.querySelectorAll('#color-bar select').length === 0,
+        borderInHeader: !!document.querySelector('#header-controls #border-select'),
+        bitsMovedOut: ['#bright-toggle', '#flash-toggle', '#border-select']
+            .filter((s) => document.querySelector(`#color-bar ${s}`)).length
     }));
     expect(split.swatchesInMarks).toBe(0);
     expect(split.swatchesInColorBar).toBe(0); // no swatches on the top strip at all now
     expect(split.marks).toEqual(['normal', 'ink', 'paper', 'pixel_only', 'xor', 'xor_pixel',
         'symmetry-h-toggle', 'symmetry-v-toggle', 'symmetry-quad-toggle',
         'attr-transpose', 'attr-apply']);
-    expect(split.attrsGroupKeeps).toBe(1); // just Border now
-    expect(split.bitsMovedOut).toBe(0);    // Bright/Flash live in #color-rail
+    expect(split.colorBarHasNoSelect).toBe(true);
+    expect(split.borderInHeader).toBe(true);
+    expect(split.bitsMovedOut).toBe(0); // Bright/Flash live in #color-rail, Border in the header
 
     const pitch = await page.evaluate(() => {
         const label = document.getElementById('marks-group-label');
@@ -125,12 +162,10 @@ test('every row of the top strip sits on one baseline and one pitch', async ({ p
         expect(row.heights).toHaveLength(1);
     }
 
+    // #color-bar holds only the marks group now (Border moved to the header,
+    // 2026-08-26) — every button in it is a bare icon, captioned once as a
+    // whole by #marks-group-label, never individually.
     const captions = await page.evaluate(() => {
-        const uncaptioned = [...document.querySelectorAll('#color-bar button, #color-bar select')]
-            .filter((el) => el.offsetParent !== null && !el.closest('#marks-icons-row')
-                && !el.closest('.btn-captioned'))
-            .map((el) => el.id || el.className);
-        const labels = [...document.querySelectorAll('#color-bar .btn-label')];
         const groupLabel = document.getElementById('marks-group-label');
         const styleOf = (l) => {
             const cs = getComputedStyle(l);
@@ -140,16 +175,16 @@ test('every row of the top strip sits on one baseline and one pitch', async ({ p
             .filter((el) => el.offsetParent !== null && el.closest('.btn-captioned'))
             .map((el) => el.id || el.className);
         return {
-            uncaptioned,
-            styles: [...new Set(labels.map(styleOf))],
+            noBtnLabelLeft: document.querySelectorAll('#color-bar .btn-label').length === 0,
+            groupLabelHasText: groupLabel ? !!groupLabel.textContent.trim() : false,
             groupLabelStyle: groupLabel ? styleOf(groupLabel) : null,
             marksIconsCaptioned,
             strays: document.querySelectorAll('#color-bar label:not(.clut-bit)').length
         };
     });
-    expect(captions.uncaptioned).toEqual([]);
-    expect(captions.styles).toHaveLength(1);
-    expect(captions.groupLabelStyle).toBe(captions.styles[0]);
+    expect(captions.noBtnLabelLeft).toBe(true); // nothing left uses the old per-control caption
+    expect(captions.groupLabelHasText).toBe(true);
+    expect(captions.groupLabelStyle).toBeTruthy();
     expect(captions.marksIconsCaptioned).toEqual([]);
     expect(captions.strays).toBe(0);
 });
@@ -183,10 +218,11 @@ test.describe('the top strip is always exactly one row', () => {
  * --clut-btn-size aliases --rail-icon-size (css/variables.css, 2026-08-26)
  * so the top strip's icons and the rail's icons can never drift apart in
  * size - both are meant to always match the left tool rail's Ink/Paper
- * preview wells. Border also moved to the RIGHT of the strip the same day,
- * after the marks group rather than before it.
+ * preview wells. Border is NOT part of this system any more (moved to the
+ * header the same day) - it is a plain compact select like language/
+ * interface-size beside it, not an icon-sized control.
  */
-test('top strip icons match the Ink/Paper preview size, and Border sits on the right', async ({ page }) => {
+test('top strip icons match the Ink/Paper preview size', async ({ page }) => {
     await boot(page);
 
     const info = await page.evaluate(() => {
@@ -194,23 +230,17 @@ test('top strip icons match the Ink/Paper preview size, and Border sits on the r
         const drawModeBtn = document.querySelector('#draw-modes button').getBoundingClientRect();
         const mirrorBtn = document.querySelector('#mirror-modes button').getBoundingClientRect();
         const attrBtn = document.querySelector('#attr-tools button').getBoundingClientRect();
-        const border = document.getElementById('border-select').getBoundingClientRect();
-        const marksRow = document.getElementById('marks-icons-row').getBoundingClientRect();
         return {
             previewSize: preview.height,
             drawModeHeight: drawModeBtn.height,
             mirrorHeight: mirrorBtn.height,
-            attrHeight: attrBtn.height,
-            borderHeight: border.height,
-            borderIsRightOfMarks: border.left >= marksRow.right - 1
+            attrHeight: attrBtn.height
         };
     });
     const rounded = Math.round(info.previewSize);
     expect(Math.round(info.drawModeHeight)).toBe(rounded);
     expect(Math.round(info.mirrorHeight)).toBe(rounded);
     expect(Math.round(info.attrHeight)).toBe(rounded);
-    expect(Math.round(info.borderHeight)).toBe(rounded);
-    expect(info.borderIsRightOfMarks).toBe(true);
 });
 
 /*

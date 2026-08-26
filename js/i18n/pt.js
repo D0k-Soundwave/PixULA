@@ -639,6 +639,7 @@ const pt = {
     'pref.backupReady': 'A guardar cópias em {folder}.',
     'pref.backupLast': 'A guardar cópias em {folder}. Última gravação: {file}.',
     'pref.privacy': 'Privacidade',
+    'pref.accessibility': 'Acessibilidade',
     'pref.privacyStatement': 'Este programa não tem qualquer acesso à rede. Nada do que desenha, nem nada sobre a forma como o usa, é enviado para lado nenhum - não há servidor, nem análises, nem código de terceiros. O que guarda fica nesta máquina, para si.',
     'pref.privacyStored': 'Guardado neste navegador',
     'pref.privacyDisk': 'Escrito fora do navegador',

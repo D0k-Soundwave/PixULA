@@ -143,15 +143,6 @@
     font-size: var(--font-size-sm);
 }
 
-.header-tts {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-xs);
-    font-size: var(--font-size-sm);
-    color: var(--text-secondary);
-    cursor: pointer;
-}
-
 /* ===== Left-rail Ink / Paper preview =====
    The live selection wells sit at the very top of the tool rail, each under
    its localised label, and are separated from the tool buttons by a rule.
@@ -496,19 +487,6 @@
     width: 100%;
 }
 
-/* The row's own column layout and caption typography come from .btn-captioned
-   / .btn-label (BorderControl builds it with Helpers.captionWrap), so only the
-   dropdown's own appearance is set here. */
-.border-select-row select {
-    width: 100%;
-    padding: 2px;
-    background: var(--input-bg);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    font-size: var(--font-size-xs);
-}
-
 .clut-attrs {
     gap: var(--space-xs);
 }
@@ -538,59 +516,15 @@
 /* ===== Top colour bar — horizontal layout =====
    ClutBar builds the SAME DOM regardless of where the cluster lives (the
    rail-specific rules for it are further down this file, under "Vertical
-   colour rail"). These rules lay out what's LEFT in the top #color-bar
-   since the palette swatches moved to #color-rail (2026-08-25): Border
-   (#toolbar-attrs) and the marks group (#color-bar-controls), enlarging hit
-   targets for pen/touch. Everything stays token-driven — no colour
-   literals, no JS layout. */
-/* Every control in the bar is captioned above (Helpers.captionWrap) and every
-   control is --clut-btn-size tall, so aligning the BOTTOM edges puts every
-   swatch, toggle, dropdown and icon button on one baseline. Centring instead
-   aligned the captioned blocks by their middles, which pushed Bright and Flash
-   7px below the swatch row they sit beside; and top-aligning would break the
-   moment a translated caption wrapped to two lines. */
-#color-bar .toolbar-section {
-    width: auto;
-    /* Keep each section at its content width rather than squishing controls
-       until their labels clip; ColorBarFit (js/ui/components/colorbar-fit.js)
-       is what actually keeps the bar's total content inside the canvas
-       column, by shrinking --colorbar-scale until it fits one row. */
-    flex: 0 0 auto;
-    flex-direction: row;
-    align-items: flex-end;
-    gap: var(--space-md);
-    padding: 0;
-    border-bottom: none;
-}
-
-/* The nested sections inside keep the .toolbar-section default of not growing
-   or shrinking. This has to live here rather than in css/layout.css: `#color-
-   bar .toolbar-section { flex: 0 0 auto }` above is in a LATER @layer, and a
-   layer beats specificity.
-
-   #toolbar-attrs (Border only, since Bright/Flash moved to #color-rail
-   2026-08-25) is fixed to its own content width. #color-bar-controls (the
-   marks group) keeps the ONLY grow in this row, so it centres in whatever
-   width Border leaves it. */
-#color-bar > #toolbar-attrs {
-    flex: 0 0 auto;
-}
-
+   colour rail"). #color-bar now holds only the marks group
+   (#color-bar-controls: draw modes, Mirror, Swap/Recolour) — the palette
+   swatches moved to #color-rail (2026-08-25) and Border moved to the header
+   (2026-08-26), so there is nothing left here to lay out AGAINST; the bar
+   simply centres its one remaining child. Everything stays token-driven —
+   no colour literals, no JS layout. */
 #color-bar > #color-bar-controls {
     flex: 1 1 auto;
     min-width: 0;
-}
-
-/* Break at a space before chopping a word. .btn-label's own default is
-   `anywhere`, which is right where a caption's min-content width decides the
-   width of the column it sits in - but here the width is FIXED, so `anywhere`
-   bought nothing and spent the difference on "Norma / l" and "Recolo / ur".
-   (`hyphens: auto` is inherited and would be better still, but Chrome only
-   honours it with a hyphenation dictionary installed - M 2026-08-09: no hyphen
-   appears in headless OR headed Chrome here, so it cannot be relied on.) */
-#color-bar .btn-label {
-    overflow-wrap: break-word;
-    text-wrap: balance;
 }
 
 #color-bar {
@@ -598,18 +532,6 @@
        decides the bar needs to shrink to keep fitting one row; see the
        zoom formula in css/layout.css. */
     --colorbar-scale: 1;
-}
-
-/* Border picker is a <select>, not a button, so it needs its own match to the
-   bar's control size: inline "Border" label + a --clut-btn-size-tall dropdown,
-   so it reads as one control with the swatches and buttons, not a small strip. */
-#color-bar #border-select {
-    box-sizing: border-box;
-    width: auto;
-    height: var(--clut-btn-size);
-    min-height: var(--clut-btn-size);
-    padding: 0 var(--space-xs);
-    font-size: var(--font-size-sm);
 }
 
 /* The draw modes, Mirror and Swap/Recolour are ONE run, in that DOM order
@@ -665,13 +587,12 @@
    width — the "fixed size, scales only with --ui-scale" requirement is a
    sizing rule, not a "no reflow" rule: the ARRANGEMENT adapts (one column,
    scrolling, instead of 8-across), the swatch size never does. */
-/* The base .toolbar-section rule (above) draws a border-bottom + padding-
-   bottom meant for sections that sit beside others in a row (#color-bar,
-   which explicitly cancels it on its own #color-bar .toolbar-section rule).
-   In the rail the two sections (#toolbar-color, #colour-bits) stack
-   vertically with #color-rail's own `gap` (css/layout.css) already reading
-   as the space between them, so the inherited border would print as a stray
-   line under the palette group for no reason — cancelled here to match. */
+/* The generic .toolbar-section rule (line 389 above) draws a border-bottom +
+   padding-bottom meant for sections that sit beside others in a row. In the
+   rail the two sections (#toolbar-color, #colour-bits) stack vertically with
+   #color-rail's own `gap` (css/layout.css) already reading as the space
+   between them, so the inherited border would print as a stray line under
+   the palette group for no reason — cancelled here to match. */
 #color-rail .toolbar-section {
     padding-bottom: 0;
     border-bottom: none;

@@ -1123,10 +1123,17 @@ class MenuSystemClass {
                 </div>
                 <div class="pref-block__hint" data-i18n="pref.privacyClearHint">${this._t('pref.privacyClearHint', 'Empties everything listed above and reloads. Files you saved yourself, including backup versions, are left alone.')}</div>
             </div>
+            <h3 data-i18n="pref.accessibility">${this._t('pref.accessibility', 'Accessibility')}</h3>
+            <label class="pref-row">
+                <input type="checkbox" id="tts-toggle" name="tts-toggle">
+                <span data-i18n="a11y.speak">${this._t('a11y.speak', 'Speak')}</span>
+            </label>
+            <div class="pref-block__hint" data-i18n="a11y.speakHint">${this._t('a11y.speakHint', 'Speak UI changes aloud')}</div>
         `;
         this._initPenPreferences(content);
         this._initBackupPreferences(content);
         this._initPrivacyPreferences(content);
+        if (window.A11yAnnouncer) A11yAnnouncer.wireTtsToggle(content);
         // Reflect the live state (seeded from Storage at boot)
         const autosaveMinutes = content.querySelector('#pref-autosave-minutes');
         if (autosaveMinutes) {

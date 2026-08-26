@@ -117,11 +117,10 @@ body {
 /* Top colour bar — a slim strip spanning the canvas column only (between the
    two rails), directly under the header. Since 2026-08-25 (docs/superpowers/
    specs/2026-08-25-colour-rail-design.md) every screen mode's palette
-   swatches live in the vertical #color-rail instead, so this strip carries
-   only the attributes group (#toolbar-attrs — Border, now that Bright/Flash
-   moved to the rail too) and the marks controls (#color-bar-controls — draw
-   modes, Mirror, Swap/Recolour): two plain flex siblings, neither of them a
-   palette.
+   swatches live in the vertical #color-rail instead, and since 2026-08-26
+   Border lives in the header (#header-controls) — this strip now carries
+   only the marks controls (#color-bar-controls: draw modes, Mirror,
+   Swap/Recolour), its one and only child.
 
    Guaranteed to render as exactly ONE row, always, by ColorBarFit
    (js/ui/components/colorbar-fit.js), which shrinks this bar's own icon
@@ -129,27 +128,24 @@ body {
    until the content fits — see the class comment there for the search. Before
    the palette moved out, this bar targeted TWO rows and could grow as well as
    shrink; both needs left with the swatches, and so did the reason to scroll
-   sideways — with no palette left to outgrow the canvas column, the
-   `overflow-x: auto` below is a safety net for pathological cases rather
-   than something this bar's ordinary content (Border + a dozen icon buttons)
-   ever reaches. */
+   sideways — with only one group of icon buttons left, the `overflow-x: auto`
+   below is a safety net for pathological cases rather than something this
+   bar's ordinary content ever reaches. */
 #color-bar {
     grid-area: colorbar;
     display: flex;
     flex-direction: row;
-    /* WRAP, never scroll out of sight: on a narrow window the last cluster —
-       the global draw-mode selector — would otherwise sit off the right edge
-       behind an auto-hiding scrollbar. A mode you cannot see is a trap: leave
-       it on Paper Recolour and every tool silently paints paper on paper,
-       which reads as "the app is broken". */
+    /* WRAP, never scroll out of sight: on a narrow window the global draw-
+       mode selector would otherwise sit off the right edge behind an
+       auto-hiding scrollbar. A mode you cannot see is a trap: leave it on
+       Paper Recolour and every tool silently paints paper on paper, which
+       reads as "the app is broken". */
     flex-wrap: wrap;
     align-items: flex-end;
-    /* Centres whichever line has no flex-grow item on it (e.g. the swatch
-       row alone, or #toolbar-attrs stranded on its own line at small
-       interface sizes) so it never just sits flush left with the rest of
-       the bar empty beside it. A line WITH the grown #color-bar-controls
-       (below) already fills the line before this can act — that box's own
-       children get their own justify-content: center for the same reason. */
+    /* Centres the bar's one child (#color-bar-controls) as a whole — that
+       box's own children get their own justify-content: center too, for the
+       same reason (its own flex:1 1 auto, css/components.css, already fills
+       the line before this could otherwise act). */
     justify-content: center;
     /* One palette-icon pitch between every pair of groups, whether they land
        on the same row or not — the same unit #clut-cluster uses between ink
@@ -166,8 +162,8 @@ body {
 /* The marks group: one "Drawing Modes" caption over the draw modes, Mirror
    and Swap/Recolour, captioned as a whole the way Ink/Paper caption their own
    swatch groups (_captionGroup, css/components.css) — a column of [label,
-   icon row], centred. It rides beside the colour group while there is room
-   and drops below as one piece when there is not. */
+   icon row], centred. It is #color-bar's only child now (Border moved to the
+   header 2026-08-26), so it always has the whole bar to itself. */
 #color-bar-controls {
     display: flex;
     flex-direction: column;

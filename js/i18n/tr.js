@@ -639,6 +639,7 @@ const tr = {
     'pref.backupReady': '{folder} klasörüne yedekleniyor.',
     'pref.backupLast': '{folder} klasörüne yedekleniyor. Son kayıt: {file}.',
     'pref.privacy': 'Gizlilik',
+    'pref.accessibility': 'Erişilebilirlik',
     'pref.privacyStatement': 'Bu programın hiçbir ağ erişimi yoktur. Çizdikleriniz ve programı nasıl kullandığınıza dair hiçbir şey hiçbir yere gönderilmez - sunucu, analiz ya da üçüncü taraf kod yoktur. Sakladıkları bu makinede, sizin için kalır.',
     'pref.privacyStored': 'Bu tarayıcıda saklanan',
     'pref.privacyDisk': 'Tarayıcı dışına yazılan',

@@ -21,6 +21,9 @@ test('the colour rail exists between the tool rail and the canvas, and holds the
             colourBitsInRail: rail ? rail.contains(document.getElementById('colour-bits')) : false,
             toolbarColorInColorBar: colorBar ? colorBar.contains(document.getElementById('toolbar-color')) : false,
             colourBitsInColorBar: colorBar ? colorBar.contains(document.getElementById('colour-bits')) : false,
+            // Border moved to the header (2026-08-26) — it was never in the
+            // rail, and as of that date it is no longer in #color-bar either.
+            borderHostInHeader: !!document.querySelector('#header-controls #border-host'),
             borderHostInColorBar: colorBar ? colorBar.contains(document.getElementById('border-host')) : false,
             toolbarLeftOfRail: toolbar && rail
                 ? toolbar.getBoundingClientRect().right <= rail.getBoundingClientRect().left
@@ -35,7 +38,8 @@ test('the colour rail exists between the tool rail and the canvas, and holds the
     expect(structure.colourBitsInRail).toBe(true);
     expect(structure.toolbarColorInColorBar).toBe(false);
     expect(structure.colourBitsInColorBar).toBe(false);
-    expect(structure.borderHostInColorBar).toBe(true);
+    expect(structure.borderHostInHeader).toBe(true);
+    expect(structure.borderHostInColorBar).toBe(false);
     expect(structure.toolbarLeftOfRail).toBe(true);
     expect(structure.railLeftOfCanvas).toBe(true);
 });
