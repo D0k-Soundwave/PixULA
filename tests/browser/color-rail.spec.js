@@ -228,3 +228,64 @@ test('the 256-entry indexed palette scrolls vertically, and every swatch is reac
     });
     expect(reached).toBe(true);
 });
+
+/*
+ * The 256-entry dense grid is half-size swatches, several columns wide -
+ * not a single shrunk column - so two rows of it occupy the same height as
+ * one normal-size icon elsewhere in the rail (2 x 18px + their gap = 39px,
+ * --clut-btn-size exactly). Selecting a swatch near the grid's own right
+ * edge must not push its active-ink outline past the rail's own visible
+ * bounds - #color-rail clips horizontally (overflow-x: hidden), and an
+ * outline that lands outside that box is silently cropped, not just
+ * ugly.
+ */
+test('the 256-entry dense grid is several half-size columns, two rows per icon height, markers included', async ({ page }) => {
+    await boot(page);
+    page.on('dialog', (d) => d.accept());
+    await page.evaluate(() => ScreenModeService.switchMode('layer2_256'));
+
+    const layout = await page.evaluate(() => {
+        const grid = document.getElementById('indexed-palette-grid');
+        const rail = document.getElementById('color-rail');
+        const swatches = [...grid.querySelectorAll('.color-swatch')];
+        const first8 = swatches.slice(0, 8).map((s) => s.getBoundingClientRect());
+        const cols = new Set(first8.map((r) => Math.round(r.left))).size;
+        const rowTops = [...new Set(first8.map((r) => Math.round(r.top)))];
+
+        // Select the right-most swatch of the first row as ink, and the one
+        // beside it as paper, then check both markers stay inside the rail.
+        const rightMost = swatches[cols - 1];
+        rightMost.click();
+        const neighbour = swatches[cols - 2];
+        neighbour.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+
+        const railRect = rail.getBoundingClientRect();
+        const inkRect = rightMost.getBoundingClientRect();
+        const inkStyle = getComputedStyle(rightMost);
+        const outlineReach = (parseFloat(inkStyle.outlineWidth) || 0) +
+            (parseFloat(inkStyle.outlineOffset) || 0);
+        const paperRect = neighbour.getBoundingClientRect();
+
+        return {
+            columns: cols,
+            rowCount: rowTops.length,
+            twoRowHeight: rowTops.length >= 2
+                ? (Math.max(...rowTops) - Math.min(...rowTops)) + first8[0].height
+                : null,
+            hasActiveInk: rightMost.classList.contains('active-ink'),
+            hasActivePaper: neighbour.classList.contains('active-paper'),
+            inkOutlineWithinRail: (inkRect.left - outlineReach) >= railRect.left - 0.5 &&
+                (inkRect.right + outlineReach) <= railRect.right + 0.5,
+            paperMarkerWithinSwatch: paperRect.width > 0 && paperRect.height > 0,
+            oneIconHeight: parseFloat(getComputedStyle(document.documentElement)
+                .getPropertyValue('--clut-btn-size'))
+        };
+    });
+    expect(layout.columns).toBeGreaterThan(1); // several columns, not the one-column swatch list
+    expect(layout.rowCount).toBe(2); // first 8 swatches span exactly two rows
+    expect(layout.twoRowHeight).toBeCloseTo(layout.oneIconHeight, 0);
+    expect(layout.hasActiveInk).toBe(true);
+    expect(layout.hasActivePaper).toBe(true);
+    expect(layout.inkOutlineWithinRail).toBe(true);
+    expect(layout.paperMarkerWithinSwatch).toBe(true);
+});

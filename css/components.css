@@ -827,13 +827,16 @@
 /* Next indexed palettes (up to 256 entries): the 16-or-fewer case already
    gets the standard one-column swatch grid from .clut-row above (it
    matches both .clut-row and .indexed-palette-grid); the 256-entry case
-   goes dense — smaller swatches in the SAME one column, so the scroll
-   distance is shorter (256 x 18px vs 256 x 39px) without spending rail
-   width on a second column. Row-flow (the default), not column-flow: the
-   rail scrolls VERTICALLY, unlike the old horizontal #color-bar version
-   this replaces. The global .indexed-palette-grid rule sets max-height:
-   40vh for the #color-bar version; we must NOT apply that here, so the
-   content can expand and the rail itself scrolls instead. */
+   goes dense - half-size swatches, several columns wide, so a "row" of
+   colour reads at roughly the same width AND the same height as one
+   normal-size icon elsewhere in the rail (two 18px rows + their gap =
+   39px, the exact height of one --clut-btn-size icon), instead of one
+   full-size swatch shrunk to the point of looking sparse in a rail this
+   wide. Row-flow (the default), not column-flow: the rail scrolls
+   VERTICALLY, unlike the old horizontal #color-bar version this replaces.
+   The global .indexed-palette-grid rule sets max-height: 40vh for the
+   #color-bar version; we must NOT apply that here, so the content can
+   expand and the rail itself scrolls instead. */
 #color-rail .indexed-palette-grid {
     max-height: none;
     overflow-y: visible;
@@ -847,10 +850,12 @@
    wins would depend only on source order in this file, silently, with
    nothing to catch a future reordering. Matching all three classes bumps
    this to one id + three classes so it always wins regardless of order.
-   The column count is the same (one) as the non-dense rule above; only the
-   swatch SIZE differs, which is what actually shortens the scroll. */
+   4 columns of 18px (+3 3px gaps) = 81px, comfortably inside the rail's
+   ~96px usable width (--colorrail-width 112px minus its own padding) —
+   measured 2026-08-26, re-check against tests/browser/color-rail.spec.js's
+   width sweep before changing either figure. */
 #color-rail .clut-row.indexed-palette-grid.indexed-dense {
-    grid-template-columns: 18px;
+    grid-template-columns: repeat(4, 18px);
 }
 
 #color-rail .indexed-palette-grid.indexed-dense .color-swatch {
@@ -858,9 +863,15 @@
     height: 18px;
 }
 
+/* Fewer columns at the coarse-pointer swatch size (22px): 4 columns would
+   be 97px, 1px over the same ~96px usable width - close enough to risk
+   flipping between fitting and clipping on a fractional-DPR display, so
+   this drops to 3 rather than shrinking the tap-sized swatch to make 4
+   fit. "Two rows in one icon's height" is a fine-pointer nicety, not a
+   promise this keeps at every pointer type or column count. */
 @media (pointer: coarse) {
     #color-rail .clut-row.indexed-palette-grid.indexed-dense {
-        grid-template-columns: 22px;
+        grid-template-columns: repeat(3, 22px);
     }
     #color-rail .indexed-palette-grid.indexed-dense .color-swatch {
         width: 22px;
