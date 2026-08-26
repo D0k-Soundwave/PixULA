@@ -222,6 +222,28 @@ down(50, 48, ev());     // filled area, ink 0
 up(50, 48, ev());
 check('eyedropper: picked ink from canvas', colorCalls.some(c => c[0] === 'ink' && c[1] === 0));
 
+// Alt+click must pick BOTH ink and paper from the cell's attributes, not
+// just ink — draw a cell with a distinct ink/paper pair, point the current
+// selection somewhere else entirely, then Alt+click that cell and check
+// both land, not only ink.
+ToolManager.selectTool(TOOLS.BRUSH);
+ColorManager.setInk(3);
+ColorManager.setPaper(2);
+down(100, 100, ev());
+up(100, 100, ev());
+ColorManager.setInk(6);
+ColorManager.setPaper(1);
+colorCalls.length = 0;
+ToolManager.selectTool(TOOLS.EYEDROPPER);
+down(100, 100, ev({ altKey: true }));
+up(100, 100, ev({ altKey: true }));
+const altPick = colorCalls.find(c => c[0] === 'selection');
+check('eyedropper: alt+click picks a selection (ink+paper together)', !!altPick);
+check('eyedropper: alt+click picks the cell\'s INK, not the current selection\'s',
+  !!altPick && altPick[1].ink === 3);
+check('eyedropper: alt+click picks the cell\'s PAPER too, not just ink',
+  !!altPick && altPick[1].paper === 2);
+
 // ── Spray (now a brush variant: rail id 'spray' rides on BrushTool) ───────
 ToolManager.selectTool(TOOLS.SPRAY);
 const spray = ToolManager.getCurrentTool();
