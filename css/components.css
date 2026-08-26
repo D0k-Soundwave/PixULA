@@ -580,6 +580,53 @@
     #color-preview .clut-preview { min-height: 48px; }
 }
 
+/* ===== Colour rail collapse tab (2026-08-26) =====
+   ColorRailToggle's button (js/ui/components/colorrail-toggle.js), hosted by
+   #color-rail-tab-host (css/layout.css) so it can straddle the boundary
+   between the rail and the canvas without being clipped by the rail's own
+   overflow-x: hidden. A "folder tab": rounded on the outward-facing corners
+   only, pulled half its own width past the grid cell's edge with
+   translateX so it always overlaps the neighbouring column by the same
+   amount whether the rail is at its full width or collapsed to zero —
+   the same chevron-from-a-rotated-corner technique .panel-collapse (further
+   down this file) uses for its own expand/collapse indicator, so the two
+   read as the same kind of control. */
+.rail-collapse-tab {
+    width: 16px;
+    height: 48px;
+    transform: translateX(50%);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-left: none;
+    border-radius: 0 6px 6px 0;
+    color: var(--text-secondary);
+    cursor: pointer;
+    position: relative;
+    flex: 0 0 auto;
+    pointer-events: auto;
+}
+
+.rail-collapse-tab:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.rail-collapse-tab::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 6px;
+    height: 6px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(135deg); /* left-pointing chevron: click collapses the rail leftward */
+}
+
+.rail-collapse-tab[aria-expanded="false"]::before {
+    transform: rotate(-45deg); /* right-pointing chevron: click expands the rail back out */
+}
+
 /* ===== Vertical colour rail — column layout (2026-08-25) =====
    ClutBar builds the SAME DOM used in every mode; these rules lay it out as
    a narrow column instead of #color-bar's horizontal row. Swatches keep a

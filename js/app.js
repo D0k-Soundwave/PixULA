@@ -311,6 +311,7 @@ class AppClass {
         // #color-rail, before BorderControl appends #border-host inside
         // #color-bar) + left rail tools
         ClutBar.init();
+        ColorRailToggle.init(); // async (Storage) — restores a persisted collapse, fire-and-forget like PanelSection.restore()
         BorderControl.initialize();
         DrawModeBar.init();
         ColorBarFit.init(); // after the bar's own content exists, before anything measures it

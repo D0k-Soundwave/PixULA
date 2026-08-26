@@ -127,14 +127,35 @@
              available height (the 256-entry Next grid, mainly); never
              scrolls sideways. -->
         <aside id="color-rail" role="toolbar" aria-label="Colours" aria-orientation="vertical">
-            <!-- Bright/Flash (ClutBar; per-mode, empty where the mode has no
-                 attribute bits) and the GigaScreen sub-screen view toggle —
-                 first in the rail, above the swatches. -->
-            <div id="colour-bits" class="toolbar-section"></div>
-            <div id="toolbar-color" class="toolbar-section">
-                <!-- Swatch cluster (ClutBar) is prepended here. -->
+            <!-- Everything the rail shows, as one block so ColorRailToggle
+                 (js/ui/components/colorrail-toggle.js) can hide all of it
+                 with a single display:none when the rail is collapsed,
+                 whatever ClutBar happens to have built for the active mode. -->
+            <div id="color-rail-content">
+                <!-- Bright/Flash (ClutBar; per-mode, empty where the mode has
+                     no attribute bits) and the GigaScreen sub-screen view
+                     toggle — first in the rail, above the swatches. -->
+                <div id="colour-bits" class="toolbar-section"></div>
+                <div id="toolbar-color" class="toolbar-section">
+                    <!-- Swatch cluster (ClutBar) is prepended here. -->
+                </div>
             </div>
         </aside>
+
+        <!-- The rail's collapse/expand tab: a sibling of #color-rail (NOT a
+             child of it) sharing its "colorrail" grid area, so the tab
+             overlaps the boundary with the canvas column and tracks it as
+             that column resizes, without ever being clipped by the rail's
+             own overflow-x: hidden (which a child positioned across that
+             boundary would be). See css/layout.css for the collapse rule
+             and js/ui/components/colorrail-toggle.js for the toggle logic. -->
+        <div id="color-rail-tab-host">
+            <button id="color-rail-toggle" class="rail-collapse-tab" type="button"
+                    aria-expanded="true" aria-controls="color-rail-content"
+                    data-i18n-title-name="clut.railCollapse" data-i18n-title="clut.railToggleHint"
+                    data-i18n-aria-label="clut.railCollapse"
+                    title="Collapse colour rail" aria-label="Collapse colour rail"></button>
+        </div>
 
         <!-- Central canvas area -->
         <main id="canvas-area" role="main" aria-label="Drawing canvas" tabindex="-1">
@@ -556,6 +577,7 @@
     <script defer src="js/ui/components/clut-bar.js"></script>
     <script defer src="js/ui/components/draw-mode-bar.js"></script>
     <script defer src="js/ui/components/colorbar-fit.js"></script>
+    <script defer src="js/ui/components/colorrail-toggle.js"></script>
     <script defer src="js/ui/components/touch-mode-status.js"></script>
     <script defer src="js/ui/components/layer-panel.js"></script>
     <script defer src="js/ui/components/transform-panel.js"></script>

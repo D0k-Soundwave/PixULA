@@ -1033,6 +1033,7 @@ const EVENTS = Object.freeze({
     THEME_CHANGED: 'theme:changed',
     PANEL_COLLAPSE_CHANGED: 'ui:panelCollapseChanged',
     PANEL_VISIBILITY_CHANGED: 'ui:panelVisibilityChanged',
+    COLORRAIL_COLLAPSE_CHANGED: 'ui:colorrailCollapseChanged',
 
     // File events
     FILE_NEW: 'file:new',
