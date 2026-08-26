@@ -614,7 +614,7 @@ const sk = {
 
     // About dialog
     'about.subtitle': 'Editor pixel artu pre ZX Spectrum',
-    'about.version': 'Verzia 2.0.0',
+    'about.version': 'Verzia {version}',
     'about.techSpec': '256×192 pixelov, 32×24 atribútových buniek',
     'about.colorSpec': '16 farieb (8 + 8 jasných), 2 na bunku',
 

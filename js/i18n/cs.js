@@ -614,7 +614,7 @@ const cs = {
 
     // About dialog
     'about.subtitle': 'Editor pixel artu pro ZX Spectrum',
-    'about.version': 'Verze 2.0.0',
+    'about.version': 'Verze {version}',
     'about.techSpec': '256×192 pixelů, 32×24 atributových buněk',
     'about.colorSpec': '16 barev (8 + 8 jasných), 2 na buňku',
 

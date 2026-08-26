@@ -614,7 +614,7 @@ const hu = {
 
     // About dialog
     'about.subtitle': 'ZX Spectrum pixelgrafikus szerkesztő',
-    'about.version': '2.0.0-s verzió',
+    'about.version': '{version}-s verzió',
     'about.techSpec': '256×192 képpont, 32×24 attribútumcella',
     'about.colorSpec': '16 szín (8 + 8 fényes), cellánként 2',
 

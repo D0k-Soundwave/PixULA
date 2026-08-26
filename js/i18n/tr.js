@@ -614,7 +614,7 @@ const tr = {
 
     // About dialog
     'about.subtitle': 'ZX Spectrum piksel sanatı düzenleyicisi',
-    'about.version': 'Sürüm 2.0.0',
+    'about.version': 'Sürüm {version}',
     'about.techSpec': '256×192 piksel, 32×24 öznitelik hücresi',
     'about.colorSpec': '16 renk (8 + 8 parlak), hücre başına 2',
 

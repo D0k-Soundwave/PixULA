@@ -614,7 +614,7 @@ const ru = {
 
     // About dialog
     'about.subtitle': 'Редактор пиксель-арта для ZX Spectrum',
-    'about.version': 'Версия 2.0.0',
+    'about.version': 'Версия {version}',
     'about.techSpec': '256×192 пикселей, 32×24 ячейки атрибутов',
     'about.colorSpec': '16 цветов (8 + 8 ярких), 2 на ячейку',
 

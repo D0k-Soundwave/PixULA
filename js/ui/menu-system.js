@@ -942,7 +942,7 @@ class MenuSystemClass {
         content.innerHTML = `
             <h2>PixULA</h2>
             <p data-i18n="about.subtitle">${this._t('about.subtitle', 'ZX Spectrum Pixel Art Editor')}</p>
-            <p data-i18n="about.version">${this._t('about.version', 'Version 2.0.0')}</p>
+            <p data-i18n="about.version" data-i18n-param-version="${APP_VERSION}">${this._t('about.version', 'Version {version}', { version: APP_VERSION })}</p>
             <p class="about-specs">
                 <span data-i18n="about.techSpec">${this._t('about.techSpec', '256×192 pixels, 32×24 attribute cells')}</span><br>
                 <span data-i18n="about.colorSpec">${this._t('about.colorSpec', '16 colours (8 + 8 bright), 2 per cell')}</span>

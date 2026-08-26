@@ -1,6 +1,15 @@
 'use strict';
 
 /**
+ * The app's own version, shown in the About dialog (about.version) and
+ * nowhere else — there is no build step to stamp it into, so this string
+ * is the single source of truth and must be bumped by hand per release.
+ * SemVer pre-release form: this is the first alpha, hence 0.x (1.0.0 is
+ * reserved for the first release with no more breaking changes expected).
+ */
+const APP_VERSION = '0.1.0-alpha.1';
+
+/**
  * Screen mode registry — the mode seam (docs/REFACTOR_PLAN.md §1a).
  *
  * Every geometry/palette assumption in the app flows from the active mode
@@ -1284,6 +1293,7 @@ const NEXTRGB333 = Object.freeze({
 });
 
 // Expose to global scope
+window.APP_VERSION = APP_VERSION;
 window.SCREEN_MODES = SCREEN_MODES;
 window.NEXTRGB333 = NEXTRGB333;
 // ACTIVE_SCREEN_MODE is an accessor so every `ACTIVE_SCREEN_MODE.width`-style

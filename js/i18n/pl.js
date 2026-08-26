@@ -614,7 +614,7 @@ const pl = {
 
     // About dialog
     'about.subtitle': 'Edytor pixel artu dla ZX Spectrum',
-    'about.version': 'Wersja 2.0.0',
+    'about.version': 'Wersja {version}',
     'about.techSpec': '256×192 pikseli, 32×24 komórki atrybutów',
     'about.colorSpec': '16 kolorów (8 + 8 jasnych), 2 na komórkę',
 

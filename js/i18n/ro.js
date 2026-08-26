@@ -614,7 +614,7 @@ const ro = {
 
     // About dialog
     'about.subtitle': 'Editor de pixel art pentru ZX Spectrum',
-    'about.version': 'Versiunea 2.0.0',
+    'about.version': 'Versiunea {version}',
     'about.techSpec': '256×192 pixeli, 32×24 celule de atribute',
     'about.colorSpec': '16 culori (8 + 8 luminoase), 2 pe celulă',
 
