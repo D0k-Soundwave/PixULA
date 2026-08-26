@@ -617,6 +617,10 @@ const de = {
     'about.version': 'Version {version}',
     'about.techSpec': '256×192 Pixel, 32×24 Attributzellen',
     'about.colorSpec': '16 Farben (8 + 8 hell), 2 pro Zelle',
+    'about.author': 'Erstellt von {name}',
+    'about.license': 'Lizenziert unter der GNU General Public License v3.0',
+    'about.inspiration': 'Inspiriert von ZX Paintbrush von Claus Jahn',
+    'about.getInvolved': 'Fehler melden, Funktion vorschlagen oder auf GitHub mitwirken',
 
     // Preferences dialog
     'pref.general': 'Allgemein',

@@ -617,6 +617,10 @@ const ru = {
     'about.version': 'Версия {version}',
     'about.techSpec': '256×192 пикселей, 32×24 ячейки атрибутов',
     'about.colorSpec': '16 цветов (8 + 8 ярких), 2 на ячейку',
+    'about.author': 'Автор: {name}',
+    'about.license': 'Распространяется по лицензии GNU General Public License v3.0',
+    'about.inspiration': 'Вдохновлено программой ZX Paintbrush авторства Клауса Яна',
+    'about.getInvolved': 'Сообщите об ошибке, предложите функцию или внесите вклад на GitHub',
 
     // Preferences dialog
     'pref.general': 'Общие',

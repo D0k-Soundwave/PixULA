@@ -617,6 +617,10 @@ const pl = {
     'about.version': 'Wersja {version}',
     'about.techSpec': '256×192 pikseli, 32×24 komórki atrybutów',
     'about.colorSpec': '16 kolorów (8 + 8 jasnych), 2 na komórkę',
+    'about.author': 'Stworzone przez {name}',
+    'about.license': 'Na licencji GNU General Public License w wersji 3.0',
+    'about.inspiration': 'Inspirowane programem ZX Paintbrush autorstwa Clausa Jahna',
+    'about.getInvolved': 'Zgłoś błąd, zaproponuj funkcję lub dołącz do projektu na GitHubie',
 
     // Preferences dialog
     'pref.general': 'Ogólne',
