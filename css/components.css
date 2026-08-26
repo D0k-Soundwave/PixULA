@@ -585,24 +585,31 @@
    #color-rail-tab-host (css/layout.css) so it can straddle the boundary
    between the rail and the canvas without being clipped by the rail's own
    overflow-x: hidden. A "folder tab": rounded on the outward-facing corners
-   only, pulled half its own width past the grid cell's edge with
-   translateX so it always overlaps the neighbouring column by the same
-   amount whether the rail is at its full width or collapsed to zero —
-   the same chevron-from-a-rotated-corner technique .panel-collapse (further
-   down this file) uses for its own expand/collapse indicator, so the two
-   read as the same kind of control. */
+   only. left: 100% of the host (NOT centred with a translateX overlap) so
+   its own LEFT edge sits exactly at the colorrail/canvas boundary and it
+   extends only rightward, into the canvas the host is scoped to (see the
+   layout.css comment) — it must never cover a real control, so it never
+   renders even one pixel back over the rail's swatches or, once the rail
+   is collapsed to zero width and that boundary lands on the toolbar's own
+   edge, over a tool-rail button either. Vertical centring is on the tab
+   itself (top: 50% + translateY), not the host, so the same left: 100%
+   rule holds regardless of the tab's own height. The chevron uses the
+   same rotated-corner technique .panel-collapse (further down this file)
+   uses for its own expand/collapse indicator, so the two read as the same
+   kind of control. */
 .rail-collapse-tab {
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
     width: 32px;
     height: 96px;
-    transform: translateX(50%);
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-left: none;
     border-radius: 0 12px 12px 0;
     color: var(--text-secondary);
     cursor: pointer;
-    position: relative;
-    flex: 0 0 auto;
     pointer-events: auto;
 }
 

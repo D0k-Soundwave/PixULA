@@ -146,6 +146,7 @@ body {
 
 #app.colorrail-collapsed #color-rail {
     padding: 0;
+    border-right: none;
 }
 
 #app.colorrail-collapsed #color-rail-content {
@@ -153,22 +154,30 @@ body {
 }
 
 /* The collapse/expand tab's overlay: a SIBLING of #color-rail sharing its
-   "colorrail" grid area (CSS Grid allows more than one item per named
+   "colorrail" grid COLUMN (CSS Grid allows more than one item per named
    area; the later one in DOM paints on top), rather than a child of it.
    #color-rail clips horizontally (overflow-x: hidden, above) so a child
    positioned to straddle the boundary with the canvas column would be cut
    off exactly where it needs to show; a sibling grid item has no such
-   clipping and simply renders past its cell's edge. Spans both of
-   #color-rail's own rows (the "colorrail" area does, same source) so
-   centering vertically here centers against the rail's own full height.
-   pointer-events: none on the host, restored on the button, so the empty
-   space around the tab never steals clicks meant for the colour rail or
-   canvas beneath it. */
+   clipping and simply renders past its cell's edge.
+
+   Deliberately grid-row: canvas, NOT the full "colorrail" area (which also
+   spans the colorbar row above it) - the tab must never be able to land
+   over #color-bar's own icons (draw modes, Mirror, Swap/Recolour), so its
+   box is confined to the row where its only neighbour is the empty canvas.
+   The tab itself (css/components.css .rail-collapse-tab) is positioned
+   with left: 100% of this host, not centered/transformed across it, so it
+   always starts exactly AT the colorrail/canvas boundary and extends only
+   rightward into the (icon-free) canvas — never leftward over the rail's
+   own swatches, and never over the toolbar's tool buttons when the rail
+   is collapsed to zero width and that boundary coincides with the
+   toolbar's own right edge. pointer-events: none on the host, restored on
+   the button, so the empty space around the tab never steals clicks meant
+   for the colour rail or canvas beneath it. */
 #color-rail-tab-host {
-    grid-area: colorrail;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
+    grid-row: canvas-start / canvas-end;
+    grid-column: colorrail-start / colorrail-end;
+    position: relative;
     pointer-events: none;
     z-index: var(--z-toolbar);
 }

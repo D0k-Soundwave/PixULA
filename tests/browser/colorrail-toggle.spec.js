@@ -106,3 +106,39 @@ test('collapsing works the same in a 256-colour indexed mode, without breaking t
         document.querySelector('#indexed-palette-grid .color-swatch').getBoundingClientRect().width);
     expect(swatchWidth).toBe(27); // the dense grid rebuilt correctly, unaffected by the collapse cycle
 });
+
+/*
+ * The tab is deliberately positioned to start exactly at the colorrail/canvas
+ * boundary and extend only rightward (css/components.css: left: 100% of a
+ * host scoped to the canvas row, css/layout.css) rather than centred across
+ * the boundary with half its bulk overlapping backward — an earlier version
+ * did that and could cover the rail's own swatches when expanded, or a
+ * tool-rail button when collapsed (the boundary then coincides with the
+ * toolbar's edge). Pins that guarantee with real bounding-box checks against
+ * every icon-bearing region it sits next to, in both states.
+ */
+test('the tab never overlaps the toolbar, the colour rail, or the top colour-bar strip', async ({ page }) => {
+    await boot(page);
+
+    async function overlapReport() {
+        return page.evaluate(() => {
+            const tab = document.getElementById('color-rail-toggle').getBoundingClientRect();
+            const overlaps = (b) => !(tab.right <= b.left || tab.left >= b.right ||
+                tab.bottom <= b.top || tab.top >= b.bottom);
+            return {
+                toolbar: overlaps(document.getElementById('toolbar').getBoundingClientRect()),
+                rail: overlaps(document.getElementById('color-rail').getBoundingClientRect()),
+                colorbar: overlaps(document.getElementById('color-bar').getBoundingClientRect())
+            };
+        });
+    }
+
+    const expanded = await overlapReport();
+    expect(expanded).toEqual({ toolbar: false, rail: false, colorbar: false });
+
+    await page.click('#color-rail-toggle');
+    await page.waitForTimeout(150);
+
+    const collapsed = await overlapReport();
+    expect(collapsed).toEqual({ toolbar: false, rail: false, colorbar: false });
+});
