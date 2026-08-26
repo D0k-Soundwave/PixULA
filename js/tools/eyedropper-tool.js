@@ -5,8 +5,21 @@
  * Eyedropper Tool
  *
  * Picks colors from the canvas.
- * Left-click sets INK color, right-click sets PAPER color.
- * Alt+click picks both ink and paper from the cell attributes.
+ *
+ * Attribute-based screen types (classic ink/paper cells — everything except
+ * the Next indexed modes): ink and paper are NOT independent picks — they
+ * are two halves of the one attribute byte a cell actually stores, along
+ * with bright and flash, so ANY click picks the whole cell's attributes at
+ * once, regardless of button or Alt. There is no such thing as "just the
+ * ink" of a cell in these modes; picking one half without the other would
+ * silently leave the picked colour paired with whatever paper happened to
+ * be selected before, which is not what the cell contains.
+ *
+ * Indexed modes (Next Layer 2/LoRes): pixels are genuinely independent
+ * per-pixel palette indices, not a shared attribute — left-click picks the
+ * drawing index, right-click the background/erase index, and Alt+click
+ * picks both (the composited index as ink, the background layer's own
+ * index as paper) in one action.
  */
 class EyedropperToolClass extends ToolBase {
   /** No options panel - picking behaviour is fixed. */
@@ -98,34 +111,12 @@ class EyedropperToolClass extends ToolBase {
       return;
     }
 
-    // Always read from the topmost visible layer that has data at this position.
-    // Layers aggregate upward: the highest visible altered cell wins for attributes,
-    // and ink pixels from any visible layer contribute to the composite pixel state.
-    const composite = this._getCompositeColor(pixelX, pixelY);
-    if (!composite) return;
-    const cell = composite.cell;
-    const isInk = composite.isInk;
-
-    if (e.altKey) {
-      // Alt+click: pick both ink and paper from cell attributes
-      this._pickCellAttributes(cell);
-    } else if (e.button === 2 || (e.buttons & 2) !== 0) {
-      // Right-click: set as PAPER
-      const paperIndex = cell.paper;
-      ColorManager.setPaper(paperIndex);
-      if (cell.bright !== ColorManager.getBright()) {
-        ColorManager.setBright(cell.bright);
-      }
-      Logger.debug('EyedropperTool', `Picked PAPER: ${paperIndex} (bright: ${cell.bright})`);
-    } else {
-      // Left-click: set INK to the cell's ink attribute (regardless of whether pixel is ink or paper)
-      const colorIndex = cell.ink;
-      ColorManager.setInk(colorIndex);
-      if (cell.bright !== ColorManager.getBright()) {
-        ColorManager.setBright(cell.bright);
-      }
-      Logger.debug('EyedropperTool', `Picked INK: ${colorIndex} (bright: ${cell.bright})`);
-    }
+    // Ink and paper are one attribute byte in these modes, not two
+    // independent picks — every click picks the whole cell, regardless of
+    // button or Alt. (Button/Alt only matter in indexed modes, above,
+    // where a pixel's index really is independent of its neighbours'.)
+    const cell = this._getTopmostCell(pixelX, pixelY);
+    this._pickCellAttributes(cell);
 
     EventBus.emit(EVENTS.TOOL_OPTIONS, {
       tool: this.id,
@@ -136,7 +127,7 @@ class EyedropperToolClass extends ToolBase {
   }
 
   /**
-   * Pick both ink and paper from cell attributes
+   * Pick ink, paper, bright and flash together from a cell's attributes.
    * @param {Object} cell - Cell data
    * @private
    */
@@ -147,60 +138,32 @@ class EyedropperToolClass extends ToolBase {
       bright: cell.bright,
       flash: cell.flash
     });
-    Logger.debug('EyedropperTool', `Picked cell attributes: ink=${cell.ink}, paper=${cell.paper}, bright=${cell.bright}`);
+    Logger.debug('EyedropperTool', `Picked cell attributes: ink=${cell.ink}, paper=${cell.paper}, bright=${cell.bright}, flash=${cell.flash}`);
   }
 
   /**
-   * Get color from composited view (considering layer visibility and altered state)
+   * The topmost visible layer's altered cell at a pixel — its attributes
+   * (ink/paper/bright/flash) are what the eyedropper picks as one unit.
+   * Layers aggregate upward: the highest visible altered cell wins.
    * @param {number} pixelX - X coordinate
    * @param {number} pixelY - Y coordinate
-   * @returns {Object|null} { colorIndex, isInk, cell } or null
+   * @returns {Object} cell data (never null — falls back to the background,
+   *          then to classic defaults)
    * @private
    */
-  _getCompositeColor(pixelX, pixelY) {
+  _getTopmostCell(pixelX, pixelY) {
     const { x: cellX, y: cellY } = ZX_COORDS.pixelToCell(pixelX, pixelY);
 
-    // Collect pixel states and find topmost altered cell for attributes
-    let compositePixelSet = false;
-    let topmostAlteredCell = null;
-
-    // Check layers from top to bottom
     for (let i = LayerManager.getLayerCount() - 1; i >= 0; i--) {
       const layer = LayerManager.getLayer(i);
       if (!layer.visible) continue;
-
       const cell = layer.getCell(cellX, cellY);
-      if (!cell) continue;
-
-      // For pixel state, OR all layer pixels together
-      if (cell.altered || layer.isBackground) {
-        const pixelState = layer.getPixelState(pixelX, pixelY);
-        if (pixelState) {
-          compositePixelSet = true;
-        }
-      }
-
-      // Track topmost altered cell for attributes
-      if ((cell.altered || layer.isBackground) && !topmostAlteredCell) {
-        topmostAlteredCell = cell;
-      }
+      if (cell && (cell.altered || layer.isBackground)) return cell;
     }
 
-    // If no altered cells found, use background defaults
-    if (!topmostAlteredCell) {
-      const bgLayer = LayerManager.getLayer(0);
-      if (bgLayer) {
-        topmostAlteredCell = bgLayer.getCell(cellX, cellY);
-      }
-      if (!topmostAlteredCell) {
-        // Absolute fallback
-        topmostAlteredCell = { ink: 0, paper: 7, bright: false, flash: false };
-      }
-    }
-
-    const colorIndex = compositePixelSet ? topmostAlteredCell.ink : topmostAlteredCell.paper;
-
-    return { colorIndex, isInk: compositePixelSet, cell: topmostAlteredCell };
+    const bgLayer = LayerManager.getLayer(0);
+    const bgCell = bgLayer && bgLayer.getCell(cellX, cellY);
+    return bgCell || { ink: 0, paper: 7, bright: false, flash: false };
   }
 
   /**

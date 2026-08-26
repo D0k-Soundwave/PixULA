@@ -216,16 +216,11 @@ check('fill: interior flooded', isInk(50, 48) && isInk(41, 41) && isInk(59, 55))
 check('fill: does not leak past the border', !isInk(62, 48));
 
 // ── Eyedropper ────────────────────────────────────────────────────────────
-ToolManager.selectTool(TOOLS.EYEDROPPER);
-colorCalls.length = 0;
-down(50, 48, ev());     // filled area, ink 0
-up(50, 48, ev());
-check('eyedropper: picked ink from canvas', colorCalls.some(c => c[0] === 'ink' && c[1] === 0));
-
-// Alt+click must pick BOTH ink and paper from the cell's attributes, not
-// just ink — draw a cell with a distinct ink/paper pair, point the current
-// selection somewhere else entirely, then Alt+click that cell and check
-// both land, not only ink.
+// Ink and paper are one attribute byte on a classic cell, not two
+// independent picks - so ANY click (no button/Alt distinction) must pick
+// BOTH together. Draw a cell with a distinct ink/paper pair, point the
+// current selection somewhere else entirely, then plain-click that cell
+// and check both land, not only ink.
 ToolManager.selectTool(TOOLS.BRUSH);
 ColorManager.setInk(3);
 ColorManager.setPaper(2);
@@ -235,14 +230,23 @@ ColorManager.setInk(6);
 ColorManager.setPaper(1);
 colorCalls.length = 0;
 ToolManager.selectTool(TOOLS.EYEDROPPER);
-down(100, 100, ev({ altKey: true }));
-up(100, 100, ev({ altKey: true }));
-const altPick = colorCalls.find(c => c[0] === 'selection');
-check('eyedropper: alt+click picks a selection (ink+paper together)', !!altPick);
-check('eyedropper: alt+click picks the cell\'s INK, not the current selection\'s',
-  !!altPick && altPick[1].ink === 3);
-check('eyedropper: alt+click picks the cell\'s PAPER too, not just ink',
-  !!altPick && altPick[1].paper === 2);
+down(100, 100, ev());
+up(100, 100, ev());
+const plainPick = colorCalls.find(c => c[0] === 'selection');
+check('eyedropper: a plain click picks a selection (ink+paper together), not a single setInk', !!plainPick);
+check('eyedropper: plain click picks the cell\'s INK, not the current selection\'s',
+  !!plainPick && plainPick[1].ink === 3);
+check('eyedropper: plain click picks the cell\'s PAPER too, not just ink',
+  !!plainPick && plainPick[1].paper === 2);
+
+// Right-click and Alt+click must behave identically to a plain click here -
+// there is no "just ink" or "just paper" half-pick in an attribute-based mode.
+colorCalls.length = 0;
+down(100, 100, ev({ button: 2, buttons: 2 }));
+up(100, 100, ev({ button: 2, buttons: 0 }));
+const rightPick = colorCalls.find(c => c[0] === 'selection');
+check('eyedropper: right-click ALSO picks ink+paper together, not paper alone',
+  !!rightPick && rightPick[1].ink === 3 && rightPick[1].paper === 2);
 
 // ── Spray (now a brush variant: rail id 'spray' rides on BrushTool) ───────
 ToolManager.selectTool(TOOLS.SPRAY);
