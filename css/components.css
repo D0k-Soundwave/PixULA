@@ -793,7 +793,7 @@
    gets the standard one-column swatch grid from .clut-row above (it
    matches both .clut-row and .indexed-palette-grid), at the full
    --rail-icon-size; the 256-entry case deliberately stays its OWN small
-   "dense" size (18-22px, below) regardless of how big --rail-icon-size
+   "dense" size (27px, below) regardless of how big --rail-icon-size
    grows, rather than tracking it - at --rail-icon-size there is no
    per-swatch detail to gain from a bigger box, and 256 of them at full
    size would be a very long scroll for nothing. Dense goes several
@@ -817,32 +817,23 @@
    wins would depend only on source order in this file, silently, with
    nothing to catch a future reordering. Matching all three classes bumps
    this to one id + three classes so it always wins regardless of order.
-   4 columns of 18px (+3 3px gaps) = 81px, comfortably inside the rail's
-   ~124px usable width (--colorrail-width 140px minus its own padding) —
-   measured 2026-08-26, re-check against tests/browser/color-rail.spec.js's
-   width sweep before changing either figure. */
+   4 columns of 27px (+3 3px gaps) = 117px, inside the rail's ~123px usable
+   width (--colorrail-width 140px minus its own padding and border) with a
+   6px margin for zoom rounding - measured 2026-08-26 (M, when the swatch
+   was 18px and left 42px of the rail unused: the fix that grew it to fill
+   that space), re-check against tests/browser/color-rail.spec.js's width
+   sweep before changing either figure. One size for every pointer type now
+   (no coarse-pointer override): the rail's fixed width, not comfort, is
+   what capped this size, and it caps every pointer type the same way -
+   28px is the true maximum before the grid would exceed 123px, so 27px is
+   already close to that ceiling regardless of touch vs mouse. */
 #color-rail .clut-row.indexed-palette-grid.indexed-dense {
-    grid-template-columns: repeat(4, 18px);
+    grid-template-columns: repeat(4, 27px);
 }
 
 #color-rail .indexed-palette-grid.indexed-dense .color-swatch {
-    width: 18px;
-    height: 18px;
-}
-
-/* Same 4 columns at the coarse-pointer swatch size (22px): 4 x 22px + 3
-   gaps = 97px, comfortably inside the wider ~124px usable width (this used
-   to be a tighter fit at the rail's earlier, narrower size - re-check
-   against tests/browser/color-rail.spec.js's width sweep before changing
-   either figure). */
-@media (pointer: coarse) {
-    #color-rail .clut-row.indexed-palette-grid.indexed-dense {
-        grid-template-columns: repeat(4, 22px);
-    }
-    #color-rail .indexed-palette-grid.indexed-dense .color-swatch {
-        width: 22px;
-        height: 22px;
-    }
+    width: 27px;
+    height: 27px;
 }
 
 /* ===== Panel chrome (tpl-panel) ===== */

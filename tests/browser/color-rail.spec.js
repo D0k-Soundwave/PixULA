@@ -493,3 +493,32 @@ test('the 256-entry dense grid is several half-size columns, its own size regard
     expect(layout.inkOutlineWithinRail).toBe(true);
     expect(layout.paperMarkerWithinSwatch).toBe(true);
 });
+
+/*
+ * The dense grid used to sit at 18px (22px on a coarse pointer) while the
+ * rail itself had room for 27px in the same 4 columns - 42px of the rail's
+ * width going unused next to the 256-colour swatches (M, 2026-08-26). This
+ * pins the fix: dense fills that space instead of leaving it idle, and
+ * never overflows the rail's fixed width doing it, at any interface-size
+ * setting (the same --ui-scale zoom sweep every other rail control is
+ * checked against).
+ */
+test('the 256-entry dense grid uses the rail\'s spare width instead of leaving it idle', async ({ page }) => {
+    await boot(page);
+    page.on('dialog', (d) => d.accept());
+    await page.evaluate(() => ScreenModeService.switchMode('layer2_256'));
+
+    const swatchWidth = await page.evaluate(() =>
+        document.querySelector('#indexed-palette-grid .color-swatch').getBoundingClientRect().width);
+    expect(swatchWidth).toBe(27);
+
+    for (const scale of ['0.85', '1', '1.25', '1.5', '2']) {
+        await page.selectOption('#font-scale-selector', scale);
+        await page.waitForTimeout(150);
+        const overflow = await page.evaluate(() => {
+            const rail = document.getElementById('color-rail');
+            return rail.scrollWidth > rail.clientWidth + 1;
+        });
+        expect(overflow).toBe(false);
+    }
+});
