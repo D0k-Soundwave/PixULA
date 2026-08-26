@@ -75,6 +75,37 @@ test('classic mode: Ink then Paper stack vertically in the rail, each a fixed on
 });
 
 /*
+ * Bright/Flash sit side by side (2026-08-26) — the rail is wide enough for
+ * two icon columns (widened for the CLUT/GigaScreen pickers), so there is
+ * no longer a reason to spend twice the vertical space stacking them.
+ */
+test('classic mode: Bright and Flash sit side by side, at the rail icon size', async ({ page }) => {
+    await boot(page);
+
+    const layout = await page.evaluate(() => {
+        const bright = document.getElementById('bright-toggle').closest('.clut-bit').getBoundingClientRect();
+        const flash = document.getElementById('flash-toggle').closest('.clut-bit').getBoundingClientRect();
+        const rail = document.getElementById('color-rail').getBoundingClientRect();
+        const railIconSize = parseFloat(getComputedStyle(document.documentElement)
+            .getPropertyValue('--rail-icon-size'));
+        return {
+            sameRow: Math.round(bright.top) === Math.round(flash.top),
+            brightLeftOfFlash: bright.left < flash.left,
+            brightSize: Math.round(bright.width) === Math.round(railIconSize) &&
+                Math.round(bright.height) === Math.round(railIconSize),
+            flashSize: Math.round(flash.width) === Math.round(railIconSize) &&
+                Math.round(flash.height) === Math.round(railIconSize),
+            bothWithinRail: bright.left >= rail.left - 0.5 && flash.right <= rail.right + 0.5
+        };
+    });
+    expect(layout.sameRow).toBe(true);
+    expect(layout.brightLeftOfFlash).toBe(true);
+    expect(layout.brightSize).toBe(true);
+    expect(layout.flashSize).toBe(true);
+    expect(layout.bothWithinRail).toBe(true);
+});
+
+/*
  * ULAplus: the CLUT selector (0-3) is a 2x2 grid of icon-sized squares -
  * the same fixed size as every swatch and toggle in the rail - not small
  * text buttons wrapping freely. A single digit never needs the wrap

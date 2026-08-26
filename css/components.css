@@ -736,14 +736,17 @@
     margin-top: 2px;
 }
 
-/* Bright / Flash: stacked one above the other, same as every other rail
-   control — never side by side, so the column stays exactly one control
-   wide throughout. */
+/* Bright / Flash: side by side, one icon-width column each - the rail
+   widened to fit two columns (2026-08-26, for the CLUT/GigaScreen pickers)
+   with plenty of room to spare, so there is no longer a reason to stack
+   these two and spend twice the vertical space for it. Still at the top of
+   the column (index.html DOM order), just laid out across it instead of
+   down it. */
 #color-rail .clut-bits {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
 }
 
 /* The native checkbox drives state/AT but the icon shows it — hide the box. */
