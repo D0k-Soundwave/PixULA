@@ -14,3 +14,6 @@ docs/bench-images/*
 # Stray tracked copy of the generated portable build (PixULA_Distilled/ above
 # is already ignored as the source of truth; a zip would only duplicate it).
 /PixULA_Distilled.zip
+
+# Scratch screenshots from a companion-pairing debugging session; not repo content.
+docs/Companion fail/
