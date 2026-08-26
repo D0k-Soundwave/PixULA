@@ -2232,6 +2232,24 @@
     margin-top: var(--space-md);
 }
 
+.about-dialog-body .about-meta {
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    margin-top: var(--space-xs);
+}
+
+.about-dialog-body .about-links {
+    margin-top: var(--space-md);
+}
+
+.about-dialog-body .about-links a {
+    color: var(--accent-color);
+}
+
+.about-dialog-body .about-links a:hover {
+    text-decoration: underline;
+}
+
 .shortcuts-table {
     width: 100%;
     font-size: var(--font-size-sm);

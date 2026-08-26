@@ -617,6 +617,10 @@ const cs = {
     'about.version': 'Verze {version}',
     'about.techSpec': '256×192 pixelů, 32×24 atributových buněk',
     'about.colorSpec': '16 barev (8 + 8 jasných), 2 na buňku',
+    'about.author': 'Vytvořil {name}',
+    'about.license': 'Licencováno pod GNU General Public License v3.0',
+    'about.inspiration': 'Inspirováno programem ZX Paintbrush od Clause Jahna',
+    'about.getInvolved': 'Nahlaste chybu, navrhněte funkci nebo přispějte na GitHubu',
 
     // Preferences dialog
     'pref.general': 'Obecné',

@@ -617,6 +617,10 @@ const sk = {
     'about.version': 'Verzia {version}',
     'about.techSpec': '256×192 pixelov, 32×24 atribútových buniek',
     'about.colorSpec': '16 farieb (8 + 8 jasných), 2 na bunku',
+    'about.author': 'Vytvoril {name}',
+    'about.license': 'Licencované pod GNU General Public License v3.0',
+    'about.inspiration': 'Inšpirované programom ZX Paintbrush od Clausa Jahna',
+    'about.getInvolved': 'Nahláste chybu, navrhnite funkciu alebo prispejte na GitHube',
 
     // Preferences dialog
     'pref.general': 'Všeobecné',

@@ -617,6 +617,10 @@ const tr = {
     'about.version': 'Sürüm {version}',
     'about.techSpec': '256×192 piksel, 32×24 öznitelik hücresi',
     'about.colorSpec': '16 renk (8 + 8 parlak), hücre başına 2',
+    'about.author': '{name} tarafından yapıldı',
+    'about.license': 'GNU General Public License v3.0 lisansı altındadır',
+    'about.inspiration': 'Claus Jahn\'ın ZX Paintbrush programından ilham alınmıştır',
+    'about.getInvolved': 'GitHub\'da hata bildirin, özellik önerin veya katkıda bulunun',
 
     // Preferences dialog
     'pref.general': 'Genel',

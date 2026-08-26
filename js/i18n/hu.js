@@ -617,6 +617,10 @@ const hu = {
     'about.version': '{version}-s verzió',
     'about.techSpec': '256×192 képpont, 32×24 attribútumcella',
     'about.colorSpec': '16 szín (8 + 8 fényes), cellánként 2',
+    'about.author': 'Készítette: {name}',
+    'about.license': 'A GNU General Public License v3.0 licenc alatt',
+    'about.inspiration': 'A Claus Jahn által készített ZX Paintbrush ihlette',
+    'about.getInvolved': 'Jelentsen hibát, javasoljon funkciót, vagy járuljon hozzá a GitHubon',
 
     // Preferences dialog
     'pref.general': 'Általános',

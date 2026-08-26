@@ -937,6 +937,8 @@ class MenuSystemClass {
 
     /** @private */
     _showAbout() {
+        const author = 'D0k of Raww Arse';
+        const repoUrl = 'https://github.com/D0k-Soundwave/PixULA';
         const content = document.createElement('div');
         content.className = 'about-dialog-body';
         content.innerHTML = `
@@ -947,6 +949,11 @@ class MenuSystemClass {
                 <span data-i18n="about.techSpec">${this._t('about.techSpec', '256×192 pixels, 32×24 attribute cells')}</span><br>
                 <span data-i18n="about.colorSpec">${this._t('about.colorSpec', '16 colours (8 + 8 bright), 2 per cell')}</span>
             </p>
+            <p class="about-meta" data-i18n="about.author" data-i18n-param-name="${author}">${this._t('about.author', 'Made by {name}', { name: author })}</p>
+            <p class="about-meta" data-i18n="about.license">${this._t('about.license', 'Licensed under the GNU General Public License v3.0')}</p>
+            <p class="about-meta" data-i18n="about.inspiration">${this._t('about.inspiration', 'Inspired by ZX Paintbrush by Claus Jahn')}</p>
+            <p class="about-links"><a href="${repoUrl}" target="_blank" rel="noopener noreferrer">github.com/D0k-Soundwave/PixULA</a></p>
+            <p class="about-meta" data-i18n="about.getInvolved">${this._t('about.getInvolved', 'Report a bug, suggest a feature, or contribute on GitHub')}</p>
         `;
         Dialog.open({
             id: 'about-dialog',

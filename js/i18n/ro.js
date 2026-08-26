@@ -617,6 +617,10 @@ const ro = {
     'about.version': 'Versiunea {version}',
     'about.techSpec': '256×192 pixeli, 32×24 celule de atribute',
     'about.colorSpec': '16 culori (8 + 8 luminoase), 2 pe celulă',
+    'about.author': 'Creat de {name}',
+    'about.license': 'Licențiat sub GNU General Public License v3.0',
+    'about.inspiration': 'Inspirat de ZX Paintbrush, creat de Claus Jahn',
+    'about.getInvolved': 'Raportează o eroare, sugerează o funcție sau contribuie pe GitHub',
 
     // Preferences dialog
     'pref.general': 'General',
