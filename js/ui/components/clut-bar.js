@@ -196,8 +196,19 @@ class ClutBarClass {
 
         // Attribute ops act on cell attributes — hidden where cells have none
         // (Timex hi-res ignores them; indexed Next modes don't have them).
+        // `visibility: hidden`, not `display: none`: #attr-tools is `display:
+        // contents` (css/components.css), so its two buttons are direct flex
+        // items of #marks-icons-row alongside the draw modes and Mirror —
+        // removing them from layout would shrink the top strip's total
+        // content width, and ColorBarFit (js/ui/components/colorbar-fit.js)
+        // would then settle on a DIFFERENT --colorbar-scale for modes with no
+        // cell attributes than for modes with them, visibly resizing every
+        // icon in the strip on a mode switch. Hiding by visibility keeps the
+        // two buttons' layout space reserved (an empty gap where they'd be)
+        // so the strip's width, and therefore its scale, never depends on
+        // which mode is active.
         const attrHost = document.getElementById('attr-tools');
-        if (attrHost) attrHost.style.display = (model === 'timexMono' || indexed) ? 'none' : '';
+        if (attrHost) attrHost.style.visibility = (model === 'timexMono' || indexed) ? 'hidden' : '';
 
         if (model === 'timexMono') {
             host.appendChild(this._buildHiresSchemeRow());

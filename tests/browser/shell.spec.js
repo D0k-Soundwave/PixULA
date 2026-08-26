@@ -195,6 +195,53 @@ test('the top strip stays exactly one row after switching screen mode', async ({
 });
 
 /*
+ * Swap/Recolour (#attr-tools) are hidden in modes with no cell attributes
+ * (Timex hi-res, every indexed Next mode) - by visibility, not display
+ * (2026-08-26), specifically so the top strip's total content width, and
+ * therefore the scale ColorBarFit settles on, cannot depend on which mode
+ * is active. Before that fix, hiding two buttons shrank the content
+ * ColorBarFit had to fit, so at a narrow window + high interface size (where
+ * the strip actually needs to shrink to fit one row) it settled on a LARGER
+ * --colorbar-scale for those modes than for a classic one - every icon in
+ * the strip visibly grew or shrank on a mode switch. Reproduced at 1366px +
+ * 200% before the fix: scale went from ~0.297 (classic) to ~0.349 (Timex/
+ * indexed), and the strip's own height changed with it.
+ */
+test('the top strip never changes scale or height when a mode hides Swap/Recolour',
+    async ({ page }) => {
+        await page.setViewportSize({ width: 1366, height: 900 });
+        await boot(page);
+        await page.selectOption('#font-scale-selector', '2');
+        await page.waitForTimeout(300);
+        page.on('dialog', (d) => d.accept());
+
+        const readBar = () => page.evaluate(() => {
+            const bar = document.getElementById('color-bar');
+            return {
+                scale: getComputedStyle(bar).getPropertyValue('--colorbar-scale').trim(),
+                height: bar.getBoundingClientRect().height
+            };
+        });
+
+        const classic = await readBar();
+        await page.evaluate(() => ScreenModeService.switchMode('timex_hires'));
+        await page.waitForTimeout(300);
+        const timex = await readBar();
+        await page.evaluate(() => ScreenModeService.switchMode('layer2_256'));
+        await page.waitForTimeout(300);
+        const indexed = await readBar();
+        await page.evaluate(() => ScreenModeService.switchMode('standard_ula'));
+        await page.waitForTimeout(300);
+        const backToClassic = await readBar();
+
+        expect(timex.scale).toBe(classic.scale);
+        expect(indexed.scale).toBe(classic.scale);
+        expect(backToClassic.scale).toBe(classic.scale);
+        expect(timex.height).toBeCloseTo(classic.height, 1);
+        expect(indexed.height).toBeCloseTo(classic.height, 1);
+    });
+
+/*
  * ColorBarFit (js/ui/components/colorbar-fit.js): the top strip must never
  * wrap to a second row, at any interface-size setting or window width from
  * 1024px up. This is the same shrink-only binary search the bar always

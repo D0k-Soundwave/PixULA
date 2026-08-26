@@ -115,7 +115,14 @@ test('Timex hi-res: 512-wide geometry + scheme selector; attr ops hidden', async
     await expect(page.locator('#canvas-size')).toHaveText(/512\s*×\s*192/);
     const state = await page.evaluate(() => ({
         w: ZX_SPECTRUM.WIDTH,
-        attrOpsVisible: !!document.querySelector('#attr-tools button')?.offsetParent,
+        // visibility: hidden (not display: none, 2026-08-26 - the two
+        // buttons keep their layout space reserved so the top strip's width
+        // never depends on the active mode), so offsetParent alone would
+        // still be truthy - check the computed style instead.
+        attrOpsVisible: (() => {
+            const btn = document.querySelector('#attr-tools button');
+            return !!btn && getComputedStyle(btn).visibility !== 'hidden';
+        })(),
         schemeSelector: [...document.querySelectorAll('#toolbar-color select, #toolbar-color [role="radiogroup"], #toolbar-color button')].length
     }));
     expect(state.w).toBe(512);
@@ -151,7 +158,14 @@ test('indexed modes: attr ops hidden, index grid in the rail, classic exports ga
     expect(await modeId(page)).toBe('layer2_256');
 
     const rail = await page.evaluate(() => ({
-        attrOpsVisible: !!document.querySelector('#attr-tools button')?.offsetParent,
+        // visibility: hidden (not display: none, 2026-08-26 - the two
+        // buttons keep their layout space reserved so the top strip's width
+        // never depends on the active mode), so offsetParent alone would
+        // still be truthy - check the computed style instead.
+        attrOpsVisible: (() => {
+            const btn = document.querySelector('#attr-tools button');
+            return !!btn && getComputedStyle(btn).visibility !== 'hidden';
+        })(),
         swatchCount: document.querySelectorAll('#toolbar-color .color-swatch, #toolbar-color [data-index]').length
     }));
     expect(rail.attrOpsVisible).toBe(false);

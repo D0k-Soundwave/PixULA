@@ -618,8 +618,12 @@
    sibling in #marks-icons-row (css/layout.css) — the inner row that #color-
    bar-controls's own "Drawing Modes" caption sits above. Kept as separate
    sections because two different components own them (ClutBar, DrawModeBar)
-   and ClutBar still hides #attr-tools whole in the modes that have no cell
-   attributes; an inline `display: none` still beats this. */
+   and ClutBar hides #attr-tools' buttons whole in the modes that have no
+   cell attributes — with `visibility: hidden` (2026-08-26), not `display:
+   none`: Swap/Recolour's two buttons keep their layout space reserved so
+   the row's total width, and therefore the scale ColorBarFit settles on
+   (js/ui/components/colorbar-fit.js), never depends on which mode is
+   active. An inline style still beats this stylesheet rule either way. */
 #marks-icons-row #attr-tools,
 #marks-icons-row #draw-modes,
 #marks-icons-row #mirror-modes {
