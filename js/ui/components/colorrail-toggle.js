@@ -8,11 +8,13 @@
  * This is chrome state, not document or tool state — like a panel section's
  * collapsed flag (PanelSection), not like anything ColorManager owns — so it
  * lives entirely as a class on #app (css/layout.css: .colorrail-collapsed
- * drops the "colorrail" grid track to zero width) plus its own Storage key,
- * persisted the same way gridSnap/touchDrawing are. The tab itself sits in
- * #color-rail-tab-host, a sibling of #color-rail that shares its grid area
- * (see the layout.css comment) rather than a child of it, so collapsing
- * never has to fight #color-rail's own overflow-x: hidden.
+ * slides the floating #color-rail off-screen behind the toolbar) plus its
+ * own Storage key, persisted the same way gridSnap/touchDrawing are. The
+ * rail itself is an overlay positioned on top of the canvas, not a grid
+ * column, specifically so collapsing or expanding it never changes any
+ * column's width — see the layout.css comment on #app for why that
+ * mattered (a fixed rail column could push #panels off-screen on a narrow
+ * window).
  */
 class ColorRailToggleClass {
     constructor() {

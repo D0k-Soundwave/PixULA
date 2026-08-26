@@ -580,23 +580,23 @@
     #color-preview .clut-preview { min-height: 48px; }
 }
 
-/* ===== Colour rail collapse tab (2026-08-26) =====
-   ColorRailToggle's button (js/ui/components/colorrail-toggle.js), hosted by
-   #color-rail-tab-host (css/layout.css) so it can straddle the boundary
-   between the rail and the canvas without being clipped by the rail's own
-   overflow-x: hidden. A "folder tab": rounded on the outward-facing corners
-   only. left: 100% of the host (NOT centred with a translateX overlap) so
-   its own LEFT edge sits exactly at the colorrail/canvas boundary and it
-   extends only rightward, into the canvas the host is scoped to (see the
-   layout.css comment) — it must never cover a real control, so it never
-   renders even one pixel back over the rail's swatches or, once the rail
-   is collapsed to zero width and that boundary lands on the toolbar's own
-   edge, over a tool-rail button either. Vertical centring is on the tab
-   itself (top: 50% + translateY), not the host, so the same left: 100%
-   rule holds regardless of the tab's own height. The chevron uses the
-   same rotated-corner technique .panel-collapse (further down this file)
-   uses for its own expand/collapse indicator, so the two read as the same
-   kind of control. */
+/* ===== Colour rail collapse tab (2026-08-26; floating rail 2026-08-27) =====
+   ColorRailToggle's button (js/ui/components/colorrail-toggle.js), a child
+   of #color-rail (which is itself position: absolute — css/layout.css —
+   so it needs no extra positioned wrapper to anchor against). A "folder
+   tab": rounded on the outward-facing corners only. left: 100% of the
+   rail (NOT centred with a translateX overlap) so its own LEFT edge sits
+   exactly at the rail's right edge and it extends only rightward, into
+   the canvas underneath — it must never cover a real control, so it never
+   renders even one pixel back over the rail's own swatches. Collapsing
+   slides the whole rail (this tab included, since transform moves its
+   entire subtree) left by the rail's own width, so the tab lands back at
+   the toolbar/canvas boundary without any separate rule for that state —
+   see the layout.css collapse comment. Vertical centring is on the tab
+   itself (top: 50% + translateY), independent of the rail's own height.
+   The chevron uses the same rotated-corner technique .panel-collapse
+   (further down this file) uses for its own expand/collapse indicator, so
+   the two read as the same kind of control. */
 .rail-collapse-tab {
     position: absolute;
     left: 100%;

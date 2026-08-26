@@ -99,8 +99,12 @@ test('clicking the canvas closes an open panel reorder menu', async ({ page }) =
 
     // The canvas lives in its own iframe document; a pointerdown there must
     // still be seen as "outside" the menu, which lives on the top document.
+    // Click the frame's own centre, not a corner: the floating colour rail
+    // (js/ui/components/colorrail-toggle.js) now overlays the LEFT edge of
+    // the canvas area, and a corner near (10, 10) can land under it when
+    // the canvas iframe is centred close to that edge.
     const frame = page.frameLocator('#canvas-frame');
-    await frame.locator('body').click({ position: { x: 10, y: 10 } });
+    await frame.locator('body').click();
 
     await expect(page.locator('.canvas-context-menu')).toHaveCount(0);
 });
