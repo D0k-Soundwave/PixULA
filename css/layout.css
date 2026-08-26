@@ -51,6 +51,7 @@ body {
 #header,
 #toolbar,
 #color-rail,
+#color-rail-tab-host,
 #panels,
 #status-bar,
 #canvas-controls {
@@ -111,6 +112,64 @@ body {
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: thin;
+    z-index: var(--z-toolbar);
+}
+
+/* The one child #color-rail now has (everything ClutBar builds, wrapped as
+   one block — index.html) reproduces the column layout #color-rail used to
+   apply directly to its two children, before ColorRailToggle needed a
+   single element it could hide in one place regardless of what the active
+   mode built inside it. */
+#color-rail-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+    width: 100%;
+}
+
+/* Collapsing the colour rail (ColorRailToggle, js/ui/components/
+   colorrail-toggle.js — a chrome-only, non-persisted-to-document toggle
+   like a panel section's collapsed flag): the "colorrail" grid track drops
+   to zero width — content stays intact underneath (just hidden), so
+   expanding it back costs nothing to rebuild. Zero, not some small
+   remainder, is correct here specifically because the collapse tab itself
+   is NOT inside this track (see #color-rail-tab-host below): with nothing
+   left needing room, there is nothing to reserve it for. */
+#app.colorrail-collapsed {
+    grid-template-columns:
+        calc(var(--toolbar-width) * var(--ui-scale))
+        0
+        1fr
+        calc(var(--panel-width) * var(--ui-scale));
+}
+
+#app.colorrail-collapsed #color-rail {
+    padding: 0;
+}
+
+#app.colorrail-collapsed #color-rail-content {
+    display: none;
+}
+
+/* The collapse/expand tab's overlay: a SIBLING of #color-rail sharing its
+   "colorrail" grid area (CSS Grid allows more than one item per named
+   area; the later one in DOM paints on top), rather than a child of it.
+   #color-rail clips horizontally (overflow-x: hidden, above) so a child
+   positioned to straddle the boundary with the canvas column would be cut
+   off exactly where it needs to show; a sibling grid item has no such
+   clipping and simply renders past its cell's edge. Spans both of
+   #color-rail's own rows (the "colorrail" area does, same source) so
+   centering vertically here centers against the rail's own full height.
+   pointer-events: none on the host, restored on the button, so the empty
+   space around the tab never steals clicks meant for the colour rail or
+   canvas beneath it. */
+#color-rail-tab-host {
+    grid-area: colorrail;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    pointer-events: none;
     z-index: var(--z-toolbar);
 }
 

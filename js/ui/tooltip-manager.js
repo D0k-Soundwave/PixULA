@@ -33,7 +33,7 @@
  */
 
 // Elements that opt into the styled fly-out tooltip.
-const SELECTOR = '.tool-btn, .panel-collapse, .layer-ctrl-btn, .panel-header, .app-dialog-close, #zoom-out, #zoom-in, #zoom-fit, .grid-toggle, #touch-mode-status, #zoom-level, .preset-bar-select, .preset-bar-button, .preset-panel-action, .pattern-item, .tp-reset, [data-tp-transform], .tp-xor, .tp-sx, .tp-sy, .tp-rot, .tp-img-rot, .tp-warp, .tp-og, .tp-os, .tp-shift-step, .tp-shift-wrap, .me-zoom-out, .me-zoom-in, .se-prev, .se-next, .se-add, .se-remove, .se-flip-h, .se-flip-v, .se-rotate, .se-clear, .se-capture, .se-stamp, .se-import, .se-export, .palette-editor-tool-button, .palette-editor-kind, .tape-block-btn, .import-method, .preset-row-button';
+const SELECTOR = '.tool-btn, .panel-collapse, .layer-ctrl-btn, .panel-header, .app-dialog-close, #zoom-out, #zoom-in, #zoom-fit, .grid-toggle, #touch-mode-status, #color-rail-toggle, #zoom-level, .preset-bar-select, .preset-bar-button, .preset-panel-action, .pattern-item, .tp-reset, [data-tp-transform], .tp-xor, .tp-sx, .tp-sy, .tp-rot, .tp-img-rot, .tp-warp, .tp-og, .tp-os, .tp-shift-step, .tp-shift-wrap, .me-zoom-out, .me-zoom-in, .se-prev, .se-next, .se-add, .se-remove, .se-flip-h, .se-flip-v, .se-rotate, .se-clear, .se-capture, .se-stamp, .se-import, .se-export, .palette-editor-tool-button, .palette-editor-kind, .tape-block-btn, .import-method, .preset-row-button';
 const GAP = 8; // px between the anchor element and the tooltip
 
 /* Dwell timings.

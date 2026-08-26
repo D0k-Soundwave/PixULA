@@ -1700,6 +1700,7 @@ class MenuSystemClass {
                 Storage.delete('theme'),
                 Storage.delete('gridSnap'),
                 Storage.delete('touchDrawing'),
+                Storage.delete('colorrailCollapsed'),
                 Storage.delete('panelCollapse', Storage.STORES.WINDOW_STATE),
                 Storage.delete('panelVisibility', Storage.STORES.WINDOW_STATE),
                 Storage.delete('panelOrder', Storage.STORES.WINDOW_STATE)

@@ -478,6 +478,9 @@ const en = {
     'clut.paperColours': 'Paper colours',
     'clut.inkTransparent': 'Use existing Ink colour on page',
     'clut.paperTransparent': 'Use existing Paper colour on page',
+    'clut.railCollapse': 'Collapse colour rail',
+    'clut.railExpand': 'Expand colour rail',
+    'clut.railToggleHint': 'The colour rail can be hidden to give the canvas more room.',
 
     // Accessibility
     'a11y.textSize': 'Interface size',
