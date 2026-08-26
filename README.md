@@ -27,7 +27,7 @@ Inspired by the much-loved **ZX Paintbrush** by Claus Jahn, PixULA set out to be
 
 ## ![#8250DF](https://img.shields.io/badge/-8250DF?style=flat-square) Why I made it
 
-I've always loved ZX Paintbrush and wondered whether I could build something with some of its best features that would work anywhere, on any semi-modern machine, without a dedicated install. My own programming knowledge is out of date and I don't currently have the time to relearn it properly, so PixULA was built entirely in HTML, CSS, and JavaScript using **Claude Code**, which made it possible to develop a serious tool without first needing to become a modern web developer.
+I've always loved ZX Paintbrush and wondered whether I could build something with some of its best features that would work anywhere, on any semi-modern machine, without a dedicated install. PixULA was built entirely in HTML, CSS, and JavaScript using **Claude Code**, which made it possible to develop a serious tool without having to spend time re-learning, and keep it a spare time "Hobby" project.
 
 The project is released under the **GPL 3.0** license on purpose. Most ZX Spectrum and pixel art tools out there are closed works that nobody else can extend, improve, or adapt. PixULA is explicitly the opposite: if you think a feature would be nice, add it. If something happens to me, I hope someone else picks the project up and keeps building on it. That openness — more than any single feature — is what I'm proudest of.
 
