@@ -221,13 +221,15 @@ class ClutBarClass {
             return;
         }
 
-        // ULANext: classic normal/bright rows over the Next palette.
+        // ULANext: classic normal/bright rows over the Next palette, side by
+        // side like every other related pair in the rail.
         if (model === 'rgb333') {
-            host.appendChild(this._buildClutRow('color-swatches-normal', 'clut.normalPalette',
-                'Normal palette', 0, 8, 'both', false));
-            host.appendChild(this._makeDivider());
-            host.appendChild(this._buildClutRow('color-swatches-bright', 'clut.brightPalette',
-                'Bright palette', 8, 16, 'both', true));
+            host.appendChild(this._buildPair(
+                this._buildClutRow('color-swatches-normal', 'clut.normalPalette',
+                    'Normal palette', 0, 8, 'both', false),
+                this._makeDivider(),
+                this._buildClutRow('color-swatches-bright', 'clut.brightPalette',
+                    'Bright palette', 8, 16, 'both', true)));
             return;
         }
 
@@ -241,13 +243,15 @@ class ClutBarClass {
     }
 
     /**
-     * fixed16: ink group · paper group on the palette line; Bright/Flash (and
-     * the GigaScreen sub-screen view) on the controls line.
+     * fixed16: ink group · paper group side by side on the palette line
+     * (matching Bright/Flash's own side-by-side pair on the controls line);
+     * Bright/Flash (and the GigaScreen sub-screen view) on the controls line.
      * @private
      */
     _buildClassicCluster(host, bits) {
-        host.appendChild(this._buildChannelGroup('ink'));
-        host.appendChild(this._buildChannelGroup('paper'));
+        host.appendChild(this._buildPair(
+            this._buildChannelGroup('ink'),
+            this._buildChannelGroup('paper')));
         if (!bits) return;
         bits.appendChild(this._buildBitToggles());
         if ((ACTIVE_SCREEN_MODE.screens || 1) === 2) {
@@ -423,11 +427,30 @@ class ClutBarClass {
         host.appendChild(selector);
 
         const base = activeClut * 16;
-        host.appendChild(this._buildClutRow('color-swatches-ink', 'clut.inkHalf',
-            'Ink colours', base, base + 8, 'ink', false));
-        host.appendChild(this._makeDivider());
-        host.appendChild(this._buildClutRow('color-swatches-paper', 'clut.paperHalf',
-            'Paper colours', base + 8, base + 16, 'paper', false));
+        host.appendChild(this._buildPair(
+            this._buildClutRow('color-swatches-ink', 'clut.inkHalf',
+                'Ink colours', base, base + 8, 'ink', false),
+            this._makeDivider(),
+            this._buildClutRow('color-swatches-paper', 'clut.paperHalf',
+                'Paper colours', base + 8, base + 16, 'paper', false)));
+    }
+
+    /**
+     * Wraps two related swatch blocks (optionally with a divider between
+     * them) side by side, instead of one stacked above the other - Ink +
+     * Paper, the ULAplus ink/paper halves, the ULANext normal/bright rows.
+     * #color-rail is wide enough for two icon columns (matches the CLUT/
+     * GigaScreen pickers, css/components.css .clut-pair), the same reason
+     * Bright/Flash sit side by side rather than stacked.
+     * @param {...HTMLElement} children
+     * @returns {HTMLElement}
+     * @private
+     */
+    _buildPair(...children) {
+        const pair = document.createElement('div');
+        pair.className = 'clut-pair';
+        children.forEach((child) => pair.appendChild(child));
+        return pair;
     }
 
     /**
@@ -545,9 +568,9 @@ class ClutBarClass {
     }
 
     /**
-     * Only ever rendered inside #color-rail (between the ULAplus ink/paper
-     * halves or the ULANext normal/bright rows), which lays it out as a
-     * horizontal rule (`#color-rail .clut-divider`, css/components.css) —
+     * Only ever rendered between two halves of a _buildPair() (the ULAplus
+     * ink/paper halves or the ULANext normal/bright rows), which sit side by
+     * side (`.clut-pair`, css/components.css) — a vertical rule between them,
      * hence the orientation below.
      * @private
      */
@@ -555,7 +578,7 @@ class ClutBarClass {
         const divider = document.createElement('div');
         divider.className = 'clut-divider';
         divider.setAttribute('role', 'separator');
-        divider.setAttribute('aria-orientation', 'horizontal');
+        divider.setAttribute('aria-orientation', 'vertical');
         return divider;
     }
 

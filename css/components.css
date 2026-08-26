@@ -609,6 +609,24 @@
     flex: 0 0 auto;
 }
 
+/* Two related swatch blocks side by side (Ink + Paper, the ULAplus ink/
+   paper halves, the ULANext normal/bright rows) - the rail is wide enough
+   for two icon columns (matches the CLUT/GigaScreen pickers), the same
+   reason Bright/Flash sit side by side rather than stacked. Centred as a
+   whole within #clut-cluster's own centring (below), which is what keeps
+   this correctly centred at every --ui-scale: the pair's own width scales
+   with --rail-icon-size, so the leftover space either side of it in the
+   rail scales right along with it, and align-items: center always splits
+   that leftover space evenly regardless of what either factor's absolute
+   value happens to be. */
+#color-rail .clut-pair {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 4px;
+}
+
 /* One colour channel: colour swatches · transparent box, stacked, under its
    caption (Ink/Paper). */
 #color-rail .clut-channel {
@@ -632,12 +650,13 @@
 }
 
 /* Divider between ULAplus ink/paper halves or ULANext normal/bright rows:
-   horizontal in a column layout, not vertical. */
+   vertical, since .clut-pair (above) lays its two halves out side by side. */
 #color-rail .clut-divider {
-    width: 100%;
-    height: 1px;
+    width: 1px;
+    height: auto;
+    align-self: stretch;
     background: var(--border-light);
-    margin: var(--space-xs) 0;
+    margin: 0 var(--space-xs);
 }
 
 /* --rail-icon-size, not --clut-btn-size: this is the default for every

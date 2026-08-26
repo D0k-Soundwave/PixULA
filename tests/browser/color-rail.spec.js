@@ -46,36 +46,75 @@ test('the colour rail exists between the tool rail and the canvas, and holds the
 
 /*
  * Ink and paper are ONE thing - the pair of colours a cell is made of - so
- * in the vertical rail they stack with a gap between the groups, reading as
- * a column the way the old horizontal bar read as a row. Each 8-swatch
- * block is a fixed ONE-column list (not a grid), scrolling rather than
- * spending rail width on a second column, and every swatch is the same
- * fixed size regardless of screen mode.
+ * in the rail they sit SIDE BY SIDE (2026-08-26, matching Bright/Flash's own
+ * side-by-side pair), not one stacked above the other - the rail is wide
+ * enough for two icon columns. Each 8-swatch block is still its own fixed
+ * ONE-column list internally (scrolling rather than spending width on a
+ * second column within itself), and every swatch is the same fixed size
+ * regardless of screen mode. The pair as a whole is centred in the rail.
  */
-test('classic mode: Ink then Paper stack vertically in the rail, each a fixed one-column list', async ({ page }) => {
+test('classic mode: Ink and Paper sit side by side in the rail, each a fixed one-column list', async ({ page }) => {
     await boot(page);
 
     const layout = await page.evaluate(() => {
-        const blocks = [...document.querySelectorAll('#clut-cluster > .btn-captioned')];
+        const pair = document.querySelector('#clut-cluster > .clut-pair');
+        const blocks = [...pair.querySelectorAll(':scope > .btn-captioned')];
         const inkRow = blocks[0].querySelector('.clut-row');
         const swatches = [...inkRow.querySelectorAll('.color-swatch')];
         const rects = swatches.map((s) => s.getBoundingClientRect());
+        const rail = document.getElementById('color-rail').getBoundingClientRect();
+        const pairRect = pair.getBoundingClientRect();
         return {
             blocks: blocks.length,
-            inkAboveOrLeftOfPaper: blocks[0].getBoundingClientRect().bottom <=
-                blocks[1].getBoundingClientRect().top + 1,
+            sameRow: Math.round(blocks[0].getBoundingClientRect().top) ===
+                Math.round(blocks[1].getBoundingClientRect().top),
+            inkLeftOfPaper: blocks[0].getBoundingClientRect().right <=
+                blocks[1].getBoundingClientRect().left + 1,
             swatchWidths: [...new Set(rects.map((r) => Math.round(r.width)))],
-            // One column: every swatch sits directly below the one before it,
-            // at the same horizontal position, never sharing a row.
+            // One column WITHIN each block: every swatch sits directly below
+            // the one before it, at the same horizontal position.
             sameLeftEdge: [...new Set(rects.map((r) => Math.round(r.left)))].length === 1,
-            everyRowDistinct: new Set(rects.map((r) => Math.round(r.top))).size === rects.length
+            everyRowDistinct: new Set(rects.map((r) => Math.round(r.top))).size === rects.length,
+            // The pair as a whole is centred in the rail's own width.
+            leftMargin: pairRect.left - rail.left,
+            rightMargin: rail.right - pairRect.right
         };
     });
     expect(layout.blocks).toBe(2); // ink, paper
-    expect(layout.inkAboveOrLeftOfPaper).toBe(true);
+    expect(layout.sameRow).toBe(true);
+    expect(layout.inkLeftOfPaper).toBe(true);
     expect(layout.swatchWidths).toHaveLength(1);
     expect(layout.sameLeftEdge).toBe(true);
     expect(layout.everyRowDistinct).toBe(true);
+    expect(Math.abs(layout.leftMargin - layout.rightMargin)).toBeLessThanOrEqual(1);
+});
+
+/*
+ * The Ink/Paper pair (and every other .clut-pair) must stay centred in the
+ * rail across the FULL interface-size range, not just the default 100%.
+ * Both the pair's own width and the rail's width scale by the same
+ * --ui-scale factor (#color-rail's plain zoom rule, css/layout.css), so the
+ * leftover space either side of the pair scales proportionally too - this
+ * pins that the centring genuinely holds at every step, not just by luck at
+ * one scale.
+ */
+test('the Ink/Paper pair stays centred at every interface-size setting', async ({ page }) => {
+    await boot(page);
+
+    for (const scale of ['0.85', '1', '1.25', '1.5', '2']) {
+        await page.selectOption('#font-scale-selector', scale);
+        await page.waitForTimeout(200);
+        const margins = await page.evaluate(() => {
+            const pair = document.querySelector('#clut-cluster > .clut-pair').getBoundingClientRect();
+            const rail = document.getElementById('color-rail').getBoundingClientRect();
+            return { left: pair.left - rail.left, right: rail.right - pair.right };
+        });
+        // A couple of CSS px of slack, not zero: `zoom` at a fractional scale
+        // (125%, 150%...) rounds each side's layout independently, so a
+        // genuinely centred flex box can still land a hair off dead-centre -
+        // this catches a real asymmetry (many px) without failing on that.
+        expect(Math.abs(margins.left - margins.right)).toBeLessThanOrEqual(2);
+    }
 });
 
 /*
@@ -138,6 +177,42 @@ test('ULAplus: the CLUT selector is a 2x2 grid of icons the same size as the rai
     expect(layout.sizesMatchSwatch).toBe(true);
     expect(layout.rows).toBe(2);
     expect(layout.cols).toBe(2);
+});
+
+/*
+ * ULAplus's ink/paper halves, and ULANext's normal/bright rows, are the same
+ * kind of pair Ink/Paper is in classic mode - so they sit side by side too,
+ * with a vertical divider between them, not one stacked above the other.
+ */
+test('ULAplus and ULANext: the paired swatch rows sit side by side with a vertical divider', async ({ page }) => {
+    await boot(page);
+    page.on('dialog', (d) => d.accept());
+
+    for (const mode of ['ula_plus', 'ulanext']) {
+        await page.evaluate((m) => ScreenModeService.switchMode(m), mode);
+        await page.waitForTimeout(150);
+        const layout = await page.evaluate(() => {
+            const pair = document.querySelector('#clut-cluster > .clut-pair');
+            const rows = [...pair.querySelectorAll(':scope > .btn-captioned')];
+            const divider = pair.querySelector('.clut-divider');
+            return {
+                rowCount: rows.length,
+                sameTop: Math.round(rows[0].getBoundingClientRect().top) ===
+                    Math.round(rows[1].getBoundingClientRect().top),
+                firstLeftOfSecond: rows[0].getBoundingClientRect().right <=
+                    rows[1].getBoundingClientRect().left + 1,
+                dividerOrientation: divider ? divider.getAttribute('aria-orientation') : null,
+                dividerTallerThanWide: divider
+                    ? divider.getBoundingClientRect().height > divider.getBoundingClientRect().width
+                    : false
+            };
+        });
+        expect(layout.rowCount).toBe(2);
+        expect(layout.sameTop).toBe(true);
+        expect(layout.firstLeftOfSecond).toBe(true);
+        expect(layout.dividerOrientation).toBe('vertical');
+        expect(layout.dividerTallerThanWide).toBe(true);
+    }
 });
 
 /*
