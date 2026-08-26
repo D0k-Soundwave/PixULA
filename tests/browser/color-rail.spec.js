@@ -28,8 +28,12 @@ test('the colour rail exists between the tool rail and the canvas, and holds the
             toolbarLeftOfRail: toolbar && rail
                 ? toolbar.getBoundingClientRect().right <= rail.getBoundingClientRect().left
                 : false,
-            railLeftOfCanvas: rail && canvasArea
-                ? rail.getBoundingClientRect().right <= canvasArea.getBoundingClientRect().left
+            // The rail floats OVER the canvas as its child (2026-08-27) —
+            // not beside it — flush against the canvas area's own left
+            // edge, exactly where the toolbar ends.
+            railIsInsideCanvasArea: canvasArea && rail ? canvasArea.contains(rail) : false,
+            railFlushWithCanvasAreaLeft: rail && canvasArea
+                ? Math.abs(rail.getBoundingClientRect().left - canvasArea.getBoundingClientRect().left) < 1
                 : false
         };
     });
@@ -41,7 +45,8 @@ test('the colour rail exists between the tool rail and the canvas, and holds the
     expect(structure.borderHostInHeader).toBe(true);
     expect(structure.borderHostInColorBar).toBe(false);
     expect(structure.toolbarLeftOfRail).toBe(true);
-    expect(structure.railLeftOfCanvas).toBe(true);
+    expect(structure.railIsInsideCanvasArea).toBe(true);
+    expect(structure.railFlushWithCanvasAreaLeft).toBe(true);
 });
 
 /*
@@ -333,10 +338,16 @@ test.describe('the colour rail stays within its fixed width, in every screen mod
                 await page.evaluate((m) => ScreenModeService.switchMode(m), id);
                 const bad = await page.evaluate((m) => {
                     const rail = document.getElementById('color-rail');
+                    const content = document.getElementById('color-rail-content');
                     const group = document.getElementById('toolbar-color');
                     const over = group.offsetWidth - rail.clientWidth;
                     if (over > 1) return `${m}: group +${over}px`;
-                    if (rail.scrollWidth > rail.clientWidth + 1) return `${m}: rail scrolls sideways`;
+                    // The scrolling/clipping box is #color-rail-content, not
+                    // #color-rail itself — #color-rail deliberately allows
+                    // its collapse tab to overflow its own right edge
+                    // (css/layout.css), which would otherwise register here
+                    // as a false "sideways scroll".
+                    if (content.scrollWidth > content.clientWidth + 1) return `${m}: rail scrolls sideways`;
                     return null;
                 }, id);
                 if (bad) tooWide.push(bad);
@@ -395,8 +406,11 @@ test('the rail scales only by --ui-scale, with no independent multiplier, at a n
 
     const result = await page.evaluate(() => {
         const rail = document.getElementById('color-rail');
+        const content = document.getElementById('color-rail-content');
         return {
-            hasHorizontalOverflow: rail.scrollWidth > rail.clientWidth + 1,
+            // #color-rail-content is the scrolling/clipping box now — see
+            // the width-sweep test above for why #color-rail itself is not.
+            hasHorizontalOverflow: content.scrollWidth > content.clientWidth + 1,
             railZoom: getComputedStyle(rail).zoom,
             uiScale: getComputedStyle(document.documentElement)
                 .getPropertyValue('--ui-scale').trim()
@@ -412,19 +426,21 @@ test('the 256-entry indexed palette scrolls vertically, and every swatch is reac
     await page.evaluate(() => ScreenModeService.switchMode('layer2_256'));
 
     const before = await page.evaluate(() => {
-        const rail = document.getElementById('color-rail');
-        return { scrollHeight: rail.scrollHeight, clientHeight: rail.clientHeight };
+        // #color-rail-content is the scrolling box now (#color-rail itself
+        // is a fixed-size floating overlay — css/layout.css).
+        const content = document.getElementById('color-rail-content');
+        return { scrollHeight: content.scrollHeight, clientHeight: content.clientHeight };
     });
     expect(before.scrollHeight).toBeGreaterThan(before.clientHeight);
 
     const reached = await page.evaluate(() => {
-        const rail = document.getElementById('color-rail');
-        rail.scrollTop = rail.scrollHeight;
+        const content = document.getElementById('color-rail-content');
+        content.scrollTop = content.scrollHeight;
         const swatches = document.querySelectorAll('#indexed-palette-grid .color-swatch');
         const last = swatches[swatches.length - 1];
         const r = last.getBoundingClientRect();
-        const railBox = rail.getBoundingClientRect();
-        return r.top >= railBox.top - 0.5 && r.bottom <= railBox.bottom + 0.5;
+        const contentBox = content.getBoundingClientRect();
+        return r.top >= contentBox.top - 0.5 && r.bottom <= contentBox.bottom + 0.5;
     });
     expect(reached).toBe(true);
 });
@@ -516,8 +532,11 @@ test('the 256-entry dense grid uses the rail\'s spare width instead of leaving i
         await page.selectOption('#font-scale-selector', scale);
         await page.waitForTimeout(150);
         const overflow = await page.evaluate(() => {
-            const rail = document.getElementById('color-rail');
-            return rail.scrollWidth > rail.clientWidth + 1;
+            // #color-rail-content is the clipping box — #color-rail itself
+            // deliberately lets its collapse tab overflow past its own
+            // right edge (css/layout.css).
+            const content = document.getElementById('color-rail-content');
+            return content.scrollWidth > content.clientWidth + 1;
         });
         expect(overflow).toBe(false);
     }

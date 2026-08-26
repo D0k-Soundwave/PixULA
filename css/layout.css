@@ -19,20 +19,28 @@ body {
 #app {
     display: grid;
     grid-template-areas:
-        "header   header    header   header"
-        "toolbar  colorrail colorbar panels"
-        "toolbar  colorrail canvas   panels"
-        "status   status    status   status";
+        "header   header   header"
+        "toolbar  colorbar panels"
+        "toolbar  canvas   panels"
+        "status   status   status";
     /* Fixed tracks scale with --ui-scale so the chrome regions (which are
        `zoom`-scaled by the same factor) get the room their content needs.
-       The colour rail is a fixed-width column, full height like #toolbar —
-       see #color-rail below. The colour bar row is `auto` — sized to its
-       content — and only spans the canvas column between the rail and
-       #panels. The 1fr canvas row takes the remaining space. */
+       The colour bar row is `auto` — sized to its content — and only spans
+       the canvas column between the toolbar and #panels. The 1fr canvas row
+       takes the remaining space.
+
+       The colour rail is NOT a column here (it was, 2026-08-25 to
+       2026-08-27) — see #color-rail below for why: a fixed-width column
+       taken out of a fixed budget (toolbar + rail + panels) is width
+       #panels never gets back, and on a narrow-enough window that pushed
+       #panels off the right edge of the viewport entirely, since the 1fr
+       canvas track cannot shrink past its content's min-content size. Only
+       three fixed consumers now (toolbar, panels, and whatever the canvas
+       genuinely needs), so #panels only loses ground to the canvas itself
+       shrinking, never to the rail. */
     grid-template-rows: calc(var(--header-height) * var(--ui-scale)) auto 1fr calc(var(--status-height) * var(--ui-scale));
     grid-template-columns:
         calc(var(--toolbar-width) * var(--ui-scale))
-        calc(var(--colorrail-width) * var(--ui-scale))
         1fr
         calc(var(--panel-width) * var(--ui-scale));
     /* 100% (not 100vh): body's height chain is pinned to the real viewport
@@ -51,7 +59,6 @@ body {
 #header,
 #toolbar,
 #color-rail,
-#color-rail-tab-host,
 #panels,
 #status-bar,
 #canvas-controls {
@@ -94,14 +101,46 @@ body {
 }
 
 /* Vertical colour rail — every screen mode's palette swatches (ClutBar),
-   between the tool rail and the drawing area (2026-08-25). Fixed width
-   (--colorrail-width above), sized for ONE swatch column: content stacks
-   single-file (css/components.css) rather than being auto-scaled, and
-   scrolls vertically so every colour stays reachable — never sideways.
-   scrollbar-width: thin keeps that one column from having to share its
-   already-narrow width with a full-size scrollbar. */
+   FLOATING on top of the canvas rather than a grid column of its own
+   (2026-08-27; was one from 2026-08-25 — see the #app comment above for
+   why that pushed #panels off-screen on a narrow window). A CHILD of
+   #canvas-area (index.html), not a grid item at all — a grid item taken
+   out of flow with position: absolute does NOT reliably get its assigned
+   grid area as its containing block in practice (tried first; measured
+   the rail landing at the viewport's own top-left corner instead, full
+   page height, over the header and toolbar both). Nesting it inside
+   #canvas-area, which #canvas-area's own position: relative (below) makes
+   the containing block, is the unambiguous version of the same idea: it
+   costs the canvas track no width, and is confined to exactly the canvas
+   row's box — never the colorbar row above it, since that is a sibling
+   grid area #canvas-area was never part of (the rail must never cover
+   #color-bar's own icons — same reasoning as the collapse tab's placement
+   below). Anchored to the LEFT edge of #canvas-area, i.e. flush against
+   #toolbar, exactly where the old grid column used to start. Fixed width
+   (--colorrail-width, RAW — not multiplied by --ui-scale, unlike every
+   fixed grid track in this file), sized for ONE swatch column: content
+   stacks single-file (css/components.css) rather than being auto-scaled.
+   z-index lifts it above the canvas content it now overlaps.
+
+   The raw width matters: every fixed grid TRACK here is pre-multiplied by
+   --ui-scale because the track lives in #app's own (unzoomed) coordinate
+   system, and the zoomed region placed into it (#toolbar etc.) gets its
+   OUTER size from the track, not from its own `width` — zoom then only
+   rescales that region's CONTENT to visually fill the already-scaled box,
+   one multiplication in total. #color-rail has no such track anymore: its
+   own `width` IS what determines its outer size, and it ALSO carries
+   `zoom: var(--ui-scale)` below — multiplying by --ui-scale in the width
+   too would scale it TWICE (confirmed: measured the 256-entry dense grid
+   overflowing #color-rail-content at 85% interface size, tracked back to
+   exactly this). Left raw, zoom alone correctly scales both this box (as
+   its parent #canvas-area, which is not zoomed, sees it) and everything
+   inside it by the same single factor. */
 #color-rail {
-    grid-area: colorrail;
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: var(--colorrail-width);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -109,77 +148,57 @@ body {
     padding: var(--space-sm);
     background: var(--bg-secondary);
     border-right: 1px solid var(--border-color);
-    overflow-y: auto;
-    overflow-x: hidden;
-    scrollbar-width: thin;
     z-index: var(--z-toolbar);
+    /* Collapsing (below) slides the whole box left by its own width rather
+       than resizing anything, so the rail's own overflow must stay
+       visible — a scrolling INNER wrapper (#color-rail-content) owns
+       overflow-y/x instead, or the collapse tab (its child, positioned to
+       poke out past this box's own right edge — css/components.css)
+       would be clipped exactly where it needs to show, the same problem
+       a separate host existed to dodge before this box could safely
+       overflow on its own. */
+    overflow: visible;
+    transform: translateX(0);
 }
 
-/* The one child #color-rail now has (everything ClutBar builds, wrapped as
-   one block — index.html) reproduces the column layout #color-rail used to
-   apply directly to its two children, before ColorRailToggle needed a
-   single element it could hide in one place regardless of what the active
-   mode built inside it. */
+/* The scrolling swatch area proper: fills #color-rail below its fixed
+   width/height (top/bottom: 0 above gives #color-rail a definite height,
+   so height: 100% here resolves), and owns the clipping #color-rail used
+   to (scrollbar-width: thin keeps that one column from having to share
+   its already-narrow width with a full-size scrollbar). Also the single
+   element ColorRailToggle hides wholesale (below) regardless of what the
+   active mode built inside it. */
 #color-rail-content {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: var(--space-sm);
     width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
 }
 
 /* Collapsing the colour rail (ColorRailToggle, js/ui/components/
    colorrail-toggle.js — a chrome-only, non-persisted-to-document toggle
-   like a panel section's collapsed flag): the "colorrail" grid track drops
-   to zero width — content stays intact underneath (just hidden), so
-   expanding it back costs nothing to rebuild. Zero, not some small
-   remainder, is correct here specifically because the collapse tab itself
-   is NOT inside this track (see #color-rail-tab-host below): with nothing
-   left needing room, there is nothing to reserve it for. */
-#app.colorrail-collapsed {
-    grid-template-columns:
-        calc(var(--toolbar-width) * var(--ui-scale))
-        0
-        1fr
-        calc(var(--panel-width) * var(--ui-scale));
-}
-
+   like a panel section's collapsed flag): slide the whole floating panel
+   left by its own width, off the canvas and over the toolbar it sits
+   beside — which costs nothing to undo since #color-rail-content
+   underneath is left fully built, just not visible while covered. Because
+   this is a transform on an overlay with no grid track of its own, it can
+   never affect #panels or any other column's width, expanded or
+   collapsed. The collapse tab (css/components.css .rail-collapse-tab) is
+   a child of #color-rail positioned at left: 100% of ITS box — sliding the
+   whole box moves the tab along with it, landing back at the toolbar/
+   canvas boundary exactly where it belongs when collapsed, with no
+   separate positioning rule needed for that state. */
 #app.colorrail-collapsed #color-rail {
-    padding: 0;
-    border-right: none;
+    transform: translateX(-100%);
 }
 
 #app.colorrail-collapsed #color-rail-content {
     display: none;
-}
-
-/* The collapse/expand tab's overlay: a SIBLING of #color-rail sharing its
-   "colorrail" grid COLUMN (CSS Grid allows more than one item per named
-   area; the later one in DOM paints on top), rather than a child of it.
-   #color-rail clips horizontally (overflow-x: hidden, above) so a child
-   positioned to straddle the boundary with the canvas column would be cut
-   off exactly where it needs to show; a sibling grid item has no such
-   clipping and simply renders past its cell's edge.
-
-   Deliberately grid-row: canvas, NOT the full "colorrail" area (which also
-   spans the colorbar row above it) - the tab must never be able to land
-   over #color-bar's own icons (draw modes, Mirror, Swap/Recolour), so its
-   box is confined to the row where its only neighbour is the empty canvas.
-   The tab itself (css/components.css .rail-collapse-tab) is positioned
-   with left: 100% of this host, not centered/transformed across it, so it
-   always starts exactly AT the colorrail/canvas boundary and extends only
-   rightward into the (icon-free) canvas — never leftward over the rail's
-   own swatches, and never over the toolbar's tool buttons when the rail
-   is collapsed to zero width and that boundary coincides with the
-   toolbar's own right edge. pointer-events: none on the host, restored on
-   the button, so the empty space around the tab never steals clicks meant
-   for the colour rail or canvas beneath it. */
-#color-rail-tab-host {
-    grid-row: canvas-start / canvas-end;
-    grid-column: colorrail-start / colorrail-end;
-    position: relative;
-    pointer-events: none;
-    z-index: var(--z-toolbar);
 }
 
 /* Top colour bar — a slim strip spanning the canvas column only (between the
@@ -274,6 +293,10 @@ body {
        reads as a single themed surface rather than a lighter island. */
     background: var(--bg-secondary);
     overflow: hidden;
+    /* Containing block for #color-rail, which floats over this area as a
+       child rather than a grid column of its own — see the #color-rail
+       comment. */
+    position: relative;
 }
 
 /* Wrapper for canvas-container to enable centering. Its own theme background
@@ -443,15 +466,18 @@ body {
 /* Tablet: Collapse panels to slide-out drawer */
 @media (max-width: 1024px) {
     #app {
+        /* No "colorrail" column here either (removed 2026-08-27, main #app
+           rule above) — #color-rail floats over the canvas at every width
+           now, so reserving a column for it here would waste exactly the
+           space this breakpoint exists to protect. */
         grid-template-areas:
-            "header   header    header"
-            "toolbar  colorrail colorbar"
-            "toolbar  colorrail canvas"
-            "status   status    status";
+            "header   header"
+            "toolbar  colorbar"
+            "toolbar  canvas"
+            "status   status";
         grid-template-rows: calc(var(--header-height) * var(--ui-scale)) auto 1fr calc(var(--status-height) * var(--ui-scale));
         grid-template-columns:
             calc(var(--toolbar-width) * var(--ui-scale))
-            calc(var(--colorrail-width) * var(--ui-scale))
             1fr;
     }
 

@@ -212,14 +212,24 @@
        anything taller than the rail — but the ULAplus CLUT picker and the
        GigaScreen view picker (css/components.css .clut-picker/.giga-picker)
        are TWO columns of icons, and the rail has to be wide enough for
-       whichever of its contents is widest, not just the swatches. Two
-       columns (2 x --rail-icon-size + the 3px column gap) + padding (both
-       sides) + room for the vertical scrollbar (#color-rail sets
-       scrollbar-width: thin, css/layout.css). [C] 2026-08-26 — widened
-       again after --rail-icon-size grew from --clut-btn-size's 39px to
-       54px; re-verify against tests/browser/color-rail.spec.js's per-mode
-       width sweep before treating this as measured. */
-    --colorrail-width: 140px;
+       whichever of its contents is widest, not just the swatches. The
+       actual widest content is the ULAplus/ULANext divider pair (two
+       --rail-icon-size channels + two 4px .clut-pair gaps either side of
+       the divider + the divider itself, 1px plus 4px margin each side):
+       54+4+(1+4+4)+4+54 = 125px [C] 2026-08-27 — 140px (2026-08-26's figure)
+       covered only the plain two-icon-column case, 2x54+3=111px, and left
+       the divider pair silently clipping 2px, undetected because the old
+       width-sweep test measured #color-rail's own scrollWidth rather than
+       the scrolling box's (#color-rail-content, css/layout.css) — masked
+       by a browser quirk where a plain (non-overflow) wrapper's overflowing
+       child does not register in an ancestor's scrollWidth the way an
+       overflow-establishing one does. 125px content + padding (both sides)
+       + border-right + a few px slack for zoom rounding + room for the
+       vertical scrollbar (#color-rail-content sets scrollbar-width: thin,
+       css/layout.css) leaves comfortable headroom at 148px; re-verify
+       against tests/browser/color-rail.spec.js's per-mode width sweep
+       before treating this as measured. */
+    --colorrail-width: 148px;
     /* #color-bar's buttons/select (draw modes, Mirror, Swap/Recolour,
        Border) — aliases --rail-icon-size above, the single source, so the
        top strip and the rail can never drift out of sync with each other. */

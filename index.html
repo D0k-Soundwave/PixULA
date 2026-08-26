@@ -119,46 +119,48 @@
             <div id="tool-rail"></div>
         </aside>
 
-        <!-- Vertical colour rail: every screen mode's palette swatches
-             (ClutBar), between the tool rail and the drawing area. Swatches
-             are a fixed size — scales only with --ui-scale, no independent
-             auto-fit (contrast #color-bar above, which ColorBarFit dials on
-             its own). Scrolls vertically for palettes taller than the
-             available height (the 256-entry Next grid, mainly); never
-             scrolls sideways. -->
-        <aside id="color-rail" role="toolbar" aria-label="Colours" aria-orientation="vertical">
-            <!-- Everything the rail shows, as one block so ColorRailToggle
-                 (js/ui/components/colorrail-toggle.js) can hide all of it
-                 with a single display:none when the rail is collapsed,
-                 whatever ClutBar happens to have built for the active mode. -->
-            <div id="color-rail-content">
-                <!-- Bright/Flash (ClutBar; per-mode, empty where the mode has
-                     no attribute bits) and the GigaScreen sub-screen view
-                     toggle — first in the rail, above the swatches. -->
-                <div id="colour-bits" class="toolbar-section"></div>
-                <div id="toolbar-color" class="toolbar-section">
-                    <!-- Swatch cluster (ClutBar) is prepended here. -->
-                </div>
-            </div>
-        </aside>
-
-        <!-- The rail's collapse/expand tab: a sibling of #color-rail (NOT a
-             child of it) sharing its "colorrail" grid area, so the tab
-             overlaps the boundary with the canvas column and tracks it as
-             that column resizes, without ever being clipped by the rail's
-             own overflow-x: hidden (which a child positioned across that
-             boundary would be). See css/layout.css for the collapse rule
-             and js/ui/components/colorrail-toggle.js for the toggle logic. -->
-        <div id="color-rail-tab-host">
-            <button id="color-rail-toggle" class="rail-collapse-tab" type="button"
-                    aria-expanded="true" aria-controls="color-rail-content"
-                    data-i18n-title-name="clut.railCollapse" data-i18n-title="clut.railToggleHint"
-                    data-i18n-aria-label="clut.railCollapse"
-                    title="Collapse colour rail" aria-label="Collapse colour rail"></button>
-        </div>
-
         <!-- Central canvas area -->
         <main id="canvas-area" role="main" aria-label="Drawing canvas" tabindex="-1">
+            <!-- Vertical colour rail: every screen mode's palette swatches
+                 (ClutBar), floating over the left edge of the drawing area
+                 as a CHILD of #canvas-area (css/layout.css: position:
+                 relative on #canvas-area, position: absolute here) rather
+                 than a grid column of its own — a fixed column here pushed
+                 #panels off-screen on a narrow window, and gave the rail
+                 no reliable way to stay confined to just this row without
+                 also covering #color-bar above it. Swatches are a fixed
+                 size — scales only with --ui-scale, no independent
+                 auto-fit (contrast #color-bar, which ColorBarFit dials on
+                 its own). Scrolls vertically for palettes taller than the
+                 available height (the 256-entry Next grid, mainly); never
+                 scrolls sideways. -->
+            <aside id="color-rail" role="toolbar" aria-label="Colours" aria-orientation="vertical">
+                <!-- Everything the rail shows, as one block so ColorRailToggle
+                     (js/ui/components/colorrail-toggle.js) can hide all of it
+                     with a single display:none when the rail is collapsed,
+                     whatever ClutBar happens to have built for the active mode. -->
+                <div id="color-rail-content">
+                    <!-- Bright/Flash (ClutBar; per-mode, empty where the mode has
+                         no attribute bits) and the GigaScreen sub-screen view
+                         toggle — first in the rail, above the swatches. -->
+                    <div id="colour-bits" class="toolbar-section"></div>
+                    <div id="toolbar-color" class="toolbar-section">
+                        <!-- Swatch cluster (ClutBar) is prepended here. -->
+                    </div>
+                </div>
+                <!-- The rail's collapse/expand tab: a child of #color-rail now
+                     that the rail is a floating overlay rather than a clipped
+                     grid column — it pokes out past the rail's own right edge
+                     (css/components.css .rail-collapse-tab: left: 100%) and
+                     slides along with the rail when collapsed (css/layout.css),
+                     landing back at the toolbar/canvas boundary either way. See
+                     js/ui/components/colorrail-toggle.js for the toggle logic. -->
+                <button id="color-rail-toggle" class="rail-collapse-tab" type="button"
+                        aria-expanded="true" aria-controls="color-rail-content"
+                        data-i18n-title-name="clut.railCollapse" data-i18n-title="clut.railToggleHint"
+                        data-i18n-aria-label="clut.railCollapse"
+                        title="Collapse colour rail" aria-label="Collapse colour rail"></button>
+            </aside>
             <div id="canvas-viewport">
                 <!-- Canvas iframe — isolated canvas environment. The 256×192
                      sizes below are STANDARD_ULA defaults; CanvasSystem owns
