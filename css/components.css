@@ -648,9 +648,9 @@
     pointer-events: none;
 }
 
-@media (pointer: coarse) {
-    :root { --clut-btn-size: 44px; }
-}
+/* No coarse-pointer override here any more: --clut-btn-size aliases
+   --rail-icon-size (css/variables.css), which is already bigger than the
+   old 44px coarse value on its own, so there is nothing left to bump. */
 
 @media (pointer: coarse) {
     /* The left-rail preview wells fill their grid column; nudge the whole

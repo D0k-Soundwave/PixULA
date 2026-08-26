@@ -180,6 +180,40 @@ test.describe('the top strip is always exactly one row', () => {
 });
 
 /*
+ * --clut-btn-size aliases --rail-icon-size (css/variables.css, 2026-08-26)
+ * so the top strip's icons and the rail's icons can never drift apart in
+ * size - both are meant to always match the left tool rail's Ink/Paper
+ * preview wells. Border also moved to the RIGHT of the strip the same day,
+ * after the marks group rather than before it.
+ */
+test('top strip icons match the Ink/Paper preview size, and Border sits on the right', async ({ page }) => {
+    await boot(page);
+
+    const info = await page.evaluate(() => {
+        const preview = document.getElementById('ink-color').getBoundingClientRect();
+        const drawModeBtn = document.querySelector('#draw-modes button').getBoundingClientRect();
+        const mirrorBtn = document.querySelector('#mirror-modes button').getBoundingClientRect();
+        const attrBtn = document.querySelector('#attr-tools button').getBoundingClientRect();
+        const border = document.getElementById('border-select').getBoundingClientRect();
+        const marksRow = document.getElementById('marks-icons-row').getBoundingClientRect();
+        return {
+            previewSize: preview.height,
+            drawModeHeight: drawModeBtn.height,
+            mirrorHeight: mirrorBtn.height,
+            attrHeight: attrBtn.height,
+            borderHeight: border.height,
+            borderIsRightOfMarks: border.left >= marksRow.right - 1
+        };
+    });
+    const rounded = Math.round(info.previewSize);
+    expect(Math.round(info.drawModeHeight)).toBe(rounded);
+    expect(Math.round(info.mirrorHeight)).toBe(rounded);
+    expect(Math.round(info.attrHeight)).toBe(rounded);
+    expect(Math.round(info.borderHeight)).toBe(rounded);
+    expect(info.borderIsRightOfMarks).toBe(true);
+});
+
+/*
  * The one-row guarantee is exercised above only in the boot default (classic
  * fixed16). Since the palette moved out of #color-bar (2026-08-25), a screen-
  * mode switch no longer changes what #color-bar itself contains — but

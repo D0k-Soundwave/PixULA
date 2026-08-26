@@ -87,10 +87,6 @@
              ColorBarFit's old two-row search over swatches + this content
              together was the cause of visible resize flicker. -->
         <div id="color-bar" role="toolbar" aria-label="Drawing modes and border" aria-orientation="horizontal">
-            <div id="toolbar-attrs" class="toolbar-section">
-                <!-- Border dropdown (BorderControl) -->
-                <div id="border-host" class="toolbar-section"></div>
-            </div>
             <div id="color-bar-controls">
                 <!-- One caption for the whole icon-only run below (draw modes,
                      Mirror, Swap/Recolour), captioned the same way Ink/Paper
@@ -111,6 +107,12 @@
                          after XOR: one run, one pitch, no group gap between them. -->
                     <div id="attr-tools" class="toolbar-section clut-attrs"></div>
                 </div>
+            </div>
+            <!-- Border sits on the RIGHT of the strip (2026-08-26) — DOM order
+                 is visual order here since #color-bar is a plain flex row. -->
+            <div id="toolbar-attrs" class="toolbar-section">
+                <!-- Border dropdown (BorderControl) -->
+                <div id="border-host" class="toolbar-section"></div>
             </div>
         </div>
 

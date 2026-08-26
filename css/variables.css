@@ -192,17 +192,21 @@
 
     /* ===== SIZING ===== */
     --toolbar-width: 128px;         /* 2-wide tool grid + padding + room for the vertical scrollbar */
-    /* The rail's own icon size (swatches, the CLUT/GigaScreen picker
-       buttons, Bright/Flash) — deliberately its OWN token, not
-       --clut-btn-size, so growing it never touches #color-bar's buttons.
-       [M] 2026-08-26, chosen to match the left tool rail's Ink/Paper
-       preview wells (#color-preview .clut-preview, css/components.css),
-       measured at 53.5px at default settings — rounded to 54px. Every mode
-       BELOW 256 colours uses this size; the 256-entry indexed grid stays
-       its own small "dense" size regardless (css/components.css
-       .indexed-dense) — at this size 256 swatches would scroll for a very
-       long way for no benefit, since there is no meaningful per-swatch
-       detail to see at 54px that isn't already visible at 18-22px. */
+    /* The one icon size shared by every fixed-size icon control app-wide:
+       #color-rail's swatches/pickers/Bright-Flash AND #color-bar's draw
+       modes/Mirror/Swap-Recolour/Border (--clut-btn-size, below, aliases
+       this rather than carrying its own value — 2026-08-26, on request, the
+       two regions used to size independently, deliberately; now they are
+       meant to always match, so one token is the single source instead of
+       two numbers someone has to remember to keep equal). [M] 2026-08-26,
+       chosen to match the left tool rail's Ink/Paper preview wells
+       (#color-preview .clut-preview, css/components.css), measured at
+       53.5px at default settings — rounded to 54px. Every mode BELOW 256
+       colours uses this size; the 256-entry indexed grid stays its own
+       small "dense" size regardless (css/components.css .indexed-dense) —
+       at this size 256 swatches would scroll for a very long way for no
+       benefit, since there is no meaningful per-swatch detail to see at
+       54px that isn't already visible at 18-22px. */
     --rail-icon-size: 54px;
     /* Swatch ROWS are one column (--rail-icon-size, above) and scroll for
        anything taller than the rail — but the ULAplus CLUT picker and the
@@ -216,10 +220,10 @@
        54px; re-verify against tests/browser/color-rail.spec.js's per-mode
        width sweep before treating this as measured. */
     --colorrail-width: 140px;
-    /* #color-bar's buttons/select ONLY (draw modes, Mirror, Swap/Recolour,
-       Border) — #color-rail's swatches/pickers/toggles use --rail-icon-size
-       above instead, so growing one never grows the other. */
-    --clut-btn-size: 39px;
+    /* #color-bar's buttons/select (draw modes, Mirror, Swap/Recolour,
+       Border) — aliases --rail-icon-size above, the single source, so the
+       top strip and the rail can never drift out of sync with each other. */
+    --clut-btn-size: var(--rail-icon-size);
     --panel-width: 280px;
     --header-height: 40px;
     --status-height: 24px;
