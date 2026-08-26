@@ -149,6 +149,63 @@ test('classic mode: Bright and Flash sit side by side, at the rail icon size', a
 });
 
 /*
+ * Bright/Flash and Ink/Paper are two SEPARATE flex children of #color-rail
+ * (#colour-bits and #toolbar-color), each independently centred - so lining
+ * them up needs each row to be centred the SAME way, not just "centred in
+ * its own box". #colour-bits is a plain .toolbar-section, whose base rule
+ * sets no align-items of its own, so the default `stretch` made .clut-bits
+ * fill the whole section width with its icons packed to the left edge,
+ * while .clut-pair (Ink/Paper) centred itself within the equally-wide
+ * #toolbar-color - the two rows' content columns landed at different X
+ * positions even though each row looked "centred" read on its own.
+ * justify-content: center on .clut-bits (and the GigaScreen .giga-picker
+ * grid, same underlying cause) fixes it: Bright now sits directly above
+ * Ink's column, Flash directly above Paper's.
+ */
+test('Bright/Flash line up with the Ink/Paper columns beneath them', async ({ page }) => {
+    await boot(page);
+
+    const layout = await page.evaluate(() => {
+        const bright = document.getElementById('bright-toggle').closest('.clut-bit').getBoundingClientRect();
+        const flash = document.getElementById('flash-toggle').closest('.clut-bit').getBoundingClientRect();
+        const inkBlock = document.querySelector('#clut-cluster > .clut-pair > .btn-captioned:nth-child(1)')
+            .getBoundingClientRect();
+        const paperBlock = document.querySelector('#clut-cluster > .clut-pair > .btn-captioned:nth-child(2)')
+            .getBoundingClientRect();
+        return {
+            brightMatchesInkLeft: Math.abs(bright.left - inkBlock.left) <= 1,
+            flashMatchesPaperRight: Math.abs(flash.right - paperBlock.right) <= 1
+        };
+    });
+    expect(layout.brightMatchesInkLeft).toBe(true);
+    expect(layout.flashMatchesPaperRight).toBe(true);
+});
+
+/*
+ * The same misalignment applied to the GigaScreen view picker (also a
+ * stretched-then-left-packed grid inside #colour-bits) - Blend/A/B must
+ * line up with Bright/Flash's column too.
+ */
+test('GigaScreen: Blend/A/B line up with the Bright/Flash column', async ({ page }) => {
+    await boot(page);
+    page.on('dialog', (d) => d.accept());
+    await page.evaluate(() => ScreenModeService.switchMode('gigascreen'));
+
+    const layout = await page.evaluate(() => {
+        const bright = document.getElementById('bright-toggle').closest('.clut-bit').getBoundingClientRect();
+        const flash = document.getElementById('flash-toggle').closest('.clut-bit').getBoundingClientRect();
+        const a = document.querySelector('[data-giga-view="a"]').getBoundingClientRect();
+        const b = document.querySelector('[data-giga-view="b"]').getBoundingClientRect();
+        return {
+            aMatchesBrightLeft: Math.abs(a.left - bright.left) <= 1,
+            bMatchesFlashRight: Math.abs(b.right - flash.right) <= 1
+        };
+    });
+    expect(layout.aMatchesBrightLeft).toBe(true);
+    expect(layout.bMatchesFlashRight).toBe(true);
+});
+
+/*
  * ULAplus: the CLUT selector (0-3) is a 2x2 grid of icon-sized squares -
  * the same fixed size as every swatch and toggle in the rail - not small
  * text buttons wrapping freely. A single digit never needs the wrap

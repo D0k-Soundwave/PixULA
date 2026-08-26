@@ -681,12 +681,23 @@
    with plenty of room to spare, so there is no longer a reason to stack
    these two and spend twice the vertical space for it. Still at the top of
    the column (index.html DOM order), just laid out across it instead of
-   down it. */
+   down it.
+
+   justify-content: center (not just align-items) matters here: #colour-bits
+   is a plain .toolbar-section, whose base rule (line 389 above) sets no
+   align-items of its own, so the default `stretch` makes .clut-bits fill
+   #colour-bits' full width rather than sizing to its own two icons - without
+   centering its own content explicitly, Bright/Flash would sit flush against
+   the left edge of that stretched box while .clut-pair (Ink/Paper) centred
+   itself inside the equally-wide #toolbar-color, visibly misaligning the two
+   rows. Same 4px gap as .clut-pair, so the two rows' widths (and therefore
+   centres) match too. */
 #color-rail .clut-bits {
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 3px;
+    justify-content: center;
+    gap: 4px;
 }
 
 /* The native checkbox drives state/AT but the icon shows it — hide the box. */
@@ -750,6 +761,12 @@
     grid-template-columns: repeat(2, var(--rail-icon-size));
     grid-template-rows: repeat(2, var(--rail-icon-size));
     gap: 3px;
+    /* Same reason .clut-bits needs justify-content: center (above) - this
+       grid is itself stretched to #colour-bits' full width by that section's
+       default align-items: stretch, so without this its fixed-size tracks
+       pack to the left/start edge instead of lining up with Bright/Flash
+       and Ink/Paper's shared centre column. */
+    justify-content: center;
 }
 
 #color-rail .clut-picker .clut-select-btn,
