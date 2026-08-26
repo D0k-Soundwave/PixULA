@@ -757,15 +757,43 @@
     text-wrap: balance;
 }
 
-/* ULAplus CLUT selector (0-3) and the GigaScreen view toggle (Blend/A/B):
-   button-styled controls, not swatches, so they keep their own natural
-   width (a text label like "Blend" would clip inside a fixed swatch-width
-   grid column) and simply wrap within the rail's fixed width. */
+/* GigaScreen view toggle (Blend/A/B): button-styled controls, not swatches,
+   so they keep their own natural width (a text label like "Blend" would
+   clip inside a fixed swatch-width grid column) and simply wrap within the
+   rail's fixed width. The ULAplus CLUT selector also carries .clut-selector
+   (so it stays excluded from the swatch-row rules above) but overrides this
+   with its own .clut-picker layout, immediately below - a single digit
+   never needs to wrap the way "Blend" can. */
 #color-rail .clut-row.clut-selector {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
     gap: 3px;
+}
+
+/* ULAplus CLUT selector (0-3): a fixed 2x2 grid of --clut-btn-size squares,
+   the same size as every swatch and toggle in the rail, rather than small
+   text buttons wrapping freely - one glance reads as "four equal choices"
+   the way a real hardware CLUT bank switch would. Three classes (not two)
+   for the same reason the indexed-dense grid needs them further down this
+   file: #color-rail .clut-row.clut-selector above sets `display` on the
+   same element at equal specificity otherwise, so which wins would depend
+   on source order alone. */
+#color-rail .clut-row.clut-selector.clut-picker {
+    display: grid;
+    grid-template-columns: repeat(2, var(--clut-btn-size));
+    grid-template-rows: repeat(2, var(--clut-btn-size));
+    gap: 3px;
+}
+
+#color-rail .clut-picker .clut-select-btn {
+    width: var(--clut-btn-size);
+    height: var(--clut-btn-size);
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-size-sm);
 }
 
 /* Next indexed palettes (up to 256 entries): the 16-or-fewer case already

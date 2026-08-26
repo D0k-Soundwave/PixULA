@@ -75,6 +75,37 @@ test('classic mode: Ink then Paper stack vertically in the rail, each a fixed on
 });
 
 /*
+ * ULAplus: the CLUT selector (0-3) is a 2x2 grid of icon-sized squares -
+ * the same fixed size as every swatch and toggle in the rail - not small
+ * text buttons wrapping freely. A single digit never needs the wrap
+ * behaviour the GigaScreen view row's text labels ("Blend") do.
+ */
+test('ULAplus: the CLUT selector is a 2x2 grid of icons the same size as the rail\'s other controls', async ({ page }) => {
+    await boot(page);
+    page.on('dialog', (d) => d.accept());
+    await page.evaluate(() => ScreenModeService.switchMode('ula_plus'));
+
+    const layout = await page.evaluate(() => {
+        const btns = [...document.querySelectorAll('#clut-selector .clut-select-btn')];
+        const swatch = document.querySelector('#clut-cluster .color-swatch').getBoundingClientRect();
+        const rects = btns.map((b) => b.getBoundingClientRect());
+        return {
+            count: rects.length,
+            sizesMatchSwatch: rects.every((r) =>
+                Math.round(r.width) === Math.round(swatch.width) &&
+                Math.round(r.height) === Math.round(swatch.height)),
+            // 2x2: two distinct rows, two distinct columns.
+            rows: new Set(rects.map((r) => Math.round(r.top))).size,
+            cols: new Set(rects.map((r) => Math.round(r.left))).size
+        };
+    });
+    expect(layout.count).toBe(4);
+    expect(layout.sizesMatchSwatch).toBe(true);
+    expect(layout.rows).toBe(2);
+    expect(layout.cols).toBe(2);
+});
+
+/*
  * The colour rail is a FIXED width - it never grows to accommodate a wider
  * mode's palette. Unlike the old top #color-bar (which wrapped a swatch
  * block that didn't fit), the rail scrolls VERTICALLY instead: every

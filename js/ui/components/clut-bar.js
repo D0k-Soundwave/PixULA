@@ -398,7 +398,12 @@ class ClutBarClass {
     _buildUlaplusCluster(host) {
         const selector = document.createElement('div');
         selector.id = 'clut-selector';
-        selector.className = 'clut-row clut-selector';
+        // clut-picker (not shared with the GigaScreen view row, which also
+        // carries clut-selector but keeps its own text-label flex-wrap
+        // layout): a fixed 2x2 grid of --clut-btn-size squares, matching
+        // every other icon-sized control in the rail, instead of small
+        // text buttons wrapping freely.
+        selector.className = 'clut-row clut-selector clut-picker';
         selector.setAttribute('role', 'radiogroup');
         selector.setAttribute('aria-label', this._t('clut.selector', 'ULAplus CLUT'));
         selector.dataset.i18nAriaLabel = 'clut.selector';
