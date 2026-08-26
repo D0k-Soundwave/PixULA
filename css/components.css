@@ -757,13 +757,13 @@
     text-wrap: balance;
 }
 
-/* GigaScreen view toggle (Blend/A/B): button-styled controls, not swatches,
-   so they keep their own natural width (a text label like "Blend" would
-   clip inside a fixed swatch-width grid column) and simply wrap within the
-   rail's fixed width. The ULAplus CLUT selector also carries .clut-selector
-   (so it stays excluded from the swatch-row rules above) but overrides this
-   with its own .clut-picker layout, immediately below - a single digit
-   never needs to wrap the way "Blend" can. */
+/* Fallback for any future button-styled .clut-selector row that genuinely
+   needs to wrap (a text label wider than one icon column). Both current
+   selector rows - the ULAplus CLUT picker and the GigaScreen view picker,
+   immediately below - carry a more specific modifier class that overrides
+   this with a fixed grid instead, so neither actually wraps any more; this
+   stays as the shared base .clut-selector keeps them excluded from the
+   swatch-row rules above. */
 #color-rail .clut-row.clut-selector {
     display: flex;
     flex-direction: row;
@@ -786,7 +786,26 @@
     gap: 3px;
 }
 
-#color-rail .clut-picker .clut-select-btn {
+/* GigaScreen view toggle: Blend spans both columns on its own row (it is
+   the "no split" choice, so it reads as the odd one out sitting above the
+   pair rather than a third equal option beside them); A and B are two
+   single-column icons on the row beneath - default grid auto-placement
+   puts them there for free once Blend claims the whole row above them.
+   grid-template-rows matters here even though every row is the same
+   height: without it, rows auto-size to content, and a button's own
+   `height` loses to the utilities-layer `.panel-button { height: auto }`
+   reset (later @layer always wins over specificity) - explicit row
+   tracks give the default grid stretch alignment a fixed height to fill
+   instead, the same mechanism .clut-picker already relies on above. */
+#color-rail .clut-row.clut-selector.giga-picker {
+    display: grid;
+    grid-template-columns: repeat(2, var(--clut-btn-size));
+    grid-template-rows: repeat(2, var(--clut-btn-size));
+    gap: 3px;
+}
+
+#color-rail .clut-picker .clut-select-btn,
+#color-rail .giga-picker .clut-select-btn {
     width: var(--clut-btn-size);
     height: var(--clut-btn-size);
     padding: 0;
@@ -794,6 +813,15 @@
     align-items: center;
     justify-content: center;
     font-size: var(--font-size-sm);
+}
+
+/* Overrides the shared button-sizing rule's width above - same specificity
+   (one id + two classes/attributes each), so it must come AFTER that rule
+   in source order to win. Height stays the single-icon --clut-btn-size;
+   only the width stretches across the spanned grid-column pair. */
+#color-rail .giga-picker [data-giga-view="blend"] {
+    grid-column: span 2;
+    width: 100%;
 }
 
 /* Next indexed palettes (up to 256 entries): the 16-or-fewer case already

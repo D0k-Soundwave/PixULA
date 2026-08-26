@@ -513,7 +513,11 @@ class ClutBarClass {
     _buildGigaViewRow() {
         const row = document.createElement('div');
         row.id = 'giga-view-row';
-        row.className = 'clut-row clut-selector';
+        // giga-picker (its own modifier, like ULAplus's clut-picker): Blend
+        // spans both columns of a --clut-btn-size grid on its own row, with
+        // A and B as two single-column icons on the row beneath it - see
+        // css/components.css.
+        row.className = 'clut-row clut-selector giga-picker';
         row.setAttribute('role', 'radiogroup');
         row.setAttribute('aria-label', this._t('giga.view', 'GigaScreen view'));
         row.dataset.i18nAriaLabel = 'giga.view';

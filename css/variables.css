@@ -192,16 +192,20 @@
 
     /* ===== SIZING ===== */
     --toolbar-width: 128px;         /* 2-wide tool grid + padding + room for the vertical scrollbar */
-    /* ONE swatch column (--clut-btn-size, css/variables.css below) + padding
-       (both sides) + room for the vertical scrollbar (#color-rail sets
-       scrollbar-width: thin, css/layout.css) — same reasoning as
-       --toolbar-width above, just one column instead of two: the rail is a
-       scrolling list, not a grid, so every colour is reached by scrolling
-       rather than by spending width on a second column. [C] 2026-08-25 —
-       narrowed from the two-column 140px; re-verify against
+    /* Swatch ROWS are one column (--clut-btn-size, below) and scroll for
+       anything taller than the rail — but the ULAplus CLUT picker and the
+       GigaScreen view picker (css/components.css .clut-picker/.giga-picker)
+       are TWO columns of icons, and the rail has to be wide enough for
+       whichever of its contents is widest, not just the swatches. Two
+       columns (2 x --clut-btn-size + the 3px column gap) + padding (both
+       sides) + room for the vertical scrollbar (#color-rail sets
+       scrollbar-width: thin, css/layout.css). [C] 2026-08-26 — widened from
+       the swatch-only 80px after the two-column pickers landed and were
+       found silently overflowing it (#color-rail's overflow-x: hidden
+       clipped the excess rather than scrolling); re-verify against
        tests/browser/color-rail.spec.js's per-mode width sweep before
-       treating this as measured again. */
-    --colorrail-width: 80px;
+       treating this as measured. */
+    --colorrail-width: 112px;
     /* Shared by #color-bar's buttons/select and #color-rail's swatches — one
        size for every control either region contains, so the two read as one
        system even though they scale independently (css/layout.css). Moved

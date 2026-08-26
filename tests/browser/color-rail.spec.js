@@ -106,6 +106,48 @@ test('ULAplus: the CLUT selector is a 2x2 grid of icons the same size as the rai
 });
 
 /*
+ * GigaScreen: Blend spans both icon columns on its own row (the "no split"
+ * choice reads as the odd one out above the pair, not a third option
+ * beside them); A and B sit below it, one icon each, side by side - never
+ * three options crammed into one row.
+ */
+test('GigaScreen: Blend spans two icon columns, with A and B beneath it', async ({ page }) => {
+    await boot(page);
+    await page.evaluate(() => ScreenModeService.switchMode('gigascreen'));
+
+    const layout = await page.evaluate(() => {
+        const swatch = document.querySelector('#clut-cluster .color-swatch').getBoundingClientRect();
+        const byView = (v) => document.querySelector(`#giga-view-row [data-giga-view="${v}"]`).getBoundingClientRect();
+        const blend = byView('blend');
+        const a = byView('a');
+        const b = byView('b');
+        const round = (n) => Math.round(n);
+        return {
+            oneIconWidth: round(swatch.width),
+            oneIconHeight: round(swatch.height),
+            blendWidth: round(blend.width),
+            blendHeight: round(blend.height),
+            aAndBHeightMatchSwatch: round(a.height) === round(swatch.height) &&
+                round(b.height) === round(swatch.height),
+            aAndBWidthMatchSwatch: round(a.width) === round(swatch.width) &&
+                round(b.width) === round(swatch.width),
+            blendAboveAandB: round(blend.bottom) <= round(a.top) + 1 &&
+                round(blend.bottom) <= round(b.top) + 1,
+            aLeftOfB: a.left < b.left,
+            aAndBSameRow: round(a.top) === round(b.top)
+        };
+    });
+    // Blend is TWO icon widths wide, one icon tall - not three equal cells.
+    expect(layout.blendWidth).toBeGreaterThan(layout.oneIconWidth * 1.5);
+    expect(layout.blendHeight).toBe(layout.oneIconHeight);
+    expect(layout.aAndBHeightMatchSwatch).toBe(true);
+    expect(layout.aAndBWidthMatchSwatch).toBe(true);
+    expect(layout.blendAboveAandB).toBe(true);
+    expect(layout.aAndBSameRow).toBe(true);
+    expect(layout.aLeftOfB).toBe(true);
+});
+
+/*
  * The colour rail is a FIXED width - it never grows to accommodate a wider
  * mode's palette. Unlike the old top #color-bar (which wrapped a swatch
  * block that didn't fit), the rail scrolls VERTICALLY instead: every
