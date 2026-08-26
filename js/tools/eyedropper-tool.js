@@ -70,15 +70,29 @@ class EyedropperToolClass extends ToolBase {
 
     // Indexed modes (Phase 13): pick the composited palette index —
     // left-click selects it as the drawing index, right-click as the
-    // background/erase index.
+    // background/erase index. Alt+click picks BOTH at once, the same way
+    // classic modes' Alt+click picks ink and paper together: the composite
+    // (topmost visible) index as the ink, and the background layer's OWN
+    // index at that spot — independent of whatever is drawn over it — as
+    // the paper, mirroring a classic cell's ink pixel vs its paper
+    // attribute. Without this branch, indexed modes had no way to grab
+    // both in one action at all, unlike every classic ink/paper mode.
     if (ZX_SPECTRUM.PIXEL_DEPTH > 1) {
-      const index = this._getCompositeIndex(pixelX, pixelY);
-      if (e.button === 2 || (e.buttons & 2) !== 0) {
-        ColorManager.setNextPaper(index);
-        Logger.debug('EyedropperTool', `Picked indexed PAPER: ${index}`);
+      if (e.altKey) {
+        const ink = this._getCompositeIndex(pixelX, pixelY);
+        const paper = this._getBackgroundIndex(pixelX, pixelY);
+        ColorManager.setNextInk(ink);
+        ColorManager.setNextPaper(paper);
+        Logger.debug('EyedropperTool', `Picked indexed INK+PAPER: ink=${ink}, paper=${paper}`);
       } else {
-        ColorManager.setNextInk(index);
-        Logger.debug('EyedropperTool', `Picked indexed INK: ${index}`);
+        const index = this._getCompositeIndex(pixelX, pixelY);
+        if (e.button === 2 || (e.buttons & 2) !== 0) {
+          ColorManager.setNextPaper(index);
+          Logger.debug('EyedropperTool', `Picked indexed PAPER: ${index}`);
+        } else {
+          ColorManager.setNextInk(index);
+          Logger.debug('EyedropperTool', `Picked indexed INK: ${index}`);
+        }
       }
       EventBus.emit(EVENTS.TOOL_OPTIONS, { tool: this.id, action: 'pick', x: pixelX, y: pixelY });
       return;
@@ -201,9 +215,19 @@ class EyedropperToolClass extends ToolBase {
       const idx = layer.getPixelIndex(pixelX, pixelY);
       if (idx >= 0) return idx;
     }
+    return this._getBackgroundIndex(pixelX, pixelY);
+  }
+
+  /**
+   * The background layer's OWN palette index at a pixel, ignoring whatever
+   * is drawn over it on upper layers — an indexed mode's equivalent of a
+   * classic cell's paper attribute (independent of which pixel is "ink").
+   * @private
+   */
+  _getBackgroundIndex(pixelX, pixelY) {
     const bg = LayerManager.getLayer(0);
-    const bgIdx = bg ? bg.getPixelIndex(pixelX, pixelY) : -1;
-    return bgIdx >= 0 ? bgIdx : 0;
+    const idx = bg ? bg.getPixelIndex(pixelX, pixelY) : -1;
+    return idx >= 0 ? idx : 0;
   }
 }
 

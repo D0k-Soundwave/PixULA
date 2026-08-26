@@ -188,6 +188,47 @@ test('indexed modes: attr ops hidden, index grid in the rail, classic exports ga
     expect(idx).toBe(42);
 });
 
+/*
+ * In classic ink/paper modes, Alt+click picks BOTH attributes from a cell in
+ * one action (EyedropperTool._pickCellAttributes). Indexed modes had no
+ * equivalent at all — only single-index picks via left/right click, with no
+ * way to grab the drawing (nextInk) and background (nextPaper) indices
+ * together. Fixed by giving the indexed branch its own Alt+click path:
+ * nextInk from the composited (topmost visible) index, nextPaper from the
+ * background layer's OWN index at that spot regardless of what is drawn
+ * over it — the indexed equivalent of a classic cell's ink pixel vs its
+ * paper attribute.
+ */
+test('indexed modes: Alt+click picks both nextInk and nextPaper together', async ({ page }) => {
+    await boot(page);
+    page.on('dialog', (d) => d.accept());
+    await selectMode(page, 'layer2_256');
+    await page.waitForTimeout(300);
+
+    const result = await page.evaluate(() => {
+        // Background gets index 5 at (10,10); an added upper layer gets
+        // index 9 there — direct pixel-index writes (bypassing the lock/
+        // current-layer rules the normal drawing tools observe) just to
+        // set up a known fixture.
+        const bg = LayerManager.getLayer(0);
+        bg.setPixelIndex(10, 10, 5);
+        LayerManager.addLayer();
+        const fg = LayerManager.getLayer(LayerManager.getLayerCount() - 1);
+        fg.setPixelIndex(10, 10, 9);
+
+        ColorManager.setNextInk(1);
+        ColorManager.setNextPaper(1);
+
+        const tool = ToolManager.getTool(TOOLS.EYEDROPPER);
+        tool.onPointerDown(10, 10, { altKey: true, button: 0, buttons: 1 });
+        tool.onPointerUp(10, 10, { altKey: true, button: 0, buttons: 1 });
+
+        return { nextInk: ColorManager.getIndexedInk(), nextPaper: ColorManager.getIndexedPaper() };
+    });
+    expect(result.nextInk).toBe(9);   // the composited (foreground) index
+    expect(result.nextPaper).toBe(5); // the background's own index, not the foreground's
+});
+
 test('ULANext <-> Standard is silent both ways and visually lossless with unedited palette', async ({ page }) => {
     await boot(page);
     await page.evaluate(() => {
