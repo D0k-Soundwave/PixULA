@@ -1672,6 +1672,14 @@ class SelectionServiceClass {
   _drawFloatingLayer() {
     const { pixels, width, height, x, y, colorSelection, floatingLayer } = this.floatingPaste;
 
+    // Attributed stamps (Map Editor tiles/rooms, 2026-08-28): each cell
+    // brings its own ink/paper/bright/flash — never mixed with indexed or
+    // colorSelection-driven stamps.
+    if (this.floatingPaste.attrs) {
+      this._drawFloatingLayerAttributed();
+      return;
+    }
+
     // Indexed modes (Phase 13): stamp cells carry palette indices — the
     // stamp's own indices when it was cut/copied in an indexed mode, else
     // the mask painted with the current indexed ink.
@@ -1934,6 +1942,64 @@ class SelectionServiceClass {
         cell.indices[(cy % CH) * CW + (cx % CW)] = value;
         cell.altered = true;
         LayerManager.deferCellCompose(Math.floor(cx / CW), Math.floor(cy / CH));
+      }
+    }
+  }
+
+  /**
+   * Preview an attributed stamp (Map Editor tiles/rooms): each destination
+   * cell gets its own pixel bits AND its own ink/paper/bright/flash from
+   * the stamp's `attrs`, never inherited from the target layer below —
+   * unlike the plain classic-mode branch, an attributed stamp brings its
+   * own paper on purpose. x/y are always cell-aligned (moveFloatingPaste
+   * snaps them), so this can iterate destination cells directly instead of
+   * doing per-pixel cell-boundary math the way the plain branch must.
+   * @private
+   */
+  _drawFloatingLayerAttributed() {
+    const { pixels, width, height, x, y, attrs, floatingLayer } = this.floatingPaste;
+    const CW = ZX_SPECTRUM.CELL_WIDTH;
+    const CH = ZX_SPECTRUM.CELL_HEIGHT;
+    const stampCellsWide = Math.ceil(width / CW);
+    const startCellX = Math.max(0, Math.floor(x / CW));
+    const startCellY = Math.max(0, Math.floor(y / CH));
+    const endCellX = Math.min(ZX_SPECTRUM.GRID_COLS - 1, Math.floor((x + width - 1) / CW));
+    const endCellY = Math.min(ZX_SPECTRUM.GRID_ROWS - 1, Math.floor((y + height - 1) / CH));
+
+    for (let cy = startCellY; cy <= endCellY; cy++) {
+      for (let cx = startCellX; cx <= endCellX; cx++) {
+        const fpCell = floatingLayer.getCell(cx, cy);
+        if (!fpCell) continue;
+
+        const srcCellX = cx - Math.floor(x / CW);
+        const srcCellY = cy - Math.floor(y / CH);
+        const attr = attrs[srcCellY * stampCellsWide + srcCellX];
+        if (attr == null) continue; // empty map cell contributed no tile here
+
+        let touched = false;
+        for (let ly = 0; ly < CH; ly++) {
+          const stampY = cy * CH + ly - y;
+          if (stampY < 0 || stampY >= height) continue;
+          const row = pixels[stampY];
+          if (!row) continue;
+          for (let lx = 0; lx < CW; lx++) {
+            const stampX = cx * CW + lx - x;
+            if (stampX < 0 || stampX >= width) continue;
+            if (row[stampX]) {
+              fpCell.pixels[ly] |= (1 << (CW - 1 - lx));
+              touched = true;
+            }
+          }
+        }
+        if (!touched) continue;
+
+        fpCell.ink    = attr & 7;
+        fpCell.paper  = (attr >> 3) & 7;
+        fpCell.bright = (attr & 0x40) !== 0;
+        fpCell.flash  = (attr & 0x80) !== 0;
+        fpCell.xorReplace = false;
+        fpCell.altered = true;
+        LayerManager.deferCellCompose(cx, cy);
       }
     }
   }
