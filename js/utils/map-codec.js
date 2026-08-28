@@ -61,8 +61,6 @@ const MapCodec = {
     /** Serialized-size sanity cap (a 256×256 map is ~180 KB encoded, M above). */
     MAX_JSON_BYTES: 1024 * 1024,
 
-    _B64: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
-
     /**
      * Encode a map document for storage / the native file format.
      * @param {Object} doc - { name, tileKind, tiles, map }
@@ -86,7 +84,7 @@ const MapCodec = {
                 !Number.isInteger(t.attr) || t.attr < 0 || t.attr > 0xFF) {
                 return null;
             }
-            tiles.push({ b: this._toBase64(Uint8Array.from(t.bitmap)), a: t.attr });
+            tiles.push({ b: Helpers.encodeBase64(Uint8Array.from(t.bitmap)), a: t.attr });
         }
 
         const { width, height, cells } = doc.map;
@@ -105,7 +103,7 @@ const MapCodec = {
             k: doc.tileKind,
             name: typeof doc.name === 'string' ? doc.name.slice(0, 64) : '',
             tiles,
-            map: { w: width, h: height, cells: this._toBase64(packed) }
+            map: { w: width, h: height, cells: Helpers.encodeBase64(packed) }
         };
 
         // Size-cap sanity: never persist something a future boot would choke on
@@ -138,13 +136,13 @@ const MapCodec = {
                 !Number.isInteger(t.a) || t.a < 0 || t.a > 0xFF) {
                 return null;
             }
-            const bitmap = this._fromBase64(t.b);
+            const bitmap = Helpers.decodeBase64(t.b);
             if (!bitmap || bitmap.length !== cellH) return null;
             tiles.push({ kind: payload.k, bitmap, attr: t.a });
         }
 
         const width = payload.map.w, height = payload.map.h;
-        const packed = this._fromBase64(payload.map.cells);
+        const packed = Helpers.decodeBase64(payload.map.cells);
         if (!packed || packed.length !== width * height * 2) return null;
 
         const cells = new Int16Array(width * height);
@@ -161,51 +159,6 @@ const MapCodec = {
             tiles,
             map: { width, height, cells }
         };
-    },
-
-    /**
-     * Base64 encode (environment-independent).
-     * @param {Uint8Array} bytes
-     * @returns {string}
-     * @private
-     */
-    _toBase64(bytes) {
-        const T = this._B64;
-        let out = '';
-        for (let i = 0; i < bytes.length; i += 3) {
-            const b0 = bytes[i], b1 = bytes[i + 1], b2 = bytes[i + 2];
-            const n = (b0 << 16) | ((b1 || 0) << 8) | (b2 || 0);
-            out += T[(n >> 18) & 63] + T[(n >> 12) & 63];
-            out += i + 1 < bytes.length ? T[(n >> 6) & 63] : '=';
-            out += i + 2 < bytes.length ? T[n & 63] : '=';
-        }
-        return out;
-    },
-
-    /**
-     * Base64 decode; null on malformed input.
-     * @param {string} str
-     * @returns {Uint8Array|null}
-     * @private
-     */
-    _fromBase64(str) {
-        if (typeof str !== 'string' || str.length % 4 !== 0) return null;
-        const T = this._B64;
-        const pad = str.endsWith('==') ? 2 : str.endsWith('=') ? 1 : 0;
-        const out = new Uint8Array((str.length / 4) * 3 - pad);
-        let o = 0;
-        for (let i = 0; i < str.length; i += 4) {
-            const idx = [0, 1, 2, 3].map(k => {
-                const ch = str[i + k];
-                return ch === '=' ? 0 : T.indexOf(ch);
-            });
-            if (idx.some(v => v < 0)) return null;
-            const n = (idx[0] << 18) | (idx[1] << 12) | (idx[2] << 6) | idx[3];
-            if (o < out.length) out[o++] = (n >> 16) & 0xFF;
-            if (o < out.length) out[o++] = (n >> 8) & 0xFF;
-            if (o < out.length) out[o++] = n & 0xFF;
-        }
-        return out;
     }
 };
 

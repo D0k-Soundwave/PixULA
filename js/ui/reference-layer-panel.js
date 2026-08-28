@@ -586,16 +586,19 @@ class ReferenceLayerPanelClass {
         this.controls.flipY.classList.remove('active');
     }
 
-    /** @private */
+    /**
+     * The preset Save button is NOT in this list: it disables itself, via
+     * PresetControls' own handle.refresh() (PresetService.toolSupportsPresets),
+     * since it renders from the library fact rather than from this panel's
+     * own image-loaded state.
+     * @private
+     */
     _enableControls(enabled) {
-        // presetBtn included: with no image loaded there is no tracing setup to
-        // save, and a button that saves an empty reference is a button that
-        // fills a slot with nothing.
         const names = [
             'visible', 'opacity',
             'offsetX', 'offsetY', 'scale', 'rotation',
             'padUp', 'padLeft', 'padRight', 'padDown',
-            'flipX', 'flipY', 'clearBtn', 'presetBtn'
+            'flipX', 'flipY', 'clearBtn'
         ];
         names.forEach((name) => {
             if (this.controls[name]) this.controls[name].disabled = !enabled;

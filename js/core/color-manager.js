@@ -8,16 +8,6 @@
  * Handles INK, PAPER, BRIGHT, and FLASH attributes.
  */
 
-/**
- * Calculate full color index (0-15) from base color and bright flag
- * @param {number} baseColor - Base color index (0-7)
- * @param {boolean} bright - Bright flag
- * @returns {number} Full color index (0-15)
- */
-function getColorIndex(baseColor, bright) {
-    return baseColor + (bright ? 8 : 0);
-}
-
 class ColorManagerClass {
     constructor() {
         this.ink = 0;
@@ -714,9 +704,6 @@ class ColorManagerClass {
         EventBus.emit(EVENTS.COLOR_INK, this.getCurrentSelection());
     }
 }
-
-// Export getColorIndex utility for use by other modules
-window.getColorIndex = getColorIndex;
 
 // Create singleton instance
 window.ColorManager = new ColorManagerClass();

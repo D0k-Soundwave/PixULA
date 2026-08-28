@@ -34,8 +34,6 @@ const FontCodec = {
     /** Serialized-size sanity cap (a full 256-glyph font is ~2.8 KB encoded). */
     MAX_JSON_BYTES: 64 * 1024,
 
-    _B64: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
-
     /**
      * Encode a font document for storage / the library.
      * @param {Object} doc - { name, width, firstCode, glyphs }
@@ -70,7 +68,7 @@ const FontCodec = {
             w: doc.width,
             first: doc.firstCode,
             count: doc.glyphs.length,
-            g: this._toBase64(bytes)
+            g: Helpers.encodeBase64(bytes)
         };
 
         // Size-cap sanity: never persist something a future boot would choke on
@@ -96,7 +94,7 @@ const FontCodec = {
             return null;
         }
 
-        const bytes = this._fromBase64(payload.g);
+        const bytes = Helpers.decodeBase64(payload.g);
         if (!bytes || bytes.length !== payload.count * cellH) return null;
 
         const mask = (0xFF << (8 - payload.w)) & 0xFF;
@@ -115,51 +113,6 @@ const FontCodec = {
             firstCode: payload.first,
             glyphs
         };
-    },
-
-    /**
-     * Base64 encode (environment-independent).
-     * @param {Uint8Array} bytes
-     * @returns {string}
-     * @private
-     */
-    _toBase64(bytes) {
-        const T = this._B64;
-        let out = '';
-        for (let i = 0; i < bytes.length; i += 3) {
-            const b0 = bytes[i], b1 = bytes[i + 1], b2 = bytes[i + 2];
-            const n = (b0 << 16) | ((b1 || 0) << 8) | (b2 || 0);
-            out += T[(n >> 18) & 63] + T[(n >> 12) & 63];
-            out += i + 1 < bytes.length ? T[(n >> 6) & 63] : '=';
-            out += i + 2 < bytes.length ? T[n & 63] : '=';
-        }
-        return out;
-    },
-
-    /**
-     * Base64 decode; null on malformed input.
-     * @param {string} str
-     * @returns {Uint8Array|null}
-     * @private
-     */
-    _fromBase64(str) {
-        if (typeof str !== 'string' || str.length % 4 !== 0) return null;
-        const T = this._B64;
-        const pad = str.endsWith('==') ? 2 : str.endsWith('=') ? 1 : 0;
-        const out = new Uint8Array((str.length / 4) * 3 - pad);
-        let o = 0;
-        for (let i = 0; i < str.length; i += 4) {
-            const idx = [0, 1, 2, 3].map(k => {
-                const ch = str[i + k];
-                return ch === '=' ? 0 : T.indexOf(ch);
-            });
-            if (idx.some(v => v < 0)) return null;
-            const n = (idx[0] << 18) | (idx[1] << 12) | (idx[2] << 6) | idx[3];
-            if (o < out.length) out[o++] = (n >> 16) & 0xFF;
-            if (o < out.length) out[o++] = (n >> 8) & 0xFF;
-            if (o < out.length) out[o++] = n & 0xFF;
-        }
-        return out;
     }
 };
 

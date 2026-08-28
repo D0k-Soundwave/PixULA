@@ -155,7 +155,7 @@ const Storage = {
         }
 
         if (this.useLocalStorage) {
-            return this._getFromLocalStorage(key);
+            return this._getFromLocalStorage(key, store);
         }
 
         return new Promise((resolve, reject) => {
@@ -189,7 +189,7 @@ const Storage = {
         }
 
         if (this.useLocalStorage) {
-            return this._setToLocalStorage(key, value);
+            return this._setToLocalStorage(key, value, store);
         }
 
         return new Promise((resolve, reject) => {
@@ -226,7 +226,7 @@ const Storage = {
         }
 
         if (this.useLocalStorage) {
-            return this._deleteFromLocalStorage(key);
+            return this._deleteFromLocalStorage(key, store);
         }
 
         return new Promise((resolve, reject) => {
@@ -443,25 +443,33 @@ const Storage = {
     // LocalStorage fallback methods
 
     /**
-     * Get storage key with prefix
+     * Get storage key with prefix. Must match the `pixula-${store}-` prefix
+     * _getAllFromLocalStorage/_clearLocalStorage scan for, or a value written
+     * by set() is invisible to getAll()/count()/clear() (the store namespace
+     * used to be dropped here entirely, which silently broke describeUsage()'s
+     * counts and the pattern/preset/font libraries under this fallback).
      * @private
      * @param {string} key
+     * @param {string} store
      * @returns {string}
      */
-    _getStorageKey(key) {
-        return `pixula-${key}`;
+    _getStorageKey(key, store) {
+        return `pixula-${store}-${key}`;
     },
 
     /**
      * Get value from localStorage
      * @private
      * @param {string} key
+     * @param {string} store
      * @returns {*}
      */
-    _getFromLocalStorage(key) {
+    _getFromLocalStorage(key, store) {
         try {
-            const data = localStorage.getItem(this._getStorageKey(key));
-            return data ? JSON.parse(data) : null;
+            const raw = localStorage.getItem(this._getStorageKey(key, store));
+            if (!raw) return null;
+            const data = JSON.parse(raw);
+            return data ? data.value : null;
         } catch (error) {
             Logger.error('Storage', 'localStorage get failed', { key, error: error.message });
             return null;
@@ -469,14 +477,17 @@ const Storage = {
     },
 
     /**
-     * Set value in localStorage
+     * Set value in localStorage, wrapped the same way the IndexedDB path
+     * wraps it ({key, value, modified}) so _clearOldLocalStorageData can
+     * actually evict by age instead of an always-0 timestamp.
      * @private
      * @param {string} key
      * @param {*} value
+     * @param {string} store
      */
-    _setToLocalStorage(key, value) {
+    _setToLocalStorage(key, value, store) {
         try {
-            localStorage.setItem(this._getStorageKey(key), JSON.stringify(value));
+            localStorage.setItem(this._getStorageKey(key, store), JSON.stringify({ key, value, modified: Date.now() }));
         } catch (error) {
             Logger.error('Storage', 'localStorage set failed', { key, error: error.message });
             if (error.name === 'QuotaExceededError') {
@@ -490,10 +501,11 @@ const Storage = {
      * Delete value from localStorage
      * @private
      * @param {string} key
+     * @param {string} store
      */
-    _deleteFromLocalStorage(key) {
+    _deleteFromLocalStorage(key, store) {
         try {
-            localStorage.removeItem(this._getStorageKey(key));
+            localStorage.removeItem(this._getStorageKey(key, store));
         } catch (error) {
             Logger.error('Storage', 'localStorage delete failed', { key, error: error.message });
         }

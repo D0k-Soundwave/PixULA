@@ -27,12 +27,6 @@ class ToolPresetDialogClass {
         return fallback;
     }
 
-    /** Fill {placeholders} a locale table left for us. @private */
-    _interpolate(text, params) {
-        return String(text).replace(/\{(\w+)\}/g,
-            (match, key) => (params && params[key] !== undefined ? params[key] : match));
-    }
-
     /** The tool's own label, so the dialog says which tool it is saving. @private */
     _toolLabel(toolId) {
         const meta = Helpers.toolRailMeta(toolId);
@@ -70,7 +64,7 @@ class ToolPresetDialogClass {
                 // the user filed on purpose.
                 const existing = PresetService.getToolPreset(toolId, name);
                 if (existing) {
-                    const question = this._interpolate(this._t('toolPreset.confirmOverwrite',
+                    const question = Helpers.interpolate(this._t('toolPreset.confirmOverwrite',
                         'This tool already has a preset called "{name}". Replace it?',
                         { name: existing.name }), { name: existing.name });
                     if (!confirm(question)) return false;
@@ -135,7 +129,7 @@ class ToolPresetDialogClass {
         // translation here is the whole of what it needs.
         const labelEl = document.createElement('label');
         labelEl.htmlFor = 'tool-preset-name';
-        labelEl.textContent = this._interpolate(this._t(promptI18n, prompt, params), params);
+        labelEl.textContent = Helpers.interpolate(this._t(promptI18n, prompt, params), params);
 
         const input = document.createElement('input');
         input.type = 'text';

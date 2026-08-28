@@ -452,11 +452,6 @@ class BrushEngineClass {
 }
 
 /**
- * Retired brush ids that still resolve. `stipple-poisson` folded into spray as
- * its Poisson distribution sub-mode; the id lands on spray so a persisted tool
- * selection never dangles. @see BrushEngineClass#setBrush
- */
-/**
  * Which size-memory family each brush TYPE belongs to. round and square are
  * brush SHAPE, not brush TYPE — the compact selector under the base Brush
  * button switches between them — so both map to 'solid' and keep sharing one

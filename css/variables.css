@@ -267,20 +267,16 @@
     --z-loading: 100;
 }
 
-/* Respect the user's reduced-motion preference: collapse chrome transition
-   durations to zero. (Canvas overlay animations run in the iframe via JS,
-   not these CSS tokens, so functional cues like marching ants are unaffected.) */
+/* Respect the user's reduced-motion preference: collapse the transition
+   tokens to zero. (Canvas overlay animations run in the iframe via JS, not
+   these CSS tokens, so functional cues like marching ants are unaffected.)
+   The universal *,*::before,*::after !important override that actually
+   enforces this for every element lives once, in reset.css. */
 @media (prefers-reduced-motion: reduce) {
     :root {
         --transition-fast: 0s;
         --transition-normal: 0s;
         --transition-slow: 0s;
-    }
-    *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
     }
 }
 

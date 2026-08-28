@@ -28,6 +28,13 @@ class FileAccessProvider {
     async writeFile(folderRef, relPath, bytes) { throw new Error('Not implemented'); }
     /** @returns {Promise<boolean>} */
     async deleteFile(folderRef, relPath) { throw new Error('Not implemented'); }
+    /**
+     * Query (and, if `request`, ask for) write permission on a folderRef.
+     * @param {*} folderRef
+     * @param {boolean} request - also prompt if permission is not yet decided
+     * @returns {Promise<'granted'|'denied'|'prompt'>}
+     */
+    async getPermission(folderRef, request) { throw new Error('Not implemented'); }
     /** Synchronous quick check: could this provider even be tried right now? */
     isAvailable() { throw new Error('Not implemented'); }
 }

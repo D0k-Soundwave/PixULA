@@ -18,7 +18,6 @@
 class AppSettingsClass {
     constructor() {
         this.SCALE_KEY = 'uiFontScale';
-        this.LANG_KEY = 'locale';
     }
 
     init() {
@@ -27,31 +26,22 @@ class AppSettingsClass {
         Logger.info('AppSettings', 'Initialized');
     }
 
-    /** @private */
+    /**
+     * I18n.init() always runs before AppSettings.init() (app.js _initUI), so
+     * there is no pre-I18n state for this selector to handle.
+     * @private
+     */
     _setupLanguageSelector() {
         const langSelector = document.getElementById('language-selector');
         if (!langSelector) return;
 
-        if (window.I18n) {
-            langSelector.value = I18n.getLocale();
-            langSelector.addEventListener('change', () => {
-                I18n.setLocale(langSelector.value);
-            });
-            EventBus.on(EVENTS.UI_LANGUAGE_CHANGE, ({ locale }) => {
-                if (langSelector.value !== locale) langSelector.value = locale;
-            });
-        } else {
-            // Interim: persist the choice so Phase 6's I18n starts with it.
-            if (window.Storage) {
-                Promise.resolve(Storage.get(this.LANG_KEY)).then((v) => {
-                    if (v) langSelector.value = v;
-                }).catch(() => {});
-            }
-            langSelector.addEventListener('change', () => {
-                if (window.Storage) Promise.resolve(Storage.set(this.LANG_KEY, langSelector.value)).catch(() => {});
-                EventBus.emit(EVENTS.UI_LANGUAGE_CHANGE, { locale: langSelector.value });
-            });
-        }
+        langSelector.value = I18n.getLocale();
+        langSelector.addEventListener('change', () => {
+            I18n.setLocale(langSelector.value);
+        });
+        EventBus.on(EVENTS.UI_LANGUAGE_CHANGE, ({ locale }) => {
+            if (langSelector.value !== locale) langSelector.value = locale;
+        });
     }
 
     /** @private */

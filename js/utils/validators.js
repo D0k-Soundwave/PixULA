@@ -81,15 +81,6 @@ const Validators = {
     },
 
     /**
-     * Validate full color index (0-15, includes bright variants)
-     * @param {number} color - Color index
-     * @returns {boolean}
-     */
-    isValidColorIndex(color) {
-        return Number.isInteger(color) && color >= 0 && color < 16;
-    },
-
-    /**
      * Validate INK color (0-7)
      * @param {number} ink - INK color
      * @returns {boolean}
@@ -145,15 +136,6 @@ const Validators = {
     },
 
     /**
-     * Validate brush size
-     * @param {number} size - Brush size in pixels
-     * @returns {boolean}
-     */
-    isValidBrushSize(size) {
-        return Number.isInteger(size) && size >= 1 && size <= 32;
-    },
-
-    /**
      * Validate opacity value (0-100)
      * @param {number} opacity - Opacity percentage
      * @returns {boolean}
@@ -202,15 +184,6 @@ const Validators = {
      */
     isValidPaletteIndex(index) {
         return Number.isInteger(index) && index >= 0 && index < ZX_SPECTRUM.PALETTE_SIZE;
-    },
-
-    /**
-     * Validate SCR file size
-     * @param {number} size - File size in bytes
-     * @returns {boolean}
-     */
-    isValidSCRSize(size) {
-        return size === ZX_SPECTRUM.SCR_FILE_SIZE;
     },
 
     /**
@@ -283,39 +256,6 @@ const Validators = {
     },
 
     /**
-     * Sanitize full color index (0-15)
-     * @param {number} color - Color index
-     * @returns {number}
-     */
-    sanitizeColorIndex(color) {
-        const num = parseInt(color, 10);
-        if (isNaN(num)) return 0;
-        return clamp(num, 0, 15);
-    },
-
-    /**
-     * Sanitize cell X coordinate
-     * @param {number} x - Cell X
-     * @returns {number}
-     */
-    sanitizeCellX(x) {
-        const num = parseInt(x, 10);
-        if (isNaN(num)) return 0;
-        return clamp(num, 0, ZX_SPECTRUM.GRID_COLS - 1);
-    },
-
-    /**
-     * Sanitize cell Y coordinate
-     * @param {number} y - Cell Y
-     * @returns {number}
-     */
-    sanitizeCellY(y) {
-        const num = parseInt(y, 10);
-        if (isNaN(num)) return 0;
-        return clamp(num, 0, ZX_SPECTRUM.GRID_ROWS - 1);
-    },
-
-    /**
      * Sanitize opacity value
      * @param {number} opacity - Opacity
      * @returns {number}
@@ -324,17 +264,6 @@ const Validators = {
         const num = parseFloat(opacity);
         if (isNaN(num)) return 100;
         return clamp(num, 0, 100);
-    },
-
-    /**
-     * Sanitize brush size
-     * @param {number} size - Brush size
-     * @returns {number}
-     */
-    sanitizeBrushSize(size) {
-        const num = parseInt(size, 10);
-        if (isNaN(num)) return 1;
-        return clamp(num, 1, 32);
     }
 };
 

@@ -44,9 +44,9 @@ class PatternCreatorPanelClass {
     }
 
     /** English fallback until i18n lands (Phase 6). @private */
-    _t(key, fallback) {
+    _t(key, fallback, params) {
         if (window.I18n && typeof I18n.t === 'function') {
-            const v = I18n.t(key);
+            const v = I18n.t(key, params);
             if (v && v !== key) return v;
         }
         return fallback;
@@ -224,7 +224,9 @@ class PatternCreatorPanelClass {
             return;
         }
         if (sel.width !== this._size || sel.height !== this._size) {
-            this._status(`Selection must be ${this._size}×${this._size} to match current pattern size.`);
+            const params = { size: this._size };
+            this._status(Helpers.interpolate(this._t('pc.status.sizeMismatch',
+                'Selection must be {size}×{size} to match current pattern size.', params), params));
             return;
         }
         const pixels = new Uint8Array(this._size * this._size);
@@ -267,7 +269,8 @@ class PatternCreatorPanelClass {
             return;
         }
         await this._refreshLibrary();
-        this._status(`Saved "${name}".`);
+        const params = { name };
+        this._status(Helpers.interpolate(this._t('pc.status.saved', 'Saved "{name}".', params), params));
     }
 
     async _refreshLibrary() {
@@ -410,7 +413,9 @@ class PatternCreatorPanelClass {
                 const w = img.naturalWidth;
                 const h = img.naturalHeight;
                 if (w !== h || ![8, 16, 32].includes(w)) {
-                    this._status(`Invalid size ${w}×${h}. Expected 8×8, 16×16, or 32×32.`);
+                    const params = { w, h };
+                    this._status(Helpers.interpolate(this._t('pc.status.invalidImportSize',
+                        'Invalid size {w}×{h}. Expected 8×8, 16×16, or 32×32.', params), params));
                     e.target.value = '';
                     return;
                 }
@@ -437,7 +442,8 @@ class PatternCreatorPanelClass {
 
                 this._updatePreviewSize();
                 this._updatePreview();
-                this._status(`Imported "${this._name}".`);
+                const params = { name: this._name };
+                this._status(Helpers.interpolate(this._t('pc.status.imported', 'Imported "{name}".', params), params));
                 e.target.value = '';
             });
             img.addEventListener('error', () => {

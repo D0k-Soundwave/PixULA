@@ -58,9 +58,9 @@ class ClutBarClass {
     }
 
     /** English fallback until i18n resolves. @private */
-    _t(key, fallback) {
+    _t(key, fallback, params) {
         if (window.I18n && typeof I18n.t === 'function') {
-            const v = I18n.t(key);
+            const v = I18n.t(key, params);
             if (v && v !== key) return v;
         }
         return fallback;
@@ -420,7 +420,9 @@ class ClutBarClass {
             btn.setAttribute('role', 'radio');
             btn.setAttribute('aria-checked', String(c === activeClut));
             btn.classList.toggle('active', c === activeClut);
-            btn.title = this._t('clut.selectClut', 'Select CLUT {n}').replace('{n}', String(c));
+            btn.dataset.i18nTitle = 'clut.selectClut';
+            btn.dataset.i18nParamN = String(c);
+            btn.title = this._t('clut.selectClut', 'Select CLUT {n}', { n: c });
             btn.addEventListener('click', () => ColorManager.setClut(c));
             selector.appendChild(btn);
         }
@@ -474,8 +476,9 @@ class ClutBarClass {
             sw.setAttribute('role', 'radio');
             sw.setAttribute('aria-checked', String(n === active));
             sw.classList.toggle('active-ink', n === active);
-            sw.title = this._t('clut.hiresSchemePick', 'Ink {n} on its complement')
-                .replace('{n}', String(n));
+            sw.dataset.i18nTitle = 'clut.hiresSchemePick';
+            sw.dataset.i18nParamN = String(n);
+            sw.title = this._t('clut.hiresSchemePick', 'Ink {n} on its complement', { n });
             sw.style.setProperty('background',
                 `linear-gradient(135deg, var(--zx-scheme-ink-${n}) 50%, var(--zx-scheme-paper-${n}) 50%)`);
             sw.addEventListener('click', () => {

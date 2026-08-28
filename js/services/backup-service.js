@@ -109,7 +109,7 @@ class BackupServiceClass {
 
         this.directory = handle;
 
-        this.needsPermission = (await this._permission(false)) !== 'granted';
+        this.needsPermission = (await this._provider.getPermission(this.directory, false)) !== 'granted';
         Logger.info('BackupService', this.needsPermission
             ? 'Backup folder restored; waiting for permission'
             : 'Backup folder restored and writable');
@@ -129,7 +129,7 @@ class BackupServiceClass {
             const folderRef = await this._provider.chooseFolder(BACKUP_FOLDER_LABEL);
             if (!folderRef) return false;
             this.directory = folderRef;
-            this.needsPermission = (await this._permission(true)) !== 'granted';
+            this.needsPermission = (await this._provider.getPermission(this.directory, true)) !== 'granted';
             await Storage.set(HANDLE_KEY, folderRef);
             Logger.info('BackupService', `Backup folder set: ${this._folderName()}`);
             EventBus.emit(EVENTS.BACKUP_STATE_CHANGED, this.getState());
@@ -158,7 +158,7 @@ class BackupServiceClass {
      */
     async resume() {
         if (!this.directory) return false;
-        this.needsPermission = (await this._permission(true)) !== 'granted';
+        this.needsPermission = (await this._provider.getPermission(this.directory, true)) !== 'granted';
         EventBus.emit(EVENTS.BACKUP_STATE_CHANGED, this.getState());
         return !this.needsPermission;
     }
@@ -177,7 +177,7 @@ class BackupServiceClass {
         try {
             // Re-check rather than trust the flag: a folder can be removed or
             // revoked between ticks, and the failure must be visible.
-            if ((await this._permission(false)) !== 'granted') {
+            if ((await this._provider.getPermission(this.directory, false)) !== 'granted') {
                 this.needsPermission = true;
                 EventBus.emit(EVENTS.BACKUP_STATE_CHANGED, this.getState());
                 return null;
@@ -236,22 +236,6 @@ class BackupServiceClass {
             lastWritten: this.lastWritten,
             lastError: this.lastError
         };
-    }
-
-    /** @private */
-    async _permission(request) {
-        if (!this.directory) return 'denied';
-        const opts = { mode: 'readwrite' };
-        try {
-            let state = await this.directory.queryPermission(opts);
-            if (state === 'prompt' && request) {
-                state = await this.directory.requestPermission(opts);
-            }
-            return state;
-        } catch (error) {
-            Logger.warn('BackupService', 'Permission check failed', error);
-            return 'denied';
-        }
     }
 
     /** @private */

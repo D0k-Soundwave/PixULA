@@ -413,6 +413,10 @@ const en = {
     'pc.status.noSelection': 'No selection on canvas.',
     'pc.status.importedSelection': 'Imported from selection.',
     'pc.status.failedPng': 'Failed to load PNG.',
+    'pc.status.sizeMismatch': 'Selection must be {size}×{size} to match current pattern size.',
+    'pc.status.saved': 'Saved "{name}".',
+    'pc.status.invalidImportSize': 'Invalid size {w}×{h}. Expected 8×8, 16×16, or 32×32.',
+    'pc.status.imported': 'Imported "{name}".',
 
     // Attribute panel
     'attr.cycleInk': 'Cycle INK',
@@ -709,6 +713,7 @@ const en = {
     'a11y.decrease': 'Decrease',
     'a11y.increase': 'Increase',
     'a11y.speakHint': 'Speak UI changes aloud',
+    'a11y.speakUnsupported': 'Speech synthesis is not available in this browser',
     'dialog.chooseBackground': 'Choose background colour',
     'dialog.saveAs': 'Save as:',
     'panels.reference': 'Reference',

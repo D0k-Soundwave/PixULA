@@ -104,7 +104,8 @@ class A11yAnnouncerClass {
 
         if (!this._ttsSupported) {
             ttsToggle.disabled = true;
-            ttsToggle.title = 'Speech synthesis is not available in this browser';
+            ttsToggle.dataset.i18nTitle = 'a11y.speakUnsupported';
+            ttsToggle.title = this._t('a11y.speakUnsupported', 'Speech synthesis is not available in this browser');
             return;
         }
 
