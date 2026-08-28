@@ -1303,6 +1303,57 @@ class SelectionServiceClass {
   }
 
   /**
+   * Paint an attributed stamp's pixels onto a target layer, one cell at a
+   * time: each cell's own ink/paper/bright/flash from `data.attrs`, not
+   * the stamp's colorSelection. Shared by stampAt and commitStamp. Caller
+   * wraps in suspendMirror + batch.
+   * @param {Object} data - stamp data ({mask, attrs, x, y, w, h})
+   * @param {Layer} targetLayer
+   * @private
+   */
+  _paintAttributedStamp(data, targetLayer) {
+    const { mask, attrs, x, y, w, h } = data;
+    const CW = ZX_SPECTRUM.CELL_WIDTH;
+    const CH = ZX_SPECTRUM.CELL_HEIGHT;
+    const stampCellsWide = Math.ceil(w / CW);
+    const startCellX = Math.floor(x / CW);
+    const startCellY = Math.floor(y / CH);
+    const endCellX = Math.floor((x + w - 1) / CW);
+    const endCellY = Math.floor((y + h - 1) / CH);
+
+    for (let cy = startCellY; cy <= endCellY; cy++) {
+      for (let cx = startCellX; cx <= endCellX; cx++) {
+        const srcCellX = cx - startCellX;
+        const srcCellY = cy - startCellY;
+        const attr = attrs[srcCellY * stampCellsWide + srcCellX];
+        if (attr == null) continue;
+        const sel = {
+          ink: attr & 7,
+          paper: (attr >> 3) & 7,
+          bright: (attr & 0x40) !== 0,
+          flash: (attr & 0x80) !== 0
+        };
+        for (let ly = 0; ly < CH; ly++) {
+          const py = cy * CH + ly;
+          const stampY = py - y;
+          if (stampY < 0 || stampY >= h) continue;
+          const row = mask[stampY];
+          if (!row) continue;
+          for (let lx = 0; lx < CW; lx++) {
+            const px = cx * CW + lx;
+            const stampX = px - x;
+            if (stampX < 0 || stampX >= w) continue;
+            if (!Validators.isValidPixelCoord(px, py)) continue;
+            const isInk = !!row[stampX];
+            PixelDrawRoutine.draw(px, py, sel,
+              isInk ? DRAW_MODE.NORMAL : DRAW_MODE.PAPER, { layer: targetLayer });
+          }
+        }
+      }
+    }
+  }
+
+  /**
    * Stamp the stamp layer's ink shape onto the drawing layer below it.
    * TRANSPARENT mode — sets ink bits only, never changes cell colour attributes.
    * Caller is responsible for beginBatch / endBatch (for continuous brush-style painting).
@@ -1347,6 +1398,12 @@ class SelectionServiceClass {
 
     // Stamp writes place exactly the stamp mask — never symmetry-mirrored
     PixelDrawRoutine.suspendMirror(() => {
+      // Attributed stamps (Map Editor): each cell paints its own colour.
+      if (data.attrs) {
+        this._paintAttributedStamp(data, targetLayer);
+        return;
+      }
+
       // Indexed modes (Phase 13): paint the stamp's palette indices (or the
       // mask at the current indexed ink), routed through the same resolved
       // mode (Paper Recolour/XOR still mean something over an index grid).
@@ -1538,6 +1595,10 @@ class SelectionServiceClass {
 
     // Commits bake exactly the previewed stamp — never symmetry-mirrored
     PixelDrawRoutine.suspendMirror(() => {
+      // Attributed stamps (Map Editor): each cell paints its own colour.
+      if (data.attrs) {
+        this._paintAttributedStamp(data, target);
+      } else
       // Indexed modes (Phase 13): bake the previewed indices/mask directly,
       // through the same resolved mode as the classic branch below.
       if (ZX_SPECTRUM.PIXEL_DEPTH > 1) {
