@@ -31,12 +31,6 @@ function t(key, fallback, params) {
     return fallback;
 }
 
-/** Fill {placeholders} the locale table left for us. */
-function interpolate(text, params) {
-    return String(text).replace(/\{(\w+)\}/g,
-        (match, key) => (params && params[key] !== undefined ? params[key] : match));
-}
-
 class PresetControlsClass {
     /**
      * The label a scope goes by: a tool's rail name, or a non-tool scope's own.
@@ -266,7 +260,7 @@ class PresetControlsClass {
             () => ToolPresetDialog.openRename(scopeId, preset.name)));
 
         item.appendChild(this._iconButton('icon-trash', 'toolPreset.delete', 'Delete', () => {
-            const question = interpolate(
+            const question = Helpers.interpolate(
                 t('toolPreset.confirmDelete', 'Delete the preset "{name}"?',
                     { name: preset.name }), { name: preset.name });
             if (confirm(question)) PresetService.removeToolPreset(scopeId, preset.name);
@@ -349,7 +343,7 @@ class PresetControlsClass {
         load.className = 'preset-panel-load';
         load.textContent = preset.name;
         load.dataset.presetName = preset.name;
-        load.title = interpolate(
+        load.title = Helpers.interpolate(
             t('toolPreset.loadNamed', 'Load "{name}"', { name: preset.name }),
             { name: preset.name });
         load.addEventListener('click', () => PresetService.applyToolPreset(scopeId, preset.name));
@@ -359,7 +353,7 @@ class PresetControlsClass {
             () => ToolPresetDialog.openRename(scopeId, preset.name)));
 
         item.appendChild(this._iconButton('icon-trash', 'toolPreset.delete', 'Delete', () => {
-            const question = interpolate(
+            const question = Helpers.interpolate(
                 t('toolPreset.confirmDelete', 'Delete the preset "{name}"?',
                     { name: preset.name }), { name: preset.name });
             if (confirm(question)) PresetService.removeToolPreset(scopeId, preset.name);

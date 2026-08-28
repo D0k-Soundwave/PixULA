@@ -11,6 +11,9 @@
  */
 const TITLE_SEPARATOR = ' — ';
 
+/** The base64 alphabet encodeBase64/decodeBase64 pack bytes against. */
+const BASE64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
 const Helpers = {
     /**
      * Clamp a value between min and max
@@ -774,6 +777,67 @@ const Helpers = {
             name: text.slice(0, at).trim(),
             desc: text.slice(at + TITLE_SEPARATOR.length).trim()
         };
+    },
+
+    /**
+     * Fill `{param}` placeholders in text with values from `params`. This is
+     * the same substitution I18nClass.t() runs on a resolved translation —
+     * needed here too because a component's own `_t(key, fallback, params)`
+     * wrapper returns `fallback` UN-interpolated when I18n is not ready yet or
+     * the key is missing, so the caller must still fill it in by hand.
+     * @param {string} text
+     * @param {Object} [params]
+     * @returns {string}
+     */
+    interpolate(text, params) {
+        return String(text).replace(/\{(\w+)\}/g,
+            (match, key) => (params && params[key] !== undefined ? params[key] : match));
+    },
+
+    /**
+     * Encode bytes as base64. The one implementation ClipboardCodec,
+     * FontCodec and MapCodec each carried their own byte-identical copy of,
+     * for the same reason as everywhere else in this file: a fix to one
+     * would not have reached the other two.
+     * @param {Uint8Array} bytes
+     * @returns {string}
+     */
+    encodeBase64(bytes) {
+        const T = BASE64_ALPHABET;
+        let out = '';
+        for (let i = 0; i < bytes.length; i += 3) {
+            const b0 = bytes[i], b1 = bytes[i + 1], b2 = bytes[i + 2];
+            const n = (b0 << 16) | ((b1 || 0) << 8) | (b2 || 0);
+            out += T[(n >> 18) & 63] + T[(n >> 12) & 63];
+            out += i + 1 < bytes.length ? T[(n >> 6) & 63] : '=';
+            out += i + 2 < bytes.length ? T[n & 63] : '=';
+        }
+        return out;
+    },
+
+    /**
+     * Decode a string produced by encodeBase64(); null on malformed input.
+     * @param {string} str
+     * @returns {Uint8Array|null}
+     */
+    decodeBase64(str) {
+        if (typeof str !== 'string' || str.length % 4 !== 0) return null;
+        const T = BASE64_ALPHABET;
+        const pad = str.endsWith('==') ? 2 : str.endsWith('=') ? 1 : 0;
+        const out = new Uint8Array((str.length / 4) * 3 - pad);
+        let o = 0;
+        for (let i = 0; i < str.length; i += 4) {
+            const idx = [0, 1, 2, 3].map(k => {
+                const ch = str[i + k];
+                return ch === '=' ? 0 : T.indexOf(ch);
+            });
+            if (idx.some(v => v < 0)) return null;
+            const n = (idx[0] << 18) | (idx[1] << 12) | (idx[2] << 6) | idx[3];
+            if (o < out.length) out[o++] = (n >> 16) & 0xFF;
+            if (o < out.length) out[o++] = (n >> 8) & 0xFF;
+            if (o < out.length) out[o++] = n & 0xFF;
+        }
+        return out;
     },
 
     /**

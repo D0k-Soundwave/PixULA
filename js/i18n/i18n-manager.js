@@ -154,19 +154,27 @@ class I18nClass {
 
         // A captioned icon button shows only a keyword, so its tooltip must
         // carry the full name as well as the description: data-i18n-title-name
-        // names it, data-i18n-title describes it, data-shortcut keys it.
-        // Without the name attribute this stays what it always was — the hint.
+        // names it (as an i18n key), data-i18n-title describes it,
+        // data-shortcut keys it. Without a name this stays what it always
+        // was — the hint. data-i18n-title-literal names it with a runtime
+        // VALUE instead (a pattern's own name, a CLUT number's caller) that
+        // is not itself translatable — carried verbatim rather than looked up.
+        // Both the hint and a name-BY-KEY re-resolve their own
+        // data-i18n-param-<n> attributes, the same params() a plain
+        // data-i18n textContent element reads.
         collect('[data-i18n-title]').forEach(el => {
-            const hint = this.t(el.dataset.i18nTitle);
+            const params = I18nClass.paramsOf(el);
+            const hint = this.t(el.dataset.i18nTitle, params);
             const nameKey = el.dataset.i18nTitleName;
-            el.title = nameKey
-                ? Helpers.composeTitle(this.t(nameKey), hint, el.dataset.shortcut)
+            const name = nameKey ? this.t(nameKey, params) : el.dataset.i18nTitleLiteral;
+            el.title = name
+                ? Helpers.composeTitle(name, hint, el.dataset.shortcut)
                 : hint;
         });
 
         // Name-only tooltips (no separate hint key) still get the shortcut.
         collect('[data-i18n-title-name]:not([data-i18n-title])').forEach(el => {
-            el.title = Helpers.composeTitle(this.t(el.dataset.i18nTitleName), '', el.dataset.shortcut);
+            el.title = Helpers.composeTitle(this.t(el.dataset.i18nTitleName, I18nClass.paramsOf(el)), '', el.dataset.shortcut);
         });
 
         // The status bar's draw-mode readout is composed from two keys, so it

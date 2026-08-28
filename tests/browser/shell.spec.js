@@ -422,6 +422,7 @@ test('top bar: global draw-mode selector drives StateManager and persists', asyn
     expect(st.dm).toBe('xor');
     expect(st.active).toBe('xor');
 
+    await page.waitForTimeout(300); // persistence debounce (fire-and-forget Storage.set)
     await reload(page);
     const after = await page.evaluate(() => StateManager.getDrawMode());
     expect(after).toBe('xor'); // persisted across F5

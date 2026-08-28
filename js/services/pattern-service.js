@@ -213,37 +213,6 @@ class PatternServiceClass {
     }
 
     /**
-     * Create binary bitmap from image data
-     * Converts to 1-bit per pixel based on luminance threshold
-     * @param {ImageData} imageData
-     * @returns {Uint8Array}
-     * @private
-     */
-    _createBitmap(imageData) {
-        const width = imageData.width;
-        const height = imageData.height;
-        const bitmap = new Uint8Array(width * height);
-        const data = imageData.data;
-
-        for (let i = 0; i < width * height; i++) {
-            const idx = i * 4;
-            const r = data[idx];
-            const g = data[idx + 1];
-            const b = data[idx + 2];
-            const a = data[idx + 3];
-
-            // Calculate luminance
-            const luminance = (r * 0.299 + g * 0.587 + b * 0.114);
-
-            // If alpha < 128 or luminance > 128, treat as background (0)
-            // Otherwise treat as foreground (1)
-            bitmap[i] = (a >= 128 && luminance < 128) ? 1 : 0;
-        }
-
-        return bitmap;
-    }
-
-    /**
      * Set the current active pattern
      * @param {Object} pattern - Pattern metadata
      */

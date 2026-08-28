@@ -43,8 +43,6 @@ const ClipboardCodec = {
      */
     MAX_JSON_BYTES: 4 * 1024 * 1024,
 
-    _B64: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
-
     /**
      * Encode a clipboard object for storage.
      * @param {Object} clipboard - { width, height, pixels, cells }
@@ -82,7 +80,7 @@ const ClipboardCodec = {
             // same as 0 via `|| 0`, not as "must reject this payload".
             ox: Number.isInteger(clipboard.originX) ? clipboard.originX : 0,
             oy: Number.isInteger(clipboard.originY) ? clipboard.originY : 0,
-            bits: this._toBase64(packed),
+            bits: Helpers.encodeBase64(packed),
             cells: (cells || []).map(c => ({
                 x: c.relX,
                 y: c.relY,
@@ -105,7 +103,7 @@ const ClipboardCodec = {
                     idxBytes[y * width + x] = row[x] >= 0 ? row[x] & 0xFF : 0;
                 }
             }
-            payload.idx = this._toBase64(idxBytes);
+            payload.idx = Helpers.encodeBase64(idxBytes);
         }
 
         // Size-cap sanity: never persist something a future boot would choke on
@@ -135,7 +133,7 @@ const ClipboardCodec = {
         }
 
         const bytesPerRow = Math.ceil(width / 8);
-        const packed = this._fromBase64(payload.bits);
+        const packed = Helpers.decodeBase64(payload.bits);
         if (!packed || packed.length !== bytesPerRow * height) return null;
 
         const pixels = [];
@@ -177,7 +175,7 @@ const ClipboardCodec = {
 
         // Indexed payload: rebuild the index rows (mask bit clear -> −1)
         if (typeof payload.idx === 'string') {
-            const idxBytes = this._fromBase64(payload.idx);
+            const idxBytes = Helpers.decodeBase64(payload.idx);
             if (!idxBytes || idxBytes.length !== width * height) return null;
             clipboard.indices = [];
             for (let y = 0; y < height; y++) {
@@ -190,51 +188,6 @@ const ClipboardCodec = {
         }
 
         return clipboard;
-    },
-
-    /**
-     * Base64 encode (environment-independent).
-     * @param {Uint8Array} bytes
-     * @returns {string}
-     * @private
-     */
-    _toBase64(bytes) {
-        const T = this._B64;
-        let out = '';
-        for (let i = 0; i < bytes.length; i += 3) {
-            const b0 = bytes[i], b1 = bytes[i + 1], b2 = bytes[i + 2];
-            const n = (b0 << 16) | ((b1 || 0) << 8) | (b2 || 0);
-            out += T[(n >> 18) & 63] + T[(n >> 12) & 63];
-            out += i + 1 < bytes.length ? T[(n >> 6) & 63] : '=';
-            out += i + 2 < bytes.length ? T[n & 63] : '=';
-        }
-        return out;
-    },
-
-    /**
-     * Base64 decode; null on malformed input.
-     * @param {string} str
-     * @returns {Uint8Array|null}
-     * @private
-     */
-    _fromBase64(str) {
-        if (typeof str !== 'string' || str.length % 4 !== 0) return null;
-        const T = this._B64;
-        const pad = str.endsWith('==') ? 2 : str.endsWith('=') ? 1 : 0;
-        const out = new Uint8Array((str.length / 4) * 3 - pad);
-        let o = 0;
-        for (let i = 0; i < str.length; i += 4) {
-            const idx = [0, 1, 2, 3].map(k => {
-                const ch = str[i + k];
-                return ch === '=' ? 0 : T.indexOf(ch);
-            });
-            if (idx.some(v => v < 0)) return null;
-            const n = (idx[0] << 18) | (idx[1] << 12) | (idx[2] << 6) | idx[3];
-            if (o < out.length) out[o++] = (n >> 16) & 0xFF;
-            if (o < out.length) out[o++] = (n >> 8) & 0xFF;
-            if (o < out.length) out[o++] = n & 0xFF;
-        }
-        return out;
     }
 };
 

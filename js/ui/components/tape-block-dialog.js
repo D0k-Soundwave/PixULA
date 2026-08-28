@@ -168,16 +168,6 @@ class TapeBlockDialogClass {
     }
 
     /**
-     * Build one small action button.
-     * @param {string} act - Action id
-     * @param {number} index - Block index
-     * @param {string} i18nKey - Label key
-     * @param {string} fallback - English label
-     * @param {string|null} glyph - Fixed glyph (label becomes the tooltip/aria)
-     * @returns {HTMLButtonElement}
-     * @private
-     */
-    /**
      * @param {string} act - data-act, read by the delegated click handler
      * @param {number} index - block index
      * @param {string} i18nKey @param {string} fallback

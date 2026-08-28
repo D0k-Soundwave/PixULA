@@ -29,12 +29,16 @@ class BrowserFSAProvider extends FileAccessProvider {
         }
     }
 
-    /** @private */
-    async _permission(handle, request) {
+    async getPermission(folderRef, request) {
         const opts = { mode: 'readwrite' };
-        let state = await handle.queryPermission(opts);
-        if (state === 'prompt' && request) state = await handle.requestPermission(opts);
-        return state;
+        try {
+            let state = await folderRef.queryPermission(opts);
+            if (state === 'prompt' && request) state = await folderRef.requestPermission(opts);
+            return state;
+        } catch (error) {
+            Logger.warn('BrowserFSAProvider', 'Permission check failed', error);
+            return 'denied';
+        }
     }
 
     async listFiles(folderRef) {

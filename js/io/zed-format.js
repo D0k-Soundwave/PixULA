@@ -223,10 +223,7 @@ class ZEDFormatClass {
    * @private
    */
   _scrRowOffset(cx, cy, j) {
-    const COLS = ZX_SPECTRUM.GRID_COLS;
-    const CELL = ZX_SPECTRUM.CELL_SIZE;
-    const THIRD = ZX_SPECTRUM.BITMAP_SIZE / 3;
-    return (cy >> 3) * THIRD + j * COLS * CELL + (cy & 7) * COLS + cx;
+    return AttributeSystem._lineOffset(cy * ZX_SPECTRUM.CELL_HEIGHT + j) + cx;
   }
 }
 

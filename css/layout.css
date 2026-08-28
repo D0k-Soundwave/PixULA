@@ -397,14 +397,14 @@ body {
     color: var(--text-primary);
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
+    border-radius: var(--radius-sm);
     cursor: pointer;
     transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
 #zoom-level:hover {
     background: var(--bg-hover);
-    border-color: var(--border-hover);
+    border-color: var(--border-light);
 }
 
 #zoom-level:focus {
@@ -443,7 +443,7 @@ body {
 .grid-toggle[aria-pressed="true"] {
     background: var(--accent-primary);
     border-color: var(--accent-primary);
-    color: #fff;
+    color: var(--on-accent);
 }
 
 #canvas-info {
@@ -551,7 +551,7 @@ body {
     z-index: var(--z-loading);
     padding: var(--space-sm) var(--space-md);
     background: var(--accent-primary);
-    color: #fff;
+    color: var(--on-accent);
     border-radius: 0 0 var(--radius-sm) 0;
     transform: translateY(-200%);
     transition: transform var(--transition-fast);
@@ -559,7 +559,7 @@ body {
 
 .skip-link:focus {
     transform: translateY(0);
-    outline: 2px solid #fff;
+    outline: 2px solid var(--on-accent);
 }
 
 /* Baseline visible keyboard focus for controls that don't define their own. */

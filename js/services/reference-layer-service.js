@@ -8,9 +8,15 @@
  * stacking order — hence there is no above/below choice to make.
  *
  * Ported from the old app's ui/reference-layer-manager.js — the logic lives in
- * services/ now; the in-iframe overlay canvas is obtained through
- * CanvasSystem.createOverlayCanvas() (the one DOM-owning module), so this file
- * never touches the DOM tree itself.
+ * services/ now. It gets its canvas element from CanvasSystem.
+ * createOverlayCanvas() (the one module allowed to touch the DOM TREE — add,
+ * remove or reparent nodes) rather than creating one itself, but it then owns
+ * that canvas outright: drawing into its 2D context, loading images into it,
+ * and setting its element's inline size/position/display. That is normal
+ * canvas-layer ownership, not a DOM-tree violation — it is the same shape of
+ * exception canvas-system.js and input-handler.js already have, just not on
+ * the lint's allowlist because the lint's DOM check only greps for node
+ * creation/query calls, not canvas/style mutation.
  */
 
 'use strict';

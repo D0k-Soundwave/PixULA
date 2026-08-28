@@ -266,6 +266,7 @@ class PatternPanelClass {
             item.className = 'pattern-item';
             item.dataset.index = index;
             item.dataset.i18nTitle = 'pattern.selectHint';
+            item.dataset.i18nTitleLiteral = pattern.name;
             item.title = Helpers.composeTitle(pattern.name,
                 this._t('pattern.selectHint', 'Click to make this the active fill pattern'));
 

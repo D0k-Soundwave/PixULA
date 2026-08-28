@@ -16,6 +16,7 @@ installStubs({
     }
   }
 });
+loadModule('js/core/attribute-system.js');
 loadModule('js/io/sev-format.js');
 loadModule('js/io/zed-format.js');
 

@@ -541,3 +541,39 @@ test('the 256-entry dense grid uses the rail\'s spare width instead of leaving i
         expect(overflow).toBe(false);
     }
 });
+
+/*
+ * The CLUT selector buttons and the Timex hi-res scheme swatches built their
+ * tooltip as a one-shot `_t(key).replace('{n}', ...)` string with no
+ * data-i18n-title/data-i18n-param-n tracking, so I18n.apply's next pass
+ * re-translated the hint with no parameter and the tooltip came back reading
+ * the literal "{n}" — the same class of bug already pinned for the palette
+ * editor's CLUT row labels (palette-files.spec.js), recurring here because
+ * data-i18n-title had no parameter support of its own until this fix.
+ */
+test('CLUT selector and hi-res scheme tooltips keep their number through a locale change', async ({ page }) => {
+    await boot(page);
+    page.on('dialog', (d) => d.accept());
+    await page.evaluate(() => ScreenModeService.switchMode('ula_plus'));
+
+    const clutTitles = () => page.$$eval('#clut-selector .clut-select-btn', (els) => els.map((e) => e.title));
+    expect(await clutTitles()).toEqual(['Select CLUT 0', 'Select CLUT 1', 'Select CLUT 2', 'Select CLUT 3']);
+    await page.evaluate(() => I18n.apply(document));
+    expect(await clutTitles()).toEqual(['Select CLUT 0', 'Select CLUT 1', 'Select CLUT 2', 'Select CLUT 3']);
+    await page.evaluate(() => I18n.setLocale('ru'));
+    for (const title of await clutTitles()) {
+        expect(title).not.toContain('{n}');
+    }
+    await page.evaluate(() => I18n.setLocale('en'));
+
+    await page.evaluate(() => ScreenModeService.switchMode('timex_hires'));
+    const schemeTitles = () => page.$$eval('#hires-scheme-row .color-swatch', (els) => els.map((e) => e.title));
+    const before = await schemeTitles();
+    expect(before.every((t) => /\d/.test(t) && !t.includes('{n}'))).toBe(true);
+    await page.evaluate(() => I18n.apply(document));
+    expect(await schemeTitles()).toEqual(before);
+    await page.evaluate(() => I18n.setLocale('ru'));
+    for (const title of await schemeTitles()) {
+        expect(title).not.toContain('{n}');
+    }
+});

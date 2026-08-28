@@ -383,7 +383,7 @@ class StateManagerClass {
       color: { ink: 0, paper: 7, bright: false, flash: false },
       layer: { current: 0, count: 1 },
       canvas: { zoom: DEFAULT_ZOOM, panX: 0, panY: 0, modified: false },
-      grid: { '1x1': false, '8x8': true, '16x16': false },
+      grid: { '1x1': false, '8x8': true, '16x16': false, snap: false },
       selection: { active: false, x: 0, y: 0, width: 0, height: 0 },
       history: { canUndo: false, canRedo: false, undoCount: 0, redoCount: 0 },
       file: { name: null, path: null, modified: false, lastSaved: null },

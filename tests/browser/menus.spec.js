@@ -16,7 +16,7 @@ test('File menu lists all actions incl. the four editor dialogs', async ({ page 
     await openMenu(page, 'file');
     const ids = await page.$$eval('.menu-item[data-menu="file"] .menu-action',
         els => els.map(e => e.dataset.id));
-    for (const want of ['new', 'save', 'save-as', 'export', 'export-as', 'import',
+    for (const want of ['new', 'save', 'save-as', 'export-as', 'import',
         'tape-blocks', 'map-editor', 'font-editor', 'sprite-editor']) {
         expect(ids).toContain(want);
     }

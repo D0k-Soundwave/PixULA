@@ -134,10 +134,9 @@ class PresetDialogClass {
                             return false;
                         }
                         const existing = PresetService.get(chosen);
-                        if (existing && !confirm(this._t('preset.confirmOverwrite',
-                            'Slot {n} already holds "{name}". Replace it?')
-                            .replace('{n}', String(chosen + 1))
-                            .replace('{name}', existing.name))) {
+                        const overwriteParams = { n: chosen + 1, name: existing && existing.name };
+                        if (existing && !confirm(Helpers.interpolate(this._t('preset.confirmOverwrite',
+                            'Slot {n} already holds "{name}". Replace it?', overwriteParams), overwriteParams))) {
                             return false;
                         }
                         PresetService.save(chosen, nameInput.value, ids, descInput.value)
@@ -184,7 +183,8 @@ class PresetDialogClass {
         const size = tool && typeof tool.getSize === 'function' ? tool.getSize() : null;
         if (label && Number.isFinite(size)) return `${label} ${size}px`;
         if (label) return label;
-        return this._t('preset.defaultName', 'Preset {n}').replace('{n}', String(slot + 1));
+        const params = { n: slot + 1 };
+        return Helpers.interpolate(this._t('preset.defaultName', 'Preset {n}', params), params);
     }
 
     /**

@@ -42,12 +42,6 @@ class ToolPresetPanelClass {
         return fallback;
     }
 
-    /** @private */
-    _interpolate(text, params) {
-        return String(text).replace(/\{(\w+)\}/g,
-            (match, key) => (params && params[key] !== undefined ? params[key] : match));
-    }
-
     init() {
         if (this._initialized) return;
 
@@ -122,7 +116,7 @@ class ToolPresetPanelClass {
         if (scope && PresetService.toolSupportsPresets(scope)) {
             const save = PresetControls.buildSaveButton(scope);
             const label = PresetControls.scopeLabel(scope);
-            save.title = this._interpolate(
+            save.title = Helpers.interpolate(
                 this._t('toolPreset.saveForHint',
                     'Saves the settings of the tool you are holding ({tool})', { tool: label }),
                 { tool: label });
