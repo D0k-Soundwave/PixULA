@@ -115,39 +115,6 @@ test('New file drops a previously-open handle - the next save is not silently mi
         expect(r.handleAfterNew).toBeNull();
     });
 
-test('File > Save... opens the native picker with the extension choosing the format, not a dropdown',
-    async ({ page }) => {
-        await boot(page);
-        await stubSavePicker(page, 'castle.png');
-
-        const r = await page.evaluate(async () => {
-            const ok = await FileManager.exportViaNativePicker();
-            return {
-                ok,
-                bytesWritten: window.__savedFiles.get('castle.png').length,
-                pickerCalls: window.__savePickerCalls(),
-                exportDialogOpen: Dialog.isOpen('export-dialog')
-            };
-        });
-
-        expect(r.ok).toBe(true);
-        expect(r.bytesWritten).toBeGreaterThan(0);
-        expect(r.pickerCalls).toBe(1); // one dialog, not a dropdown then a second prompt
-        expect(r.exportDialogOpen).toBe(false); // the old format-select dialog never opened
-    });
-
-test('File > Save... cancelling the native picker does not silently succeed', async ({ page }) => {
-    await boot(page);
-    await page.evaluate(() => {
-        const err = new Error('cancelled');
-        err.name = 'AbortError';
-        window.showSaveFilePicker = async () => { throw err; };
-    });
-
-    const ok = await page.evaluate(() => FileManager.exportViaNativePicker());
-    expect(ok).toBe(false);
-});
-
 test('typing a non-.pixula extension in the native dialog still saves that format',
     async ({ page }) => {
         await boot(page);

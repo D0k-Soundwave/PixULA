@@ -8,7 +8,6 @@ const en = {
     'app.open': 'Load',
     'app.save': 'Save Project',
     'app.saveAs': 'Save Project As',
-    'app.export': 'Export',
     'app.import': 'Import',
     'app.undo': 'Undo',
     'app.undo.hint': 'Step back through your changes, one action at a time',
@@ -34,7 +33,6 @@ const en = {
     'menu.file.loadProject': 'Load Project...',
     'menu.file.save': 'Save Project',
     'menu.file.saveAs': 'Save Project As...',
-    'menu.file.export': 'Save...',
     'menu.file.exportAs': 'Save Image As...',
     'menu.file.import': 'Load...',
     // Edit menu
@@ -555,11 +553,9 @@ const en = {
     'dialog.openFile': 'Open File',
     'dialog.saveFile': 'Save File',
     'dialog.saveProject': 'Save Project',
-    'dialog.exportImage': 'Export Image',
     'dialog.importImage': 'Import Image',
     'dialog.preferences': 'Preferences',
     'dialog.about': 'About',
-    'dialog.exportFormat': 'Export format',
     'color.border': 'Border',
     'color.borderDefault': 'Theme default',
 

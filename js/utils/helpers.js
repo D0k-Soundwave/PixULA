@@ -43,13 +43,19 @@ const Helpers = {
      * Whether the active screen mode has the standard 8×8-cell 256×192
      * layout — the non-throwing twin of assertStandardScreenLayout(), for
      * callers (a format's canExport()) that want a yes/no instead of a
-     * catch block.
+     * catch block. GigaScreen shares Standard ULA's cell height, width and
+     * pixel depth (its only difference is the second sub-screen), so the
+     * `screens` check is required too — without it this returned true for
+     * GigaScreen and every hasStandardScreenLayout()-gated canExport()
+     * (tap/tzx/zed/sev) disagreed with its own export(), which still went
+     * through SCRFormat.export()'s separate two-screens gate and threw.
      * @returns {boolean}
      */
     hasStandardScreenLayout() {
         return ZX_SPECTRUM.CELL_HEIGHT === SCREEN_MODES.STANDARD_ULA.attrCellH &&
             ZX_SPECTRUM.WIDTH === SCREEN_MODES.STANDARD_ULA.width &&
-            ZX_SPECTRUM.PIXEL_DEPTH === 1;
+            ZX_SPECTRUM.PIXEL_DEPTH === 1 &&
+            (ACTIVE_SCREEN_MODE.screens || 1) !== 2;
     },
 
     /**
