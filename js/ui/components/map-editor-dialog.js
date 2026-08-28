@@ -451,9 +451,10 @@ class MapEditorDialogClass {
     _saveTileToStamp() {
         const tile = MapService.getTile(this._selected);
         if (!tile) return;
-        this._buildStampFromTiles(1, 1, () => tile,
-            this._t('map.saveTileToStamp', 'Save Tile to Stamp'));
-        this._status(this._t('map.status.tileStamped', 'Tile saved as a stamp.'));
+        if (this._buildStampFromTiles(1, 1, () => tile,
+            this._t('map.saveTileToStamp', 'Save Tile to Stamp'))) {
+            this._status(this._t('map.status.tileStamped', 'Tile saved as a stamp.'));
+        }
     }
 
     /** CSS colours of the selected tile's attr, for the tile editor. */
