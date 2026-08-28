@@ -104,7 +104,8 @@ class SelectionServiceClass {
       fontInfo:    fp.fontInfo ? { ...fp.fontInfo } : null,
       // Indexed-mode stamps (Phase 13): per-pixel palette indices
       indices:     fp.indices ? fp.indices.map(r => [...r]) : null,
-      _srcIndices: fp._srcIndices ? fp._srcIndices.map(r => [...r]) : null
+      _srcIndices: fp._srcIndices ? fp._srcIndices.map(r => [...r]) : null,
+      attrs:       fp.attrs ? [...fp.attrs] : null
     };
   }
 
@@ -150,7 +151,8 @@ class SelectionServiceClass {
       _isBrushStamp: state._isBrushStamp,
       fontInfo:    state.fontInfo ? { ...state.fontInfo } : null,
       indices:     state.indices ? state.indices.map(r => [...r]) : null,
-      _srcIndices: state._srcIndices ? state._srcIndices.map(r => [...r]) : null
+      _srcIndices: state._srcIndices ? state._srcIndices.map(r => [...r]) : null,
+      attrs:       state.attrs ? [...state.attrs] : null
     };
 
     // Rebuild the derived preview from the mask. restoreAllLayersState may have
@@ -649,7 +651,7 @@ class SelectionServiceClass {
    */
   setStampScale(sx, sy) {
     const fp = this.floatingPaste;
-    if (!fp) return;
+    if (!fp || fp.attrs) return;
     fp._scaleX = Math.max(0.1, sx);
     fp._scaleY = Math.max(0.1, sy);
     this._recomputeStampTransform();
@@ -661,7 +663,7 @@ class SelectionServiceClass {
    */
   setStampRotation(degrees) {
     const fp = this.floatingPaste;
-    if (!fp) return;
+    if (!fp || fp.attrs) return;
     fp._rotation = degrees % 360;
     this._recomputeStampTransform();
   }
@@ -672,7 +674,7 @@ class SelectionServiceClass {
    */
   setStampWarp(effect) {
     const fp = this.floatingPaste;
-    if (!fp) return;
+    if (!fp || fp.attrs) return;
     fp._warpEffect = effect || 'none';
     this._recomputeStampTransform();
   }
@@ -1011,6 +1013,15 @@ class SelectionServiceClass {
 
     this._clearFloatingFootprint(fp.floatingLayer, fp.x, fp.y, fp.width, fp.height);
 
+    // Attributed stamps carry one attribute PER CELL, not per pixel — a
+    // non-cell-aligned drop would make one destination cell straddle two
+    // source cells with two different attribute bytes, which has no valid
+    // resolution (see spec §3, "Cell-grid alignment is load-bearing").
+    if (fp.attrs) {
+      newX = Math.floor(newX / 8) * 8;
+      newY = Math.floor(newY / 8) * 8;
+    }
+
     fp.x = newX;
     fp.y = newY;
 
@@ -1038,6 +1049,7 @@ class SelectionServiceClass {
       fp.floatingLayer.stamp = {
         mask: fp.pixels,
         indices: fp.indices || null,
+        attrs: fp.attrs || null,
         x: fp.x,
         y: fp.y,
         w: fp.width,
@@ -1178,6 +1190,9 @@ class SelectionServiceClass {
    */
   transformStamp(type, amount = 1, outlineGap = 1, outlineSize = 1) {
     if (!this.floatingPaste) return;
+    const isShift = type === 'shiftLeft' || type === 'shiftRight'
+      || type === 'shiftUp' || type === 'shiftDown';
+    if (this.floatingPaste.attrs && !isShift) return; // shape ops undefined on a per-cell attribute grid
     UndoRedo.beginAction(`Stamp ${type}`);
     const fp = this.floatingPaste;
 
@@ -1620,7 +1635,7 @@ class SelectionServiceClass {
   _getStampData(layer) {
     const fp = this.floatingPaste;
     if (fp && fp.floatingLayer === layer) {
-      return { mask: fp.pixels, indices: fp.indices || null,
+      return { mask: fp.pixels, indices: fp.indices || null, attrs: fp.attrs || null,
                x: fp.x, y: fp.y, w: fp.width, h: fp.height };
     }
     if (layer.isStamp && layer.stamp) {
