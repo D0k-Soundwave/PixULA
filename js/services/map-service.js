@@ -376,55 +376,6 @@ class MapServiceClass {
         return true;
     }
 
-    /**
-     * Render a window of the map onto the drawing canvas ("render map to
-     * canvas"). Goes through PixelDrawRoutine (the drawing gate): ink bits
-     * as NORMAL, paper bits as PAPER, so each rendered cell carries the
-     * tile's full attribute. One undo action; symmetry suspended (an area
-     * stamp writes exactly its computed pixels). Empty map cells are
-     * skipped (the canvas shows through).
-     * @param {number} mapX - left map column of the window
-     * @param {number} mapY - top map row
-     * @param {number} destCellX - destination canvas cell
-     * @param {number} destCellY
-     * @param {number} [wCells] - window size; defaults to what fits on screen
-     * @param {number} [hCells]
-     */
-    renderMapToCanvas(mapX = 0, mapY = 0, destCellX = 0, destCellY = 0, wCells, hCells) {
-        if (!window.PixelDrawRoutine) return false;
-        // Cell-geometry gate — same reason as captureCanvasRegion
-        if (!this.isCanvasCompatible()) return false;
-        const cols = ZX_SPECTRUM.GRID_COLS, rows = ZX_SPECTRUM.GRID_ROWS;
-        const { w: tw, h: th } = this.getTileSize();
-        const dx0 = clamp(destCellX | 0, 0, cols - 1);
-        const dy0 = clamp(destCellY | 0, 0, rows - 1);
-        const w = clamp(wCells === undefined ? cols - dx0 : wCells | 0, 1, cols - dx0);
-        const h = clamp(hCells === undefined ? rows - dy0 : hCells | 0, 1, rows - dy0);
-
-        PixelDrawRoutine.beginBatch('map-render');
-        PixelDrawRoutine.suspendMirror(() => {
-            for (let cy = 0; cy < h; cy++) {
-                for (let cx = 0; cx < w; cx++) {
-                    const tile = this.getTile(this.getMapCell(mapX + cx, mapY + cy));
-                    if (!tile) continue;
-                    const sel = this.attrFields(tile.attr);
-                    const px0 = (dx0 + cx) * tw;
-                    const py0 = (dy0 + cy) * th;
-                    for (let y = 0; y < th; y++) {
-                        const rowBits = tile.bitmap[y];
-                        for (let x = 0; x < tw; x++) {
-                            const isInk = (rowBits & (0x80 >> x)) !== 0;
-                            PixelDrawRoutine.draw(px0 + x, py0 + y, sel,
-                                isInk ? DRAW_MODE.NORMAL : DRAW_MODE.PAPER);
-                        }
-                    }
-                }
-            }
-        });
-        PixelDrawRoutine.endBatch();
-        return true;
-    }
-
     // ── Persistence (MAPS store, ClipboardCodec pattern) ───────────────────
 
     /** Persist the working document (debounced by the callers via _schedulePersist). */

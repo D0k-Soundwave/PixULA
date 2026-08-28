@@ -32,6 +32,8 @@ class MapEditorDialogClass {
         this._tileCache = new Map(); // tile index -> 1× canvas
         this._painting = false;
         this._statusTimeout = null;
+        this._roomRect = null;
+        this._roomDragStart = null;
 
         this._tileEditor = null;    // created lazily (shared CellGridEditor)
         this._suppressTileCommit = false;
@@ -106,6 +108,7 @@ class MapEditorDialogClass {
                         <span class="btn-captioned">${Helpers.captionHTML('map.tool.erase', 'Erase')}<button type="button" data-maptool="erase" class="tool-btn" data-i18n-title-name="map.tool.erase" data-i18n-title="map.tool.erase.hint" data-i18n-aria-label="map.tool.erase" aria-label="${this._t('map.tool.erase', 'Erase')}" title="${Helpers.composeTitle(this._t('map.tool.erase', 'Erase'), this._t('map.tool.erase.hint', 'Clears map cells back to empty'))}"><span class="tool-icon">E</span></button></span>
                         <span class="btn-captioned">${Helpers.captionHTML('map.tool.fill', 'Fill')}<button type="button" data-maptool="fill"  class="tool-btn" data-i18n-title-name="map.tool.fill" data-i18n-title="map.tool.fill.hint" data-i18n-aria-label="map.tool.fill" aria-label="${this._t('map.tool.fill', 'Fill')}" title="${Helpers.composeTitle(this._t('map.tool.fill', 'Fill'), this._t('map.tool.fill.hint', 'Floods same-tile cells out from the cursor with the selected tile'))}"><span class="tool-icon">F</span></button></span>
                         <span class="btn-captioned">${Helpers.captionHTML('cap.pick', 'Pick')}<button type="button" data-maptool="pick"  class="tool-btn" data-i18n-title-name="map.tool.pick" data-i18n-title="map.tool.pick.hint" data-i18n-aria-label="map.tool.pick" aria-label="${this._t('map.tool.pick', 'Pick Tile')}" title="${Helpers.composeTitle(this._t('map.tool.pick', 'Pick Tile'), this._t('map.tool.pick.hint', 'Picks up the tile under the cursor as the one to paint with'))}"><span class="tool-icon">I</span></button></span>
+                        <span class="btn-captioned">${Helpers.captionHTML('map.tool.select', 'Select')}<button type="button" data-maptool="select" class="tool-btn" data-i18n-title-name="map.tool.select" data-i18n-title="map.tool.select.hint" data-i18n-aria-label="map.tool.select" aria-label="${this._t('map.tool.select', 'Select')}" title="${Helpers.composeTitle(this._t('map.tool.select', 'Select'), this._t('map.tool.select.hint', 'Drag a rectangle of tiles to save as one stamp'))}"><span class="tool-icon">S</span></button></span>
                     </div>
                     <div class="me-tool-group">
                         <button type="button" class="pc-btn me-zoom-out" data-i18n-title-name="menu.view.zoomOut" data-i18n-title="view.zoomOut.hint" title="${Helpers.composeTitle(this._t('menu.view.zoomOut', 'Zoom Out'), this._t('view.zoomOut.hint', 'Steps down to the next zoom level'))}">&#8722;</button>
@@ -127,7 +130,7 @@ class MapEditorDialogClass {
                 </div>
                 <div class="me-status pc-status"></div>
                 <div class="me-bridges">
-                    <button type="button" class="pc-btn me-render" data-i18n="map.renderToCanvas">${this._t('map.renderToCanvas', 'Render to Canvas')}</button>
+                    <button type="button" class="pc-btn me-save-room-stamp" data-i18n="map.saveRoomToStamp" disabled>${this._t('map.saveRoomToStamp', 'Save Room to Stamp')}</button>
                     <button type="button" class="pc-btn me-capture" data-i18n="map.captureScreen">${this._t('map.captureScreen', 'Capture Screen')}</button>
                     <button type="button" class="pc-btn me-import" data-i18n="map.import">${this._t('map.import', 'Import...')}</button>
                     <select class="me-export-format" id="me-export-format" name="me-export-format">
@@ -199,6 +202,8 @@ class MapEditorDialogClass {
         this._root = null;
         this._tileEditor = null;
         this._tileCache.clear();
+        this._roomRect = null;
+        this._roomDragStart = null;
         MapService.persist();
     }
 
@@ -263,15 +268,28 @@ class MapEditorDialogClass {
         this._canvas.addEventListener('pointermove', e => {
             if (this._painting) this._onMapPointer(e, false);
         });
-        this._canvas.addEventListener('pointerup', () => { this._painting = false; });
-        this._canvas.addEventListener('pointerleave', () => { this._painting = false; });
+        this._canvas.addEventListener('pointerup', () => { this._painting = false; this._roomDragStart = null; });
+        this._canvas.addEventListener('pointerleave', () => { this._painting = false; this._roomDragStart = null; });
         this._canvas.addEventListener('contextmenu', e => e.preventDefault());
 
         // Bridges
-        c.querySelector('.me-render').addEventListener('click', () => {
-            const origin = this._scrollOriginCells();
-            MapService.renderMapToCanvas(origin.x, origin.y, 0, 0);
-            this._status(this._t('map.status.rendered', 'Map rendered to canvas.'));
+        c.querySelector('.me-save-room-stamp').addEventListener('click', () => {
+            if (!this._roomRect) return;
+            // Re-clamp against the CURRENT map size before reading tiles: the
+            // map may have been resized/reloaded since the rectangle was
+            // dragged, and a stale rectangle must never read past the map's
+            // own bounds (MapService.getMapCell already returns -1 out of
+            // bounds, but clamping here keeps the stamp's dimensions honest
+            // rather than silently shrinking with holes).
+            const map = MapService.getMap();
+            const x0 = Math.min(this._roomRect.x0, map.width - 1);
+            const y0 = Math.min(this._roomRect.y0, map.height - 1);
+            const x1 = Math.min(this._roomRect.x1, map.width - 1);
+            const y1 = Math.min(this._roomRect.y1, map.height - 1);
+            this._buildStampFromTiles(x1 - x0 + 1, y1 - y0 + 1,
+                (tx, ty) => MapService.getTile(MapService.getMapCell(x0 + tx, y0 + ty)),
+                this._t('map.saveRoomToStamp', 'Save Room to Stamp'));
+            this._status(this._t('map.status.roomStamped', 'Room saved as a stamp.'));
         });
         c.querySelector('.me-capture').addEventListener('click', () => {
             const cols = ZX_SPECTRUM.GRID_COLS, rows = ZX_SPECTRUM.GRID_ROWS;
@@ -468,8 +486,10 @@ class MapEditorDialogClass {
     /** Keep Save Tile to Stamp's enabled state matched to whether a tile is selected. @private */
     _syncStampButtons() {
         if (!this._root) return;
-        const btn = this._root.querySelector('.me-save-tile-stamp');
-        if (btn) btn.disabled = this._selected < 0;
+        const tileBtn = this._root.querySelector('.me-save-tile-stamp');
+        if (tileBtn) tileBtn.disabled = this._selected < 0;
+        const roomBtn = this._root.querySelector('.me-save-room-stamp');
+        if (roomBtn) roomBtn.disabled = !this._roomRect;
     }
 
     // ─── Map viewport (virtual rendering) ─────────────────────────────────
@@ -552,6 +572,13 @@ class MapEditorDialogClass {
                 ctx.stroke();
             }
         }
+
+        if (this._roomRect) {
+            const { x0: rx0, y0: ry0, x1: rx1, y1: ry1 } = this._roomRect;
+            ctx.strokeStyle = 'rgba(80,160,255,0.9)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(rx0 * ts - sx, ry0 * ts - sy, (rx1 - rx0 + 1) * ts, (ry1 - ry0 + 1) * ts);
+        }
     }
 
     /** 1× raster of a tile (offscreen, cached until the tileset changes). */
@@ -595,6 +622,22 @@ class MapEditorDialogClass {
         const erase = this._tool === 'erase' || (e.buttons & 2) !== 0 || e.button === 2;
 
         switch (this._tool) {
+            case 'select': {
+                const map = MapService.getMap();
+                const cx = clamp(x, 0, map.width - 1);
+                const cy = clamp(y, 0, map.height - 1);
+                if (isDown) this._roomDragStart = { x: cx, y: cy };
+                if (this._roomDragStart) {
+                    const sx = this._roomDragStart.x, sy = this._roomDragStart.y;
+                    this._roomRect = {
+                        x0: Math.min(sx, cx), y0: Math.min(sy, cy),
+                        x1: Math.max(sx, cx), y1: Math.max(sy, cy)
+                    };
+                    this._syncStampButtons();
+                    this._redrawMap();
+                }
+                break;
+            }
             case 'pick': {
                 if (!isDown) break;
                 const idx = MapService.getMapCell(x, y);
@@ -676,6 +719,8 @@ class MapEditorDialogClass {
     // ─── Shared refresh / status ──────────────────────────────────────────
 
     _refreshAll() {
+        this._roomRect = null;
+        this._roomDragStart = null;
         if (!this._root) return;
         const map = MapService.getMap();
         this._root.querySelector('.me-width').value = String(map.width);
