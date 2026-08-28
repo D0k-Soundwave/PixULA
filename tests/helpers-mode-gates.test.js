@@ -11,10 +11,13 @@ installStubs();
 
 // ulanext matches STANDARD_ULA's cell/width/depth shape exactly - only its
 // paletteModel differs, which this gate doesn't check (constants.js: "the
-// STANDARD_ULA -> ULANEXT conversion is visually lossless").
-const STANDARD_LAYOUT_MODES = ['standard_ula', 'ula_plus', 'gigascreen', 'ulanext'];
+// STANDARD_ULA -> ULANEXT conversion is visually lossless"). gigascreen also
+// matches that shape cell-for-cell, but it is NOT a standard single-screen
+// layout - it is two of them - so it belongs in the non-standard list; this
+// is what tests/export-mode-matrix.test.js pins for TAP/TZX/ZED/SEV.
+const STANDARD_LAYOUT_MODES = ['standard_ula', 'ula_plus', 'ulanext'];
 const NON_STANDARD_LAYOUT_MODES = ['multicolor_8x4', 'multicolor_8x2', 'multicolor_8x1',
-  'ula_plus_8x1', 'timex_hires', 'layer2_256', 'layer2_320', 'layer2_640',
+  'ula_plus_8x1', 'timex_hires', 'gigascreen', 'layer2_256', 'layer2_320', 'layer2_640',
   'lores', 'lores_radastan'];
 
 for (const id of STANDARD_LAYOUT_MODES) {

@@ -2,11 +2,18 @@
 (function() {
 
 /**
- * Every picture-export format File > Save Image As offers, and the format
- * list `_showExportDialog()` falls back to on engines with no native Save
- * picker (Firefox, Safari) — one array so the two paths cannot drift onto
- * different sets. This is the full catalogue; both call sites still filter
- * it live through FormatRegistry.isExportCompatible() (mode-dependent).
+ * Every picture-export format File > Save Image As offers — the single
+ * source both the menu build (below) and its enabled/disabled state
+ * (`_updateExportAsMenuState`) read, filtered live through
+ * FormatRegistry.isExportCompatible() (mode-dependent).
+ *
+ * This is the ONLY save-format surface in the app (2026-08-28): the earlier
+ * File > Save.../Ctrl+E action (`FileManager.exportViaNativePicker()` on
+ * engines with a native Save picker, `_showExportDialog()`'s dropdown as
+ * the Firefox/Safari fallback) was withdrawn in favour of one menu that
+ * looks and behaves the same on every browser — Save Image As already did,
+ * since its per-format leaves go through the same native-picker-or-download
+ * branch inside `Helpers.downloadFile()` regardless of engine.
  *
  * GIF export was withdrawn from the UI 2026-08-25 (menu only — the encoder
  * in js/io/gif-format.js, its tests and its animate-FLASH option stay
@@ -169,9 +176,8 @@ class MenuSystemClass {
 
     /**
      * Disable each Save Image As leaf the active screen mode can't actually
-     * export (e.g. nxi/sl2 need an indexed mode) — same gate
-     * _showExportDialog() filters its format list through, just applied as
-     * enabled/disabled instead of "listed at all", since a static menu tree
+     * export (e.g. nxi/sl2 need an indexed mode) — applied as
+     * enabled/disabled rather than "listed at all", since a static menu tree
      * can't be rebuilt per mode.
      * @private
      */
@@ -194,14 +200,14 @@ class MenuSystemClass {
                 items: [
                     { id: 'new', label: 'New', shortcut: 'Ctrl+N', action: 'file:new' },
                     { id: 'import', label: 'Load...', shortcut: 'Ctrl+O', action: 'file:import' },
-                    { id: 'export', label: 'Save...', shortcut: 'Ctrl+E', action: 'file:export' },
-                    // One leaf per picture format, in place of the old
-                    // "Export with Options..." dialog — picking a format here
-                    // IS the option; each leaf goes straight to the OS's own
+                    // One leaf per picture format — picking a format here IS
+                    // the only step; each leaf goes straight to the OS's own
                     // save picker (or its browser-download fallback) for that
-                    // one format, exactly like Save... does, just without
-                    // asking the artist to pick a format inside an app dialog
-                    // first. Disabled per format live — see
+                    // one format. This is the ONE save-format entry point
+                    // (2026-08-28) — the separate Save.../Ctrl+E action that
+                    // opened a native multi-format picker on Chromium was
+                    // withdrawn so the menu looks and behaves the same on
+                    // every browser. Disabled per format live — see
                     // _updateExportAsMenuState().
                     { id: 'export-as', label: 'Save Image As', i18n: 'menu.file.exportAs',
                       items: EXPORT_FORMATS.map(([ext, label]) => ({
@@ -664,16 +670,6 @@ class MenuSystemClass {
             case 'file:new':    FileManager.newFile();  break;
             case 'file:save':   FileManager.save();     break;
             case 'file:saveAs': FileManager.saveAs();   break;
-            case 'file:export':
-                // No native picker on this engine (Firefox, Safari) - the
-                // format-select dialog is the only way to ask "which
-                // format" at all there.
-                if (typeof window.showSaveFilePicker === 'function') {
-                    FileManager.exportViaNativePicker();
-                } else {
-                    this._showExportDialog();
-                }
-                break;
             case 'file:loadProject': FileManager.loadProjectFile(); break;
             case 'file:loadPalette': PaletteEditorDialog.loadFromFile(); break;
             case 'file:savePalette': PaletteEditorDialog.saveToFile(); break;
@@ -821,58 +817,6 @@ class MenuSystemClass {
             default:
                 Logger.warn('MenuSystem', `Unknown action: ${actionId}`);
         }
-    }
-
-    /**
-     * Show the export format dialog — the Save.../Ctrl+E fallback on engines
-     * with no native Save picker (Firefox, Safari), where the File > Save
-     * Image As submenu's per-format leaves have no OS dialog to land in.
-     * Only formats the ACTIVE screen mode can actually export (e.g. nxi/sl2
-     * need an indexed mode, pal/npl an editable palette) are listed at all —
-     * FormatRegistry.isExportCompatible() is backed by each handler's own
-     * canExport(), so this can't drift from the gates the handlers
-     * themselves enforce. No per-format options (TAP/TZX border, GIF
-     * animate) — those were withdrawn 2026-08-25 along with "Export with
-     * Options...", the dialog they used to live in; every export now always
-     * uses the document's own current border colour.
-     * @private
-     */
-    _showExportDialog() {
-        const formats = EXPORT_FORMATS.filter(([ext]) => FormatRegistry.isExportCompatible(ext));
-
-        const content = document.createElement('div');
-        content.className = 'export-dialog-body';
-        content.innerHTML = `
-            <label for="export-format" data-i18n="dialog.exportFormat">${this._t('dialog.exportFormat', 'Export format')}</label>
-            <select id="export-format" class="dialog-select">
-                ${formats.map(([ext, label]) =>
-                    `<option value="${ext}" data-i18n="format.${ext}">${this._t('format.' + ext, label)}</option>`).join('')}
-            </select>
-        `;
-
-        const formatSelect = content.querySelector('#export-format');
-
-        Dialog.open({
-            id: 'export-dialog',
-            titleI18n: 'dialog.exportImage',
-            title: 'Export Image',
-            content,
-            buttons: [
-                { i18n: 'dialog.cancel', label: 'Cancel' },
-                {
-                    i18n: 'app.export', label: 'Export', primary: true,
-                    // async: exportAs() now opens a real native Save dialog
-                    // (showSaveFilePicker) - keepOpen (returning false) is
-                    // what stops this dialog closing out from under it before
-                    // the artist has even chosen a location, and what leaves
-                    // it open again if they cancelled the native one.
-                    onClick: async () => {
-                        const saved = await FileManager.exportAs(formatSelect.value);
-                        return saved !== false;
-                    }
-                }
-            ]
-        });
     }
 
     /** @private */

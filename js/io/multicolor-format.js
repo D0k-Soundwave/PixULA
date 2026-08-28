@@ -25,10 +25,11 @@
  *
  * Exporting CONVERTS the composited document to the variant's attribute
  * geometry with the ScreenModeService rules WITHOUT touching the document:
- * refining is lossless, so .mlt saves from any fixed16 mode and .ifl from
- * any mode with cells at least 2 px tall; a save that would coarsen
- * (8×1 -> .ifl) or drop the ULAplus palette gates with a localized error
- * instead of silently losing data.
+ * refining is lossless, so .mlt saves from any single-screen fixed16 mode
+ * and .ifl from any single-screen mode with cells at least 2 px tall; a
+ * save that would coarsen (8×1 -> .ifl), drop the ULAplus palette, or come
+ * from GigaScreen (two sub-screens — neither container has a slot for the
+ * second one) gates with a localized error instead of silently losing data.
  */
 class MulticolorFormatClass {
 
@@ -94,7 +95,8 @@ class MulticolorFormatClass {
     const mode = ext === 'ifl'
       ? SCREEN_MODES.MULTICOLOR_8x2
       : SCREEN_MODES.MULTICOLOR_8x1;
-    return ACTIVE_SCREEN_MODE.paletteModel === 'fixed16'
+    return (ACTIVE_SCREEN_MODE.screens || 1) !== 2
+      && ACTIVE_SCREEN_MODE.paletteModel === 'fixed16'
       && ACTIVE_SCREEN_MODE.attrCellH >= mode.attrCellH;
   }
 
@@ -109,6 +111,10 @@ class MulticolorFormatClass {
       ? SCREEN_MODES.MULTICOLOR_8x2
       : SCREEN_MODES.MULTICOLOR_8x1;
 
+    if ((ACTIVE_SCREEN_MODE.screens || 1) === 2) {
+      throw new Error(Helpers.localizedMessage('mode.scrUseImg',
+        'GigaScreen documents hold two sub-screens — save as .img instead.'));
+    }
     if (ACTIVE_SCREEN_MODE.paletteModel !== 'fixed16') {
       throw new Error(Helpers.localizedMessage('mode.formatNeedsFixed16',
         'This format needs the fixed 16-colour palette — switch out of ULAplus mode first.'));

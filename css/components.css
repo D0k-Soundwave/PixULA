@@ -2011,7 +2011,6 @@
     font-size: var(--font-size-sm);
 }
 
-.export-dialog-body,
 .preferences-dialog-body {
     display: flex;
     flex-direction: column;
@@ -2082,7 +2081,6 @@
     gap: var(--space-sm);
 }
 
-.export-dialog-body label,
 .preferences-dialog-body h3 {
     font-size: var(--font-size-sm);
     color: var(--text-secondary);

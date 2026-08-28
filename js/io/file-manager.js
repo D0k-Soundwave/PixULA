@@ -2,55 +2,6 @@
 (function() {
 
 /**
- * Every extension File > Save.../exportViaNativePicker() offers in the
- * native dialog's "Save as type" list, with a plain-English description (OS
- * dialog chrome isn't run through PixULA's own i18n) and MIME type. Same
- * extension set EXPORT_FORMATS offers (js/ui/menu-system.js's File > Save
- * Image As submenu and its _showExportDialog() fallback) - kept as a
- * literal list rather than derived from FormatRegistry, since FormatRegistry
- * has no format-vs-picture-vs-document distinction (it would also list
- * .pixula here, which Save Project already owns) and no human-readable
- * description or MIME per extension to draw from. GIF is deliberately
- * absent - withdrawn from every export path in the app 2026-08-25 (the
- * encoder in js/io/gif-format.js stays, untouched and still tested; nothing
- * in the UI reaches it any more).
- *
- * MIME keys are synthetic (`application/x-pixula-<ext>`) rather than the
- * generic `application/octet-stream` for every format with no real
- * registered type: `showSaveFilePicker`'s `accept` key never leaves the
- * page, so it doesn't need to be a real MIME type, but Chrome's native
- * "Save as type" dropdown groups entries that share one - confirmed
- * 2026-08-24 by opening the real dialog, seventeen formats collapsed into
- * one "octet-stream" line. A distinct key per format gives each its own
- * line.
- */
-const EXPORT_PICKER_TYPES = Object.freeze([
-  ['scr', 'ZX Spectrum Screen', 'application/x-pixula-scr'],
-  ['zxp', 'ZX-Paintbrush Image', 'text/plain'],
-  ['mlt', 'Timex/Multicolor Screen 8x1', 'application/x-pixula-mlt'],
-  ['ifl', 'Multicolor Screen 8x2', 'application/x-pixula-ifl'],
-  ['hrg', 'Timex Hi-res Screen', 'application/x-pixula-hrg'],
-  ['img', 'GigaScreen Image', 'application/x-pixula-img'],
-  ['nxi', 'Next Layer 2 Image', 'application/x-pixula-nxi'],
-  ['sl2', 'Next Layer 2 Dump', 'application/x-pixula-sl2'],
-  ['slr', 'Next LoRes Dump', 'application/x-pixula-slr'],
-  ['ctile', 'BIFROST ColorTiles', 'application/x-pixula-ctile'],
-  ['tap', 'ZX Spectrum Tape', 'application/x-pixula-tap'],
-  ['tzx', 'ZX Spectrum Tape TZX', 'application/x-pixula-tzx'],
-  ['png', 'PNG Image', 'image/png'],
-  ['bmp', 'BMP Image', 'image/bmp'],
-  ['jpg', 'JPEG Image', 'image/jpeg'],
-  ['zed', 'ZX-Editor Document', 'application/x-pixula-zed'],
-  ['sev', 'SevenuP Graphic', 'application/x-pixula-sev'],
-  ['pal', 'Palette', 'application/x-pixula-pal'],
-  ['npl', 'Next Palette', 'application/x-pixula-npl'],
-  ['asm', 'Assembly Source', 'text/plain'],
-  ['c', 'C Array Source', 'text/plain'],
-  ['bin', 'Raw Bitmap Only', 'application/x-pixula-bin'],
-  ['atr', 'Attributes Only', 'application/x-pixula-atr']
-]);
-
-/**
  * File Manager
  *
  * Unified interface for file operations:
@@ -652,81 +603,6 @@ class FileManagerClass {
 
     try {
       const written = await handler.exportAndDownload(filename, options);
-      return written !== false;
-    } catch (error) {
-      Logger.error('FileManager', `Export failed: ${error.message}`);
-      EventBus.emit(EVENTS.FILE_ERROR, { message: error.message });
-      return false;
-    }
-  }
-
-  /**
-   * File > Save... - a real native Save dialog whose "Save as type" list IS
-   * the format picker, so the artist chooses format and location in ONE
-   * dialog instead of a hand-rolled dropdown followed by a browser download
-   * with no location choice at all. This was the actual complaint behind
-   * this method's existence (2026-08-24): a menu item literally labelled
-   * "Save..." was internally an "export" action wearing that label, and
-   * opened the old format-then-download flow regardless.
-   *
-   * File > Save Image As (one menu leaf per format, straight into
-   * FileManager.exportAs()) is the OTHER way to reach the same native
-   * picker/download-fallback pair, for an artist who wants to name the
-   * format up front instead of choosing it inside the OS dialog. Between the
-   * two, every format and every export path in the app goes through the
-   * system's own save mechanism - no in-app export dialog remains
-   * (2026-08-25; "Export with Options..." and its GIF-animation/TAP-border
-   * per-format extras are gone, not just this method's problem to route
-   * around any more).
-   *
-   * Callable only where `window.showSaveFilePicker` exists - the io layer
-   * has no business opening `MenuSystem`'s format-select dialog itself, so
-   * that fallback decision belongs to the menu action that dispatches here
-   * (see `_executeAction` in menu-system.js), not to this method.
-   * @returns {Promise<boolean>}
-   */
-  async exportViaNativePicker() {
-    const baseName = this.currentFilename
-      ? this.currentFilename.replace(/\.[^.]+$/, '')
-      : 'image';
-
-    // Offer only formats the ACTIVE screen mode can actually export (e.g.
-    // a GigaScreen document has no .scr, an indexed Next mode has no .tap)
-    // — showSaveFilePicker can't disable a type, only omit it, so filtering
-    // here is the only way to keep the artist from picking a format that
-    // would just throw a save-failed error a moment later.
-    const compatibleTypes = EXPORT_PICKER_TYPES.filter(([ext]) =>
-      FormatRegistry.isExportCompatible(ext));
-    const defaultExt = compatibleTypes.length ? compatibleTypes[0][0] : 'scr';
-
-    let handle;
-    try {
-      handle = await window.showSaveFilePicker({
-        suggestedName: `${baseName}.${defaultExt}`,
-        types: compatibleTypes.map(([ext, description, mime]) =>
-          ({ description, accept: { [mime]: [`.${ext}`] } }))
-      });
-    } catch (error) {
-      if (error && error.name === 'AbortError') return false;
-      Logger.error('FileManager', `Save picker failed: ${error.message}`);
-      EventBus.emit(EVENTS.FILE_ERROR, { message: `Failed to save: ${error.message}` });
-      return false;
-    }
-
-    const ext = FormatRegistry.getExtension(handle.name);
-    const handler = FormatRegistry.getExportHandler(ext);
-    if (!handler) {
-      Logger.error('FileManager', `Unsupported export format: .${ext}`);
-      EventBus.emit(EVENTS.FILE_ERROR, { message: `Cannot save as .${ext}` });
-      return false;
-    }
-
-    try {
-      // Passing `handle` through is what stops exportAndDownload() (and the
-      // FormatRegistry.download() it calls) opening a SECOND native picker
-      // for the same information - it writes straight to the location
-      // already chosen above.
-      const written = await handler.exportAndDownload(handle.name, {}, handle);
       return written !== false;
     } catch (error) {
       Logger.error('FileManager', `Export failed: ${error.message}`);
