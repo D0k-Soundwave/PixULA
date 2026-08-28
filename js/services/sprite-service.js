@@ -189,29 +189,43 @@ class SpriteServiceClass {
     }
 
     /**
-     * Stamp sprite n onto the current layer at (px, py) through
-     * PixelDrawRoutine (one undo action; transparency skipped, like the
-     * hardware renders it).
+     * Turn sprite n into a draggable stamp layer (SelectionService), instead
+     * of writing it onto the canvas immediately. The artist positions it by
+     * dragging (or clicking repeatedly, brush-mode) then commits — same
+     * mechanism paste and placed brush content already use. Uses the
+     * existing indexed floating-stamp path (`floatingPaste.indices`); no
+     * `attrs` involved, sprites carry no ZX attribute.
+     * @param {number} n - Sprite index
+     * @returns {boolean}
      */
-    stampToCanvas(n, px, py) {
-        if (!this.isCanvasCompatible()) return false;
+    saveAsStamp(n) {
+        if (!this.isCanvasCompatible() || !this.sprites[n]) return false;
         const spr = this.sprites[n];
-        if (!spr) return false;
         const transparent = this.transparencyIndex();
-        const sel = ColorManager.getCurrentSelection();
-        PixelDrawRoutine.beginBatch('Stamp sprite');
-        PixelDrawRoutine.suspendMirror(() => {
-            for (let y = 0; y < SPRITE_SIZE; y++) {
-                for (let x = 0; x < SPRITE_SIZE; x++) {
-                    const idx = spr[y * SPRITE_SIZE + x];
-                    if (idx === transparent) continue;
-                    if (!Validators.isValidPixelCoord(px + x, py + y)) continue;
-                    PixelDrawRoutine.draw(px + x, py + y,
-                        { ...sel, index: idx }, DRAW_MODE.NORMAL);
-                }
+        const mask = [];
+        const indices = [];
+        for (let y = 0; y < SPRITE_SIZE; y++) {
+            const maskRow = [];
+            const idxRow = [];
+            for (let x = 0; x < SPRITE_SIZE; x++) {
+                const idx = spr[y * SPRITE_SIZE + x];
+                const opaque = idx !== transparent;
+                maskRow.push(opaque);
+                idxRow.push(opaque ? idx : -1);
             }
-        });
-        PixelDrawRoutine.endBatch();
+            mask.push(maskRow);
+            indices.push(idxRow);
+        }
+
+        SelectionService.startFloatingPasteFromMask(mask, SPRITE_SIZE, SPRITE_SIZE, 0, 0, 'Save as Stamp');
+        if (!SelectionService.floatingPaste) return false; // max layers reached
+        SelectionService.floatingPaste.indices = indices;
+        SelectionService.floatingPaste._srcIndices = indices.map(r => [...r]);
+        SelectionService.floatingPaste.floatingLayer.clear();
+        LayerManager.composeToCanvas();
+        SelectionService._drawFloatingLayer();
+        LayerManager.flushPendingCompose();
+        CanvasSystem.requestRender();
         return true;
     }
 
