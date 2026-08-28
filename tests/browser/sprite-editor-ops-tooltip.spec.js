@@ -25,7 +25,7 @@ test('every Sprite Editor nav/ops/bridge/file button has a real two-stage toolti
     await checkTwoStage(dlg.locator('.se-prev'), 'previous sprite');
     await checkTwoStage(dlg.locator('.se-next'), 'next sprite');
     for (const cls of ['se-add', 'se-remove', 'se-flip-h', 'se-flip-v',
-        'se-rotate', 'se-clear', 'se-capture', 'se-stamp', 'se-import', 'se-export']) {
+        'se-rotate', 'se-clear', 'se-capture', 'se-save-stamp', 'se-import', 'se-export']) {
         await checkTwoStage(dlg.locator(`.${cls}`), cls);
     }
 });
