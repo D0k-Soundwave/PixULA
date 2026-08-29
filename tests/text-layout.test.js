@@ -120,13 +120,89 @@ check('vertical bold: thickens without changing the stack height', (() => {
 })());
 
 // -- glyphs the font does not have take no space, in every layout -------------
-// The ZX ROM charset covers codes 32..127, so a newline has no glyph. It is
-// skipped rather than spaced, exactly as in the horizontal path today.
+// The ZX ROM charset covers codes 32..127, so anything outside it has no
+// glyph and is skipped rather than spaced.
+//
+// This check used a NEWLINE as its example until 2026-08-30, which quietly
+// pinned the bug the multi-line section below fixes: it asserted that a
+// newline between 'AB' and 'C' renders identically to 'ABC'. A newline is
+// now a line break, so the example is a control character - which is what
+// the check was always really about.
+const NO_GLYPH = String.fromCharCode(1);
 check('characters with no glyph are skipped in every layout',
-  LAYOUTS.every(l => eq(mask('AB\nC', l), mask('ABC', l))));
+  LAYOUTS.every(l => eq(mask('AB' + NO_GLYPH + 'C', l), mask('ABC', l))));
 check('empty text returns null in every layout',
   LAYOUTS.every(l => mask('', l) === null));
 check('text with no drawable glyph returns null in every layout',
   LAYOUTS.every(l => mask('\n\n', l) === null));
+
+// -- Multi-line ------------------------------------------------------------
+// Enter in the text box inserted a newline correctly, but neither rasteriser
+// had any concept of a line: the bitmap path asks `glyphOf` for the newline
+// character, gets null, and DROPS it - so every line ran together into one.
+// Lines run perpendicular to the glyph run: horizontal layouts stack them
+// vertically, the column layouts place each line as a further column.
+//
+// `lines(...)` builds the input rather than escaping a newline inline, so the
+// test source stays readable and cannot be broken by a stray escape.
+const lines = (...a) => a.join(String.fromCharCode(10));
+const maskA = (text, layout, align) => tt._buildTextMask(text, ZX, false, false, layout, align);
+
+// The regression guard: one line must be exactly what it always was.
+check('a single line is unchanged - 2 glyphs at 8x8 = 16x8',
+  dims(mask('AB', 'horizontal')) === '16x8');
+check('a single line is byte-identical whatever the alignment',
+  LAYOUTS.every(l => ['left', 'center', 'right']
+    .every(a => eq(maskA('AB', l, a), mask('AB', l)))));
+
+check('two lines are twice as tall', dims(mask(lines('A', 'B'), 'horizontal')) === '8x16');
+check('the block is as wide as its longest line, not their sum',
+  dims(mask(lines('A', 'BBB'), 'horizontal')) === '24x16');
+
+// A blank line is meaningful and must still advance.
+check('a blank line advances a full line height',
+  dims(mask(lines('A', '', 'B'), 'horizontal')) === '8x24');
+check('the blank line is genuinely empty',
+  rowBand(mask(lines('A', '', 'B'), 'horizontal'), 8, 8).every(r => r.every(v => !v)));
+
+// Reading order: first line on top, and each line is the single-line mask.
+const two = mask(lines('A', 'B'), 'horizontal');
+check('the first line is on top', eq(rowBand(two, 0, 8), mask('A', 'horizontal').pixels));
+check('the second line is below it', eq(rowBand(two, 8, 8), mask('B', 'horizontal').pixels));
+
+// `reversed` keeps acting on glyph order WITHIN a line, never on line order.
+const revLines = mask(lines('AB', 'CD'), 'reversed');
+check('reversed reverses each line, not the order of the lines',
+  eq(rowBand(revLines, 0, 8), mask('AB', 'reversed').pixels) &&
+  eq(rowBand(revLines, 8, 8), mask('CD', 'reversed').pixels));
+
+// Alignment, along the axis the line runs on.
+const inkX = (m, y0) => {
+  let min = m.width;
+  for (let y = y0; y < y0 + 8; y++) for (let x = 0; x < m.width; x++) {
+    if (m.pixels[y][x] && x < min) min = x;
+  }
+  return min;
+};
+// Measured against the single-line mask, because a ZX ROM glyph has its own
+// left bearing - 'A' does not start at column 0 in its own cell, so the
+// absolute figure would be asserting the font, not the alignment. The short
+// line is 8px in a 24px block, so the slack is 16.
+const shortOn = (align) => inkX(maskA(lines('A', 'BBB'), 'horizontal', align), 0);
+const bearing = inkX(mask('A', 'horizontal'), 0);
+check('left-aligned: the short line sits where it would on its own',
+  shortOn('left') === bearing);
+check('centred: the short line is inset by half the slack',
+  shortOn('center') === bearing + 8);
+check('right-aligned: the short line is pushed by the whole slack',
+  shortOn('right') === bearing + 16);
+check('alignment does not change the block size',
+  ['left', 'center', 'right'].every(a => dims(maskA(lines('A', 'BBB'), 'horizontal', a)) === '24x16'));
+
+// Column layouts: each line becomes its own column, side by side.
+const cols = mask(lines('A', 'B'), 'vertical-down');
+check('two lines in a column layout sit side by side', dims(cols) === '16x8');
+check('the first line is the leftmost column',
+  eq(colBand(cols, 0, 8), mask('A', 'vertical-down').pixels));
 
 summary();

@@ -735,7 +735,7 @@ class SelectionServiceClass {
       const tool = window.ToolManager ? ToolManager.getTool(TOOLS.TEXT) : null;
       if (tool && tool.isBitmapFont(fi.fontFamily)) {
         // Glyph-byte fonts: ZX ROM and Phase 10 'zxfont:<name>' library fonts
-        srcPixels = tool._buildTextMask(fi.text, fi.fontFamily, fi.bold, fi.italic, fi.layout)?.pixels || fp._srcPixels;
+        srcPixels = tool._buildTextMask(fi.text, fi.fontFamily, fi.bold, fi.italic, fi.layout, fi.align)?.pixels || fp._srcPixels;
         srcW = srcPixels[0]?.length || fp._srcWidth;
         srcH = srcPixels.length || fp._srcHeight;
         // Scale the bitmap mask IN the coverage domain. A glyph-byte font has
@@ -784,7 +784,7 @@ class SelectionServiceClass {
         // legibility rides on strokes thinner than a pixel.
         srcPixels = CoverageOps.toMask(
           tool._renderThrough(fi.text, fi.fontFamily, fi.fontSize * fp._scaleX,
-            totalDeg, box),
+            totalDeg, box, fi.align),
           CoverageOps.GLYPH_COVERAGE);
         srcW = box.w;
         srcH = box.h;
@@ -792,7 +792,7 @@ class SelectionServiceClass {
       } else if (tool) {
         const mask = tool._rasterizeWithFont(
           fi.text, fi.fontFamily, fi.fontSize * fp._scaleX,
-          fi.bold, fi.italic, fi.layout
+          fi.bold, fi.italic, fi.layout, fi.align
         );
         if (mask) {
           // Resample to the exact target box so system fonts stay visually consistent
