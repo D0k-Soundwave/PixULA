@@ -25,8 +25,15 @@ const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 // -- constants carry their measured justification (spec section 6) ----------
 check('SUPERSAMPLE is 8 - ss=4 measures below the shipped chain on 1-bit',
   CoverageOps.SUPERSAMPLE === 8);
-check('INK_COVERAGE is 0.50, NOT font-rasterizer.js 0.40 (different sizes)',
+check('INK_COVERAGE is 0.50 - the unbiased cut, for exact-area 1-bit sources',
   CoverageOps.INK_COVERAGE === 0.50);
+// A glyph is a different problem: its legibility rides on strokes thinner than
+// a pixel, which an unbiased half-coverage test drops. Calibrated across six
+// faces at 12/16/24px - total error 25 at 0.25, 20 at 0.30, 24 at 0.35, 41 at
+// 0.40, 89 at 0.50.
+check('GLYPH_COVERAGE is 0.30, biased toward ink, and BELOW INK_COVERAGE',
+  CoverageOps.GLYPH_COVERAGE === 0.30 &&
+  CoverageOps.GLYPH_COVERAGE < CoverageOps.INK_COVERAGE);
 
 // -- create ----------------------------------------------------------------
 const blank = CoverageOps.create(3, 2);

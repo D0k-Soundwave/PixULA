@@ -540,36 +540,73 @@ class TextToolClass extends ToolBase {
   }
 
   /**
-   * Rasterize a string to an UNTRIMMED alpha-thresholded mask. Split out of
+   * Rasterize a string to an UNTRIMMED mask. Split out of
    * `_rasterizeWithFont` because the vertical layouts need every character
    * measured against the same box: trimming each letter to its own ink first
    * would stack an 'o' and an 'A' at the same height and throw the baselines
    * away.
+   *
+   * Each output pixel is decided from the COVERAGE of an ss x ss block, not
+   * from one alpha sample at its centre. That single sample is why this used
+   * to lose stroke weight wherever a stroke is thinner than a pixel: measured
+   * 2026-08-29, four bare stems ('IIII' at 16px) weighed 0.811 of a correct
+   * render, and `ZX SPECTRUM` at 16px came apart into 19 connected pieces.
+   * A mixed string hides it - 'Hamburgefonstiv' weighed 0.925, because its
+   * bowls and crossbars are wide enough to survive a centre sample.
+   *
+   * `js/utils/font-rasterizer.js` reached the same conclusion for the Font
+   * Editor in 2026-08-19; this is that fix, on the path that never got it.
+   * Its threshold is 0.40 and this one is 0.30, and both are measured at their
+   * own sizes - see `CoverageOps.GLYPH_COVERAGE`, which is deliberately NOT
+   * the unbiased `INK_COVERAGE` a 1-bit source takes.
+   *
    * @returns {{ pixels: boolean[][], width: number, height: number }}
    * @private
    */
   _rasterizeRaw(text, fontFamily, fontSize, bold, italic) {
-    const off = Helpers.createCanvas(1, 1);
-    const ctx = off.getContext('2d');
+    const ss = CoverageOps.SUPERSAMPLE;
     const weight  = bold   ? 'bold'   : 'normal';
     const style   = italic ? 'italic' : 'normal';
-    const fontStr = `${style} ${weight} ${fontSize}px "${fontFamily}"`;
-    ctx.font = fontStr;
-    const metrics = ctx.measureText(text);
-    const w = Math.max(1, Math.ceil(metrics.width) + 2);
-    const h = Math.max(1, Math.ceil(fontSize * 1.5));
-    off.width = w; off.height = h;
-    ctx.font = fontStr;
-    ctx.fillStyle = '#000'; ctx.textBaseline = 'top';
-    ctx.fillText(text, 1, 0);
-    const data = ctx.getImageData(0, 0, w, h).data;
 
-    return {
-      pixels: Array.from({ length: h }, (_, ry) =>
-        Array.from({ length: w }, (_, rx) => data[(ry * w + rx) * 4 + 3] > 127)),
-      width:  w,
-      height: h
-    };
+    // Measure at the FINAL size, then render at ss times it. Measuring at the
+    // supersampled size and dividing would let a rounding difference in the
+    // font's advance widths change the output box.
+    const probe = Helpers.createCanvas(1, 1);
+    const pctx = probe.getContext('2d');
+    pctx.font = `${style} ${weight} ${fontSize}px "${fontFamily}"`;
+    const w = Math.max(1, Math.ceil(pctx.measureText(text).width) + 2);
+    const h = Math.max(1, Math.ceil(fontSize * 1.5));
+
+    const off = Helpers.createCanvas(w * ss, h * ss);
+    const ctx = off.getContext('2d');
+    ctx.font = `${style} ${weight} ${fontSize * ss}px "${fontFamily}"`;
+    ctx.fillStyle = '#000';
+    ctx.textBaseline = 'top';
+    ctx.fillText(text, 1 * ss, 0);
+    const data = ctx.getImageData(0, 0, w * ss, h * ss).data;
+
+    // Box-filter each ss x ss block into one coverage fraction, then take the
+    // single threshold this whole function exists to defer. The alpha sum is
+    // compared against a pre-multiplied cut rather than divided down first -
+    // the same decision, one less division per pixel, and this inner loop runs
+    // once per subsample of every stamp.
+    const rowStride = w * ss;
+    const cut = CoverageOps.GLYPH_COVERAGE * 255 * ss * ss;
+    const pixels = [];
+    for (let y = 0; y < h; y++) {
+      const row = new Array(w);
+      for (let x = 0; x < w; x++) {
+        let alpha = 0;
+        for (let j = 0; j < ss; j++) {
+          const base = ((y * ss + j) * rowStride + x * ss) * 4 + 3;
+          for (let i = 0; i < ss; i++) alpha += data[base + i * 4];
+        }
+        row[x] = alpha >= cut;
+      }
+      pixels.push(row);
+    }
+
+    return { pixels, width: w, height: h };
   }
 
   /** Ink bounds of a raw mask, or null where it drew nothing. @private */

@@ -35,19 +35,47 @@ const CoverageOps = {
     SUPERSAMPLE: 8,
 
     /**
-     * Ink where at least this fraction of the pixel is covered.
+     * Ink where at least this fraction of the pixel is covered - the UNBIASED
+     * cut, for a source whose coverage is exact geometric area.
      *
-     * 0.50, measured at stamp sizes: 0.959 against 0.938 at 0.40, with a tone
-     * ratio of 0.98 against 1.07 - 0.40 fattens the letterforms here.
+     * 0.50 because half is what "mostly covered" means when the source is
+     * 1-bit artwork: every source pixel is a unit square that is either inside
+     * the output pixel or not, there are no sub-pixel features to rescue, and
+     * biasing the cut either way just moves edges. Measured on the bench's
+     * 1-bit suites at 0.994 against ground truth, where 0.40 scores 0.944.
      *
-     * `js/utils/font-rasterizer.js` measured 0.40 for the SAME decision and
-     * that is not a contradiction to resolve by picking one. It fits glyphs
-     * into eight rows, where a typical stem is ~0.7px wide and a half-pixel
-     * test drops strokes that are unambiguously there. Stamps run at 16-64px.
-     * The threshold is size-dependent; neither site may adopt the other's
-     * value without re-measuring at its own sizes.
+     * Vector GLYPHS are a different problem and take `GLYPH_COVERAGE`.
      */
     INK_COVERAGE: 0.50,
+
+    /**
+     * The cut for rasterising a vector glyph, biased toward ink.
+     *
+     * A letterform's legibility is carried by strokes that are THINNER than a
+     * pixel at stamp sizes, and a stroke straddling two pixel columns puts
+     * half its width in each - so an unbiased half-coverage test drops marks
+     * that are unambiguously there. This is the same observation
+     * `js/utils/font-rasterizer.js` made in 2026-08-19, at a smaller size and
+     * with its own measured answer of 0.40.
+     *
+     * 0.30, calibrated 2026-08-29 the way that file calibrated its own: render
+     * real faces and read the bitmaps. Six faces (Arial, Segoe UI, Verdana,
+     * Consolas, Times New Roman, Georgia) at 12/16/24px, scoring `ZX SPECTRUM`
+     * for fragmentation against one piece per glyph and `aeo8` for its five
+     * counters. Total absolute error: 25 at 0.25, **20 at 0.30**, 24 at 0.35,
+     * 41 at 0.40, 89 at 0.50. A real minimum with a curve either side - below
+     * 0.30 letters start MERGING (Verdana at 12px falls to 8 pieces), above it
+     * they fragment (Times at 16px reaches 26 pieces and loses all 5
+     * counters). Sans faces are insensitive across the whole range; serifs at
+     * small sizes are what the value is really for.
+     *
+     * The number in the design spec was 0.50, and it was wrong for this use.
+     * It came from the bench scoring 0.40 against 0.50 - but the bench's
+     * ground truth is itself thresholded at 0.50, so that comparison could
+     * only ever favour 0.50. A threshold cannot be calibrated against a
+     * reference that already assumes it.
+     */
+    GLYPH_COVERAGE: 0.30,
 
     /** @returns {{data: Float32Array, w: number, h: number}} an empty buffer */
     create(w, h) {
