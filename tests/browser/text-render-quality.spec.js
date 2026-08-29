@@ -276,7 +276,7 @@ test('a rotated system-font stamp keeps its ink through the live pipeline',
             const turned = ink(SelectionService.floatingPaste.pixels);
             SelectionService.setStampRotation(0);
             const back = ink(SelectionService.floatingPaste.pixels);
-            SelectionService.endFloatingPaste(false);
+            SelectionService.cancelFloatingPaste();
             return { flat, turned, back };
         });
 
@@ -317,7 +317,7 @@ test('rotating a stamp does not shatter the letterforms', async ({ page }) => {
                   bold: false, italic: false, layout: 'horizontal' }, 'none');
             SelectionService.setStampRotation(45);
             const turned = components(SelectionService.floatingPaste.pixels);
-            SelectionService.endFloatingPaste(false);
+            SelectionService.cancelFloatingPaste();
             return { fam, flat: components(m.pixels), turned };
         }).filter(Boolean);
     }, [COMPONENTS, SPREAD]);
@@ -357,12 +357,12 @@ test('the text tool Direction and the Transform slider agree at the same angle',
             place({ ...base, direction: 45 });
             SelectionService.setStampRotation(0);
             const viaDirection = ink(SelectionService.floatingPaste.pixels);
-            SelectionService.endFloatingPaste(false);
+            SelectionService.cancelFloatingPaste();
 
             place({ ...base, direction: 0 });
             SelectionService.setStampRotation(45);
             const viaSlider = ink(SelectionService.floatingPaste.pixels);
-            SelectionService.endFloatingPaste(false);
+            SelectionService.cancelFloatingPaste();
 
             return { viaDirection, viaSlider };
         });
@@ -399,7 +399,7 @@ test('direction and the slider compose rather than cancelling or doubling',
             // direction 90 + slider -90 is upright again: a WIDE box, not tall
             SelectionService.setStampRotation(-90);
             const composed = box();
-            SelectionService.endFloatingPaste(false);
+            SelectionService.cancelFloatingPaste();
             return { at90, composed };
         });
 

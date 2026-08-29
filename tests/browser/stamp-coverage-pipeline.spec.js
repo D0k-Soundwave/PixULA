@@ -84,7 +84,7 @@ test('a warped stamp is built through the coverage domain, not around it',
                     mask, 48, 48, 40, 40, 'bench', null, 'none');
                 SelectionService.setStampWarp(effect);
                 const live = SelectionService.floatingPaste.pixels;
-                SelectionService.endFloatingPaste(false);
+                SelectionService.cancelFloatingPaste();
                 out[effect] = {
                     sameSize: live.length === direct.length &&
                               live[0].length === direct[0].length,
@@ -112,7 +112,7 @@ test('a sparse dither pattern survives being scaled down', async ({ page }) => {
         const fp = SelectionService.floatingPaste;
         const after = ink(fp.pixels);
         const area = fp.width * fp.height;
-        SelectionService.endFloatingPaste(false);
+        SelectionService.cancelFloatingPaste();
         return { before, after, area, srcArea: 48 * 48 };
     }, [DIAGONAL]);
 
@@ -143,7 +143,7 @@ test('a quarter turn of pixel artwork is still lossless', async ({ page }) => {
         SelectionService.setStampRotation(90);
         const turned = SelectionService.floatingPaste;
         const out = { src: ink(mask), turned: ink(turned.pixels), w: turned.width, h: turned.height };
-        SelectionService.endFloatingPaste(false);
+        SelectionService.cancelFloatingPaste();
         return out;
     });
 
