@@ -203,9 +203,9 @@ class SpriteEditorDialogClass {
         const by = mkNum('se-y', 9999);
         const capture = mkBtn('se-capture', 'sprite.capture', 'Capture 16×16',
             'sprite.capture.hint', 'Copies a 16×16 block from the canvas at X,Y into the current sprite');
-        const stamp = mkBtn('se-stamp', 'sprite.stamp', 'Stamp to canvas',
-            'sprite.stamp.hint', 'Draws the current sprite onto the canvas at X,Y');
-        bridge.append(bx, by, capture, stamp);
+        const saveStamp = mkBtn('se-save-stamp', 'sprite.saveAsStamp', 'Save as Stamp',
+            'sprite.saveAsStamp.hint', 'Creates a draggable stamp of the current sprite you can position and place on the canvas');
+        bridge.append(bx, by, capture, saveStamp);
         c.appendChild(bridge);
 
         // ── File row ────────────────────────────────────────────────────────
@@ -278,11 +278,10 @@ class SpriteEditorDialogClass {
                 say(this._t('sprite.captured', 'Canvas region captured into the sprite.'));
             }
         });
-        stamp.addEventListener('click', () => {
+        saveStamp.addEventListener('click', () => {
             if (!bridgeGate()) return;
-            if (SpriteService.stampToCanvas(SpriteService.getCurrent(),
-                parseInt(bx.value, 10) || 0, parseInt(by.value, 10) || 0)) {
-                say(this._t('sprite.stamped', 'Sprite stamped onto the canvas.'));
+            if (SpriteService.saveAsStamp(SpriteService.getCurrent())) {
+                say(this._t('sprite.stampSaved', 'Stamp created — drag it into place, then click to commit.'));
             }
         });
 
