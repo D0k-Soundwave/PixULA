@@ -238,7 +238,7 @@ test('a control assigned Nothing is inert', async ({ page }) => {
 
 test('Preferences shows the controls the chosen pen model has', async ({ page }) => {
     await boot(page);
-    await page.evaluate(() => MenuSystem._showPreferences());
+    await page.evaluate(() => PreferencesDialog.open());
     const profile = page.locator('#pref-pen-profile');
     await expect(profile).toBeVisible();
 
@@ -261,7 +261,7 @@ test('Preferences shows the controls the chosen pen model has', async ({ page })
 
 test('an assignment made in Preferences survives a reload', async ({ page }) => {
     await boot(page);
-    await page.evaluate(() => MenuSystem._showPreferences());
+    await page.evaluate(() => PreferencesDialog.open());
     await page.selectOption('#pref-pen-profile', 'wacomProPen2');
     await page.selectOption('[data-pen-control="barrel"]', 'menu');
     await page.locator('#dialog-preferences-dialog .app-dialog-footer button.primary').click();
@@ -281,7 +281,7 @@ test('an assignment made in Preferences survives a reload', async ({ page }) => 
 
 test('the pen model list is grouped by vendor, with ~20 real named models', async ({ page }) => {
     await boot(page);
-    await page.evaluate(() => MenuSystem._showPreferences());
+    await page.evaluate(() => PreferencesDialog.open());
     const groups = await page.locator('#pref-pen-profile optgroup').evaluateAll(
         els => els.map(el => el.label));
     expect(groups).toEqual(
@@ -295,7 +295,7 @@ test('a pre-split profile choice (a plain family id in storage) highlights its r
     // Simulate a preference saved before the model list was split into real
     // pens - a bare family id, exactly what earlier sessions persisted.
     await page.evaluate(() => StateManager.set('pen.profile', 'wacom'));
-    await page.evaluate(() => MenuSystem._showPreferences());
+    await page.evaluate(() => PreferencesDialog.open());
     await expect(page.locator('#pref-pen-profile')).toHaveValue('wacomProPen2');
     // And it still behaves as it always did - drawing/erasing untouched.
     expect(await page.locator('[data-pen-control]').count()).toBe(3);
@@ -303,7 +303,7 @@ test('a pre-split profile choice (a plain family id in storage) highlights its r
 
 test('Wacom Pro Pen 3D defaults its middle button to Pan, not Menu', async ({ page }) => {
     await boot(page);
-    await page.evaluate(() => MenuSystem._showPreferences());
+    await page.evaluate(() => PreferencesDialog.open());
     await page.selectOption('#pref-pen-profile', 'wacomProPen3D');
     // No eraser tail on this model.
     expect(await page.locator('[data-pen-control]').count()).toBe(2);
@@ -314,7 +314,7 @@ test('Wacom Pro Pen 3D defaults its middle button to Pan, not Menu', async ({ pa
 
 test('Preferences shows the pressure strength row only while pressure is on', async ({ page }) => {
     await boot(page);
-    await page.evaluate(() => MenuSystem._showPreferences());
+    await page.evaluate(() => PreferencesDialog.open());
     const enabled = page.locator('#pref-pressure-sensitivity');
     const strengthRow = page.locator('#pref-pressure-strength-row');
 
@@ -330,7 +330,7 @@ test('Preferences shows the pressure strength row only while pressure is on', as
 
 test('pressure sensitivity and strength survive a reload', async ({ page }) => {
     await boot(page);
-    await page.evaluate(() => MenuSystem._showPreferences());
+    await page.evaluate(() => PreferencesDialog.open());
     await page.check('#pref-pressure-sensitivity');
     await page.fill('#pref-pressure-strength', '150');
     await page.locator('#dialog-preferences-dialog .app-dialog-footer button.primary').click();
@@ -351,7 +351,7 @@ test('a real pen turns pressure sensitivity on by itself, the first time', async
 
 test('an explicit Off in Preferences outranks auto-detect for the rest of the session', async ({ page }) => {
     await boot(page);
-    await page.evaluate(() => MenuSystem._showPreferences());
+    await page.evaluate(() => PreferencesDialog.open());
     // The checkbox already starts unchecked; saving it still records an
     // explicit choice, because the field is always present in the form now.
     await page.locator('#dialog-preferences-dialog .app-dialog-footer button.primary').click();

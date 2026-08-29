@@ -99,62 +99,12 @@ const Validators = {
     },
 
     /**
-     * Validate layer index
-     * @param {number} index - Layer index
-     * @param {number} maxLayers - Maximum number of layers
-     * @returns {boolean}
-     */
-    isValidLayerIndex(index, maxLayers = ZX_SPECTRUM.MAX_LAYERS) {
-        return Number.isInteger(index) && index >= 0 && index < maxLayers;
-    },
-
-    /**
      * Validate zoom level (100-1600 in steps of 100)
      * @param {number} zoom - Zoom percentage
      * @returns {boolean}
      */
     isValidZoom(zoom) {
         return Number.isInteger(zoom) && zoom >= 100 && zoom <= 1600 && zoom % 100 === 0;
-    },
-
-    /**
-     * Validate draw mode
-     * @param {string} mode - Draw mode
-     * @returns {boolean}
-     */
-    isValidDrawMode(mode) {
-        return Object.values(DRAW_MODE).includes(mode);
-    },
-
-    /**
-     * Validate tool ID
-     * @param {string} toolId - Tool ID
-     * @returns {boolean}
-     */
-    isValidToolId(toolId) {
-        return Object.values(TOOLS).includes(toolId);
-    },
-
-    /**
-     * Validate opacity value (0-100)
-     * @param {number} opacity - Opacity percentage
-     * @returns {boolean}
-     */
-    isValidOpacity(opacity) {
-        return typeof opacity === 'number' && opacity >= 0 && opacity <= 100;
-    },
-
-    /**
-     * Validate color selection object
-     * @param {Object} selection - { ink, paper, bright, flash }
-     * @returns {boolean}
-     */
-    isValidColorSelection(selection) {
-        if (!selection || typeof selection !== 'object') return false;
-        return this.isValidInk(selection.ink) &&
-               this.isValidPaper(selection.paper) &&
-               typeof selection.bright === 'boolean' &&
-               typeof selection.flash === 'boolean';
     },
 
     /**
@@ -187,61 +137,12 @@ const Validators = {
     },
 
     /**
-     * Validate filename
-     * @param {string} filename - Filename
-     * @returns {boolean}
-     */
-    isValidFilename(filename) {
-        if (typeof filename !== 'string' || filename.length === 0) return false;
-        return !filename.includes('/') &&
-               !filename.includes('\\') &&
-               filename.length <= 255;
-    },
-
-    /**
      * Validate undo limit
      * @param {number} limit - Undo limit
      * @returns {boolean}
      */
     isValidUndoLimit(limit) {
         return Number.isInteger(limit) && limit >= 1 && limit <= 500;
-    },
-
-    /**
-     * Validate rectangle bounds
-     * @param {Object} rect - { x, y, width, height }
-     * @returns {boolean}
-     */
-    isValidRect(rect) {
-        if (!rect || typeof rect !== 'object') return false;
-        return Number.isInteger(rect.x) &&
-               Number.isInteger(rect.y) &&
-               Number.isInteger(rect.width) &&
-               Number.isInteger(rect.height) &&
-               rect.width > 0 &&
-               rect.height > 0;
-    },
-
-    /**
-     * Sanitize and clamp pixel X coordinate
-     * @param {number} x - X coordinate
-     * @returns {number}
-     */
-    sanitizePixelX(x) {
-        const num = parseInt(x, 10);
-        if (isNaN(num)) return 0;
-        return clamp(num, 0, ZX_SPECTRUM.WIDTH - 1);
-    },
-
-    /**
-     * Sanitize and clamp pixel Y coordinate
-     * @param {number} y - Y coordinate
-     * @returns {number}
-     */
-    sanitizePixelY(y) {
-        const num = parseInt(y, 10);
-        if (isNaN(num)) return 0;
-        return clamp(num, 0, ZX_SPECTRUM.HEIGHT - 1);
     },
 
     /**
@@ -253,17 +154,6 @@ const Validators = {
         const num = parseInt(color, 10);
         if (isNaN(num)) return 0;
         return clamp(num, 0, 7);
-    },
-
-    /**
-     * Sanitize opacity value
-     * @param {number} opacity - Opacity
-     * @returns {number}
-     */
-    sanitizeOpacity(opacity) {
-        const num = parseFloat(opacity);
-        if (isNaN(num)) return 100;
-        return clamp(num, 0, 100);
     }
 };
 

@@ -1561,20 +1561,32 @@ class LayerManagerClass {
   }
 
   /**
-   * Indexed-mode cell compose (Phase 13): start from the background cell's
-   * index grid, then let every altered layer's set (≥ 0) pixels win bottom
-   * -> top — the topmost set pixel shows, transparent (−1) pixels let the
-   * stack below through. Stamp layers participate exactly like the classic
-   * branch (they were already filtered into alteredLayers); their xorMode
-   * flag is ignored in indexed modes (documented — XOR is a 1-bit concept).
-   * Nothing flashes; cells drop out of the FLASH set.
+   * Indexed-mode cell compose (Phase 13, the pure half): start from the
+   * background cell's index grid, then let every altered layer's set
+   * (≥ 0) pixels win bottom -> top — the topmost set pixel shows,
+   * transparent (−1) pixels let the stack below through. Stamp layers
+   * participate exactly like the classic branch (they were already
+   * filtered into alteredLayers); their xorMode flag is ignored in
+   * indexed modes (documented — XOR is a 1-bit concept).
+   * @param {Array} alteredLayers - [{ layer, cell, index }] bottom -> top
+   * @param {Object|null} bgCell - Background layer's cell
+   * @param {number} cellW - Active cell width
+   * @param {number} cellH - Active cell height
+   * @param {boolean} [transparentWhenNoBg] - When bgCell is absent, fill
+   *   with -1 (transparent) instead of the default paper index. The live
+   *   canvas compose wants an opaque fallback (nothing to render otherwise);
+   *   flattenVisible wants a hidden background to stay genuinely transparent
+   *   in the flattened result, matching a hidden background pixel above.
+   * @returns {Int16Array} Composited palette indices, length cellW*cellH
    * @private
    */
-  _composeIndexedCell(cellX, cellY, alteredLayers, bgCell, cellW, cellH, baseX, baseY) {
+  _composeIndexedCellData(alteredLayers, bgCell, cellW, cellH, transparentWhenNoBg) {
     const n = cellW * cellH;
     const out = new Int16Array(n);
     if (bgCell && bgCell.indices) {
       out.set(bgCell.indices);
+    } else if (transparentWhenNoBg) {
+      out.fill(-1);
     } else {
       out.fill(NEXTRGB333.DEFAULT_PAPER);
     }
@@ -1586,6 +1598,18 @@ class LayerManagerClass {
         if (src[p] >= 0) out[p] = src[p];
       }
     }
+
+    return out;
+  }
+
+  /**
+   * Indexed-mode cell compose (Phase 13): composes via
+   * `_composeIndexedCellData` then renders directly. Nothing flashes;
+   * cells drop out of the FLASH set.
+   * @private
+   */
+  _composeIndexedCell(cellX, cellY, alteredLayers, bgCell, cellW, cellH, baseX, baseY) {
+    const out = this._composeIndexedCellData(alteredLayers, bgCell, cellW, cellH);
 
     this._flashingCells.delete(`${cellX},${cellY}`);
 
@@ -1766,69 +1790,87 @@ class LayerManagerClass {
   flattenVisible(options = {}) {
     const screenFilter = options.gigaScreen;
     const result = new LayerClass(0, 'Flattened');
+    const cellW = ZX_SPECTRUM.CELL_WIDTH;
     const cellH = ZX_SPECTRUM.CELL_HEIGHT;
+    const indexed = ZX_SPECTRUM.PIXEL_DEPTH > 1;
+    const bgLayer = this.layers[0];
 
-    // For each cell, collect altered layers and composite properly
+    // For each cell, collect altered layers and composite through the same
+    // canonical primitives the live canvas compose path uses.
     for (let cellY = 0; cellY < ZX_SPECTRUM.GRID_ROWS; cellY++) {
       for (let cellX = 0; cellX < ZX_SPECTRUM.GRID_COLS; cellX++) {
         const resultCell = result.getCell(cellX, cellY);
+        const bgCell = (bgLayer && bgLayer.visible) ? bgLayer.getCell(cellX, cellY) : null;
 
-        // Start with background layer (layer 0) attributes
-        const bgLayer = this.layers[0];
-        if (bgLayer && bgLayer.visible) {
-          const bgCell = bgLayer.getCell(cellX, cellY);
-          if (bgCell) {
-            resultCell.ink = bgCell.ink;
-            resultCell.paper = bgCell.paper;
-            resultCell.bright = bgCell.bright;
-            resultCell.flash = bgCell.flash;
-            if (resultCell.indices && bgCell.indices) {
-              resultCell.indices.set(bgCell.indices);
-            }
-          }
-        }
-
-        // Process regular layers from bottom to top (skip background and components)
-        let hasAlteredCell = false;
+        // Collect visible, non-stamp, sub-screen-matching altered layers
+        // (skip background and components) — same filter as before.
+        const alteredLayers = [];
         for (let i = 1; i < this.layers.length; i++) {
           const layer = this.layers[i];
           if (!layer.visible || layer.isStamp) continue;
           if (screenFilter !== undefined
               && (layer.gigaScreen || 0) !== screenFilter) continue;
 
-          const srcCell = layer.getCell(cellX, cellY);
-          if (!srcCell || !srcCell.altered) continue;
-
-          if (resultCell.indices) {
-            // Indexed mode: topmost set index wins per pixel
-            const src = srcCell.indices;
-            if (src) {
-              for (let p = 0; p < src.length; p++) {
-                if (src[p] >= 0) resultCell.indices[p] = src[p];
-              }
-            }
-          } else {
-            // Stack pixels using OR
-            for (let row = 0; row < cellH; row++) {
-              resultCell.pixels[row] |= srcCell.pixels[row];
-            }
-
-            // Take attributes from this layer (topmost altered will be last)
-            resultCell.ink = srcCell.ink;
-            resultCell.paper = srcCell.paper;
-            resultCell.bright = srcCell.bright;
-            resultCell.flash = srcCell.flash;
-          }
-          hasAlteredCell = true;
+          const cell = layer.getCell(cellX, cellY);
+          if (cell && cell.altered) alteredLayers.push({ layer, cell, index: i });
         }
 
-        if (hasAlteredCell) {
+        if (indexed) {
+          const indices = this._composeIndexedCellData(alteredLayers, bgCell, cellW, cellH, true);
+          if (resultCell.indices) resultCell.indices.set(indices);
+        } else {
+          const { attrs, pixels } = this._composeCellData(alteredLayers, bgCell, cellH);
+          resultCell.ink = attrs.ink;
+          resultCell.paper = attrs.paper;
+          resultCell.bright = attrs.bright;
+          resultCell.flash = attrs.flash;
+          resultCell.pixels.set(pixels);
+        }
+
+        if (alteredLayers.length > 0) {
           resultCell.altered = true;
         }
       }
     }
 
     return result;
+  }
+
+  /**
+   * Absorb one cell into another — the shared core of `mergeDown` and
+   * `mergeSelected`. Unlike `_composeCellData`/`_composeIndexedCellData`
+   * (which build a fresh composite over a background), this needs the
+   * TARGET's own existing pixels preserved and its own transparency
+   * shape kept — an untouched `-1` index in the target must stay `-1`
+   * even where the source is also `-1`, which seeding through the
+   * background-relative compose primitives would get wrong.
+   * No-op if the source cell was never drawn on.
+   * @param {Object} targetCell - Mutated in place
+   * @param {Object} sourceCell - Absorbed into targetCell
+   * @param {number} cellH - Active cell height
+   * @private
+   */
+  _mergeCellInto(targetCell, sourceCell, cellH) {
+    if (!sourceCell.altered) return;
+
+    if (targetCell.indices && sourceCell.indices) {
+      // Indexed mode: source layer's set pixels win, transparency elsewhere untouched
+      for (let p = 0; p < sourceCell.indices.length; p++) {
+        if (sourceCell.indices[p] >= 0) targetCell.indices[p] = sourceCell.indices[p];
+      }
+    } else {
+      // Stack pixels using OR operation
+      for (let row = 0; row < cellH; row++) {
+        targetCell.pixels[row] |= sourceCell.pixels[row];
+      }
+
+      // Source is the higher layer, so its attributes take precedence
+      targetCell.ink = sourceCell.ink;
+      targetCell.paper = sourceCell.paper;
+      targetCell.bright = sourceCell.bright;
+      targetCell.flash = sourceCell.flash;
+    }
+    targetCell.altered = true;
   }
 
   /**
@@ -1877,33 +1919,14 @@ class LayerManagerClass {
 
         if (!upperCell || !lowerCell) continue;
 
-        // Only process if upper cell has been altered
-        if (upperCell.altered) {
-          if (lowerCell.indices && upperCell.indices) {
-            // Indexed mode: upper layer's set pixels win
-            for (let p = 0; p < upperCell.indices.length; p++) {
-              if (upperCell.indices[p] >= 0) lowerCell.indices[p] = upperCell.indices[p];
-            }
-          } else {
-            // Stack pixels using OR operation
-            for (let row = 0; row < cellH; row++) {
-              lowerCell.pixels[row] |= upperCell.pixels[row];
-            }
-
-            // Upper layer is topmost, so its attributes take precedence
-            lowerCell.ink = upperCell.ink;
-            lowerCell.paper = upperCell.paper;
-            lowerCell.bright = upperCell.bright;
-            lowerCell.flash = upperCell.flash;
-          }
-          lowerCell.altered = true;
-        }
-        // If upper cell not altered, lower cell keeps its data as-is
+        this._mergeCellInto(lowerCell, upperCell, cellH);
       }
     }
 
     // Remove the upper layer WITHOUT pushing to undo (the merge action wraps both)
     this.removeLayer(index, false);
+
+    this.requestComposition();
 
     if (window.UndoRedo) UndoRedo.endAction();
 
@@ -1964,27 +1987,7 @@ class LayerManagerClass {
 
           if (!srcCell || !targetCell) continue;
 
-          // Only process altered cells
-          if (srcCell.altered) {
-            if (targetCell.indices && srcCell.indices) {
-              // Indexed mode: higher layer's set pixels win
-              for (let p = 0; p < srcCell.indices.length; p++) {
-                if (srcCell.indices[p] >= 0) targetCell.indices[p] = srcCell.indices[p];
-              }
-            } else {
-              // Stack pixels using OR operation
-              for (let row = 0; row < mergeCellH; row++) {
-                targetCell.pixels[row] |= srcCell.pixels[row];
-              }
-
-              // Source is higher layer, so its attributes take precedence
-              targetCell.ink = srcCell.ink;
-              targetCell.paper = srcCell.paper;
-              targetCell.bright = srcCell.bright;
-              targetCell.flash = srcCell.flash;
-            }
-            targetCell.altered = true;
-          }
+          this._mergeCellInto(targetCell, srcCell, mergeCellH);
         }
       }
     }

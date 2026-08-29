@@ -31,7 +31,7 @@ test('header: menu bar, language/size selectors, Border', async ({ page }) => {
  */
 test('Preferences: Speak toggle applies live and persists', async ({ page }) => {
     await boot(page);
-    await page.evaluate(() => MenuSystem._showPreferences());
+    await page.evaluate(() => PreferencesDialog.open());
 
     const toggle = page.locator('#dialog-preferences-dialog #tts-toggle');
     await expect(toggle).toBeAttached();
@@ -44,11 +44,11 @@ test('Preferences: Speak toggle applies live and persists', async ({ page }) => 
     // Cancel exactly as the rest of the dialog's fields do not. Dialog.open()
     // reuses an already-open dialog with the same id instead of rebuilding it
     // (js/ui/components/dialog.js), so the old one must actually be gone
-    // before reopening, or the second _showPreferences() would just focus the
+    // before reopening, or the second PreferencesDialog.open() would just focus the
     // dialog mid-close rather than building a fresh one.
     await page.locator('#dialog-preferences-dialog .app-dialog-footer button:not(.primary)').click();
     await expect(page.locator('#dialog-preferences-dialog')).toHaveCount(0);
-    await page.evaluate(() => MenuSystem._showPreferences());
+    await page.evaluate(() => PreferencesDialog.open());
     expect(await page.locator('#dialog-preferences-dialog #tts-toggle').isChecked()).toBe(true);
 });
 

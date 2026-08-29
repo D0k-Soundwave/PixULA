@@ -120,6 +120,7 @@ const BOOT_MANIFEST = [
     ['BorderControl',    'js/ui/border-control.js'],
     ['ReferenceLayerPanel', 'js/ui/reference-layer-panel.js'],
     ['ThemeManager',     'js/ui/theme-manager.js'],
+    ['PreferencesDialog', 'js/ui/components/preferences-dialog.js'],
     ['MenuSystem',       'js/ui/menu-system.js'],
     ['I18n',             'js/i18n/i18n-manager.js']
 ];

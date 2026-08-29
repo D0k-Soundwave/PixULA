@@ -14,9 +14,9 @@
  * that canvas outright: drawing into its 2D context, loading images into it,
  * and setting its element's inline size/position/display. That is normal
  * canvas-layer ownership, not a DOM-tree violation — it is the same shape of
- * exception canvas-system.js and input-handler.js already have, just not on
- * the lint's allowlist because the lint's DOM check only greps for node
- * creation/query calls, not canvas/style mutation.
+ * exception canvas-system.js and input-handler.js already have, and it is on
+ * the lint's allowlist for exactly that reason (tests/lint-architecture.test.js's
+ * dom-in-logic-layer rule, which also checks inline-style mutation now).
  */
 
 'use strict';

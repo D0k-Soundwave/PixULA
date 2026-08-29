@@ -56,10 +56,27 @@ const RULES = [
   },
   {
     name: 'dom-in-logic-layer',
-    why: 'core/services/tools must not touch the DOM (UI renders from bus events)',
-    re: /\b(getElementById|querySelector(All)?|document\.createElement)\s*\(/,
+    why: 'core/services/tools must not touch the DOM (UI renders from bus events) — '
+      + 'covers querying/creating nodes AND mutating an already-held element\'s '
+      + 'inline style (a canvas owner can hold a real DOM node without ever '
+      + 'calling querySelector/createElement, so style mutation needs its own check)',
+    re: /\b(getElementById|querySelector(All)?|document\.createElement)\s*\(|\.style\.\w+\s*=|\.style\.(setProperty|removeProperty)\s*\(/,
     onlyUnder: ['js/core/', 'js/services/', 'js/tools/'],
-    allow: ['js/core/canvas-system.js', 'js/core/input-handler.js'],
+    // Each entry owns a real DOM-attached element outright (not an offscreen
+    // Helpers.createCanvas() scratch canvas, which is never styled): canvas-system
+    // is the canvas/container owner; color-manager writes the --zx-* CSS custom
+    // properties (the documented single source for that); input-handler sets
+    // touch-action/user-select on the live canvas target; reference-layer-service
+    // gets its canvas from CanvasSystem.createOverlayCanvas() (the one module
+    // allowed to touch the DOM tree) but then owns that canvas's context, image
+    // loads and inline size/position/display outright — the same shape of
+    // exception the first two already have.
+    allow: [
+      'js/core/canvas-system.js',
+      'js/core/color-manager.js',
+      'js/core/input-handler.js',
+      'js/services/reference-layer-service.js',
+    ],
   },
   {
     name: 'event-string-literal',
