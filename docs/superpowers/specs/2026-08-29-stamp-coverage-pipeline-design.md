@@ -353,16 +353,41 @@ sixty times a second.
 |---|---|---|
 | `SS_VECTOR` | 8 | 0.959 vs 0.937 at ss=4 [M]; browser-side cost |
 | `SS_MASK` | 8 | ss=4 measures BELOW the shipped chain (0.973 vs 0.976) [M] |
-| `INK_COVERAGE` | 0.50 | 0.959 at 0.50 vs 0.938 at 0.40, ink 0.98 vs 1.07 [M] |
+| `INK_COVERAGE` | 0.50 | the UNBIASED area cut, for 1-bit sources whose coverage is exact geometry: 0.994 against ground truth where 0.40 scores 0.944 [M] |
+| `GLYPH_COVERAGE` | 0.30 | the ink-BIASED cut, for rasterising vector glyphs. Recalibrated 2026-08-29 during implementation - see below [M] |
 | `TONE_WINDOW` | 8 | one ZX cell; 16 leaves blocky seams in the restored region (sheet) [M] |
 | `TONE_TOLERANCE` | 0.10 | of the window. 0.10 and 0.20 are within noise numerically (artwork 0.949 vs 0.954, photos 0.971 vs 0.976 - both favour 0.20 by ~0.005); the SHEETS favour 0.10 on the sparse tiles, and 0.005 is the measured price of taking them at their word [M] |
 
-`font-rasterizer.js` measured **0.40** and that is not a contradiction to
-resolve by picking one: it fits glyphs into EIGHT ROWS, where a stem is ~0.7px
-wide and a half-pixel test drops strokes that are really there. Stamps run at
-16-64px, where 0.50 is measurably better. The threshold is size-dependent and
-each site should keep its own measured value. Neither may be shared as a
-constant without re-measuring at the other's sizes.
+**Correction, 2026-08-29, found while implementing.** This section originally
+gave ONE threshold of 0.50 for both jobs, justified by the bench scoring 0.50
+above 0.40. That justification was circular: the bench's ground truth is itself
+thresholded at 0.50, so the comparison could only ever favour 0.50. **A
+threshold cannot be calibrated against a reference that already assumes it.**
+
+There are two jobs and they want different answers. For a **1-bit source**,
+coverage is exact geometric area - every source pixel is a unit square, in or
+out - so half is the unbiased and correct cut, and the bench's 0.994 for it
+stands. For a **vector glyph**, legibility rides on strokes THINNER than a
+pixel: a stem straddling two columns puts half its width in each, so an
+unbiased test drops marks that are unambiguously there.
+
+`GLYPH_COVERAGE` was therefore calibrated the way `font-rasterizer.js`
+calibrated its own - render real faces and read the bitmaps. Six faces (Arial,
+Segoe UI, Verdana, Consolas, Times New Roman, Georgia) at 12/16/24px, scoring
+`ZX SPECTRUM` against one piece per glyph and `aeo8` against its five counters.
+Total absolute error: **25 at 0.25, 20 at 0.30, 24 at 0.35, 41 at 0.40, 89 at
+0.50** - a real minimum, with letters MERGING below it (Verdana at 12px falls
+to 8 pieces) and fragmenting above it (Times at 16px reaches 26 pieces and
+loses all five counters). Sans faces are insensitive across the whole range;
+serifs at small sizes are what the value is for.
+
+The effect on the shipped path, measured the same day: `ZX SPECTRUM` at 16px
+went from 17 pieces to 9 in Arial, 19 to 10 in Times New Roman, and 17 to 9 in
+Georgia.
+
+`font-rasterizer.js`'s **0.40** remains its own: it fits glyphs into EIGHT
+ROWS, smaller again than a stamp. Three sites, three measured values, and none
+may adopt another's without re-measuring at its own sizes.
 
 ## 7. Risks
 
