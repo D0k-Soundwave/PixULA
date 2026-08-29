@@ -232,3 +232,46 @@ test('Swap/Recolour engage attribute-paint mode; Esc leaves it armed, the button
     await swapBtn.click();
     expect(await isEngaged(), 'clicking the button off disarms').toBe(false);
 });
+
+test('a floating stamp keeps the context menu shut - the right button erases',
+    async ({ page }) => {
+        await boot(page);
+        // The selection tool is the one whose plain right-click defers to the
+        // menu, so it is the tool where a stamp and the menu can collide.
+        await page.keyboard.press('m');
+        await page.evaluate(() => {
+            const mask = Array.from({ length: 8 }, () => new Array(8).fill(true));
+            SelectionService.startFloatingPasteFromMask(mask, 8, 8, 40, 40, 'test', null, 'none');
+        });
+        expect(await page.evaluate(() => SelectionService.isFloating())).toBe(true);
+
+        const p = await pixelPoint(page, 60, 60);
+        await page.mouse.click(p.x, p.y, { button: 'right' });
+
+        // Erasing with the stamp and being asked "cut / copy / paste?" at the
+        // same time is the collision: the pointerdown gate already treats a
+        // stamp as "the right button draws", and the contextmenu gate used to
+        // disagree with it.
+        expect(await page.locator('.canvas-context-menu').count()).toBe(0);
+    });
+
+test('Shift+right-click still reaches the menu with a stamp floating',
+    async ({ page }) => {
+        await boot(page);
+        await page.keyboard.press('m');
+        await page.evaluate(() => {
+            const mask = Array.from({ length: 8 }, () => new Array(8).fill(true));
+            SelectionService.startFloatingPasteFromMask(mask, 8, 8, 40, 40, 'test', null, 'none');
+        });
+
+        // An explicit request outranks the stamp - it is the documented way to
+        // reach the menu from any tool, and suppressing it would leave a stamp
+        // session with no route to Paste at all.
+        const p = await pixelPoint(page, 60, 60);
+        await page.keyboard.down('Shift');
+        await page.mouse.click(p.x, p.y, { button: 'right' });
+        await page.keyboard.up('Shift');
+
+        await expect(page.locator('.canvas-context-menu').first()).toBeVisible();
+        await page.keyboard.press('Escape');
+    });
