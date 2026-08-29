@@ -104,7 +104,8 @@ class SelectionServiceClass {
       fontInfo:    fp.fontInfo ? { ...fp.fontInfo } : null,
       // Indexed-mode stamps (Phase 13): per-pixel palette indices
       indices:     fp.indices ? fp.indices.map(r => [...r]) : null,
-      _srcIndices: fp._srcIndices ? fp._srcIndices.map(r => [...r]) : null
+      _srcIndices: fp._srcIndices ? fp._srcIndices.map(r => [...r]) : null,
+      attrs:       fp.attrs ? [...fp.attrs] : null
     };
   }
 
@@ -150,7 +151,8 @@ class SelectionServiceClass {
       _isBrushStamp: state._isBrushStamp,
       fontInfo:    state.fontInfo ? { ...state.fontInfo } : null,
       indices:     state.indices ? state.indices.map(r => [...r]) : null,
-      _srcIndices: state._srcIndices ? state._srcIndices.map(r => [...r]) : null
+      _srcIndices: state._srcIndices ? state._srcIndices.map(r => [...r]) : null,
+      attrs:       state.attrs ? [...state.attrs] : null
     };
 
     // Rebuild the derived preview from the mask. restoreAllLayersState may have
@@ -649,7 +651,7 @@ class SelectionServiceClass {
    */
   setStampScale(sx, sy) {
     const fp = this.floatingPaste;
-    if (!fp) return;
+    if (!fp || fp.attrs) return;
     fp._scaleX = Math.max(0.1, sx);
     fp._scaleY = Math.max(0.1, sy);
     this._recomputeStampTransform();
@@ -661,7 +663,7 @@ class SelectionServiceClass {
    */
   setStampRotation(degrees) {
     const fp = this.floatingPaste;
-    if (!fp) return;
+    if (!fp || fp.attrs) return;
     fp._rotation = degrees % 360;
     this._recomputeStampTransform();
   }
@@ -672,7 +674,7 @@ class SelectionServiceClass {
    */
   setStampWarp(effect) {
     const fp = this.floatingPaste;
-    if (!fp) return;
+    if (!fp || fp.attrs) return;
     fp._warpEffect = effect || 'none';
     this._recomputeStampTransform();
   }
@@ -1166,6 +1168,15 @@ class SelectionServiceClass {
 
     this._clearFloatingFootprint(fp.floatingLayer, fp.x, fp.y, fp.width, fp.height);
 
+    // Attributed stamps carry one attribute PER CELL, not per pixel — a
+    // non-cell-aligned drop would make one destination cell straddle two
+    // source cells with two different attribute bytes, which has no valid
+    // resolution (see spec §3, "Cell-grid alignment is load-bearing").
+    if (fp.attrs) {
+      newX = Math.floor(newX / 8) * 8;
+      newY = Math.floor(newY / 8) * 8;
+    }
+
     fp.x = newX;
     fp.y = newY;
 
@@ -1193,6 +1204,7 @@ class SelectionServiceClass {
       fp.floatingLayer.stamp = {
         mask: fp.pixels,
         indices: fp.indices || null,
+        attrs: fp.attrs || null,
         x: fp.x,
         y: fp.y,
         w: fp.width,
@@ -1333,6 +1345,9 @@ class SelectionServiceClass {
    */
   transformStamp(type, amount = 1, outlineGap = 1, outlineSize = 1) {
     if (!this.floatingPaste) return;
+    const isShift = type === 'shiftLeft' || type === 'shiftRight'
+      || type === 'shiftUp' || type === 'shiftDown';
+    if (this.floatingPaste.attrs && !isShift) return; // shape ops undefined on a per-cell attribute grid
     UndoRedo.beginAction(`Stamp ${type}`);
     const fp = this.floatingPaste;
 
@@ -1443,6 +1458,57 @@ class SelectionServiceClass {
   }
 
   /**
+   * Paint an attributed stamp's pixels onto a target layer, one cell at a
+   * time: each cell's own ink/paper/bright/flash from `data.attrs`, not
+   * the stamp's colorSelection. Shared by stampAt and commitStamp. Caller
+   * wraps in suspendMirror + batch.
+   * @param {Object} data - stamp data ({mask, attrs, x, y, w, h})
+   * @param {Layer} targetLayer
+   * @private
+   */
+  _paintAttributedStamp(data, targetLayer) {
+    const { mask, attrs, x, y, w, h } = data;
+    const CW = ZX_SPECTRUM.CELL_WIDTH;
+    const CH = ZX_SPECTRUM.CELL_HEIGHT;
+    const stampCellsWide = Math.ceil(w / CW);
+    const startCellX = Math.floor(x / CW);
+    const startCellY = Math.floor(y / CH);
+    const endCellX = Math.floor((x + w - 1) / CW);
+    const endCellY = Math.floor((y + h - 1) / CH);
+
+    for (let cy = startCellY; cy <= endCellY; cy++) {
+      for (let cx = startCellX; cx <= endCellX; cx++) {
+        const srcCellX = cx - startCellX;
+        const srcCellY = cy - startCellY;
+        const attr = attrs[srcCellY * stampCellsWide + srcCellX];
+        if (attr == null) continue;
+        const sel = {
+          ink: attr & 7,
+          paper: (attr >> 3) & 7,
+          bright: (attr & 0x40) !== 0,
+          flash: (attr & 0x80) !== 0
+        };
+        for (let ly = 0; ly < CH; ly++) {
+          const py = cy * CH + ly;
+          const stampY = py - y;
+          if (stampY < 0 || stampY >= h) continue;
+          const row = mask[stampY];
+          if (!row) continue;
+          for (let lx = 0; lx < CW; lx++) {
+            const px = cx * CW + lx;
+            const stampX = px - x;
+            if (stampX < 0 || stampX >= w) continue;
+            if (!Validators.isValidPixelCoord(px, py)) continue;
+            const isInk = !!row[stampX];
+            PixelDrawRoutine.draw(px, py, sel,
+              isInk ? DRAW_MODE.NORMAL : DRAW_MODE.PAPER, { layer: targetLayer });
+          }
+        }
+      }
+    }
+  }
+
+  /**
    * Stamp the stamp layer's ink shape onto the drawing layer below it.
    * TRANSPARENT mode — sets ink bits only, never changes cell colour attributes.
    * Caller is responsible for beginBatch / endBatch (for continuous brush-style painting).
@@ -1487,6 +1553,12 @@ class SelectionServiceClass {
 
     // Stamp writes place exactly the stamp mask — never symmetry-mirrored
     PixelDrawRoutine.suspendMirror(() => {
+      // Attributed stamps (Map Editor): each cell paints its own colour.
+      if (data.attrs) {
+        this._paintAttributedStamp(data, targetLayer);
+        return;
+      }
+
       // Indexed modes (Phase 13): paint the stamp's palette indices (or the
       // mask at the current indexed ink), routed through the same resolved
       // mode (Paper Recolour/XOR still mean something over an index grid).
@@ -1678,6 +1750,10 @@ class SelectionServiceClass {
 
     // Commits bake exactly the previewed stamp — never symmetry-mirrored
     PixelDrawRoutine.suspendMirror(() => {
+      // Attributed stamps (Map Editor): each cell paints its own colour.
+      if (data.attrs) {
+        this._paintAttributedStamp(data, target);
+      } else
       // Indexed modes (Phase 13): bake the previewed indices/mask directly,
       // through the same resolved mode as the classic branch below.
       if (ZX_SPECTRUM.PIXEL_DEPTH > 1) {
@@ -1775,7 +1851,7 @@ class SelectionServiceClass {
   _getStampData(layer) {
     const fp = this.floatingPaste;
     if (fp && fp.floatingLayer === layer) {
-      return { mask: fp.pixels, indices: fp.indices || null,
+      return { mask: fp.pixels, indices: fp.indices || null, attrs: fp.attrs || null,
                x: fp.x, y: fp.y, w: fp.width, h: fp.height };
     }
     if (layer.isStamp && layer.stamp) {
@@ -1811,6 +1887,14 @@ class SelectionServiceClass {
    */
   _drawFloatingLayer() {
     const { pixels, width, height, x, y, colorSelection, floatingLayer } = this.floatingPaste;
+
+    // Attributed stamps (Map Editor tiles/rooms, 2026-08-28): each cell
+    // brings its own ink/paper/bright/flash — never mixed with indexed or
+    // colorSelection-driven stamps.
+    if (this.floatingPaste.attrs) {
+      this._drawFloatingLayerAttributed();
+      return;
+    }
 
     // Indexed modes (Phase 13): stamp cells carry palette indices — the
     // stamp's own indices when it was cut/copied in an indexed mode, else
@@ -2074,6 +2158,64 @@ class SelectionServiceClass {
         cell.indices[(cy % CH) * CW + (cx % CW)] = value;
         cell.altered = true;
         LayerManager.deferCellCompose(Math.floor(cx / CW), Math.floor(cy / CH));
+      }
+    }
+  }
+
+  /**
+   * Preview an attributed stamp (Map Editor tiles/rooms): each destination
+   * cell gets its own pixel bits AND its own ink/paper/bright/flash from
+   * the stamp's `attrs`, never inherited from the target layer below —
+   * unlike the plain classic-mode branch, an attributed stamp brings its
+   * own paper on purpose. x/y are always cell-aligned (moveFloatingPaste
+   * snaps them), so this can iterate destination cells directly instead of
+   * doing per-pixel cell-boundary math the way the plain branch must.
+   * @private
+   */
+  _drawFloatingLayerAttributed() {
+    const { pixels, width, height, x, y, attrs, floatingLayer } = this.floatingPaste;
+    const CW = ZX_SPECTRUM.CELL_WIDTH;
+    const CH = ZX_SPECTRUM.CELL_HEIGHT;
+    const stampCellsWide = Math.ceil(width / CW);
+    const startCellX = Math.max(0, Math.floor(x / CW));
+    const startCellY = Math.max(0, Math.floor(y / CH));
+    const endCellX = Math.min(ZX_SPECTRUM.GRID_COLS - 1, Math.floor((x + width - 1) / CW));
+    const endCellY = Math.min(ZX_SPECTRUM.GRID_ROWS - 1, Math.floor((y + height - 1) / CH));
+
+    for (let cy = startCellY; cy <= endCellY; cy++) {
+      for (let cx = startCellX; cx <= endCellX; cx++) {
+        const fpCell = floatingLayer.getCell(cx, cy);
+        if (!fpCell) continue;
+
+        const srcCellX = cx - Math.floor(x / CW);
+        const srcCellY = cy - Math.floor(y / CH);
+        const attr = attrs[srcCellY * stampCellsWide + srcCellX];
+        if (attr == null) continue; // empty map cell contributed no tile here
+
+        let touched = false;
+        for (let ly = 0; ly < CH; ly++) {
+          const stampY = cy * CH + ly - y;
+          if (stampY < 0 || stampY >= height) continue;
+          const row = pixels[stampY];
+          if (!row) continue;
+          for (let lx = 0; lx < CW; lx++) {
+            const stampX = cx * CW + lx - x;
+            if (stampX < 0 || stampX >= width) continue;
+            if (row[stampX]) {
+              fpCell.pixels[ly] |= (1 << (CW - 1 - lx));
+              touched = true;
+            }
+          }
+        }
+        if (!touched) continue;
+
+        fpCell.ink    = attr & 7;
+        fpCell.paper  = (attr >> 3) & 7;
+        fpCell.bright = (attr & 0x40) !== 0;
+        fpCell.flash  = (attr & 0x80) !== 0;
+        fpCell.xorReplace = false;
+        fpCell.altered = true;
+        LayerManager.deferCellCompose(cx, cy);
       }
     }
   }
