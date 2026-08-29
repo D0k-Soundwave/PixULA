@@ -79,4 +79,49 @@ check('get: outside the buffer reads 0',
 check('fromMask/toMask: empty input is safe',
   eq(CoverageOps.toMask(CoverageOps.fromMask([])), []));
 
+// -- boxFor / transform ------------------------------------------------------
+check('boxFor: identity leaves the box alone',
+  eq(CoverageOps.boxFor(8, 4, {}), { w: 8, h: 4 }));
+check('boxFor: scale multiplies', eq(CoverageOps.boxFor(8, 4, { scaleX: 2, scaleY: 3 }), { w: 16, h: 12 }));
+check('boxFor: a quarter turn swaps the axes',
+  eq(CoverageOps.boxFor(8, 4, { degrees: 90 }), { w: 4, h: 8 }));
+
+// A solid block is the clearest subject: every interior pixel is fully covered
+// whatever the transform does, so a wrong inverse map shows as lost area.
+const solid = CoverageOps.fromMask(Array.from({ length: 6 }, () => new Array(10).fill(T)));
+
+const ident = CoverageOps.transform(solid, {}, CoverageOps.boxFor(10, 6, {}));
+check('transform: identity is a faithful copy',
+  eq(CoverageOps.toMask(ident), CoverageOps.toMask(solid)));
+
+const scaled = CoverageOps.transform(solid, { scaleX: 2, scaleY: 2 },
+  CoverageOps.boxFor(10, 6, { scaleX: 2, scaleY: 2 }));
+check('transform: doubling doubles the box', scaled.w === 20 && scaled.h === 12);
+check('transform: doubling a solid block quadruples its area',
+  Math.abs(CoverageOps.area(scaled) / CoverageOps.area(solid) - 4) < 0.1);
+
+const turned = CoverageOps.transform(solid, { degrees: 90 }, CoverageOps.boxFor(10, 6, { degrees: 90 }));
+check('transform: a quarter turn swaps the box', turned.w === 6 && turned.h === 10);
+check('transform: a quarter turn conserves area',
+  Math.abs(CoverageOps.area(turned) - CoverageOps.area(solid)) < 0.5);
+
+// THE point of the domain: a shrink that a threshold would erase still carries
+// its ink. A grid of single pixels at quarter scale covers 1/16 of each output
+// pixel - nothing survives a 0.50 cut, and the DENSITY is still right.
+//
+// Area is measured in output-pixel units, so it scales with the output box
+// rather than being conserved outright: 16 dots at 1/16 of a pixel each is an
+// area of 1, not 16. The invariant is area * scaleX * scaleY.
+const dotGrid = CoverageOps.fromMask(Array.from({ length: 16 }, (_, y) =>
+  Array.from({ length: 16 }, (_, x) => (x % 4 === 0 && y % 4 === 0))));
+const shrunk = CoverageOps.transform(dotGrid, { scaleX: 0.25, scaleY: 0.25 },
+  CoverageOps.boxFor(16, 16, { scaleX: 0.25, scaleY: 0.25 }));
+check('transform: a shrink preserves DENSITY even where the threshold empties it',
+  CoverageOps.toMask(shrunk).every(r => r.every(v => !v)) &&
+  Math.abs(CoverageOps.area(shrunk) - CoverageOps.area(dotGrid) * 0.25 * 0.25) < 0.2);
+
+check('transform: an empty buffer is safe',
+  CoverageOps.transform(CoverageOps.create(0, 0), {}, { w: 0, h: 0 }).data.length === 0);
+
+
 summary();

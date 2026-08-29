@@ -139,6 +139,81 @@ const CoverageOps = {
         let sum = 0;
         for (let i = 0; i < cov.data.length; i++) sum += cov.data[i];
         return sum;
+    },
+
+    /**
+     * The output box a transform needs: the source box scaled, then its
+     * corners turned. Callers size their buffer from this so nothing clips.
+     * @param {number} w
+     * @param {number} h
+     * @param {{scaleX?: number, scaleY?: number, degrees?: number}} opts
+     * @returns {{w: number, h: number}}
+     */
+    boxFor(w, h, opts = {}) {
+        const sx = opts.scaleX == null ? 1 : opts.scaleX;
+        const sy = opts.scaleY == null ? 1 : opts.scaleY;
+        const rad = (opts.degrees || 0) * Math.PI / 180;
+        const c = Math.abs(Math.cos(rad)), s = Math.abs(Math.sin(rad));
+        const sw = Math.max(1, Math.round(w * sx));
+        const sh = Math.max(1, Math.round(h * sy));
+        // Ceil with a tolerance. cos(90 degrees) is 6.1e-17 rather than 0, so
+        // a quarter turn of an 8x4 box computes 4.000000000000001 and ceils to
+        // FIVE - a spurious column of padding on every exact quarter turn.
+        // `MaskOps.rotateFree` carries the same expression and is safe only
+        // because `MaskOps.rotate` sends multiples of 90 to the exact
+        // transpose instead; nothing dispatches for us here.
+        const ceil = (v) => Math.max(1, Math.ceil(v - 1e-9));
+        return { w: ceil(sw * c + sh * s), h: ceil(sw * s + sh * c) };
+    },
+
+    /**
+     * Scale and rotation as ONE inverse map, sampling coverage.
+     *
+     * Composing them is an optimisation and not always available: in the stamp
+     * chain the text effects and warp sit BETWEEN the scale and the rotation,
+     * and reordering them would change what a shadow or an arch looks like.
+     * The caller passes both only when the chain between them is empty;
+     * otherwise it calls this twice and pays two maps, which is still one
+     * quantisation at the end instead of three.
+     *
+     * `ss` subsamples per axis. At 1 this degenerates to nearest-neighbour,
+     * which is what the interactive fallback wants.
+     *
+     * @param {{data: Float32Array, w: number, h: number}} cov
+     * @param {{scaleX?: number, scaleY?: number, degrees?: number}} opts
+     * @param {{w: number, h: number}} box
+     * @param {number} [ss=SUPERSAMPLE]
+     * @returns {{data: Float32Array, w: number, h: number}}
+     */
+    transform(cov, opts, box, ss = CoverageOps.SUPERSAMPLE) {
+        const out = CoverageOps.create(box.w, box.h);
+        if (!cov.w || !cov.h || !box.w || !box.h) return out;
+
+        const sx = opts.scaleX == null ? 1 : opts.scaleX;
+        const sy = opts.scaleY == null ? 1 : opts.scaleY;
+        const rad = (opts.degrees || 0) * Math.PI / 180;
+        const cos = Math.cos(rad), sin = Math.sin(rad);
+        const step = 1 / ss, base = step / 2, n = ss * ss;
+
+        for (let dy = 0; dy < box.h; dy++) {
+            for (let dx = 0; dx < box.w; dx++) {
+                let sum = 0;
+                for (let j = 0; j < ss; j++) {
+                    const v = dy + base + j * step - box.h / 2;
+                    for (let i = 0; i < ss; i++) {
+                        const u = dx + base + i * step - box.w / 2;
+                        // un-rotate (same sense as MaskOps.rotate), then un-scale
+                        const xr =  u * cos + v * sin;
+                        const yr = -u * sin + v * cos;
+                        const px = Math.floor(xr / sx + cov.w / 2);
+                        const py = Math.floor(yr / sy + cov.h / 2);
+                        sum += CoverageOps.get(cov, px, py);
+                    }
+                }
+                out.data[dy * box.w + dx] = sum / n;
+            }
+        }
+        return out;
     }
 };
 
