@@ -5,7 +5,7 @@
  * MaskOps — pure boolean-mask post-processing (Phase 8).
  *
  * Operates on row-major bool[][] masks (the floating-stamp pixel format).
- * Used by the text tool for the 4-direction placement and the
+ * Used by the text tool for its direction/mirror placement and the
  * shadow/contour effects, and by SelectionService when it re-rasterizes a
  * text stamp — both call `process()` with the same fontInfo fields, so the
  * live preview and the committed stamp can never diverge.
@@ -21,16 +21,89 @@ const MaskOps = {
     },
 
     /**
-     * Rotate a mask clockwise in 90° steps.
+     * Rotate a mask clockwise by any angle.
+     *
+     * Quarter turns take the exact transpose path - a pure re-index, so no
+     * pixel is invented or dropped and the letterforms survive intact.
+     * Everything else goes to `rotateFree`, which resamples and therefore
+     * does not. That split is the whole reason the two live behind one
+     * function: a caller asking for 90° must never pay a resample for it,
+     * and this used to `Math.round(degrees / 90)` - so 45° silently became
+     * 90° and the text tool could only ever offer four angles.
+     *
      * @param {boolean[][]} mask
-     * @param {number} degrees - 0 | 90 | 180 | 270 (other values -> nearest step)
+     * @param {number} degrees - clockwise; any value, normalized to [0, 360)
      * @returns {boolean[][]}
      */
     rotate(mask, degrees) {
-        const steps = ((Math.round(degrees / 90) % 4) + 4) % 4;
+        const deg = ((degrees % 360) + 360) % 360;
+        if (deg % 90 !== 0) return MaskOps.rotateFree(mask, deg);
         let out = mask;
-        for (let s = 0; s < steps; s++) out = MaskOps._rotate90(out);
+        for (let s = 0; s < deg / 90; s++) out = MaskOps._rotate90(out);
         return out;
+    },
+
+    /**
+     * Rotate a mask clockwise by an arbitrary angle - nearest-neighbour
+     * inverse map, hard threshold, no anti-aliasing (a 1-bit mask has no
+     * grey to soften an edge with, and a soft edge would only be thresholded
+     * away again later).
+     *
+     * The output box is the source's bounding box turned by the same angle,
+     * so nothing clips. Sampling is by pixel CENTRE, which is what makes a
+     * multiple of 90 come out identical to `_rotate90` - the two agree, and
+     * `rotate` uses the cheaper one.
+     *
+     * Screen coordinates (y down), so a positive angle tips the right-hand
+     * end of a horizontal bar DOWNWARD - the same clockwise sense as the
+     * quarter-turn path.
+     *
+     * @param {boolean[][]} mask
+     * @param {number} degrees - clockwise
+     * @returns {boolean[][]}
+     */
+    rotateFree(mask, degrees) {
+        const { w: srcW, h: srcH } = MaskOps.size(mask);
+        if (!srcW || !srcH) return mask;
+
+        const rad = degrees * Math.PI / 180;
+        const cos = Math.cos(rad), sin = Math.sin(rad);
+        const dstW = Math.ceil(srcW * Math.abs(cos) + srcH * Math.abs(sin));
+        const dstH = Math.ceil(srcW * Math.abs(sin) + srcH * Math.abs(cos));
+
+        const out = Array.from({ length: dstH }, () => new Array(dstW).fill(false));
+        for (let dy = 0; dy < dstH; dy++) {
+            const v = dy + 0.5 - dstH / 2;
+            for (let dx = 0; dx < dstW; dx++) {
+                const u = dx + 0.5 - dstW / 2;
+                // inverse of [u,v] = [x cos - y sin, x sin + y cos]
+                const sx = Math.floor(u * cos + v * sin + srcW / 2);
+                const sy = Math.floor(-u * sin + v * cos + srcH / 2);
+                if (sx >= 0 && sx < srcW && sy >= 0 && sy < srcH && mask[sy][sx]) {
+                    out[dy][dx] = true;
+                }
+            }
+        }
+        return out;
+    },
+
+    /**
+     * Mirror left-right. Exact - every pixel keeps its state, so unlike a
+     * free rotation this costs the letterforms nothing.
+     * @param {boolean[][]} mask
+     * @returns {boolean[][]}
+     */
+    flipH(mask) {
+        return mask.map(row => row.slice().reverse());
+    },
+
+    /**
+     * Mirror top-bottom. Exact, as `flipH`.
+     * @param {boolean[][]} mask
+     * @returns {boolean[][]}
+     */
+    flipV(mask) {
+        return mask.map(row => row.slice()).reverse();
     },
 
     /** One clockwise quarter turn. @private */
@@ -151,11 +224,20 @@ const MaskOps = {
 
     /**
      * Apply the text tool's post-processing chain in canonical order:
-     * outline -> shadow -> rotate. Effects run in glyph space (the shadow
-     * follows the baseline when the text is rotated); rotation comes last.
+     * mirror -> outline -> shadow -> rotate.
+     *
+     * Mirroring comes FIRST because it is a property of the letterforms, not
+     * of the finished block: mirror after the shadow and the shadow falls up
+     * and to the left, which reads as a bug rather than as mirror writing.
+     * Rotation comes LAST for the same reason from the other end - the
+     * shadow should follow the baseline, so the whole block turns together.
+     *
      * @param {boolean[][]} mask
-     * @param {Object} opts - { direction?, shadow?, outline?, shadowOffset? }
-     *   direction     0 | 90 | 180 | 270 (clockwise)
+     * @param {Object} opts - { direction?, mirrorH?, mirrorV?, shadow?,
+     *                          outline?, shadowOffset? }
+     *   direction     degrees clockwise; multiples of 90 are lossless
+     *   mirrorH       boolean — mirror left-right (exact)
+     *   mirrorV       boolean — mirror top-bottom (exact)
      *   shadow        boolean — drop shadow (offset-OR)
      *   outline       boolean — hollow contour (dilate-minus-glyph)
      *   shadowOffset  px; defaults to max(1, round(maskHeight / 8))
@@ -163,10 +245,12 @@ const MaskOps = {
      */
     process(mask, opts = {}) {
         let out = mask;
+        if (opts.mirrorH) out = MaskOps.flipH(out);
+        if (opts.mirrorV) out = MaskOps.flipV(out);
         if (opts.outline) out = MaskOps.outline(out);
         if (opts.shadow) {
             const off = opts.shadowOffset ||
-                Math.max(1, Math.round(MaskOps.size(mask).h / 8));
+                Math.max(1, Math.round(MaskOps.size(mask).h / 8));   // pre-effect height
             out = MaskOps.shadow(out, off, off);
         }
         if (opts.direction) out = MaskOps.rotate(out, opts.direction);
