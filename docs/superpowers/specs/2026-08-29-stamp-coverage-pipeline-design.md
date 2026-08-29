@@ -211,17 +211,34 @@ the measured cost of choosing 0.10, and it is worth paying.
 
 ### Warp - all nine effects, 36 cases [M]
 
+**CORRECTED 2026-08-29, while implementing.** The first version of this table
+reported the shipped path at IoU 0.615 with dComp 21.49 and called warp "the
+worst-performing operation in the app". That was mostly the harness: the
+bench's `warpCoverage` evaluated its subsamples over `[dx, dx+1)` while
+`_applyWarpEffect`, the function it twins, evaluates at integer `dx` and lands
+with `round` - which places a pixel's square on `[dx-0.5, dx+0.5)`. The ground
+truth shared the candidate's offset, so only `current` was out of register and
+its score was largely measuring that shift. The bench now runs a self-check
+that would have caught it: at ss=1 the twin must reproduce the real function
+pixel for pixel.
+
+Re-measured with both in register:
+
 | pipeline | IoU | dComp | dHole | tone | gone |
 |---|---|---|---|---|---|
-| current (ships today) | 0.615 | 21.49 | 22.69 | 1.01 | 0 |
-| Bayer | 0.607 | 15.31 | 84.60 | 0.99 | 0 |
-| error diffusion | 0.709 | 24.26 | 37.74 | 1.00 | 0 |
-| coverage ss=8 / 0.50 | **0.959** | **1.20** | 5.66 | 0.93 | **1** |
-| **local tone, 0.10** | 0.881 | 12.06 | **2.80** | **1.01** | **0** |
+| current (ships today) | 0.965 | 2.44 | 6.17 | 1.00 | 0 |
+| Bayer | 0.712 | 13.67 | 64.72 | 1.01 | 0 |
+| error diffusion | 0.871 | 4.47 | 15.75 | 1.00 | 0 |
+| **coverage ss=8 / 0.50** | **0.985** | 0.97 | **1.89** | 1.03 | 0 |
+| local tone, 0.10 | 0.981 | **0.94** | 3.64 | 1.02 | 0 |
 
-**Warp is the worst-performing operation in the app** - `dComp` 21.49 means a
-warped stamp comes apart into roughly twenty-two more pieces than it should.
-Error diffusion is the one candidate measurably WORSE than shipping (24.26).
+**The shipped warp was never the disaster this document claimed.** The real
+gain is IoU 0.965 -> 0.985 and dComp 2.44 -> 0.97 - about 60% fewer spurious
+pieces, worth having and roughly a tenth of what was advertised. Bayer and
+error diffusion are still clearly rejected.
+
+The large 1-bit win is the **artwork** suite instead (0.720 -> 0.963, dComp
+7.39 -> 2.50), which is scale-plus-rotation, not warp.
 
 As with artwork, the local-tone row's lower IoU is trap 1, not a regression:
 the arch sheet shows plain coverage deleting the right-hand half of a warped
@@ -339,7 +356,7 @@ one corner of the window.
 
 Rejected alternatives, all measured (7.1): Bayer everywhere destroys shape
 (0.787 on glyphs, dHole 60 on artwork); error diffusion costs shape and is
-measurably WORSE than the shipped chain on warp (dComp 24.26 against 21.49);
+measurably WORSE than the shipped chain on warp (dComp 4.47 against 2.44);
 the whole-blank guard is discontinuous in the rotation angle; FontRasterizer's
 per-line rescue misfires on artwork, where a blank row is usually background.
 
@@ -451,7 +468,7 @@ Three remedies were measured and none is adoptable as-is:
 | Bayer dither the coverage | keeps texture at every angle, tone 1.00 | wrecks shape: ZX IoU 0.787 vs 0.994, artwork dHole 60.3 vs 3.3 |
 | per-line dropout rescue (FontRasterizer's) | vanishing, tone | misfires on artwork, where a blank row is usually background: IoU 0.963 -> 0.905 |
 | dither only when the whole stamp is blank | metric-perfect, `gone` 0 | **discontinuous in the angle** - blank at 0/15/30/60 and a dense field at 45. On a slider, a pattern flickering in and out. Rejected on the sheet |
-| Floyd-Steinberg error diffusion on the coverage | texture at EVERY angle, `gone` 0, tone 0.99-1.00, no discontinuity - the best of the tone-preserving family on the sheets | costs shape: ZX 0.910 vs 0.994, artwork 0.782 vs 0.963, and warp `dComp` 24.26 is WORSE than the 21.49 that ships. Vertical striping on a 50%-density tile |
+| Floyd-Steinberg error diffusion on the coverage | texture at EVERY angle, `gone` 0, tone 0.99-1.00, no discontinuity - the best of the tone-preserving family on the sheets | costs shape: ZX 0.910 vs 0.994, artwork 0.782 vs 0.963, and warp `dComp` 4.47 is WORSE than the 2.44 that ships. Vertical striping on a 50%-density tile |
 
 Error diffusion was tried on the specific hypothesis that it would be
 SELF-SELECTING - a solid interior is coverage 1 and background is 0, so there
@@ -558,13 +575,13 @@ The new Node suite needs no registration: `tests/run-all.js` globs
 | 14 | `LIVE_BUDGET_MS` | 7 ms | C | 16.7 ms frame (60fps direct manipulation) less the measured 0.04-0.89 ms rest-of-tick, halved for paint and GC headroom. Was A and a pixel count; it is now a TIME the code measures itself against, so no machine-specific constant survives |
 | 14a | rest of a slider tick, today | 0.04 ms (16x8) / 0.89 ms (352x32) | M | `SelectionService.setStampRotation` round trip, Chrome, 2026-08-29 |
 | 14b | coverage pass cost rate | 0.22 us per output pixel at ss=8 | M | 0.216-0.284 across output areas 3.2k-393k px, linear. Chrome, 2026-08-29 |
-| 15 | warp, shipped chain | 0.615 IoU / 21.49 dComp | M | bench warp suite, 36 cases, 2026-08-29. Was A; now measured |
-| 16 | warp, coverage ss=8/0.50 | 0.959 IoU / 1.20 dComp | M | as above - the largest single win in the bench |
+| 15 | warp, shipped chain | 0.965 IoU / 2.44 dComp | M | CORRECTED 2026-08-29. The earlier 0.615 / 21.49 was a harness artifact - see section 3's warp note |
+| 16 | warp, coverage ss=8/0.50 | 0.985 IoU / 0.97 dComp | M | as above. NOT the largest win in the bench - that claim rested on row 15's artifact. The artwork suite is |
 | 17 | pasted artwork, shipped chain | 0.720 IoU / 7.39 dComp | M | bench art suite, 165 cases: pattern library + shape rasters + noise + photos |
 | 18 | pasted artwork, coverage ss=8/0.50 | 0.963 IoU / 2.50 dComp | M | as above; `gone` 1, which is why 4.4 exists |
 | 19 | Bayer on a 1-bit shape source | 0.787 IoU (vs 0.994) | M | ZX suite - why dithering cannot be the blanket policy |
 | 20 | whole-blank guard, angles at which it fires on one downscale case | 1 of 5 | M | contact sheet; the discontinuity that rejected it |
-| 21a | error diffusion, ZX / artwork / warp | 0.910 / 0.782 / 0.709 IoU | M | measured 2026-08-29 to test the self-selection hypothesis; rejected - its warp `dComp` 24.26 is worse than the 21.49 that ships |
+| 21a | error diffusion, ZX / artwork / warp | 0.910 / 0.782 / 0.871 IoU | M | measured 2026-08-29 to test the self-selection hypothesis; rejected - its warp `dComp` 4.47 is worse than the 2.44 that ships. Warp figures re-measured after the harness fix |
 | 21b | local tone correction, ZX suite | 0.994 / 0.23 dComp | M | identical to plain coverage - the rule is a measured no-op on letterforms |
 | 21c | local tone correction, artwork / warp | 0.949 / 0.881 IoU, `gone` 0 both | M | BELOW plain coverage on IoU, better on the sheets and the only one with `gone` 0 - see trap 1 in the bench header. IoU is a regression guard here, not a target |
 | 21d | local tone correction cost | +0.4 / +3.7 / +15.3 ms | M | on top of the coverage pass at 120x24 / 400x64 / 640x256; worst-case fractional input, Chrome, 2026-08-29 |
