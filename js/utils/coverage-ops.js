@@ -166,6 +166,105 @@ const CoverageOps = {
         return { w: ceil(sw * c + sh * s), h: ceil(sw * s + sh * c) };
     },
 
+    /** Mirror left-right. Exact - a reindex, with no resampling at all. */
+    flipH(cov) {
+        const out = CoverageOps.create(cov.w, cov.h);
+        for (let y = 0; y < cov.h; y++) {
+            for (let x = 0; x < cov.w; x++) {
+                out.data[y * cov.w + x] = cov.data[y * cov.w + (cov.w - 1 - x)];
+            }
+        }
+        return out;
+    },
+
+    /** Mirror top-bottom. Exact, as `flipH`. */
+    flipV(cov) {
+        const out = CoverageOps.create(cov.w, cov.h);
+        for (let y = 0; y < cov.h; y++) {
+            out.data.set(cov.data.subarray((cov.h - 1 - y) * cov.w, (cov.h - y) * cov.w), y * cov.w);
+        }
+        return out;
+    },
+
+    /**
+     * Drop shadow: the MAX of the glyph and a copy offset by (dx, dy).
+     *
+     * Max rather than the boolean OR `MaskOps.shadow` takes, which cannot
+     * express a half-covered pixel. On a 1-bit input the two agree exactly; on
+     * a fractional one this keeps the fraction, which is the only reason the
+     * chain can stay in the domain across this step.
+     */
+    shadow(cov, dx, dy) {
+        const ox = Math.max(0, dx), oy = Math.max(0, dy);
+        const gx = Math.max(0, -dx), gy = Math.max(0, -dy);
+        const outW = cov.w + Math.abs(dx), outH = cov.h + Math.abs(dy);
+        const out = CoverageOps.create(outW, outH);
+        if (!cov.w || !cov.h) return out;
+        for (let y = 0; y < cov.h; y++) {
+            for (let x = 0; x < cov.w; x++) {
+                const v = cov.data[y * cov.w + x];
+                if (v <= 0) continue;
+                const gi = (y + gy) * outW + (x + gx);
+                const si = (y + oy) * outW + (x + ox);
+                if (v > out.data[gi]) out.data[gi] = v;
+                if (v > out.data[si]) out.data[si] = v;
+            }
+        }
+        return out;
+    },
+
+    /**
+     * Hollow contour: an 8-neighbour dilation minus the glyph, one pixel of
+     * padding on every side.
+     *
+     * The dilation takes the neighbourhood MAX and the subtraction scales by
+     * what the glyph does NOT cover, so a half-covered glyph pixel leaves half
+     * a pixel of ring rather than all of it or none.
+     */
+    outline(cov) {
+        const outW = cov.w + 2, outH = cov.h + 2;
+        const out = CoverageOps.create(outW, outH);
+        if (!cov.w || !cov.h) return out;
+        for (let y = 0; y < cov.h; y++) {
+            for (let x = 0; x < cov.w; x++) {
+                const v = cov.data[y * cov.w + x];
+                if (v <= 0) continue;
+                for (let ny = y; ny <= y + 2; ny++) {
+                    for (let nx = x; nx <= x + 2; nx++) {
+                        const i = ny * outW + nx;
+                        if (v > out.data[i]) out.data[i] = v;
+                    }
+                }
+            }
+        }
+        for (let y = 0; y < cov.h; y++) {
+            for (let x = 0; x < cov.w; x++) {
+                out.data[(y + 1) * outW + (x + 1)] *= (1 - cov.data[y * cov.w + x]);
+            }
+        }
+        return out;
+    },
+
+    /**
+     * The text effect chain, in `MaskOps.process`'s canonical order minus its
+     * rotation: mirror -> outline -> shadow.
+     *
+     * `direction` is deliberately ignored. Rotation is `transform`'s job, and
+     * applying it in both places is exactly the double turn the vector half
+     * had to guard against with its `rotationApplied` flag.
+     */
+    process(cov, opts = {}) {
+        let out = cov;
+        if (opts.mirrorH) out = CoverageOps.flipH(out);
+        if (opts.mirrorV) out = CoverageOps.flipV(out);
+        if (opts.outline) out = CoverageOps.outline(out);
+        if (opts.shadow) {
+            const off = opts.shadowOffset || Math.max(1, Math.round(cov.h / 8));
+            out = CoverageOps.shadow(out, off, off);
+        }
+        return out;
+    },
+
     /**
      * The warp inverse maps, evaluated at subsample positions instead of once
      * per output pixel - a coverage twin of

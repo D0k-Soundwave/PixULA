@@ -17,6 +17,10 @@ const { loadModule, check, summary } = require('./helpers/zx-stubs');
 global.window = global;
 global.Logger = { info() {}, debug() {}, warn() {}, error() {} };
 
+// MaskOps too: every effect below must agree exactly with its boolean twin on
+// a 1-bit input, which is what makes it safe to move the stamp chain into the
+// domain without changing what anything looks like.
+loadModule('js/utils/mask-ops.js');
 loadModule('js/utils/coverage-ops.js');
 
 const T = true, F = false;
@@ -170,6 +174,44 @@ check('warp: inflate keeps most of the area rather than dropping it', (() => {
 
 check('warp: an empty buffer is safe',
   CoverageOps.warp(CoverageOps.create(0, 0), 'wave').data.length === 0);
+
+
+// -- effects in the domain ---------------------------------------------------
+const fxMask = [[T, T, F], [F, F, T]];
+const fxCov = CoverageOps.fromMask(fxMask);
+
+check('flipH: agrees with MaskOps on a 1-bit input',
+  eq(CoverageOps.toMask(CoverageOps.flipH(fxCov)), MaskOps.flipH(fxMask)));
+check('flipV: agrees with MaskOps on a 1-bit input',
+  eq(CoverageOps.toMask(CoverageOps.flipV(fxCov)), MaskOps.flipV(fxMask)));
+check('shadow: agrees with MaskOps on a 1-bit input',
+  eq(CoverageOps.toMask(CoverageOps.shadow(fxCov, 1, 1)), MaskOps.shadow(fxMask, 1, 1)));
+check('outline: agrees with MaskOps on a 1-bit input',
+  eq(CoverageOps.toMask(CoverageOps.outline(fxCov)), MaskOps.outline(fxMask)));
+
+// Partial coverage is where they must differ: a boolean OR cannot express
+// "half covered", and keeping the fraction is the whole point.
+const halfCov = CoverageOps.create(2, 1);
+halfCov.data[0] = 0.4;
+check('shadow: takes the MAX of glyph and shadow, not a boolean OR', (() => {
+  const sh2 = CoverageOps.shadow(halfCov, 1, 0);
+  return Math.abs(CoverageOps.get(sh2, 0, 0) - 0.4) < 1e-6 &&
+         Math.abs(CoverageOps.get(sh2, 1, 0) - 0.4) < 1e-6;
+})());
+
+check('process: mirrors run FIRST, then outline, then shadow', (() => {
+  const manual = CoverageOps.shadow(
+    CoverageOps.outline(CoverageOps.flipV(CoverageOps.flipH(fxCov))), 1, 1);
+  const viaProcess = CoverageOps.process(fxCov,
+    { mirrorH: true, mirrorV: true, outline: true, shadow: true, shadowOffset: 1 });
+  return eq(CoverageOps.toMask(viaProcess), CoverageOps.toMask(manual));
+})());
+check('process: no options is a faithful copy',
+  eq(CoverageOps.toMask(CoverageOps.process(fxCov, {})), fxMask));
+// Rotation belongs to transform(). Doing it here as well is the double-turn
+// the vector half already had to guard against with `rotationApplied`.
+check('process: IGNORES direction - rotation belongs to transform()',
+  eq(CoverageOps.toMask(CoverageOps.process(fxCov, { direction: 90 })), fxMask));
 
 
 summary();
