@@ -523,9 +523,17 @@ function inPage(config) {
             for (let dx = 0; dx < outW; dx++) {
                 let hits = 0;
                 for (let j = 0; j < ss; j++) {
-                    const fy = dy + base + j * step;
+                    // CENTRED on the pixel index, [dy-0.5, dy+0.5). The
+                    // original evaluates at integer dx/dy and lands with
+                    // `round`, which places a pixel's square that way.
+                    // Spanning [dy, dy+1) instead put this whole suite half a
+                    // pixel away from the function it is supposed to be a twin
+                    // of - so `current` was scored against a reference shifted
+                    // from it, and the warp gain it reported was substantially
+                    // that shift. Found 2026-08-29 while implementing.
+                    const fy = dy - 0.5 + base + j * step;
                     for (let i = 0; i < ss; i++) {
-                        const fx = dx + base + i * step;
+                        const fx = dx - 0.5 + base + i * step;
                         const srcDy = fy - expandTop, srcDx = fx - expandLeft;
                         const nx = fx / (outW - 1 || 1) - 0.5;
                         const ny = fy / (outH - 1 || 1) - 0.5;
@@ -767,6 +775,7 @@ function inPage(config) {
     const FINE = 8;                       // vector ground-truth oversampling
     const rows = [];
     const sheets = {};
+    const harnessErrors = [];
 
     const CANDIDATES = [
         ['current',      pipeCurrent],
@@ -882,6 +891,25 @@ function inPage(config) {
         }
     }
 
+    // HARNESS SELF-CHECK. At ss=1 the coverage twin evaluates one sample at
+    // each pixel centre, which is exactly what the real function does - so the
+    // two must agree pixel for pixel. They did not, for a half-pixel offset in
+    // the subsample origin, and nothing in the suite could see it: the ground
+    // truth carried the same offset, so only `current` was out of register and
+    // its whole warp score was measuring that. Cheap, and it fails loudly.
+    for (const art of artworkSources().slice(0, 1)) {
+        for (const effect of WARPS) {
+            const real = SelectionService._applyWarpEffect(art.mask, art.w, art.h, effect, 0.5);
+            const twin = threshold(warpCoverage(art.mask, art.w, art.h, effect, 1), 0.5);
+            const same = real.length === twin.length &&
+                real.every((row, y) => row.every((v, x) => v === twin[y][x]));
+            if (!same) {
+                harnessErrors.push(`warpCoverage at ss=1 disagrees with ` +
+                    `_applyWarpEffect for '${effect}' - the twin is out of register`);
+            }
+        }
+    }
+
     // Warp, in both domains. Ground truth is the same inverse map at 16x16.
     const warpSubjects = (() => {
         const all = artworkSources();
@@ -993,6 +1021,7 @@ function inPage(config) {
 
     // Masks are megabytes; strip them before crossing the bridge.
     return {
+        harnessErrors,
         rows: rows.map(r => ({ ...r, results: r.results.map(({ mask, ...rest }) => rest) })),
         sheets,
         candidates: CANDIDATES.map(([n]) => n).concat(['raster-fix', 'render-through', 'rt-4/50', 'rt-8/40', 'rt-8/50', 'rt-2/40'])
@@ -1039,6 +1068,12 @@ async function main() {
 
     const out = await page.evaluate(inPage, CONFIG);
     await browser.close();
+
+    if (out.harnessErrors && out.harnessErrors.length) {
+        console.error('HARNESS SELF-CHECK FAILED - the numbers below mean nothing:');
+        for (const e of out.harnessErrors) console.error('  ' + e);
+        process.exitCode = 1;
+    }
 
     // Aggregate per candidate, split by font kind - they are different
     // questions and averaging them together would hide both answers.
