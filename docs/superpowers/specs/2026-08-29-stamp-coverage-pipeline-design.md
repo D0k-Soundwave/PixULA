@@ -1,10 +1,21 @@
 # Carry the stamp transform chain in a coverage domain - design
 
-Status: scope approved in chat 2026-08-29 ("full coverage pipeline"). Section
-7.1 was a blocking objection - the extended bench found a case the design did
-not survive - and is RESOLVED by the local-tone rule in 4.4. Sections 10.1 and
-10.2 are resolved too, and no A-tagged figure remains. **Awaiting design
-approval; nothing implemented.**
+Status: the VECTOR half is implemented - section 4.2 in full, and the
+`fromMask`/`toMask` boundary of 4.1 - by
+`docs/superpowers/plans/2026-08-29-coverage-rasterisation-vector.md`.
+
+NOT implemented: 4.1's `transform`/`warp`/`flipH`/`flipV`/`shadow`/`outline`/
+`toneCorrect`, the 1-bit branch of 4.3, the local-tone rule of 4.4, and the
+live budget of section 5. Those are the second plan; pasted artwork, ZX ROM and
+library-font stamps still take the nearest-neighbour path described in
+section 1.
+
+Two figures in this document were WRONG and are corrected in place, both found
+while implementing it: the single 0.50 threshold of section 6 (calibrated
+against a reference that already assumed it) and the vector table of section 3
+(measured across two different typefaces). Section 7.1 was a blocking objection
+and is resolved by the local-tone rule in 4.4. Sections 10.1 and 10.2 are
+resolved, and no A-tagged figure remains.
 
 Measured by `tools/text-transform-bench.js` (written for this question, 2026-08-29).
 Every figure below carries its provenance tag; the register is section 9.
@@ -93,21 +104,43 @@ non-empty sources that produced a blank stamp. Both metrics replaced an earlier
 `ink` ratio that divided by the thresholded truth - which is empty for sparse
 sources, and produced ratios of 576 that hid a real finding.
 
-### Vector fonts (Arial), 80 cases [M]
+### Vector fonts (Arial), 80 cases [M, CORRECTED 2026-08-29]
 
-| pipeline | IoU | dComp | dHole | tone | 0deg | 45deg |
-|---|---|---|---|---|---|---|
-| current (ships today) | 0.309 | 3.76 | 0.80 | 0.72 | 0.35 | 0.29 |
-| coverage 16/0.50 on the shipped raster | 0.311 | 4.03 | 0.89 | 0.70 | 0.34 | 0.30 |
-| rotsprite | 0.318 | 1.82 | 0.65 | 0.72 | 0.35 | 0.31 |
-| raster-fix (better source, shipped chain) | 0.759 | 0.15 | 0.35 | 0.91 | **0.94** | 0.68 |
-| render-through ss=4 / 0.40 | 0.937 | 0.03 | 0.07 | 1.04 | 0.94 | 0.94 |
-| **render-through ss=8 / 0.50** | **0.959** | **0.03** | 0.10 | **0.98** | **0.96** | **0.96** |
+**The first version of this table was invalid and its figures are struck
+through below.** The bench's `SYS_FONT` was `'Arial, sans-serif'`. The app
+builds `${size}px "${family}"`, so it quoted that into a single family nobody
+has and fell back to a default serif - while the bench's own ground-truth
+renderer left it unquoted and got real Arial. Every `current` row was therefore
+a comparison of two TYPEFACES, not of two pipelines, which is what put its IoU
+at 0.309. Found while implementing, and the bench now pins a single family.
 
-Two readings matter. `raster-fix` reaching 0.94 at 0 degrees - identical to
-render-through - is what proves the rasteriser carries the whole untransformed
-loss. Its fall to 0.68 once rotated is what proves the transform still costs
-something on top.
+Re-measured with the same face on both sides:
+
+| pipeline | IoU | dComp | dHole | tone |
+|---|---|---|---|---|
+| current, BEFORE this work | 0.683 | 2.96 | 0.74 | 0.80 |
+| current, AFTER the coverage rasteriser | 0.743 | **0.45** | 0.56 | **1.00** |
+| raster-fix | 0.814 | 0.21 | 0.42 | 1.09 |
+| render-through ss=4 | 0.935 | 0.01 | 0.10 | 1.05 |
+| **render-through ss=8** | **0.964** | **0.01** | **0.04** | **0.98** |
+
+~~0.309 -> 0.959~~ was the headline before the correction. The real gain from
+the rasteriser alone is **dComp 2.96 -> 0.45** - an 85% drop in the number of
+extra pieces a string comes apart into, which is the readability number - with
+tone going 0.80 -> 1.00, and IoU 0.683 -> 0.743. Rasterising through the
+transform then takes IoU to 0.935.
+
+Corroborated independently of the bench, same font on both sides, by counting
+connected pieces in `ZX SPECTRUM` at 16px [M]:
+
+| face | before | after |
+|---|---|---|
+| Arial | 17 | 9 |
+| Times New Roman | 19 | 10 |
+| Georgia | 17 | 9 |
+
+and for the rotation, `Californian FB` at 16px turned 45 degrees: **20 pieces
+resampled, 11 rasterised already-turned**, against 11 upright.
 
 ### ZX ROM glyphs, 60 cases [M]
 
@@ -353,16 +386,41 @@ sixty times a second.
 |---|---|---|
 | `SS_VECTOR` | 8 | 0.959 vs 0.937 at ss=4 [M]; browser-side cost |
 | `SS_MASK` | 8 | ss=4 measures BELOW the shipped chain (0.973 vs 0.976) [M] |
-| `INK_COVERAGE` | 0.50 | 0.959 at 0.50 vs 0.938 at 0.40, ink 0.98 vs 1.07 [M] |
+| `INK_COVERAGE` | 0.50 | the UNBIASED area cut, for 1-bit sources whose coverage is exact geometry: 0.994 against ground truth where 0.40 scores 0.944 [M] |
+| `GLYPH_COVERAGE` | 0.30 | the ink-BIASED cut, for rasterising vector glyphs. Recalibrated 2026-08-29 during implementation - see below [M] |
 | `TONE_WINDOW` | 8 | one ZX cell; 16 leaves blocky seams in the restored region (sheet) [M] |
 | `TONE_TOLERANCE` | 0.10 | of the window. 0.10 and 0.20 are within noise numerically (artwork 0.949 vs 0.954, photos 0.971 vs 0.976 - both favour 0.20 by ~0.005); the SHEETS favour 0.10 on the sparse tiles, and 0.005 is the measured price of taking them at their word [M] |
 
-`font-rasterizer.js` measured **0.40** and that is not a contradiction to
-resolve by picking one: it fits glyphs into EIGHT ROWS, where a stem is ~0.7px
-wide and a half-pixel test drops strokes that are really there. Stamps run at
-16-64px, where 0.50 is measurably better. The threshold is size-dependent and
-each site should keep its own measured value. Neither may be shared as a
-constant without re-measuring at the other's sizes.
+**Correction, 2026-08-29, found while implementing.** This section originally
+gave ONE threshold of 0.50 for both jobs, justified by the bench scoring 0.50
+above 0.40. That justification was circular: the bench's ground truth is itself
+thresholded at 0.50, so the comparison could only ever favour 0.50. **A
+threshold cannot be calibrated against a reference that already assumes it.**
+
+There are two jobs and they want different answers. For a **1-bit source**,
+coverage is exact geometric area - every source pixel is a unit square, in or
+out - so half is the unbiased and correct cut, and the bench's 0.994 for it
+stands. For a **vector glyph**, legibility rides on strokes THINNER than a
+pixel: a stem straddling two columns puts half its width in each, so an
+unbiased test drops marks that are unambiguously there.
+
+`GLYPH_COVERAGE` was therefore calibrated the way `font-rasterizer.js`
+calibrated its own - render real faces and read the bitmaps. Six faces (Arial,
+Segoe UI, Verdana, Consolas, Times New Roman, Georgia) at 12/16/24px, scoring
+`ZX SPECTRUM` against one piece per glyph and `aeo8` against its five counters.
+Total absolute error: **25 at 0.25, 20 at 0.30, 24 at 0.35, 41 at 0.40, 89 at
+0.50** - a real minimum, with letters MERGING below it (Verdana at 12px falls
+to 8 pieces) and fragmenting above it (Times at 16px reaches 26 pieces and
+loses all five counters). Sans faces are insensitive across the whole range;
+serifs at small sizes are what the value is for.
+
+The effect on the shipped path, measured the same day: `ZX SPECTRUM` at 16px
+went from 17 pieces to 9 in Arial, 19 to 10 in Times New Roman, and 17 to 9 in
+Georgia.
+
+`font-rasterizer.js`'s **0.40** remains its own: it fits glyphs into EIGHT
+ROWS, smaller again than a stamp. Three sites, three measured values, and none
+may adopt another's without re-measuring at its own sizes.
 
 ## 7. Risks
 
@@ -484,11 +542,11 @@ The new Node suite needs no registration: `tests/run-all.js` globs
 
 | # | Figure | Value | Tag | Method |
 |---|---|---|---|---|
-| 1 | shipped vector IoU, no transform | 0.35 | M | bench, 2026-08-29, 80 cases |
-| 2 | shipped vector ink ratio | 0.72 | M | as above |
-| 3 | `ZX SPECTRUM` 16px extra components | 8 | M | bench `--detail` |
+| 1 | shipped vector IoU, no transform | 0.78 | M | bench, 2026-08-29, 80 cases, RE-MEASURED after the SYS_FONT fix. Was 0.35, which compared two typefaces |
+| 2 | shipped vector tone ratio, before | 0.80 | M | as above; 1.00 after the coverage rasteriser |
+| 3 | `ZX SPECTRUM` 16px pieces, before -> after | 17 -> 9 Arial, 19 -> 10 Times, 17 -> 9 Georgia | M | counted directly, same face both sides, 2026-08-29 - independent of the bench |
 | 4 | finest resample of shipped raster | 0.311 | M | `coverage-16/50` row |
-| 5 | render-through ss=8/0.50 | 0.959 | M | bench, vector table |
+| 5 | render-through ss=8 | 0.964 | M | bench, vector table, after the SYS_FONT fix |
 | 6 | 1-bit coverage ss=8/0.50 | 0.994 | M | bench, bitmap table |
 | 7 | 1-bit coverage ss=4/0.50 | 0.973 | M | below the 0.976 that ships |
 | 8 | rotsprite identity failure at 0 deg | 0.95 | M | bench, bitmap table |
@@ -513,6 +571,8 @@ The new Node suite needs no registration: `tests/run-all.js` globs
 | 21 | sparse-texture policy | local tone correction, 8px window, 0.10 tolerance | M | RESOLVED 2026-08-29, section 4.4. Was A |
 | 22 | photo paste, shipped chain vs coverage | 0.794 -> 0.976 IoU | M | 54 cases through `PNGFormat.imageToInkMask`, 2026-08-29 |
 | 23 | tolerance 0.10 cost on photos | 0.005 IoU | M | 0.971 vs 0.976; the measured price of the setting the sparse-tile sheets prefer |
+| 24 | `GLYPH_COVERAGE` | 0.30 | M | six faces at 12/16/24px, total absolute error 25/20/24/41/89 at 0.25/0.30/0.35/0.40/0.50. Replaces the spec's original 0.50, which was calibrated against a ground truth that already used 0.50 |
+| 25 | thresholded ink varies with rotation angle | 10-16% | M | Arial 24px through render-through: 548 ink at 0 deg, 458 at 45, 487 at 90 - while the CONTINUOUS area is invariant at 410. The 1-bit cut interacting with orientation, not a loss |
 
 **No A-tagged figures remain.** Rows 14, 15 and 21 were all A in earlier
 drafts: row 15's measurement SUPPORTED the design, row 21's initially REFUTED

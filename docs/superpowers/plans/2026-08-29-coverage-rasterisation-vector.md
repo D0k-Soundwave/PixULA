@@ -19,7 +19,9 @@
 Copied verbatim from the spec and from CLAUDE.md's mechanically-enforced rules. Every task's requirements implicitly include this section.
 
 - `CoverageOps.SUPERSAMPLE = 8`. Spec section 6: ss=4 measures BELOW the shipped chain on a 1-bit source (0.973 against 0.976); render-through gains 0.959 against 0.937 at ss=8.
-- `CoverageOps.INK_COVERAGE = 0.50`. Spec section 6: 0.959 at 0.50 against 0.938 at 0.40, tone 0.98 against 1.07. **This is NOT `font-rasterizer.js`'s 0.40** - that was measured for fitting glyphs into EIGHT ROWS, where a stem is ~0.7px wide. The two sites keep their own measured values and neither may be shared as a constant without re-measuring at the other's sizes.
+- `CoverageOps.INK_COVERAGE = 0.50` - the UNBIASED area cut, for 1-bit sources (Plan 2 uses it; nothing in this plan does).
+- `CoverageOps.GLYPH_COVERAGE = 0.30` - the ink-biased cut for rasterising vector glyphs, which is what Task 2 and Task 3 use. **Corrected from the spec's original single 0.50 during Task 2**: that figure came from the bench scoring 0.40 against 0.50, and the bench's ground truth is itself thresholded at 0.50, so the comparison was circular. Recalibrated across six faces at 12/16/24px by rendering and reading the bitmaps - total absolute error 25 / 20 / 24 / 41 / 89 at 0.25 / 0.30 / 0.35 / 0.40 / 0.50. See the spec's section 6 correction.
+- **`js/utils/font-rasterizer.js`'s 0.40 is a THIRD value and stays its own** - it fits glyphs into eight rows, smaller again. None of the three may adopt another's without re-measuring at its own sizes.
 - **`js/core/`, `js/services/` and `js/tools/` must not touch the DOM.** `tests/lint-architecture.test.js` rule `dom-in-logic-layer` matches `document.createElement(`, `getElementById`, `querySelector`, and `.style.x =`. `text-tool.js` is NOT on its allowlist. Use `Helpers.createCanvas(w, h)`. Setting `canvas.width`/`canvas.height` is fine; setting `canvas.style.*` is not, and is never needed for an offscreen buffer.
 - **Never `Math.max(a, Math.min(b, c))` on one line** - rule `inline-clamp`. Use `Helpers.clamp`.
 - **`EventBus.emit/on` take `EVENTS.*` constants, never string literals** - rule `event-string-literal`.
@@ -805,7 +807,16 @@ Everything so far is unreachable from the app. This connects it, which is also w
 
 **Interfaces:**
 - Consumes: `TextTool._renderThrough` (Task 3), `TextTool.isBitmapFont` (existing), `CoverageOps.toMask` (Task 1).
-- Produces: no new public API. `_recomputeStampTransform` gains a vector-text branch.
+- Produces: no new public API. `_recomputeStampTransform` gains a vector-text branch and a `rotationApplied` local.
+
+**Design change agreed 2026-08-29, after the plan was written:** the branch also
+serves the text tool's own `direction`, by composing it with the slider angle
+into ONE rotation handed to the rasteriser. Without that, Direction 45 and the
+Transform slider at 45 would be two controls that both say "rotate this text"
+and disagree on sharpness - the same objection that justified collapsing
+`SelectionService._rotateMask` into `MaskOps.rotate` earlier. It is legal
+because with no warp between them, two rotations of a block compose exactly;
+the guard below is what guarantees nothing sits between them.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -845,10 +856,83 @@ test('a rotated system-font stamp keeps its ink through the live pipeline',
     });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+Also append this, for the composed case:
+
+```js
+test('the text tool Direction and the Transform slider agree at the same angle',
+    async ({ page }) => {
+        await boot(page);
+
+        // Both controls say "rotate this text". If only one of them reaches
+        // the font engine they disagree about sharpness at the same angle,
+        // which is the objection that collapsed _rotateMask into MaskOps.
+        const r = await page.evaluate(() => {
+            const tool = ToolManager.getTool(TOOLS.TEXT);
+            const ink = (px) => px.reduce((n, row) => n + row.filter(Boolean).length, 0);
+            const place = (info) => {
+                const m = tool._rasterizeWithFont(info.text, info.fontFamily,
+                    info.fontSize, false, false, 'horizontal');
+                SelectionService.startFloatingPasteFromMask(
+                    m.pixels, m.width, m.height, 40, 40, 'Place Text', info, 'none');
+            };
+            const base = { text: 'HELLO', fontFamily: 'Arial, sans-serif',
+                fontSize: 24, bold: false, italic: false, layout: 'horizontal' };
+
+            // via the tool's own Direction
+            place({ ...base, direction: 45 });
+            const viaDirection = ink(SelectionService.floatingPaste.pixels);
+            SelectionService.endFloatingPaste(false);
+
+            // via the Transform slider
+            place({ ...base, direction: 0 });
+            SelectionService.setStampRotation(45);
+            const viaSlider = ink(SelectionService.floatingPaste.pixels);
+            SelectionService.endFloatingPaste(false);
+
+            return { viaDirection, viaSlider };
+        });
+
+        expect(r.viaDirection).toBeGreaterThan(0);
+        // The same angle by either route must weigh the same
+        expect(r.viaDirection / r.viaSlider).toBeGreaterThan(0.92);
+        expect(r.viaDirection / r.viaSlider).toBeLessThan(1.09);
+    });
+
+test('direction and the slider compose rather than cancelling or doubling',
+    async ({ page }) => {
+        await boot(page);
+
+        const r = await page.evaluate(() => {
+            const tool = ToolManager.getTool(TOOLS.TEXT);
+            const box = () => {
+                const fp = SelectionService.floatingPaste;
+                return { w: fp.width, h: fp.height };
+            };
+            const m = tool._rasterizeWithFont('HELLO', 'Arial, sans-serif',
+                24, false, false, 'horizontal');
+            SelectionService.startFloatingPasteFromMask(m.pixels, m.width, m.height,
+                40, 40, 'Place Text',
+                { text: 'HELLO', fontFamily: 'Arial, sans-serif', fontSize: 24,
+                  bold: false, italic: false, layout: 'horizontal', direction: 90 },
+                'none');
+            const at90 = box();
+            // direction 90 + slider -90 is upright again: a WIDE box, not tall
+            SelectionService.setStampRotation(-90);
+            const composed = box();
+            SelectionService.endFloatingPaste(false);
+            return { at90, composed };
+        });
+
+        // 'HELLO' is wider than it is tall upright, and the reverse at 90.
+        expect(r.at90.h).toBeGreaterThan(r.at90.w);
+        expect(r.composed.w).toBeGreaterThan(r.composed.h);
+    });
+```
+
+- [ ] **Step 2: Run the tests to verify they fail**
 
 Run: `npx playwright test tests/browser/text-render-quality.spec.js --reporter=line`
-Expected: the new spec FAILS - `turned / flat` sits well below 0.90, because the stamp still resamples a thresholded raster.
+Expected: the rotated-stamp spec FAILS - `turned / flat` sits well below 0.90, because the stamp still resamples a thresholded raster. The composition spec may already pass (MaskOps and Step 3 do compose today, just at lower quality); the agreement spec is the definitive red once the fast path exists for one route and not the other.
 
 - [ ] **Step 3: Add the vector branch**
 
@@ -865,22 +949,33 @@ In `js/services/selection-service.js`, inside `_recomputeStampTransform`, the ve
 Insert this ABOVE that `else if`, so it takes precedence for the case it can serve:
 
 ```js
-      } else if (tool && fp._rotation
+      } else if (tool && (fp._rotation || fi.direction)
                  && (!fp._warpEffect || fp._warpEffect === 'none')
                  && (!fi.layout || fi.layout === 'horizontal')
-                 && !fi.direction && !fi.mirrorH && !fi.mirrorV
+                 && !fi.mirrorH && !fi.mirrorV
                  && !fi.shadow && !fi.outline) {
-        // Vector text, turned by the slider and nothing else: hand the angle
-        // to the font engine rather than resampling its output. Measured
-        // 2026-08-29: 0.96 at every angle against 0.68 at 45 for the resampled
-        // path. The guard is narrow ON PURPOSE - every excluded field is a
-        // mask-space effect that MaskOps applies AFTER this point (Step 1b/2),
-        // so serving them here would apply them in the wrong order and change
-        // what they look like. Widening it is a measured change, not a tidy-up.
+        // Vector text turned by rotation alone: hand the angle to the font
+        // engine rather than resampling its output. Measured 2026-08-29: 0.96
+        // at every angle against 0.68 at 45 for the resampled path.
+        //
+        // BOTH rotations compose into one. The text tool's `direction` and the
+        // Transform slider are two controls that both say "rotate this text",
+        // and serving only one of them would leave them disagreeing about
+        // sharpness at the same angle - the objection that collapsed
+        // SelectionService._rotateMask into MaskOps.rotate. With no warp
+        // between them two rotations of a block compose exactly, and the guard
+        // is what guarantees nothing sits between them.
+        //
+        // The guard stays narrow ON PURPOSE: every excluded field is a
+        // mask-space effect MaskOps applies AFTER this point (Step 1b/2), so
+        // serving them here would apply them in the wrong order and change
+        // what they look like. Widening it further is a measured change, not a
+        // tidy-up.
         //
         // `_warpEffect` defaults to the STRING 'none', not to null - testing it
         // for truthiness alone means this branch never fires at all.
-        const rad = Math.abs(fp._rotation) * Math.PI / 180;
+        const totalDeg = (fp._rotation || 0) + (fi.direction || 0);
+        const rad = totalDeg * Math.PI / 180;
         const cos = Math.abs(Math.cos(rad)), sin = Math.abs(Math.sin(rad));
         const box = {
           w: Math.max(1, Math.ceil(targetW * cos + targetH * sin)),
@@ -888,7 +983,7 @@ Insert this ABOVE that `else if`, so it takes precedence for the case it can ser
         };
         srcPixels = CoverageOps.toMask(
           tool._renderThrough(fi.text, fi.fontFamily, fi.fontSize * fp._scaleX,
-            fp._rotation, box));
+            totalDeg, box));
         srcW = box.w;
         srcH = box.h;
         rotationApplied = true;
@@ -900,6 +995,29 @@ Declare the flag with the other locals near the top of the method, beside `srcPi
 ```js
     let srcPixels, srcW, srcH;
     let rotationApplied = false;   // the vector path turns the glyph itself
+```
+
+Then suppress Step 1b for that case, or `direction` gets applied a second time
+in mask space. It currently reads:
+
+```js
+    if (fp.fontInfo && window.MaskOps &&
+        (fp.fontInfo.direction || fp.fontInfo.mirrorH || fp.fontInfo.mirrorV ||
+         fp.fontInfo.shadow || fp.fontInfo.outline)) {
+```
+
+Add the flag. Nothing else in that condition can be true when it is set - the
+branch's own guard excludes every other field - so this suppresses the
+direction and nothing more:
+
+```js
+    // `rotationApplied` means the glyph was rasterised already-turned above,
+    // direction included. The vector branch's guard excludes every other field
+    // in this condition, so skipping it here drops the duplicate rotation and
+    // nothing else.
+    if (fp.fontInfo && window.MaskOps && !rotationApplied &&
+        (fp.fontInfo.direction || fp.fontInfo.mirrorH || fp.fontInfo.mirrorV ||
+         fp.fontInfo.shadow || fp.fontInfo.outline)) {
 ```
 
 Then guard Step 3 so the rotation is not applied twice - it currently reads `if (fp._rotation !== 0) {`:
@@ -914,7 +1032,7 @@ Then guard Step 3 so the rotation is not applied twice - it currently reads `if 
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `npx playwright test tests/browser/text-render-quality.spec.js --reporter=line`
-Expected: 8 passed.
+Expected: 10 passed.
 
 - [ ] **Step 5: Run both gates**
 
