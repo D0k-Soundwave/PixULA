@@ -32,7 +32,7 @@ test('a gesture on a large stamp degrades instead of dropping frames',
             const wentCheap = SelectionService.isStampGestureCheap();
             SelectionService.endStampGesture();
             const afterRelease = SelectionService.floatingPaste.pixels.length;
-            SelectionService.endFloatingPaste(false);
+            SelectionService.cancelFloatingPaste();
             return { perTick, wentCheap, afterRelease };
         });
 
@@ -59,7 +59,7 @@ test('a small stamp stays exact for the whole gesture', async ({ page }) => {
         const wentCheap = SelectionService.isStampGestureCheap();
         SelectionService.endStampGesture();
         const after = SelectionService.floatingPaste.pixels.map((r2) => [...r2]);
-        SelectionService.endFloatingPaste(false);
+        SelectionService.cancelFloatingPaste();
         return { same: JSON.stringify(during) === JSON.stringify(after), wentCheap };
     });
 
@@ -82,7 +82,7 @@ test('without a gesture bracket nothing degrades - a single change is exact',
             const cheap = SelectionService.isStampGestureCheap();
             const ink = SelectionService.floatingPaste.pixels
                 .reduce((n, row) => n + row.filter(Boolean).length, 0);
-            SelectionService.endFloatingPaste(false);
+            SelectionService.cancelFloatingPaste();
             return { cheap, ink };
         });
 
@@ -115,7 +115,7 @@ test('the Transform panel brackets its sliders', async ({ page }) => {
 
         SelectionService.beginStampGesture = realBegin;
         SelectionService.endStampGesture = realEnd;
-        SelectionService.endFloatingPaste(false);
+        SelectionService.cancelFloatingPaste();
         return { ...seen, hasSlider: !!slider };
     });
 

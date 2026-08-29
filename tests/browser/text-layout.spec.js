@@ -170,7 +170,7 @@ test('a stamp keeps its layout through a scale and a rotation', async ({ page })
         const scaled = at();
         SelectionService.setStampRotation(0);
         const respun = at();
-        SelectionService.endFloatingPaste(false);
+        SelectionService.cancelFloatingPaste();
         return { placed, scaled, respun };
     });
 

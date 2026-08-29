@@ -717,6 +717,13 @@ class SelectionServiceClass {
     // 0.963 IoU on the bench's 165-case suite, dComp 7.39 to 2.50 - and
     // leaving it outside the domain gave that away.
     let srcCov = null;
+    // A scale the domain has NOT applied yet: {mask, w, h, sx, sy}. Held back
+    // rather than done eagerly so that, where nothing sits between the scale
+    // and the rotation, the two can go into ONE inverse map instead of two.
+    // Measured on the bench's live row: two maps score 0.853 on the artwork
+    // suite where one scores 0.963, and that gap was invisible until the bench
+    // learned to drive the real pipeline.
+    let pendingScale = null;
     const targetW = Math.max(1, Math.round(fp._srcWidth  * fp._scaleX));
     const targetH = Math.max(1, Math.round(fp._srcHeight * fp._scaleY));
 
@@ -733,9 +740,8 @@ class SelectionServiceClass {
         // no finer form, so its own coverage map is exact and this is strictly
         // better than a nearest resample: 0.976 to 0.994 on the bench's glyph
         // suite.
-        srcCov = CoverageOps.transform(CoverageOps.fromMask(srcPixels),
-          { scaleX: targetW / srcW, scaleY: targetH / srcH }, { w: targetW, h: targetH },
-          this._coverageSS());
+        pendingScale = { mask: srcPixels, w: srcW, h: srcH,
+                         sx: targetW / srcW, sy: targetH / srcH };
         srcPixels = null;
         srcW = targetW; srcH = targetH;
       } else if (tool && (fp._rotation || fi.direction)
@@ -792,14 +798,16 @@ class SelectionServiceClass {
           srcW = targetW; srcH = targetH;
         } else { srcPixels = fp._srcPixels; srcW = fp._srcWidth; srcH = fp._srcHeight; }
       } else {
-        srcCov = this._scaleInCoverage(fp._srcPixels, fp._srcWidth, fp._srcHeight, targetW, targetH);
+        pendingScale = { mask: fp._srcPixels, w: fp._srcWidth, h: fp._srcHeight,
+                         sx: targetW / fp._srcWidth, sy: targetH / fp._srcHeight };
         srcPixels = null;
         srcW = targetW; srcH = targetH;
       }
     } else {
       // A plain paste: 1-bit artwork with no finer form, so its own coverage
       // map is exact and the scale belongs in the domain like everything else.
-      srcCov = this._scaleInCoverage(fp._srcPixels, fp._srcWidth, fp._srcHeight, targetW, targetH);
+      pendingScale = { mask: fp._srcPixels, w: fp._srcWidth, h: fp._srcHeight,
+                       sx: targetW / fp._srcWidth, sy: targetH / fp._srcHeight };
       srcPixels = null;
       srcW = targetW; srcH = targetH;
     }
@@ -831,7 +839,7 @@ class SelectionServiceClass {
     const wantsWarp = !!(fp._warpEffect && fp._warpEffect !== 'none');
     const wantsSpin = fp._rotation !== 0 && !rotationApplied;
 
-    if (srcCov || wantsEffects || wantsDirection || wantsWarp || wantsSpin) {
+    if (pendingScale || srcCov || wantsEffects || wantsDirection || wantsWarp || wantsSpin) {
       // Time the first pass of a gesture. One overrun is enough to decide -
       // re-timing every tick would spend the budget discovering it is out of
       // budget.
@@ -839,14 +847,32 @@ class SelectionServiceClass {
       const t0 = timing ? performance.now() : 0;
       const ss = this._coverageSS();
 
-      let cov = srcCov || CoverageOps.fromMask(srcPixels);
+      let cov;
+      let spinDone = false;
+      if (pendingScale) {
+        // COMPOSE where nothing sits between the scale and the rotation. The
+        // effects, the tool's direction and the warp all belong between them
+        // in this chain, so composing is only legal when none of them is in
+        // play - but when it is legal it is one inverse map instead of two,
+        // and the difference is 0.963 against 0.853 on the artwork suite.
+        const compose = wantsSpin && !wantsEffects && !wantsDirection && !wantsWarp;
+        const opts = { scaleX: pendingScale.sx, scaleY: pendingScale.sy };
+        if (compose) opts.degrees = fp._rotation;
+        const box = compose
+          ? CoverageOps.boxFor(pendingScale.w, pendingScale.h, opts)
+          : { w: srcW, h: srcH };
+        cov = CoverageOps.transform(CoverageOps.fromMask(pendingScale.mask), opts, box, ss);
+        spinDone = compose;
+      } else {
+        cov = srcCov || CoverageOps.fromMask(srcPixels);
+      }
       if (wantsEffects) cov = CoverageOps.process(cov, fInfo);
       if (wantsDirection) {
         cov = CoverageOps.transform(cov, { degrees: fInfo.direction },
           CoverageOps.boxFor(cov.w, cov.h, { degrees: fInfo.direction }), ss);
       }
       if (wantsWarp) cov = CoverageOps.warp(cov, fp._warpEffect, 0.5, ss);
-      if (wantsSpin) {
+      if (wantsSpin && !spinDone) {
         cov = CoverageOps.transform(cov, { degrees: fp._rotation },
           CoverageOps.boxFor(cov.w, cov.h, { degrees: fp._rotation }), ss);
       }
@@ -924,23 +950,6 @@ class SelectionServiceClass {
   /** Whether the current gesture has given up on the exact path. */
   isStampGestureCheap() {
     return !!this._gestureCheap;
-  }
-
-  /**
-   * Scale a 1-bit mask into the coverage domain.
-   *
-   * A pasted stamp has no finer form than its own pixels, so treating each as
-   * a unit square and measuring area is the best answer available - and
-   * unlike a nearest resample it survives a downscale: shrinking a 25%-dense
-   * dither by point-sampling keeps its density only by luck of alignment,
-   * while this keeps it by construction. The caller thresholds once at the end
-   * through `toMaskToned`.
-   * @private
-   */
-  _scaleInCoverage(mask, srcW, srcH, dstW, dstH) {
-    return CoverageOps.transform(CoverageOps.fromMask(mask),
-      { scaleX: dstW / srcW, scaleY: dstH / srcH }, { w: dstW, h: dstH },
-      this._coverageSS());
   }
 
   /**

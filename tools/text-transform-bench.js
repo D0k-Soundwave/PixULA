@@ -10,6 +10,17 @@
  * the stamp path lands without a before/after from this tool, exactly as
  * palette-bench.js gates the other one.
  *
+ * READ THE `live` ROW FIRST. It drives the app's own stamp path -
+ * `SelectionService._recomputeStampTransform`, through the real setters, in
+ * the order the UI calls them. Every other row is a re-implementation of a
+ * PRIMITIVE, which is useful for choosing between algorithms and useless as a
+ * regression gate: until 2026-08-29 this tool could not see a change to the
+ * pipeline at all, and a wiring change had to be verified by hand while a
+ * primitive's score sat in a design document justifying it. `current` answers
+ * "is this operation well implemented"; `live` answers "does the app do the
+ * right thing". Where they disagree, the pipeline is not wired to the
+ * primitive it is supposed to be using.
+ *
  * It has already earned that. The theory it was built to test - that the loss
  * is the repeated resampling of a binary mask - was REJECTED by its own first
  * run: `coverage-16/50`, the finest resample it can perform on the shipped
@@ -787,7 +798,45 @@ function inPage(config) {
     const sheets = {};
     const harnessErrors = [];
 
+    /**
+     * THE LIVE PIPELINE - the app's own stamp path, driven end to end.
+     *
+     * Every other candidate here is a re-implementation of a PRIMITIVE, and
+     * that is a real limitation this row exists to close: the suites could not
+     * see a change to `_recomputeStampTransform` at all, so the wiring of the
+     * coverage pipeline had to be verified by hand, twice, and one of its
+     * justifications survived a whole design document before anyone noticed it
+     * was measuring the wrong thing.
+     *
+     * `current` answers "is this operation well implemented". `live` answers
+     * "does the app do the right thing", which is the question a regression
+     * gate has to ask. Where the two disagree, the pipeline is not wired to the
+     * primitive it is supposed to be using.
+     *
+     * The stamp is created, driven through the real setters in the order the UI
+     * drives them, read, and disposed. `_recomputeStampTransform` runs on every
+     * one of those setters, exactly as it does under a slider.
+     */
+    function livePipeline(mask, srcW, srcH, sx, sy, deg, warpEffect, fontInfo) {
+        SelectionService.startFloatingPasteFromMask(
+            mask, srcW, srcH, 10, 10, 'bench', fontInfo || null, 'none');
+        if (sx !== 1 || sy !== 1) SelectionService.setStampScale(sx, sy);
+        if (warpEffect && warpEffect !== 'none') SelectionService.setStampWarp(warpEffect);
+        if (deg) SelectionService.setStampRotation(deg);
+        const fp = SelectionService.floatingPaste;
+        const out = fp ? fp.pixels.map((r) => [...r]) : [];
+        // cancelFloatingPaste, NOT endFloatingPaste. The latter takes no
+        // argument and DISENGAGES - it deliberately keeps the stamp layer so
+        // the stamp can be re-engaged later from its `layer.stamp` metadata.
+        // Driving it in a loop climbs straight to LayerManager's 32-layer cap,
+        // after which every further paste silently produces nothing: measured,
+        // 55 of 80 came back empty before this was traced.
+        SelectionService.cancelFloatingPaste();
+        return out;
+    }
+
     const CANDIDATES = [
+        ['live',         (src, w, h, sx, sy, deg) => livePipeline(src, w, h, sx, sy, deg, 'none', null)],
         ['current',      pipeCurrent],
         ['composed',     pipeComposed],
         ['coverage-50',  pipeCoverage(0.50)],
@@ -842,12 +891,22 @@ function inPage(config) {
         // at all, or whether the rasteriser was carrying the whole loss.
         const list = sysArgs
             ? CANDIDATES.concat([['raster-fix', 'RF'], ['render-through', null],
+                                 ['live-text', 'LIVE'],
                                  ['rt-4/50', 'RT:4:0.50'], ['rt-8/40', 'RT:8:0.40'],
                                  ['rt-8/50', 'RT:8:0.50'], ['rt-2/40', 'RT:2:0.40']])
             : CANDIDATES;
         for (const [name, fn] of list) {
             let out;
-            if (fn === 'RF') {
+            if (fn === 'LIVE') {
+                // The vector path through the app, fontInfo and all - which is
+                // what routes it to render-through rather than to a resample.
+                const flat = tool._rasterizeWithFont(sysArgs.text, sysArgs.family,
+                    sysArgs.px, false, false, 'horizontal');
+                out = flat ? livePipeline(flat.pixels, flat.width, flat.height, sx, sy, deg, 'none', {
+                    text: sysArgs.text, fontFamily: sysArgs.family, fontSize: sysArgs.px,
+                    bold: false, italic: false, layout: 'horizontal'
+                }) : [];
+            } else if (fn === 'RF') {
                 const flat = targetBox(src.w, src.h, sx, sy, 0);
                 const fixed = renderThrough(sysArgs.text, sysArgs.family, sysArgs.px * sx, 0, flat, 4, 0.40);
                 out = MaskOps.rotate(fixed, deg);
@@ -936,6 +995,7 @@ function inPage(config) {
             const denom = areaOf(tCov) || 1;
             const srcInk = inkOf(art.mask);
             const cands = [
+                ['live', livePipeline(art.mask, art.w, art.h, 1, 1, 0, effect, null)],
                 ['current', SelectionService._applyWarpEffect(art.mask, art.w, art.h, effect, 0.5)],
                 ['coverage-4/50', threshold(warpCoverage(art.mask, art.w, art.h, effect, 4), 0.5)],
                 ['coverage-8/50', threshold(warpCoverage(art.mask, art.w, art.h, effect, 8), 0.5)],
@@ -1034,7 +1094,7 @@ function inPage(config) {
         harnessErrors,
         rows: rows.map(r => ({ ...r, results: r.results.map(({ mask, ...rest }) => rest) })),
         sheets,
-        candidates: CANDIDATES.map(([n]) => n).concat(['raster-fix', 'render-through', 'rt-4/50', 'rt-8/40', 'rt-8/50', 'rt-2/40'])
+        candidates: CANDIDATES.map(([n]) => n).concat(['raster-fix', 'render-through', 'live-text', 'rt-4/50', 'rt-8/40', 'rt-8/50', 'rt-2/40'])
     };
 }
 
