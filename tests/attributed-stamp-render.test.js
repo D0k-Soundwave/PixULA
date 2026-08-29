@@ -15,7 +15,14 @@ loadModule('js/core/attribute-system.js');
 global.document = undefined;
 global.CanvasSystem = {
   setPixel() {}, markCellDirty() {}, requestRender() {}, _render() {},
-  getColorIndex(base, bright) { return base === 0 ? 0 : base + (bright ? 8 : 0); }
+  getColorIndex(base, bright) { return base === 0 ? 0 : base + (bright ? 8 : 0); },
+  // The compositor's fast path, added to main after this branch was cut:
+  // LayerManager blits a whole cell at once rather than making 64 validated
+  // setPixel calls, and packs its two colours outside the pixel loop. These
+  // suites are the first to reach it from a stub, so they are the first that
+  // have to carry it.
+  packRGB(rgb) { return (255 << 24) | (rgb[2] << 16) | (rgb[1] << 8) | rgb[0]; },
+  blitCellBits() {}, blitCellIndices() {}
 };
 global.setInterval = () => 0;
 
