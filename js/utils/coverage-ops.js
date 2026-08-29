@@ -105,6 +105,26 @@ const CoverageOps = {
     GLYPH_COVERAGE: 0.30,
 
     /**
+     * How long one coverage pass may take before the interactive path gives up
+     * on it for the rest of a gesture, in ms.
+     *
+     * 7, and it ties to the frame rather than to taste. A drag is direct
+     * manipulation, so it wants 60fps: 16.7 ms. The rest of a slider tick -
+     * re-raster, floating redraw, compose, render - measures 0.04 ms on a 16x8
+     * stamp and 0.89 ms on a 352x32 one, so the pass may have most of the frame
+     * before anything drops. 7 is under half of it, leaving room for paint and
+     * a GC pause: running right at 16 means any hiccup drops a frame.
+     *
+     * Deliberately a TIME and not a pixel count. A pixel threshold would be
+     * measured on one machine and wrong on every other; timing the pass lets a
+     * slow machine degrade on a stamp where a fast one stays exact. For
+     * orientation only, measured 2026-08-29 through the real path: 0.4 ms at
+     * 16x8, 2.3 ms at 120x24, 10.9 ms at 256x64, 50.9 ms at 400x200 and
+     * 96.1 ms at 640x256.
+     */
+    LIVE_BUDGET_MS: 7,
+
+    /**
      * Tone-correction window edge, in px. One ZX cell.
      *
      * 8. At 16 the restored region shows visible blocky seams - it is on the

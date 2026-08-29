@@ -180,6 +180,22 @@ class TransformPanelClass {
             }
         });
 
+        // Bracket the three stamp sliders as GESTURES, so a drag on a large
+        // stamp degrades to the cheap path instead of dropping frames, and
+        // takes the exact pass once on release. `change` and not `input` to
+        // close it: input fires on every tick and would end the gesture it
+        // just began.
+        ['.tp-rot', '.tp-sx', '.tp-sy'].forEach((sel) => {
+            const el = content.querySelector(sel);
+            if (!el) return;
+            el.addEventListener('pointerdown', () => {
+                if (window.SelectionService) SelectionService.beginStampGesture();
+            });
+            el.addEventListener('change', () => {
+                if (window.SelectionService) SelectionService.endStampGesture();
+            });
+        });
+
         content.querySelector('.tp-warp').addEventListener('change', (e) => {
             if (SelectionService.isFloating()) {
                 SelectionService.setStampWarp(e.target.value);
