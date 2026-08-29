@@ -11,6 +11,7 @@
  *  - mirrored writes land inside the SAME undo action as the original
  */
 const { loadModule, check, summary } = require('./helpers/zx-stubs');
+const { withBlit } = require('./helpers/canvas-stub.js');
 
 global.window = global;
 global.Logger = { info() {}, debug() {}, warn() {}, error() {} };
@@ -22,12 +23,12 @@ loadModule('js/core/event-bus.js');
 loadModule('js/core/state-manager.js');
 loadModule('js/core/attribute-system.js');
 
-global.CanvasSystem = {
+global.CanvasSystem = withBlit({
   setPixel() {}, markCellDirty() {}, requestRender() {}, _render() {},
   getColorIndex(base, bright) { return base + (bright ? 8 : 0); },
   onReady(cb) { cb(); }, getIframeDocument() { return null; },
   getCanvasElement() { return null; }
-};
+});
 global.ColorManager = {
   _sel: { ink: 0, paper: 7, bright: false, flash: false, inkTransparent: false, paperTransparent: false },
   getCurrentSelection() { return { ...this._sel }; }
