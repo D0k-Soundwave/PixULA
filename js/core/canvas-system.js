@@ -614,6 +614,96 @@ class CanvasSystemClass {
   }
 
   /**
+   * Pack an [r, g, b] triple into the buffer's native ABGR word.
+   *
+   * The compose path resolves at most two colours per cell but writes up to
+   * 64 pixels from them, so packing belongs outside the pixel loop. Exposed
+   * (rather than inlined at each caller) so there is ONE definition of the
+   * buffer's word order to keep in step with the Uint32Array view above.
+   * @param {number[]|Uint8Array} rgb - [r, g, b]
+   * @returns {number} ABGR word with alpha forced opaque
+   */
+  packRGB(rgb) {
+    return (255 << 24) | (rgb[2] << 16) | (rgb[1] << 8) | rgb[0];
+  }
+
+  /**
+   * Blit one attribute cell from its 1-bit rows and a resolved ink/paper
+   * pair - the classic compositor's inner loop, moved to where the pixel
+   * buffer actually lives.
+   *
+   * Why this exists rather than 64 `setPixel` calls: `setPixel` validates
+   * both coordinates through `Validators.isValidPixelCoord`, which reads the
+   * live `ZX_SPECTRUM.WIDTH`/`HEIGHT` accessors on every call. A cell's 64
+   * pixels are inside the canvas by construction once the cell itself is, so
+   * that is 128 accessor reads and 128 integer checks per cell to re-prove
+   * something the caller already knows. Measured 2026-08-29: `setPixel`
+   * across a full 256x192 canvas was 0.725 ms of a 1.06 ms full compose -
+   * 68% of the work, to write 49,152 words.
+   *
+   * Bounds are checked ONCE, against the cell's own rectangle. A cell that
+   * would run off the buffer is skipped whole, matching the old per-pixel
+   * behaviour of silently dropping out-of-range writes.
+   *
+   * @param {number} baseX - Cell's left pixel column
+   * @param {number} baseY - Cell's top pixel row
+   * @param {number} cellW - Cell width in pixels (MSB of each row = leftmost)
+   * @param {number} cellH - Cell height in pixels
+   * @param {Uint8Array} rows - One byte per row, MSB-left
+   * @param {number} inkWord - ABGR word for set bits (see packRGB)
+   * @param {number} paperWord - ABGR word for clear bits
+   */
+  blitCellBits(baseX, baseY, cellW, cellH, rows, inkWord, paperWord) {
+    const w = ZX_SPECTRUM.WIDTH;
+    if (baseX < 0 || baseY < 0 ||
+        baseX + cellW > w || baseY + cellH > ZX_SPECTRUM.HEIGHT) return;
+
+    const px = this.pixels;
+    const msb = cellW - 1;
+    for (let row = 0; row < cellH; row++) {
+      const bits = rows[row];
+      let index = (baseY + row) * w + baseX;
+      for (let col = 0; col < cellW; col++, index++) {
+        px[index] = ((bits >> (msb - col)) & 1) ? inkWord : paperWord;
+      }
+    }
+  }
+
+  /**
+   * Blit one cell from per-pixel palette indices - the indexed (Next) modes'
+   * counterpart to `blitCellBits`, and there for the same reason: it lifts
+   * the palette lookup and the bounds check out of the per-pixel loop.
+   *
+   * Indices are CLAMPED into the table rather than rejected: a transparent
+   * (-1) pixel reaching the live canvas has nothing below it to show, so it
+   * renders as entry 0, and an index past the mode's drawable window renders
+   * as the last entry. That is the behaviour the per-pixel loop this replaced
+   * had, kept deliberately.
+   *
+   * @param {number} baseX @param {number} baseY
+   * @param {number} cellW @param {number} cellH
+   * @param {Int16Array} indices - cellW*cellH palette indices, row-major
+   * @param {Uint32Array} words - ABGR word per palette entry (see packRGB)
+   */
+  blitCellIndices(baseX, baseY, cellW, cellH, indices, words) {
+    const w = ZX_SPECTRUM.WIDTH;
+    if (baseX < 0 || baseY < 0 ||
+        baseX + cellW > w || baseY + cellH > ZX_SPECTRUM.HEIGHT) return;
+
+    const px = this.pixels;
+    const maxIndex = words.length - 1;
+    for (let row = 0; row < cellH; row++) {
+      const src = row * cellW;
+      let index = (baseY + row) * w + baseX;
+      for (let col = 0; col < cellW; col++, index++) {
+        let idx = indices[src + col];
+        if (idx < 0) idx = 0; else if (idx > maxIndex) idx = maxIndex;
+        px[index] = words[idx];
+      }
+    }
+  }
+
+  /**
    * Set a pixel by color index
    * @param {number} x - X coordinate
    * @param {number} y - Y coordinate

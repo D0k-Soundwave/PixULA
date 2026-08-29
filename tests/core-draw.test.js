@@ -9,6 +9,7 @@
  * draw shows correct attribute-clash behaviour.
  */
 const { loadModule, check, summary } = require('./helpers/zx-stubs');
+const { withBlit } = require('./helpers/canvas-stub.js');
 
 global.window = global;
 global.Logger = { info() {}, debug() {}, warn() {}, error() {} };
@@ -22,13 +23,13 @@ loadModule('js/core/attribute-system.js');
 
 // CanvasSystem stub — records composited RGB per pixel, keyed y*width+x
 const written = new Map();
-global.CanvasSystem = {
+global.CanvasSystem = withBlit({
   setPixel(x, y, r, g, b) { written.set(y * ZX_SPECTRUM.WIDTH + x, (r << 16) | (g << 8) | b); },
   markCellDirty() {},
   requestRender() {},
   _render() {},
   getColorIndex(base, bright) { return base + (bright ? 8 : 0); }
-};
+});
 const rgbOf = (paletteIndex) => {
   const [r, g, b] = ZX_PALETTE_RGB[paletteIndex];
   return (r << 16) | (g << 8) | b;

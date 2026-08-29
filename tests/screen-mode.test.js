@@ -14,6 +14,7 @@
  *     one Undo restores the previous mode AND content, redo re-applies.
  */
 const { installStubs, loadModule, check, summary } = require('./helpers/zx-stubs');
+const { withBlit } = require('./helpers/canvas-stub.js');
 
 installStubs();
 loadModule('js/utils/validators.js');
@@ -23,10 +24,10 @@ loadModule('js/core/attribute-system.js');
 
 // CanvasSystem stub (same seam as core-draw.test.js) — no ColorManager on
 // purpose: the compositor's headless fixed-palette fallback must hold.
-global.CanvasSystem = {
+global.CanvasSystem = withBlit({
   setPixel() {}, markCellDirty() {}, requestRender() {}, _render() {},
   getColorIndex(base, bright) { return base === 0 ? 0 : base + (bright ? 8 : 0); }
-};
+});
 global.setInterval = () => 0;
 
 loadModule('js/core/layer-manager.js');

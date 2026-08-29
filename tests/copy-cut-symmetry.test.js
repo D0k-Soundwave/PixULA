@@ -10,6 +10,7 @@
  * so this suite pins that single implementation directly.
  */
 const { loadModule, check, summary } = require('./helpers/zx-stubs');
+const { withBlit } = require('./helpers/canvas-stub.js');
 
 global.window = global;
 global.Logger = { info() {}, debug() {}, warn() {}, error() {} };
@@ -21,14 +22,14 @@ loadModule('js/core/event-bus.js');
 loadModule('js/core/state-manager.js');
 loadModule('js/core/attribute-system.js');
 
-global.CanvasSystem = {
+global.CanvasSystem = withBlit({
   setPixel() {}, markCellDirty() {}, requestRender() {}, _render() {},
   getColorIndex(base, bright) { return base + (bright ? 8 : 0); },
   setCanvasCursor() {}, onReady(cb) { cb(); }, composeToCanvas() {},
   getIframeDocument() { return null; }, getCanvasElement() { return null; },
   createOverlayCanvas() { return null; },
   getScrollPosition() { return { x: 0, y: 0 }; }, setScrollPosition() {}
-};
+});
 global.ColorManager = {
   _sel: { ink: 0, paper: 7, bright: false, flash: false, inkTransparent: false, paperTransparent: false },
   getCurrentSelection() { return { ...this._sel }; }

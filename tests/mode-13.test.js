@@ -24,6 +24,7 @@
  * calls (the _rebuildEnvironment contract).
  */
 const { installStubs, loadModule, check, summary } = require('./helpers/zx-stubs');
+const { withBlit } = require('./helpers/canvas-stub.js');
 
 installStubs();
 loadModule('js/utils/validators.js');
@@ -33,11 +34,11 @@ loadModule('js/core/attribute-system.js');
 
 // Recording CanvasSystem stub — remembers the last colour written per pixel
 const painted = new Map(); // "x,y" -> [r,g,b]
-global.CanvasSystem = {
+global.CanvasSystem = withBlit({
   setPixel(x, y, r, g, b) { painted.set(`${x},${y}`, [r, g, b]); },
   markCellDirty() {}, requestRender() {}, _render() {},
   getColorIndex(base, bright) { return base === 0 ? 0 : base + (bright ? 8 : 0); }
-};
+});
 global.setInterval = () => 0;
 
 loadModule('js/core/layer-manager.js');

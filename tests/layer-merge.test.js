@@ -24,6 +24,7 @@
  *     to leak into them as opaque paper 7 instead of staying transparent).
  */
 const { installStubs, loadModule, check, summary } = require('./helpers/zx-stubs');
+const { withBlit } = require('./helpers/canvas-stub.js');
 
 installStubs();
 loadModule('js/utils/validators.js');
@@ -31,10 +32,10 @@ loadModule('js/core/event-bus.js');
 loadModule('js/core/state-manager.js');
 loadModule('js/core/attribute-system.js');
 
-global.CanvasSystem = {
+global.CanvasSystem = withBlit({
   setPixel() {}, markCellDirty() {}, requestRender() {}, _render() {},
   getColorIndex(base, bright) { return base === 0 ? 0 : base + (bright ? 8 : 0); }
-};
+});
 global.setInterval = () => 0;
 
 loadModule('js/core/layer-manager.js');

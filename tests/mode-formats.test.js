@@ -14,6 +14,7 @@
  *    pair chooser produce a palette that reproduces a synthetic image.
  */
 const { installStubs, loadModule, check, summary } = require('./helpers/zx-stubs');
+const { withBlit } = require('./helpers/canvas-stub.js');
 
 installStubs();
 loadModule('js/utils/validators.js');
@@ -23,10 +24,10 @@ loadModule('js/core/attribute-system.js');
 
 // Minimal DOM shim for ColorManager's CSS-token writes (guarded anyway)
 global.document = undefined;
-global.CanvasSystem = {
+global.CanvasSystem = withBlit({
   setPixel() {}, markCellDirty() {}, requestRender() {}, _render() {},
   getColorIndex(base, bright) { return base === 0 ? 0 : base + (bright ? 8 : 0); }
-};
+});
 global.setInterval = () => 0;
 
 loadModule('js/core/color-manager.js');
