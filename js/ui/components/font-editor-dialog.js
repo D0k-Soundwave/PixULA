@@ -90,7 +90,7 @@ class FontEditorDialogClass {
                                 <option value="8">8×8</option>
                             </select></label>
                     </div>
-                    <span class="fe-current"></span>
+                    <span class="fe-current"><span class="fe-current-code" data-i18n="font.current"></span><span class="fe-current-char"></span></span>
                 </div>
                 <div class="fe-editor-slot"></div>
                 <div class="me-toolbar fe-ops">
@@ -388,12 +388,23 @@ class FontEditorDialogClass {
         this._loadGlyphIntoEditor();
     }
 
+    /**
+     * The translated "Code {code}" half lives in its own element carrying
+     * `data-i18n-param-code`, so a locale switch mid-edit re-translates it
+     * correctly instead of going stale (I18n.apply only re-renders elements
+     * it can find and re-parameterise) — the printable-character suffix is
+     * not translatable and is a plain sibling this method keeps in sync
+     * directly.
+     */
     _updateCurrentLabel() {
-        const el = this._root.querySelector('.fe-current');
         const code = this._selected;
         const printable = code >= 33 && code !== 127 ? String.fromCharCode(code) : '';
-        el.textContent = this._t('font.current', 'Code {code}', { code }) +
-            (printable ? `  "${printable}"` : '');
+
+        const codeEl = this._root.querySelector('.fe-current-code');
+        codeEl.dataset.i18nParamCode = code;
+        codeEl.textContent = this._t('font.current', 'Code {code}', { code });
+
+        this._root.querySelector('.fe-current-char').textContent = printable ? `  "${printable}"` : '';
     }
 
     // ─── Glyph grid picker ────────────────────────────────────────────────
