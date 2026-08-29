@@ -1017,7 +1017,14 @@ const CONFIG = {
     ART_SCALES: [0.6, 1, 1.25],
     WARPS: ['arch-up', 'arch-down', 'wave', 'flag', 'slant-right', 'slant-left',
             'inflate', 'perspective-top', 'perspective-bottom'],
-    SYS_FONT: 'Arial, sans-serif'
+    // A SINGLE family, never a CSS list. `_rasterizeWithFont` builds
+    // `${size}px "${family}"`, so 'Arial, sans-serif' becomes one quoted family
+    // nobody has and canvas falls back - while this file's own renderThrough
+    // leaves it unquoted and gets real Arial. The suite was then scoring a
+    // candidate in the fallback face against a ground truth in Arial, which is
+    // a comparison of two typefaces rather than of two pipelines. Found
+    // 2026-08-29 while implementing.
+    SYS_FONT: 'Arial'
 };
 
 const fmt = (n, d = 3) => n.toFixed(d).padStart(d + 3);
