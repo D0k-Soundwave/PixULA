@@ -1,10 +1,22 @@
 # Carry the stamp transform chain in a coverage domain - design
 
-Status: scope approved in chat 2026-08-29 ("full coverage pipeline"). Section
-7.1 was a blocking objection - the extended bench found a case the design did
-not survive - and is RESOLVED by the local-tone rule in 4.4. Sections 10.1 and
-10.2 are resolved too, and no A-tagged figure remains. **Awaiting design
-approval; nothing implemented.**
+Status: **IMPLEMENTED**, by two plans -
+`docs/superpowers/plans/2026-08-29-coverage-rasterisation-vector.md` (sections
+4.2 and the `fromMask`/`toMask` boundary of 4.1) and
+`docs/superpowers/plans/2026-08-29-coverage-pipeline-1bit.md` (the rest of 4.1,
+4.3, 4.4 and section 5).
+
+**Four of this document's figures were wrong and are corrected in place, every
+one of them found by implementing it rather than reading it.** The single 0.50
+threshold of section 6, calibrated against a reference that already assumed it.
+The vector table of section 3, measured across two different typefaces. The
+warp figures of section 3 and register rows 15-16, measured half a pixel out of
+register. And section 7.1's arch-up evidence, which was that same offset rather
+than anything the domain did. The one prediction that survived intact was
+section 7.1's DOWNSCALE case, which is why `toMaskToned` exists.
+
+The largest 1-bit gain turned out to be the SCALE (artwork 0.720 -> 0.963), not
+the warp this document called "the worst-performing operation in the app".
 
 Measured by `tools/text-transform-bench.js` (written for this question, 2026-08-29).
 Every figure below carries its provenance tag; the register is section 9.
@@ -93,21 +105,43 @@ non-empty sources that produced a blank stamp. Both metrics replaced an earlier
 `ink` ratio that divided by the thresholded truth - which is empty for sparse
 sources, and produced ratios of 576 that hid a real finding.
 
-### Vector fonts (Arial), 80 cases [M]
+### Vector fonts (Arial), 80 cases [M, CORRECTED 2026-08-29]
 
-| pipeline | IoU | dComp | dHole | tone | 0deg | 45deg |
-|---|---|---|---|---|---|---|
-| current (ships today) | 0.309 | 3.76 | 0.80 | 0.72 | 0.35 | 0.29 |
-| coverage 16/0.50 on the shipped raster | 0.311 | 4.03 | 0.89 | 0.70 | 0.34 | 0.30 |
-| rotsprite | 0.318 | 1.82 | 0.65 | 0.72 | 0.35 | 0.31 |
-| raster-fix (better source, shipped chain) | 0.759 | 0.15 | 0.35 | 0.91 | **0.94** | 0.68 |
-| render-through ss=4 / 0.40 | 0.937 | 0.03 | 0.07 | 1.04 | 0.94 | 0.94 |
-| **render-through ss=8 / 0.50** | **0.959** | **0.03** | 0.10 | **0.98** | **0.96** | **0.96** |
+**The first version of this table was invalid and its figures are struck
+through below.** The bench's `SYS_FONT` was `'Arial, sans-serif'`. The app
+builds `${size}px "${family}"`, so it quoted that into a single family nobody
+has and fell back to a default serif - while the bench's own ground-truth
+renderer left it unquoted and got real Arial. Every `current` row was therefore
+a comparison of two TYPEFACES, not of two pipelines, which is what put its IoU
+at 0.309. Found while implementing, and the bench now pins a single family.
 
-Two readings matter. `raster-fix` reaching 0.94 at 0 degrees - identical to
-render-through - is what proves the rasteriser carries the whole untransformed
-loss. Its fall to 0.68 once rotated is what proves the transform still costs
-something on top.
+Re-measured with the same face on both sides:
+
+| pipeline | IoU | dComp | dHole | tone |
+|---|---|---|---|---|
+| current, BEFORE this work | 0.683 | 2.96 | 0.74 | 0.80 |
+| current, AFTER the coverage rasteriser | 0.743 | **0.45** | 0.56 | **1.00** |
+| raster-fix | 0.814 | 0.21 | 0.42 | 1.09 |
+| render-through ss=4 | 0.935 | 0.01 | 0.10 | 1.05 |
+| **render-through ss=8** | **0.964** | **0.01** | **0.04** | **0.98** |
+
+~~0.309 -> 0.959~~ was the headline before the correction. The real gain from
+the rasteriser alone is **dComp 2.96 -> 0.45** - an 85% drop in the number of
+extra pieces a string comes apart into, which is the readability number - with
+tone going 0.80 -> 1.00, and IoU 0.683 -> 0.743. Rasterising through the
+transform then takes IoU to 0.935.
+
+Corroborated independently of the bench, same font on both sides, by counting
+connected pieces in `ZX SPECTRUM` at 16px [M]:
+
+| face | before | after |
+|---|---|---|
+| Arial | 17 | 9 |
+| Times New Roman | 19 | 10 |
+| Georgia | 17 | 9 |
+
+and for the rotation, `Californian FB` at 16px turned 45 degrees: **20 pieces
+resampled, 11 rasterised already-turned**, against 11 upright.
 
 ### ZX ROM glyphs, 60 cases [M]
 
@@ -178,17 +212,34 @@ the measured cost of choosing 0.10, and it is worth paying.
 
 ### Warp - all nine effects, 36 cases [M]
 
+**CORRECTED 2026-08-29, while implementing.** The first version of this table
+reported the shipped path at IoU 0.615 with dComp 21.49 and called warp "the
+worst-performing operation in the app". That was mostly the harness: the
+bench's `warpCoverage` evaluated its subsamples over `[dx, dx+1)` while
+`_applyWarpEffect`, the function it twins, evaluates at integer `dx` and lands
+with `round` - which places a pixel's square on `[dx-0.5, dx+0.5)`. The ground
+truth shared the candidate's offset, so only `current` was out of register and
+its score was largely measuring that shift. The bench now runs a self-check
+that would have caught it: at ss=1 the twin must reproduce the real function
+pixel for pixel.
+
+Re-measured with both in register:
+
 | pipeline | IoU | dComp | dHole | tone | gone |
 |---|---|---|---|---|---|
-| current (ships today) | 0.615 | 21.49 | 22.69 | 1.01 | 0 |
-| Bayer | 0.607 | 15.31 | 84.60 | 0.99 | 0 |
-| error diffusion | 0.709 | 24.26 | 37.74 | 1.00 | 0 |
-| coverage ss=8 / 0.50 | **0.959** | **1.20** | 5.66 | 0.93 | **1** |
-| **local tone, 0.10** | 0.881 | 12.06 | **2.80** | **1.01** | **0** |
+| current (ships today) | 0.965 | 2.44 | 6.17 | 1.00 | 0 |
+| Bayer | 0.712 | 13.67 | 64.72 | 1.01 | 0 |
+| error diffusion | 0.871 | 4.47 | 15.75 | 1.00 | 0 |
+| **coverage ss=8 / 0.50** | **0.985** | 0.97 | **1.89** | 1.03 | 0 |
+| local tone, 0.10 | 0.981 | **0.94** | 3.64 | 1.02 | 0 |
 
-**Warp is the worst-performing operation in the app** - `dComp` 21.49 means a
-warped stamp comes apart into roughly twenty-two more pieces than it should.
-Error diffusion is the one candidate measurably WORSE than shipping (24.26).
+**The shipped warp was never the disaster this document claimed.** The real
+gain is IoU 0.965 -> 0.985 and dComp 2.44 -> 0.97 - about 60% fewer spurious
+pieces, worth having and roughly a tenth of what was advertised. Bayer and
+error diffusion are still clearly rejected.
+
+The large 1-bit win is the **artwork** suite instead (0.720 -> 0.963, dComp
+7.39 -> 2.50), which is scale-plus-rotation, not warp.
 
 As with artwork, the local-tone row's lower IoU is trap 1, not a regression:
 the arch sheet shows plain coverage deleting the right-hand half of a warped
@@ -306,7 +357,7 @@ one corner of the window.
 
 Rejected alternatives, all measured (7.1): Bayer everywhere destroys shape
 (0.787 on glyphs, dHole 60 on artwork); error diffusion costs shape and is
-measurably WORSE than the shipped chain on warp (dComp 24.26 against 21.49);
+measurably WORSE than the shipped chain on warp (dComp 4.47 against 2.44);
 the whole-blank guard is discontinuous in the rotation angle; FontRasterizer's
 per-line rescue misfires on artwork, where a blank row is usually background.
 
@@ -353,16 +404,41 @@ sixty times a second.
 |---|---|---|
 | `SS_VECTOR` | 8 | 0.959 vs 0.937 at ss=4 [M]; browser-side cost |
 | `SS_MASK` | 8 | ss=4 measures BELOW the shipped chain (0.973 vs 0.976) [M] |
-| `INK_COVERAGE` | 0.50 | 0.959 at 0.50 vs 0.938 at 0.40, ink 0.98 vs 1.07 [M] |
+| `INK_COVERAGE` | 0.50 | the UNBIASED area cut, for 1-bit sources whose coverage is exact geometry: 0.994 against ground truth where 0.40 scores 0.944 [M] |
+| `GLYPH_COVERAGE` | 0.30 | the ink-BIASED cut, for rasterising vector glyphs. Recalibrated 2026-08-29 during implementation - see below [M] |
 | `TONE_WINDOW` | 8 | one ZX cell; 16 leaves blocky seams in the restored region (sheet) [M] |
 | `TONE_TOLERANCE` | 0.10 | of the window. 0.10 and 0.20 are within noise numerically (artwork 0.949 vs 0.954, photos 0.971 vs 0.976 - both favour 0.20 by ~0.005); the SHEETS favour 0.10 on the sparse tiles, and 0.005 is the measured price of taking them at their word [M] |
 
-`font-rasterizer.js` measured **0.40** and that is not a contradiction to
-resolve by picking one: it fits glyphs into EIGHT ROWS, where a stem is ~0.7px
-wide and a half-pixel test drops strokes that are really there. Stamps run at
-16-64px, where 0.50 is measurably better. The threshold is size-dependent and
-each site should keep its own measured value. Neither may be shared as a
-constant without re-measuring at the other's sizes.
+**Correction, 2026-08-29, found while implementing.** This section originally
+gave ONE threshold of 0.50 for both jobs, justified by the bench scoring 0.50
+above 0.40. That justification was circular: the bench's ground truth is itself
+thresholded at 0.50, so the comparison could only ever favour 0.50. **A
+threshold cannot be calibrated against a reference that already assumes it.**
+
+There are two jobs and they want different answers. For a **1-bit source**,
+coverage is exact geometric area - every source pixel is a unit square, in or
+out - so half is the unbiased and correct cut, and the bench's 0.994 for it
+stands. For a **vector glyph**, legibility rides on strokes THINNER than a
+pixel: a stem straddling two columns puts half its width in each, so an
+unbiased test drops marks that are unambiguously there.
+
+`GLYPH_COVERAGE` was therefore calibrated the way `font-rasterizer.js`
+calibrated its own - render real faces and read the bitmaps. Six faces (Arial,
+Segoe UI, Verdana, Consolas, Times New Roman, Georgia) at 12/16/24px, scoring
+`ZX SPECTRUM` against one piece per glyph and `aeo8` against its five counters.
+Total absolute error: **25 at 0.25, 20 at 0.30, 24 at 0.35, 41 at 0.40, 89 at
+0.50** - a real minimum, with letters MERGING below it (Verdana at 12px falls
+to 8 pieces) and fragmenting above it (Times at 16px reaches 26 pieces and
+loses all five counters). Sans faces are insensitive across the whole range;
+serifs at small sizes are what the value is for.
+
+The effect on the shipped path, measured the same day: `ZX SPECTRUM` at 16px
+went from 17 pieces to 9 in Arial, 19 to 10 in Times New Roman, and 17 to 9 in
+Georgia.
+
+`font-rasterizer.js`'s **0.40** remains its own: it fits glyphs into EIGHT
+ROWS, smaller again than a stamp. Three sites, three measured values, and none
+may adopt another's without re-measuring at its own sizes.
 
 ## 7. Risks
 
@@ -370,10 +446,17 @@ constant without re-measuring at the other's sizes.
 
 **A flat 0.50 cut deletes any pattern too sparse to reach half coverage
 anywhere.** A 25%-dense diagonal tile downscaled to 0.6 never reaches a half in
-any output pixel, so the whole texture disappears. The contact sheets
-(`art-pattern_diagonal_left-down.png`, `warp-pattern_diagonal_left-arch-up.png`)
-show it plainly: the shipped nearest path carries the pattern across the whole
-arch and the whole downscale, and every coverage pipeline drops most of it.
+any output pixel, so the whole texture disappears. The contact sheet
+`art-pattern_diagonal_left-down.png` shows it plainly: the shipped nearest path
+carries the pattern through the shrink at every angle, and plain coverage
+erases it.
+
+An earlier version of this section also cited
+`warp-pattern_diagonal_left-arch-up.png`. That evidence was withdrawn
+2026-08-29: the arch's missing right-hand half was the bench's own half-pixel
+warp offset, not the domain. With the harness in register every pipeline
+carries the pattern across the whole arch. **The DOWNSCALE case is the real
+one, and it is enough** - it is what `toMaskToned` exists for.
 
 This matters here more than it would in most applications, because **dither
 patterns ARE this app's shading system** - on a two-colour cell the only way to
@@ -393,7 +476,7 @@ Three remedies were measured and none is adoptable as-is:
 | Bayer dither the coverage | keeps texture at every angle, tone 1.00 | wrecks shape: ZX IoU 0.787 vs 0.994, artwork dHole 60.3 vs 3.3 |
 | per-line dropout rescue (FontRasterizer's) | vanishing, tone | misfires on artwork, where a blank row is usually background: IoU 0.963 -> 0.905 |
 | dither only when the whole stamp is blank | metric-perfect, `gone` 0 | **discontinuous in the angle** - blank at 0/15/30/60 and a dense field at 45. On a slider, a pattern flickering in and out. Rejected on the sheet |
-| Floyd-Steinberg error diffusion on the coverage | texture at EVERY angle, `gone` 0, tone 0.99-1.00, no discontinuity - the best of the tone-preserving family on the sheets | costs shape: ZX 0.910 vs 0.994, artwork 0.782 vs 0.963, and warp `dComp` 24.26 is WORSE than the 21.49 that ships. Vertical striping on a 50%-density tile |
+| Floyd-Steinberg error diffusion on the coverage | texture at EVERY angle, `gone` 0, tone 0.99-1.00, no discontinuity - the best of the tone-preserving family on the sheets | costs shape: ZX 0.910 vs 0.994, artwork 0.782 vs 0.963, and warp `dComp` 4.47 is WORSE than the 2.44 that ships. Vertical striping on a 50%-density tile |
 
 Error diffusion was tried on the specific hypothesis that it would be
 SELF-SELECTING - a solid interior is coverage 1 and background is 0, so there
@@ -484,11 +567,11 @@ The new Node suite needs no registration: `tests/run-all.js` globs
 
 | # | Figure | Value | Tag | Method |
 |---|---|---|---|---|
-| 1 | shipped vector IoU, no transform | 0.35 | M | bench, 2026-08-29, 80 cases |
-| 2 | shipped vector ink ratio | 0.72 | M | as above |
-| 3 | `ZX SPECTRUM` 16px extra components | 8 | M | bench `--detail` |
+| 1 | shipped vector IoU, no transform | 0.78 | M | bench, 2026-08-29, 80 cases, RE-MEASURED after the SYS_FONT fix. Was 0.35, which compared two typefaces |
+| 2 | shipped vector tone ratio, before | 0.80 | M | as above; 1.00 after the coverage rasteriser |
+| 3 | `ZX SPECTRUM` 16px pieces, before -> after | 17 -> 9 Arial, 19 -> 10 Times, 17 -> 9 Georgia | M | counted directly, same face both sides, 2026-08-29 - independent of the bench |
 | 4 | finest resample of shipped raster | 0.311 | M | `coverage-16/50` row |
-| 5 | render-through ss=8/0.50 | 0.959 | M | bench, vector table |
+| 5 | render-through ss=8 | 0.964 | M | bench, vector table, after the SYS_FONT fix |
 | 6 | 1-bit coverage ss=8/0.50 | 0.994 | M | bench, bitmap table |
 | 7 | 1-bit coverage ss=4/0.50 | 0.973 | M | below the 0.976 that ships |
 | 8 | rotsprite identity failure at 0 deg | 0.95 | M | bench, bitmap table |
@@ -500,19 +583,21 @@ The new Node suite needs no registration: `tests/run-all.js` globs
 | 14 | `LIVE_BUDGET_MS` | 7 ms | C | 16.7 ms frame (60fps direct manipulation) less the measured 0.04-0.89 ms rest-of-tick, halved for paint and GC headroom. Was A and a pixel count; it is now a TIME the code measures itself against, so no machine-specific constant survives |
 | 14a | rest of a slider tick, today | 0.04 ms (16x8) / 0.89 ms (352x32) | M | `SelectionService.setStampRotation` round trip, Chrome, 2026-08-29 |
 | 14b | coverage pass cost rate | 0.22 us per output pixel at ss=8 | M | 0.216-0.284 across output areas 3.2k-393k px, linear. Chrome, 2026-08-29 |
-| 15 | warp, shipped chain | 0.615 IoU / 21.49 dComp | M | bench warp suite, 36 cases, 2026-08-29. Was A; now measured |
-| 16 | warp, coverage ss=8/0.50 | 0.959 IoU / 1.20 dComp | M | as above - the largest single win in the bench |
+| 15 | warp, shipped chain | 0.965 IoU / 2.44 dComp | M | CORRECTED 2026-08-29. The earlier 0.615 / 21.49 was a harness artifact - see section 3's warp note |
+| 16 | warp, coverage ss=8/0.50 | 0.985 IoU / 0.97 dComp | M | as above. NOT the largest win in the bench - that claim rested on row 15's artifact. The artwork suite is |
 | 17 | pasted artwork, shipped chain | 0.720 IoU / 7.39 dComp | M | bench art suite, 165 cases: pattern library + shape rasters + noise + photos |
 | 18 | pasted artwork, coverage ss=8/0.50 | 0.963 IoU / 2.50 dComp | M | as above; `gone` 1, which is why 4.4 exists |
 | 19 | Bayer on a 1-bit shape source | 0.787 IoU (vs 0.994) | M | ZX suite - why dithering cannot be the blanket policy |
 | 20 | whole-blank guard, angles at which it fires on one downscale case | 1 of 5 | M | contact sheet; the discontinuity that rejected it |
-| 21a | error diffusion, ZX / artwork / warp | 0.910 / 0.782 / 0.709 IoU | M | measured 2026-08-29 to test the self-selection hypothesis; rejected - its warp `dComp` 24.26 is worse than the 21.49 that ships |
+| 21a | error diffusion, ZX / artwork / warp | 0.910 / 0.782 / 0.871 IoU | M | measured 2026-08-29 to test the self-selection hypothesis; rejected - its warp `dComp` 4.47 is worse than the 2.44 that ships. Warp figures re-measured after the harness fix |
 | 21b | local tone correction, ZX suite | 0.994 / 0.23 dComp | M | identical to plain coverage - the rule is a measured no-op on letterforms |
 | 21c | local tone correction, artwork / warp | 0.949 / 0.881 IoU, `gone` 0 both | M | BELOW plain coverage on IoU, better on the sheets and the only one with `gone` 0 - see trap 1 in the bench header. IoU is a regression guard here, not a target |
 | 21d | local tone correction cost | +0.4 / +3.7 / +15.3 ms | M | on top of the coverage pass at 120x24 / 400x64 / 640x256; worst-case fractional input, Chrome, 2026-08-29 |
 | 21 | sparse-texture policy | local tone correction, 8px window, 0.10 tolerance | M | RESOLVED 2026-08-29, section 4.4. Was A |
 | 22 | photo paste, shipped chain vs coverage | 0.794 -> 0.976 IoU | M | 54 cases through `PNGFormat.imageToInkMask`, 2026-08-29 |
 | 23 | tolerance 0.10 cost on photos | 0.005 IoU | M | 0.971 vs 0.976; the measured price of the setting the sparse-tile sheets prefer |
+| 24 | `GLYPH_COVERAGE` | 0.30 | M | six faces at 12/16/24px, total absolute error 25/20/24/41/89 at 0.25/0.30/0.35/0.40/0.50. Replaces the spec's original 0.50, which was calibrated against a ground truth that already used 0.50 |
+| 25 | thresholded ink varies with rotation angle | 10-16% | M | Arial 24px through render-through: 548 ink at 0 deg, 458 at 45, 487 at 90 - while the CONTINUOUS area is invariant at 410. The 1-bit cut interacting with orientation, not a loss |
 
 **No A-tagged figures remain.** Rows 14, 15 and 21 were all A in earlier
 drafts: row 15's measurement SUPPORTED the design, row 21's initially REFUTED

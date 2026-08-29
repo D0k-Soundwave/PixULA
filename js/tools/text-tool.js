@@ -540,36 +540,166 @@ class TextToolClass extends ToolBase {
   }
 
   /**
-   * Rasterize a string to an UNTRIMMED alpha-thresholded mask. Split out of
+   * Rasterize a string to an UNTRIMMED mask. Split out of
    * `_rasterizeWithFont` because the vertical layouts need every character
    * measured against the same box: trimming each letter to its own ink first
    * would stack an 'o' and an 'A' at the same height and throw the baselines
    * away.
+   *
+   * Each output pixel is decided from the COVERAGE of an ss x ss block, not
+   * from one alpha sample at its centre. That single sample is why this used
+   * to lose stroke weight wherever a stroke is thinner than a pixel: measured
+   * 2026-08-29, four bare stems ('IIII' at 16px) weighed 0.811 of a correct
+   * render, and `ZX SPECTRUM` at 16px came apart into 19 connected pieces.
+   * A mixed string hides it - 'Hamburgefonstiv' weighed 0.925, because its
+   * bowls and crossbars are wide enough to survive a centre sample.
+   *
+   * `js/utils/font-rasterizer.js` reached the same conclusion for the Font
+   * Editor in 2026-08-19; this is that fix, on the path that never got it.
+   * Its threshold is 0.40 and this one is 0.30, and both are measured at their
+   * own sizes - see `CoverageOps.GLYPH_COVERAGE`, which is deliberately NOT
+   * the unbiased `INK_COVERAGE` a 1-bit source takes.
+   *
    * @returns {{ pixels: boolean[][], width: number, height: number }}
    * @private
    */
   _rasterizeRaw(text, fontFamily, fontSize, bold, italic) {
-    const off = Helpers.createCanvas(1, 1);
-    const ctx = off.getContext('2d');
+    const ss = CoverageOps.SUPERSAMPLE;
     const weight  = bold   ? 'bold'   : 'normal';
     const style   = italic ? 'italic' : 'normal';
-    const fontStr = `${style} ${weight} ${fontSize}px "${fontFamily}"`;
-    ctx.font = fontStr;
-    const metrics = ctx.measureText(text);
-    const w = Math.max(1, Math.ceil(metrics.width) + 2);
-    const h = Math.max(1, Math.ceil(fontSize * 1.5));
-    off.width = w; off.height = h;
-    ctx.font = fontStr;
-    ctx.fillStyle = '#000'; ctx.textBaseline = 'top';
-    ctx.fillText(text, 1, 0);
-    const data = ctx.getImageData(0, 0, w, h).data;
 
-    return {
-      pixels: Array.from({ length: h }, (_, ry) =>
-        Array.from({ length: w }, (_, rx) => data[(ry * w + rx) * 4 + 3] > 127)),
-      width:  w,
-      height: h
-    };
+    // Measure at the FINAL size, then render at ss times it. Measuring at the
+    // supersampled size and dividing would let a rounding difference in the
+    // font's advance widths change the output box.
+    const probe = Helpers.createCanvas(1, 1);
+    const pctx = probe.getContext('2d');
+    pctx.font = `${style} ${weight} ${fontSize}px "${fontFamily}"`;
+    const w = Math.max(1, Math.ceil(pctx.measureText(text).width) + 2);
+    const h = Math.max(1, Math.ceil(fontSize * 1.5));
+
+    const off = Helpers.createCanvas(w * ss, h * ss);
+    const ctx = off.getContext('2d');
+    ctx.font = `${style} ${weight} ${fontSize * ss}px "${fontFamily}"`;
+    ctx.fillStyle = '#000';
+    ctx.textBaseline = 'top';
+    ctx.fillText(text, 1 * ss, 0);
+    const data = ctx.getImageData(0, 0, w * ss, h * ss).data;
+
+    // Box-filter each ss x ss block into one coverage fraction, then take the
+    // single threshold this whole function exists to defer. The alpha sum is
+    // compared against a pre-multiplied cut rather than divided down first -
+    // the same decision, one less division per pixel, and this inner loop runs
+    // once per subsample of every stamp.
+    const rowStride = w * ss;
+    const cut = CoverageOps.GLYPH_COVERAGE * 255 * ss * ss;
+    const pixels = [];
+    for (let y = 0; y < h; y++) {
+      const row = new Array(w);
+      for (let x = 0; x < w; x++) {
+        let alpha = 0;
+        for (let j = 0; j < ss; j++) {
+          const base = ((y * ss + j) * rowStride + x * ss) * 4 + 3;
+          for (let i = 0; i < ss; i++) alpha += data[base + i * 4];
+        }
+        row[x] = alpha >= cut;
+      }
+      pixels.push(row);
+    }
+
+    return { pixels, width: w, height: h };
+  }
+
+  /**
+   * Rasterize a string THROUGH a transform: the rotation goes into the canvas
+   * matrix, so the font engine draws an already-turned outline rather than a
+   * resampler turning a picture of one.
+   *
+   * This is not a better resampler, it is the absence of one. Measured
+   * 2026-08-29: resampling the thresholded raster holds 0.94 unrotated and
+   * falls to 0.68 at 45 degrees, while this holds 0.96 at every angle with the
+   * component count essentially unchanged. Only a VECTOR font can do it - a
+   * bitmap glyph has no outline to re-rasterise, which is why the 1-bit
+   * sources need a different answer entirely.
+   *
+   * Placement is measured before it is drawn. `textBaseline` centres on the em
+   * box while every other stage of the stamp pipeline centres on INK, and the
+   * gap between those is several pixels of pure misalignment - it would read
+   * as the stamp jumping the moment it engaged. So: one pass to find where the
+   * ink actually sits relative to the draw origin, then draw about that point.
+   *
+   * Returns raw COVERAGE. The caller thresholds, and for a glyph that means
+   * `CoverageOps.GLYPH_COVERAGE` rather than the unbiased area cut.
+   *
+   * @param {string} text
+   * @param {string} fontFamily - a SINGLE family; a CSS list would be quoted
+   *   into one name nobody has and fall back silently
+   * @param {number} fontSize - the FINAL size in px, scale already applied
+   * @param {number} degrees - clockwise
+   * @param {{w: number, h: number}} box - the output box, in final pixels
+   * @returns {{data: Float32Array, w: number, h: number}} coverage
+   * @private
+   */
+  _renderThrough(text, fontFamily, fontSize, degrees, box) {
+    const ss = CoverageOps.SUPERSAMPLE;
+    const out = CoverageOps.create(box.w, box.h);
+    if (!text || box.w <= 0 || box.h <= 0) return out;
+
+    const fs = fontSize * ss;
+    const font = `${fs}px "${fontFamily}"`;
+    const pad = Math.ceil(fs);
+
+    // Pass 1 - where is this string's ink, relative to the draw origin?
+    const probe = Helpers.createCanvas(
+      Math.ceil(fs * (text.length + 2)) + pad * 2, Math.ceil(fs * 3));
+    const pctx = probe.getContext('2d');
+    pctx.font = font;
+    pctx.textBaseline = 'alphabetic';
+    pctx.fillStyle = '#000';
+    const originX = pad, originY = Math.round(fs * 1.5);
+    pctx.fillText(text, originX, originY);
+
+    const pw = probe.width, ph = probe.height;
+    const pd = pctx.getImageData(0, 0, pw, ph).data;
+    let x0 = pw, y0 = ph, x1 = -1, y1 = -1;
+    for (let y = 0; y < ph; y++) {
+      for (let x = 0; x < pw; x++) {
+        if (pd[(y * pw + x) * 4 + 3] > 8) {
+          if (x < x0) x0 = x;
+          if (x > x1) x1 = x;
+          if (y < y0) y0 = y;
+          if (y > y1) y1 = y;
+        }
+      }
+    }
+    if (x1 < 0) return out;                       // drew nothing
+    const cx = (x0 + x1 + 1) / 2, cy = (y0 + y1 + 1) / 2;
+
+    // Pass 2 - draw about that ink centre, rotation in the matrix
+    const W = box.w * ss, H = box.h * ss;
+    const canvas = Helpers.createCanvas(W, H);
+    const ctx = canvas.getContext('2d');
+    ctx.translate(W / 2, H / 2);
+    ctx.rotate(degrees * Math.PI / 180);
+    ctx.translate(-cx, -cy);
+    ctx.font = font;
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = '#000';
+    ctx.fillText(text, originX, originY);
+
+    // Box-filter each ss x ss block into a coverage fraction
+    const data = ctx.getImageData(0, 0, W, H).data;
+    const samples = ss * ss * 255;
+    for (let y = 0; y < box.h; y++) {
+      for (let x = 0; x < box.w; x++) {
+        let alpha = 0;
+        for (let j = 0; j < ss; j++) {
+          const base = ((y * ss + j) * W + x * ss) * 4 + 3;
+          for (let i = 0; i < ss; i++) alpha += data[base + i * 4];
+        }
+        out.data[y * box.w + x] = alpha / samples;
+      }
+    }
+    return out;
   }
 
   /** Ink bounds of a raw mask, or null where it drew nothing. @private */
