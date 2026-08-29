@@ -734,7 +734,8 @@ class SelectionServiceClass {
         // better than a nearest resample: 0.976 to 0.994 on the bench's glyph
         // suite.
         srcCov = CoverageOps.transform(CoverageOps.fromMask(srcPixels),
-          { scaleX: targetW / srcW, scaleY: targetH / srcH }, { w: targetW, h: targetH });
+          { scaleX: targetW / srcW, scaleY: targetH / srcH }, { w: targetW, h: targetH },
+          this._coverageSS());
         srcPixels = null;
         srcW = targetW; srcH = targetH;
       } else if (tool && (fp._rotation || fi.direction)
@@ -831,23 +832,39 @@ class SelectionServiceClass {
     const wantsSpin = fp._rotation !== 0 && !rotationApplied;
 
     if (srcCov || wantsEffects || wantsDirection || wantsWarp || wantsSpin) {
+      // Time the first pass of a gesture. One overrun is enough to decide -
+      // re-timing every tick would spend the budget discovering it is out of
+      // budget.
+      const timing = this._gestureActive && !this._gestureCheap;
+      const t0 = timing ? performance.now() : 0;
+      const ss = this._coverageSS();
+
       let cov = srcCov || CoverageOps.fromMask(srcPixels);
       if (wantsEffects) cov = CoverageOps.process(cov, fInfo);
       if (wantsDirection) {
         cov = CoverageOps.transform(cov, { degrees: fInfo.direction },
-          CoverageOps.boxFor(cov.w, cov.h, { degrees: fInfo.direction }));
+          CoverageOps.boxFor(cov.w, cov.h, { degrees: fInfo.direction }), ss);
       }
-      if (wantsWarp) cov = CoverageOps.warp(cov, fp._warpEffect);
+      if (wantsWarp) cov = CoverageOps.warp(cov, fp._warpEffect, 0.5, ss);
       if (wantsSpin) {
         cov = CoverageOps.transform(cov, { degrees: fp._rotation },
-          CoverageOps.boxFor(cov.w, cov.h, { degrees: fp._rotation }));
+          CoverageOps.boxFor(cov.w, cov.h, { degrees: fp._rotation }), ss);
       }
+
       // toMaskToned, never plain toMask: a sparse dither field thresholds to
       // NOTHING, and on a two-colour cell dithering is the only way to fake a
       // grey - the pattern library's whole spine is a density ramp.
-      srcPixels = CoverageOps.toMaskToned(cov);
+      //
+      // At ss = 1 the map is binary, so there is no tone for the rule to put
+      // back and the window scan would be pure cost - the cheap path takes the
+      // plain threshold.
+      srcPixels = ss === 1 ? CoverageOps.toMask(cov) : CoverageOps.toMaskToned(cov);
       srcW = cov.w;
       srcH = cov.h;
+
+      if (timing && performance.now() - t0 > CoverageOps.LIVE_BUDGET_MS) {
+        this._gestureCheap = true;
+      }
     }
 
     // ── Indexed stamps: keep the per-pixel indices through a plain scale;
@@ -879,6 +896,37 @@ class SelectionServiceClass {
   }
 
   /**
+   * Bracket a continuous gesture - a slider drag, a warp being scrubbed.
+   *
+   * Preview cheap, commit exact: the split the Transform panel's image-rotation
+   * slider already uses. The FIRST coverage pass inside the bracket is timed,
+   * and if it overruns `CoverageOps.LIVE_BUDGET_MS` the rest of the gesture
+   * takes the nearest-neighbour path at ss = 1 - the same cost as before any of
+   * this - with the exact pass taken once on release.
+   *
+   * Only a gesture degrades. Setting a value once, from a menu or a preset or a
+   * restored document, has no bracket around it and always takes the exact
+   * path however large the stamp is.
+   */
+  beginStampGesture() {
+    this._gestureActive = true;
+    this._gestureCheap = false;
+  }
+
+  /** Close the bracket, and recompute exactly if the gesture had gone cheap. */
+  endStampGesture() {
+    const wasCheap = this._gestureCheap;
+    this._gestureActive = false;
+    this._gestureCheap = false;
+    if (wasCheap && this.floatingPaste) this._recomputeStampTransform();
+  }
+
+  /** Whether the current gesture has given up on the exact path. */
+  isStampGestureCheap() {
+    return !!this._gestureCheap;
+  }
+
+  /**
    * Scale a 1-bit mask into the coverage domain.
    *
    * A pasted stamp has no finer form than its own pixels, so treating each as
@@ -891,7 +939,18 @@ class SelectionServiceClass {
    */
   _scaleInCoverage(mask, srcW, srcH, dstW, dstH) {
     return CoverageOps.transform(CoverageOps.fromMask(mask),
-      { scaleX: dstW / srcW, scaleY: dstH / srcH }, { w: dstW, h: dstH });
+      { scaleX: dstW / srcW, scaleY: dstH / srcH }, { w: dstW, h: dstH },
+      this._coverageSS());
+  }
+
+  /**
+   * Subsamples for this pass: the full count normally, 1 once a gesture has
+   * overrun its budget. At 1 the coverage map degenerates to nearest-
+   * neighbour, which is exactly what the old boolean path cost.
+   * @private
+   */
+  _coverageSS() {
+    return this._gestureCheap ? 1 : CoverageOps.SUPERSAMPLE;
   }
 
   /**
