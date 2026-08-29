@@ -266,9 +266,153 @@ class TransformServiceClass {
     Logger.debug('TransformService', 'Flip vertical applied');
   }
 
+  /** Is this buffer entry a marked pixel? Indexed entries carry `idx`. */
+  _entryIsInk(p) { return p.idx !== undefined ? p.idx >= 0 : !!p.isInk; }
+
+  /** The empty counterpart of a buffer entry, keeping its cell colours. */
+  _blankEntry(p) {
+    return p.idx !== undefined
+      ? { idx: -1 }
+      : { isInk: false, ink: p.ink, paper: p.paper, bright: p.bright, flash: p.flash };
+  }
+
   /**
-   * Rotate 90 degrees clockwise
-   * Note: For non-square selections, this may crop or pad pixels
+   * Bounding box of the marked pixels in an attributed buffer, or null if it
+   * holds none.
+   * @private
+   */
+  _inkBounds(buf) {
+    let minX = Infinity, minY = Infinity, maxX = -1, maxY = -1;
+    for (let y = 0; y < buf.length; y++) {
+      for (let x = 0; x < buf[y].length; x++) {
+        if (!this._entryIsInk(buf[y][x])) continue;
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+    return maxX < 0 ? null : { minX, minY, maxX, maxY };
+  }
+
+  /**
+   * Shrink an attributed buffer, PREFERRING INK.
+   *
+   * Each output pixel covers a rectangle of source pixels and takes the first
+   * marked one in it, falling back to the top-left. Point-sampling instead
+   * (the plain nearest-neighbour `scale()` uses) drops any mark that happens
+   * to fall between the sampled rows: shrinking by 0.87 discards 13% of the
+   * source rows outright, so a one-pixel mark simply vanishes - which is the
+   * loss this whole path exists to prevent, reappearing one tier down.
+   *
+   * This is the same rule the screen-mode converter uses when it halves a
+   * grid (SET pixels win the merge), so a shrink here reads the way a mode
+   * change does. Marks can still MERGE when two land in one output pixel;
+   * that is inherent to shrinking, and unlike dropping them it is visible.
+   * @private
+   */
+  _shrinkPreferInk(buf, newW, newH) {
+    const h = buf.length, w = buf[0].length;
+    const out = [];
+    for (let y = 0; y < newH; y++) {
+      const row = [];
+      const y0 = Math.floor(y * h / newH);
+      const y1 = Math.max(y0 + 1, Math.floor((y + 1) * h / newH));
+      for (let x = 0; x < newW; x++) {
+        const x0 = Math.floor(x * w / newW);
+        const x1 = Math.max(x0 + 1, Math.floor((x + 1) * w / newW));
+        let pick = buf[y0][x0];
+        outer:
+        for (let sy = y0; sy < y1 && sy < h; sy++) {
+          for (let sx = x0; sx < x1 && sx < w; sx++) {
+            if (this._entryIsInk(buf[sy][sx])) { pick = buf[sy][sx]; break outer; }
+          }
+        }
+        row.push(pick);
+      }
+      out.push(row);
+    }
+    return out;
+  }
+
+  /**
+   * Place a rotated buffer back into the work area WITHOUT destroying marks.
+   *
+   * A 90-degree turn of a non-square area does not fit the box it came from -
+   * on the whole 256x192 canvas the result is 192x256 - and the old code
+   * simply centred it and let whatever fell outside be written out of bounds
+   * and lost. On the full canvas that silently destroyed source columns 0-31
+   * and 224-255 while padding 64 columns of blank paper, so turning a picture
+   * twice did not give it back. Clipping is the one outcome a transform must
+   * not have: it is not recoverable by another transform, and nothing on
+   * screen says it happened.
+   *
+   * Three tiers, cheapest and most faithful first, so the lossy one runs only
+   * where the alternative is losing the marks outright:
+   *
+   *   1. CENTRE, as before. The common case - a motif inside a selection, or
+   *      any square area - lands here and is bit-for-bit what it always was.
+   *   2. SHIFT, when centring would clip but the marked region itself fits.
+   *      Off-centre but lossless, and lossless beats centred.
+   *   3. SHRINK, only when the marked region is genuinely wider or taller than
+   *      the box, by the LEAST factor that makes it fit, ink-preferring so no
+   *      mark is dropped (`_shrinkPreferInk`). Marks can merge, which shrinking
+   *      always can; none disappears, which is what the old behaviour could not
+   *      say. Undo covers it.
+   *
+   * @param {Array[][]} rotated - the turned buffer
+   * @param {Array[][]} src - the original buffer, read for its cell colours
+   * @param {Object} area - { x, y, width, height }
+   * @returns {Array[][]} a buffer the size of `area`
+   * @private
+   */
+  _placeRotated(rotated, src, area) {
+    let buf = rotated;
+    let box = this._inkBounds(buf);
+
+    // Tier 3: shrink only if a shift could not save the marks either.
+    if (box) {
+      const inkW = box.maxX - box.minX + 1;
+      const inkH = box.maxY - box.minY + 1;
+      const f = Math.min(1, area.width / inkW, area.height / inkH);
+      if (f < 1) {
+        buf = this._shrinkPreferInk(buf,
+          Math.max(1, Math.round(buf[0].length * f)),
+          Math.max(1, Math.round(buf.length * f)));
+        box = this._inkBounds(buf);
+      }
+    }
+
+    const output = src.map(row => row.map(p => this._blankEntry(p)));
+    const bw = buf[0].length, bh = buf.length;
+    let offX = Math.floor((area.width  - bw) / 2);
+    let offY = Math.floor((area.height - bh) / 2);
+
+    // Tiers 1 and 2 are one step: clamp the centred offset into the range that
+    // keeps the marked region inside. Already inside -> the clamp is a no-op
+    // and the placement is the centred one. The `lo <= hi` guard is the case
+    // the shrink above could not quite close through rounding; centring is the
+    // honest fallback there.
+    if (box) {
+      const loX = -box.minX, hiX = area.width  - 1 - box.maxX;
+      const loY = -box.minY, hiY = area.height - 1 - box.maxY;
+      if (loX <= hiX) offX = Helpers.clamp(offX, loX, hiX);
+      if (loY <= hiY) offY = Helpers.clamp(offY, loY, hiY);
+    }
+
+    for (let ry = 0; ry < bh; ry++) {
+      for (let rx = 0; rx < buf[ry].length; rx++) {
+        const dx = offX + rx, dy = offY + ry;
+        if (dx >= 0 && dx < area.width && dy >= 0 && dy < area.height) output[dy][dx] = buf[ry][rx];
+      }
+    }
+    return output;
+  }
+
+  /**
+   * Rotate 90 degrees clockwise.
+   * A non-square area does not fit the box it came from; `_placeRotated`
+   * shifts or, as a last resort, shrinks rather than clipping.
    */
   rotate90CW() {
     const area = this._getWorkArea();
@@ -285,16 +429,7 @@ class TransformServiceClass {
       rotated.push(row);
     }
 
-    // Place rotated content centered in the original bounding box (all-paper padding)
-    const output = src.map(row => row.map(p => ({ isInk: false, ink: p.ink, paper: p.paper, bright: p.bright, flash: p.flash })));
-    const offsetX = Math.floor((area.width  - rotated[0].length) / 2);
-    const offsetY = Math.floor((area.height - rotated.length)    / 2);
-    for (let ry = 0; ry < rotated.length; ry++) {
-      for (let rx = 0; rx < rotated[ry].length; rx++) {
-        const dx = offsetX + rx, dy = offsetY + ry;
-        if (dx >= 0 && dx < area.width && dy >= 0 && dy < area.height) output[dy][dx] = rotated[ry][rx];
-      }
-    }
+    const output = this._placeRotated(rotated, src, area);
 
     PixelDrawRoutine.beginBatch();
     this._applyBufferWithAttrs(output, area);
@@ -322,16 +457,7 @@ class TransformServiceClass {
       rotated.push(row);
     }
 
-    // Place centered in original bounding box (all-paper padding)
-    const output = src.map(row => row.map(p => ({ isInk: false, ink: p.ink, paper: p.paper, bright: p.bright, flash: p.flash })));
-    const offsetX = Math.floor((area.width  - rotated[0].length) / 2);
-    const offsetY = Math.floor((area.height - rotated.length)    / 2);
-    for (let ry = 0; ry < rotated.length; ry++) {
-      for (let rx = 0; rx < rotated[ry].length; rx++) {
-        const dx = offsetX + rx, dy = offsetY + ry;
-        if (dx >= 0 && dx < area.width && dy >= 0 && dy < area.height) output[dy][dx] = rotated[ry][rx];
-      }
-    }
+    const output = this._placeRotated(rotated, src, area);
 
     PixelDrawRoutine.beginBatch();
     this._applyBufferWithAttrs(output, area);
