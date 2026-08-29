@@ -1222,6 +1222,33 @@ class SelectionServiceClass {
     }
 
     this.floatingPaste = null;
+
+    // Hand the drawing layer back. A disengaged stamp is not a layer anybody
+    // draws into - it was just emptied above - so leaving it CURRENT pointed
+    // every later `LayerManager.getCurrentLayer()` read at an empty layer:
+    // TransformService's four, and PixelDrawRoutine's own default target. The
+    // artist's report was "transform with nothing selected stopped affecting
+    // the picture", and the cause was three menus away from the symptom.
+    //
+    // This used to be each CALLER's job, and two of the four never did it -
+    // the layer panel's Disengage button and its stamp-delete path restored,
+    // `selection-tool.activate()` and the Enter-key path did not. So pressing
+    // M for the selection tool after using a stamp, which is exactly what you
+    // do to check that nothing is selected, was the way in. One question with
+    // four answers, two of them wrong; it belongs here, where it is asked once.
+    //
+    // Only when the stamp being disengaged is the one we are STANDING on. The
+    // layer panel selects the next stamp BEFORE calling
+    // startComponentReposition, which disengages the previous one through
+    // here - an unconditional restore would undo that selection and break
+    // switching from one stamp to another.
+    if (fp.floatingLayer && LayerManager.currentLayerIndex === fp.floatingLayer.index) {
+      const drawIdx = LayerManager.activeDrawLayerIndex;
+      if (drawIdx >= 1 && drawIdx < LayerManager.layers.length) {
+        LayerManager.setCurrentLayer(drawIdx);
+      }
+    }
+
     EventBus.emit(EVENTS.CANVAS_RENDER);
   }
 
