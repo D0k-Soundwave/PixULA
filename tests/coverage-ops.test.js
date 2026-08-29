@@ -214,4 +214,47 @@ check('process: IGNORES direction - rotation belongs to transform()',
   eq(CoverageOps.toMask(CoverageOps.process(fxCov, { direction: 90 })), fxMask));
 
 
+// -- local tone correction ---------------------------------------------------
+check('TONE_WINDOW is 8 - a 16px window leaves visible blocky seams',
+  CoverageOps.TONE_WINDOW === 8);
+check('TONE_TOLERANCE is 0.10', CoverageOps.TONE_TOLERANCE === 0.10);
+
+// A LETTERFORM: interior fully covered, background empty. The threshold loses
+// no tone, so the rule must not fire - measured on the bench's glyph suite it
+// matches plain coverage to three decimals, and that no-op is what makes it
+// safe to apply everywhere.
+const shape = CoverageOps.create(16, 16);
+for (let y = 4; y < 12; y++) for (let x = 4; x < 12; x++) shape.data[y * 16 + x] = 1;
+check('toneCorrect: a solid shape is untouched - the threshold lost no tone',
+  eq(CoverageOps.toMaskToned(shape), CoverageOps.toMask(shape)));
+
+// A DITHER FIELD: 0.25 everywhere. A plain threshold empties it; the rule must
+// put the tone back.
+const field = CoverageOps.create(16, 16);
+field.data.fill(0.25);
+check('toneCorrect: a plain threshold deletes a 25% field',
+  CoverageOps.toMask(field).every(r => r.every(v => !v)));
+const toned = CoverageOps.toMaskToned(field);
+const tonedInk = toned.reduce((n, r) => n + r.filter(Boolean).length, 0);
+check(`toneCorrect: restores it at roughly the right density (${tonedInk}/256)`,
+  tonedInk > 0.15 * 256 && tonedInk < 0.35 * 256);
+
+// Pixels come back in order of COVERAGE, so the restored texture follows the
+// artwork's own geometry. Ranking in Bayer order replaced a checkerboard with
+// its own weave; here the higher-covered half must be the one that inks.
+const graded = CoverageOps.create(8, 8);
+for (let y = 0; y < 8; y++) {
+  for (let x = 0; x < 8; x++) graded.data[y * 8 + x] = (x < 4) ? 0.35 : 0.15;
+}
+check('toneCorrect: puts ink back where the coverage is highest', (() => {
+  const m = CoverageOps.toMaskToned(graded);
+  const left = m.reduce((n, r) => n + r.slice(0, 4).filter(Boolean).length, 0);
+  const right = m.reduce((n, r) => n + r.slice(4).filter(Boolean).length, 0);
+  return left > right;
+})());
+
+check('toneCorrect: an empty buffer is safe',
+  eq(CoverageOps.toMaskToned(CoverageOps.create(0, 0)), []));
+
+
 summary();
