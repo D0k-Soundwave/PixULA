@@ -377,12 +377,26 @@ class ReferenceLayerServiceClass {
      * @param {number} y - Y offset in pixels
      */
     setOffset(x, y) {
-        this.offsetX = x;
-        this.offsetY = y;
+        // A non-finite offset is never a placement anyone asked for, and it
+        // spreads: it renders as nothing, it blanks the panel's number field
+        // (which rejects a NaN assignment by going empty), and the next nudge
+        // then reads that empty field and sends the axis to the origin - the
+        // image jumping to a corner. Hold the last good value per axis
+        // instead, and say so, because it means a caller upstream is wrong.
+        if (!Number.isFinite(x) || !Number.isFinite(y)) {
+            Logger.warn('ReferenceLayerService',
+                `Ignoring non-finite offset (${x}, ${y}); keeping ` +
+                `(${this.offsetX}, ${this.offsetY})`);
+        }
+        if (Number.isFinite(x)) this.offsetX = x;
+        if (Number.isFinite(y)) this.offsetY = y;
         this._render();
         this._saveState();
 
-        EventBus.emit(EVENTS.REFERENCE_OFFSET_CHANGED, { x, y });
+        // The fact reports what the service actually holds, not the arguments
+        // it was handed - otherwise a rejected value would still be announced
+        // and every listener would render a placement that is not in force.
+        EventBus.emit(EVENTS.REFERENCE_OFFSET_CHANGED, { x: this.offsetX, y: this.offsetY });
     }
 
     /**
@@ -486,6 +500,11 @@ class ReferenceLayerServiceClass {
      */
     fitToCanvas(mode = 'contain') {
         if (!this.image) return;
+        // Same guard as centerImage: fitting divides by the image's own
+        // dimensions, so a not-yet-decoded image gives a division by zero and
+        // an infinite scale, and an absent one gives NaN - either way the
+        // placement stops being a number and the image lands in a corner.
+        if (!this.image.naturalWidth || !this.image.naturalHeight) return;
 
         this.fitMode = mode;
         const imgWidth = this.image.naturalWidth;
@@ -545,6 +564,11 @@ class ReferenceLayerServiceClass {
      */
     centerImage() {
         if (!this.image) return;
+        // naturalWidth/Height are 0 until the decode completes. Centring on a
+        // zero-sized image is not merely useless, it puts the image at half
+        // the canvas and, if the dimensions are absent rather than zero, makes
+        // the offset NaN - which is how a placement ends up in a corner.
+        if (!this.image.naturalWidth || !this.image.naturalHeight) return;
 
         const scaleValue = this.scale / 100;
         const imgWidth = this.image.naturalWidth * scaleValue;

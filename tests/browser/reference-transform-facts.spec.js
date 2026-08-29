@@ -175,3 +175,99 @@ test('the real direction pad, pressed after Center, moves one pixel', async ({ p
     expect(after.svc.x).toBe(Math.round(centred.svc.x) + 1);
     expect(after.svc.y).toBe(centred.svc.y);
 });
+
+/*
+ * The "jumps to a corner" half of the report.
+ *
+ * The panel commits BOTH offset fields on every nudge, and it used to read
+ * each with `parseInt(field.value, 10) || 0` - which turns "unreadable" into
+ * "origin". A number input reports "" for anything it cannot parse, and it is
+ * left that way by an assignment it rejects, so writing a NaN to one blanks
+ * it. One blank field therefore sent that axis to 0 on the next press of the
+ * pad, whichever way the press pointed: after a Fit at y = 53.33, one press
+ * of the RIGHT arrow moved the image to y = 0.
+ */
+
+/** Put a field into the state a rejected write leaves it in. */
+const blankField = (page, id) => page.evaluate((sel) => {
+    document.querySelector(sel).value = '';
+}, id);
+
+const nudgeX = (page) => page.evaluate(() => {
+    const xi = document.querySelector('#ref-offset-x');
+    xi.value = String(Math.round(ReferenceLayerService.offsetX) + 1);
+    xi.dispatchEvent(new Event('change', { bubbles: true }));
+});
+
+const nudgeY = (page) => page.evaluate(() => {
+    const yi = document.querySelector('#ref-offset-y');
+    yi.value = String(Math.round(ReferenceLayerService.offsetY) + 1);
+    yi.dispatchEvent(new Event('change', { bubbles: true }));
+});
+
+test('an unreadable field leaves its own axis alone instead of zeroing it', async ({ page }) => {
+    await boot(page);
+    await loadReference(page);
+
+    await page.evaluate(() => ReferenceLayerService.fitToCanvas('contain'));
+    const fitted = await state(page);
+    // The fixture is square on a 4:3 canvas, so a contain-fit centres it
+    // horizontally: X is the axis that has something to lose.
+    expect(fitted.svc.x).toBeGreaterThan(0);
+
+    await blankField(page, '#ref-offset-x');
+    await nudgeY(page);
+
+    const after = await state(page);
+    expect(after.svc.y).toBe(Math.round(fitted.svc.y) + 1);
+    // The axis whose field was unreadable must NOT have gone to the origin.
+    expect(after.svc.x).toBe(Math.round(fitted.svc.x));
+});
+
+test('a blanked field repairs itself on the next commit', async ({ page }) => {
+    await boot(page);
+    await loadReference(page);
+
+    await page.evaluate(() => ReferenceLayerService.fitToCanvas('contain'));
+    await blankField(page, '#ref-offset-x');
+    await nudgeY(page);
+
+    const after = await state(page);
+    expect(Number.isNaN(after.ui.x)).toBe(false);
+    expect(after.ui.x).toBe(Math.round(after.svc.x));
+});
+
+test('a non-finite offset is refused rather than stored', async ({ page }) => {
+    await boot(page);
+    await loadReference(page);
+
+    await page.evaluate(() => ReferenceLayerService.setOffset(12, 34));
+    await page.evaluate(() => ReferenceLayerService.setOffset(NaN, undefined));
+
+    const after = await state(page);
+    expect(after.svc.x).toBe(12);
+    expect(after.svc.y).toBe(34);
+    // ...and the readout was never blanked by the rejected write.
+    expect(after.ui.x).toBe(12);
+    expect(after.ui.y).toBe(34);
+});
+
+test('Center and Fit refuse an image that has not decoded yet', async ({ page }) => {
+    await boot(page);
+    await loadReference(page);
+
+    // naturalWidth is 0 before a decode completes; centring or fitting on that
+    // divides by zero or produces NaN, and the placement stops being a number.
+    const result = await page.evaluate(() => {
+        ReferenceLayerService.setOffset(20, 20);
+        const real = ReferenceLayerService.image;
+        ReferenceLayerService.image = { naturalWidth: 0, naturalHeight: 0 };
+        ReferenceLayerService.centerImage();
+        ReferenceLayerService.fitToCanvas('contain');
+        const held = [ReferenceLayerService.offsetX, ReferenceLayerService.offsetY];
+        ReferenceLayerService.image = real;
+        return held;
+    });
+
+    expect(result).toEqual([20, 20]);
+});
