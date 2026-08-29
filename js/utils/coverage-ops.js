@@ -22,6 +22,33 @@
  *
  * Pure and dependency-free (Node-tested in tests/coverage-ops.test.js).
  */
+/**
+ * 8x8 ordered (Bayer) threshold matrix, 0..63.
+ *
+ * Used ONLY to break ties when tone correction ranks equally-covered pixels. A
+ * uniform field has no coverage order at all, and without a tie-break the ink
+ * it puts back clumps into one corner of every window instead of scattering.
+ * It is deliberately NOT used to threshold: dithering the whole buffer keeps
+ * tone but wrecks shape (0.787 against 0.994 on the bench's glyph suite) and
+ * replaces a checkerboard with its own weave.
+ */
+const BAYER8 = (() => {
+    let g = [[0]];
+    for (let k = 1; k < 4; k++) {
+        const n = g.length, out = [];
+        for (let y = 0; y < n * 2; y++) out.push(new Array(n * 2).fill(0));
+        for (let y = 0; y < n; y++) {
+            for (let x = 0; x < n; x++) {
+                const v = g[y][x] * 4;
+                out[y][x] = v; out[y][x + n] = v + 2;
+                out[y + n][x] = v + 3; out[y + n][x + n] = v + 1;
+            }
+        }
+        g = out;
+    }
+    return g;
+})();
+
 const CoverageOps = {
 
     /**
@@ -77,6 +104,25 @@ const CoverageOps = {
      */
     GLYPH_COVERAGE: 0.30,
 
+    /**
+     * Tone-correction window edge, in px. One ZX cell.
+     *
+     * 8. At 16 the restored region shows visible blocky seams - it is on the
+     * contact sheet, and no metric caught it.
+     */
+    TONE_WINDOW: 8,
+
+    /**
+     * Tone error, as a fraction of the window, that must be exceeded before
+     * anything is put back.
+     *
+     * 0.10. Numerically 0.10 and 0.20 are within noise of each other (artwork
+     * 0.949 against 0.954, photos 0.971 against 0.976, both favouring 0.20 by
+     * ~0.005); the contact sheets favour 0.10 on the sparse tiles, and 0.005
+     * of IoU is the measured price of taking them at their word.
+     */
+    TONE_TOLERANCE: 0.10,
+
     /** @returns {{data: Float32Array, w: number, h: number}} an empty buffer */
     create(w, h) {
         return { data: new Float32Array(Math.max(0, w) * Math.max(0, h)), w, h };
@@ -124,6 +170,77 @@ const CoverageOps = {
             const row = new Array(cov.w);
             for (let x = 0; x < cov.w; x++) row[x] = cov.data[y * cov.w + x] >= threshold;
             out.push(row);
+        }
+        return out;
+    },
+
+    /**
+     * Leave the domain, putting back tone the threshold destroyed.
+     *
+     * The trigger is not "is the transform compressing" - a downscaled glyph
+     * compresses too, and dithering one is exactly what must not happen - but
+     * "did the threshold lose tone HERE", which separates the two cases
+     * directly and measurably. Over each window: a letterform's interior is
+     * coverage 1 and stays inked, its background is 0 and stays empty, and its
+     * edge band roughly balances, so the deficit is near zero and nothing is
+     * touched. A 25% dither field is 0.25 in every pixel and thresholds to
+     * NOTHING, so the deficit is the whole tone and the rule restores it.
+     *
+     * That matters here more than in most applications: on a two-colour cell
+     * the only way to fake a grey is to dither, so the pattern library's whole
+     * spine is a density ramp, and a flat cut deletes any tile too sparse to
+     * reach half anywhere.
+     *
+     * Pixels come back in order of COVERAGE, not in Bayer order, so the
+     * restored texture follows the artwork's own geometry - ranking by Bayer
+     * replaced a checkerboard with its own weave and a diagonal tile with
+     * generic noise. Ties, which is what a uniform field is, break on Bayer
+     * order: that scatters the selection instead of clumping it into one
+     * corner of the window.
+     *
+     * Measured a no-op on letterforms - 0.994 / dComp 0.23 on the bench's
+     * 1-bit glyph suite, matching plain coverage to three decimals.
+     *
+     * @param {{data: Float32Array, w: number, h: number}} cov
+     * @param {number} [threshold=INK_COVERAGE]
+     * @param {number} [win=TONE_WINDOW]
+     * @param {number} [tolFrac=TONE_TOLERANCE]
+     * @returns {boolean[][]}
+     */
+    toMaskToned(cov, threshold = CoverageOps.INK_COVERAGE,
+                win = CoverageOps.TONE_WINDOW, tolFrac = CoverageOps.TONE_TOLERANCE) {
+        const out = CoverageOps.toMask(cov, threshold);
+        if (!cov.w || !cov.h) return out;
+
+        const jitter = (y, x) => (63 - BAYER8[y & 7][x & 7]) / 63 * 1e-3;
+        const key = (c) => cov.data[c[0] * cov.w + c[1]] + jitter(c[0], c[1]);
+
+        for (let wy = 0; wy < cov.h; wy += win) {
+            for (let wx = 0; wx < cov.w; wx += win) {
+                const cells = [];
+                let areaSum = 0, inked = 0;
+                for (let y = wy; y < Math.min(cov.h, wy + win); y++) {
+                    for (let x = wx; x < Math.min(cov.w, wx + win); x++) {
+                        cells.push([y, x]);
+                        areaSum += cov.data[y * cov.w + x];
+                        if (out[y][x]) inked++;
+                    }
+                }
+                if (!cells.length) continue;
+                const deficit = areaSum - inked;
+                const tol = Math.max(1, tolFrac * cells.length);
+                if (Math.abs(deficit) <= tol) continue;
+
+                if (deficit > 0) {
+                    const cand = cells.filter((c) => !out[c[0]][c[1]]).sort((a, b) => key(b) - key(a));
+                    let need = Math.round(deficit);
+                    for (let i = 0; i < cand.length && need > 0; i++, need--) out[cand[i][0]][cand[i][1]] = true;
+                } else {
+                    const cand = cells.filter((c) => out[c[0]][c[1]]).sort((a, b) => key(a) - key(b));
+                    let need = Math.round(-deficit);
+                    for (let i = 0; i < cand.length && need > 0; i++, need--) out[cand[i][0]][cand[i][1]] = false;
+                }
+            }
         }
         return out;
     },
