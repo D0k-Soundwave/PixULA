@@ -130,3 +130,105 @@ test('an empty or whitespace string still returns null rather than a blank mask'
         expect(r.empty).toBeNull();
         expect(r.space).toBeNull();
     });
+
+test('render-through returns a coverage buffer filling the box it was given',
+    async ({ page }) => {
+        await boot(page);
+
+        const r = await page.evaluate(() => {
+            const tool = ToolManager.getTool(TOOLS.TEXT);
+            const box = { w: 64, h: 48 };
+            const cov = tool._renderThrough('Ag', 'Arial', 24, 0, box);
+            return {
+                w: cov.w, h: cov.h,
+                len: cov.data.length,
+                isF32: cov.data instanceof Float32Array,
+                area: CoverageOps.area(cov),
+                max: Math.max(...cov.data),
+                min: Math.min(...cov.data)
+            };
+        });
+
+        expect(r.w).toBe(64);
+        expect(r.h).toBe(48);
+        expect(r.len).toBe(64 * 48);
+        expect(r.isF32).toBe(true);
+        expect(r.area).toBeGreaterThan(0);
+        // Coverage is a fraction, always
+        expect(r.max).toBeLessThanOrEqual(1);
+        expect(r.min).toBeGreaterThanOrEqual(0);
+    });
+
+test('rotating through the transform keeps the ink instead of eroding it',
+    async ({ page }) => {
+        await boot(page);
+
+        const r = await page.evaluate(() => {
+            const tool = ToolManager.getTool(TOOLS.TEXT);
+            const box = { w: 96, h: 96 };
+            const at = (deg) => CoverageOps.area(
+                tool._renderThrough('HELLO', 'Arial', 20, deg, box));
+            return { a0: at(0), a15: at(15), a45: at(45), a90: at(90) };
+        });
+
+        // A rotation moves ink, it does not consume it. Resampling a
+        // thresholded raster loses several percent per generation; rasterising
+        // through the matrix should hold to within the box's own rounding.
+        for (const a of [r.a15, r.a45, r.a90]) {
+            expect(a / r.a0).toBeGreaterThan(0.92);
+            expect(a / r.a0).toBeLessThan(1.08);
+        }
+    });
+
+test('the ink is centred on the box, not hung off the em baseline',
+    async ({ page }) => {
+        await boot(page);
+
+        // textBaseline centres on the em box and the rest of the pipeline
+        // centres on ink; the gap between those is several pixels of pure
+        // misalignment that would read as the stamp jumping when engaged.
+        const r = await page.evaluate(() => {
+            const tool = ToolManager.getTool(TOOLS.TEXT);
+            const box = { w: 80, h: 80 };
+            const cov = tool._renderThrough('x', 'Arial', 24, 0, box);
+            let sx = 0, sy = 0, total = 0;
+            for (let y = 0; y < cov.h; y++) {
+                for (let x = 0; x < cov.w; x++) {
+                    const v = CoverageOps.get(cov, x, y);
+                    sx += x * v; sy += y * v; total += v;
+                }
+            }
+            return { cx: sx / total, cy: sy / total, mid: 40 };
+        });
+
+        // An 'x' is symmetric, so its centre of ink should sit near the box
+        // centre on both axes. A baseline-centred draw puts it several pixels
+        // high.
+        expect(Math.abs(r.cx - r.mid)).toBeLessThan(3);
+        expect(Math.abs(r.cy - r.mid)).toBeLessThan(3);
+    });
+
+test('render-through at 0 degrees agrees with the untransformed rasteriser',
+    async ({ page }) => {
+        await boot(page);
+
+        // Two rasterisers for one job is exactly the drift this repo keeps
+        // eliminating. They are allowed to exist separately only while they
+        // agree; this is what makes that checkable.
+        const r = await page.evaluate(() => {
+            const tool = ToolManager.getTool(TOOLS.TEXT);
+            const ink = (m) => m.reduce((n, row) => n + row.filter(Boolean).length, 0);
+            const flat = tool._rasterizeWithFont('Hamburg', 'Arial',
+                24, false, false, 'horizontal');
+            const box = { w: flat.width + 8, h: flat.height + 8 };
+            // GLYPH_COVERAGE, not the default: this is a glyph, and the
+            // unbiased area cut is for 1-bit artwork.
+            const through = CoverageOps.toMask(
+                tool._renderThrough('Hamburg', 'Arial', 24, 0, box),
+                CoverageOps.GLYPH_COVERAGE);
+            return { flatInk: ink(flat.pixels), throughInk: ink(through) };
+        });
+
+        expect(r.throughInk / r.flatInk).toBeGreaterThan(0.92);
+        expect(r.throughInk / r.flatInk).toBeLessThan(1.08);
+    });
