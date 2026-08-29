@@ -450,11 +450,16 @@ class TransformServiceClass {
    * @param {string} direction - 'up', 'down', 'left', 'right'
    * @param {number} amount - Pixels to shift (default 1)
    * @param {boolean} wrap - Roll around the edge (default true)
+   * @returns {boolean} whether a shift was actually applied - false when
+   *   there is no work area to shift. The Transform panel brackets a held
+   *   direction pad in ONE undo action and needs to tell a gesture that did
+   *   nothing from one that did, so it can discard the action rather than
+   *   leave a dead entry that Ctrl+Z steps over without visible effect.
    */
   shift(direction, amount = 1, wrap = true) {
     const area = this._getWorkArea();
     const buffer = this._copyToBufferWithAttrs(area);
-    if (!buffer) return;
+    if (!buffer) return false;
 
     const h = buffer.length;
     const w = buffer[0].length;
@@ -492,6 +497,7 @@ class TransformServiceClass {
     PixelDrawRoutine.endBatch();
 
     Logger.debug('TransformService', `Shift ${direction} by ${amount} (${wrap ? 'wrap' : 'no-wrap'}) applied`);
+    return true;
   }
 
   /**
@@ -500,7 +506,7 @@ class TransformServiceClass {
    * @param {boolean} wrap - Roll around the edge (default true)
    */
   shiftUp(amount = 1, wrap = true) {
-    this.shift('up', amount, wrap);
+    return this.shift('up', amount, wrap);
   }
 
   /**
@@ -509,7 +515,7 @@ class TransformServiceClass {
    * @param {boolean} wrap - Roll around the edge (default true)
    */
   shiftDown(amount = 1, wrap = true) {
-    this.shift('down', amount, wrap);
+    return this.shift('down', amount, wrap);
   }
 
   /**
@@ -518,7 +524,7 @@ class TransformServiceClass {
    * @param {boolean} wrap - Roll around the edge (default true)
    */
   shiftLeft(amount = 1, wrap = true) {
-    this.shift('left', amount, wrap);
+    return this.shift('left', amount, wrap);
   }
 
   /**
@@ -527,7 +533,7 @@ class TransformServiceClass {
    * @param {boolean} wrap - Roll around the edge (default true)
    */
   shiftRight(amount = 1, wrap = true) {
-    this.shift('right', amount, wrap);
+    return this.shift('right', amount, wrap);
   }
 
   /**

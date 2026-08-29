@@ -314,11 +314,17 @@ class ReferenceLayerPanelClass {
             updateOffset();
         };
 
+        // Held rather than clicked: nudging a traced photo into place a pixel
+        // at a time is the job this pad exists for, and at one pixel a click
+        // crossing any real distance meant dozens of them. Repeat starts after
+        // Helpers.REPEAT_DELAY so a single tap is still a single pixel.
+        // Nothing to bracket here - moving the reference offset is view state
+        // and was never undoable, unlike the Transform panel's pad.
         const { element: pad, zones } = Helpers.buildDirPad();
-        zones.up.addEventListener('click', () => nudge(yInput, -OFFSET_STEP));
-        zones.down.addEventListener('click', () => nudge(yInput, OFFSET_STEP));
-        zones.left.addEventListener('click', () => nudge(xInput, -OFFSET_STEP));
-        zones.right.addEventListener('click', () => nudge(xInput, OFFSET_STEP));
+        Helpers.attachRepeatPress(zones.up,    () => nudge(yInput, -OFFSET_STEP));
+        Helpers.attachRepeatPress(zones.down,  () => nudge(yInput, OFFSET_STEP));
+        Helpers.attachRepeatPress(zones.left,  () => nudge(xInput, -OFFSET_STEP));
+        Helpers.attachRepeatPress(zones.right, () => nudge(xInput, OFFSET_STEP));
 
         // Registered in this.controls so _enableControls disables them along
         // with the rest of the panel when no image is loaded - without this
