@@ -28,7 +28,10 @@
  *          does not thin a stroke, it deletes it.
  *   warp   All nine warp effects, mirroring `SelectionService.
  *          _applyWarpEffect`'s inverse maps line for line so a disagreement
- *          is about sampling and never about a different curve.
+ *          is about sampling and never about a different curve. A self-check
+ *          enforces that: at ss=1 the twin must reproduce the real function
+ *          pixel for pixel, which it did NOT until 2026-08-29 and nothing in
+ *          the suite could see it.
  *   sys    A vector font, where the glyph HAS a finer form and can therefore
  *          be rasterised through the transform instead of resampled.
  *
@@ -72,12 +75,19 @@
  * TWO TRAPS THIS TOOL CANNOT SCORE ITS WAY OUT OF. Read the sheets.
  *
  * 1. THE GROUND TRUTH SHARES THE CANDIDATE'S BIAS on sparse sources. Truth is
- *    area coverage cut at 0.50, so where a stretched or shrunk texture falls
- *    below a half everywhere, truth says "nothing" and a candidate that also
- *    says "nothing" scores 0.96. The arch-up sheet for pattern/diagonal-left
- *    shows what that hides: `current` carries the pattern across the whole
- *    arch, and every coverage pipeline drops its right-hand half. IoU cannot
- *    see it because both sides of the comparison make the same mistake.
+ *    area coverage cut at 0.50, so where a SHRUNK texture falls below a half
+ *    everywhere, truth says "nothing" and a candidate that also says "nothing"
+ *    scores 0.96. The downscale sheet for pattern/diagonal-left shows what that
+ *    hides: `current` carries the 25% pattern through the shrink, and plain
+ *    coverage erases it at every angle. IoU cannot see it because both sides of
+ *    the comparison make the same mistake.
+ *
+ *    An earlier version of this note also cited the arch-up sheet, claiming
+ *    every coverage pipeline dropped the arch's right-hand half. That was the
+ *    harness, not the domain: warpCoverage sampled half a pixel off its own
+ *    subject (fixed 2026-08-29, see the self-check below). With both in
+ *    register every pipeline carries the pattern across the whole arch, and
+ *    only the DOWNSCALE case is real.
  *
  * 2. A METRIC-PERFECT CANDIDATE CAN BE UNUSABLE. `cov-8/guard` - threshold
  *    plainly, dither only when the whole stamp came back blank - ties plain
@@ -88,14 +98,14 @@
  *    in and out. Rejected on the sheet alone.
  *
  * WHAT TRAP 1 MEANS FOR TUNING. `tone-8/.10` scores BELOW plain coverage on
- * the artwork and warp suites (0.941 vs 0.958, 0.884 vs 0.960) and is
- * nonetheless the better pipeline: the sheets show it restoring the arch's
- * right-hand half and the downscaled diagonal pattern that plain coverage
- * deletes, and truth deletes them too, so putting them back is scored as
- * error. IoU here is a regression guard, not an optimisation target. Tune the
- * local-tone rule on the sheets; use the numbers only to check that the glyph
- * suites have not moved (they must stay at 0.994 - the rule is designed to be
- * a no-op there, and a drop means it has started firing where it should not).
+ * the artwork suite (0.949 against 0.963) and is nonetheless the better
+ * pipeline: the sheets show it restoring the downscaled diagonal pattern that
+ * plain coverage deletes, and truth deletes it too, so putting it back is
+ * scored as error. IoU here is a regression guard, not an optimisation target.
+ * Tune the local-tone rule on the sheets; use the numbers only to check that
+ * the glyph suite has not moved (it must stay at 0.994 - the rule is designed
+ * to be a no-op there, and a drop means it has started firing where it should
+ * not).
  *
  * Contact sheets are written as PNGs with --write, because the metric has been
  * wrong here before and the eye is the tiebreak - it was the contact sheet
@@ -523,9 +533,17 @@ function inPage(config) {
             for (let dx = 0; dx < outW; dx++) {
                 let hits = 0;
                 for (let j = 0; j < ss; j++) {
-                    const fy = dy + base + j * step;
+                    // CENTRED on the pixel index, [dy-0.5, dy+0.5). The
+                    // original evaluates at integer dx/dy and lands with
+                    // `round`, which places a pixel's square that way.
+                    // Spanning [dy, dy+1) instead put this whole suite half a
+                    // pixel away from the function it is supposed to be a twin
+                    // of - so `current` was scored against a reference shifted
+                    // from it, and the warp gain it reported was substantially
+                    // that shift. Found 2026-08-29 while implementing.
+                    const fy = dy - 0.5 + base + j * step;
                     for (let i = 0; i < ss; i++) {
-                        const fx = dx + base + i * step;
+                        const fx = dx - 0.5 + base + i * step;
                         const srcDy = fy - expandTop, srcDx = fx - expandLeft;
                         const nx = fx / (outW - 1 || 1) - 0.5;
                         const ny = fy / (outH - 1 || 1) - 0.5;
@@ -767,6 +785,7 @@ function inPage(config) {
     const FINE = 8;                       // vector ground-truth oversampling
     const rows = [];
     const sheets = {};
+    const harnessErrors = [];
 
     const CANDIDATES = [
         ['current',      pipeCurrent],
@@ -882,6 +901,25 @@ function inPage(config) {
         }
     }
 
+    // HARNESS SELF-CHECK. At ss=1 the coverage twin evaluates one sample at
+    // each pixel centre, which is exactly what the real function does - so the
+    // two must agree pixel for pixel. They did not, for a half-pixel offset in
+    // the subsample origin, and nothing in the suite could see it: the ground
+    // truth carried the same offset, so only `current` was out of register and
+    // its whole warp score was measuring that. Cheap, and it fails loudly.
+    for (const art of artworkSources().slice(0, 1)) {
+        for (const effect of WARPS) {
+            const real = SelectionService._applyWarpEffect(art.mask, art.w, art.h, effect, 0.5);
+            const twin = threshold(warpCoverage(art.mask, art.w, art.h, effect, 1), 0.5);
+            const same = real.length === twin.length &&
+                real.every((row, y) => row.every((v, x) => v === twin[y][x]));
+            if (!same) {
+                harnessErrors.push(`warpCoverage at ss=1 disagrees with ` +
+                    `_applyWarpEffect for '${effect}' - the twin is out of register`);
+            }
+        }
+    }
+
     // Warp, in both domains. Ground truth is the same inverse map at 16x16.
     const warpSubjects = (() => {
         const all = artworkSources();
@@ -993,6 +1031,7 @@ function inPage(config) {
 
     // Masks are megabytes; strip them before crossing the bridge.
     return {
+        harnessErrors,
         rows: rows.map(r => ({ ...r, results: r.results.map(({ mask, ...rest }) => rest) })),
         sheets,
         candidates: CANDIDATES.map(([n]) => n).concat(['raster-fix', 'render-through', 'rt-4/50', 'rt-8/40', 'rt-8/50', 'rt-2/40'])
@@ -1017,7 +1056,14 @@ const CONFIG = {
     ART_SCALES: [0.6, 1, 1.25],
     WARPS: ['arch-up', 'arch-down', 'wave', 'flag', 'slant-right', 'slant-left',
             'inflate', 'perspective-top', 'perspective-bottom'],
-    SYS_FONT: 'Arial, sans-serif'
+    // A SINGLE family, never a CSS list. `_rasterizeWithFont` builds
+    // `${size}px "${family}"`, so 'Arial, sans-serif' becomes one quoted family
+    // nobody has and canvas falls back - while this file's own renderThrough
+    // leaves it unquoted and gets real Arial. The suite was then scoring a
+    // candidate in the fallback face against a ground truth in Arial, which is
+    // a comparison of two typefaces rather than of two pipelines. Found
+    // 2026-08-29 while implementing.
+    SYS_FONT: 'Arial'
 };
 
 const fmt = (n, d = 3) => n.toFixed(d).padStart(d + 3);
@@ -1032,6 +1078,12 @@ async function main() {
 
     const out = await page.evaluate(inPage, CONFIG);
     await browser.close();
+
+    if (out.harnessErrors && out.harnessErrors.length) {
+        console.error('HARNESS SELF-CHECK FAILED - the numbers below mean nothing:');
+        for (const e of out.harnessErrors) console.error('  ' + e);
+        process.exitCode = 1;
+    }
 
     // Aggregate per candidate, split by font kind - they are different
     // questions and averaging them together would hide both answers.
