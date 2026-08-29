@@ -396,11 +396,45 @@ class InputHandlerClass {
       // A pen barrel press reports button 2 and has already run as a stroke
       // (eyedropper) — it must not also raise the menu.
       if (this._contextMenuConsumed) { this._contextMenuConsumed = false; return; }
-      const activeTool = ToolManager.getCurrentTool();
-      if (e.shiftKey || (activeTool && activeTool.id === TOOLS.SELECTION)) {
+      if (this._rightClickOpensMenu(e.shiftKey)) {
         this._showCanvasContextMenu(e.clientX, e.clientY);
       }
     }, true);
+  }
+
+  /**
+   * Does a right click ASK FOR THE MENU, rather than make a mark?
+   *
+   * One predicate, because it is one question, and it used to be answered in
+   * two places that could disagree - and did. `_onPointerDown` knew that an
+   * engaged stamp means the right button draws; the `contextmenu` handler
+   * never learned it, so erasing with a stamp under the selection tool both
+   * rubbed out and opened a cut/copy/paste menu on top of the work.
+   *
+   * The three answers, in order of precedence:
+   *
+   *   Shift is an EXPLICIT request and outranks everything - it is the
+   *   documented way to reach the menu from any tool, and without it a stamp
+   *   session would have no route to Paste at all.
+   *
+   *   A FLOATING stamp means the right button is a tool: it erases with the
+   *   stamp, so nothing is being asked for. Keyed on `isFloating()` and not on
+   *   the current layer's `isStamp` flag, which stays true for a stamp layer
+   *   that has been disengaged - that layer is not being drawn with, and a
+   *   right click over it is a question again.
+   *
+   *   Otherwise only the SELECTION tool defers, because its right button has
+   *   no mark to make. Every other tool draws with it.
+   *
+   * @param {boolean} shiftKey
+   * @returns {boolean} true when the click is a request for the menu
+   * @private
+   */
+  _rightClickOpensMenu(shiftKey) {
+    if (shiftKey) return true;
+    if (window.SelectionService && SelectionService.isFloating()) return false;
+    const tool = ToolManager.getCurrentTool();
+    return !!(tool && tool.id === TOOLS.SELECTION);
   }
 
   /**
@@ -526,18 +560,13 @@ class InputHandlerClass {
     }
 
     // ── Right-click context-menu gate (mouse) ──
-    // Shift+right-click asks for the menu in any tool, over anything — an
-    // explicit request outranks the stamp erase. A plain right-click defers
-    // only under the SELECTION tool. Either way: start no stroke, and let the
-    // contextmenu event (fires after up) open the menu. Every other
-    // right-click draws, wherever the pointer is, selection or not.
+    // Where the click asks for the menu, start no stroke and let the
+    // contextmenu event (which fires after up) open it. `_rightClickOpensMenu`
+    // is the single answer both this and that handler use - they used to
+    // decide it separately and could disagree. Every other right-click draws,
+    // wherever the pointer is, selection or not.
     if (e.pointerType !== 'pen' && e.button === 2 && window.CanvasContextMenu) {
-      if (e.shiftKey) return;
-      const stampActive = LayerManager.getCurrentLayer()?.isStamp;
-      if (!stampActive) {
-        const tool = ToolManager.getCurrentTool();
-        if (tool && tool.id === TOOLS.SELECTION) return;
-      }
+      if (this._rightClickOpensMenu(e.shiftKey)) return;
     }
 
     this._capturePointer(e);
