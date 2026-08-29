@@ -50,6 +50,8 @@ measured.
 | Tooltip re-entry warm window | 500 ms | A | same file |
 | Tooltip linger after lift | 2000 ms | C | ~5 words/s reading (P) x ~12 words = ~2.5 s, less the time already spent reading during the hold |
 | Touch press-and-hold | 500 ms | P | `tooltip-manager.js` - Android `ViewConfiguration` long-press default |
+| Button hold before repeat | 400 ms | A | `Helpers.REPEAT_DELAY`. Shared by the option-panel slider steppers, the Transform shift pad and the Reference offset pad. Chosen to match the tooltip name dwell above, which is this app's existing answer to "how long is a deliberate hold" - but that figure is P for a HOVER and this one is a PRESS, so the borrowing is an assumption, not an inheritance |
+| Button repeat interval | 60 ms | A | `Helpers.REPEAT_INTERVAL`, same three controls. ~17 steps a second. Never measured against what a hand finds comfortable |
 | Palm-rejection window | 500 ms | A | `input-handler.js` |
 | Long press (canvas) | 600 ms | A | `input-handler.js` |
 | FLASH clock | 320 ms | P | `layer-manager.js` - the real ULA rate (16 frames at 50 Hz) |

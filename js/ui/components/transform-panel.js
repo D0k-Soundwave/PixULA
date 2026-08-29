@@ -208,21 +208,49 @@ class TransformPanelClass {
             this._shiftWrap = e.target.checked;
         });
 
+        // The shift amount, resolved at the moment of each step rather than
+        // once: 'cell' is per-axis because cells are not square in multicolor
+        // modes (CELL_HEIGHT is 8/4/2/1).
+        const shiftAmount = (type) => {
+            const step = content.querySelector('.tp-shift-step').value;
+            return step === 'cell'
+                ? ((type === 'shiftLeft' || type === 'shiftRight')
+                    ? ZX_SPECTRUM.CELL_WIDTH : ZX_SPECTRUM.CELL_HEIGHT)
+                : (parseInt(step, 10) || 1);
+        };
+
         content.querySelectorAll('button[data-tp-transform]').forEach((btn) => {
-            btn.addEventListener('click', () => {
-                const type = btn.dataset.tpTransform;
-                let amount;
-                if (type.startsWith('shift')) {
-                    const step = content.querySelector('.tp-shift-step').value;
-                    // 'cell' resolves per axis at click time — cells are not
-                    // square in multicolor modes (CELL_HEIGHT is 8/4/2/1).
-                    amount = step === 'cell'
-                        ? ((type === 'shiftLeft' || type === 'shiftRight')
-                            ? ZX_SPECTRUM.CELL_WIDTH : ZX_SPECTRUM.CELL_HEIGHT)
-                        : (parseInt(step, 10) || 1);
-                }
-                this.applyTransform(type, amount);
-            });
+            const type = btn.dataset.tpTransform;
+
+            // The four shift arrows repeat while held; nothing else on this
+            // panel does, and nothing else should. Flip and rotate180 are
+            // their own inverse, so a repeat would sit there undoing itself
+            // sixteen times a second, and a held rotate90 would spin the
+            // picture to a stop wherever the finger happened to lift.
+            // Shifting is the only one where "keep going that way" is the
+            // thing being asked for.
+            if (!type.startsWith('shift')) {
+                btn.addEventListener('click', () => this.applyTransform(type));
+                return;
+            }
+
+            // A hold is ONE gesture, so it is one undo entry: without the
+            // bracket a two-second hold left ~27 separate entries and undoing
+            // it meant 27 presses of Ctrl+Z, which also crowds real edits out
+            // of the capped history. UndoRedo nests by depth, so the shifts'
+            // own inner actions join this one instead of committing.
+            let applied = 0;
+            Helpers.attachRepeatPress(btn,
+                () => { if (this.applyTransform(type, shiftAmount(type)) !== false) applied++; },
+                {
+                    onStart: () => { applied = 0; UndoRedo.beginAction('Shift'); },
+                    // A gesture that moved nothing - no work area - must not
+                    // leave an entry Ctrl+Z steps over with nothing to show.
+                    onEnd: () => {
+                        if (applied > 0) UndoRedo.endAction();
+                        else UndoRedo.cancelAction();
+                    }
+                });
         });
 
         // ── Image rotation slider ─────────────────────────────────────────
@@ -381,6 +409,11 @@ class TransformPanelClass {
      * @param {string} type - Transform type identifier
      * @param {number} [amountOverride] - shift amount override
      */
+    /**
+     * @returns {boolean} whether the transform actually applied. Only the
+     *   shifts can answer false (no work area); see the held direction pad in
+     *   _wire, which uses this to avoid leaving an empty undo entry.
+     */
     applyTransform(type, amountOverride) {
         // Clear the transient pattern-capture overlay only — an armed
         // Swap/Recolour operation is sticky and survives a transform.
@@ -393,23 +426,30 @@ class TransformPanelClass {
 
         if (SelectionService.isFloating()) {
             SelectionService.transformStamp(type, amount, outlineGap, outlineSize);
-            return;
+            return true;
         }
 
+        // `applied` is only meaningful for the shifts, which report whether
+        // they had a work area at all - the held direction pad uses it to
+        // tell a gesture that moved something from one that could not, and
+        // discards the undo action in the second case. Everything else always
+        // acts, so it answers true.
+        let applied = true;
         switch (type) {
             case 'flipH':       TransformService.flipHorizontal();                 break;
             case 'flipV':       TransformService.flipVertical();                   break;
             case 'rotate90CW':  TransformService.rotate90CW();                     break;
             case 'rotate90CCW': TransformService.rotate90CCW();                    break;
             case 'rotate180':   TransformService.rotate180();                      break;
-            case 'shiftUp':     TransformService.shiftUp(amount, this._shiftWrap);    break;
-            case 'shiftDown':   TransformService.shiftDown(amount, this._shiftWrap); break;
-            case 'shiftLeft':   TransformService.shiftLeft(amount, this._shiftWrap); break;
-            case 'shiftRight':  TransformService.shiftRight(amount, this._shiftWrap);break;
+            case 'shiftUp':     applied = TransformService.shiftUp(amount, this._shiftWrap);    break;
+            case 'shiftDown':   applied = TransformService.shiftDown(amount, this._shiftWrap); break;
+            case 'shiftLeft':   applied = TransformService.shiftLeft(amount, this._shiftWrap); break;
+            case 'shiftRight':  applied = TransformService.shiftRight(amount, this._shiftWrap);break;
             case 'invert':      TransformService.invert();                         break;
             case 'outline':     TransformService.outline(outlineGap, outlineSize); break;
         }
         CanvasSystem.requestRender();
+        return applied;
     }
 
     /** Sync the panel's live values to the current floating stamp state. @private */

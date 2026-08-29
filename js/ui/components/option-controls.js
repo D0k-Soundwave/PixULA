@@ -26,46 +26,15 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 const SHAPE_ICON_SIZE = 25;
 
 /**
- * Wire a button to fire `fn` once on press and then keep firing it while
- * held, instead of requiring a fresh click per step. Mouse/touch/pen all
- * drive it through pointer events; a plain click (keyboard Enter/Space,
- * which never fires pointerdown) still fires `fn` exactly once.
+ * Wire a button to press-and-hold repeat. Thin alias for
+ * Helpers.attachRepeatPress, which this function was moved into once the
+ * Transform and Reference direction pads needed the same behaviour - a hold
+ * must not step at one rate over a slider stepper and another over a pad.
  * @param {HTMLElement} btn
  * @param {Function} fn
  */
 function attachRepeatPress(btn, fn) {
-    const REPEAT_DELAY = 400; // ms before the first repeat - A, matches the tooltip dwell precedent
-    const REPEAT_INTERVAL = 60; // ms between repeats while held - A
-    let delayTimer = null;
-    let repeatTimer = null;
-    let firedByPointer = false;
-
-    const stop = () => {
-        clearTimeout(delayTimer);
-        clearInterval(repeatTimer);
-        delayTimer = null;
-        repeatTimer = null;
-    };
-
-    btn.addEventListener('pointerdown', (e) => {
-        if (e.pointerType === 'mouse' && e.button !== 0) return;
-        firedByPointer = true;
-        fn();
-        delayTimer = setTimeout(() => {
-            repeatTimer = setInterval(fn, REPEAT_INTERVAL);
-        }, REPEAT_DELAY);
-    });
-    btn.addEventListener('pointerup', stop);
-    btn.addEventListener('pointerleave', stop);
-    btn.addEventListener('pointercancel', stop);
-
-    // A mouse/touch/pen click follows its pointerdown - skip it so the
-    // press isn't counted twice; a keyboard-activated click has no
-    // preceding pointerdown and must still step once.
-    btn.addEventListener('click', () => {
-        if (firedByPointer) { firedByPointer = false; return; }
-        fn();
-    });
+    Helpers.attachRepeatPress(btn, fn);
 }
 
 /** English fallback until the i18n layer lands (Phase 6). */
