@@ -290,10 +290,30 @@ class ReferenceLayerPanelClass {
         const xInput = mkNum('ref-offset-x', 'reference.x', 'X');
         const yInput = mkNum('ref-offset-y', 'reference.y', 'Y');
 
+        /**
+         * Commit both offset fields.
+         *
+         * A field that cannot be read leaves its axis WHERE IT IS. It used to
+         * become 0 - `parseInt(field.value, 10) || 0` turns "unreadable" into
+         * "origin" - and because this commits both axes together, one
+         * unreadable field sent the image to an edge or a corner on the very
+         * next press of the direction pad, whichever way that press pointed.
+         *
+         * A number input reports `""` for anything it cannot parse, and it is
+         * silently left in that state by an assignment it rejects: writing
+         * `Math.round(undefined)` (i.e. NaN) to one blanks it. So "unreadable"
+         * is not an exotic case, it is one bad write upstream away, which is
+         * why the guard lives here rather than only at the writes.
+         */
+        const readAxis = (input, current) => {
+            const typed = parseInt(input.value, 10);
+            return Number.isFinite(typed) ? typed : Math.round(current);
+        };
+
         const updateOffset = () => {
             EventBus.emit(EVENTS.REFERENCE_OFFSET, {
-                x: parseInt(xInput.value, 10) || 0,
-                y: parseInt(yInput.value, 10) || 0
+                x: readAxis(xInput, ReferenceLayerService.offsetX),
+                y: readAxis(yInput, ReferenceLayerService.offsetY)
             });
         };
         xInput.addEventListener('change', updateOffset);
@@ -554,8 +574,12 @@ class ReferenceLayerPanelClass {
         });
 
         EventBus.on(EVENTS.REFERENCE_OFFSET_CHANGED, (data) => {
-            this.controls.offsetX.value = Math.round(data.x);
-            this.controls.offsetY.value = Math.round(data.y);
+            // A number input REJECTS a NaN assignment by going blank, and a
+            // blank field is what sends an axis to the origin on the next
+            // nudge (see readAxis). Leave the readout showing the last good
+            // value instead of quietly emptying it.
+            if (Number.isFinite(data.x)) this.controls.offsetX.value = Math.round(data.x);
+            if (Number.isFinite(data.y)) this.controls.offsetY.value = Math.round(data.y);
         });
 
         EventBus.on(EVENTS.REFERENCE_SCALE_CHANGED, (data) => {
