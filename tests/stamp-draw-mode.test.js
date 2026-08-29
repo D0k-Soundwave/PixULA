@@ -138,4 +138,52 @@ SelectionService.commitStamp(stamp);
 check('normal mode: shape placed', cellBits().every(row => row === 0xFF));
 check('normal mode: ink from selection', cellAttrs().ink === 3);
 
+// ── Normal stamps the WHOLE attribute, both buttons ────────────────────────
+// The left button used to apply the selected ink but inherit the target's
+// paper and flash (`inkOnlyColor`, paperTransparent: true), so a stamp landed
+// half in the artist's colours and half in whatever was already underneath -
+// a pair nobody chose. NORMAL means "set the pixel, stamp the attributes"
+// everywhere else in the app (`_stampAttributes` writes all four fields), the
+// right button already did exactly that, and the floating PREVIEW already
+// showed the selected flash - so the three disagreed with each other as well
+// as with the selector. The target below starts 2/6 in each check so an
+// inherited value cannot be mistaken for a selected one.
+StateManager.setDrawMode('normal');
+
+// Left button, drag-painting (stampAt).
+paintHalfCell(2, 6);
+global.ColorManager._sel = { ink: 3, paper: 1, bright: false, flash: true, inkTransparent: false, paperTransparent: false };
+stamp = makeSolidStamp();
+PixelDrawRoutine.beginBatch();
+SelectionService.stampAt(stamp);
+PixelDrawRoutine.endBatch();
+check('normal, left button: ink from selection', cellAttrs().ink === 3);
+check('normal, left button: PAPER from selection, not inherited (6)', cellAttrs().paper === 1);
+check('normal, left button: flash from selection, not inherited', cellAttrs().flash === true);
+
+// The preview the artist is looking at must agree with what lands.
+const previewCell = stamp.getCell(CELL_X, CELL_Y);
+check('normal: the floating preview shows the same paper it will commit',
+  previewCell.paper === 1 && previewCell.ink === 3);
+SelectionService.cancelFloatingPaste();
+
+// Right button (eraseAt): ink pixels become paper, in the selected colours.
+paintHalfCell(2, 6);
+stamp = makeSolidStamp();
+PixelDrawRoutine.beginBatch();
+SelectionService.eraseAt(stamp);
+PixelDrawRoutine.endBatch();
+check('normal, right button: the ink pixels are cleared to paper',
+  cellBits().every(row => row === 0x00));
+check('normal, right button: the cell still takes the selected colours',
+  cellAttrs().ink === 3 && cellAttrs().paper === 1);
+SelectionService.cancelFloatingPaste();
+
+// And the final bake agrees with the drag.
+paintHalfCell(2, 6);
+stamp = makeSolidStamp();
+SelectionService.commitStamp(stamp);
+check('normal: commitStamp bakes the same paper the drag painted',
+  cellAttrs().ink === 3 && cellAttrs().paper === 1);
+
 summary();
