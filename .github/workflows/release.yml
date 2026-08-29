@@ -1,0 +1,85 @@
+# Cut a release from a tag.
+#
+# Push a tag and this builds the portable folder from a CLEAN checkout of that
+# exact commit, zips it, and publishes it as a GitHub Release. Building here
+# rather than uploading a local folder is the whole point: a working copy can
+# be stale, or carry files nothing references any more, and neither is
+# detectable by looking at the resulting zip.
+#
+#   1. bump APP_VERSION in js/core/constants.js
+#   2. commit it
+#   3. git tag v<APP_VERSION> && git push origin v<APP_VERSION>
+#
+# Every step below is a gate: a release is only published if the tag agrees
+# with the app's own version and the test suite passes.
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write        # required to create the release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # tools/build-portable.js uses fs.cpSync, which needs 16.7+.
+          node-version: '20'
+
+      # The About box reads APP_VERSION. If the tag disagreed with it, the
+      # release page and the running app would name different versions and
+      # nobody could tell which build they had.
+      - name: Tag must match APP_VERSION
+        run: |
+          APP=$(node -p "require('./tools/build-portable.js').appVersion('.')")
+          TAG=${GITHUB_REF_NAME#v}
+          echo "APP_VERSION=$APP  tag=$TAG"
+          if [ "$APP" != "$TAG" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match APP_VERSION $APP. Bump js/core/constants.js, or retag." >&2
+            exit 1
+          fi
+
+      # Zero dependencies and all Node built-ins, so this needs no install
+      # step. Not the Playwright suite: it drives an INSTALLED Chrome
+      # (channel: 'chrome'), which would drag npm into an otherwise
+      # dependency-free job for a browser this runner has no reason to have.
+      - name: Test
+        run: node tests/run-all.js
+
+      - name: Build the portable folder
+        run: node tools/build-portable.js
+
+      # Named after the version so two downloads cannot unzip over each other.
+      - name: Package
+        run: |
+          NAME="PixULA-${GITHUB_REF_NAME#v}"
+          cp -r PixULA_Distilled "$NAME"
+          zip -r "$NAME.zip" "$NAME"
+          echo "ASSET=$NAME.zip" >> "$GITHUB_ENV"
+          unzip -l "$NAME.zip" | head -20
+
+      # gh is already on the runner, so a zero-dependency project does not
+      # take on a third-party action to publish. An alpha/beta/rc tag is
+      # marked pre-release automatically.
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PRE=""
+          case "$GITHUB_REF_NAME" in
+            *-alpha*|*-beta*|*-rc*) PRE="--prerelease" ;;
+          esac
+          gh release create "$GITHUB_REF_NAME" "$ASSET" \
+            --title "PixULA $GITHUB_REF_NAME" \
+            --generate-notes \
+            $PRE \
+            --notes "Download **$ASSET**, unzip it anywhere, and double-click \`PixULA.html\`. It runs in your browser with no install, no server and no internet connection. Your work never leaves your machine.
+
+          Built from \`$GITHUB_SHA\` by the release workflow, so this archive is exactly the tagged source."

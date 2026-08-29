@@ -63,6 +63,14 @@ PixULA can save images in 23 formats via **File → Save Image As** (or the `Ctr
 
 Full working projects (layers, palette, tools, references) are saved separately via **File → Save Project** as `.pixula`.
 
+## ![#2DA44E](https://img.shields.io/badge/-2DA44E?style=flat-square) Download
+
+**[Download the latest release](https://github.com/D0k-Soundwave/PixULA/releases/latest)**, unzip it anywhere, and double-click `PixULA.html`.
+
+That is the whole installation. It runs in your browser from the folder you unzipped it into - no install, no server, no internet connection, and nothing you draw ever leaves your machine. Any reasonably modern browser will do.
+
+Prefer to run from source? Clone the repository and open `index.html` the same way; it is the same application, and the download is simply that folder packaged up.
+
 ## ![#D1242F](https://img.shields.io/badge/-D1242F?style=flat-square) Status
 
 > [!IMPORTANT]
