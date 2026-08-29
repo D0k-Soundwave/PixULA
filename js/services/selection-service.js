@@ -710,6 +710,7 @@ class SelectionServiceClass {
 
     // ── Step 1: Obtain source pixels at the target scale ───────────────────
     let srcPixels, srcW, srcH;
+    let rotationApplied = false;   // the vector path turns the glyph itself
     const targetW = Math.max(1, Math.round(fp._srcWidth  * fp._scaleX));
     const targetH = Math.max(1, Math.round(fp._srcHeight * fp._scaleY));
 
@@ -725,6 +726,49 @@ class SelectionServiceClass {
         // Scale the bitmap mask
         srcPixels = this._resampleMask(srcPixels, srcW, srcH, targetW, targetH);
         srcW = targetW; srcH = targetH;
+      } else if (tool && (fp._rotation || fi.direction)
+                 && (!fp._warpEffect || fp._warpEffect === 'none')
+                 && (!fi.layout || fi.layout === 'horizontal')
+                 && !fi.mirrorH && !fi.mirrorV
+                 && !fi.shadow && !fi.outline) {
+        // Vector text turned by rotation alone: hand the angle to the font
+        // engine rather than resampling its output. Measured 2026-08-29,
+        // 'ZX SPECTRUM' at 16px turned 45 degrees - Californian FB went from
+        // 11 connected pieces upright to 20 through the resampler, and stays
+        // at 11 through this path.
+        //
+        // BOTH rotations compose into one. The text tool's `direction` and the
+        // Transform slider are two controls that both say "rotate this text",
+        // and serving only one of them would leave them disagreeing about
+        // sharpness at the same angle - the objection that collapsed
+        // SelectionService._rotateMask into MaskOps.rotate. With no warp
+        // between them two rotations of a block compose exactly, and the guard
+        // is what guarantees nothing sits between them.
+        //
+        // The guard stays narrow ON PURPOSE: every excluded field is a
+        // mask-space effect MaskOps applies AFTER this point (Step 1b/2), so
+        // serving them here would apply them in the wrong order and change
+        // what they look like. Widening it further is a measured change, not a
+        // tidy-up.
+        //
+        // `_warpEffect` defaults to the STRING 'none', not to null - testing it
+        // for truthiness alone means this branch never fires at all.
+        const totalDeg = (fp._rotation || 0) + (fi.direction || 0);
+        const rad = totalDeg * Math.PI / 180;
+        const cos = Math.abs(Math.cos(rad)), sin = Math.abs(Math.sin(rad));
+        const box = {
+          w: Math.max(1, Math.ceil(targetW * cos + targetH * sin)),
+          h: Math.max(1, Math.ceil(targetW * sin + targetH * cos))
+        };
+        // GLYPH_COVERAGE, not the unbiased area cut - a letterform's
+        // legibility rides on strokes thinner than a pixel.
+        srcPixels = CoverageOps.toMask(
+          tool._renderThrough(fi.text, fi.fontFamily, fi.fontSize * fp._scaleX,
+            totalDeg, box),
+          CoverageOps.GLYPH_COVERAGE);
+        srcW = box.w;
+        srcH = box.h;
+        rotationApplied = true;
       } else if (tool) {
         const mask = tool._rasterizeWithFont(
           fi.text, fi.fontFamily, fi.fontSize * fp._scaleX,
@@ -750,7 +794,11 @@ class SelectionServiceClass {
     // carries the same fields, so re-applying here keeps preview == commit.
     // `layout` is NOT in this list - it is a placement, so it was already
     // honoured by the rasterizer call above rather than by MaskOps.
-    if (fp.fontInfo && window.MaskOps &&
+    // `rotationApplied` means the glyph was rasterised already-turned above,
+    // direction included. The vector branch's guard excludes every other field
+    // in this condition, so skipping it here drops the duplicate rotation and
+    // nothing else.
+    if (fp.fontInfo && window.MaskOps && !rotationApplied &&
         (fp.fontInfo.direction || fp.fontInfo.mirrorH || fp.fontInfo.mirrorV ||
          fp.fontInfo.shadow || fp.fontInfo.outline)) {
       srcPixels = MaskOps.process(srcPixels, fp.fontInfo);
@@ -766,7 +814,9 @@ class SelectionServiceClass {
     }
 
     // ── Step 3: Apply rotation ────────────────────────────────────────────
-    if (fp._rotation !== 0) {
+    // Skipped where the glyph was rasterised already-turned above: doing both
+    // would rotate the stamp twice and is the obvious way for this to break.
+    if (fp._rotation !== 0 && !rotationApplied) {
       const rotated = this._rotateMask(srcPixels, srcW, srcH, fp._rotation);
       srcPixels = rotated.pixels;
       srcW = rotated.width;
