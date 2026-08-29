@@ -278,3 +278,200 @@ test('the rows render in the real options panel and drive the tool', async ({ pa
     });
     expect(state).toEqual({ layout: 'vertical-down', direction: 225, mirrorH: true });
 });
+
+// -- Multi-line ---------------------------------------------------------------
+// The bitmap path is Node-tested in tests/text-layout.test.js. What needs a
+// real browser is the vector path: canvas fillText does not break lines, so
+// before 2026-08-30 everything typed came out as one line however many times
+// Enter was pressed.
+//
+// A SINGLE family name, never a CSS list - _rasterizeRaw builds the font string
+// by quoting the family, so a list becomes one family nobody has and canvas
+// falls back silently.
+const FAMILY = 'Arial';
+const NL = String.fromCharCode(10);
+
+test('a system font renders two lines, not one', async ({ page }) => {
+    await boot(page);
+
+    const r = await page.evaluate(([family, nl]) => {
+        const TT = () => ToolManager.getTool(TOOLS.TEXT);
+        // INK() lives in the Node scope; this callback runs in the browser.
+        const ink = (m) => m.reduce((n, row) => n + row.filter(Boolean).length, 0);
+        const one  = TT()._rasterizeWithFont('AB', family, 24, false, false, 'horizontal', 'left');
+        const two  = TT()._rasterizeWithFont('AB' + nl + 'AB', family, 24, false, false, 'horizontal', 'left');
+        const wide = TT()._rasterizeWithFont('AB' + nl + 'ABCDEF', family, 24, false, false, 'horizontal', 'left');
+        const long = TT()._rasterizeWithFont('ABCDEF', family, 24, false, false, 'horizontal', 'left');
+        return {
+            one:  { w: one.width, h: one.height, ink: ink(one.pixels) },
+            two:  { w: two.width, h: two.height, ink: ink(two.pixels) },
+            wide: { w: wide.width },
+            long: { w: long.width }
+        };
+    }, [FAMILY, NL]);
+
+    // Two lines of the same text: taller, no wider, and twice the ink.
+    expect(r.two.h).toBeGreaterThan(r.one.h);
+    expect(r.two.w).toBe(r.one.w);
+    expect(r.two.ink).toBe(r.one.ink * 2);
+    // The block is as wide as its longest line, not the two concatenated.
+    expect(r.wide.w).toBe(r.long.w);
+});
+
+test('lines of differing height stay on a shared vertical datum', async ({ page }) => {
+    await boot(page);
+
+    // The discriminating case. A tall stem has more ascent than a round
+    // lowercase letter, so if every line keeps the common top-baseline origin
+    // the second line's ink starts LESS than one advance below the first's.
+    // Trimming each line to its own ink before stacking - the obvious
+    // implementation, and the wrong one - puts both tops flush and makes the
+    // gap exactly one advance.
+    const r = await page.evaluate(([family, nl]) => {
+        const TT = () => ToolManager.getTool(TOOLS.TEXT);
+        const size = 32;
+        const m = TT()._rasterizeWithFont('oo' + nl + 'll', family, size, false, false, 'horizontal', 'left');
+        const inkFrom = (from) => {
+            for (let y = from; y < m.height; y++) if (m.pixels[y].some(Boolean)) return y;
+            return -1;
+        };
+        const first = inkFrom(0);
+        let y = first;
+        while (y < m.height && m.pixels[y].some(Boolean)) y++;
+        return { first, second: inkFrom(y), advance: Math.round(size * 1.2) };
+    }, [FAMILY, NL]);
+
+    expect(r.first).toBe(0);                    // the block is trimmed to its ink
+    expect(r.second).toBeGreaterThan(0);        // there really are two lines
+    expect(r.second).toBeLessThan(r.advance);   // shared datum, not per-line trims
+});
+
+test('alignment moves the short line, and does not resize the block',
+    async ({ page }) => {
+        await boot(page);
+
+        const r = await page.evaluate(([family, nl]) => {
+            const TT = () => ToolManager.getTool(TOOLS.TEXT);
+            const text = 'i' + nl + 'MMMM';   // line 1 is the one with slack
+            const edge = (align) => {
+                const m = TT()._rasterizeWithFont(text, family, 24, false, false, 'horizontal', align);
+                let min = m.width;
+                for (let y = 0; y < 10; y++) {            // safely inside line 1
+                    for (let x = 0; x < m.width; x++) if (m.pixels[y][x] && x < min) min = x;
+                }
+                return { min, w: m.width };
+            };
+            return { left: edge('left'), center: edge('center'), right: edge('right') };
+        }, [FAMILY, NL]);
+
+        expect(r.left.min).toBeLessThan(r.center.min);
+        expect(r.center.min).toBeLessThan(r.right.min);
+        // Within a pixel or two, not exactly equal: `_rasterizeRaw` pads each
+        // line by 2px, so a short line pushed to the far edge can carry its
+        // ink a pixel past where the long line's own ink was trimmed to.
+        expect(Math.abs(r.center.w - r.left.w)).toBeLessThanOrEqual(2);
+        expect(Math.abs(r.right.w - r.left.w)).toBeLessThanOrEqual(2);
+    });
+
+test('a multi-line stamp keeps its lines through a scale and a rotation',
+    async ({ page }) => {
+        await boot(page);
+
+        // The path that loses things: SelectionService re-rasterises from
+        // fontInfo on every transform, and rotation alone is served by
+        // _renderThrough, which draws with fillText and so needs the lines
+        // handed to it too.
+        const r = await page.evaluate(([family, nl]) => {
+            const TT = () => ToolManager.getTool(TOOLS.TEXT);
+            const text = 'AB' + nl + 'AB';
+            const info = {
+                text, fontFamily: family, fontSize: 24, bold: false, italic: false,
+                layout: 'horizontal', align: 'left', direction: 0,
+                mirrorH: false, mirrorV: false, shadow: false, outline: false
+            };
+            const m = TT()._rasterizeWithFont(text, family, 24, false, false, 'horizontal', 'left');
+            const single = TT()._rasterizeWithFont('AB', family, 24, false, false, 'horizontal', 'left');
+            SelectionService.startFloatingPasteFromMask(
+                m.pixels, m.width, m.height, 40, 40, 'Place Text', info, 'none');
+
+            const ratio = () => {
+                const fp = SelectionService.floatingPaste;
+                return fp.height / fp.width;
+            };
+            const placed = ratio();
+            SelectionService.setStampScale(2, 2);
+            const scaled = ratio();
+            SelectionService.setStampRotation(45);
+            const spun = SelectionService.floatingPaste.pixels.length;
+            SelectionService.cancelFloatingPaste();
+            return { placed, scaled, spun, single: single.height / single.width };
+        }, [FAMILY, NL]);
+
+        // Two lines are proportionally much taller than one; if a transform
+        // dropped the newline the block would collapse to the single-line
+        // aspect ratio.
+        expect(r.placed).toBeGreaterThan(r.single * 1.5);
+        expect(r.scaled).toBeGreaterThan(r.single * 1.5);
+        expect(r.spun).toBeGreaterThan(0);
+    });
+
+test('the alignment row exists, is translatable, and drives the tool',
+    async ({ page }) => {
+        await boot(page);
+
+        const r = await page.evaluate(() => {
+            const entry = TextTool.optionsSchema.find(e => e.key === 'textAlign');
+            const tool = ToolManager.getTool(TOOLS.TEXT);
+            tool.setTextAlign('right');
+            const got = tool.getTextAlign();
+            tool.setTextAlign('nonsense');
+            const fallback = tool.getTextAlign();
+            tool.setTextAlign('left');
+            return {
+                values: entry ? entry.options.map(o => o.value) : null,
+                localized: entry ? entry.options.every(o => !!o.i18n) : false,
+                labelKey: entry ? entry.i18n : null,
+                got, fallback,
+                // It must ride on fontInfo or a re-raster reverts it.
+                onFontInfo: Object.prototype.hasOwnProperty.call(tool._effectOpts(), 'align')
+            };
+        });
+
+        expect(r.values).toEqual(['left', 'center', 'right']);
+        expect(r.localized).toBe(true);
+        expect(r.labelKey).toBe('opt.align');
+        expect(r.got).toBe('right');
+        expect(r.fallback).toBe('left');
+        expect(r.onFontInfo).toBe(true);
+    });
+
+test('typing two lines into the box produces a two-line stamp', async ({ page }) => {
+    await boot(page);
+
+    // The artist's actual path: the textarea sets the text, and the tool builds
+    // its own preview stamp. Everything above this drives the rasterisers
+    // directly, so this is the one check that the newline survives the whole
+    // way from the option row to a floating stamp.
+    const r = await page.evaluate((nl) => {
+        const tool = ToolManager.getTool(TOOLS.TEXT);
+        ToolManager.selectTool(TOOLS.TEXT);
+        tool.setFontFamily('ZX ROM');
+        tool.setTextSize(8);
+
+        const place = (text) => {
+            if (SelectionService.floatingPaste) SelectionService.cancelFloatingPaste();
+            tool.setText(text);
+            tool._createPreviewStamp(120, 90);
+            const fp = SelectionService.floatingPaste;
+            return fp ? { w: fp.width, h: fp.height } : null;
+        };
+        const one = place('AB');
+        const two = place('AB' + nl + 'CD');
+        if (SelectionService.floatingPaste) SelectionService.cancelFloatingPaste();
+        return { one, two };
+    }, String.fromCharCode(10));
+
+    expect(r.one).toEqual({ w: 16, h: 8 });
+    // Two 8x8 rows of two glyphs: same width, twice the height.
+    expect(r.two).toEqual({ w: 16, h: 16 });
+});

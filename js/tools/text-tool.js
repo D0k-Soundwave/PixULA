@@ -27,6 +27,38 @@ class TextToolClass extends ToolBase {
     { id: 'vertical-up',   i18n: 'opt.layout.verticalUp' }
   ];
 
+  /**
+   * How multiple lines line up against each other.
+   *
+   * The value is CSS's `center`, not the British spelling used in the label -
+   * it is an identifier, and every other alignment value in the codebase and
+   * the platform reads this way.
+   */
+  static ALIGNMENTS = [
+    { id: 'left',   i18n: 'opt.align.left' },
+    { id: 'center', i18n: 'opt.align.center' },
+    { id: 'right',  i18n: 'opt.align.right' }
+  ];
+
+  /**
+   * Split typed text into lines, tolerating any line ending.
+   *
+   * A newline used to reach the rasterisers as an ordinary character and be
+   * silently DROPPED - `glyphOf` has no glyph for it, and canvas `fillText`
+   * does not break lines - so everything typed came out as one line. Splitting
+   * here, before either rasteriser runs, also means the `reversed` and
+   * `vertical-up` reversals land per LINE, which is what they should do.
+   *
+   * A blank line is meaningful: it survives as an empty entry and the composer
+   * still advances for it.
+   * @param {string} text
+   * @returns {string[]} always at least one entry
+   * @private
+   */
+  static _splitLines(text) {
+    return String(text == null ? '' : text).replace(/\r\n?/g, '\n').split('\n');
+  }
+
   /** True for the layouts that stack glyphs into a column. @private */
   static _isVertical(layout) {
     return layout === 'vertical-down' || layout === 'vertical-up';
@@ -57,6 +89,10 @@ class TextToolClass extends ToolBase {
     // amount of rotating gets you a column of upright letters.
     { type: 'select', key: 'textLayout', i18n: 'opt.layout', value: 'horizontal',
       options: TextToolClass.LAYOUTS.map(l => ({ value: l.id, i18n: l.i18n })) },
+    // Alignment moves a line along the axis it RUNS on, so under the two
+    // column layouts these read as top/middle/bottom.
+    { type: 'select', key: 'textAlign', i18n: 'opt.align', value: 'left',
+      options: TextToolClass.ALIGNMENTS.map(a => ({ value: a.id, i18n: a.i18n })) },
     // Multiples of 90 are exact (MaskOps takes the transpose path); the
     // diagonals resample, so they are worth more pixels of text size.
     { type: 'select', key: 'textDirection', i18n: 'opt.direction', value: 0,
@@ -78,6 +114,7 @@ class TextToolClass extends ToolBase {
     this._fontBold        = false;
     this._fontItalic      = false;
     this._textLayout      = 'horizontal';  // glyph placement (TextToolClass.LAYOUTS)
+    this._textAlign       = 'left';        // how multiple lines line up (ALIGNMENTS)
     this._textDirection   = 0;      // degrees clockwise; 90s exact, 45s resampled
     this._textMirrorH     = false;  // mirror left-right (MaskOps.flipH, exact)
     this._textMirrorV     = false;  // mirror top-bottom (MaskOps.flipV, exact)
@@ -137,6 +174,12 @@ class TextToolClass extends ToolBase {
     this._disengaged = false; this._updatePreviewIfActive();
   }
 
+  getTextAlign()  { return this._textAlign; }
+  setTextAlign(v) {
+    this._textAlign = TextToolClass.ALIGNMENTS.some(a => a.id === v) ? v : 'left';
+    this._disengaged = false; this._updatePreviewIfActive();
+  }
+
   getTextDirection()  { return this._textDirection; }
   setTextDirection(v) {
     // Snapped to the offered steps rather than clamped: an out-of-range value
@@ -171,6 +214,11 @@ class TextToolClass extends ToolBase {
       // re-rasterizes. It rides here because fontInfo is the one envelope
       // both halves of that round trip already agree on.
       layout:    this._textLayout,
+      // `align` rides here for exactly the reason `layout` does: it is
+      // consumed by the rasterisers, so SelectionService has to hand it back
+      // to them on every re-raster or a scaled stamp silently re-flows to the
+      // default.
+      align:     this._textAlign,
       direction: this._textDirection,
       mirrorH:   this._textMirrorH,
       mirrorV:   this._textMirrorV,
@@ -395,6 +443,73 @@ class TextToolClass extends ToolBase {
   }
 
   /**
+   * Compose per-line masks into one block.
+   *
+   * Lines run PERPENDICULAR to the glyph run: a horizontal layout stacks them
+   * down the page, and the column layouts (whose glyph run is already
+   * vertical) place each line as a further column across. Either way they are
+   * composed in reading order - first line top, or leftmost - because
+   * `reversed`/`vertical-up` reverse glyphs WITHIN a line, and reversing the
+   * line order too would put line 1 at the bottom, which is not what those
+   * controls mean.
+   *
+   * `align` moves each line along the axis it runs on, so in the column
+   * layouts left/centre/right read as top/middle/bottom.
+   *
+   * @param {Array<Object|null>} masks - one per line; null where the line drew
+   *   nothing, which still advances
+   * @param {boolean} vertical - true when lines stack across rather than down
+   * @param {string} align - 'left' | 'center' | 'right'
+   * @param {number} advance - the pitch from one line to the next
+   * @returns {{pixels: boolean[][], width: number, height: number}|null}
+   * @private
+   */
+  _composeLines(masks, vertical, align, advance) {
+    // `cross` is the axis a line runs along, the one `align` moves it on;
+    // `along` is the stacking axis.
+    const cross = (m) => (vertical ? m.height : m.width);
+    const along = (m) => (vertical ? m.width  : m.height);
+
+    const at = [];
+    let p = 0, crossMax = 0, total = 0;
+    for (const m of masks) {
+      at.push(p);
+      if (m) {
+        if (cross(m) > crossMax) crossMax = cross(m);
+        // The block ends where the LAST line ends, not at n advances: a vector
+        // line box is taller than its advance, so multiplying the advance out
+        // would clip the final line's descenders.
+        if (p + along(m) > total) total = p + along(m);
+      }
+      p += advance;
+    }
+    if (!crossMax || total <= 0) return null;
+
+    const width  = vertical ? total : crossMax;
+    const height = vertical ? crossMax : total;
+    const pixels = Array.from({ length: height }, () => new Array(width).fill(false));
+
+    for (let i = 0; i < masks.length; i++) {
+      const m = masks[i];
+      if (!m) continue;
+      const slack = crossMax - cross(m);
+      const off = align === 'center' ? Math.floor(slack / 2)
+                : align === 'right'  ? slack
+                : 0;
+      for (let y = 0; y < m.height; y++) {
+        const row = m.pixels[y];
+        for (let x = 0; x < m.width; x++) {
+          if (!row[x]) continue;
+          const px = vertical ? at[i] + x : off + x;
+          const py = vertical ? off + y   : at[i] + y;
+          if (py >= 0 && py < height && px >= 0 && px < width) pixels[py][px] = true;
+        }
+      }
+    }
+    return { pixels, width, height };
+  }
+
+  /**
    * Rasterize text from glyph bytes (no canvas) at 1× — the bitmap-font
    * path for both 'ZX ROM' and Phase 10 'zxfont:<name>' library fonts.
    * The advance width is the font's glyph width (8 for ZX ROM, 4/6/8 for
@@ -405,7 +520,8 @@ class TextToolClass extends ToolBase {
    * @returns {{ pixels: boolean[][], width: number, height: number }|null}
    */
   _buildTextMask(text, family = this._fontFamily, bold = this._fontBold,
-                 italic = this._fontItalic, layout = this._textLayout) {
+                 italic = this._fontItalic, layout = this._textLayout,
+                 align = this._textAlign) {
     const charH = 8;
     let charW = 8;
     let glyphOf; // char -> row byte array (MSB = left), or null
@@ -424,6 +540,28 @@ class TextToolClass extends ToolBase {
       };
     }
 
+    const vertical = TextToolClass._isVertical(layout);
+    const masks = TextToolClass._splitLines(text)
+      .map((line) => this._buildLineMask(line, glyphOf, charW, charH, bold, italic, layout));
+
+    // Rows advance by the cell height exactly - ZX ROM cells already carry
+    // their own spacing, and this is how the Spectrum stacks its text rows.
+    // Columns advance by a uniform pitch so they read as a grid and a blank
+    // line still leaves a gap.
+    const pitch = vertical
+      ? (masks.reduce((w, m) => Math.max(w, m ? m.width : 0), 0) || charW)
+      : charH;
+    return this._composeLines(masks, vertical, align, pitch);
+  }
+
+  /**
+   * One line of glyph-byte text. This is the whole of what `_buildTextMask`
+   * used to be, reused per line rather than reimplemented.
+   * @returns {{pixels: boolean[][], width: number, height: number}|null}
+   *   null when the line has no drawable glyph
+   * @private
+   */
+  _buildLineMask(text, glyphOf, charW, charH, bold, italic, layout) {
     // The glyphs that will actually be drawn, in PLACEMENT order.
     const glyphs = [];
     for (let i = 0; i < text.length; i++) {
@@ -527,16 +665,33 @@ class TextToolClass extends ToolBase {
   }
 
   _rasterizeWithFont(text, fontFamily, fontSize, bold = false, italic = false,
-                     layout = this._textLayout) {
-    if (TextToolClass._isVertical(layout)) {
-      return this._stackRasterized(text, fontFamily, fontSize, bold, italic, layout);
-    }
-    if (layout === 'reversed') text = [...text].reverse().join('');
+                     layout = this._textLayout, align = this._textAlign) {
+    const lines = TextToolClass._splitLines(text);
 
-    const raw = this._rasterizeRaw(text, fontFamily, fontSize, bold, italic);
-    if (!raw) return null;
-    const trimmed = this._trimMask(raw);
-    return trimmed;
+    if (TextToolClass._isVertical(layout)) {
+      const cols = lines.map((line) =>
+        this._stackRasterized(line, fontFamily, fontSize, bold, italic, layout));
+      const pitch = cols.reduce((w, c) => Math.max(w, c ? c.width : 0), 0);
+      return pitch ? this._composeLines(cols, true, align, pitch) : null;
+    }
+
+    // Compose the lines UNTRIMMED, then trim the block once.
+    //
+    // `_rasterizeRaw` draws every line from the same `textBaseline: 'top'`
+    // origin, so raw masks already share a vertical datum and stack with their
+    // baselines aligned. Trimming each line to its own ink first would throw
+    // that datum away - a line of all-x-height letters would ride up to meet
+    // one with ascenders. It is the same rule `_stackRasterized` follows when
+    // it bands its glyphs before trimming.
+    const raws = lines.map((line) => this._rasterizeRaw(
+      layout === 'reversed' ? [...line].reverse().join('') : line,
+      fontFamily, fontSize, bold, italic));
+
+    // 1.2em is the usual `normal` line-height for Latin faces. The composer
+    // ends the block at the last line's own extent, so a line box taller than
+    // this advance still is not clipped.
+    const block = this._composeLines(raws, false, align, Math.round(fontSize * 1.2));
+    return block ? this._trimMask(block) : null;
   }
 
   /**
@@ -639,7 +794,7 @@ class TextToolClass extends ToolBase {
    * @returns {{data: Float32Array, w: number, h: number}} coverage
    * @private
    */
-  _renderThrough(text, fontFamily, fontSize, degrees, box) {
+  _renderThrough(text, fontFamily, fontSize, degrees, box, align = this._textAlign) {
     const ss = CoverageOps.SUPERSAMPLE;
     const out = CoverageOps.create(box.w, box.h);
     if (!text || box.w <= 0 || box.h <= 0) return out;
@@ -648,15 +803,35 @@ class TextToolClass extends ToolBase {
     const font = `${fs}px "${fontFamily}"`;
     const pad = Math.ceil(fs);
 
+    // Lines are drawn by ONE routine used by both passes, so the ink centre
+    // pass 1 measures is the centre of exactly what pass 2 draws. Drawing the
+    // raw string instead would collapse a paragraph to one line here even
+    // though the rest of the pipeline had kept it - `fillText` does not break
+    // lines. The advance matches `_rasterizeWithFont`'s, in supersampled units.
+    const lines = TextToolClass._splitLines(text);
+    const advance = Math.round(fontSize * 1.2) * ss;
+    const drawLines = (c, ox, oy) => {
+      const widths = lines.map((l) => c.measureText(l).width);
+      const widest = widths.reduce((a, b) => Math.max(a, b), 0);
+      for (let i = 0; i < lines.length; i++) {
+        if (!lines[i]) continue;
+        const slack = widest - widths[i];
+        const dx = align === 'center' ? slack / 2 : align === 'right' ? slack : 0;
+        c.fillText(lines[i], ox + dx, oy + i * advance);
+      }
+    };
+
     // Pass 1 - where is this string's ink, relative to the draw origin?
+    const longest = lines.reduce((n, l) => Math.max(n, l.length), 0);
     const probe = Helpers.createCanvas(
-      Math.ceil(fs * (text.length + 2)) + pad * 2, Math.ceil(fs * 3));
+      Math.ceil(fs * (longest + 2)) + pad * 2,
+      Math.ceil(fs * 3) + (lines.length - 1) * advance);
     const pctx = probe.getContext('2d');
     pctx.font = font;
     pctx.textBaseline = 'alphabetic';
     pctx.fillStyle = '#000';
     const originX = pad, originY = Math.round(fs * 1.5);
-    pctx.fillText(text, originX, originY);
+    drawLines(pctx, originX, originY);
 
     const pw = probe.width, ph = probe.height;
     const pd = pctx.getImageData(0, 0, pw, ph).data;
@@ -684,7 +859,7 @@ class TextToolClass extends ToolBase {
     ctx.font = font;
     ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = '#000';
-    ctx.fillText(text, originX, originY);
+    drawLines(ctx, originX, originY);
 
     // Box-filter each ss x ss block into a coverage fraction
     const data = ctx.getImageData(0, 0, W, H).data;
