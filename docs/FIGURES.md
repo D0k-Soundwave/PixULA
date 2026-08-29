@@ -50,6 +50,8 @@ measured.
 | Tooltip re-entry warm window | 500 ms | A | same file |
 | Tooltip linger after lift | 2000 ms | C | ~5 words/s reading (P) x ~12 words = ~2.5 s, less the time already spent reading during the hold |
 | Touch press-and-hold | 500 ms | P | `tooltip-manager.js` - Android `ViewConfiguration` long-press default |
+| Button hold before repeat | 400 ms | A | `Helpers.REPEAT_DELAY`. Shared by the option-panel slider steppers, the Transform shift pad and the Reference offset pad. Chosen to match the tooltip name dwell above, which is this app's existing answer to "how long is a deliberate hold" - but that figure is P for a HOVER and this one is a PRESS, so the borrowing is an assumption, not an inheritance |
+| Button repeat interval | 60 ms | A | `Helpers.REPEAT_INTERVAL`, same three controls. ~17 steps a second. Never measured against what a hand finds comfortable |
 | Palm-rejection window | 500 ms | A | `input-handler.js` |
 | Long press (canvas) | 600 ms | A | `input-handler.js` |
 | FLASH clock | 320 ms | P | `layer-manager.js` - the real ULA rate (16 frames at 50 Hz) |
@@ -373,6 +375,71 @@ because the correction history is the point.
 |---|---|---|---|
 | `MAX_LIBRARY_FONTS` reasoning | "comfortably inside FontCodec.MAX_JSON_BYTES (64 KB)" | The codec cap is PER FONT; the library record has no cap at all | Written 2026-08-07 during this pass and corrected the same hour after checking `_persistLibrary`. The claim was plausible and false, which is exactly the failure this register exists to catch |
 | Tooltip 400 / 1000 / 2000 ms | tagged A in the first draft of this table | P, P and C - the code cites Microsoft's `SPI_GETMOUSEHOVERTIME`, the Windows press-and-hold threshold, and a reading-speed computation | The first draft of this register was written from the constant names without reading the comment block above them. Same failure as the row above, in the opposite direction: three well-sourced figures libelled as guesses |
+
+---
+
+## 8. Render throughput - measured 2026-08-29
+
+The first performance figures in this register. Nothing had ever been timed:
+every figure above is a cap, a limit or an interval that was *chosen*, and no
+commit in the repo's history mentions perf, speed or optimisation (M, `git log`
+over the full history). These are throughputs that were *observed*.
+
+**Instrument.** `tools/perf-bench.js` - boots the real app in the harness's
+Chrome over `file://`, times each path over enough repetitions to clear
+Chrome's ~0.1 ms `performance.now()` clamp, and reports the median of 15
+samples after 3 warmup passes. `tools/boot-bench.js` is its cold-boot sibling.
+Both are instruments, not tests; re-run them rather than trusting the numbers
+below after any change to the compose path.
+
+**Conditions.** Baseline and optimised were measured BACK TO BACK in one
+session, because an earlier baseline taken hours before gave 17.21 ms where the
+back-to-back one gave 23.36 ms on the same code - this machine's throughput
+moves by a third with thermal state, so any two figures compared here must come
+from the same sitting. That is the main thing to know before quoting them.
+
+### `LayerManager.composeToCanvas()` - one full recompose
+
+| Mode / layers | Before | After | Tag | Change |
+|---|---|---|---|---|
+| STANDARD_ULA, 1 drawing layer | 1.05 ms | 0.215 ms | M | 4.9x |
+| LAYER2_640, 1 drawing layer | 4.98 ms | 0.757 ms | M | 6.6x |
+| LAYER2_640, 32 layers (the cap, every cell altered) | 23.36 ms | 14.79 ms | M | 1.6x |
+
+The 32-layer row is the ceiling, not a typical document: it requires all 32
+layers to carry altered cells across the whole of the largest canvas the app
+can make. It matters because a full recompose is reachable from 43 call sites
+including undo, layer visibility, merge and reorder - so before this it could
+cost 23 ms, comfortably over a 60fps frame (16.7 ms, C: 1000/60), and now it
+does not.
+
+### Selection overlay - per rendered frame, while a selection exists
+
+| Mode | Before | After | Tag |
+|---|---|---|---|
+| STANDARD_ULA, quarter-canvas selection | 0.472 ms | 0.000 ms | M |
+| LAYER2_640, quarter-canvas selection | 1.57 ms | 0.000 ms | M |
+
+"Before" was paid on EVERY frame that had any dirty cell, for as long as a
+selection was up - including throughout a stroke drawn inside one, which is
+what the clip/frisket modes are for. At STANDARD_ULA that was more than twice
+the cost of a full recompose of the same canvas, repeated for a picture that
+had not changed. "After" is the cached path; the first frame after the
+selection actually moves still pays the full cost, which is correct.
+
+### What was measured and NOT acted on
+
+| Path | Figure | Tag | Why it was left |
+|---|---|---|---|
+| `deferCellCompose` x804 (one size-32 brush stamp) | 0.023 ms | M | The per-pixel `` `${cellX},${cellY}` `` key allocation is real and is ~48,000 strings/second while drawing (C), but it costs 23 microseconds a stamp. Converting the three coordinate-keyed Sets to numeric keys would be churn in the two most mode-tested files in the app for no measurable gain |
+| `markCellDirty` over a full canvas | 0.041 ms | M | Same encoding, same conclusion |
+| Boot to `html[data-app-ready]` | 170 ms | M | See below |
+| DOMContentLoaded, all 13 locale tables eager | 51.9 ms | M | All 13 locales load as `<script>` at boot; 12 are never read. 777 KB of 3.05 MB of app JS (C) |
+| DOMContentLoaded, 12 locales lazy-injected | 48.6 ms | M | **3.3 ms, 6.4%.** Implemented, measured, and REVERTED: it makes `I18n.setLocale` asynchronous - a trap for any future caller or test asserting on translated text straight after a switch - and 3.3 ms does not buy that. Recorded here so the decision does not have to be rediscovered. Revisit if the app is ever targeted at storage slower than this machine's |
+| Indexed stacking, top-down with early exit | 13.04 -> 16.82 ms | M | Tried as an optimisation and it was SLOWER. Upper layers are mostly transparent in any real document, so the early exit almost never fires and the per-pixel "already decided" test is pure overhead. Reverted; the reason is recorded in `_composeIndexedCellData` so it is not tried again |
+
+Two of the seven rows above are things that looked like optimisations and were
+not. That is the point of measuring first.
 
 ---
 

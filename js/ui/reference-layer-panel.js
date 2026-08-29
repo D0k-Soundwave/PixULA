@@ -290,10 +290,30 @@ class ReferenceLayerPanelClass {
         const xInput = mkNum('ref-offset-x', 'reference.x', 'X');
         const yInput = mkNum('ref-offset-y', 'reference.y', 'Y');
 
+        /**
+         * Commit both offset fields.
+         *
+         * A field that cannot be read leaves its axis WHERE IT IS. It used to
+         * become 0 - `parseInt(field.value, 10) || 0` turns "unreadable" into
+         * "origin" - and because this commits both axes together, one
+         * unreadable field sent the image to an edge or a corner on the very
+         * next press of the direction pad, whichever way that press pointed.
+         *
+         * A number input reports `""` for anything it cannot parse, and it is
+         * silently left in that state by an assignment it rejects: writing
+         * `Math.round(undefined)` (i.e. NaN) to one blanks it. So "unreadable"
+         * is not an exotic case, it is one bad write upstream away, which is
+         * why the guard lives here rather than only at the writes.
+         */
+        const readAxis = (input, current) => {
+            const typed = parseInt(input.value, 10);
+            return Number.isFinite(typed) ? typed : Math.round(current);
+        };
+
         const updateOffset = () => {
             EventBus.emit(EVENTS.REFERENCE_OFFSET, {
-                x: parseInt(xInput.value, 10) || 0,
-                y: parseInt(yInput.value, 10) || 0
+                x: readAxis(xInput, ReferenceLayerService.offsetX),
+                y: readAxis(yInput, ReferenceLayerService.offsetY)
             });
         };
         xInput.addEventListener('change', updateOffset);
@@ -309,16 +329,44 @@ class ReferenceLayerPanelClass {
         // above by one canvas pixel rather than requiring a typed value for
         // a small reposition.
         const OFFSET_STEP = 1;
-        const nudge = (input, delta) => {
-            input.value = String((parseInt(input.value, 10) || 0) + delta);
+        /**
+         * Nudge one axis by a whole canvas pixel, from the SERVICE's current
+         * offset rather than from the number shown in the field.
+         *
+         * The field is a rendering of state, and deriving the next state from
+         * a rendering is what broke this: Center and Fit moved the image
+         * without announcing the offset fact, the fields kept their old
+         * numbers, and the first arrow press wrote that stale number back -
+         * the image jumped to where it had been before centring. The service
+         * has been fixed to announce (see _announceTransform), so the fields
+         * no longer go stale; reading the service anyway means a future
+         * silent writer costs a stale READOUT instead of corrupting the
+         * offset the moment someone nudges.
+         *
+         * Rounding is deliberate: centring an odd-width image lands on a half
+         * pixel, and an artist stepping by whole pixels should land back on
+         * the pixel grid rather than carry the fraction along forever.
+         */
+        const nudge = (axis, delta) => {
+            const current = axis === 'x'
+                ? ReferenceLayerService.offsetX
+                : ReferenceLayerService.offsetY;
+            const next = Math.round(current) + delta;
+            (axis === 'x' ? xInput : yInput).value = String(next);
             updateOffset();
         };
 
+        // Held rather than clicked: nudging a traced photo into place a pixel
+        // at a time is the job this pad exists for, and at one pixel a click
+        // crossing any real distance meant dozens of them. Repeat starts after
+        // Helpers.REPEAT_DELAY so a single tap is still a single pixel.
+        // Nothing to bracket here - moving the reference offset is view state
+        // and was never undoable, unlike the Transform panel's pad.
         const { element: pad, zones } = Helpers.buildDirPad();
-        zones.up.addEventListener('click', () => nudge(yInput, -OFFSET_STEP));
-        zones.down.addEventListener('click', () => nudge(yInput, OFFSET_STEP));
-        zones.left.addEventListener('click', () => nudge(xInput, -OFFSET_STEP));
-        zones.right.addEventListener('click', () => nudge(xInput, OFFSET_STEP));
+        Helpers.attachRepeatPress(zones.up,    () => nudge('y', -OFFSET_STEP));
+        Helpers.attachRepeatPress(zones.down,  () => nudge('y', OFFSET_STEP));
+        Helpers.attachRepeatPress(zones.left,  () => nudge('x', -OFFSET_STEP));
+        Helpers.attachRepeatPress(zones.right, () => nudge('x', OFFSET_STEP));
 
         // Registered in this.controls so _enableControls disables them along
         // with the rest of the panel when no image is loaded - without this
@@ -526,8 +574,12 @@ class ReferenceLayerPanelClass {
         });
 
         EventBus.on(EVENTS.REFERENCE_OFFSET_CHANGED, (data) => {
-            this.controls.offsetX.value = Math.round(data.x);
-            this.controls.offsetY.value = Math.round(data.y);
+            // A number input REJECTS a NaN assignment by going blank, and a
+            // blank field is what sends an axis to the origin on the next
+            // nudge (see readAxis). Leave the readout showing the last good
+            // value instead of quietly emptying it.
+            if (Number.isFinite(data.x)) this.controls.offsetX.value = Math.round(data.x);
+            if (Number.isFinite(data.y)) this.controls.offsetY.value = Math.round(data.y);
         });
 
         EventBus.on(EVENTS.REFERENCE_SCALE_CHANGED, (data) => {

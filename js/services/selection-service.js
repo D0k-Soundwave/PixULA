@@ -719,7 +719,7 @@ class SelectionServiceClass {
       const tool = window.ToolManager ? ToolManager.getTool(TOOLS.TEXT) : null;
       if (tool && tool.isBitmapFont(fi.fontFamily)) {
         // Glyph-byte fonts: ZX ROM and Phase 10 'zxfont:<name>' library fonts
-        srcPixels = tool._buildTextMask(fi.text, fi.fontFamily, fi.bold, fi.italic)?.pixels || fp._srcPixels;
+        srcPixels = tool._buildTextMask(fi.text, fi.fontFamily, fi.bold, fi.italic, fi.layout)?.pixels || fp._srcPixels;
         srcW = srcPixels[0]?.length || fp._srcWidth;
         srcH = srcPixels.length || fp._srcHeight;
         // Scale the bitmap mask
@@ -728,7 +728,7 @@ class SelectionServiceClass {
       } else if (tool) {
         const mask = tool._rasterizeWithFont(
           fi.text, fi.fontFamily, fi.fontSize * fp._scaleX,
-          fi.bold, fi.italic
+          fi.bold, fi.italic, fi.layout
         );
         if (mask) {
           // Resample to the exact target box so system fonts stay visually consistent
@@ -744,12 +744,15 @@ class SelectionServiceClass {
       srcW = targetW; srcH = targetH;
     }
 
-    // ── Step 1b: Re-apply text direction + shadow/contour effects ─────────
+    // ── Step 1b: Re-apply text direction/mirror + shadow/contour effects ──
     // Text stamps re-rasterize from the raw glyphs above, which drops the
     // MaskOps post-processing the text tool applied at placement. fontInfo
     // carries the same fields, so re-applying here keeps preview == commit.
+    // `layout` is NOT in this list - it is a placement, so it was already
+    // honoured by the rasterizer call above rather than by MaskOps.
     if (fp.fontInfo && window.MaskOps &&
-        (fp.fontInfo.direction || fp.fontInfo.shadow || fp.fontInfo.outline)) {
+        (fp.fontInfo.direction || fp.fontInfo.mirrorH || fp.fontInfo.mirrorV ||
+         fp.fontInfo.shadow || fp.fontInfo.outline)) {
       srcPixels = MaskOps.process(srcPixels, fp.fontInfo);
       srcW = srcPixels[0] ? srcPixels[0].length : 0;
       srcH = srcPixels.length;
@@ -829,39 +832,30 @@ class SelectionServiceClass {
   }
 
   /**
-   * Rotate a bool[][] mask by an arbitrary angle using canvas.
-   * Returns { pixels: bool[][], width, height }.
+   * Rotate a bool[][] mask by an arbitrary angle.
+   *
+   * This is `MaskOps.rotate` and nothing else. It used to be its own
+   * canvas implementation - fill a scratch canvas a pixel at a time, rotate
+   * the context, `drawImage`, read the alpha back - which was a second
+   * rotation living next to the text tool's, and the two could disagree
+   * about the same word: the Transform slider at 45 degrees and the text
+   * tool's Direction at 45 degrees are the same question and must give the
+   * same answer. MaskOps is also pure, so unlike the canvas version it can
+   * be Node-tested (tests/text-mask-ops.test.js).
+   *
+   * Quarter turns are now LOSSLESS here too - MaskOps takes the exact
+   * transpose path for multiples of 90 where the canvas resampled.
+   *
+   * @param {boolean[][]} src
+   * @param {number} srcW - unused; kept so the call site reads dimensionally
+   * @param {number} srcH - unused
+   * @param {number} degrees - clockwise
+   * @returns {{ pixels: boolean[][], width: number, height: number }}
    * @private
    */
   _rotateMask(src, srcW, srcH, degrees) {
-    const rad = degrees * Math.PI / 180;
-    const cos = Math.abs(Math.cos(rad));
-    const sin = Math.abs(Math.sin(rad));
-    const dstW = Math.ceil(srcW * cos + srcH * sin);
-    const dstH = Math.ceil(srcW * sin + srcH * cos);
-
-    // Crisp: nearest-neighbour rotation, hard threshold
-    const off = Helpers.createCanvas(srcW, srcH);
-    const ctx = off.getContext('2d');
-    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, srcW, srcH);
-    ctx.fillStyle = '#000';
-    for (let py = 0; py < srcH; py++)
-      for (let px = 0; px < srcW; px++)
-        if (src[py] && src[py][px]) ctx.fillRect(px, py, 1, 1);
-
-    const dst = Helpers.createCanvas(dstW, dstH);
-    const dCtx = dst.getContext('2d');
-    dCtx.fillStyle = '#fff'; dCtx.fillRect(0, 0, dstW, dstH);
-    dCtx.translate(dstW / 2, dstH / 2);
-    dCtx.rotate(rad);
-    dCtx.imageSmoothingEnabled = false;
-    dCtx.drawImage(off, -srcW / 2, -srcH / 2);
-
-    const imgData = dCtx.getImageData(0, 0, dstW, dstH).data;
-    const pixels = Array.from({ length: dstH }, (_, dy) =>
-      Array.from({ length: dstW }, (_, dx) => imgData[(dy * dstW + dx) * 4] < 128)
-    );
-    return { pixels, width: dstW, height: dstH };
+    const pixels = MaskOps.rotate(src, degrees);
+    return { pixels, width: pixels[0] ? pixels[0].length : 0, height: pixels.length };
   }
 
   /**
