@@ -28,7 +28,10 @@
  *          does not thin a stroke, it deletes it.
  *   warp   All nine warp effects, mirroring `SelectionService.
  *          _applyWarpEffect`'s inverse maps line for line so a disagreement
- *          is about sampling and never about a different curve.
+ *          is about sampling and never about a different curve. A self-check
+ *          enforces that: at ss=1 the twin must reproduce the real function
+ *          pixel for pixel, which it did NOT until 2026-08-29 and nothing in
+ *          the suite could see it.
  *   sys    A vector font, where the glyph HAS a finer form and can therefore
  *          be rasterised through the transform instead of resampled.
  *
@@ -72,12 +75,19 @@
  * TWO TRAPS THIS TOOL CANNOT SCORE ITS WAY OUT OF. Read the sheets.
  *
  * 1. THE GROUND TRUTH SHARES THE CANDIDATE'S BIAS on sparse sources. Truth is
- *    area coverage cut at 0.50, so where a stretched or shrunk texture falls
- *    below a half everywhere, truth says "nothing" and a candidate that also
- *    says "nothing" scores 0.96. The arch-up sheet for pattern/diagonal-left
- *    shows what that hides: `current` carries the pattern across the whole
- *    arch, and every coverage pipeline drops its right-hand half. IoU cannot
- *    see it because both sides of the comparison make the same mistake.
+ *    area coverage cut at 0.50, so where a SHRUNK texture falls below a half
+ *    everywhere, truth says "nothing" and a candidate that also says "nothing"
+ *    scores 0.96. The downscale sheet for pattern/diagonal-left shows what that
+ *    hides: `current` carries the 25% pattern through the shrink, and plain
+ *    coverage erases it at every angle. IoU cannot see it because both sides of
+ *    the comparison make the same mistake.
+ *
+ *    An earlier version of this note also cited the arch-up sheet, claiming
+ *    every coverage pipeline dropped the arch's right-hand half. That was the
+ *    harness, not the domain: warpCoverage sampled half a pixel off its own
+ *    subject (fixed 2026-08-29, see the self-check below). With both in
+ *    register every pipeline carries the pattern across the whole arch, and
+ *    only the DOWNSCALE case is real.
  *
  * 2. A METRIC-PERFECT CANDIDATE CAN BE UNUSABLE. `cov-8/guard` - threshold
  *    plainly, dither only when the whole stamp came back blank - ties plain
@@ -88,14 +98,14 @@
  *    in and out. Rejected on the sheet alone.
  *
  * WHAT TRAP 1 MEANS FOR TUNING. `tone-8/.10` scores BELOW plain coverage on
- * the artwork and warp suites (0.941 vs 0.958, 0.884 vs 0.960) and is
- * nonetheless the better pipeline: the sheets show it restoring the arch's
- * right-hand half and the downscaled diagonal pattern that plain coverage
- * deletes, and truth deletes them too, so putting them back is scored as
- * error. IoU here is a regression guard, not an optimisation target. Tune the
- * local-tone rule on the sheets; use the numbers only to check that the glyph
- * suites have not moved (they must stay at 0.994 - the rule is designed to be
- * a no-op there, and a drop means it has started firing where it should not).
+ * the artwork suite (0.949 against 0.963) and is nonetheless the better
+ * pipeline: the sheets show it restoring the downscaled diagonal pattern that
+ * plain coverage deletes, and truth deletes it too, so putting it back is
+ * scored as error. IoU here is a regression guard, not an optimisation target.
+ * Tune the local-tone rule on the sheets; use the numbers only to check that
+ * the glyph suite has not moved (it must stay at 0.994 - the rule is designed
+ * to be a no-op there, and a drop means it has started firing where it should
+ * not).
  *
  * Contact sheets are written as PNGs with --write, because the metric has been
  * wrong here before and the eye is the tiebreak - it was the contact sheet

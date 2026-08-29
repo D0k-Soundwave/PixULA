@@ -1,21 +1,22 @@
 # Carry the stamp transform chain in a coverage domain - design
 
-Status: the VECTOR half is implemented - section 4.2 in full, and the
-`fromMask`/`toMask` boundary of 4.1 - by
-`docs/superpowers/plans/2026-08-29-coverage-rasterisation-vector.md`.
+Status: **IMPLEMENTED**, by two plans -
+`docs/superpowers/plans/2026-08-29-coverage-rasterisation-vector.md` (sections
+4.2 and the `fromMask`/`toMask` boundary of 4.1) and
+`docs/superpowers/plans/2026-08-29-coverage-pipeline-1bit.md` (the rest of 4.1,
+4.3, 4.4 and section 5).
 
-NOT implemented: 4.1's `transform`/`warp`/`flipH`/`flipV`/`shadow`/`outline`/
-`toneCorrect`, the 1-bit branch of 4.3, the local-tone rule of 4.4, and the
-live budget of section 5. Those are the second plan; pasted artwork, ZX ROM and
-library-font stamps still take the nearest-neighbour path described in
-section 1.
+**Four of this document's figures were wrong and are corrected in place, every
+one of them found by implementing it rather than reading it.** The single 0.50
+threshold of section 6, calibrated against a reference that already assumed it.
+The vector table of section 3, measured across two different typefaces. The
+warp figures of section 3 and register rows 15-16, measured half a pixel out of
+register. And section 7.1's arch-up evidence, which was that same offset rather
+than anything the domain did. The one prediction that survived intact was
+section 7.1's DOWNSCALE case, which is why `toMaskToned` exists.
 
-Two figures in this document were WRONG and are corrected in place, both found
-while implementing it: the single 0.50 threshold of section 6 (calibrated
-against a reference that already assumed it) and the vector table of section 3
-(measured across two different typefaces). Section 7.1 was a blocking objection
-and is resolved by the local-tone rule in 4.4. Sections 10.1 and 10.2 are
-resolved, and no A-tagged figure remains.
+The largest 1-bit gain turned out to be the SCALE (artwork 0.720 -> 0.963), not
+the warp this document called "the worst-performing operation in the app".
 
 Measured by `tools/text-transform-bench.js` (written for this question, 2026-08-29).
 Every figure below carries its provenance tag; the register is section 9.
@@ -445,10 +446,17 @@ may adopt another's without re-measuring at its own sizes.
 
 **A flat 0.50 cut deletes any pattern too sparse to reach half coverage
 anywhere.** A 25%-dense diagonal tile downscaled to 0.6 never reaches a half in
-any output pixel, so the whole texture disappears. The contact sheets
-(`art-pattern_diagonal_left-down.png`, `warp-pattern_diagonal_left-arch-up.png`)
-show it plainly: the shipped nearest path carries the pattern across the whole
-arch and the whole downscale, and every coverage pipeline drops most of it.
+any output pixel, so the whole texture disappears. The contact sheet
+`art-pattern_diagonal_left-down.png` shows it plainly: the shipped nearest path
+carries the pattern through the shrink at every angle, and plain coverage
+erases it.
+
+An earlier version of this section also cited
+`warp-pattern_diagonal_left-arch-up.png`. That evidence was withdrawn
+2026-08-29: the arch's missing right-hand half was the bench's own half-pixel
+warp offset, not the domain. With the harness in register every pipeline
+carries the pattern across the whole arch. **The DOWNSCALE case is the real
+one, and it is enough** - it is what `toMaskToned` exists for.
 
 This matters here more than it would in most applications, because **dither
 patterns ARE this app's shading system** - on a two-colour cell the only way to
