@@ -1555,28 +1555,16 @@ class SelectionServiceClass {
     // ink-placing action, never an erase.
     const mode = PixelDrawRoutine.resolveUserMode(true);
 
-    const bgLayer = LayerManager.layers[0];
-
-    /**
-     * Build a colorSelection for a single stamp pixel that applies the stamp's ink
-     * colour but inherits the target cell's paper colour and flash flag.
-     * bright is taken from the stamp (it applies cell-wide; matching the preview).
-     */
-    const inkOnlyColor = (cx, cy) => {
-      const cellPos = ZX_COORDS.pixelToCell(cx, cy);
-      const tCell = targetLayer.getCell(cellPos.x, cellPos.y);
-      const attrSrc = (tCell && tCell.altered)
-        ? tCell
-        : (bgLayer ? bgLayer.getCell(cellPos.x, cellPos.y) : null);
-      return {
-        ink:   color.ink,
-        paper: attrSrc ? attrSrc.paper : 7,
-        bright: color.bright,
-        flash: attrSrc ? attrSrc.flash  : color.flash,
-        inkTransparent:   color.inkTransparent   || false,
-        paperTransparent: true   // never overwrite the underlying paper index
-      };
-    };
+    // NORMAL stamps the WHOLE attribute, exactly as `_stampAttributes` does for
+    // a brush stroke: the cell takes the ink, paper, bright and flash on the
+    // attribute bar. It used to apply the selected ink but INHERIT the target
+    // cell's paper and flash, so a stamp landed in a colour pair nobody chose -
+    // half the artist's, half whatever happened to be underneath - and the
+    // artist had no way to set the paper a stamp lands on. Three writers
+    // disagreed about it too: the right button already stamped all four, and
+    // the floating preview already showed the selected flash. A cell has one
+    // ink and one paper on this hardware, so a stamp must pick a pair; the one
+    // on the attribute bar is the only one the artist actually chose.
 
     // Stamp writes place exactly the stamp mask — never symmetry-mirrored
     PixelDrawRoutine.suspendMirror(() => {
@@ -1614,16 +1602,15 @@ class SelectionServiceClass {
             if (targetLayer.getPixelState(cx, cy)) {
               PixelDrawRoutine.draw(cx, cy, color, DRAW_MODE.ERASE, { layer: targetLayer });
             } else {
-              PixelDrawRoutine.draw(cx, cy, inkOnlyColor(cx, cy), DRAW_MODE.NORMAL, { layer: targetLayer });
+              PixelDrawRoutine.draw(cx, cy, color, DRAW_MODE.NORMAL, { layer: targetLayer });
             }
           }
         }
         return;
       }
 
-      // Normal mode keeps the ink-only/inherited-paper paint the preview
-      // shows; every other resolved mode (Ink/Paper Recolour, Pixels Only,
-      // XOR) uses the plain current selection, exactly as BrushEngine does.
+      // Every resolved mode paints the plain current selection, exactly as
+      // BrushEngine does - Normal included, since 2026-08-29.
       for (let py = 0; py < h; py++) {
         const row = mask[py];
         if (!row) continue;
@@ -1631,8 +1618,7 @@ class SelectionServiceClass {
           if (!row[px]) continue;
           const cx = x + px, cy = y + py;
           if (Validators.isValidPixelCoord(cx, cy)) {
-            const cs = mode === DRAW_MODE.NORMAL ? inkOnlyColor(cx, cy) : color;
-            PixelDrawRoutine.draw(cx, cy, cs, mode, { layer: targetLayer });
+            PixelDrawRoutine.draw(cx, cy, color, mode, { layer: targetLayer });
           }
         }
       }
@@ -1748,29 +1734,7 @@ class SelectionServiceClass {
     // The top-bar draw-mode selector governs the commit exactly as it would
     // a brush stroke laying down the same ink.
     const mode = PixelDrawRoutine.resolveUserMode(true);
-    const bgLayer = LayerManager.layers[0];
-
-    /**
-     * Ink-only colorSelection for a single committed pixel: stamp ink colour,
-     * paper/flash inherited from the resolved target cell (or background when
-     * unaltered), bright from the stamp. paperTransparent keeps the underlying
-     * paper index intact. Mirrors stampAt's inkOnlyColor against `target`.
-     */
-    const inkOnlyColor = (cx, cy) => {
-      const cellPos = ZX_COORDS.pixelToCell(cx, cy);
-      const tCell = target.getCell(cellPos.x, cellPos.y);
-      const attrSrc = (tCell && tCell.altered)
-        ? tCell
-        : (bgLayer ? bgLayer.getCell(cellPos.x, cellPos.y) : null);
-      return {
-        ink:   color.ink,
-        paper: attrSrc ? attrSrc.paper : 7,
-        bright: color.bright,
-        flash: attrSrc ? attrSrc.flash  : color.flash,
-        inkTransparent:   color.inkTransparent   || false,
-        paperTransparent: true   // never overwrite the underlying paper index
-      };
-    };
+    // The commit bakes what the drag painted - see stampAt.
 
     UndoRedo.beginAction('Commit stamp');
     PixelDrawRoutine.beginBatch();
@@ -1800,14 +1764,13 @@ class SelectionServiceClass {
             if (target.getPixelState(cx, cy)) {
               PixelDrawRoutine.draw(cx, cy, color, DRAW_MODE.ERASE, { layer: target });
             } else {
-              PixelDrawRoutine.draw(cx, cy, inkOnlyColor(cx, cy), DRAW_MODE.NORMAL, { layer: target });
+              PixelDrawRoutine.draw(cx, cy, color, DRAW_MODE.NORMAL, { layer: target });
             }
           }
         }
       } else {
-        // Normal mode keeps the ink-only/inherited-paper bake; every other
-        // resolved mode (Ink/Paper Recolour, Pixels Only, XOR) uses the
-        // plain current selection, exactly as BrushEngine does.
+        // Every resolved mode bakes the plain current selection, exactly as
+        // BrushEngine does - Normal included, since 2026-08-29.
         for (let py = 0; py < h; py++) {
           const row = mask[py];
           if (!row) continue;
@@ -1815,8 +1778,7 @@ class SelectionServiceClass {
             if (!row[px]) continue;
             const cx = x + px, cy = y + py;
             if (Validators.isValidPixelCoord(cx, cy)) {
-              const cs = mode === DRAW_MODE.NORMAL ? inkOnlyColor(cx, cy) : color;
-              PixelDrawRoutine.draw(cx, cy, cs, mode, { layer: target });
+              PixelDrawRoutine.draw(cx, cy, color, mode, { layer: target });
             }
           }
         }
@@ -2028,12 +1990,15 @@ class SelectionServiceClass {
           fpCell.bright = colorSelection.bright;
           fpCell.flash  = colorSelection.flash;
         } else {
-          // Normal: ink colour from current selection; paper inherited from
-          // target so the stamp does not override the underlying paper.
-          fpCell.ink    = colorSelection.ink;
+          // Normal: the whole attribute from the current selection, which is
+          // what stampAt and commitStamp now write. The preview showed the
+          // target's paper while the commit wrote the same, so this was
+          // honest - but it also showed the SELECTED flash against a commit
+          // that inherited it, so the two were never quite the same picture.
+          fpCell.ink    = colorSelection.inkTransparent   ? srcInk   : colorSelection.ink;
+          fpCell.paper  = colorSelection.paperTransparent ? srcPaper : colorSelection.paper;
           fpCell.bright = colorSelection.bright;
           fpCell.flash  = colorSelection.flash;
-          fpCell.paper  = srcPaper;
         }
 
         fpCell.altered = true;
