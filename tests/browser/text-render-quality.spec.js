@@ -23,6 +23,22 @@ const { boot } = require('./helpers');
 // asked for. The app is safe because FontProbe.detect() only ever yields single
 // names; a test that hand-writes one is not.
 
+/**
+ * A spread of the fonts this machine actually has.
+ *
+ * NOT the first N: `FontProbe.detect()` returns 176 families here in
+ * alphabetical order, so `slice(0, 6)` is six sans faces beginning with A and
+ * misses every serif - and serifs at small sizes are exactly where both
+ * defects these specs guard bite hardest. An even stride across the whole list
+ * picks up a representative mix on any font set.
+ */
+const SPREAD = `(n) => {
+    const all = window.FontProbe ? FontProbe.detect() : [];
+    if (all.length <= n) return all;
+    const step = all.length / n;
+    return Array.from({ length: n }, (_, i) => all[Math.floor(i * step)]);
+}`;
+
 /** 8-connected components of a bool[][] mask. */
 const COMPONENTS = `(m) => {
     const h = m.length, w = h ? m[0].length : 0;
@@ -49,30 +65,37 @@ test('a word rasterises as one connected piece per word, not in fragments',
     async ({ page }) => {
         await boot(page);
 
-        const r = await page.evaluate(([componentsSrc]) => {
+        const r = await page.evaluate(([componentsSrc, spreadSrc]) => {
             const components = eval(componentsSrc);
             const tool = ToolManager.getTool(TOOLS.TEXT);
-            // Whatever this machine actually has, not a hardcoded list - the
-            // defect is worst on serifs and a fixed name would fall back
-            // silently on a platform without it. Five is enough to catch a
-            // regression without turning this into a font survey.
-            const families = (window.FontProbe ? FontProbe.detect() : []).slice(0, 5);
+            // Whatever this machine actually has, spread across the list - a
+            // fixed name would fall back silently on a platform without it.
+            const families = eval(spreadSrc)(8);
             return families.map((fam) => {
-                const m = tool._rasterizeWithFont('ZX SPECTRUM', fam,
+                // Each font is its OWN reference. An absolute bound cannot
+                // work across 176 arbitrary families: a script face like Gigi
+                // is legitimately disconnected at any size and scored 14 here,
+                // which is the font, not the rasteriser. Rendered LARGE the
+                // same string has room for every stroke, so its piece count is
+                // what this font's text is actually made of.
+                const small = tool._rasterizeWithFont('ZX SPECTRUM', fam,
                     16, false, false, 'horizontal');
-                return { fam, comps: m ? components(m.pixels) : -1 };
-            });
-        }, [COMPONENTS]);
+                const large = tool._rasterizeWithFont('ZX SPECTRUM', fam,
+                    96, false, false, 'horizontal');
+                if (!small || !large) return null;
+                return { fam, small: components(small.pixels), large: components(large.pixels) };
+            }).filter(Boolean);
+        }, [COMPONENTS, SPREAD]);
 
         expect(r.length).toBeGreaterThan(0);
-        // 10 drawable glyphs, so 10 is the ideal and touching letters push it
-        // BELOW that - only fragmentation pushes it above. Measured against the
-        // old single-sample rasteriser 2026-08-29: Arial 17, Times New Roman
-        // 19, Georgia 17 at this size, against 9-10 now. 13 sits clear of the
-        // new figure and well under every old one.
+        // Shrinking text may MERGE strokes, never multiply them. Measured
+        // against the old single-sample rasteriser 2026-08-29: Arial 17 pieces
+        // at 16px against 10 large, Times New Roman 19, Georgia 17 - each
+        // roughly double its own reference. Allowing 1.4x leaves room for a
+        // hairline parting at a join and still catches that.
         for (const f of r) {
-            expect(f.comps, `${f.fam} fragmented into ${f.comps} pieces`).toBeGreaterThan(0);
-            expect(f.comps, `${f.fam} fragmented into ${f.comps} pieces`).toBeLessThanOrEqual(13);
+            expect(f.small, `${f.fam}: ${f.small} pieces at 16px against ${f.large} at 96px`)
+                .toBeLessThanOrEqual(Math.ceil(f.large * 1.4) + 1);
         }
     });
 
@@ -231,4 +254,156 @@ test('render-through at 0 degrees agrees with the untransformed rasteriser',
 
         expect(r.throughInk / r.flatInk).toBeGreaterThan(0.92);
         expect(r.throughInk / r.flatInk).toBeLessThan(1.08);
+    });
+
+test('a rotated system-font stamp keeps its ink through the live pipeline',
+    async ({ page }) => {
+        await boot(page);
+
+        const r = await page.evaluate(() => {
+            const tool = ToolManager.getTool(TOOLS.TEXT);
+            const ink = (px) => px.reduce((n, row) => n + row.filter(Boolean).length, 0);
+            const mask = tool._rasterizeWithFont('HELLO', 'Arial',
+                24, false, false, 'horizontal');
+            SelectionService.startFloatingPasteFromMask(
+                mask.pixels, mask.width, mask.height, 40, 40, 'Place Text',
+                { text: 'HELLO', fontFamily: 'Arial', fontSize: 24,
+                  bold: false, italic: false, layout: 'horizontal' },
+                'none');
+
+            const flat = ink(SelectionService.floatingPaste.pixels);
+            SelectionService.setStampRotation(45);
+            const turned = ink(SelectionService.floatingPaste.pixels);
+            SelectionService.setStampRotation(0);
+            const back = ink(SelectionService.floatingPaste.pixels);
+            SelectionService.endFloatingPaste(false);
+            return { flat, turned, back };
+        });
+
+        expect(r.flat).toBeGreaterThan(0);
+        // Thresholded ink varies with ANGLE and that is a property, not a
+        // fault: at 0 and 90 degrees stems line up with the pixel grid, and at
+        // 45 the same coverage spreads over more pixels with some falling under
+        // the cut. Measured 2026-08-29 on render-through, Arial 24px: 548 ink
+        // at 0 degrees, 478 at 15 and 30, 458 at 45, 487 at 90 - while the
+        // CONTINUOUS area is invariant to the digit (410 at every angle). So
+        // the floor is 0.82, not 0.90; the old resampling path is what this
+        // still catches, having lost ink AND shattered the letterforms.
+        expect(r.turned / r.flat).toBeGreaterThan(0.82);
+        expect(r.turned / r.flat).toBeLessThan(1.12);
+        // Rotating away and back rebuilds from the font, so it must return
+        expect(r.back / r.flat).toBeGreaterThan(0.95);
+    });
+
+test('rotating a stamp does not shatter the letterforms', async ({ page }) => {
+    await boot(page);
+
+    // Ink count is a weak proxy - a resampled rotation can hold its weight and
+    // still break every stroke. Connectivity is what actually degrades, and it
+    // shows on SERIFS at small sizes: measured 2026-08-29, Times New Roman at
+    // 16px went from 10 pieces upright to 19 after a resampled 45 degree turn,
+    // against 9 when the glyph is rasterised already-turned.
+    const r = await page.evaluate(([componentsSrc, spreadSrc]) => {
+        const components = eval(componentsSrc);
+        const tool = ToolManager.getTool(TOOLS.TEXT);
+        const families = eval(spreadSrc)(8);
+        return families.map((fam) => {
+            const m = tool._rasterizeWithFont('ZX SPECTRUM', fam,
+                16, false, false, 'horizontal');
+            if (!m) return null;
+            SelectionService.startFloatingPasteFromMask(
+                m.pixels, m.width, m.height, 40, 40, 'Place Text',
+                { text: 'ZX SPECTRUM', fontFamily: fam, fontSize: 16,
+                  bold: false, italic: false, layout: 'horizontal' }, 'none');
+            SelectionService.setStampRotation(45);
+            const turned = components(SelectionService.floatingPaste.pixels);
+            SelectionService.endFloatingPaste(false);
+            return { fam, flat: components(m.pixels), turned };
+        }).filter(Boolean);
+    }, [COMPONENTS, SPREAD]);
+
+    expect(r.length).toBeGreaterThan(0);
+    for (const f of r) {
+        // A turn moves the letterforms; it must not multiply them. 1.3x leaves
+        // room for a stroke legitimately parting at a corner and still catches
+        // the 1.9x a resampled serif produced.
+        expect(f.turned, `${f.fam}: ${f.flat} pieces upright, ${f.turned} at 45 degrees`)
+            .toBeLessThanOrEqual(Math.ceil(f.flat * 1.3));
+    }
+});
+
+test('the text tool Direction and the Transform slider agree at the same angle',
+    async ({ page }) => {
+        await boot(page);
+
+        // Both controls say "rotate this text". If only one of them reaches
+        // the font engine they disagree about sharpness at the same angle,
+        // which is the objection that collapsed _rotateMask into MaskOps.
+        const r = await page.evaluate(() => {
+            const tool = ToolManager.getTool(TOOLS.TEXT);
+            const ink = (px) => px.reduce((n, row) => n + row.filter(Boolean).length, 0);
+            const place = (info) => {
+                const m = tool._rasterizeWithFont(info.text, info.fontFamily,
+                    info.fontSize, false, false, 'horizontal');
+                SelectionService.startFloatingPasteFromMask(
+                    m.pixels, m.width, m.height, 40, 40, 'Place Text', info, 'none');
+            };
+            const base = { text: 'HELLO', fontFamily: 'Arial',
+                fontSize: 24, bold: false, italic: false, layout: 'horizontal' };
+
+            // setStampRotation(0) is what forces the recompute - creating the
+            // stamp does not run the transform chain, so reading it straight
+            // after `place` measures the raw raster and compares nothing.
+            place({ ...base, direction: 45 });
+            SelectionService.setStampRotation(0);
+            const viaDirection = ink(SelectionService.floatingPaste.pixels);
+            SelectionService.endFloatingPaste(false);
+
+            place({ ...base, direction: 0 });
+            SelectionService.setStampRotation(45);
+            const viaSlider = ink(SelectionService.floatingPaste.pixels);
+            SelectionService.endFloatingPaste(false);
+
+            return { viaDirection, viaSlider };
+        });
+
+        expect(r.viaDirection).toBeGreaterThan(0);
+        // The same angle by either route must weigh the same
+        expect(r.viaDirection / r.viaSlider).toBeGreaterThan(0.92);
+        expect(r.viaDirection / r.viaSlider).toBeLessThan(1.09);
+    });
+
+test('direction and the slider compose rather than cancelling or doubling',
+    async ({ page }) => {
+        await boot(page);
+
+        const r = await page.evaluate(() => {
+            const tool = ToolManager.getTool(TOOLS.TEXT);
+            const box = () => {
+                const fp = SelectionService.floatingPaste;
+                return { w: fp.width, h: fp.height };
+            };
+            const m = tool._rasterizeWithFont('HELLO', 'Arial',
+                24, false, false, 'horizontal');
+            SelectionService.startFloatingPasteFromMask(m.pixels, m.width, m.height,
+                40, 40, 'Place Text',
+                { text: 'HELLO', fontFamily: 'Arial', fontSize: 24,
+                  bold: false, italic: false, layout: 'horizontal', direction: 90 },
+                'none');
+            // Creating the stamp does NOT run the transform chain - the box is
+            // still the raw raster until something recomputes it. Setting the
+            // rotation to 0 is that trigger, and leaves direction as the only
+            // rotation in play.
+            SelectionService.setStampRotation(0);
+            const at90 = box();
+            // direction 90 + slider -90 is upright again: a WIDE box, not tall
+            SelectionService.setStampRotation(-90);
+            const composed = box();
+            SelectionService.endFloatingPaste(false);
+            return { at90, composed };
+        });
+
+        // 'HELLO' is wider than it is tall upright, and the reverse at 90.
+        expect(r.at90.h).toBeGreaterThan(r.at90.w);
+        expect(r.composed.w).toBeGreaterThan(r.composed.h);
     });
