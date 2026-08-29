@@ -124,4 +124,52 @@ check('transform: an empty buffer is safe',
   CoverageOps.transform(CoverageOps.create(0, 0), {}, { w: 0, h: 0 }).data.length === 0);
 
 
+// -- warp --------------------------------------------------------------------
+// The nine effects mirror SelectionService._applyWarpEffect's inverse maps
+// exactly - this is a coverage TWIN of that function, not a second
+// implementation of the geometry, so any disagreement in the bench is about
+// sampling and never about a different curve.
+const warpBlock = CoverageOps.fromMask(
+  Array.from({ length: 12 }, () => new Array(24).fill(T)));
+
+const EFFECTS = ['arch-up', 'arch-down', 'wave', 'flag', 'slant-right',
+  'slant-left', 'inflate', 'perspective-top', 'perspective-bottom'];
+
+check('warp: an unknown effect is a copy',
+  eq(CoverageOps.toMask(CoverageOps.warp(warpBlock, 'nope')), CoverageOps.toMask(warpBlock)));
+
+check('warp: every effect returns a non-empty buffer and keeps ink',
+  EFFECTS.every((e) => {
+    const w = CoverageOps.warp(warpBlock, e);
+    return w.w > 0 && w.h > 0 && CoverageOps.area(w) > 0;
+  }));
+
+// The six that grow the canvas must actually grow it, or content clips.
+check('warp: arch and wave grow the height, slants grow the width', (() => {
+  const base = CoverageOps.size(warpBlock);
+  const taller = ['arch-up', 'arch-down', 'wave', 'flag']
+    .every((e) => CoverageOps.warp(warpBlock, e).h > base.h);
+  const wider = ['slant-right', 'slant-left']
+    .every((e) => CoverageOps.warp(warpBlock, e).w > base.w);
+  return taller && wider;
+})());
+
+check('warp: intensity 0 leaves an arch flat', (() => {
+  const flat = CoverageOps.warp(warpBlock, 'arch-up', 0);
+  return flat.h === warpBlock.h && flat.w === warpBlock.w;
+})());
+
+// The point of doing it in coverage: a stretch thins the ink rather than
+// deleting it. Under 'inflate' the centre magnifies and the edges compress,
+// and the total area must stay close to what went in.
+check('warp: inflate keeps most of the area rather than dropping it', (() => {
+  const w = CoverageOps.warp(warpBlock, 'inflate');
+  const ratio = CoverageOps.area(w) / CoverageOps.area(warpBlock);
+  return ratio > 0.85 && ratio < 1.15;
+})());
+
+check('warp: an empty buffer is safe',
+  CoverageOps.warp(CoverageOps.create(0, 0), 'wave').data.length === 0);
+
+
 summary();
