@@ -309,8 +309,30 @@ class ReferenceLayerPanelClass {
         // above by one canvas pixel rather than requiring a typed value for
         // a small reposition.
         const OFFSET_STEP = 1;
-        const nudge = (input, delta) => {
-            input.value = String((parseInt(input.value, 10) || 0) + delta);
+        /**
+         * Nudge one axis by a whole canvas pixel, from the SERVICE's current
+         * offset rather than from the number shown in the field.
+         *
+         * The field is a rendering of state, and deriving the next state from
+         * a rendering is what broke this: Center and Fit moved the image
+         * without announcing the offset fact, the fields kept their old
+         * numbers, and the first arrow press wrote that stale number back -
+         * the image jumped to where it had been before centring. The service
+         * has been fixed to announce (see _announceTransform), so the fields
+         * no longer go stale; reading the service anyway means a future
+         * silent writer costs a stale READOUT instead of corrupting the
+         * offset the moment someone nudges.
+         *
+         * Rounding is deliberate: centring an odd-width image lands on a half
+         * pixel, and an artist stepping by whole pixels should land back on
+         * the pixel grid rather than carry the fraction along forever.
+         */
+        const nudge = (axis, delta) => {
+            const current = axis === 'x'
+                ? ReferenceLayerService.offsetX
+                : ReferenceLayerService.offsetY;
+            const next = Math.round(current) + delta;
+            (axis === 'x' ? xInput : yInput).value = String(next);
             updateOffset();
         };
 
@@ -321,10 +343,10 @@ class ReferenceLayerPanelClass {
         // Nothing to bracket here - moving the reference offset is view state
         // and was never undoable, unlike the Transform panel's pad.
         const { element: pad, zones } = Helpers.buildDirPad();
-        Helpers.attachRepeatPress(zones.up,    () => nudge(yInput, -OFFSET_STEP));
-        Helpers.attachRepeatPress(zones.down,  () => nudge(yInput, OFFSET_STEP));
-        Helpers.attachRepeatPress(zones.left,  () => nudge(xInput, -OFFSET_STEP));
-        Helpers.attachRepeatPress(zones.right, () => nudge(xInput, OFFSET_STEP));
+        Helpers.attachRepeatPress(zones.up,    () => nudge('y', -OFFSET_STEP));
+        Helpers.attachRepeatPress(zones.down,  () => nudge('y', OFFSET_STEP));
+        Helpers.attachRepeatPress(zones.left,  () => nudge('x', -OFFSET_STEP));
+        Helpers.attachRepeatPress(zones.right, () => nudge('x', OFFSET_STEP));
 
         // Registered in this.controls so _enableControls disables them along
         // with the rest of the panel when no image is loaded - without this
