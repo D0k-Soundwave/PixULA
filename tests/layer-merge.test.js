@@ -14,6 +14,14 @@
  *  3. mergeSelected merging 3+ layers, bottom-to-top attribute precedence.
  *  4. Part D: mergeDown must recompose the canvas on success (previously
  *     it did not, leaving the canvas showing pre-merge pixels).
+ *  5. flattenVisible in an indexed mode with the background layer HIDDEN:
+ *     unaltered pixels must stay -1 (transparent), not the background's
+ *     default paper index — `_composeIndexedCellData` fills with
+ *     NEXTRGB333.DEFAULT_PAPER when bgCell is null, which is correct for
+ *     the live canvas compose (something must render) but wrong for
+ *     flattenVisible (nxi/sl2/slr export and Layer > Flatten Image both
+ *     read the flattened result's indices directly, so a hidden bg used
+ *     to leak into them as opaque paper 7 instead of staying transparent).
  */
 const { installStubs, loadModule, check, summary } = require('./helpers/zx-stubs');
 
@@ -167,6 +175,31 @@ function enter(modeId) {
   LayerManager.requestComposition = original;
 
   check('mergeDown calls requestComposition on success (Part D)', composeCalls > 0);
+}
+
+// ─── 5. flattenVisible, indexed mode, hidden background ────────────────────
+
+{
+  enter(L2.id);
+
+  const bgLayer = LayerManager.getLayer(0);
+  bgLayer.visible = false;
+
+  const drawLayer = LayerManager.getLayer(1);
+  const cell = drawLayer.getCell(0, 0);
+  cell.indices.fill(-1);
+  cell.indices[0] = 5;   // the only pixel actually drawn
+  cell.altered = true;
+
+  const flattened = LayerManager.flattenVisible();
+  const out = flattened.getCell(0, 0).indices;
+
+  check('flattenVisible (hidden bg) keeps the drawn pixel',
+    out[0] === 5);
+  check('flattenVisible (hidden bg) leaves every other pixel at -1, not DEFAULT_PAPER',
+    Array.from(out.slice(1)).every(v => v === -1));
+
+  bgLayer.visible = true;
 }
 
 summary();
