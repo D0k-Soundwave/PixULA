@@ -16,6 +16,23 @@
  */
 class TextToolClass extends ToolBase {
   /**
+   * How glyphs are PLACED, before any rotation or mirroring. Adding one is a
+   * row here plus a branch in `_buildTextMask`/`_rasterizeWithFont`; the
+   * schema, the setter's validation and the i18n all read this list.
+   */
+  static LAYOUTS = [
+    { id: 'horizontal',    i18n: 'opt.layout.horizontal' },
+    { id: 'reversed',      i18n: 'opt.layout.reversed' },
+    { id: 'vertical-down', i18n: 'opt.layout.verticalDown' },
+    { id: 'vertical-up',   i18n: 'opt.layout.verticalUp' }
+  ];
+
+  /** True for the layouts that stack glyphs into a column. @private */
+  static _isVertical(layout) {
+    return layout === 'vertical-down' || layout === 'vertical-up';
+  }
+
+  /**
    * Declarative options - rendered by OptionControls (contract in tool-base.js).
    * fontFamily/textSize carry `dynamic` hooks: the renderer awaits the named
    * tool method to extend (fonts) or replace (clean sizes) the option list.
@@ -34,13 +51,19 @@ class TextToolClass extends ToolBase {
       dynamic: 'getSizesForFont' },
     { type: 'check', key: 'fontBold',   i18n: 'opt.bold',   value: false },
     { type: 'check', key: 'fontItalic', i18n: 'opt.italic', value: false },
+    // Layout PLACES the glyphs; direction TURNS the finished block. They are
+    // separate controls because a quarter turn lays the letters on their
+    // sides, which is not what "vertical text" means on a sign - and no
+    // amount of rotating gets you a column of upright letters.
+    { type: 'select', key: 'textLayout', i18n: 'opt.layout', value: 'horizontal',
+      options: TextToolClass.LAYOUTS.map(l => ({ value: l.id, i18n: l.i18n })) },
+    // Multiples of 90 are exact (MaskOps takes the transpose path); the
+    // diagonals resample, so they are worth more pixels of text size.
     { type: 'select', key: 'textDirection', i18n: 'opt.direction', value: 0,
-      options: [
-        { value: 0,   label: '0°' },
-        { value: 90,  label: '90°' },
-        { value: 180, label: '180°' },
-        { value: 270, label: '270°' }
-      ] },
+      options: [0, 45, 90, 135, 180, 225, 270, 315]
+        .map(d => ({ value: d, label: d + '°' })) },
+    { type: 'check', key: 'textMirrorH', i18n: 'opt.mirrorH', value: false },
+    { type: 'check', key: 'textMirrorV', i18n: 'opt.mirrorV', value: false },
     { type: 'check', key: 'textShadow',  i18n: 'opt.shadow',  value: false },
     { type: 'check', key: 'textOutline', i18n: 'opt.outline', value: false },
     { type: 'hint', i18n: 'text.hint' }
@@ -54,7 +77,10 @@ class TextToolClass extends ToolBase {
     this._fontSize        = 16;
     this._fontBold        = false;
     this._fontItalic      = false;
-    this._textDirection   = 0;      // 0 | 90 | 180 | 270 (clockwise)
+    this._textLayout      = 'horizontal';  // glyph placement (TextToolClass.LAYOUTS)
+    this._textDirection   = 0;      // degrees clockwise; 90s exact, 45s resampled
+    this._textMirrorH     = false;  // mirror left-right (MaskOps.flipH, exact)
+    this._textMirrorV     = false;  // mirror top-bottom (MaskOps.flipV, exact)
     this._textShadow      = false;  // drop shadow (MaskOps offset-OR)
     this._textOutline     = false;  // hollow contour (MaskOps dilate-minus-glyph)
     this._fixedSize       = 16;   // px height; always > 0 (selected from dropdown)
@@ -105,12 +131,26 @@ class TextToolClass extends ToolBase {
   getTextSize()       { return this._fixedSize; }
   setTextSize(v)      { this._fixedSize = Math.max(1, parseInt(v, 10) || 16); this._disengaged = false; this._updatePreviewIfActive(); }
 
-  getTextDirection()  { return this._textDirection; }
-  setTextDirection(v) {
-    const d = parseInt(v, 10) || 0;
-    this._textDirection = [0, 90, 180, 270].includes(d) ? d : 0;
+  getTextLayout()  { return this._textLayout; }
+  setTextLayout(v) {
+    this._textLayout = TextToolClass.LAYOUTS.some(l => l.id === v) ? v : 'horizontal';
     this._disengaged = false; this._updatePreviewIfActive();
   }
+
+  getTextDirection()  { return this._textDirection; }
+  setTextDirection(v) {
+    // Snapped to the offered steps rather than clamped: an out-of-range value
+    // from an older preset should fall back to upright, not to 315.
+    const d = parseInt(v, 10) || 0;
+    this._textDirection = (d % 45 === 0 && d >= 0 && d < 360) ? d : 0;
+    this._disengaged = false; this._updatePreviewIfActive();
+  }
+
+  getTextMirrorH()    { return this._textMirrorH; }
+  setTextMirrorH(v)   { this._textMirrorH = !!v; this._disengaged = false; this._updatePreviewIfActive(); }
+
+  getTextMirrorV()    { return this._textMirrorV; }
+  setTextMirrorV(v)   { this._textMirrorV = !!v; this._disengaged = false; this._updatePreviewIfActive(); }
 
   getTextShadow()     { return this._textShadow; }
   setTextShadow(v)    { this._textShadow = !!v;  this._disengaged = false; this._updatePreviewIfActive(); }
@@ -126,7 +166,14 @@ class TextToolClass extends ToolBase {
    */
   _effectOpts() {
     return {
+      // `layout` is not a MaskOps field - it is consumed by the rasterizers,
+      // which is why SelectionService has to hand it back to them when it
+      // re-rasterizes. It rides here because fontInfo is the one envelope
+      // both halves of that round trip already agree on.
+      layout:    this._textLayout,
       direction: this._textDirection,
+      mirrorH:   this._textMirrorH,
+      mirrorV:   this._textMirrorV,
       shadow:    this._textShadow,
       outline:   this._textOutline
     };
@@ -357,7 +404,8 @@ class TextToolClass extends ToolBase {
    * @param {string} [family] - defaults to the tool's current family
    * @returns {{ pixels: boolean[][], width: number, height: number }|null}
    */
-  _buildTextMask(text, family = this._fontFamily, bold = this._fontBold, italic = this._fontItalic) {
+  _buildTextMask(text, family = this._fontFamily, bold = this._fontBold,
+                 italic = this._fontItalic, layout = this._textLayout) {
     const charH = 8;
     let charW = 8;
     let glyphOf; // char -> row byte array (MSB = left), or null
@@ -376,16 +424,26 @@ class TextToolClass extends ToolBase {
       };
     }
 
-    let totalWidth = 0;
-    for (let i = 0; i < text.length; i++) {
-      if (glyphOf(text[i])) totalWidth += charW;
-    }
-    if (!totalWidth) return null;
-    const pixels = Array.from({ length: charH }, () => new Array(totalWidth).fill(false));
-    let curX = 0;
+    // The glyphs that will actually be drawn, in PLACEMENT order.
+    const glyphs = [];
     for (let i = 0; i < text.length; i++) {
       const bitmap = glyphOf(text[i]);
-      if (!bitmap) continue;
+      if (bitmap) glyphs.push(bitmap);
+    }
+    if (!glyphs.length) return null;
+    // Both backwards layouts are the same operation on the ORDER of the
+    // glyphs; the letterforms themselves are never touched, which is what
+    // separates 'reversed' from a mirror.
+    if (layout === 'reversed' || layout === 'vertical-up') glyphs.reverse();
+
+    if (TextToolClass._isVertical(layout)) {
+      return this._stackGlyphs(glyphs, charW, charH, bold, italic);
+    }
+
+    const totalWidth = glyphs.length * charW;
+    const pixels = Array.from({ length: charH }, () => new Array(totalWidth).fill(false));
+    let curX = 0;
+    for (const bitmap of glyphs) {
       for (let row = 0; row < charH; row++) {
         for (let col = 0; col < charW; col++) {
           if ((bitmap[row] >> (7 - col)) & 1) pixels[row][curX + col] = true;
@@ -395,6 +453,46 @@ class TextToolClass extends ToolBase {
     }
     if (!bold && !italic) return { pixels, width: totalWidth, height: charH };
     return this._styleBitmapMask(pixels, totalWidth, charH, bold, italic);
+  }
+
+  /**
+   * Stack glyph cells into a column, each letter upright and centred on the
+   * widest.
+   *
+   * Styling happens PER GLYPH, before the stack is assembled, and that is not
+   * an optimization - `_styleBitmapMask`'s italic shear is measured against
+   * the mask's own height, so styling a 5-letter column as one 40px-tall mask
+   * shears it by up to 13px and smears the whole thing into a diagonal streak
+   * instead of slanting each letter by 2px. Pinned by tests/text-layout.test.js.
+   *
+   * @param {Array<Uint8Array|number[]>} glyphs - row bytes, MSB = left
+   * @param {number} charW
+   * @param {number} charH
+   * @param {boolean} bold
+   * @param {boolean} italic
+   * @returns {{ pixels: boolean[][], width: number, height: number }}
+   * @private
+   */
+  _stackGlyphs(glyphs, charW, charH, bold, italic) {
+    const cells = glyphs.map((bitmap) => {
+      const pixels = Array.from({ length: charH }, (_, row) =>
+        Array.from({ length: charW }, (_, col) => !!((bitmap[row] >> (7 - col)) & 1)));
+      return (bold || italic)
+        ? this._styleBitmapMask(pixels, charW, charH, bold, italic)
+        : { pixels, width: charW, height: charH };
+    });
+
+    const width = cells.reduce((w, c) => Math.max(w, c.width), 0);
+    const out = [];
+    for (const cell of cells) {
+      const pad = Math.floor((width - cell.width) / 2);
+      for (const row of cell.pixels) {
+        const line = new Array(width).fill(false);
+        for (let x = 0; x < cell.width; x++) if (row[x]) line[pad + x] = true;
+        out.push(line);
+      }
+    }
+    return { pixels: out, width, height: out.length };
   }
 
   /**
@@ -428,7 +526,29 @@ class TextToolClass extends ToolBase {
     return { pixels: grid, width, height: h };
   }
 
-  _rasterizeWithFont(text, fontFamily, fontSize, bold = false, italic = false) {
+  _rasterizeWithFont(text, fontFamily, fontSize, bold = false, italic = false,
+                     layout = this._textLayout) {
+    if (TextToolClass._isVertical(layout)) {
+      return this._stackRasterized(text, fontFamily, fontSize, bold, italic, layout);
+    }
+    if (layout === 'reversed') text = [...text].reverse().join('');
+
+    const raw = this._rasterizeRaw(text, fontFamily, fontSize, bold, italic);
+    if (!raw) return null;
+    const trimmed = this._trimMask(raw);
+    return trimmed;
+  }
+
+  /**
+   * Rasterize a string to an UNTRIMMED alpha-thresholded mask. Split out of
+   * `_rasterizeWithFont` because the vertical layouts need every character
+   * measured against the same box: trimming each letter to its own ink first
+   * would stack an 'o' and an 'A' at the same height and throw the baselines
+   * away.
+   * @returns {{ pixels: boolean[][], width: number, height: number }}
+   * @private
+   */
+  _rasterizeRaw(text, fontFamily, fontSize, bold, italic) {
     const off = Helpers.createCanvas(1, 1);
     const ctx = off.getContext('2d');
     const weight  = bold   ? 'bold'   : 'normal';
@@ -444,22 +564,73 @@ class TextToolClass extends ToolBase {
     ctx.fillText(text, 1, 0);
     const data = ctx.getImageData(0, 0, w, h).data;
 
-    const rawW = w, rawH = h;
-    const raw = Array.from({ length: h }, (_, ry) =>
-      Array.from({ length: w }, (_, rx) => data[(ry * w + rx) * 4 + 3] > 127)
-    );
+    return {
+      pixels: Array.from({ length: h }, (_, ry) =>
+        Array.from({ length: w }, (_, rx) => data[(ry * w + rx) * 4 + 3] > 127)),
+      width:  w,
+      height: h
+    };
+  }
 
-    let y0 = rawH, y1 = -1, x0 = rawW, x1 = -1;
-    for (let ry = 0; ry < rawH; ry++) for (let rx = 0; rx < rawW; rx++) if (raw[ry][rx]) {
+  /** Ink bounds of a raw mask, or null where it drew nothing. @private */
+  _inkBounds(raw) {
+    let y0 = raw.height, y1 = -1, x0 = raw.width, x1 = -1;
+    for (let ry = 0; ry < raw.height; ry++) for (let rx = 0; rx < raw.width; rx++) if (raw.pixels[ry][rx]) {
       if (rx < x0) x0 = rx; if (rx > x1) x1 = rx;
       if (ry < y0) y0 = ry; if (ry > y1) y1 = ry;
     }
-    if (y1 < 0) return null;
+    return y1 < 0 ? null : { x0, x1, y0, y1 };
+  }
+
+  /** Crop a raw mask to its ink. @private */
+  _trimMask(raw) {
+    const b = this._inkBounds(raw);
+    if (!b) return null;
     return {
-      pixels: raw.slice(y0, y1 + 1).map(row => row.slice(x0, x1 + 1)),
-      width:  x1 - x0 + 1,
-      height: y1 - y0 + 1,
+      pixels: raw.pixels.slice(b.y0, b.y1 + 1).map(row => row.slice(b.x0, b.x1 + 1)),
+      width:  b.x1 - b.x0 + 1,
+      height: b.y1 - b.y0 + 1,
     };
+  }
+
+  /**
+   * Stack a system font's characters into a column of upright letters.
+   *
+   * Each character is rasterized on its own (canvas has no notion of vertical
+   * text) and trimmed HORIZONTALLY only. The vertical band is the union of
+   * every character's ink, applied to all of them, so descenders and
+   * x-heights keep their real proportions instead of every letter being
+   * squeezed to its own bounding box.
+   * @returns {{ pixels: boolean[][], width: number, height: number }|null}
+   * @private
+   */
+  _stackRasterized(text, fontFamily, fontSize, bold, italic, layout) {
+    const chars = layout === 'vertical-up' ? [...text].reverse() : [...text];
+
+    let bandTop = Infinity, bandBottom = -1;
+    const cells = [];
+    for (const ch of chars) {
+      const raw = this._rasterizeRaw(ch, fontFamily, fontSize, bold, italic);
+      const b = this._inkBounds(raw);
+      if (!b) continue;                       // whitespace draws nothing
+      if (b.y0 < bandTop)    bandTop = b.y0;
+      if (b.y1 > bandBottom) bandBottom = b.y1;
+      cells.push({ raw, x0: b.x0, x1: b.x1 });
+    }
+    if (!cells.length) return null;
+
+    const width = cells.reduce((w, c) => Math.max(w, c.x1 - c.x0 + 1), 0);
+    const out = [];
+    for (const cell of cells) {
+      const cw = cell.x1 - cell.x0 + 1;
+      const pad = Math.floor((width - cw) / 2);
+      for (let ry = bandTop; ry <= bandBottom; ry++) {
+        const line = new Array(width).fill(false);
+        for (let x = 0; x < cw; x++) if (cell.raw.pixels[ry][cell.x0 + x]) line[pad + x] = true;
+        out.push(line);
+      }
+    }
+    return { pixels: out, width, height: out.length };
   }
 
   // ── Font size quality scanning ─────────────────────────────────────────────

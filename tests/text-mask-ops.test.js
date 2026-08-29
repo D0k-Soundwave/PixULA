@@ -77,4 +77,66 @@ check('process: default shadow offset scales with mask height', (() => {
 check('rotate/shadow/outline: empty mask passthrough',
   eq(MaskOps.rotate([], 90), []) && eq(MaskOps.shadow([], 1, 1), []) && eq(MaskOps.outline([]), []));
 
+// -- flipH / flipV (exact mirrors) -------------------------------------------
+check('flipH: reverses every row', eq(MaskOps.flipH(glyph), [[F, T, T], [T, F, F]]));
+check('flipV: reverses the row order', eq(MaskOps.flipV(glyph), [[F, F, T], [T, T, F]]));
+check('flipH: dims unchanged', dims(MaskOps.flipH(glyph)) === dims(glyph));
+check('flipV: dims unchanged', dims(MaskOps.flipV(glyph)) === dims(glyph));
+check('flipH twice = identity', eq(MaskOps.flipH(MaskOps.flipH(glyph)), glyph));
+check('flipV twice = identity', eq(MaskOps.flipV(MaskOps.flipV(glyph)), glyph));
+check('flipH/flipV: lossless (ink count preserved)',
+  count(MaskOps.flipH(glyph)) === count(glyph) && count(MaskOps.flipV(glyph)) === count(glyph));
+check('flipH+flipV = rotate 180', eq(MaskOps.flipV(MaskOps.flipH(glyph)), MaskOps.rotate(glyph, 180)));
+check('flipH/flipV: empty mask passthrough',
+  eq(MaskOps.flipH([]), []) && eq(MaskOps.flipV([]), []));
+
+// -- rotateFree (arbitrary angles) -------------------------------------------
+// rotate() used to snap to the nearest quarter turn (Math.round(deg/90)), so 45
+// silently became 90. The dispatch must send non-multiples to rotateFree.
+const r45 = MaskOps.rotate(glyph, 45);
+check('rotate 45: is NOT snapped to 90', !eq(r45, MaskOps.rotate(glyph, 90)));
+check('rotate 45: is NOT the identity', !eq(r45, glyph));
+// 3x2 at 45 deg: ceil(3*cos45 + 2*sin45) = ceil(3.54) = 4 on both axes
+check('rotate 45: bounding box grows to fit the diagonal (3x2 -> 4x4)', dims(r45) === '4x4');
+check('rotate 45: keeps ink', count(r45) > 0);
+
+// Quarter turns must still take the EXACT transpose path - lossless, no resample.
+check('rotate 90/180/270 stay lossless (ink count preserved)',
+  count(MaskOps.rotate(glyph, 90))  === count(glyph) &&
+  count(MaskOps.rotate(glyph, 180)) === count(glyph) &&
+  count(MaskOps.rotate(glyph, 270)) === count(glyph));
+
+// A horizontal bar turned CLOCKWISE tips its right-hand end downward, so the
+// result descends left-to-right (screen coords, y down).
+const bar = [[T, T, T, T, T]];
+const bar45 = MaskOps.rotate(bar, 45);
+check('rotate 45: a horizontal bar becomes a descending diagonal', (() => {
+  const set = [];
+  bar45.forEach((row, y) => row.forEach((v, x) => { if (v) set.push({ x, y }); }));
+  if (set.length < 3) return false;
+  const leftmost  = set.reduce((a, b) => (b.x < a.x ? b : a));
+  const rightmost = set.reduce((a, b) => (b.x > a.x ? b : a));
+  return leftmost.y < rightmost.y;
+})());
+
+check('rotateFree: 315 is the mirror image of 45 about the vertical axis',
+  eq(MaskOps.rotate(bar, 315), MaskOps.flipH(MaskOps.rotate(bar, 45))));
+check('rotateFree: negative angles normalize (-45 == 315)',
+  eq(MaskOps.rotate(bar, -45), MaskOps.rotate(bar, 315)));
+check('rotateFree: empty mask passthrough', eq(MaskOps.rotate([], 45), []));
+
+// -- process chain with mirrors (mirror -> outline -> shadow -> rotate) -------
+const chained = MaskOps.rotate(
+  MaskOps.shadow(MaskOps.outline(MaskOps.flipV(MaskOps.flipH(glyph))), 1, 1), 90);
+check('process: mirrors run FIRST, in glyph space, before outline/shadow/rotate',
+  eq(MaskOps.process(glyph, {
+    mirrorH: true, mirrorV: true, direction: 90,
+    shadow: true, outline: true, shadowOffset: 1
+  }), chained));
+check('process: mirrorH alone', eq(MaskOps.process(glyph, { mirrorH: true }), MaskOps.flipH(glyph)));
+check('process: mirrorV alone', eq(MaskOps.process(glyph, { mirrorV: true }), MaskOps.flipV(glyph)));
+check('process: a 45 deg direction reaches the free rotation',
+  eq(MaskOps.process(glyph, { direction: 45 }), MaskOps.rotate(glyph, 45)));
+
+
 summary();

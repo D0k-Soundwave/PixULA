@@ -377,12 +377,49 @@ class ReferenceLayerServiceClass {
      * @param {number} y - Y offset in pixels
      */
     setOffset(x, y) {
-        this.offsetX = x;
-        this.offsetY = y;
+        // A non-finite offset is never a placement anyone asked for, and it
+        // spreads: it renders as nothing, it blanks the panel's number field
+        // (which rejects a NaN assignment by going empty), and the next nudge
+        // then reads that empty field and sends the axis to the origin - the
+        // image jumping to a corner. Hold the last good value per axis
+        // instead, and say so, because it means a caller upstream is wrong.
+        if (!Number.isFinite(x) || !Number.isFinite(y)) {
+            Logger.warn('ReferenceLayerService',
+                `Ignoring non-finite offset (${x}, ${y}); keeping ` +
+                `(${this.offsetX}, ${this.offsetY})`);
+        }
+        if (Number.isFinite(x)) this.offsetX = x;
+        if (Number.isFinite(y)) this.offsetY = y;
         this._render();
         this._saveState();
 
-        EventBus.emit(EVENTS.REFERENCE_OFFSET_CHANGED, { x, y });
+        // The fact reports what the service actually holds, not the arguments
+        // it was handed - otherwise a rejected value would still be announced
+        // and every listener would render a placement that is not in force.
+        EventBus.emit(EVENTS.REFERENCE_OFFSET_CHANGED, { x: this.offsetX, y: this.offsetY });
+    }
+
+    /**
+     * Announce the current transform as facts.
+     *
+     * For the operations that move the image WITHOUT the caller naming a
+     * value - Center, Fit, Fill - which each announced only what they DID
+     * ("centered", "fitted") and never what CHANGED. The panel's fields
+     * follow the fact events, so they went stale, and the direction pad
+     * computes its next nudge from the field: pressing an arrow after Center
+     * wrote the pre-Center value straight back and the image jumped. That is
+     * the bug this exists to prevent, but it was never only about the pad -
+     * any listener reading these facts was being lied to.
+     *
+     * The "what I did" events are kept as well, because something may care
+     * that a fit HAPPENED rather than merely that the numbers moved.
+     * @private
+     */
+    _announceTransform() {
+        EventBus.emit(EVENTS.REFERENCE_OFFSET_CHANGED, { x: this.offsetX, y: this.offsetY });
+        EventBus.emit(EVENTS.REFERENCE_SCALE_CHANGED, { scale: this.scale });
+        EventBus.emit(EVENTS.REFERENCE_ROTATION_CHANGED, { rotation: this.rotation });
+        EventBus.emit(EVENTS.REFERENCE_FLIP_CHANGED, { flipX: this.flipX, flipY: this.flipY });
     }
 
     /**
@@ -463,6 +500,11 @@ class ReferenceLayerServiceClass {
      */
     fitToCanvas(mode = 'contain') {
         if (!this.image) return;
+        // Same guard as centerImage: fitting divides by the image's own
+        // dimensions, so a not-yet-decoded image gives a division by zero and
+        // an infinite scale, and an absent one gives NaN - either way the
+        // placement stops being a number and the image lands in a corner.
+        if (!this.image.naturalWidth || !this.image.naturalHeight) return;
 
         this.fitMode = mode;
         const imgWidth = this.image.naturalWidth;
@@ -510,6 +552,10 @@ class ReferenceLayerServiceClass {
         this._render();
         this._saveState();
 
+        // Fit/Fill move the offset AND the scale AND clear the rotation, so
+        // all three facts have to go out - the scale slider went stale here
+        // for the same reason the offset fields did.
+        this._announceTransform();
         EventBus.emit(EVENTS.REFERENCE_FITTED, { mode, scale: newScale });
     }
 
@@ -518,6 +564,11 @@ class ReferenceLayerServiceClass {
      */
     centerImage() {
         if (!this.image) return;
+        // naturalWidth/Height are 0 until the decode completes. Centring on a
+        // zero-sized image is not merely useless, it puts the image at half
+        // the canvas and, if the dimensions are absent rather than zero, makes
+        // the offset NaN - which is how a placement ends up in a corner.
+        if (!this.image.naturalWidth || !this.image.naturalHeight) return;
 
         const scaleValue = this.scale / 100;
         const imgWidth = this.image.naturalWidth * scaleValue;
@@ -529,6 +580,7 @@ class ReferenceLayerServiceClass {
         this._render();
         this._saveState();
 
+        this._announceTransform();
         EventBus.emit(EVENTS.REFERENCE_CENTERED);
     }
 
@@ -616,6 +668,15 @@ class ReferenceLayerServiceClass {
         } else {
             this._render();
         }
+
+        // Restoring is a wholesale transform change - recalling a preset,
+        // opening a .pixula, reloading the app - so the facts go out for the
+        // same reason Center and Fit send them. Without this the panel showed
+        // the PREVIOUS image's placement after a preset was recalled, and the
+        // first press of the direction pad wrote that stale placement back.
+        this._announceTransform();
+        EventBus.emit(EVENTS.REFERENCE_OPACITY_CHANGED, { opacity: this.opacity });
+        EventBus.emit(EVENTS.REFERENCE_VISIBILITY_CHANGED, { visible: this.visible });
     }
 
     /**

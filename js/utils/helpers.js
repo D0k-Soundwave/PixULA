@@ -16,6 +16,26 @@ const BASE64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012
 
 const Helpers = {
     /**
+     * How long a press-and-hold waits before it starts repeating, and how
+     * fast it repeats once it does. One definition, because three controls
+     * now share the behaviour - the option-panel slider steppers, the
+     * Transform panel's shift pad and the Reference panel's offset pad - and
+     * a hold that stepped at different rates depending on which pad it was
+     * over would read as a bug.
+     *
+     * [A] Both values are carried over unchanged from the slider steppers,
+     * where they were introduced and have been in use since. 400 ms matches
+     * the tooltip's own dwell before it shows a name (js/ui/tooltip-manager.js),
+     * which is the app's existing answer to "how long is a deliberate hold";
+     * 60 ms is ~17 steps a second, and remains a guess rather than a measured
+     * comfortable rate. Neither is a constraint anything rests on - the worst
+     * case of both being wrong is a pad that repeats a little too eagerly or
+     * a little too slowly, fixed by changing these two numbers.
+     */
+    REPEAT_DELAY: 400,
+    REPEAT_INTERVAL: 60,
+
+    /**
      * Clamp a value between min and max
      * @param {number} value - Value to clamp
      * @param {number} min - Minimum value
@@ -654,6 +674,80 @@ const Helpers = {
      * their own enable/disable state; this only builds the shared markup.
      * @returns {{element: HTMLElement, zones: {up: HTMLButtonElement, left: HTMLButtonElement, right: HTMLButtonElement, down: HTMLButtonElement}}}
      */
+    /**
+     * Wire a button to fire `fn` once on press and then keep firing it while
+     * held, instead of demanding a fresh click per step.
+     *
+     * Mouse, touch and pen all drive it through pointer events. A plain
+     * click - keyboard Enter/Space, which never fires pointerdown - still
+     * fires `fn` exactly once, bracketed the same way, so a keyboard user
+     * gets one step per press and the OS's own key repeat supplies the rest.
+     *
+     * `onStart`/`onEnd` bracket the whole GESTURE, not each step. That is
+     * what lets a held button produce one undo entry rather than one per
+     * repeat: the Transform panel opens an UndoRedo action on start and
+     * closes it on release, so a two-second hold is a single Ctrl+Z. They
+     * are guaranteed to pair - `onEnd` runs on pointerup, pointerleave and
+     * pointercancel, and never runs without a matching `onStart`.
+     *
+     * @param {HTMLElement} btn
+     * @param {Function} fn - the step to perform, once per press and repeat
+     * @param {Object} [options]
+     * @param {Function} [options.onStart] - before the first step of a gesture
+     * @param {Function} [options.onEnd] - after the last step of a gesture
+     * @param {number} [options.delay] - ms held before repeating starts
+     * @param {number} [options.interval] - ms between repeats
+     */
+    attachRepeatPress(btn, fn, options = {}) {
+        const onStart = options.onStart || null;
+        const onEnd = options.onEnd || null;
+        const delay = options.delay !== undefined ? options.delay : this.REPEAT_DELAY;
+        const interval = options.interval !== undefined ? options.interval : this.REPEAT_INTERVAL;
+
+        let delayTimer = null;
+        let repeatTimer = null;
+        let firedByPointer = false;
+        let inGesture = false;
+
+        const endGesture = () => {
+            clearTimeout(delayTimer);
+            clearInterval(repeatTimer);
+            delayTimer = null;
+            repeatTimer = null;
+            // Guarded so a pointerup followed by a pointerleave - or any
+            // other double-stop - cannot close the gesture twice and leave
+            // an UndoRedo action unbalanced.
+            if (inGesture) {
+                inGesture = false;
+                if (onEnd) onEnd();
+            }
+        };
+
+        btn.addEventListener('pointerdown', (e) => {
+            if (e.pointerType === 'mouse' && e.button !== 0) return;
+            firedByPointer = true;
+            inGesture = true;
+            if (onStart) onStart();
+            fn();
+            delayTimer = setTimeout(() => {
+                repeatTimer = setInterval(fn, interval);
+            }, delay);
+        });
+        btn.addEventListener('pointerup', endGesture);
+        btn.addEventListener('pointerleave', endGesture);
+        btn.addEventListener('pointercancel', endGesture);
+
+        // A mouse/touch/pen click follows its own pointerdown - skip it so
+        // the press is not counted twice. A keyboard-activated click has no
+        // preceding pointerdown and must still step once.
+        btn.addEventListener('click', () => {
+            if (firedByPointer) { firedByPointer = false; return; }
+            if (onStart) onStart();
+            fn();
+            if (onEnd) onEnd();
+        });
+    },
+
     buildDirPad() {
         const pad = document.createElement('div');
         pad.className = 'dir-pad';
