@@ -386,6 +386,29 @@ class ReferenceLayerServiceClass {
     }
 
     /**
+     * Announce the current transform as facts.
+     *
+     * For the operations that move the image WITHOUT the caller naming a
+     * value - Center, Fit, Fill - which each announced only what they DID
+     * ("centered", "fitted") and never what CHANGED. The panel's fields
+     * follow the fact events, so they went stale, and the direction pad
+     * computes its next nudge from the field: pressing an arrow after Center
+     * wrote the pre-Center value straight back and the image jumped. That is
+     * the bug this exists to prevent, but it was never only about the pad -
+     * any listener reading these facts was being lied to.
+     *
+     * The "what I did" events are kept as well, because something may care
+     * that a fit HAPPENED rather than merely that the numbers moved.
+     * @private
+     */
+    _announceTransform() {
+        EventBus.emit(EVENTS.REFERENCE_OFFSET_CHANGED, { x: this.offsetX, y: this.offsetY });
+        EventBus.emit(EVENTS.REFERENCE_SCALE_CHANGED, { scale: this.scale });
+        EventBus.emit(EVENTS.REFERENCE_ROTATION_CHANGED, { rotation: this.rotation });
+        EventBus.emit(EVENTS.REFERENCE_FLIP_CHANGED, { flipX: this.flipX, flipY: this.flipY });
+    }
+
+    /**
      * Get offset
      * @returns {Object} { x, y }
      */
@@ -510,6 +533,10 @@ class ReferenceLayerServiceClass {
         this._render();
         this._saveState();
 
+        // Fit/Fill move the offset AND the scale AND clear the rotation, so
+        // all three facts have to go out - the scale slider went stale here
+        // for the same reason the offset fields did.
+        this._announceTransform();
         EventBus.emit(EVENTS.REFERENCE_FITTED, { mode, scale: newScale });
     }
 
@@ -529,6 +556,7 @@ class ReferenceLayerServiceClass {
         this._render();
         this._saveState();
 
+        this._announceTransform();
         EventBus.emit(EVENTS.REFERENCE_CENTERED);
     }
 
@@ -616,6 +644,15 @@ class ReferenceLayerServiceClass {
         } else {
             this._render();
         }
+
+        // Restoring is a wholesale transform change - recalling a preset,
+        // opening a .pixula, reloading the app - so the facts go out for the
+        // same reason Center and Fit send them. Without this the panel showed
+        // the PREVIOUS image's placement after a preset was recalled, and the
+        // first press of the direction pad wrote that stale placement back.
+        this._announceTransform();
+        EventBus.emit(EVENTS.REFERENCE_OPACITY_CHANGED, { opacity: this.opacity });
+        EventBus.emit(EVENTS.REFERENCE_VISIBILITY_CHANGED, { visible: this.visible });
     }
 
     /**
