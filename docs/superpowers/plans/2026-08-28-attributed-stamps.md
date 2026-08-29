@@ -368,7 +368,27 @@ In `setStampRotation` (around line 662):
   }
 ```
 
-In `setStampWarp` (around line 673 — read the current body first; add the same guard as the first line inside the method: `if (!this.floatingPaste || this.floatingPaste.attrs) return;`, replacing whatever the current first guard clause is).
+In `setStampWarp(effect)` (around line 673), current body:
+
+```javascript
+  setStampWarp(effect) {
+    const fp = this.floatingPaste;
+    if (!fp) return;
+    fp._warpEffect = effect || 'none';
+    this._recomputeStampTransform();
+  }
+```
+
+Replace with:
+
+```javascript
+  setStampWarp(effect) {
+    const fp = this.floatingPaste;
+    if (!fp || fp.attrs) return;
+    fp._warpEffect = effect || 'none';
+    this._recomputeStampTransform();
+  }
+```
 
 In `transformStamp(type, ...)` (around line 1179), add a guard right after the existing `if (!this.floatingPaste) return;` line: shape-changing types are everything except the four shift types, which must still work (repositioning is fine, shape-changing is not):
 
