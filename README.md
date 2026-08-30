@@ -74,7 +74,7 @@ Prefer to run from source? Clone the repository and open `index.html` the same w
 ## ![#D1242F](https://img.shields.io/badge/-D1242F?style=flat-square) Status
 
 > [!IMPORTANT]
-> PixULA is currently a **working alpha**. You can download it and run it entirely locally in any reasonably modern browser — there are a couple of CORS prompts to accept on first run, but no install required. It's in active use, but feedback is genuinely needed to catch anything that's been missed.
+> PixULA is currently a **working alpha**. It runs entirely locally in any reasonably modern browser, with no install and no server, and there is nothing to accept on first run - it makes no network requests at all, so there is nothing for the browser to warn you about. A few optional features do ask permission the first time you use them, because they reach outside the page: choosing a folder for automatic backups, linking a reference photo from disk, or pasting from the system clipboard. It's in active use, but feedback is genuinely needed to catch anything that's been missed.
 
 ## ![#CF222E](https://img.shields.io/badge/-CF222E?style=flat-square) Roadmap
 
