@@ -46,6 +46,31 @@ async function penHover(page, px, py, buttons) {
     }, [px, py, buttons]);
 }
 
+/** Dispatch a pen press-drag-lift along `points`, holding `buttons` throughout. */
+async function penStroke(page, points, buttons, button) {
+    await page.evaluate(([points, buttons, button]) => {
+        const doc = document.getElementById('canvas-frame').contentDocument;
+        const canvas = doc.getElementById('main-canvas');
+        const rect = canvas.getBoundingClientRect();
+        const win = doc.defaultView;
+        const at = ([px, py]) => ({
+            clientX: rect.left + (px + 0.5) * rect.width / ZX_SPECTRUM.WIDTH,
+            clientY: rect.top + (py + 0.5) * rect.height / ZX_SPECTRUM.HEIGHT
+        });
+        const base = { pointerId: 7, pointerType: 'pen', isPrimary: true,
+                       bubbles: true, cancelable: true, pressure: 0.5 };
+        doc.body.dispatchEvent(new win.PointerEvent('pointerdown',
+            Object.assign({}, base, at(points[0]), { buttons, button })));
+        for (const p of points.slice(1)) {
+            doc.body.dispatchEvent(new win.PointerEvent('pointermove',
+                Object.assign({}, base, at(p), { buttons, button: -1 })));
+        }
+        doc.body.dispatchEvent(new win.PointerEvent('pointerup',
+            Object.assign({}, base, at(points[points.length - 1]),
+                          { buttons: 0, button, pressure: 0 })));
+    }, [points, buttons, button]);
+}
+
 /** Assign actions to pen controls, as the Preferences dialog would. */
 const assign = (page, actions) =>
     page.evaluate((a) => StateManager.set('pen.actions', a), actions);
@@ -172,6 +197,43 @@ test('a hovering pen held eraser-first outlines the eraser, not the brush', asyn
     await assign(page, { barrel: 'menu' });
     await penHover(page, 128, 96, BARREL);
     expect(await overlayLit(page), 'a menu button is not an eraser').toBe(0);
+});
+
+test('an unassigned barrel paints paper out of the box', async ({ page }) => {
+    await boot(page);
+    await page.keyboard.press('b');
+    // Nothing assigned, no Preferences visit: this is the shipped default, and
+    // it is a one-barrel pen's only route to paper (the tip cannot be bound).
+    await penTap(page, 60, 60, TIP, 0);
+    expect(await isInk(page, 60, 60)).toBe(true);
+    await penTap(page, 60, 60, BARREL, 2);
+    expect(await isInk(page, 60, 60), 'the barrel cleared the pixel').toBe(false);
+});
+
+test('a Surface Slim Pen 2 barrel paints paper with the tip in contact', async ({ page }) => {
+    await boot(page);
+    await page.evaluate(() => StateManager.set('pen.profile', 'surfaceSlimPen'));
+    await page.keyboard.press('b');
+    // Real hardware holds the barrel AND touches down, so the browser reports
+    // both bits at once - the shape penTap's single-bit cases never exercise.
+    await penTap(page, 44, 44, TIP, 0);
+    expect(await isInk(page, 44, 44)).toBe(true);
+    await penTap(page, 44, 44, TIP | BARREL, 0);
+    expect(await isInk(page, 44, 44), 'tip+barrel is still the barrel').toBe(false);
+});
+
+test('the barrel keeps painting paper for a whole drag, not just the press', async ({ page }) => {
+    await boot(page);
+    await page.keyboard.press('b');
+    await penStroke(page, [[20, 100], [21, 100], [22, 100]], TIP, 0);
+    for (let x = 20; x <= 22; x++) expect(await isInk(page, x, 100)).toBe(true);
+
+    // The moves of a barrel drag carry buttons only - `button` is -1 on a move,
+    // so a stroke that decided ink-or-paper per sample must read the held bits.
+    await penStroke(page, [[20, 100], [21, 100], [22, 100]], TIP | BARREL, 0);
+    for (let x = 20; x <= 22; x++) {
+        expect(await isInk(page, x, 100), `pixel ${x} cleared by the drag`).toBe(false);
+    }
 });
 
 test('a barrel assigned Draw paper erases; assigned Draw ink it draws', async ({ page }) => {

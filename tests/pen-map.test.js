@@ -67,8 +67,14 @@ check('a fixed profile ignores a custom shape',
     PenMap.controlsFor('apple', { barrels: 2, eraser: true }).length === 0);
 
 // ── action resolution ──────────────────────────────────────────────────────
-check('barrel defaults to the eyedropper it has always been',
-    PenMap.actionFor('barrel', {}) === 'eyedropper');
+// The barrel is the pen's SECONDARY button - the browser cannot tell a barrel
+// press from a mouse right-click - and every vendor ships it as right-click
+// (docs/pen-info-table.md, read 2026-08-18: Surface Slim Pen "side button =
+// right-click/select", XP-Pen "one side button shipped as right-click", Wacom
+// "upper = right-click"). In this app the right button paints PAPER, and with
+// the tip unassignable that is a one-barrel pen's ONLY route to paper.
+check('barrel defaults to drawing paper, like every other secondary button',
+    PenMap.actionFor('barrel', {}) === 'paper');
 check('eraser tail defaults to erasing',
     PenMap.actionFor('eraser', {}) === 'eraser');
 check('second barrel defaults to the canvas menu',
@@ -99,10 +105,26 @@ const wacomDefaults = PenMap.defaultsFor('wacom');
 check('defaultsFor covers exactly the profile\'s controls',
     Object.keys(wacomDefaults).sort().join(',') === 'barrel,barrel2,eraser');
 check('defaultsFor maps each to its default action',
-    wacomDefaults.barrel === 'eyedropper' && wacomDefaults.barrel2 === 'menu' &&
+    wacomDefaults.barrel === 'paper' && wacomDefaults.barrel2 === 'menu' &&
     wacomDefaults.eraser === 'eraser');
 check('an Apple Pencil has no defaults to write',
     Object.keys(PenMap.defaultsFor('apple')).length === 0);
+
+// The barrel default is a RULE about every pen, not a fact about a few named
+// ones: the barrel is the secondary button on all of them, so a profile that
+// overrode it would be handing one make of pen a different app. Checked across
+// the whole registry so a model added later cannot quietly opt out - the five
+// that report nothing are the pens with no side button at all (four Apple
+// Pencils and the Wacom bare-tip), which have nothing to assign.
+const barrelDefaults = Object.keys(PEN_PROFILES)
+    .map(id => [id, PenMap.defaultsFor(id).barrel]);
+check('every pen with a barrel defaults it to paper - no exceptions',
+    barrelDefaults.every(([, action]) => action === 'paper' || action === undefined));
+check('and 18 of the 23 profiles genuinely have one to default',
+    barrelDefaults.filter(([, action]) => action === 'paper').length === 18);
+check('the five with none are exactly the button-less pens',
+    barrelDefaults.filter(([, a]) => a === undefined).map(([id]) => id).join(',') ===
+    'applePencil1,applePencil2,applePencilUsbC,applePencilPro,wacomBareTip');
 
 // ── every action in the registry is nameable and unique ────────────────────
 const ids = Object.keys(PEN_ACTIONS).map(k => PEN_ACTIONS[k].id);
@@ -146,8 +168,11 @@ check('Wacom Pro Pen 3D has no eraser (the doc lists none)',
     PenMap.controlsFor('wacomProPen3D').join(',') === 'barrel,barrel2');
 check('Wacom Pro Pen 3D barrel2 defaults to Pan, not the shared Menu default',
     PenMap.actionFor('barrel2', { profile: 'wacomProPen3D' }) === 'pan');
-check('Wacom Pro Pen 3D barrel still defaults to something (menu)',
-    PenMap.actionFor('barrel', { profile: 'wacomProPen3D' }) === 'menu');
+// ...and only barrel2. Its upper button's documented default is right-click,
+// which is the shared baseline now, so an override there would state a
+// DIFFERENCE that does not exist.
+check('Wacom Pro Pen 3D barrel takes the shared paper default like every other pen',
+    PenMap.actionFor('barrel', { profile: 'wacomProPen3D' }) === 'paper');
 check('every OTHER Wacom pen keeps the shared barrel2 default (menu), not pan',
     PenMap.actionFor('barrel2', { profile: 'wacomProPen2' }) === 'menu' &&
     PenMap.actionFor('barrel2', { profile: 'wacomProPen3' }) === 'menu' &&
@@ -167,6 +192,12 @@ check('all three Samsung S Pen variants share one barrel, no eraser',
 // sheet: "Eraser and top button") — the same web-visible shape as the round
 // Surface Pen's tail, despite the very different physical form factor. Only
 // the legacy 2-button pen is genuinely a different shape from the other two.
+// The pen this default was reported against: out of the box its side button
+// must paint paper, with nothing assigned and no Preferences visit.
+check('a Surface Slim Pen 2 barrel paints paper with nothing assigned',
+    PenMap.actionFor('barrel', { profile: 'surfaceSlimPen' }) === 'paper' &&
+    PenMap.defaultsFor('surfaceSlimPen').barrel === 'paper');
+
 check('the current Surface Pen and Slim Pen share one shape; the legacy pen adds a barrel',
     PenMap.controlsFor('surfacePen').join(',') === 'barrel,eraser' &&
     PenMap.controlsFor('surfacePenLegacy').join(',') === 'barrel,barrel2,eraser' &&
