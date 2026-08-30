@@ -18,6 +18,13 @@
  */
 class TZXFormatClass {
   constructor() {
+    // A tape SCREEN$ block is a CLASSIC 6912-byte screen whatever mode the
+    // document happens to be in, so this is pinned to STANDARD_ULA exactly
+    // as TAPFormat.SCREEN_SIZE is. It was the live ZX_SPECTRUM.SCR_FILE_SIZE
+    // view, which follows the ACTIVE mode - so in ULAplus the scan looked
+    // for a 6976-byte block, found none, and this handler could not reload
+    // its own export. TAP, holding byte-identical content, loaded fine.
+    this.SCREEN_SIZE = SCREEN_MODES.STANDARD_ULA.fileSize;
     this.SIGNATURE = 'ZXTape!';
     this.VERSION = [1, 20]; // major, minor
     this.PAUSE_MS = 1000;   // pause after each block
@@ -110,9 +117,9 @@ class TZXFormatClass {
       const { skip, dataStart, dataLen } = span;
 
       // A ROM-style data payload: [flag][SCREEN$ bytes][checksum]
-      if (dataStart >= 0 && dataLen === ZX_SPECTRUM.SCR_FILE_SIZE + 2 &&
+      if (dataStart >= 0 && dataLen === this.SCREEN_SIZE + 2 &&
           bytes[dataStart] >= 0x80 && dataStart + dataLen <= bytes.length) {
-        const payload = bytes.slice(dataStart + 1, dataStart + 1 + ZX_SPECTRUM.SCR_FILE_SIZE);
+        const payload = bytes.slice(dataStart + 1, dataStart + 1 + this.SCREEN_SIZE);
         const result = SCRFormat.parse(payload.buffer);
         if (result.success) {
           Logger.info('TZXFormat', 'Loaded SCREEN$ block from TZX');
@@ -125,7 +132,7 @@ class TZXFormatClass {
       if (skip < 0 || pos > bytes.length) break; // truncated file
     }
 
-    return { success: false, error: `No ${ZX_SPECTRUM.SCR_FILE_SIZE}-byte SCREEN$ block found in TZX file` };
+    return { success: false, error: `No ${this.SCREEN_SIZE}-byte SCREEN$ block found in TZX file` };
   }
 
   /**

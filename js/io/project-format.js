@@ -232,12 +232,32 @@ class ProjectFormatClass {
         return this.encode(App._getProjectData());
     }
 
-    /** Export + download, the FormatRegistry export contract. */
-    async exportAndDownload(filename) {
+    /**
+     * Export + download, the FormatRegistry export contract.
+     *
+     * The download() result is RETURNED, never discarded: it is `false`
+     * when the artist cancelled the native Save picker, and that is the
+     * one signal FileManager.saveToFile() has for leaving the document
+     * dirty. Swallowing it reported a cancelled Ctrl+S on an open
+     * `.pixula` as a completed save - hasUnsavedChanges cleared, FILE_SAVE
+     * emitted, the file added to Recent and the beforeunload warning gone
+     * with it, so the next close discarded the work in silence. Every
+     * other handler in js/io/ already returned it; this one did not, which
+     * is why the format that holds the whole document was the only one
+     * that could lose it.
+     *
+     * `handle` completes the registry signature so a caller that has
+     * already opened a picker (FileManager.saveAs) can write straight
+     * there instead of prompting a second time.
+     * @param {string} filename
+     * @param {Object} [options] - Unused; kept for handler-contract symmetry
+     * @param {?FileSystemFileHandle} [handle]
+     * @returns {Promise<boolean>} false if the artist cancelled
+     */
+    async exportAndDownload(filename, options = {}, handle = null) {
         const bytes = await this.export();
         if (!bytes) return false;
-        FormatRegistry.download(bytes, filename, this.mimeType);
-        return true;
+        return FormatRegistry.download(bytes, filename, this.mimeType, handle);
     }
 }
 

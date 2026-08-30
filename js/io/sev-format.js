@@ -27,6 +27,20 @@
 class SEVFormatClass {
   constructor() {
     this.DEFAULT_ATTR = 0x38;
+    // A .sev holds a CLASSIC 256x192 8x8 screen, and the import path has no
+    // mode gate - it can be reached while any document is open. So its
+    // geometry is PINNED to STANDARD_ULA rather than read from the live
+    // ZX_SPECTRUM views, which follow the active mode. Reading them meant a
+    // 6976-byte buffer in ULAplus whose trailing 64 bytes - the palette
+    // block SCRFormat reads back - were filled with the default attribute,
+    // so loading one silently replaced the artist's ULAplus palette with a
+    // flat grey; in an indexed mode the cell offsets were computed against a
+    // screen up to ten times the size.
+    this.SCREEN_SIZE = SCREEN_MODES.STANDARD_ULA.fileSize;
+    this.BITMAP_SIZE = SCREEN_MODES.STANDARD_ULA.bitmapSize;
+    this.CELL = SCREEN_MODES.STANDARD_ULA.attrCellH;
+    this.COLS = SCREEN_MODES.STANDARD_ULA.width / SCREEN_MODES.STANDARD_ULA.attrCellW;
+    this.ROWS = SCREEN_MODES.STANDARD_ULA.height / SCREEN_MODES.STANDARD_ULA.attrCellH;
   }
 
   /**
@@ -137,12 +151,13 @@ class SEVFormatClass {
     const p1 = u16(6), p2 = u16(8), sx = u16(10), sy = u16(12);
 
     if (p1 < 1 || p1 > 2 || p2 > 31 ||
-        sx < 1 || sy < 1 || sx > ZX_SPECTRUM.WIDTH || sy > ZX_SPECTRUM.HEIGHT) {
+        sx < 1 || sy < 1 ||
+        sx > SCREEN_MODES.STANDARD_ULA.width || sy > SCREEN_MODES.STANDARD_ULA.height) {
       return { success: false, error: 'Invalid SEV header fields' };
     }
 
-    const CELL = ZX_SPECTRUM.CELL_SIZE;
-    const COLS = ZX_SPECTRUM.GRID_COLS;
+    const CELL = this.CELL;
+    const COLS = this.COLS;
     const cSX = Math.ceil(sx / CELL);
     const cSY = Math.ceil(sy / CELL);
     const frameBytes = cSX * cSY * (CELL + 1);
@@ -151,8 +166,8 @@ class SEVFormatClass {
       return { success: false, error: 'Truncated SEV file' };
     }
 
-    const scr = new Uint8Array(ZX_SPECTRUM.SCR_FILE_SIZE);
-    scr.fill(this.DEFAULT_ATTR, ZX_SPECTRUM.BITMAP_SIZE);
+    const scr = new Uint8Array(this.SCREEN_SIZE);
+    scr.fill(this.DEFAULT_ATTR, this.BITMAP_SIZE);
 
     let p = 14; // first frame only
     for (let cy = 0; cy < cSY; cy++) {
@@ -160,7 +175,7 @@ class SEVFormatClass {
         for (let j = 0; j < CELL; j++) {
           scr[this._scrRowOffset(cx, cy, j)] = bytes[p++];
         }
-        scr[ZX_SPECTRUM.BITMAP_SIZE + cy * COLS + cx] = bytes[p++];
+        scr[this.BITMAP_SIZE + cy * COLS + cx] = bytes[p++];
       }
     }
     return { success: true, scr };
@@ -172,7 +187,7 @@ class SEVFormatClass {
    * @private
    */
   _scrRowOffset(cx, cy, j) {
-    return AttributeSystem._lineOffset(cy * ZX_SPECTRUM.CELL_HEIGHT + j) + cx;
+    return AttributeSystem._lineOffset(cy * this.CELL + j) + cx;
   }
 }
 

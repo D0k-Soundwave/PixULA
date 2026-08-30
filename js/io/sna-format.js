@@ -16,6 +16,15 @@ class SNAFormatClass {
   constructor() {
     this.HEADER_SIZE = 27;
     this.VALID_SIZES = [49179, 131103, 147487];
+    // The screen inside a snapshot is a CLASSIC 6912-byte SCREEN$ at a
+    // fixed offset - pinned, never the live ZX_SPECTRUM.SCR_FILE_SIZE view.
+    // That view follows the ACTIVE mode, so loading a .sna while a ULAplus
+    // document was open sliced 6976 bytes and handed the 64 bytes of
+    // snapshot RAM that follow the screen to SCRFormat as a palette: the
+    // emulator's memory became the artist's colours. In an indexed mode it
+    // asked for 49152 bytes and failed with a size error naming a number
+    // no snapshot contains.
+    this.SCREEN_SIZE = SCREEN_MODES.STANDARD_ULA.fileSize;
   }
 
   /**
@@ -41,7 +50,7 @@ class SNAFormatClass {
       };
     }
 
-    const screen = bytes.slice(this.HEADER_SIZE, this.HEADER_SIZE + ZX_SPECTRUM.SCR_FILE_SIZE);
+    const screen = bytes.slice(this.HEADER_SIZE, this.HEADER_SIZE + this.SCREEN_SIZE);
     const result = SCRFormat.parse(screen.buffer);
 
     if (result.success) {
