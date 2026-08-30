@@ -58,7 +58,7 @@ need real hardware — marked **pending-hardware** for the user's pass.
 - [ ] Pressure varies brush size when the brush option is on (event pressure -> BrushEngine.mapPressure)
 - [ ] Fast strokes have no straight-line gaps (getCoalescedEvents feeds every sample)
 - [ ] Hover (buttons=0) shows the brush-outline preview; leaves cleanly
-- [ ] Barrel button = temporary eyedropper for that interaction — PART: the routing is AUTO (browser: input-pen.spec, synthetic pen events for every assignable action); manual: that a real barrel press reaches the page at all, and as which bit (use Preferences > Pen > Pen check)
+- [ ] Barrel button = Draw paper for that interaction (the shipped default since 2026-08-30; it was the eyedropper before, which is still one row down in Preferences > Pen) — PART: the routing is AUTO (browser: input-pen.spec, synthetic pen events for every assignable action); manual: that a real barrel press reaches the page at all, and as which bit (use Preferences > Pen > Pen check)
 - [ ] Eraser end routes the stroke to the eraser tool (buttons & 32) — PART: routing AUTO (browser: input-pen.spec); manual: real inverted-pen contact
 - [ ] The tail clears the size dialled in on the eraser (Tool Options), not the active brush's — set the eraser to something large, pick up the brush, flip the pen: one press clears that whole disc — PART: the size match is AUTO (browser: input-pen.spec, synthetic bits); manual: a real tail on real hardware
 - [ ] Hovering tail: does the driver report bit 32 BEFORE contact? If it does, the outline under the pen is the eraser's disc, not the brush's (Windows Ink is expected to stay quiet until contact — either result is correct, record which)

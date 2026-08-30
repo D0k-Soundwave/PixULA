@@ -718,10 +718,13 @@ const PEN_PROFILES = Object.freeze({
         // distinct and genuinely representable — hover pans, contact +
         // vertical move zooms — which is exactly how our own Pan pen-action
         // already works, so it is the one profile below that earns a real
-        // `defaults` override rather than the shared baseline.
+        // `defaults` override rather than the shared baseline. Only that
+        // button: its upper one is right-click like every other pen's, which
+        // IS the shared baseline, so overriding it would state a difference
+        // that does not exist.
         id: 'wacomProPen3D', label: 'Wacom Pro Pen 3D', group: 'Wacom',
         barrels: 2, eraser: false,
-        defaults: { barrel: PEN_ACTIONS.MENU.id, barrel2: PEN_ACTIONS.PAN.id }
+        defaults: { barrel2: PEN_ACTIONS.PAN.id }
     }),
     wacomAccessory: Object.freeze({
         // Grip/Classic/Art/Airbrush/Inking pens: same button+eraser shape
@@ -806,15 +809,28 @@ const PEN_PROFILE_ALIASES = Object.freeze({
 
 /**
  * Out-of-the-box action for each control, shared by every profile that does
- * not name its own `defaults` override. The barrel keeps the eyedropper it
- * has always had and the tail keeps erasing, so an existing pen behaves
- * exactly as it did before this setting existed; the second barrel is new
- * ground and takes the canvas menu, which is otherwise a keyboard-only route.
+ * not name its own `defaults` override.
+ *
+ * The barrel paints PAPER, because the barrel IS the pen's secondary button -
+ * a browser cannot tell a barrel press from a mouse right-click (see
+ * PEN_CONTROLS), and in this app the right button paints paper. Every vendor
+ * ships it that way too (docs/pen-info-table.md, read 2026-08-18: the Surface
+ * Slim Pen's "side button = right-click/select", XP-Pen's "one side button
+ * shipped as right-click", Wacom's "upper = right-click"), so the default
+ * agrees with what the pen's own driver documentation promises. It was the
+ * eyedropper until 2026-08-30, which left a one-barrel pen with NO route to
+ * paper at all: the tip is unassignable and the tail is ERASE_ALL, a different
+ * thing (it resets the cell's attributes; paper does not). Anyone who wants
+ * the eyedropper there still has it, one row down in Preferences > Pen.
+ *
+ * The tail keeps erasing, and the second barrel - new ground, with no
+ * convention to inherit - takes the canvas menu, otherwise a keyboard-only
+ * route.
  * @const {Object}
  */
 const PEN_DEFAULT_ACTIONS = Object.freeze({
     tip:     PEN_ACTIONS.INK.id,          // fixed: the tip always draws
-    barrel:  PEN_ACTIONS.EYEDROPPER.id,
+    barrel:  PEN_ACTIONS.PAPER.id,
     barrel2: PEN_ACTIONS.MENU.id,
     eraser:  PEN_ACTIONS.ERASER.id
 });
