@@ -17,3 +17,8 @@ docs/bench-images/*
 
 # Scratch screenshots from a companion-pairing debugging session; not repo content.
 docs/Companion fail/
+
+# The manual is generated INTO the app (js/data/manual-content.js). These are
+# the build intermediates it is generated FROM the screenshots of; the committed
+# artefact is the JS file, not these PNGs.
+manual/img/

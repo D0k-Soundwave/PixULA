@@ -379,6 +379,8 @@ const fr = {
     'menu.settings.preferences': 'Préférences...',
     'menu.settings.theme': 'Thème',
     'menu.settings.resetAll': 'Réinitialiser toutes les préférences',
+    'msg.manualMissing': 'Impossible de charger le manuel. Le fichier js/data/manual-content.js est absent de cette copie de PixULA.',
+    'menu.help.manual': 'Manuel',
     'menu.help.about': 'À propos',
     'menu.help.shortcuts': 'Raccourcis clavier',
 

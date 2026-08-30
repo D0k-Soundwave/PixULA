@@ -7,7 +7,9 @@
     "test": "node tests/run-all.js",
     "test:browser": "playwright test",
     "setup-hooks": "git config core.hooksPath .githooks",
-    "build:portable": "node tools/build-portable.js"
+    "build:portable": "node tools/build-portable.js",
+    "build:manual": "node tools/build-manual.js",
+    "check:manual": "node tools/build-manual.js --check"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0"

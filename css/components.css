@@ -3251,3 +3251,32 @@
 }
 
 } /* @layer components */
+
+/*
+ * The manual dialog. The manual is a document rather than a form, so it wants
+ * as much of the window as it can have - the two-column layout inside it (a
+ * contents list beside the text) collapses to one below 60rem, and at the
+ * default dialog width it would be permanently collapsed.
+ *
+ * Everything INSIDE it is styled by js/data/manual-content.js under `.manual`;
+ * only the frame belongs here.
+ */
+.manual-dialog {
+    width: 78rem;
+    height: 88vh;
+    /* The reset zeroes dialog margins, which is fine for a box that sizes to
+       its content but pins an explicitly sized one to the top-left corner. */
+    margin: auto;
+}
+
+.manual-dialog .app-dialog-body {
+    display: flex;
+    min-height: 0;
+    height: 100%;
+    padding: 1.25rem;
+}
+
+.manual-dialog .manual {
+    flex: 1;
+    min-height: 0;
+}

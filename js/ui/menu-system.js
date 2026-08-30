@@ -370,6 +370,7 @@ class MenuSystemClass {
                 id: 'help',
                 label: 'Help',
                 items: [
+                    { id: 'manual', label: 'Manual', action: 'help:manual' },
                     { id: 'about', label: 'About', action: 'help:about' },
                     { id: 'shortcuts', label: 'Keyboard Shortcuts', shortcut: 'F1', action: 'help:shortcuts' }
                 ]
@@ -811,6 +812,7 @@ class MenuSystemClass {
             case 'settings:resetAll':       PreferencesDialog.resetAll();  break;
 
             // Help
+            case 'help:manual':    this._openManual();    break;
             case 'help:about':     this._showAbout();     break;
             case 'help:shortcuts': this._showShortcuts(); break;
 
@@ -880,6 +882,18 @@ class MenuSystemClass {
     }
 
     /** @private */
+    /**
+     * Open the manual, which lives inside the app rather than beside it.
+     *
+     * ManualDialog loads js/data/manual-content.js on first use and shows it in
+     * an ordinary app dialog - see that file for why the manual is carried in
+     * `js/` and not as a separate page.
+     * @private
+     */
+    _openManual() {
+        ManualDialog.open();
+    }
+
     _showAbout() {
         const author = 'D0k of Raww Arse';
         const repoUrl = 'https://github.com/D0k-Soundwave/PixULA';
