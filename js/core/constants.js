@@ -7,7 +7,7 @@
  * SemVer pre-release form: this is the first alpha, hence 0.x (1.0.0 is
  * reserved for the first release with no more breaking changes expected).
  */
-const APP_VERSION = '0.1.0-alpha.1';
+const APP_VERSION = '0.1.0-alpha.2';
 
 /**
  * Screen mode registry — the mode seam (docs/REFACTOR_PLAN.md §1a).
