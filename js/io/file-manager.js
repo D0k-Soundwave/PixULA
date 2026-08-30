@@ -433,7 +433,12 @@ class FileManagerClass {
     }
 
     if (FormatRegistry.getExtension(handle.name) !== 'pixula') {
-      return this.saveToFile(handle.name);
+      // The artist retyped a picture extension in the native dialog. That
+      // dialog has ALREADY created the file at the location they chose, so
+      // the handle is handed straight to saveToFile: without it the format
+      // handler opened a SECOND picker for information already given, and
+      // cancelling that one left an empty file behind at the first location.
+      return this.saveToFile(handle.name, handle);
     }
     return this._writeProjectToHandle(handle);
   }
@@ -488,9 +493,12 @@ class FileManagerClass {
    * the work silently, taking the beforeunload warning with it. Handlers that
    * return nothing (most of them) succeeded or threw.
    * @param {string} filename - Target filename
+   * @param {?FileSystemFileHandle} [handle] - a location the caller has
+   *   already had the artist choose; passed through to the handler so it
+   *   writes there rather than opening a picker of its own.
    * @returns {Promise<boolean>} True if saved successfully
    */
-  async saveToFile(filename) {
+  async saveToFile(filename, handle = null) {
     const extension = FormatRegistry.getExtension(filename);
 
     if (!extension) {
@@ -508,7 +516,7 @@ class FileManagerClass {
     }
 
     try {
-      const written = await handler.exportAndDownload(filename);
+      const written = await handler.exportAndDownload(filename, {}, handle);
       if (written === false) {
         Logger.error('FileManager', `Handler refused to save: ${filename}`);
         return false;

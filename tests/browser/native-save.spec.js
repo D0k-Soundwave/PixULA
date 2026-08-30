@@ -115,7 +115,7 @@ test('New file drops a previously-open handle - the next save is not silently mi
         expect(r.handleAfterNew).toBeNull();
     });
 
-test('typing a non-.pixula extension in the native dialog still saves that format',
+test('typing a non-.pixula extension in the native dialog still saves that format, from ONE picker',
     async ({ page }) => {
         await boot(page);
         await stubSavePicker(page, 'flat.scr');
@@ -125,11 +125,54 @@ test('typing a non-.pixula extension in the native dialog still saves that forma
             return {
                 ok,
                 currentFilename: FileManager.currentFilename,
-                bytesWritten: window.__savedFiles.get('flat.scr').length
+                bytesWritten: window.__savedFiles.get('flat.scr').length,
+                pickerCalls: window.__savePickerCalls()
             };
         });
 
         expect(r.ok).toBe(true);
         expect(r.currentFilename).toBe('flat.scr');
         expect(r.bytesWritten).toBe(6912); // a standard SCR
+        // The handle the artist just chose is handed to the format handler,
+        // so it writes there instead of opening a picker of its own. Two
+        // calls meant two dialogs for one save - and because the FIRST
+        // picker has already created the file, cancelling the second left an
+        // empty flat.scr behind at the location they picked.
+        expect(r.pickerCalls).toBe(1);
+    });
+
+test('cancelling a repeat save of an OPEN .pixula leaves it dirty, not silently "saved"',
+    async ({ page }) => {
+        // The path a cancel actually takes after File > Load Project...:
+        // currentFilename is set but there is no handle (the open picker
+        // gives a File), so save() goes through saveToFile() ->
+        // ProjectFormat.exportAndDownload(). That handler discarded the
+        // download() result and returned a bare `true`, so a cancelled
+        // dialog cleared hasUnsavedChanges, emitted FILE_SAVE and filed the
+        // name in Recent - and took the beforeunload warning with it, so
+        // the next close discarded the work in silence. Every other format
+        // handler already returned the result; the one that holds the whole
+        // document was the only one that could lose it.
+        await boot(page);
+
+        const r = await page.evaluate(async () => {
+            let fileSaves = 0;
+            EventBus.on(EVENTS.FILE_SAVE, () => { fileSaves++; });
+            window.showSaveFilePicker = async () => {
+                const err = new Error('cancelled');
+                err.name = 'AbortError';
+                throw err;
+            };
+
+            FileManager.currentFilename = 'Castle.pixula';
+            FileManager._fileHandle = null;
+            FileManager.hasUnsavedChanges = true;
+
+            const ok = await FileManager.save();
+            return { ok, hasUnsavedChanges: FileManager.hasChanges(), fileSaves };
+        });
+
+        expect(r.ok).toBe(false);
+        expect(r.hasUnsavedChanges).toBe(true);
+        expect(r.fileSaves).toBe(0);
     });

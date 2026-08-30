@@ -38,6 +38,20 @@ class ZEDFormatClass {
     this.SIGNATURE = 'Editor file for ZX-Edit (C) 1997 by Claus & Andy - V.';
     this.VERSION = '1.00';
     this.DEFAULT_ATTR = 0x38;
+    // A .zed holds a CLASSIC 256x192 8x8 screen, and the import path has no
+    // mode gate - it can be reached while any document is open. So its
+    // geometry is PINNED to STANDARD_ULA rather than read from the live
+    // ZX_SPECTRUM views, which follow the active mode. Reading them meant a
+    // 6976-byte buffer in ULAplus whose trailing 64 bytes - the palette
+    // block SCRFormat reads back - were filled with the default attribute,
+    // so loading one silently replaced the artist's ULAplus palette with a
+    // flat grey; in an indexed mode the cell offsets were computed against a
+    // screen up to ten times the size.
+    this.SCREEN_SIZE = SCREEN_MODES.STANDARD_ULA.fileSize;
+    this.BITMAP_SIZE = SCREEN_MODES.STANDARD_ULA.bitmapSize;
+    this.CELL = SCREEN_MODES.STANDARD_ULA.attrCellH;
+    this.COLS = SCREEN_MODES.STANDARD_ULA.width / SCREEN_MODES.STANDARD_ULA.attrCellW;
+    this.ROWS = SCREEN_MODES.STANDARD_ULA.height / SCREEN_MODES.STANDARD_ULA.attrCellH;
   }
 
   /**
@@ -150,12 +164,11 @@ class ZEDFormatClass {
       return { success: false, error: 'Not a ZX-Editor file (bad signature)' };
     }
 
-    const COLS = ZX_SPECTRUM.GRID_COLS, ROWS = ZX_SPECTRUM.GRID_ROWS;
-    const CELL = ZX_SPECTRUM.CELL_SIZE;
+    const CELL = this.CELL;
     const u16 = (p) => bytes[p] | (bytes[p + 1] << 8);
 
-    const scr = new Uint8Array(ZX_SPECTRUM.SCR_FILE_SIZE);
-    scr.fill(this.DEFAULT_ATTR, ZX_SPECTRUM.BITMAP_SIZE);
+    const scr = new Uint8Array(this.SCREEN_SIZE);
+    scr.fill(this.DEFAULT_ATTR, this.BITMAP_SIZE);
 
     let p = sigLen + 5; // after signature + version + 0x1A
     const lineCount = u16(p);
@@ -210,11 +223,11 @@ class ZEDFormatClass {
    * @private
    */
   _placeBlock(scr, cx, cy, pixelRows, attr) {
-    if (cx < 0 || cy < 0 || cx >= ZX_SPECTRUM.GRID_COLS || cy >= ZX_SPECTRUM.GRID_ROWS) return;
-    for (let j = 0; j < ZX_SPECTRUM.CELL_SIZE; j++) {
+    if (cx < 0 || cy < 0 || cx >= this.COLS || cy >= this.ROWS) return;
+    for (let j = 0; j < this.CELL; j++) {
       scr[this._scrRowOffset(cx, cy, j)] = pixelRows[j];
     }
-    scr[ZX_SPECTRUM.BITMAP_SIZE + cy * ZX_SPECTRUM.GRID_COLS + cx] = attr;
+    scr[this.BITMAP_SIZE + cy * this.COLS + cx] = attr;
   }
 
   /**
@@ -223,7 +236,7 @@ class ZEDFormatClass {
    * @private
    */
   _scrRowOffset(cx, cy, j) {
-    return AttributeSystem._lineOffset(cy * ZX_SPECTRUM.CELL_HEIGHT + j) + cx;
+    return AttributeSystem._lineOffset(cy * this.CELL + j) + cx;
   }
 }
 

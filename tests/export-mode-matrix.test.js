@@ -75,10 +75,13 @@ const CATALOGUE = {
   sev:   () => SEVFormat.canExport(),
   pal:   () => NextPaletteFormat.canExport(),
   npl:   () => NextPaletteFormat.canExport(),
-  asm:   () => DevFormat.canExport(),
-  c:     () => DevFormat.canExport(),
-  bin:   () => DevFormat.canExport(),
-  atr:   () => DevFormat.canExport()
+  // Each dev format asks its OWN gate: .atr is nothing but the attribute
+  // block, so it is not offered where the mode has none (Timex hi-res),
+  // while the bitmap the other three carry is just as real there.
+  asm:   () => DevFormat.canExport('asm'),
+  c:     () => DevFormat.canExport('c'),
+  bin:   () => DevFormat.canExport('bin'),
+  atr:   () => DevFormat.canExport('atr')
 };
 
 // ─── The expected matrix, derived directly from each handler's own gate
@@ -95,7 +98,7 @@ const MATRIX = {
   multicolor_8x1:  { scr: T, zxp: T, mlt: T, ifl: F, hrg: F, img: F, nxi: F, sl2: F, slr: F, ctile: T, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: F, npl: F, asm: T, c: T, bin: T, atr: T },
   ula_plus:        { scr: T, zxp: T, mlt: F, ifl: F, hrg: F, img: F, nxi: F, sl2: F, slr: F, ctile: F, tap: T, tzx: T, png: T, bmp: T, jpg: T, zed: T, sev: T, pal: T, npl: T, asm: T, c: T, bin: T, atr: T },
   ula_plus_8x1:    { scr: T, zxp: T, mlt: F, ifl: F, hrg: F, img: F, nxi: F, sl2: F, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: T, npl: T, asm: T, c: T, bin: T, atr: T },
-  timex_hires:     { scr: T, zxp: F, mlt: F, ifl: F, hrg: T, img: F, nxi: F, sl2: F, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: F, npl: F, asm: T, c: T, bin: T, atr: T },
+  timex_hires:     { scr: T, zxp: F, mlt: F, ifl: F, hrg: T, img: F, nxi: F, sl2: F, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: F, npl: F, asm: T, c: T, bin: T, atr: F },
   gigascreen:      { scr: F, zxp: F, mlt: F, ifl: F, hrg: F, img: T, nxi: F, sl2: F, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: F, npl: F, asm: F, c: F, bin: F, atr: F },
   ulanext:         { scr: T, zxp: F, mlt: F, ifl: F, hrg: F, img: F, nxi: F, sl2: F, slr: F, ctile: F, tap: T, tzx: T, png: T, bmp: T, jpg: T, zed: T, sev: T, pal: T, npl: T, asm: T, c: T, bin: T, atr: T },
   layer2_256:      { scr: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, nxi: T, sl2: T, slr: T, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: T, npl: T, asm: F, c: F, bin: F, atr: F },

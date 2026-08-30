@@ -26,10 +26,42 @@ class DevFormatClass {
    */
   initialize() {
     for (const ext of ['asm', 'c', 'bin', 'atr']) {
-      FormatRegistry.registerExport(ext, this);
+      FormatRegistry.registerExport(ext, this._adapter(ext));
     }
     FormatRegistry.registerImport('atr', this);
     Logger.info('DevFormat', 'Initialized');
+  }
+
+  /**
+   * Registry adapter — the registry passes no extension to canExport(), and
+   * these four formats do NOT share one gate: .atr is an attribute block,
+   * and Timex hi-res has no attributes at all (one ink/paper pair for the
+   * whole screen). @private
+   */
+  _adapter(ext) {
+    return {
+      // The registered extension wins over any `format` an options object
+      // happens to carry - the registry looked this handler up BY that
+      // extension, so it is the one thing the caller cannot have meant.
+      export: (options) => this.export(Object.assign({}, options, { format: ext })),
+      canExport: () => this.canExport(ext),
+      exportAndDownload: (filename, options, handle) =>
+        this.exportAndDownload(filename, options, handle)
+    };
+  }
+
+  /**
+   * Whether the active mode's SCREEN$ bytes actually carry an attribute
+   * block. Read from the descriptor rather than named per mode: a mode has
+   * one when its file is big enough to hold bitmap AND attributes. Timex
+   * hi-res is the mode that does not — its 12289 bytes are 12288 of bitmap
+   * plus a single port byte, while `attrSize` (1536) is only the 8x8
+   * storage/dirty-tracking granularity the descriptor keeps for every mode.
+   * @returns {boolean}
+   */
+  hasAttributeBlock() {
+    const mode = ACTIVE_SCREEN_MODE;
+    return mode.fileSize >= mode.bitmapSize + mode.attrSize;
   }
 
   /**
@@ -42,30 +74,74 @@ class DevFormatClass {
    */
   parse(buffer) {
     const attrs = new Uint8Array(buffer);
-    const STD = SCREEN_MODES.STANDARD_ULA;
-    if (attrs.length !== STD.attrSize) {
+    const modes = this.attrSizeModes();
+    const modeId = modes.get(attrs.length);
+    if (!modeId) {
       return {
         success: false,
-        error: `Invalid .atr file size: ${attrs.length} bytes (expected ${STD.attrSize})`
+        error: `Invalid .atr file size: ${attrs.length} bytes ` +
+               `(expected ${[...modes.keys()].sort((a, b) => a - b).join(', ')})`
       };
     }
-    const bitmap = new Uint8Array(STD.bitmapSize);
-    for (let y = 0; y < STD.height; y++) {
+    const mode = SCREEN_MODES[Object.keys(SCREEN_MODES)
+      .find((k) => SCREEN_MODES[k].id === modeId)];
+    const bitmap = new Uint8Array(mode.bitmapSize);
+    for (let y = 0; y < mode.height; y++) {
       const pattern = (y & 1) ? 0xAA : 0x55;
       const base = AttributeSystem._lineOffset(y);
-      bitmap.fill(pattern, base, base + STD.width / 8);
+      bitmap.fill(pattern, base, base + mode.width / 8);
     }
-    return SCRFormat.importScreen(bitmap, attrs, STD.id, 'Load ATR');
+    return SCRFormat.importScreen(bitmap, attrs, mode.id, 'Load ATR');
   }
 
   /**
-   * Whether generate() would succeed in the active mode — delegates to
-   * SCRFormat.canExport() since generate() calls SCRFormat.export()
-   * internally and inherits its gate. Same condition for asm/c/bin/atr.
+   * Attribute-block size -> screen mode, the way .pal/.npl are designated by
+   * size. The export writes the ACTIVE mode's attribute block, so it is
+   * 768 bytes in the standard screen but 1536/3072/6144 in the multicolor
+   * modes; the import accepted only 768, which meant the app rejected its
+   * own .atr from any 8x4/8x2/8x1 document - a file no other program reads
+   * either, since RECOIL's .atr is the 768-byte form.
+   *
+   * The qualifying modes are derived, not listed: a classic 256x192 1-bit
+   * single screen with byte-wide cells, the fixed 16-colour palette and a
+   * real attribute block. That last pair of conditions is what resolves the
+   * two size collisions - an .atr carries no palette, so a 768-byte file
+   * must not import as ULAplus or ULANext and invent a register file.
+   * @returns {Map<number, string>} attrSize -> mode id
+   */
+  attrSizeModes() {
+    const STD = SCREEN_MODES.STANDARD_ULA;
+    const out = new Map();
+    for (const mode of Object.values(SCREEN_MODES)) {
+      if (mode.pixelDepth !== STD.pixelDepth) continue;
+      if (mode.width !== STD.width || mode.height !== STD.height) continue;
+      if ((mode.screens || 1) !== 1) continue;
+      if (mode.attrCellW !== STD.attrCellW) continue;
+      if (mode.paletteModel !== STD.paletteModel) continue;
+      if (mode.fileSize < mode.bitmapSize + mode.attrSize) continue;
+      out.set(mode.attrSize, mode.id);
+    }
+    return out;
+  }
+
+  /**
+   * Whether generate() would succeed in the active mode. All four formats
+   * start from SCRFormat.canExport(), since generate() calls
+   * SCRFormat.export() internally and inherits its gate; .atr then adds one
+   * of its own. The default is the permissive gate, so a caller that asks
+   * the handler rather than the registry gets the bitmap formats' answer.
+   * @param {string} [ext] - 'asm' | 'c' | 'bin' | 'atr'
    * @returns {boolean}
    */
-  canExport() {
-    return SCRFormat.canExport();
+  canExport(ext = 'asm') {
+    if (!SCRFormat.canExport()) return false;
+    // .atr is nothing BUT the attribute block, so a mode without one has no
+    // file to write. Offering it in Timex hi-res produced a 1-byte .atr —
+    // the port byte, sliced out of a screen that ends before the attribute
+    // offset — which reads as a valid save and is not an attribute picture.
+    // asm/c/bin stay available: their bitmap half is exactly as real there.
+    if (ext === 'atr') return this.hasAttributeBlock();
+    return true;
   }
 
   /**
@@ -81,13 +157,21 @@ class DevFormatClass {
     // palette bytes after the attributes, which .atr must not include.
     const scr = SCRFormat.export();
     const bitmap = scr.subarray(0, ZX_SPECTRUM.BITMAP_SIZE);
-    const attrs = scr.subarray(ZX_SPECTRUM.BITMAP_SIZE,
-      ZX_SPECTRUM.BITMAP_SIZE + ZX_SPECTRUM.ATTR_SIZE);
+    // null, not a short slice, where the mode has no attribute block at all
+    // (Timex hi-res) - the difference between "no attributes here" and
+    // "here are some attributes" is the whole point, and subarray() past
+    // the end of the screen quietly returns the tail rather than saying so.
+    const attrs = this.hasAttributeBlock()
+      ? scr.subarray(ZX_SPECTRUM.BITMAP_SIZE,
+          ZX_SPECTRUM.BITMAP_SIZE + ZX_SPECTRUM.ATTR_SIZE)
+      : null;
     const label = this._identifier(name);
 
     switch (ext) {
       case 'bin': return new Uint8Array(bitmap);
-      case 'atr': return new Uint8Array(attrs);
+      case 'atr':
+        if (!attrs) throw new Error('DevFormat: this screen mode has no attribute block');
+        return new Uint8Array(attrs);
       case 'asm': return new TextEncoder().encode(this._asmSource(label, bitmap, attrs));
       case 'c':   return new TextEncoder().encode(this._cSource(label, bitmap, attrs));
       default: throw new Error(`DevFormat: unsupported extension .${ext}`);
@@ -382,13 +466,19 @@ class DevFormatClass {
   _asmSource(label, bitmap, attrs) {
     const lines = [
       `; ${label} — ZX Spectrum SCREEN$ data`,
-      `; bitmap: ${bitmap.length} bytes (interleaved screen order), attributes: ${attrs.length} bytes`,
+      `; bitmap: ${bitmap.length} bytes (interleaved screen order), attributes: ` +
+        (attrs ? `${attrs.length} bytes` : 'none in this screen mode'),
       '',
       `${label}_bitmap:`
     ];
     this._appendRows(lines, bitmap, (row) => '    DEFB ' + row.map(b => '$' + this._hex(b)).join(','));
-    lines.push('', `${label}_attributes:`);
-    this._appendRows(lines, attrs, (row) => '    DEFB ' + row.map(b => '$' + this._hex(b)).join(','));
+    // No label and no array where the mode has no attributes: an empty
+    // <label>_attributes for the assembler to place would be a symbol
+    // promising something it cannot deliver.
+    if (attrs) {
+      lines.push('', `${label}_attributes:`);
+      this._appendRows(lines, attrs, (row) => '    DEFB ' + row.map(b => '$' + this._hex(b)).join(','));
+    }
     lines.push('');
     return lines.join('\n');
   }
@@ -405,10 +495,15 @@ class DevFormatClass {
     ];
     this._appendRows(lines, bitmap, (row, isLast) =>
       '    ' + row.map(b => '0x' + this._hex(b)).join(', ') + (isLast ? '' : ','));
-    lines.push('};', '', `const unsigned char ${label}_attributes[${attrs.length}] = {`);
-    this._appendRows(lines, attrs, (row, isLast) =>
-      '    ' + row.map(b => '0x' + this._hex(b)).join(', ') + (isLast ? '' : ','));
     lines.push('};', '');
+    // See _asmSource: a mode with no attribute block gets no array at all,
+    // rather than a zero-length one C rejects anyway.
+    if (attrs) {
+      lines.push(`const unsigned char ${label}_attributes[${attrs.length}] = {`);
+      this._appendRows(lines, attrs, (row, isLast) =>
+        '    ' + row.map(b => '0x' + this._hex(b)).join(', ') + (isLast ? '' : ','));
+      lines.push('};', '');
+    }
     return lines.join('\n');
   }
 

@@ -56,7 +56,16 @@
  *   one screen). Import infers them from the position extent, minimum
  *   one screen; full fidelity is the native .zxtm format's job. Export
  *   writes ALL positions, including off-screen ones for maps larger
- *   than a screen — real ZX-Paintbrush may clamp or reject those.
+ *   than a screen — real ZX-Paintbrush may clamp or reject those. So a
+ *   map at least a screen in size round-trips exactly, and a smaller one
+ *   comes back padded to the screen grid with its content at the same
+ *   coordinates — the file genuinely holds a full-screen base picture,
+ *   and there is nowhere in it to say otherwise.
+ * - "One screen" means the CLASSIC 256x192 one, pinned via _baseSize()
+ *   for the same reason the tile is pinned via _tileSize(): a .zxm holds
+ *   'ula-cell' tiles, a kind defined on that screen, so neither the file
+ *   written nor the file accepted may depend on the mode the canvas
+ *   happens to be in.
  * - On import, tiles come from the map elements only (sliced into
  *   attribute cells; multi-cell elements are deduped, one-cell elements
  *   are kept 1:1 in file order). Base-picture content not covered by a
@@ -315,13 +324,14 @@ class ZXMFormatClass {
    */
   buildText(doc) {
     const { w: tw, h: th } = this._tileSize();
-    const cols = ACTIVE_SCREEN_MODE.width / tw;
-    const rows = ACTIVE_SCREEN_MODE.height / th;
+    const { w: baseW, h: baseH } = this._baseSize();
+    const cols = baseW / tw;
+    const rows = baseH / th;
     const lines = [];
 
     // Base picture: the top-left screen window of the rendered map
     lines.push(this.SEC_BASE);
-    this._pushZxpImage(lines, ACTIVE_SCREEN_MODE.width, ACTIVE_SCREEN_MODE.height,
+    this._pushZxpImage(lines, baseW, baseH,
       (px, py) => {
         const tile = this._tileAt(doc, (px / tw) | 0, (py / th) | 0, cols, rows);
         return tile ? ((tile.bitmap[py % th] >> (tw - 1 - (px % tw))) & 1) : 0;
@@ -384,7 +394,8 @@ class ZXMFormatClass {
         i++;
         const img = this._parseZxpImage(lines, () => i, v => { i = v; }, false);
         if (img.error) return { success: false, error: `Base picture: ${img.error}` };
-        if (img.width !== ACTIVE_SCREEN_MODE.width || img.height !== ACTIVE_SCREEN_MODE.height) {
+        const { w: baseW, h: baseH } = this._baseSize();
+        if (img.width !== baseW || img.height !== baseH) {
           return { success: false, error: 'Base picture is not one screen' };
         }
         base = img;
@@ -449,6 +460,29 @@ class ZXMFormatClass {
     return {
       w: SCREEN_MODES.STANDARD_ULA.attrCellW,
       h: SCREEN_MODES.STANDARD_ULA.attrCellH
+    };
+  }
+
+  /**
+   * The `[Base ZXP picture]` is one SCREEN, and it is pinned for exactly
+   * the reason _tileSize() above is: the tiles it carries are `ula-cell`
+   * tiles, a kind defined on the classic 256x192 8x8 screen. The pin was
+   * applied to the tile but not to the screen around it, so the base
+   * picture followed ACTIVE_SCREEN_MODE and three things went wrong at
+   * once (measured 2026-08-30): the SAME 8x6 map wrote 53,065 bytes under
+   * standard ULA, 104,521 under Timex hi-res, 173,265 under Layer 2 640
+   * and 14,269 under LoRes, so the file depended on a mode that has
+   * nothing to do with the map; a .zxm written under standard ULA was
+   * REJECTED ("Base picture is not one screen") when read back in any mode
+   * of another size; and the map extent the importer floors at changed
+   * with it, 32x24 / 64x24 / 80x32 / 16x12.
+   * @returns {{w: number, h: number}}
+   * @private
+   */
+  _baseSize() {
+    return {
+      w: SCREEN_MODES.STANDARD_ULA.width,
+      h: SCREEN_MODES.STANDARD_ULA.height
     };
   }
 
@@ -581,8 +615,9 @@ class ZXMFormatClass {
    * @private
    */
   _composeDocument(elements, tw, th) {
-    const cols = ACTIVE_SCREEN_MODE.width / tw;
-    const rows = ACTIVE_SCREEN_MODE.height / th;
+    const { w: baseW, h: baseH } = this._baseSize();
+    const cols = baseW / tw;
+    const rows = baseH / th;
     const tiles = [];
     const findOrAdd = (tile, dedup) => {
       if (dedup) {
