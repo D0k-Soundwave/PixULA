@@ -97,6 +97,9 @@ function build() {
   fs.mkdirSync(DISTILLED, { recursive: true });
   fs.rmSync(path.join(DISTILLED, 'css'), { recursive: true, force: true });
   fs.rmSync(path.join(DISTILLED, 'js'), { recursive: true, force: true });
+  // Stale from 2026-08-30, when the manual was briefly a folder beside the app.
+  // It lives in js/data/manual-content.js now and travels with js/.
+  fs.rmSync(path.join(DISTILLED, 'manual'), { recursive: true, force: true });
   // Stale name from before the 2026-08-24 rename - never left behind so an
   // artist can't end up with two half-matching entry points in one folder.
   fs.rmSync(path.join(DISTILLED, 'index.html'), { force: true });
@@ -104,6 +107,7 @@ function build() {
   fs.copyFileSync(indexPath, path.join(DISTILLED, ENTRY_FILENAME));
   fs.cpSync(path.join(ROOT, 'css'), path.join(DISTILLED, 'css'), { recursive: true });
   fs.cpSync(path.join(ROOT, 'js'), path.join(DISTILLED, 'js'), { recursive: true });
+
 
   // Re-copied rather than copied-if-missing, so an amended licence reaches the
   // build the same way an amended source file does.

@@ -379,6 +379,8 @@ const sk = {
     'menu.settings.preferences': 'Predvoľby...',
     'menu.settings.theme': 'Téma',
     'menu.settings.resetAll': 'Obnoviť všetky nastavenia',
+    'msg.manualMissing': 'Príručku sa nepodarilo načítať. V tejto kópii PixULA chýba súbor js/data/manual-content.js.',
+    'menu.help.manual': 'Príručka',
     'menu.help.about': 'O aplikácii',
     'menu.help.shortcuts': 'Klávesové skratky',
 

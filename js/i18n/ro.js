@@ -379,6 +379,8 @@ const ro = {
     'menu.settings.preferences': 'Preferințe...',
     'menu.settings.theme': 'Temă',
     'menu.settings.resetAll': 'Resetează toate preferințele',
+    'msg.manualMissing': 'Manualul nu a putut fi încărcat. Fișierul js/data/manual-content.js lipsește din această copie a PixULA.',
+    'menu.help.manual': 'Manual',
     'menu.help.about': 'Despre',
     'menu.help.shortcuts': 'Scurtături de tastatură',
 

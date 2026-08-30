@@ -379,6 +379,8 @@ const pl = {
     'menu.settings.preferences': 'Preferencje...',
     'menu.settings.theme': 'Motyw',
     'menu.settings.resetAll': 'Resetuj wszystkie ustawienia',
+    'msg.manualMissing': 'Nie udało się załadować podręcznika. W tej kopii PixULA brakuje pliku js/data/manual-content.js.',
+    'menu.help.manual': 'Podręcznik',
     'menu.help.about': 'O programie',
     'menu.help.shortcuts': 'Skróty klawiszowe',
 

@@ -1,0 +1,275 @@
+/*
+ * manual-style.css - the manual's own styles, emitted into
+ * js/data/manual-content.js by tools/build-manual.js and injected when the
+ * manual is first opened.
+ *
+ * Two rules govern everything here, and they protect opposite directions.
+ *
+ * EVERY selector is scoped under `.manual`, so nothing here reaches OUT. The
+ * manual renders inside the app's own dialog, in the app's own document, and
+ * the app forbids shadow DOM (see the architecture lint) - so scoping by hand
+ * is what keeps a rule for `table` or `h3` from restyling the Map Editor. The
+ * generator asserts it rather than trusting it.
+ *
+ * EVERY class the manual emits is prefixed `mn-`, so nothing reaches IN. That
+ * is not symmetry for its own sake: `.tool-group` is a class the tool rail
+ * already owns, and before the prefix existed the app's `display: grid` for it
+ * stretched every group heading in the manual to the full height of its
+ * section. The prefix is applied to the finished markup by namespaceHTML(),
+ * which is why the selectors below carry it but the emit sites do not.
+ *
+ * COLOURS come from the app's tokens, never from values written here. The
+ * manual is a window inside the app, so it follows whichever of the eight
+ * themes the reader has chosen; a manual with its own palette would look like
+ * a foreign document pasted into the program.
+ */
+
+.manual {
+    --manual-measure: 42rem;
+    color: var(--text-primary);
+    font: 15px/1.65 var(--font-family, system-ui, sans-serif);
+    display: grid;
+    grid-template-columns: 15rem minmax(0, 1fr);
+    gap: 2rem;
+    align-items: start;
+    max-height: 100%;
+    min-height: 0;
+}
+
+.manual * { box-sizing: border-box; }
+
+/* ---- contents ---- */
+
+.manual .mn-toc {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    max-height: 100%;
+    overflow-y: auto;
+    padding-right: 1rem;
+    border-right: 1px solid var(--border-color);
+    font-size: .8125rem;
+    line-height: 1.45;
+}
+
+.manual .mn-toc__head {
+    padding-bottom: .75rem;
+    margin-bottom: .75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.manual .mn-toc__head strong {
+    display: block;
+    font-size: 1.0625rem;
+    color: var(--text-primary);
+}
+.manual .mn-toc__version {
+    color: var(--text-muted);
+    font-size: .75rem;
+}
+
+.manual .mn-toc ul { list-style: none; margin: 0; padding: 0; }
+.manual .mn-toc > ul > li { margin-bottom: .3rem; }
+.manual .mn-toc ul ul {
+    margin: .15rem 0 .5rem .6rem;
+    padding-left: .6rem;
+    border-left: 1px solid var(--border-color);
+}
+.manual .mn-toc a {
+    display: block;
+    padding: .12rem 0;
+    color: var(--text-secondary);
+    text-decoration: none;
+}
+.manual .mn-toc > ul > li > a {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+.manual .mn-toc a:hover,
+.manual .mn-toc a:focus-visible { color: var(--accent-primary); }
+
+/* ---- content ---- */
+
+.manual .mn-body {
+    min-width: 0;
+    overflow-y: auto;
+    max-height: 100%;
+    padding-right: .5rem;
+}
+
+.manual .mn-chapter + .mn-chapter {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.manual h2 {
+    font-size: 1.75rem;
+    line-height: 1.2;
+    margin: 0 0 .75rem;
+    color: var(--text-primary);
+    scroll-margin-top: .5rem;
+}
+.manual h3 {
+    font-size: 1.125rem;
+    line-height: 1.3;
+    margin: 2rem 0 .6rem;
+    color: var(--text-primary);
+    scroll-margin-top: .5rem;
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    flex-wrap: wrap;
+}
+
+.manual p { margin: 0 0 .9rem; max-width: var(--manual-measure); }
+.manual ul, .manual ol { max-width: var(--manual-measure); padding-left: 1.4rem; }
+.manual li { margin-bottom: .25rem; }
+.manual a { color: var(--accent-primary); }
+.manual hr { border: 0; border-top: 1px solid var(--border-color); margin: 2rem 0; }
+
+.manual blockquote {
+    margin: 1.2rem 0;
+    padding: .7rem 1rem;
+    background: var(--bg-tertiary);
+    border-left: 3px solid var(--accent-primary);
+    border-radius: 0 4px 4px 0;
+    max-width: var(--manual-measure);
+}
+.manual blockquote p { margin: 0; }
+
+.manual code {
+    font: .875em var(--font-mono, ui-monospace, Consolas, monospace);
+    background: var(--bg-tertiary);
+    padding: .1em .35em;
+    border-radius: 3px;
+}
+.manual pre {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: .8rem;
+    overflow-x: auto;
+}
+.manual pre code { background: none; padding: 0; }
+
+.manual kbd {
+    font: .8125em var(--font-mono, ui-monospace, Consolas, monospace);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-light);
+    border-bottom-width: 2px;
+    border-radius: 3px;
+    padding: .05em .35em;
+    white-space: nowrap;
+    color: var(--text-primary);
+}
+
+.manual .mn-muted { color: var(--text-muted); }
+.manual .mn-note { color: var(--text-secondary); font-size: .9375rem; max-width: var(--manual-measure); }
+.manual .mn-tag {
+    font-size: .75rem;
+    background: var(--bg-tertiary);
+    color: var(--accent-primary);
+    padding: .05em .4em;
+    border-radius: 3px;
+    white-space: nowrap;
+}
+
+.manual figure { margin: 1.2rem 0; }
+.manual figure img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+.manual figcaption {
+    margin-top: .5rem;
+    color: var(--text-muted);
+    font-size: .875rem;
+    max-width: var(--manual-measure);
+}
+
+/* ---- tables ---- */
+
+.manual .mn-table-wrap {
+    overflow-x: auto;
+    margin: 0 0 1.2rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--bg-secondary);
+}
+.manual table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: .875rem;
+}
+.manual th, .manual td {
+    text-align: left;
+    padding: .5rem .7rem;
+    vertical-align: top;
+    border-bottom: 1px solid var(--border-color);
+}
+.manual th {
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--text-muted);
+    font-weight: 600;
+    background: var(--bg-tertiary);
+    white-space: nowrap;
+}
+.manual tr:last-child td { border-bottom: 0; }
+.manual table.mn-shortcuts td:first-child { white-space: nowrap; }
+.manual table.mn-options td:first-child { width: 22%; }
+
+/* ---- tools ---- */
+
+.manual .mn-icon {
+    width: 1.2em;
+    height: 1.2em;
+    fill: currentColor;
+    flex: none;
+}
+
+.manual .mn-tool-group { margin-top: 2.5rem; }
+.manual .mn-tool { margin: 0 0 1.75rem; scroll-margin-top: .5rem; }
+.manual .mn-tool__what { font-size: 1rem; color: var(--text-secondary); }
+.manual .mn-tool__hint {
+    font-size: .9375rem;
+    color: var(--text-secondary);
+    border-left: 2px solid var(--border-color);
+    padding-left: .75rem;
+    max-width: var(--manual-measure);
+}
+
+.manual .mn-mode__spec {
+    font: .8125rem/1.6 var(--font-mono, ui-monospace, Consolas, monospace);
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    padding: .5rem .7rem;
+    max-width: none;
+}
+
+.manual .mn-colophon {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-muted);
+    font-size: .8125rem;
+}
+
+/* ---- narrow: the dialog can be resized down, and on a tablet it will be ---- */
+
+@media (max-width: 60rem) {
+    .manual { grid-template-columns: 1fr; gap: .5rem; }
+    .manual .mn-toc {
+        position: static;
+        max-height: 11rem;
+        border-right: 0;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: .5rem;
+    }
+    .manual .mn-toc ul ul { display: none; }
+    .manual h2 { font-size: 1.5rem; }
+}

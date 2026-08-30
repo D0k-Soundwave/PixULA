@@ -101,6 +101,15 @@ const RULES = [
     why: 'SCR/bitmap sizes come from the active SCREEN_MODES descriptor (constants.js)',
     re: /\b(6912|6144)\b/,
     allow: ['js/core/constants.js'],
+    // This rule is about CODE typing a screen size instead of reading it from
+    // the descriptor, so it is scoped to the code. js/data/ holds generated
+    // blobs - the pattern bitmaps, the ROM font, the manual - where a matching
+    // four digits is either data the registry itself produced (the manual
+    // prints "6912 bytes" because describeScreenMode() said so) or a chance
+    // run inside base64, which is where this first bit. Neither is a
+    // programmer hardcoding geometry, and neither is fixable in the file,
+    // since the file is generated.
+    notUnder: ['js/data/'],
   },
 ];
 
@@ -110,6 +119,7 @@ for (const file of jsFiles) {
   for (const rule of RULES) {
     if (rule.allow.includes(r)) continue;
     if (rule.onlyUnder && !rule.onlyUnder.some((d) => r.startsWith(d))) continue;
+    if (rule.notUnder && rule.notUnder.some((d) => r.startsWith(d))) continue;
     lines.forEach((line, i) => {
       if (rule.re.test(line)) fail(r, i + 1, rule.name, `${line}  -> ${rule.why}`);
     });

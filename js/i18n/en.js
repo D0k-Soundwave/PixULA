@@ -76,6 +76,8 @@ const en = {
     'menu.settings.theme': 'Theme',
     'menu.settings.resetAll': 'Reset All Preferences',
     // Help menu
+    'msg.manualMissing': 'The manual could not be loaded. The file js/data/manual-content.js is missing from this copy of PixULA.',
+    'menu.help.manual': 'Manual',
     'menu.help.about': 'About',
     'menu.help.shortcuts': 'Keyboard Shortcuts',
     // Legacy static-menu keys (index.html fallback markup, overwritten by MenuSystem)

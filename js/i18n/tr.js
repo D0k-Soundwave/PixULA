@@ -379,6 +379,8 @@ const tr = {
     'menu.settings.preferences': 'Tercihler...',
     'menu.settings.theme': 'Tema',
     'menu.settings.resetAll': 'Tüm tercihleri sıfırla',
+    'msg.manualMissing': 'Kılavuz yüklenemedi. Bu PixULA kopyasında js/data/manual-content.js dosyası eksik.',
+    'menu.help.manual': 'Kılavuz',
     'menu.help.about': 'Hakkında',
     'menu.help.shortcuts': 'Klavye kısayolları',
 

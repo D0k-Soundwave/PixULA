@@ -379,6 +379,8 @@ const ru = {
     'menu.settings.preferences': 'Параметры...',
     'menu.settings.theme': 'Тема',
     'menu.settings.resetAll': 'Сбросить все настройки',
+    'msg.manualMissing': 'Не удалось загрузить руководство. В этой копии PixULA отсутствует файл js/data/manual-content.js.',
+    'menu.help.manual': 'Руководство',
     'menu.help.about': 'О программе',
     'menu.help.shortcuts': 'Сочетания клавиш',
 

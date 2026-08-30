@@ -379,6 +379,8 @@ const hu = {
     'menu.settings.preferences': 'Beállítások...',
     'menu.settings.theme': 'Téma',
     'menu.settings.resetAll': 'Minden beállítás visszaállítása',
+    'msg.manualMissing': 'A kézikönyvet nem sikerült betölteni. A js/data/manual-content.js fájl hiányzik a PixULA e példányából.',
+    'menu.help.manual': 'Kézikönyv',
     'menu.help.about': 'Névjegy',
     'menu.help.shortcuts': 'Billentyűparancsok',
 

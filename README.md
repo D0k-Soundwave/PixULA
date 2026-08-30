@@ -69,6 +69,8 @@ Full working projects (layers, palette, tools, references) are saved separately 
 
 That is the whole installation. It runs in your browser from the folder you unzipped it into - no install, no server, no internet connection, and nothing you draw ever leaves your machine. Any reasonably modern browser will do.
 
+The **user manual** is built into the app - open it from **Help > Manual**. It covers every tool and its options, all the screen modes, the file formats, the pen and touch settings, and a set of step-by-step workflows, with screenshots. There is nothing separate to download and, like the app, it works offline.
+
 Prefer to run from source? Clone the repository and open `index.html` the same way; it is the same application, and the download is simply that folder packaged up.
 
 ## ![#D1242F](https://img.shields.io/badge/-D1242F?style=flat-square) Status

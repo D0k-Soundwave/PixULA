@@ -590,6 +590,10 @@
     <script defer src="js/ui/reference-layer-panel.js"></script>
     <script defer src="js/ui/theme-manager.js"></script>
     <script defer src="js/ui/components/preferences-dialog.js"></script>
+    <!-- The manual's CONTENT (js/data/manual-content.js) is deliberately not
+         listed here: it is about half a megabyte with its screenshots embedded,
+         and this dialog injects it the first time somebody opens Help > Manual. -->
+    <script defer src="js/ui/components/manual-dialog.js"></script>
     <script defer src="js/ui/menu-system.js"></script>
 
     <!-- i18n: locale tables first (each sets window.i18n_<code>), then the manager -->
