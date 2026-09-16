@@ -576,25 +576,27 @@ class PixelDrawRoutineClass {
    *
    * Shared by every mode that colours a cell, so "what does drawing do to the
    * attributes" has ONE answer. The ink/paper transparent boxes suppress their
-   * own channel; bright and flash ride with whichever colour is still being
-   * written, because on the Spectrum they are bits of the same attribute byte
-   * and there is no way to set one colour without them.
+   * own channel; bright and flash are ALWAYS written, each as its own value.
+   *
+   * They used to be written only alongside a colour, on the argument that they
+   * are bits of the same attribute byte. That never followed - the byte is
+   * rewritten whole and can keep any part of it - and it made the Bright and
+   * Flash toggles silently do nothing whenever both boxes were on "use
+   * existing", which is exactly how Recolour leaves them (2026-09-15). The
+   * only mode that leaves bright and flash alone is Pixels Only, which writes
+   * no attributes at all. The XOR paste preview in SelectionService mirrors
+   * this rule and must change with it.
    * @private
    */
   _stampAttributes(cell, colorSelection) {
-    const inkTransparent = colorSelection.inkTransparent || false;
-    const paperTransparent = colorSelection.paperTransparent || false;
-
-    if (!inkTransparent) {
+    if (!colorSelection.inkTransparent) {
       cell.ink = colorSelection.ink;
     }
-    if (!paperTransparent) {
+    if (!colorSelection.paperTransparent) {
       cell.paper = colorSelection.paper;
     }
-    if (!inkTransparent || !paperTransparent) {
-      cell.bright = colorSelection.bright;
-      cell.flash = colorSelection.flash;
-    }
+    cell.bright = colorSelection.bright;
+    cell.flash = colorSelection.flash;
   }
 
   /**
@@ -696,8 +698,11 @@ class PixelDrawRoutineClass {
   }
 
   /**
-   * Apply attributes only (change colors, don't modify pixels)
-   * Respects transparent ink/paper settings
+   * Apply attributes only (change colors, don't modify pixels) - the Recolour
+   * attribute op and the attribute flood fill.
+   *
+   * The attributes follow _stampAttributes exactly - with both boxes on "use
+   * existing" it changes bright and flash and nothing else.
    * @private
    */
   _applyAttributesOnly(cell, colorSelection) {
@@ -765,12 +770,7 @@ class PixelDrawRoutineClass {
   _applyXOR(cell, localX, localY, colorSelection) {
     const bitPosition = 7 - localX;
     cell.pixels[localY] ^= (1 << bitPosition);
-    if (!colorSelection.inkTransparent) cell.ink = colorSelection.ink;
-    if (!colorSelection.paperTransparent) cell.paper = colorSelection.paper;
-    if (!colorSelection.inkTransparent || !colorSelection.paperTransparent) {
-      cell.bright = colorSelection.bright;
-      cell.flash = colorSelection.flash;
-    }
+    this._stampAttributes(cell, colorSelection);
     cell.altered = true;
   }
 

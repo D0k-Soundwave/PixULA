@@ -2067,18 +2067,15 @@ class SelectionServiceClass {
           : (bgLayer ? bgLayer.getCell(cx, cy) : null);
         const srcInk    = attrSource ? attrSource.ink    : DEFAULT_CELL_ATTRS.ink;
         const srcPaper  = attrSource ? attrSource.paper  : DEFAULT_CELL_ATTRS.paper;
-        const srcBright = attrSource ? attrSource.bright : DEFAULT_CELL_ATTRS.bright;
-        const srcFlash  = attrSource ? attrSource.flash  : DEFAULT_CELL_ATTRS.flash;
 
-        // Mirrors _applyXOR exactly: bright/flash only move with whichever
-        // colour channel is actually being written; if both ink and paper
-        // are transparent, bright/flash are left as the target already has
-        // them too.
-        const touchesAttrs = !colorSelection.inkTransparent || !colorSelection.paperTransparent;
+        // Mirrors _applyXOR (PixelDrawRoutine._stampAttributes) exactly: ink
+        // and paper follow their transparent boxes, bright and flash are
+        // always the selection's own values - even with both colours on
+        // "use existing".
         fpCell.ink    = colorSelection.inkTransparent   ? srcInk   : colorSelection.ink;
         fpCell.paper  = colorSelection.paperTransparent ? srcPaper : colorSelection.paper;
-        fpCell.bright = touchesAttrs ? colorSelection.bright : srcBright;
-        fpCell.flash  = touchesAttrs ? colorSelection.flash  : srcFlash;
+        fpCell.bright = colorSelection.bright;
+        fpCell.flash  = colorSelection.flash;
         fpCell.altered = true;
         fpCell.xorReplace = true;   // this cell IS the final composite for its position — never OR'd with layers below
 
