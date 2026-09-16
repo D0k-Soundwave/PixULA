@@ -28,9 +28,9 @@ class EyedropperToolClass extends ToolBase {
   constructor() {
     super(TOOLS.EYEDROPPER, 'Eyedropper');
     this.cursor = 'crosshair';
-    // It TAKES the colour under the pointer; it never lays one, so the
-    // pixel cursor's centre stays see-through (ToolBase.previewsInk).
-    this.previewsInk = false;
+    // It TAKES the colour under the pointer, so that is the colour its mark
+    // shows (ToolBase.markColour).
+    this.markColour = 'sample';
     this.isPicking = false;
   }
 

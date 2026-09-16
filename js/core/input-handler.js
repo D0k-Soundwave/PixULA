@@ -151,7 +151,7 @@ class InputHandlerClass {
     // once the pointer has left.
     this._lastHoverPoint = null;
     // True while a footprintCursor tool's mark stands in for the pointer
-    this._pointerHidden = false;
+    this._markCursorOn = false;
   }
 
   /** Initialize: wait for the canvas iframe, then attach all listeners. */
@@ -1135,22 +1135,35 @@ class InputHandlerClass {
   }
 
   /**
-   * Hide the system pointer over the canvas, or give the current tool its own
-   * cursor back. Only ever undoes what it did, so the move and zoom tools'
-   * self-managed cursors are left alone.
+   * While the tool's mark is over the picture, the system pointer becomes the
+   * POSITION marker (GridOverlay.positionCursor, a small hollow two-tone
+   * ring); off it, the current tool gets its own cursor back. Only ever undoes
+   * what it did, so the move and zoom tools' self-managed cursors are left
+   * alone.
+   *
+   * Why a hardware cursor at all, when the mark already shows where the
+   * pointer is: the mark is drawn by the app, so it reaches the screen a
+   * refresh after the hand moved, while the operating system paints its
+   * cursor at once. Hiding the cursor entirely left nothing on screen at the
+   * true position, which made the mark - and the ink under it - read as late
+   * (reported 2026-09-16). The two do different jobs and neither can do the
+   * other's: a cursor image cannot follow the brush size or the ink colour,
+   * and the mark cannot beat a refresh. The mark still trails by that
+   * refresh; what no longer does is the position.
    * @private
    */
-  _setPointerHidden(hidden) {
-    if (hidden) {
+  _setMarkCursor(on) {
+    if (on) {
       // Written every time rather than only on a change: ToolRail rewrites
-      // the cursor on a tool switch, and a cached "already hidden" would then
-      // leave the crosshair showing under the mark.
-      CanvasSystem.setCanvasCursor('none');
-      this._pointerHidden = true;
+      // the cursor on a tool switch, and a cached "already set" would then
+      // leave the tool's own cursor showing under the mark.
+      CanvasSystem.setCanvasCursor(window.GridOverlay
+        ? GridOverlay.positionCursor() : 'none');
+      this._markCursorOn = true;
       return;
     }
-    if (!this._pointerHidden) return;
-    this._pointerHidden = false;
+    if (!this._markCursorOn) return;
+    this._markCursorOn = false;
     const tool = ToolManager.getCurrentTool();
     CanvasSystem.setCanvasCursor(tool ? tool.cursor : 'default');
   }
@@ -1187,16 +1200,18 @@ class InputHandlerClass {
    * tool or one of its options changed (EVENTS.TOOL_SELECTED / TOOL_OPTIONS
    * both invalidate the memo) — so a stationary cursor costs nothing.
    *
-   * For a footprintCursor tool (the brush) the mark IS the pointer: the system
-   * cursor is hidden while it is over the picture, and a size-1 footprint is
-   * drawn as the 3x3 pixel cursor rather than skipped.
+   * For a footprintCursor tool (every tool that marks the picture) the mark
+   * stands in for the pointer: the system cursor becomes the position ring
+   * while it is over the picture, a size-1 footprint is drawn as that one
+   * pixel, and every pixel of the mark takes the colour from
+   * PixelDrawRoutine.markColours.
    *
    * @param {{x: number, y: number}} point
    * @param {Object} tool
    * @param {Object} [opts]
    * @param {boolean} [opts.force] - redraw even if the memo matches
-   * @param {boolean} [opts.live] - mid-stroke: the size-1 dot shows what the
-   *   layer holds now (shownIndex), not what a fresh click would paint
+   * @param {boolean} [opts.live] - mid-stroke: the mark shows what the page
+   *   shows now, not what a fresh click would paint
    * @private
    */
   _drawToolFootprint(point, tool, { force = false, live = false } = {}) {
@@ -1227,28 +1242,24 @@ class InputHandlerClass {
 
     this._hoverOutlinePoint = { x: point.x, y: point.y };
     this._hoverOutlineTool = tool.id;
+    // Each pixel of the mark in the colour it will be left in (or, for the
+    // eyedropper, the colour it will take) - PixelDrawRoutine.markColours.
+    const colourAt = PixelDrawRoutine.markColours(tool, pixels, { live });
     if (pixels.length === 1) {
       const p = pixels[0];
-      // The centre is the colour the click would leave - a promise only a tool
-      // that paints can keep, so the eyedropper and the selection tools show
-      // the arms alone and leave the picture showing through the middle.
-      const index = (tool.previewsInk === false) ? null
-        : (live ? PixelDrawRoutine.shownIndex(p.x, p.y)
-          : PixelDrawRoutine.previewInkIndex(p.x, p.y));
-      GridOverlay.drawPixelCursor(p.x, p.y,
-        index === null ? null : ColorManager.getPalette()[index]);
+      GridOverlay.drawPixelCursor(p.x, p.y, colourAt(p.x, p.y));
     } else {
-      GridOverlay.drawFootprintOutline(pixels);
+      GridOverlay.drawFootprintOutline(pixels, colourAt);
     }
     this._hoverOutlineShown = true;
-    this._setPointerHidden(isPointer && this._onPicture(point));
+    this._setMarkCursor(isPointer && this._onPicture(point));
   }
 
   /** @private */
   _clearHoverOutline() {
     this._hoverOutlinePoint = null;
     this._hoverOutlineTool = null;
-    this._setPointerHidden(false);
+    this._setMarkCursor(false);
     if (!this._hoverOutlineShown) return;
     this._hoverOutlineShown = false;
     // The pointer layer only - a tool's own preview is not ours to clear

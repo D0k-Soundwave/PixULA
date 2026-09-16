@@ -20,9 +20,10 @@ class ToolBaseClass {
     this.cursor = 'crosshair';
     /*
      * The tool's own mark REPLACES the system pointer over the picture, and
-     * this is the default: InputHandler hides `cursor` while the mark is drawn
-     * there, keeps drawing it through a stroke, and draws a size-1 footprint as
-     * the 3x3 pixel cursor rather than skipping it.
+     * this is the default: InputHandler swaps `cursor` for the small position
+     * ring (GridOverlay.positionCursor) while the mark is drawn there, keeps
+     * drawing the mark through a stroke, and draws a size-1 footprint as that
+     * one pixel rather than skipping it.
      *
      * It was the brush's alone until 2026-09-16, when the artist asked for
      * like-for-like everywhere: a crosshair says where the pointer is but
@@ -34,12 +35,15 @@ class ToolBaseClass {
      */
     this.footprintCursor = true;
     /*
-     * Does a left click at the pointer PAINT? The 3x3 pixel cursor fills its
-     * centre with the colour the click would leave, which is a promise only a
-     * tool that draws can keep - the eyedropper and the selection tools take
-     * or bound a colour rather than lay one, so theirs stays see-through.
+     * What colour the mark shows at each of its pixels.
+     *   'paint'  - the colour the pixel will show AFTER a left click, worked
+     *              out by simulating the write (the default: tools that draw)
+     *   'sample' - the colour showing there NOW, because that is the colour
+     *              the tool will take (the eyedropper)
+     *   'none'   - no colour to promise; the neutral overlay colour (the
+     *              selection bounds a region, it neither lays nor takes one)
      */
-    this.previewsInk = true;
+    this.markColour = 'paint';
     this.isActive = false;
     this.isDrawing = false;
   }
@@ -130,12 +134,8 @@ class ToolBaseClass {
    * point-sized tool, and at high zoom it is the only pixel-accurate cursor
    * the app has (the CSS crosshair is a fixed screen-space glyph).
    *
-   * Return null when there is nothing to show:
-   *   - the tool has no footprint at all (pan, zoom)
-   *   - the tool owns the hover preview itself via onPointerHover, or is
-   *     mid-gesture with a live preview on the function-preview canvas
-   *     (gradient phase 2, bezier handle editing) — a footprint drawn there
-   *     would clear it
+   * Return null only when the tool marks nothing at all (pan, zoom). The mark
+   * has its own canvas, so owning a preview is no longer a reason to opt out.
    *
    * Read geometry through the live mode views at call time (never cache it),
    * and reproduce the tool's OWN stamp geometry — an outline that disagrees
@@ -147,6 +147,22 @@ class ToolBaseClass {
    */
   getFootprint(pixelX, pixelY) {
     return [{ x: pixelX, y: pixelY }];
+  }
+
+  /**
+   * The DRAW_MODE a left click would write at one pixel of the footprint, or
+   * null if that pixel would not be written - what the mark simulates to show
+   * the colour each pixel will be left in.
+   *
+   * The default is the global draw mode, which is what the drawing tools
+   * resolve through. A tool that writes something else says so: the eraser
+   * always erases, and a pattern leaves its gaps to the gap mode.
+   * @param {number} pixelX
+   * @param {number} pixelY
+   * @returns {string|null}
+   */
+  markWrite(pixelX, pixelY) {
+    return PixelDrawRoutine.resolveUserMode(true);
   }
 
   // Instance methods delegate to statics so both ShapeTool (instance)
