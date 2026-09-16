@@ -9,8 +9,10 @@
  *                 not the same as declining to colour the cell - on the
  *                 Spectrum the right button paints paper, and the cell still
  *                 takes the colours you have selected
- *   eraser tool   clear the pixel, reset paper and flash on contact, and take
- *                 ink and bright with the last pixel in the cell
+ *   eraser tool   clear the pixel and leave the colours alone. A cell's colours
+ *                 are wiped only by a LATER stroke that finds the cell already
+ *                 empty of ink (2026-09-15; before that the eraser reset paper
+ *                 and flash on contact and ink and bright with the last pixel)
  *
  * All three used to route to DRAW_MODE.ERASE, which clears the pixel and
  * touches nothing else - so a right-button stroke over a differently-coloured
@@ -148,31 +150,84 @@ check('Pixels Only right button changes no attributes',
   JSON.stringify({ ink: 1, paper: 6, bright: false, flash: true }));
 StateManager.setDrawMode('normal');
 
-// --- the eraser TOOL: removes everything -------------------------------
+// --- the eraser TOOL: dots first, colours only on a later pass ---------
+//
+// A stroke (one batch) that reaches a cell with ink in it clears dots and
+// leaves all four colours - even when it takes the last dot. A LATER stroke
+// that finds the cell already empty wipes the colours. Each cell is judged by
+// what it held when the stroke first reached it, never mid-stroke, because one
+// drag crosses the same cell many times.
+
+const SEEDED = JSON.stringify({ ink: 1, paper: 6, bright: true, flash: true });
+const stroke = (fn) => { PixelDrawRoutine.beginBatch(); fn(); PixelDrawRoutine.endBatch(); };
 
 cell = seed(50, 50);
 PixelDrawRoutine.draw(50, 50, color(), DRAW_MODE.NORMAL);
 PixelDrawRoutine.draw(51, 50, color(), DRAW_MODE.NORMAL);
-// bright TRUE here so the staging can be told apart: it must survive the first
-// touch alongside the ink it colours, and go with that ink at the end.
 cell.ink = 1; cell.paper = 6; cell.bright = true; cell.flash = true;
 
-// Stage one. Paper and flash are what the erased area itself shows and are not
-// needed to render ink, so they go on contact. Ink and bright stay, because
-// ink the artist did NOT erase is still standing in this cell.
-PixelDrawRoutine.draw(50, 50, color(), DRAW_MODE.ERASE_ALL);
-check('eraser clears the pixel it touches', !isInk(50, 50));
-check('eraser resets PAPER on contact',   cell.paper === DEFAULT_CELL_ATTRS.paper);
-check('eraser resets FLASH on contact',   cell.flash === DEFAULT_CELL_ATTRS.flash);
-check('eraser keeps INK while other ink remains in the cell',    cell.ink === 1);
-check('eraser keeps BRIGHT while other ink remains in the cell', cell.bright === true);
-check('eraser leaves that other ink standing', isInk(51, 50));
+stroke(() => {
+  PixelDrawRoutine.draw(50, 50, color(), DRAW_MODE.ERASE_ALL);
+  check('eraser clears the pixel it touches', !isInk(50, 50));
+  check('eraser leaves other ink in the cell standing', isInk(51, 50));
+  check('eraser keeps all four colours while ink remains', JSON.stringify(attrs(cell)) === SEEDED);
 
-// Stage two: the last pixel goes, so nothing needs the ink colour any more
-PixelDrawRoutine.draw(51, 50, color(), DRAW_MODE.ERASE_ALL);
-check('eraser resets INK and BRIGHT with the last pixel in the cell',
+  PixelDrawRoutine.draw(51, 50, color(), DRAW_MODE.ERASE_ALL);
+  check('eraser keeps all four colours when it takes the LAST dot', JSON.stringify(attrs(cell)) === SEEDED);
+  check('an upper-layer cell emptied this stroke stays painted', cell.altered === true);
+
+  // The same drag crossing the now-empty cell again is still the first pass
+  PixelDrawRoutine.draw(50, 50, color(), DRAW_MODE.ERASE_ALL);
+  check('re-crossing the emptied cell in the SAME stroke keeps its colours',
+    JSON.stringify(attrs(cell)) === SEEDED);
+});
+
+stroke(() => PixelDrawRoutine.draw(52, 52, color(), DRAW_MODE.ERASE_ALL));
+check('a second stroke over the empty cell wipes all four colours',
   JSON.stringify(attrs(cell)) === JSON.stringify(DEFAULT_CELL_ATTRS));
-check('an emptied upper-layer cell goes transparent again', cell.altered === false);
+check('...and an upper-layer cell goes transparent again', cell.altered === false);
+
+// A second pass that still finds ink only clears dots; its last dot waits too
+cell = seed(50, 50);
+PixelDrawRoutine.draw(50, 50, color(), DRAW_MODE.NORMAL);
+PixelDrawRoutine.draw(51, 50, color(), DRAW_MODE.NORMAL);
+cell.ink = 1; cell.paper = 6; cell.bright = true; cell.flash = true;
+stroke(() => PixelDrawRoutine.draw(50, 50, color(), DRAW_MODE.ERASE_ALL));
+stroke(() => PixelDrawRoutine.draw(51, 50, color(), DRAW_MODE.ERASE_ALL));
+check('a second pass that takes the last dot still keeps the colours',
+  !isInk(51, 50) && JSON.stringify(attrs(cell)) === SEEDED);
+stroke(() => PixelDrawRoutine.draw(51, 50, color(), DRAW_MODE.ERASE_ALL));
+check('the pass after that wipes them',
+  JSON.stringify(attrs(cell)) === JSON.stringify(DEFAULT_CELL_ATTRS));
+
+// One stroke, two cells: each judged on its own
+{
+  const inked = seed(60, 60);
+  PixelDrawRoutine.draw(60, 60, color(), DRAW_MODE.NORMAL);
+  inked.ink = 1; inked.paper = 6; inked.bright = true; inked.flash = true;
+  const empty = cellAt(68, 60);
+  empty.ink = 3; empty.paper = 4; empty.bright = true; empty.flash = true;
+  empty.altered = true;
+
+  stroke(() => {
+    PixelDrawRoutine.draw(60, 60, color(), DRAW_MODE.ERASE_ALL);
+    PixelDrawRoutine.draw(68, 60, color(), DRAW_MODE.ERASE_ALL);
+  });
+  check('one stroke keeps the colours of the cell it took ink from',
+    JSON.stringify(attrs(inked)) === SEEDED);
+  check('...and wipes the colours of the cell that was already empty',
+    JSON.stringify(attrs(empty)) === JSON.stringify(DEFAULT_CELL_ATTRS));
+}
+
+// Outside a stroke, every call is its own pass
+cell = seed(50, 50);
+PixelDrawRoutine.draw(50, 50, color(), DRAW_MODE.NORMAL);
+cell.ink = 1; cell.paper = 6; cell.bright = true; cell.flash = true;
+PixelDrawRoutine.draw(50, 50, color(), DRAW_MODE.ERASE_ALL);
+check('a lone call that takes the last dot keeps the colours', JSON.stringify(attrs(cell)) === SEEDED);
+PixelDrawRoutine.draw(50, 50, color(), DRAW_MODE.ERASE_ALL);
+check('a second lone call over the empty cell wipes them',
+  JSON.stringify(attrs(cell)) === JSON.stringify(DEFAULT_CELL_ATTRS));
 
 // --- the eraser tool itself, through its real code path ----------------
 
@@ -183,25 +238,40 @@ const eraser = new EraserTool();
   const c = cellAt(60, 60);
   for (let x = 56; x < 64; x++) PixelDrawRoutine.draw(x, 60, color(), DRAW_MODE.NORMAL);
   c.ink = 1; c.paper = 6; c.bright = false; c.flash = true;
+  const kept = JSON.stringify(attrs(c));
 
   eraser.setSize(32);
   eraser.onPointerDown(60, 60, {});
   eraser.onPointerUp(60, 60, {});
-
   check('the real eraser tool clears the ink', !isInk(60, 60));
-  check('the real eraser tool takes the attributes with it',
+  check('the real eraser tool keeps the colours on its first pass', JSON.stringify(attrs(c)) === kept);
+
+  eraser.onPointerDown(60, 60, {});
+  eraser.onPointerUp(60, 60, {});
+  check('the real eraser tool wipes them on a second pass',
     JSON.stringify(attrs(c)) === JSON.stringify(DEFAULT_CELL_ATTRS));
 }
 
 // --- the background keeps its paint ------------------------------------
 
+// The background is locked and can never be the current layer, so it is
+// written through options.layer (as indexed-erase-modes.test.js does). This
+// block used to call setCurrentLayer(0), which refuses, so it drew on layer 1
+// and checked a background cell that is altered by definition - it passed
+// without ever reaching the background.
 const bg = LayerManager.layers[0];
-LayerManager.setCurrentLayer(0);
-PixelDrawRoutine.suspendStrokeHooks(() => PixelDrawRoutine.clearAll());
+bg.locked = false;
+const onBg = { layer: bg };
 const bgCell = bg.getCell(9, 9);
-PixelDrawRoutine.draw(72, 72, color(), DRAW_MODE.NORMAL);
-PixelDrawRoutine.draw(72, 72, color(), DRAW_MODE.ERASE_ALL);
-check('an emptied BACKGROUND cell stays altered - there is nothing behind it',
-  bgCell.altered === true);
+PixelDrawRoutine.draw(72, 72, color(), DRAW_MODE.NORMAL, onBg);
+bgCell.ink = 1; bgCell.paper = 6; bgCell.bright = true; bgCell.flash = true;
+stroke(() => PixelDrawRoutine.draw(72, 72, color(), DRAW_MODE.ERASE_ALL, onBg));
+check('a BACKGROUND pass clears the dot', !(bgCell.pixels[0] & 0x80));
+check('an emptied BACKGROUND cell keeps its colours after one pass',
+  JSON.stringify(attrs(bgCell)) === SEEDED);
+stroke(() => PixelDrawRoutine.draw(72, 72, color(), DRAW_MODE.ERASE_ALL, onBg));
+check('a second pass resets a BACKGROUND cell to the defaults',
+  JSON.stringify(attrs(bgCell)) === JSON.stringify(DEFAULT_CELL_ATTRS));
+check('...and it stays altered - there is nothing behind it', bgCell.altered === true);
 
 summary('erase-modes');

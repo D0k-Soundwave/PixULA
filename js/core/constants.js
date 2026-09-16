@@ -463,8 +463,10 @@ const DRAW_MODE = Object.freeze({
      *                               colour the cell: on the Spectrum the right
      *                               button paints paper, and the cell still takes
      *                               the colours you have selected
-     *   ERASE_ALL    eraser tool  - clear the pixel AND, once nothing is left in
-     *                               the cell, take its attributes with it
+     *   ERASE_ALL    eraser tool  - clear the pixel, keep the colours. A later
+     *                               stroke that finds the cell already empty
+     *                               of ink resets its attributes (and makes an
+     *                               upper-layer cell transparent again)
      *   ERASE        primitive    - clear the pixel, touch nothing else. NOT a
      *                               user-facing mode: the selection and transform
      *                               services move pixels with it and must not

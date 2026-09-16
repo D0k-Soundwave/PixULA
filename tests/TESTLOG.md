@@ -205,15 +205,15 @@ Manual matrix (deferred to the end-of-rebuild consolidated pass):
 Left button, right button and the eraser tool were one mode; they are now three.
 - [x] Right button clears ink AND stamps ink/paper/bright/flash, exactly as the left button does — AUTO (erase-modes.test.js)
 - [x] Right button leaves other ink in the same cell standing — AUTO (erase-modes.test.js)
-- [x] The eraser resets paper and flash on contact, and keeps ink and bright while other ink remains in the cell — AUTO (erase-modes.test.js)
-- [x] The eraser resets ink and bright with the last pixel in the cell — AUTO (erase-modes.test.js)
-- [x] An emptied upper-layer cell goes transparent; an emptied background cell stays painted — AUTO (erase-modes.test.js)
+- [x] The eraser clears dots and keeps all four colours, even when it takes the last dot in the cell and however often one stroke re-crosses it (2026-09-15; it used to reset paper and flash on contact and ink and bright with the last dot) - AUTO (erase-modes.test.js)
+- [x] A later stroke over a cell already empty of ink resets its colours; a cell that still has ink keeps them on every pass - AUTO (erase-modes.test.js)
+- [x] A second pass turns an upper-layer cell transparent; a background cell is reset to the defaults and stays painted - AUTO (erase-modes.test.js)
 - [x] The ERASE primitive still writes no attributes, so selection/transform moves do not repaint — AUTO (erase-modes.test.js)
 - [x] Pixels Only keeps the primitive on its right button — AUTO (erase-modes.test.js)
 - [ ] Draw a coloured area, pick different ink/paper, drag the RIGHT button across it: the ink goes and the area takes the new colours
 - [ ] Same with a shape tool on the right button
-- [ ] Erase the same area with the eraser tool instead: on an upper layer the cell goes fully transparent, showing the layer below
-- [ ] Erase PART of a cell that has bright flashing ink: the erased part goes plain white and stops flashing immediately, while the ink left standing keeps its colour and brightness
+- [ ] Erase the same area with the eraser tool instead: the dots go and the cells keep their colours; lift, erase over it again, and on an upper layer the cells go fully transparent, showing the layer below
+- [ ] Erase PART of a cell that has bright flashing ink: the erased dots go and the whole cell keeps its colour, brightness and flash
 
 ### Privacy block (2026-08-07)
 No consent gate by design: the app has no network access, so there is no
