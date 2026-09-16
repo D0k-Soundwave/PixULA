@@ -3,11 +3,12 @@
 **Goal:** make the ink and the tool's mark land closer to the pen tip, on the
 artist's own machine and tablet, and prove it with measurements taken there.
 
-**Status:** plan only. Nothing here is built. It follows commit `b4d4a52`,
-which moved the POSITION job to the system cursor (a hollow ring drawn by the
-operating system, with no app lag). The coloured mark and the ink are still
-drawn by the app, and still trail the pen by at least one refresh. This plan
-is about those two.
+**Status:** plan only. Nothing here is built. Since the brush-cursor commit
+the tool's mark IS the hardware cursor (its size at the current zoom, its
+colours), so it no longer trails the pen - except where Chrome refuses the
+image (over 128 DIP, or crossing the window edge) and the app draws it
+instead. What still trails by at least one refresh is the INK, and that
+fallback mark. This plan is about those two.
 
 ---
 
@@ -106,7 +107,10 @@ twice per frame). This is expected to help most where events arrive unaligned,
 such as high-rate pens. That expectation is itself unmeasured (A), which is
 why the gate is a measurement.
 
-### Phase 2 - Predicted position for the MARK only
+### Phase 2 - Predicted position for the FALLBACK mark only
+
+The hardware brush cursor needs no prediction. This phase applies only to the
+app-drawn mark shown where the cursor image is refused.
 
 - [ ] During a stroke, draw the mark at the last point from
       `PointerEvent.getPredictedEvents()` where the browser provides one, and
@@ -161,7 +165,7 @@ partial dirty-cell updates have not been checked for tearing (A).
   anything.
 - **A mark that trails by exactly zero.** Anything a page draws is presented
   by the compositor at least one frame after the event. Only the system
-  cursor avoids that, which is why the position ring is the system cursor.
+  cursor avoids that, which is why the brush itself is the system cursor.
 
 ---
 

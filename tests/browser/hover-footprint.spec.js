@@ -21,22 +21,15 @@ async function pixelPoint(page, px, py) {
     };
 }
 
-/** Read the overlay the footprint is drawn on: lit-pixel count + specific probes. */
+/** Read the mark: lit-pixel count + specific probes. It is shown as the
+ *  hardware cursor or on the pointer canvas, and a test cannot see a system
+ *  cursor, so this reads GridOverlay.markPixels(), which records the same
+ *  pixels either way. */
 function readOverlay(page, probes) {
     return page.evaluate((pts) => {
-        const cvs = GridOverlay.pointerCanvas;
-        if (!cvs) return null;
-        const ctx = cvs.getContext('2d');
-        const { data, width, height } = ctx.getImageData(0, 0, cvs.width, cvs.height);
-
-        let lit = 0;
-        for (let i = 3; i < data.length; i += 4) if (data[i] > 0) lit++;
-
-        const at = pts.map(([x, y]) => {
-            if (x < 0 || x >= width || y < 0 || y >= height) return false;
-            return data[(y * width + x) * 4 + 3] > 0;
-        });
-        return { lit, at };
+        const mark = GridOverlay.markPixels();
+        const set = new Set((mark ? mark.points : []).map((q) => `${q.x},${q.y}`));
+        return { lit: set.size, at: pts.map(([x, y]) => set.has(`${x},${y}`)) };
     }, probes);
 }
 

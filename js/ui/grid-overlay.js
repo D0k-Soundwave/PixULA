@@ -46,6 +46,11 @@ class GridOverlayClass {
         // all while they were previewing (2026-09-16).
         this.pointerCanvas = null;
         this.pointerCtx = null;
+        // The mark as shown right now (markPixels), the hardware brush
+        // cursor's current image and plan, and rendered images by look.
+        this._mark = null;
+        this._cursorPlan = null;
+        this._cursorImages = new Map();
 
         // Selection overlay canvas
         this.selectionCanvas = null;
@@ -185,7 +190,6 @@ class GridOverlayClass {
      * @private
      */
     _refreshGridColors() {
-        this._positionCursor = null;   // rebuilt from the new tokens on next use
         this.pixelGridColor = this._cssVar('--grid-pixel-color', '#000000');
         this.cellGridColor  = this._cssVar('--grid-cell-color',  '#FF0000');
         this.blockGridColor = this._cssVar('--grid-block-color', '#0000FF');
@@ -550,6 +554,7 @@ class GridOverlayClass {
      * preview down must not take the pointer with it.
      */
     clearPointerOverlay() {
+        this._mark = null;
         if (this.pointerCtx && this.pointerCanvas) {
             this.pointerCtx.clearRect(0, 0, this.pointerCanvas.width, this.pointerCanvas.height);
         }
@@ -592,19 +597,37 @@ class GridOverlayClass {
     }
 
     /**
-     * Draw a tool's hover footprint as an outline on the function preview canvas.
+     * The pixels of a tool's mark and the colour of each: the BOUNDARY of the
+     * footprint (MaskOps.boundaryPoints), so a size-32 disc is a ring rather
+     * than 800 opaque pixels hiding the artwork being aimed at, while a size-1
+     * or size-2 brush - all boundary - shows every pixel. Each takes the colour
+     * it will be left in (PixelDrawRoutine.markColours); where there is no
+     * colour to promise it takes the --overlay-outline-brush token. One rule
+     * for both ways a mark is shown, the hardware cursor and the pointer
+     * canvas, so the two cannot disagree.
+     * @private
+     */
+    _markPoints(pixels, colourAt) {
+        if (!pixels || pixels.length === 0) return [];
+        const edge = MaskOps.boundaryPoints(pixels, ZX_SPECTRUM.WIDTH, ZX_SPECTRUM.HEIGHT);
+        const fallback = this._overlayColors.outlineBrush;
+        const out = new Array(edge.length);
+        for (let i = 0; i < edge.length; i++) {
+            out[i] = { x: edge[i].x, y: edge[i].y,
+                colour: (colourAt && colourAt(edge[i].x, edge[i].y)) || fallback };
+        }
+        return out;
+    }
+
+    /**
+     * Draw a tool's mark on the pointer canvas (#pointer-canvas, z 500). This
+     * is the FALLBACK for a tool whose mark is its pointer - used only where
+     * the hardware brush cursor cannot be (brushCursor) - and the normal path
+     * for a tool whose mark is not its pointer. Exact, but drawn by the app,
+     * so it reaches the screen a refresh after the pen.
      *
-     * Only the BOUNDARY is drawn (MaskOps.boundaryPoints — pure, Node-tested):
-     * a solid size-32 disc renders as a one-pixel ring rather than 800 opaque
-     * pixels that would hide the very artwork the user is aiming at, while a
-     * sparse set (a dither pattern, a crosshatch) is almost all boundary and so
-     * shows in full. Uses the dimmer --overlay-outline-brush token — this is a
-     * passive cursor affordance, not an active preview - which is why it has
-     * its own layer above them all (#pointer-canvas) rather than sharing the
-     * function-preview canvas with the shape and gradient rasters, as it did
-     * until 2026-09-16.
-     *
-     * @param {Array<{x: number, y: number}>} pixels - The tool's affected-pixel set
+     * @param {Array<{x: number, y: number}>} pixels - the tool's footprint
+     * @param {function(number, number): (string|null)} [colourAt]
      */
     drawFootprintOutline(pixels, colourAt) {
         if (!this._initialized) return;
@@ -614,21 +637,15 @@ class GridOverlayClass {
         if (!ctx || !canvas) return;
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        if (!pixels || pixels.length === 0) return;
+        const points = this._markPoints(pixels, colourAt);
+        this._mark = points.length ? { via: 'canvas', points } : null;
 
-        // Geometry via the live mode views, read at call time (never cached).
-        const edge = MaskOps.boundaryPoints(pixels, ZX_SPECTRUM.WIDTH, ZX_SPECTRUM.HEIGHT);
-
-        // Each boundary pixel in the colour it will be left in (PixelDrawRoutine
-        // .markColours); null means "no colour to promise", which takes the dim
-        // outline token. Grouped so each colour sets fillStyle once.
-        const fallback = this._overlayColors.outlineBrush;
+        // Grouped so each colour sets fillStyle once.
         const groups = new Map();
-        for (let i = 0; i < edge.length; i++) {
-            const colour = (colourAt && colourAt(edge[i].x, edge[i].y)) || fallback;
-            let list = groups.get(colour);
-            if (!list) groups.set(colour, (list = []));
-            list.push(edge[i]);
+        for (let i = 0; i < points.length; i++) {
+            let list = groups.get(points[i].colour);
+            if (!list) groups.set(points[i].colour, (list = []));
+            list.push(points[i]);
         }
         for (const [colour, list] of groups) {
             ctx.fillStyle = colour;
@@ -637,62 +654,115 @@ class GridOverlayClass {
     }
 
     /**
-     * The hardware POSITION marker: a CSS cursor value for a small hollow ring,
-     * light inside dark, drawn by the operating system at the true pointer
-     * position with none of the app's own frame lag.
+     * The tool's mark AS the system pointer: the same pixels in the same
+     * colours, rendered into a cursor image at the current zoom, so the
+     * operating system moves it with the pen and it never trails. One brush
+     * pixel is one canvas pixel at every zoom (the artist's rule, 2026-09-16).
      *
-     * It marks position and nothing else - a cursor image cannot follow the
-     * brush size or the ink colour, which is the mark's job. Hollow so a
-     * one-pixel mark at 100% zoom still shows through the middle; two-tone from
-     * the handle tokens (opposites in every theme) so it reads over any
-     * artwork; no crosshair arms, which the artist asked to be rid of. Rebuilt
-     * when the theme changes the tokens it reads.
-     * @returns {string} a CSS `cursor` value
+     * Returns null where Chrome would refuse the image - wider or taller than
+     * its 128 DIP cap, or not wholly inside the window - and the caller then
+     * draws the mark on the pointer canvas instead. Geometry and both limits
+     * are CursorImage's (pure, Node-tested); this only renders and caches.
+     *
+     * @param {Array<{x:number,y:number}>} pixels - the tool's footprint
+     * @param {function(number, number): (string|null)} colourAt
+     * @param {{fx:number, fy:number, clientX:number, clientY:number}} at -
+     *   the pointer in fractional picture pixels and in canvas-frame client px
+     * @returns {string|null} a CSS cursor value
      */
-    positionCursor() {
-        if (this._positionCursor) return this._positionCursor;
-        const light = this._overlayColors.handleBg;
-        const dark = this._overlayColors.handleStroke;
-        const svg = "<svg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 11 11'>" +
-            `<circle cx='5.5' cy='5.5' r='4' fill='none' stroke='${dark}' stroke-width='2'/>` +
-            `<circle cx='5.5' cy='5.5' r='4' fill='none' stroke='${light}' stroke-width='1'/>` +
-            '</svg>';
-        this._positionCursor = `url("data:image/svg+xml,${encodeURIComponent(svg)}") 5 5, none`;
-        return this._positionCursor;
+    brushCursor(pixels, colourAt, at) {
+        if (!this._initialized || !window.CursorImage || !pixels || !pixels.length) return null;
+        const scale = CanvasSystem.getScale();
+        const dpr = this._frameDpr();
+        // Too big for Chrome is known from the footprint's bounds alone; stop
+        // before the colours are worked out, because the caller works them
+        // out again for the fallback.
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (let i = 0; i < pixels.length; i++) {
+            const q = pixels[i];
+            if (q.x < minX) minX = q.x;
+            if (q.x > maxX) maxX = q.x;
+            if (q.y < minY) minY = q.y;
+            if (q.y > maxY) maxY = q.y;
+        }
+        const cell = Math.max(1, Math.round(scale * dpr)) / dpr;
+        if ((maxX - minX + 1) * cell > CursorImage.MAX_DIP ||
+            (maxY - minY + 1) * cell > CursorImage.MAX_DIP) return null;
+        const points = this._markPoints(pixels, colourAt);
+        const plan = CursorImage.plan(points, scale, dpr);
+        if (!plan || !plan.fits) return null;
+
+        let url = this._cursorImages.get(plan.key);
+        if (url) {
+            this._cursorImages.delete(plan.key);         // most recent last
+        } else {
+            url = this._renderCursorImage(plan, points);
+            if (this._cursorImages.size >= 64) {
+                this._cursorImages.delete(this._cursorImages.keys().next().value);
+            }
+        }
+        this._cursorImages.set(plan.key, url);
+
+        this._cursorPlan = { plan, url, scale, dpr };
+        const value = this.moveBrushCursor(at);
+        if (value) {
+            this.clearPointerOverlay();
+            this._mark = { via: 'cursor', points };
+        }
+        return value;
     }
 
     /**
-     * A point-sized tool's mark: THE one pixel it acts on, and nothing else.
-     *
-     * It was a 3x3 plus for a day (2026-09-16) - four dim arms around the
-     * pixel, on the argument that one pixel is hard to find at low zoom. That
-     * plus is a crosshair, which is the thing the artist asked to be rid of,
-     * and it stayed the same shape at every zoom while the pixel it surrounded
-     * grew. Like for like means the mark is the size of the mark.
-     *
-     * Its colour comes from PixelDrawRoutine.markColours: what a painting
-     * tool would leave there, what the eyedropper would take. Where there is
-     * no colour to promise (the selection, or a click that would change
-     * nothing) it takes the overlay token, and the position ring drawn by the
-     * system (positionCursor) still says where the pointer is.
-     *
-     * @param {number} x - picture pixel under the pointer
-     * @param {number} y
-     * @param {string|null} centreColor - the pixel's mark colour, or null for
-     *   the neutral overlay token
+     * Re-seat the current brush cursor for a pointer that moved within the
+     * same canvas pixel: the image is unchanged, only the hotspot moves, so
+     * the image's grid stays on the canvas grid.
+     * @param {{fx:number, fy:number, clientX:number, clientY:number}} at
+     * @returns {string|null} a CSS cursor value, or null if it no longer fits
      */
-    drawPixelCursor(x, y, centreColor) {
-        if (!this._initialized) return;
+    moveBrushCursor(at) {
+        const c = this._cursorPlan;
+        if (!c || !at) return null;
+        const hot = CursorImage.hotspot(c.plan, at.fx, at.fy, c.scale);
+        if (!hot) return null;
+        const frame = CanvasSystem.iframe;
+        if (!frame) return null;
+        const box = frame.getBoundingClientRect();
+        const topX = box.left + frame.clientLeft + at.clientX;
+        const topY = box.top + frame.clientTop + at.clientY;
+        const root = document.documentElement;
+        if (!CursorImage.insideViewport(c.plan, hot, topX, topY, root.clientWidth, root.clientHeight)) {
+            return null;
+        }
+        return CursorImage.cssValue(c.url, c.dpr, hot);
+    }
 
-        const ctx = this.pointerCtx || this.functionPreviewCtx;
-        const canvas = this.pointerCanvas || this.functionPreviewCanvas;
-        if (!ctx || !canvas) return;
+    /**
+     * What the mark currently shows and how - for tests, which cannot see a
+     * system cursor. null when no mark is up.
+     * @returns {{via: string, points: Array<{x:number,y:number,colour:string}>}|null}
+     */
+    markPixels() {
+        return this._mark || null;
+    }
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        if (x < 0 || x >= ZX_SPECTRUM.WIDTH || y < 0 || y >= ZX_SPECTRUM.HEIGHT) return;
+    /** Device pixel ratio of the canvas frame. @private */
+    _frameDpr() {
+        const doc = CanvasSystem.getIframeDocument();
+        const win = doc && doc.defaultView;
+        return (win && win.devicePixelRatio) || window.devicePixelRatio || 1;
+    }
 
-        ctx.fillStyle = centreColor || this._overlayColors.outlineBrush;
-        ctx.fillRect(x, y, 1, 1);
+    /** One cell of device pixels per canvas pixel, no smoothing. @private */
+    _renderCursorImage(plan, points) {
+        const canvas = Helpers.createCanvas(plan.devW, plan.devH);
+        const ctx = canvas.getContext('2d');
+        const cell = plan.cellDev;
+        for (let i = 0; i < points.length; i++) {
+            const p = points[i];
+            ctx.fillStyle = p.colour;
+            ctx.fillRect((p.x - plan.minX) * cell, (p.y - plan.minY) * cell, cell, cell);
+        }
+        return canvas.toDataURL('image/png');
     }
 
     /**

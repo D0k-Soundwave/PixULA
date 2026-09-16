@@ -27,6 +27,7 @@ const BOOT_MANIFEST = [
     ['clamp',            'js/utils/helpers.js'],
     ['Validators',       'js/utils/validators.js'],
     ['MaskOps',          'js/utils/mask-ops.js'],
+    ['CursorImage',      'js/utils/cursor-image.js'],
     ['BrushShapes',      'js/utils/brush-shapes.js'],
     ['TouchPolicy',      'js/utils/touch-policy.js'],
     ['UiFit',            'js/utils/ui-fit.js'],
