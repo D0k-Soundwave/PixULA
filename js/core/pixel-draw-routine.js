@@ -28,6 +28,7 @@ class PixelDrawRoutineClass {
     this._ditherGate = null;       // active thinning predicate — see withDitherGate()
     this._xorStroke = new Set();   // pixels already toggled in this batch — see draw()
     this._eraseStroke = new Map(); // cell -> "was empty when this batch reached it" - see _applyEraseAll
+    this._shownStroke = new Map(); // cell -> what the page showed there when this batch reached it - see _shownFor
   }
 
   // ── The dither gate (thinning) ─────────────────────────────────────────────
@@ -429,7 +430,7 @@ class PixelDrawRoutineClass {
     // compatibility but has no effect in the snapshot model.
 
     if (!this._applyToCell(layer, cell, cellX, cellY, localX, localY,
-      colorSelection, mode, this._eraseStroke, this.isInBatch)) {
+      colorSelection, mode, this._eraseStroke, this.isInBatch, this._shownStroke)) {
       return false;
     }
 
@@ -480,6 +481,7 @@ class PixelDrawRoutineClass {
     this.pendingChanges.clear();
     this._xorStroke.clear();
     this._eraseStroke.clear();
+    this._shownStroke.clear();
 
     if (window.UndoRedo) UndoRedo.beginAction(label);
 
@@ -499,6 +501,7 @@ class PixelDrawRoutineClass {
     this.isInBatch = false;
     this._xorStroke.clear();
     this._eraseStroke.clear();
+    this._shownStroke.clear();
 
     // Close the UndoRedo action. If NO cell was modified during the batch
     // (e.g. a stamp click with no valid draw layer below it), cancel instead of
@@ -544,11 +547,12 @@ class PixelDrawRoutineClass {
    * @param {string} mode - DRAW_MODE value
    * @param {Map} eraseStroke - per-batch "wipe or keep" memory for ERASE_ALL
    * @param {boolean} inBatch - whether a stroke is open (see _applyEraseAll)
+   * @param {Map} [shownStroke] - per-batch "what the page shows" memory (see _shownFor)
    * @returns {boolean} true if the write changed something
    * @private
    */
   _applyToCell(layer, cell, cellX, cellY, localX, localY, colorSelection, mode,
-    eraseStroke, inBatch) {
+    eraseStroke, inBatch, shownStroke) {
     // Indexed modes (pixelDepth > 1, Phase 13): pixels are palette indices,
     // not ink bits. No cell attributes, so nothing here applies to them.
     if (cell.indices) {
@@ -568,7 +572,7 @@ class PixelDrawRoutineClass {
       // that placeholder. ERASE_ALL is exempt: it resets to the defaults by
       // definition and leaves the cell see-through.
       if (mode !== DRAW_MODE.ERASE_ALL) {
-        const shown = LayerManager.attrsShowing(cellX, cellY, layer.gigaScreen || 0);
+        const shown = this._shownFor(layer, cellX, cellY, shownStroke, inBatch);
         cell.ink = shown.ink;
         cell.paper = shown.paper;
         cell.bright = shown.bright;
@@ -576,7 +580,8 @@ class PixelDrawRoutineClass {
       }
     }
 
-    const sel = this._resolveTransparent(layer, cellX, cellY, colorSelection, mode);
+    const sel = this._resolveTransparent(layer, cellX, cellY, colorSelection, mode,
+      shownStroke, inBatch);
 
     switch (mode) {
       case DRAW_MODE.NORMAL:
@@ -628,6 +633,36 @@ class PixelDrawRoutineClass {
   }
 
   /**
+   * What the page shows at a cell - LayerManager.attrsShowing - asked once per
+   * cell per stroke rather than once per pixel write.
+   *
+   * attrsShowing walks the layer stack top-down, so asking it on every write
+   * made a "use existing" stroke cost one walk per PIXEL: measured 2026-09-16,
+   * 100,000 writes with the Ink box on went from 13 ms to 31 ms at eight
+   * layers, and the cost grows with every layer added.
+   *
+   * Holding the answer for the length of the batch is exact, not approximate,
+   * for the same reason _eraseStroke is: inside one batch the only thing
+   * writing to the document is the batch itself. The one cell it can change is
+   * the drawing layer's own, and the first write there copies the shown value
+   * into exactly the channels a transparent box asks for - so asking again
+   * would return that same value. Outside a batch every write is its own
+   * stroke and is answered fresh.
+   * @private
+   */
+  _shownFor(layer, cellX, cellY, shownStroke, inBatch) {
+    const screen = layer.gigaScreen || 0;
+    if (!inBatch || !shownStroke) return LayerManager.attrsShowing(cellX, cellY, screen);
+    const key = (screen * ZX_SPECTRUM.GRID_ROWS + cellY) * ZX_SPECTRUM.GRID_COLS + cellX;
+    let shown = shownStroke.get(key);
+    if (shown === undefined) {
+      shown = LayerManager.attrsShowing(cellX, cellY, screen);
+      shownStroke.set(key, shown);
+    }
+    return shown;
+  }
+
+  /**
    * Resolve the transparent ("use existing") boxes into concrete colours.
    *
    * THE DEFINITION (the artist's, 2026-09-16): a transparent Ink or Paper
@@ -643,7 +678,7 @@ class PixelDrawRoutineClass {
    * @returns {Object} colorSelection, resolved (the original when nothing is transparent)
    * @private
    */
-  _resolveTransparent(layer, cellX, cellY, colorSelection, mode) {
+  _resolveTransparent(layer, cellX, cellY, colorSelection, mode, shownStroke, inBatch) {
     if (!colorSelection) return colorSelection;
     if (!colorSelection.inkTransparent && !colorSelection.paperTransparent) {
       return colorSelection;
@@ -654,7 +689,7 @@ class PixelDrawRoutineClass {
         mode !== DRAW_MODE.XOR_PIXEL) {
       return colorSelection;
     }
-    const shown = LayerManager.attrsShowing(cellX, cellY, layer.gigaScreen || 0);
+    const shown = this._shownFor(layer, cellX, cellY, shownStroke, inBatch);
     return {
       ...colorSelection,
       ink: colorSelection.inkTransparent ? shown.ink : colorSelection.ink,
@@ -694,10 +729,11 @@ class PixelDrawRoutineClass {
     if (src.indices) clone.indices = new Int16Array(src.indices);
 
     const eraseStroke = new Map();
+    const shownStroke = new Map();
     for (let i = 0; i < writes.length; i++) {
       const w = writes[i];
       this._applyToCell(layer, clone, cellX, cellY, w.localX, w.localY,
-        colorSelection, w.mode, eraseStroke, true);
+        colorSelection, w.mode, eraseStroke, true, shownStroke);
     }
     return clone;
   }
