@@ -58,6 +58,7 @@ need real hardware — marked **pending-hardware** for the user's pass.
 - [ ] Pressure varies brush size when the brush option is on (event pressure -> BrushEngine.mapPressure)
 - [ ] Fast strokes have no straight-line gaps (getCoalescedEvents feeds every sample)
 - [ ] Hover (buttons=0) shows the brush-outline preview; leaves cleanly
+- [ ] Brush pointer on a real pen (2026-09-16): over the picture, is anything left of the SYSTEM pointer while the pen hovers (Windows Ink draws its own hover dot, which a page may not be able to hide)? Record whether the dot shows, and whether it sits on the 3x3 pixel cursor's centre - PART: the page's own cursor is AUTO (browser: brush-cursor.spec, mouse); manual: what the OS adds for a pen
 - [ ] Barrel button = Draw paper for that interaction (the shipped default since 2026-08-30; it was the eyedropper before, which is still one row down in Preferences > Pen) — PART: the routing is AUTO (browser: input-pen.spec, synthetic pen events for every assignable action); manual: that a real barrel press reaches the page at all, and as which bit (use Preferences > Pen > Pen check)
 - [ ] Eraser end routes the stroke to the eraser tool (buttons & 32) — PART: routing AUTO (browser: input-pen.spec); manual: real inverted-pen contact
 - [ ] The tail clears the size dialled in on the eraser (Tool Options), not the active brush's — set the eraser to something large, pick up the brush, flip the pen: one press clears that whole disc — PART: the size match is AUTO (browser: input-pen.spec, synthetic bits); manual: a real tail on real hardware
@@ -214,6 +215,15 @@ Left button, right button and the eraser tool were one mode; they are now three.
 - [ ] Same with a shape tool on the right button
 - [ ] Erase the same area with the eraser tool instead: the dots go and the cells keep their colours; lift, erase over it again, and on an upper layer the cells go fully transparent, showing the layer below
 - [ ] Erase PART of a cell that has bright flashing ink: the erased dots go and the whole cell keeps its colour, brightness and flash
+
+### Brush pointer (2026-09-16)
+Over the picture the brush hides the system crosshair; its footprint is the pointer.
+- [x] Size 2 and up: the outline only, no system pointer - AUTO (browser: brush-cursor.spec)
+- [x] Size 1: a 3x3 plus, five pixels, centre = the palette colour the click will paint; it follows ink and Bright changes without a move - AUTO (browser: brush-cursor.spec)
+- [x] The centre colour equals what a real left-button write leaves, in every draw mode x pixel state x transparent box (96 cases), and mid-stroke it shows what was just painted - AUTO (node: brush-cursor-colour.test.js)
+- [x] The mark follows the pointer through a stroke and stays up after release - AUTO (browser: brush-cursor.spec)
+- [x] Over the grey surround the pointer comes back; eraser and fill keep their own cursors; Spray (riding on the brush) keeps the brush pointer across a tool switch - AUTO (browser: brush-cursor.spec)
+- [ ] At 100% zoom the 3x3 cursor is findable on real artwork, in every theme, over light and dark areas (its arms use --overlay-outline-brush)
 
 ### Privacy block (2026-08-07)
 No consent gate by design: the app has no network access, so there is no

@@ -181,17 +181,18 @@ test('a hovering pen held eraser-first outlines the eraser, not the brush', asyn
     await page.keyboard.press('b');
     await page.evaluate(() => { BrushEngine.setBrush('round'); BrushEngine.setSize(1); });
 
-    // Plain hover: the brush's single pixel is below the outline gate.
+    // Plain hover: the brush at size 1 shows its 3x3 pixel cursor (five
+    // pixels), not an outline.
     await penHover(page, 128, 96, 0);
-    expect(await overlayLit(page), 'brush at size 1 draws no outline').toBe(0);
+    expect(await overlayLit(page), 'brush at size 1: the pixel cursor only').toBe(5);
 
     // Same position, tail down (a driver that reports the tail before contact).
     await penHover(page, 128, 96, ERASER);
-    expect(await overlayLit(page), 'the eraser disc is outlined').toBeGreaterThan(0);
+    expect(await overlayLit(page), 'the eraser disc is outlined').toBeGreaterThan(5);
 
-    // Flipped back: the eraser outline goes with it.
+    // Flipped back: the eraser outline goes with it, the brush cursor returns.
     await penHover(page, 128, 96, 0);
-    expect(await overlayLit(page), 'outline cleared with the flip back').toBe(0);
+    expect(await overlayLit(page), 'eraser outline replaced by the brush cursor').toBe(5);
 
     // A control assigned something else is not an eraser and gets no ring.
     await assign(page, { barrel: 'menu' });

@@ -146,6 +146,12 @@ class InputHandlerClass {
     this._hoverOutlineShown = false;
     this._hoverOutlinePoint = null;
     this._hoverOutlineTool = null;   // tool id the outline was computed for
+    // Where the pointer last hovered over the canvas, for repainting the
+    // footprint in place when something other than a move changes it. Null
+    // once the pointer has left.
+    this._lastHoverPoint = null;
+    // True while a footprintCursor tool's mark stands in for the pointer
+    this._pointerHidden = false;
   }
 
   /** Initialize: wait for the canvas iframe, then attach all listeners. */
@@ -200,21 +206,29 @@ class InputHandlerClass {
     EventBus.on(EVENTS.TOOL_SELECTED,  () => {
       if (!this._escapeToolReset) this.deactivateSpecialModes();
       this._clearHoverOutline();
+      // Deferred: ToolRail writes the new tool's cursor from its own
+      // TOOL_SELECTED listener, and a brush's hidden pointer has to land
+      // after that write, not before it.
+      queueMicrotask(() => this._repaintHover());
     });
-    EventBus.on(EVENTS.DRAW_MODE_CHANGED, () => this.deactivateSpecialModes());
-    EventBus.on(EVENTS.LAYER_SELECTED, () => this.exitPatternCaptureMode());
+    EventBus.on(EVENTS.DRAW_MODE_CHANGED, () => {
+      this.deactivateSpecialModes();
+      this._repaintHover();
+    });
+    EventBus.on(EVENTS.LAYER_SELECTED, () => {
+      this.exitPatternCaptureMode();
+      this._repaintHover();
+    });
 
-    // An option change (size, brush type, thickness…) changes the footprint
-    // under a cursor that never moved. Repaint in place so dragging the size
-    // slider shows the new footprint live instead of waiting for a mouse move.
-    EventBus.on(EVENTS.TOOL_OPTIONS, () => {
-      if (!this._hoverOutlineShown || !this._hoverOutlinePoint) return;
-      const tool = ToolManager.getCurrentTool();
-      if (!tool) return;
-      const point = this._hoverOutlinePoint;
-      this._hoverOutlineTool = null;   // invalidate the memo, force a recompute
-      this._drawToolFootprint(point, tool);
-    });
+    // Anything that changes the footprint, or the colour of the size-1 dot,
+    // under a pointer that never moved: an option (size, brush type,
+    // thickness...), a colour control, the palette, the screen mode. Repaint in
+    // place instead of waiting for a mouse move.
+    for (const channel of [EVENTS.TOOL_OPTIONS, EVENTS.COLOR_INK, EVENTS.COLOR_PAPER,
+      EVENTS.COLOR_BRIGHT, EVENTS.COLOR_FLASH, EVENTS.PALETTE_CHANGED,
+      EVENTS.SCREEN_MODE_CHANGED]) {
+      EventBus.on(channel, () => this._repaintHover());
+    }
   }
 
   // ── Special canvas modes ──────────────────────────────────────────────────
@@ -244,6 +258,9 @@ class InputHandlerClass {
    */
   enterPatternCaptureMode(size) {
     this._patternCaptureSize = size;
+    // Through _clearHoverOutline so a hidden brush pointer comes back: capture
+    // draws its own preview and never reaches the hover code that would.
+    this._clearHoverOutline();
     if (window.GridOverlay) GridOverlay.clearFunctionPreview();
   }
 
@@ -366,6 +383,7 @@ class InputHandlerClass {
     });
 
     target.addEventListener('pointerleave', (e) => {
+      this._lastHoverPoint = null;
       if (this._patternCaptureSize > 0) {
         if (window.GridOverlay) GridOverlay.clearFunctionPreview();
         return;
@@ -581,7 +599,12 @@ class InputHandlerClass {
 
     const point = this._getCanvasPoint(e);
     this.lastPoint = point;
-    this._clearHoverOutline();
+    // A brush's mark IS its pointer, so it stays up through the stroke (it is
+    // redrawn once the tool has written, below); every other press takes the
+    // hover outline down, as it always did.
+    const markTool = this._strokeTool || ToolManager.getCurrentTool();
+    const marking = this._marksStroke(e, markTool);
+    if (!marking) this._clearHoverOutline();
 
     // Long-press -> context menu (touch only; cancelled by movement/up/gesture)
     if (e.pointerType === 'touch') this._startLongPress(e);
@@ -603,6 +626,7 @@ class InputHandlerClass {
     // ── Delegate to the (possibly rerouted) tool — DIRECT call ──
     const tool = this._strokeTool || ToolManager.getCurrentTool();
     if (tool) tool.onPointerDown(point.x, point.y, this._toolEvent(e));
+    if (marking) this._drawToolFootprint(point, markTool, { force: true, live: true });
   }
 
   /**
@@ -817,6 +841,12 @@ class InputHandlerClass {
       tool.onPointerMove(samplePoint.x, samplePoint.y, this._toolEvent(sample));
       this.lastPoint = samplePoint;
     }
+
+    // The brush's mark is its pointer, so it follows the stroke - drawn once
+    // per event, after the samples, showing what was just painted.
+    if (this.lastPoint && this._marksStroke(e, tool)) {
+      this._drawToolFootprint(this.lastPoint, tool, { force: true, live: true });
+    }
   }
 
   /** Shared by pointerup and pointercancel (stroke-end-with-commit). @private */
@@ -873,6 +903,14 @@ class InputHandlerClass {
     this._strokeTool = null;
     this._penButtons = null;
     if (tool) tool.onPointerUp(point.x, point.y, toolEvent);
+
+    // Back to hovering: the size-1 dot switches from "what was just painted"
+    // to "what a click here would paint" without waiting for a move. A mark
+    // that was not up (touch, another tool) stays as it was.
+    if (this._hoverOutlineShown && e.pointerType !== 'touch' && this.lastPoint) {
+      this._lastHoverPoint = { x: this.lastPoint.x, y: this.lastPoint.y, eraser: false };
+      this._repaintHover();
+    }
 
     this.lastPoint = null;
   }
@@ -1042,10 +1080,77 @@ class InputHandlerClass {
     // two special canvas modes below own it too.
     const eraser = this._hoverEraser(e);
     if ((e.buttons === 0 || eraser) && !this._attrPaintMode && this._patternCaptureSize === 0) {
+      this._lastHoverPoint = { x: point.x, y: point.y, eraser: !!eraser };
       this._drawToolFootprint(point, eraser || tool);
     } else {
+      this._lastHoverPoint = null;
       this._clearHoverOutline();
     }
+  }
+
+  /**
+   * Redraw the footprint where the pointer last hovered - for the changes
+   * that alter it without a move (an option, a colour, the palette, the tool).
+   * @private
+   */
+  _repaintHover() {
+    const last = this._lastHoverPoint;
+    if (!last || this.isDrawing) return;
+    if (this._attrPaintMode || this._patternCaptureSize > 0) return;
+    const tool = last.eraser ? ToolManager.getTool(TOOLS.ERASER) : ToolManager.getCurrentTool();
+    if (!tool) return;
+    this._drawToolFootprint(last, tool, { force: true });
+  }
+
+  /**
+   * Does this tool's footprint stand in for the pointer right now? Not while
+   * the focused layer is a stamp: a click there places the stamp, whose own
+   * preview follows the pointer, so the brush is not what is about to happen.
+   * @private
+   */
+  _footprintIsPointer(tool) {
+    if (!tool || tool.footprintCursor !== true) return false;
+    const current = LayerManager.getCurrentLayer();
+    return !(current && current.isStamp);
+  }
+
+  /**
+   * Will this press be a stroke whose tool keeps its mark up while drawing?
+   * Touch never does (a finger covers it, and touch has no pointer to hide),
+   * and neither does a press that pans.
+   * @private
+   */
+  _marksStroke(e, tool) {
+    if (e.pointerType === 'touch') return false;
+    if (this._panMode || this._penPanPending || this._touchNavigating) return false;
+    return this._footprintIsPointer(tool);
+  }
+
+  /** Is (x, y) a pixel of the picture, rather than the grey around it? @private */
+  _onPicture(point) {
+    return point.x >= 0 && point.y >= 0 &&
+           point.x < ZX_SPECTRUM.WIDTH && point.y < ZX_SPECTRUM.HEIGHT;
+  }
+
+  /**
+   * Hide the system pointer over the canvas, or give the current tool its own
+   * cursor back. Only ever undoes what it did, so the move and zoom tools'
+   * self-managed cursors are left alone.
+   * @private
+   */
+  _setPointerHidden(hidden) {
+    if (hidden) {
+      // Written every time rather than only on a change: ToolRail rewrites
+      // the cursor on a tool switch, and a cached "already hidden" would then
+      // leave the crosshair showing under the mark.
+      CanvasSystem.setCanvasCursor('none');
+      this._pointerHidden = true;
+      return;
+    }
+    if (!this._pointerHidden) return;
+    this._pointerHidden = false;
+    const tool = ToolManager.getCurrentTool();
+    CanvasSystem.setCanvasCursor(tool ? tool.cursor : 'default');
   }
 
   /**
@@ -1079,12 +1184,23 @@ class InputHandlerClass {
    * Redraws only when the canvas pixel under the cursor changes, or when the
    * tool or one of its options changed (EVENTS.TOOL_SELECTED / TOOL_OPTIONS
    * both invalidate the memo) — so a stationary cursor costs nothing.
+   *
+   * For a footprintCursor tool (the brush) the mark IS the pointer: the system
+   * cursor is hidden while it is over the picture, and a size-1 footprint is
+   * drawn as the 3x3 pixel cursor rather than skipped.
+   *
+   * @param {{x: number, y: number}} point
+   * @param {Object} tool
+   * @param {Object} [opts]
+   * @param {boolean} [opts.force] - redraw even if the memo matches
+   * @param {boolean} [opts.live] - mid-stroke: the size-1 dot shows what the
+   *   layer holds now (shownIndex), not what a fresh click would paint
    * @private
    */
-  _drawToolFootprint(point, tool) {
+  _drawToolFootprint(point, tool, { force = false, live = false } = {}) {
     if (!window.GridOverlay) return;
 
-    if (this._hoverOutlinePoint &&
+    if (!force && this._hoverOutlinePoint &&
         this._hoverOutlinePoint.x === point.x &&
         this._hoverOutlinePoint.y === point.y &&
         this._hoverOutlineTool === tool.id) return;
@@ -1092,28 +1208,42 @@ class InputHandlerClass {
     const pixels = (typeof tool.getFootprint === 'function')
       ? tool.getFootprint(point.x, point.y)
       : null;
+    const isPointer = this._footprintIsPointer(tool);
 
-    // A single-pixel footprint is not worth drawing: the outline would sit
-    // exactly under the cursor that already points at it, so it reads as
+    // A single-pixel footprint is not worth drawing as an OUTLINE: it would
+    // sit exactly under the cursor that already points at it, so it reads as
     // flicker rather than information. Only a real blast radius earns the ink.
     // The gate is here, not in the tools — getFootprint() stays truthful about
     // what the tool touches (fill and the eyedropper DO touch one pixel), and
-    // rendering is the renderer's call.
-    if (!pixels || pixels.length <= 1) {
+    // rendering is the renderer's call. A tool whose mark replaces the pointer
+    // is the exception: with the crosshair gone, its single pixel is the only
+    // thing left saying where the pointer is.
+    if (!pixels || pixels.length === 0 || (pixels.length === 1 && !isPointer)) {
       this._clearHoverOutline();
       return;
     }
 
     this._hoverOutlinePoint = { x: point.x, y: point.y };
     this._hoverOutlineTool = tool.id;
-    GridOverlay.drawFootprintOutline(pixels);
+    if (pixels.length === 1) {
+      const p = pixels[0];
+      const index = live
+        ? PixelDrawRoutine.shownIndex(p.x, p.y)
+        : PixelDrawRoutine.previewInkIndex(p.x, p.y);
+      GridOverlay.drawPixelCursor(p.x, p.y,
+        index === null ? null : ColorManager.getPalette()[index]);
+    } else {
+      GridOverlay.drawFootprintOutline(pixels);
+    }
     this._hoverOutlineShown = true;
+    this._setPointerHidden(isPointer && this._onPicture(point));
   }
 
   /** @private */
   _clearHoverOutline() {
     this._hoverOutlinePoint = null;
     this._hoverOutlineTool = null;
+    this._setPointerHidden(false);
     if (!this._hoverOutlineShown) return;
     this._hoverOutlineShown = false;
     if (window.GridOverlay) GridOverlay.clearFunctionPreview();

@@ -116,8 +116,10 @@ test('a single-pixel footprint is not drawn (gated at 1px)', async ({ page }) =>
     await boot(page);
     const p = await pixelPoint(page, 128, 96);
 
-    // Brush at size 1 — the default. The outline would land under the cursor
-    // that already points at it, so it is suppressed.
+    // Brush at size 1 — the default. The brush is the one exception to the
+    // gate (2026-09-16): its mark replaces the system pointer, so at size 1 it
+    // draws the 3x3 pixel cursor - five pixels - rather than nothing.
+    // tests/browser/brush-cursor.spec.js pins the cursor itself.
     await page.keyboard.press('b');
     await page.evaluate(() => { BrushEngine.setBrush('round'); BrushEngine.setSize(1); });
     await page.mouse.move(p.x + 2, p.y + 2);
@@ -125,9 +127,9 @@ test('a single-pixel footprint is not drawn (gated at 1px)', async ({ page }) =>
     expect(await page.evaluate(() =>
         ToolManager.currentTool.getFootprint(128, 96).length),
         'the tool still reports its true 1px footprint').toBe(1);
-    expect((await readOverlay(page, [])).lit, 'brush size 1: nothing drawn').toBe(0);
+    expect((await readOverlay(page, [])).lit, 'brush size 1: the 5-pixel cursor, no outline').toBe(5);
 
-    // Point tools (fill, eyedropper) likewise.
+    // Point tools (fill, eyedropper) keep the gate: nothing drawn.
     for (const key of ['g', 'i']) {
         await page.keyboard.press(key);
         await page.mouse.move(p.x + 2, p.y + 2);

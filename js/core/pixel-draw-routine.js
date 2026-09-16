@@ -240,6 +240,116 @@ class PixelDrawRoutineClass {
   }
 
   /**
+   * The palette index a LEFT-button write at (x, y) would leave showing - the
+   * centre dot of the size-1 brush cursor, which promises the colour the click
+   * will actually paint rather than merely the selected ink.
+   *
+   * Mirrors the _apply* functions below, so the two cannot disagree without a
+   * test noticing (tests/brush-cursor-colour.test.js): which modes set, keep or
+   * toggle the pixel, which write ink and paper (the transparent boxes still
+   * suppress them), and bright and flash written by every mode except Pixels
+   * Only. It reads the CURRENT layer's own cell, because that is where the
+   * write lands - an unaltered upper-layer cell holds the default attributes,
+   * and with Ink on "use existing" those are what the new pixel really takes.
+   *
+   * @param {number} pixelX
+   * @param {number} pixelY
+   * @returns {number|null} index into ColorManager's active palette; null off
+   *   the picture, with no layer, or where the write would leave the pixel
+   *   transparent (an indexed XOR clearing an upper-layer pixel)
+   */
+  previewInkIndex(pixelX, pixelY) {
+    if (!Validators.isValidPixelCoord(pixelX, pixelY)) return null;
+    if (!window.ColorManager || !window.LayerManager) return null;
+    const layer = LayerManager.getCurrentLayer();
+    if (!layer) return null;
+
+    const cellX = Math.floor(pixelX / ZX_SPECTRUM.CELL_WIDTH);
+    const cellY = Math.floor(pixelY / ZX_SPECTRUM.CELL_HEIGHT);
+    const localX = pixelX % ZX_SPECTRUM.CELL_WIDTH;
+    const localY = pixelY % ZX_SPECTRUM.CELL_HEIGHT;
+    const cell = layer.getCell(cellX, cellY);
+    if (!cell) return null;
+
+    const mode = this.resolveUserMode(true);
+
+    // Indexed modes: the same mapping as _applyIndexed
+    if (cell.indices) {
+      const ink = ColorManager.getIndexedInk();
+      const paper = ColorManager.getIndexedPaper();
+      if (mode === DRAW_MODE.PAPER) return paper;
+      if (mode === DRAW_MODE.XOR || mode === DRAW_MODE.XOR_PIXEL) {
+        const current = cell.indices[localY * ZX_SPECTRUM.CELL_WIDTH + localX];
+        if (current !== ink) return ink;
+        return layer.isBackground ? paper : null;
+      }
+      return ink;
+    }
+
+    const sel = ColorManager.getCurrentSelection();
+    const isSet = (cell.pixels[localY] & (1 << (7 - localX))) !== 0;
+    const xor = mode === DRAW_MODE.XOR || mode === DRAW_MODE.XOR_PIXEL;
+
+    let setAfter = isSet;                              // INK / PAPER keep the bit
+    if (mode === DRAW_MODE.NORMAL || mode === DRAW_MODE.PIXEL_ONLY) setAfter = true;
+    else if (xor) setAfter = !isSet;
+
+    const writesInk = mode === DRAW_MODE.NORMAL || mode === DRAW_MODE.INK || xor;
+    const writesPaper = mode === DRAW_MODE.NORMAL || mode === DRAW_MODE.PAPER || xor;
+    const writesBits = mode !== DRAW_MODE.PIXEL_ONLY;
+    const own = (value, fallback) => (value === undefined ? fallback : value);
+
+    const attrs = {
+      ink: (writesInk && !sel.inkTransparent) ? sel.ink : own(cell.ink, DEFAULT_CELL_ATTRS.ink),
+      paper: (writesPaper && !sel.paperTransparent)
+        ? sel.paper : own(cell.paper, DEFAULT_CELL_ATTRS.paper),
+      bright: writesBits ? sel.bright : own(cell.bright, DEFAULT_CELL_ATTRS.bright),
+      flash: writesBits ? sel.flash : own(cell.flash, DEFAULT_CELL_ATTRS.flash)
+    };
+    const resolved = ColorManager.attrToIndices(attrs);
+    return setAfter ? resolved.ink : resolved.paper;
+  }
+
+  /**
+   * The palette index the CURRENT layer shows at (x, y) right now - the
+   * centre of the size-1 brush cursor DURING a stroke. Mid-stroke the dot
+   * reports what was just painted: asking previewInkIndex there would answer
+   * for a fresh click, and an XOR stroke (which toggles each pixel once) would
+   * show paper under a pixel it had just inked.
+   * @param {number} pixelX
+   * @param {number} pixelY
+   * @returns {number|null} null off the picture, with no layer, or where this
+   *   layer is transparent and the layers below show through
+   */
+  shownIndex(pixelX, pixelY) {
+    if (!Validators.isValidPixelCoord(pixelX, pixelY)) return null;
+    if (!window.ColorManager || !window.LayerManager) return null;
+    const layer = LayerManager.getCurrentLayer();
+    if (!layer) return null;
+
+    const localX = pixelX % ZX_SPECTRUM.CELL_WIDTH;
+    const localY = pixelY % ZX_SPECTRUM.CELL_HEIGHT;
+    const cell = layer.getCell(Math.floor(pixelX / ZX_SPECTRUM.CELL_WIDTH),
+                               Math.floor(pixelY / ZX_SPECTRUM.CELL_HEIGHT));
+    if (!cell) return null;
+
+    if (cell.indices) {
+      const v = cell.indices[localY * ZX_SPECTRUM.CELL_WIDTH + localX];
+      return v < 0 ? null : v;
+    }
+    if (!cell.altered && !layer.isBackground) return null;
+
+    const own = (value, fallback) => (value === undefined ? fallback : value);
+    const resolved = ColorManager.attrToIndices({
+      ink: own(cell.ink, DEFAULT_CELL_ATTRS.ink),
+      paper: own(cell.paper, DEFAULT_CELL_ATTRS.paper),
+      bright: own(cell.bright, DEFAULT_CELL_ATTRS.bright),
+      flash: own(cell.flash, DEFAULT_CELL_ATTRS.flash)
+    });
+    return (cell.pixels[localY] & (1 << (7 - localX))) !== 0 ? resolved.ink : resolved.paper;
+  }
+
+  /**
    * Draw a pixel
    *
    * This is the ONLY method that should modify pixel data.
