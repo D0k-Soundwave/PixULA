@@ -291,6 +291,22 @@ class BrushToolClass extends ToolBase {
   }
 
   /**
+   * A pattern brush inks its tile's 1-bits and leaves its gaps to the gap
+   * mode (nothing at all in XOR) - so the mark's colours must follow the tile,
+   * or every gap in the outline would promise ink it will not get.
+   */
+  markWrite(pixelX, pixelY) {
+    const data = BrushEngine.currentBrush === 'pattern'
+      ? PatternService.getCurrentPatternData() : null;
+    if (!data || !data.bitmap) return PixelDrawRoutine.resolveUserMode(true);
+    const px = ((pixelX % data.width) + data.width) % data.width;
+    const py = ((pixelY % data.height) + data.height) % data.height;
+    return data.bitmap[py * data.width + px]
+      ? PixelDrawRoutine.resolveUserMode(true)
+      : PixelDrawRoutine.resolvePatternGapMode();
+  }
+
+  /**
    * Set brush size. Every brush TYPE (spray, hatch, pattern, fade — round and
    * square share one as brush SHAPE) remembers its own size independently;
    * see BrushEngine.familyOf. `toolId` is set only by PresetService, which

@@ -259,6 +259,88 @@ class PixelDrawRoutineClass {
   }
 
   /**
+   * The colour each pixel of a tool's mark should be drawn in - what makes the
+   * mark "the colour about to be painted or used" rather than a generic
+   * outline (the artist's ask, 2026-09-16).
+   *
+   * By the tool's `markColour`:
+   *   'paint'  - the colour the pixel will show AFTER a left click. Worked out
+   *              by simulating the tool's own writes (tool.markWrite) through
+   *              the gate and compositing the result, one CELL at a time with
+   *              every footprint write that lands in it - on this hardware one
+   *              ink write recolours the whole cell, so pixels cannot be asked
+   *              about one by one. A pixel the click would leave exactly as it
+   *              is returns null (the caller draws it in the neutral outline
+   *              colour): painting red over red changes nothing there, and a
+   *              red outline over red would make the brush's extent vanish.
+   *   'sample' - the colour showing there now, which is what the tool takes
+   *   'none'   - always null
+   * Mid-stroke (`live`) a painting tool shows what it has just painted, the
+   * way shownIndex does, because a fresh-click simulation would disagree with
+   * the stroke in progress (an XOR stroke toggles each pixel once).
+   *
+   * Pure logic: returns a lookup, computing and caching a cell only when one of
+   * its pixels is asked for, so an outline pays for the cells on its boundary
+   * and not for the ones inside it.
+   * @param {Object} tool
+   * @param {Array<{x: number, y: number}>} pixels - the tool's footprint
+   * @param {Object} [opts]
+   * @param {boolean} [opts.live] - a stroke is in progress
+   * @returns {function(number, number): (string|null)} CSS colour, or null
+   */
+  markColours(tool, pixels, { live = false } = {}) {
+    const kind = (tool && tool.markColour) || 'paint';
+    if (kind === 'none' || !window.LayerManager || !window.ColorManager) return () => null;
+
+    const layer = LayerManager.getCurrentLayer();
+    const cw = ZX_SPECTRUM.CELL_WIDTH, ch = ZX_SPECTRUM.CELL_HEIGHT, cols = ZX_SPECTRUM.GRID_COLS;
+    const simulate = kind === 'paint' && !live && !!layer &&
+      typeof tool.markWrite === 'function';
+
+    // Every footprint write, grouped by the cell it lands in.
+    let byCell = null;
+    if (simulate) {
+      byCell = new Map();
+      for (let i = 0; i < pixels.length; i++) {
+        const p = pixels[i];
+        if (!Validators.isValidPixelCoord(p.x, p.y)) continue;
+        const mode = tool.markWrite(p.x, p.y);
+        if (!mode) continue;
+        const key = Math.floor(p.y / ch) * cols + Math.floor(p.x / cw);
+        let list = byCell.get(key);
+        if (!list) byCell.set(key, (list = []));
+        list.push({ localX: p.x % cw, localY: p.y % ch, mode });
+      }
+    }
+    const selection = simulate ? ColorManager.getCurrentSelection() : null;
+    const cells = new Map();
+    const css = (rgb) => `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+
+    return (x, y) => {
+      if (!Validators.isValidPixelCoord(x, y)) return null;
+      const cx = Math.floor(x / cw), cy = Math.floor(y / ch);
+      const key = cy * cols + cx;
+      let entry = cells.get(key);
+      if (!entry) {
+        const now = LayerManager.previewCellColours(cx, cy, null, null);
+        let after = now;
+        const writes = simulate ? byCell.get(key) : null;
+        if (writes) {
+          after = LayerManager.previewCellColours(cx, cy, layer,
+            this.simulateCell(layer, cx, cy, writes, selection));
+        }
+        entry = { now, after };
+        cells.set(key, entry);
+      }
+      const i = (y % ch) * cw + (x % cw);
+      if (!simulate) return css(entry.now[i]);
+      const a = entry.after[i], n = entry.now[i];
+      if (a[0] === n[0] && a[1] === n[1] && a[2] === n[2]) return null;
+      return css(a);
+    };
+  }
+
+  /**
    * The palette index a LEFT-button write at (x, y) would leave showing - the
    * centre dot of the size-1 brush cursor, which promises the colour the click
    * will actually paint rather than merely the selected ink.

@@ -145,6 +145,11 @@ class EraserToolClass extends ToolBase {
       .map(o => ({ x: pixelX + o.dx, y: pixelY + o.dy }));
   }
 
+  /** The eraser writes its own mode whatever the draw-mode selector says. */
+  markWrite() {
+    return DRAW_MODE.ERASE_ALL;
+  }
+
   /**
    * Set eraser size
    *

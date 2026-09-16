@@ -1,6 +1,6 @@
 'use strict';
 /**
- * The size-1 brush cursor: a 3x3 plus whose centre is the pixel the brush
+ * The size-1 brush cursor: the one pixel the brush
  * will paint, in the colour the click will actually leave there.
  *
  * PixelDrawRoutine.previewInkIndex answers "what palette index will this

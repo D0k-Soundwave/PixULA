@@ -185,6 +185,7 @@ class GridOverlayClass {
      * @private
      */
     _refreshGridColors() {
+        this._positionCursor = null;   // rebuilt from the new tokens on next use
         this.pixelGridColor = this._cssVar('--grid-pixel-color', '#000000');
         this.cellGridColor  = this._cssVar('--grid-cell-color',  '#FF0000');
         this.blockGridColor = this._cssVar('--grid-block-color', '#0000FF');
@@ -605,7 +606,7 @@ class GridOverlayClass {
      *
      * @param {Array<{x: number, y: number}>} pixels - The tool's affected-pixel set
      */
-    drawFootprintOutline(pixels) {
+    drawFootprintOutline(pixels, colourAt) {
         if (!this._initialized) return;
 
         const ctx = this.pointerCtx || this.functionPreviewCtx;
@@ -618,10 +619,46 @@ class GridOverlayClass {
         // Geometry via the live mode views, read at call time (never cached).
         const edge = MaskOps.boundaryPoints(pixels, ZX_SPECTRUM.WIDTH, ZX_SPECTRUM.HEIGHT);
 
-        ctx.fillStyle = this._overlayColors.outlineBrush;
+        // Each boundary pixel in the colour it will be left in (PixelDrawRoutine
+        // .markColours); null means "no colour to promise", which takes the dim
+        // outline token. Grouped so each colour sets fillStyle once.
+        const fallback = this._overlayColors.outlineBrush;
+        const groups = new Map();
         for (let i = 0; i < edge.length; i++) {
-            ctx.fillRect(edge[i].x, edge[i].y, 1, 1);
+            const colour = (colourAt && colourAt(edge[i].x, edge[i].y)) || fallback;
+            let list = groups.get(colour);
+            if (!list) groups.set(colour, (list = []));
+            list.push(edge[i]);
         }
+        for (const [colour, list] of groups) {
+            ctx.fillStyle = colour;
+            for (let i = 0; i < list.length; i++) ctx.fillRect(list[i].x, list[i].y, 1, 1);
+        }
+    }
+
+    /**
+     * The hardware POSITION marker: a CSS cursor value for a small hollow ring,
+     * light inside dark, drawn by the operating system at the true pointer
+     * position with none of the app's own frame lag.
+     *
+     * It marks position and nothing else - a cursor image cannot follow the
+     * brush size or the ink colour, which is the mark's job. Hollow so a
+     * one-pixel mark at 100% zoom still shows through the middle; two-tone from
+     * the handle tokens (opposites in every theme) so it reads over any
+     * artwork; no crosshair arms, which the artist asked to be rid of. Rebuilt
+     * when the theme changes the tokens it reads.
+     * @returns {string} a CSS `cursor` value
+     */
+    positionCursor() {
+        if (this._positionCursor) return this._positionCursor;
+        const light = this._overlayColors.handleBg;
+        const dark = this._overlayColors.handleStroke;
+        const svg = "<svg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 11 11'>" +
+            `<circle cx='5.5' cy='5.5' r='4' fill='none' stroke='${dark}' stroke-width='2'/>` +
+            `<circle cx='5.5' cy='5.5' r='4' fill='none' stroke='${light}' stroke-width='1'/>` +
+            '</svg>';
+        this._positionCursor = `url("data:image/svg+xml,${encodeURIComponent(svg)}") 5 5, none`;
+        return this._positionCursor;
     }
 
     /**
@@ -633,17 +670,16 @@ class GridOverlayClass {
      * and it stayed the same shape at every zoom while the pixel it surrounded
      * grew. Like for like means the mark is the size of the mark.
      *
-     * A tool that PAINTS fills the pixel with the colour it would leave
-     * (PixelDrawRoutine.previewInkIndex), so the mark is at once the pointer
-     * and a preview. One that does not (the eyedropper takes a colour, the
-     * selection bounds a region) has no such colour to show, so it draws the
-     * pixel in the overlay token instead - the pointer still has to be
-     * somewhere, and the system one is hidden.
+     * Its colour comes from PixelDrawRoutine.markColours: what a painting
+     * tool would leave there, what the eyedropper would take. Where there is
+     * no colour to promise (the selection, or a click that would change
+     * nothing) it takes the overlay token, and the position ring drawn by the
+     * system (positionCursor) still says where the pointer is.
      *
      * @param {number} x - picture pixel under the pointer
      * @param {number} y
-     * @param {string|null} centreColor - the colour a click would paint, or
-     *   null for a tool that paints nothing
+     * @param {string|null} centreColor - the pixel's mark colour, or null for
+     *   the neutral overlay token
      */
     drawPixelCursor(x, y, centreColor) {
         if (!this._initialized) return;

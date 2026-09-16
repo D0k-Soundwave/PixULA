@@ -1,10 +1,11 @@
 'use strict';
 /**
- * The brush's own pointer. Over the picture the system crosshair is hidden
- * and the brush footprint stands in for it: the outline at size 2 and up, and
- * at size 1 a 3x3 plus whose centre is the pixel the click will paint, in the
- * colour it will paint. Over the grey surround the pointer comes back, and
- * every other tool keeps its own cursor.
+ * The tool's own pointer. Over the picture the system crosshair is replaced by
+ * two things: a small hollow ring drawn by the operating system, which marks
+ * the POSITION with no frame lag, and the tool's footprint on the pointer
+ * canvas, which marks the SIZE and the colour each pixel will be left in - the
+ * outline at size 2 and up, the single pixel at size 1. Over the grey surround
+ * the crosshair comes back; pan and zoom keep their own cursors.
  */
 const { test, expect } = require('@playwright/test');
 const { boot } = require('./helpers');
@@ -25,6 +26,10 @@ const hover = async (page, px, py) => {
 };
 
 const bodyCursor = (page) => page.evaluate(() => CanvasSystem.getIframeDocument().body.style.cursor);
+
+/** The hardware position ring GridOverlay hands out (an SVG cursor, no arms). */
+const ringCursor = (page) => page.evaluate(() => CanvasSystem.getIframeDocument().body.style.cursor
+    .replace(/\s+/g, ' ') === GridOverlay.positionCursor().replace(/\s+/g, ' '));
 
 /** RGBA of one pixel of the POINTER layer the mark is drawn on (its own
  *  canvas since 2026-09-16, so a tool's preview cannot clear it). */
@@ -55,7 +60,7 @@ test('size 8: only the outline over the picture, no system pointer', async ({ pa
     await setSize(page, 8);
     await hover(page, 100, 100);
 
-    expect(await bodyCursor(page)).toBe('none');
+    expect(await ringCursor(page)).toBe(true);
     expect(await overlayCount(page), 'the outline is drawn').toBeGreaterThan(8);
 });
 
@@ -71,7 +76,7 @@ test('size 1: exactly the one pixel it will paint, in the colour it will paint',
     await page.evaluate(() => { ColorManager.setInk(2); ColorManager.setBright(true); });
     await hover(page, 100, 100);
 
-    expect(await bodyCursor(page)).toBe('none');
+    expect(await ringCursor(page)).toBe(true);
     expect(await overlayAt(page, 100, 100), 'the pixel = bright red').toEqual(await paletteRGBA(page, 10));
     for (const [x, y] of [[99, 100], [101, 100], [100, 99], [100, 101], [99, 99], [101, 101]]) {
         expect((await overlayAt(page, x, y))[3], `nothing around it at ${x},${y}`).toBe(0);
@@ -94,13 +99,13 @@ test('the mark follows the pointer through a stroke', async ({ page }) => {
     await hover(page, 60, 60);
     await page.mouse.down();
     await hover(page, 70, 60);
-    expect(await bodyCursor(page), 'mid-stroke').toBe('none');
+    expect(await ringCursor(page), 'mid-stroke').toBe(true);
     expect(await overlayAt(page, 70, 60), 'the dot is at the pointer, mid-stroke')
         .toEqual(await paletteRGBA(page, 2));
     expect(await overlayCount(page)).toBe(1);
 
     await page.mouse.up();
-    expect(await bodyCursor(page), 'after release').toBe('none');
+    expect(await ringCursor(page), 'after release').toBe(true);
     expect(await overlayCount(page), 'still marked after release').toBeGreaterThan(0);
 });
 
@@ -109,7 +114,7 @@ test('the pointer comes back over the grey surround', async ({ page }) => {
     await page.keyboard.press('b');
     await setSize(page, 8);
     await hover(page, 100, 100);
-    expect(await bodyCursor(page)).toBe('none');
+    expect(await ringCursor(page)).toBe(true);
 
     const frame = await page.locator('#canvas-frame').boundingBox();
     const canvas = await page.frameLocator('#canvas-frame').locator('#main-canvas').boundingBox();
@@ -133,12 +138,12 @@ test('every marking tool hides the system pointer; pan and zoom keep their own',
     await page.keyboard.press('b');
     await setSize(page, 8);
     await hover(page, 100, 100);
-    expect(await bodyCursor(page), 'brush').toBe('none');
+    expect(await ringCursor(page), 'brush').toBe(true);
 
     // Spray rides on the brush: switching with the pointer parked keeps it hidden
     await page.keyboard.press('a');
     await page.evaluate(() => new Promise((r) => setTimeout(r, 0)));
-    expect(await bodyCursor(page), 'spray').toBe('none');
+    expect(await ringCursor(page), 'spray').toBe(true);
 
     // The tools that used to keep a crosshair (or the eraser's cell cursor)
     let x = 110;
@@ -149,7 +154,7 @@ test('every marking tool hides the system pointer; pan and zoom keep their own',
         await page.evaluate((t) => ToolManager.selectTool(t), id);
         await hover(page, x, 100);
         x += 4;
-        expect(await bodyCursor(page), name).toBe('none');
+        expect(await ringCursor(page), name).toBe(true);
     }
 
     // Pan and zoom mark nothing, so they keep the cursor that names what they do
