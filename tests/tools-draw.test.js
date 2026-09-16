@@ -344,6 +344,37 @@ zoomTool.fitToWindow();
 check('zoom: fitToWindow picks the largest level that fits with headroom',
   StateManager.getZoom() === 100); // avail 472×344 -> 200% (512×384) no longer fits
 
+// ── Gradient with Ink on "use existing" still draws ───────────────────────
+//
+// "Use existing" is a colour, never a veto. The gradient used to skip every
+// ink pixel when the Ink box was on, so it drew NOTHING at all - and Recolour
+// leaves that box on, so the tool looked broken right after using it
+// (2026-09-16). The drawing gate keeps the colour already in the cell; the
+// gradient's job is only to decide WHERE the ink goes.
+{
+  const ROW = 178;   // an untouched band, so the count starts from nothing
+  StateManager.setDrawMode('normal');
+  ToolManager.selectTool(TOOLS.GRADIENT);
+  global.ColorManager._sel = { ink: 1, paper: 6, bright: false, flash: false,
+    inkTransparent: true, paperTransparent: false };
+  let before = 0;
+  for (let x = 10; x <= 200; x++) if (isInk(x, ROW)) before++;
+  // Phase 1 drags out the area, phase 2 the axis; the commit is on the
+  // second pointer-up.
+  down(10, ROW - 8, ev());
+  move(200, ROW + 8, ev());
+  up(200, ROW + 8, ev());
+  down(10, ROW, ev());
+  move(200, ROW, ev());
+  up(200, ROW, ev());
+  let after = 0;
+  for (let x = 10; x <= 200; x++) if (isInk(x, ROW)) after++;
+  check('gradient: Ink on "use existing" still lays ink (it is a colour, not a veto)',
+    before === 0 && after > 0);
+  global.ColorManager._sel = { ink: 0, paper: 7, bright: false, flash: false,
+    inkTransparent: false, paperTransparent: false };
+}
+
 // ── Pattern creator (no panel yet — activation must not throw) ────────────
 ToolManager.selectTool(TOOLS.PATTERN_CREATOR);
 check('pattern creator: activates without PatternCreatorPanel', true);

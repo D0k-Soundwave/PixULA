@@ -704,64 +704,6 @@ class GridOverlayClass {
     }
 
     /**
-     * Preview showing erase result — pixels displayed in paper colour.
-     * @param {Array<{x: number, y: number}>} pixels
-     */
-    drawPreviewPixelsErase(pixels) {
-        if (!this._initialized) return;
-
-        const ctx = this.functionPreviewCtx || this.compositePreviewCtx;
-        const canvas = this.functionPreviewCanvas || this.compositePreviewCanvas;
-        if (!ctx || !canvas) return;
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        if (!pixels || pixels.length === 0) return;
-
-        ctx.fillStyle = ColorManager.getPaperRGB();
-        for (let i = 0; i < pixels.length; i++) {
-            const p = pixels[i];
-            if (p.x >= 0 && p.x < ZX_SPECTRUM.WIDTH && p.y >= 0 && p.y < ZX_SPECTRUM.HEIGHT) {
-                ctx.fillRect(p.x, p.y, 1, 1);
-            }
-        }
-    }
-
-    /**
-     * Preview a dithered gradient with both ink and paper colours.
-     * @param {Array<{x,y}>} inkPixels
-     * @param {Array<{x,y}>} paperPixels
-     */
-    drawPreviewPixelsGradient(inkPixels, paperPixels) {
-        if (!this._initialized) return;
-
-        const ctx = this.functionPreviewCtx || this.compositePreviewCtx;
-        const canvas = this.functionPreviewCanvas || this.compositePreviewCanvas;
-        if (!ctx || !canvas) return;
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        if (paperPixels && paperPixels.length > 0) {
-            ctx.fillStyle = ColorManager.getPaperRGB();
-            for (let i = 0; i < paperPixels.length; i++) {
-                const p = paperPixels[i];
-                if (p.x >= 0 && p.x < ZX_SPECTRUM.WIDTH && p.y >= 0 && p.y < ZX_SPECTRUM.HEIGHT) {
-                    ctx.fillRect(p.x, p.y, 1, 1);
-                }
-            }
-        }
-
-        if (inkPixels && inkPixels.length > 0) {
-            ctx.fillStyle = ColorManager.getInkRGB();
-            for (let i = 0; i < inkPixels.length; i++) {
-                const p = inkPixels[i];
-                if (p.x >= 0 && p.x < ZX_SPECTRUM.WIDTH && p.y >= 0 && p.y < ZX_SPECTRUM.HEIGHT) {
-                    ctx.fillRect(p.x, p.y, 1, 1);
-                }
-            }
-        }
-    }
-
-    /**
      * Compositor-accurate preview for any drawing operation.
      * Simulates the operation already applied to the active layer, then runs the
      * same compositor logic as composeCellToCanvas() over every affected cell.
@@ -820,9 +762,17 @@ class GridOverlayClass {
     }
 
     /**
-     * Shared compositor simulation used by both drawCompositorPreview and
-     * drawGradientCellPreview. Mirrors composeCellToCanvas() exactly, substituting
-     * a virtual cell on the active layer with the pending operation applied.
+     * Shared preview used by both drawCompositorPreview and
+     * drawGradientCellPreview.
+     *
+     * It does not reimplement the drawing rules: it SIMULATES the pending
+     * write through the real gate (PixelDrawRoutine.simulateCell) and asks the
+     * real compositor how the page would then show it
+     * (LayerManager.previewCellColours). So the preview follows the draw mode,
+     * the "use existing" boxes, Bright and Flash, the indexed Next modes, the
+     * GigaScreen blend and the FLASH phase for free - all of which it used to
+     * ignore, showing a Normal stroke in the rail's colours whatever was
+     * actually about to happen (2026-09-16).
      * @private
      */
     _renderCompositorPreview(ctx, canvas, affectedCells, inkSet, paperSet, colorSelection, activeLayerIndex) {
@@ -831,8 +781,12 @@ class GridOverlayClass {
 
         const cellW = ZX_SPECTRUM.CELL_WIDTH;
         const cellH = ZX_SPECTRUM.CELL_HEIGHT;
-        const layers = LayerManager.layers;
-        const bgLayer = layers[0];
+        const layer = LayerManager.layers[activeLayerIndex];
+        if (!layer) return;
+        // The modes the tools really commit with: left button for the ink
+        // list, right button for the erase list.
+        const inkMode = PixelDrawRoutine.resolveUserMode(true);
+        const paperMode = PixelDrawRoutine.resolveUserMode(false);
 
         // Every touched pixel is written straight into one RGBA buffer and
         // painted with a single putImageData, instead of a fillStyle+fillRect
@@ -868,71 +822,33 @@ class GridOverlayClass {
             const baseX = cellX * cellW;
             const baseY = cellY * cellH;
 
-            const alteredLayerData = [];
-
-            for (let i = 1; i < layers.length; i++) {
-                const layer = layers[i];
-                if (!layer.visible) continue;
-
-                if (i === activeLayerIndex) {
-                    // Virtual cell: existing pixels with this operation applied on top
-                    const existingCell = layer.getCell(cellX, cellY);
-                    const simPixels = new Uint8Array(cellH);
-                    if (existingCell && existingCell.altered) {
-                        for (let row = 0; row < cellH; row++) simPixels[row] = existingCell.pixels[row];
-                    }
-                    for (let row = 0; row < cellH; row++) {
-                        for (let col = 0; col < cellW; col++) {
-                            const pixKey = (baseX + col) + ',' + (baseY + row);
-                            const bit = 1 << (cellW - 1 - col);
-                            if (inkSet.has(pixKey))        simPixels[row] |=  bit;
-                            else if (paperSet.has(pixKey)) simPixels[row] &= ~bit;
-                        }
-                    }
-                    alteredLayerData.push({ attrs: colorSelection, pixels: simPixels });
-                } else {
-                    const cell = layer.getCell(cellX, cellY);
-                    if (cell && cell.altered) {
-                        alteredLayerData.push({
-                            attrs: { ink: cell.ink, paper: cell.paper, bright: cell.bright, flash: cell.flash },
-                            pixels: cell.pixels
-                        });
+            // The pending writes that fall inside this cell, in the tools' own
+            // terms: which pixel, and which button's mode.
+            const writes = [];
+            for (let row = 0; row < cellH; row++) {
+                for (let col = 0; col < cellW; col++) {
+                    const pixKey = (baseX + col) + ',' + (baseY + row);
+                    if (inkSet.has(pixKey)) {
+                        writes.push({ localX: col, localY: row, mode: inkMode });
+                    } else if (paperSet.has(pixKey)) {
+                        writes.push({ localX: col, localY: row, mode: paperMode });
                     }
                 }
             }
 
-            // Topmost altered layer wins for attributes (same rule as real compositor)
-            let compositeAttrs;
-            if (alteredLayerData.length > 0) {
-                compositeAttrs = alteredLayerData[alteredLayerData.length - 1].attrs;
-            } else {
-                const bgCell = bgLayer ? bgLayer.getCell(cellX, cellY) : null;
-                compositeAttrs = bgCell
-                    ? { ink: bgCell.ink, paper: bgCell.paper, bright: bgCell.bright, flash: bgCell.flash }
-                    : { ink: 0, paper: 7, bright: false, flash: false };
-            }
-
-            // OR-combine pixels from all altered layers (same rule as real compositor)
-            const compositePixels = new Uint8Array(cellH);
-            for (const { pixels } of alteredLayerData) {
-                for (let row = 0; row < cellH; row++) compositePixels[row] |= pixels[row];
-            }
-
-            // Resolve palette colours via the same path as the real compositor
-            const t = ColorManager.attrToIndices(compositeAttrs);
-            const inkRGB   = ColorManager.getRGB(t.ink);
-            const paperRGB = ColorManager.getRGB(t.paper);
+            const simulated = PixelDrawRoutine.simulateCell(
+                layer, cellX, cellY, writes, colorSelection);
+            const colours = LayerManager.previewCellColours(
+                cellX, cellY, layer, simulated);
 
             // Write every pixel of the cell straight into the shared buffer —
             // fully opaque, pixel-perfect match of final canvas.
             const cellOffX = baseX - bboxX;
             const cellOffY = baseY - bboxY;
             for (let row = 0; row < cellH; row++) {
-                const rowBits = compositePixels[row];
                 const py = cellOffY + row;
                 for (let col = 0; col < cellW; col++) {
-                    const isInk = (rowBits >> (cellW - 1 - col)) & 1;
-                    const rgb = isInk ? inkRGB : paperRGB;
+                    const rgb = colours[row * cellW + col];
                     const idx = (py * bboxW + cellOffX + col) * 4;
                     buf[idx]     = rgb[0];
                     buf[idx + 1] = rgb[1];

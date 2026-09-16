@@ -1598,6 +1598,183 @@ class LayerManagerClass {
   }
 
   /**
+   * The attributes a cell SHOWS on the page right now - the value a
+   * transparent ("use existing") Ink or Paper box takes.
+   *
+   * The artist's definition (2026-09-16): the pre-existing value of a cell is
+   * what the page shows there. The topmost VISIBLE layer whose cell has its own
+   * value wins, even when that layer is above the one being drawn on;
+   * otherwise the background. Hidden layers do not count. Stamps never count:
+   * an idle stamp holds no picture, and the floating one is a preview of the
+   * write being decided, not content the write can inherit from.
+   *
+   * This is `_composeCellData`'s attribute rule (topmost altered cell wins,
+   * else the background cell, which the live compositor reads whether or not
+   * the background is visible), read top-down so it stops at the first hit.
+   * @param {number} cellX
+   * @param {number} cellY
+   * @param {number} [gigaScreen=0] - in GigaScreen, the sub-screen to read
+   * @returns {{ink: number, paper: number, bright: boolean, flash: boolean}}
+   */
+  attrsShowing(cellX, cellY, gigaScreen = 0) {
+    const giga = (ACTIVE_SCREEN_MODE.screens || 1) === 2;
+    const layers = this.layers;
+    let source = null;
+    for (let i = layers.length - 1; i >= 1; i--) {
+      const layer = layers[i];
+      if (!layer.visible || layer.isStamp) continue;
+      if (giga && (layer.gigaScreen || 0) !== gigaScreen) continue;
+      const cell = layer.getCell(cellX, cellY);
+      if (cell && cell.altered) { source = cell; break; }
+    }
+    if (!source && layers[0]) source = layers[0].getCell(cellX, cellY);
+    return LayerManagerClass.cellAttrs(source);
+  }
+
+  /**
+   * The attributes a write to `layer` starts from: the cell's own when it has
+   * them (altered, or on the background), otherwise what the page shows there.
+   *
+   * The starting point for every channel a mode does NOT write - Pixels Only's
+   * four, Ink Recolour's paper, Paper Recolour's ink - and for the functions
+   * that read a cell's colours before recolouring it (Swap, the attribute
+   * fill, the transform's destination paper). An empty upper-layer cell holds
+   * placeholder black-on-white, which is nothing the artist ever saw.
+   * @param {Layer} layer
+   * @param {number} cellX
+   * @param {number} cellY
+   * @returns {{ink: number, paper: number, bright: boolean, flash: boolean}}
+   */
+  attrsAsSeen(layer, cellX, cellY) {
+    const cell = layer ? layer.getCell(cellX, cellY) : null;
+    if (cell && (cell.altered || layer.isBackground)) {
+      return LayerManagerClass.cellAttrs(cell);
+    }
+    return this.attrsShowing(cellX, cellY, layer ? (layer.gigaScreen || 0) : 0);
+  }
+
+  /**
+   * A cell's four attributes as values, with DEFAULT_CELL_ATTRS standing in
+   * for a missing cell or an undefined field (see packAttributeData on why a
+   * field can be undefined).
+   * @param {Object|null} cell
+   * @returns {{ink: number, paper: number, bright: boolean, flash: boolean}}
+   */
+  static cellAttrs(cell) {
+    const d = DEFAULT_CELL_ATTRS;
+    if (!cell) return { ink: d.ink, paper: d.paper, bright: d.bright, flash: d.flash };
+    return {
+      ink: cell.ink === undefined ? d.ink : cell.ink,
+      paper: cell.paper === undefined ? d.paper : cell.paper,
+      bright: cell.bright === undefined ? d.bright : !!cell.bright,
+      flash: cell.flash === undefined ? d.flash : !!cell.flash
+    };
+  }
+
+  /**
+   * What one cell WOULD look like on the canvas with `overrideCell` standing
+   * in for `overrideLayer`'s own cell - the colour of every pixel, exactly as
+   * composeCellToCanvas would paint it (same layer filter, same attribute and
+   * index rules, the GigaScreen view, the current FLASH phase).
+   *
+   * The live-preview half of the drawing gate: a tool simulates its write with
+   * PixelDrawRoutine.simulateCell and asks this how the page would show it,
+   * so a preview cannot disagree with the commit. composeCellToCanvas, the
+   * measured hot path, is deliberately left alone.
+   * @param {number} cellX
+   * @param {number} cellY
+   * @param {Layer|null} overrideLayer
+   * @param {Object|null} overrideCell
+   * @returns {Array<Uint8Array>} RGB triplet per pixel, row-major, cellW*cellH
+   */
+  previewCellColours(cellX, cellY, overrideLayer, overrideCell) {
+    const cellW = ZX_SPECTRUM.CELL_WIDTH;
+    const cellH = ZX_SPECTRUM.CELL_HEIGHT;
+    const bgLayer = this.layers[0];
+    const bgCell = (overrideCell && overrideLayer === bgLayer)
+      ? overrideCell
+      : (bgLayer ? bgLayer.getCell(cellX, cellY) : null);
+    const altered = this._previewAltered(cellX, cellY, overrideLayer, overrideCell, null);
+
+    if ((ACTIVE_SCREEN_MODE.screens || 1) === 2) {
+      return this._gigaCellColours(altered, bgCell, cellW, cellH).colours;
+    }
+
+    const rgbOf = (index) => (window.ColorManager
+      ? ColorManager.getRGB(index) : ZX_PALETTE_RGB[index] || ZX_PALETTE_RGB[0]);
+    const out = new Array(cellW * cellH);
+
+    if (ZX_SPECTRUM.PIXEL_DEPTH > 1) {
+      const indices = this._composeIndexedCellData(altered, bgCell, cellW, cellH, false);
+      for (let p = 0; p < out.length; p++) out[p] = rgbOf(indices[p]);
+      return out;
+    }
+
+    const { attrs, pixels } = this._composeCellData(altered, bgCell, cellH);
+    const resolved = this._resolveCellColors(attrs);
+    let ink = resolved.ink;
+    let paper = resolved.paper;
+    if (resolved.flashing && this._flashInverted) { const t = ink; ink = paper; paper = t; }
+    for (let row = 0; row < cellH; row++) {
+      for (let col = 0; col < cellW; col++) {
+        out[row * cellW + col] = ((pixels[row] >> (cellW - 1 - col)) & 1) ? ink : paper;
+      }
+    }
+    return out;
+  }
+
+  /**
+   * The composited pixels and attributes of one cell with `overrideCell`
+   * standing in for `overrideLayer`'s, and `excludeLayer` left out entirely -
+   * what previewCellColours resolves to colours, in the model's own terms.
+   *
+   * The floating stamp's preview uses it: the stamp layer is EXCLUDED (its
+   * cells hold the previous frame's preview) while the layer the stamp would
+   * commit to is SUBSTITUTED with the simulated result, so the cell written
+   * back into the stamp layer is exactly the picture a commit would leave.
+   * Classic (1-bit) modes only - indexed stamps preview per pixel.
+   * @param {number} cellX
+   * @param {number} cellY
+   * @param {Layer|null} overrideLayer
+   * @param {Object|null} overrideCell
+   * @param {Layer|null} excludeLayer
+   * @returns {{attrs: Object, pixels: Uint8Array}}
+   */
+  previewCellData(cellX, cellY, overrideLayer, overrideCell, excludeLayer) {
+    const bgLayer = this.layers[0];
+    const bgCell = (overrideCell && overrideLayer === bgLayer)
+      ? overrideCell
+      : (bgLayer ? bgLayer.getCell(cellX, cellY) : null);
+    const altered = this._previewAltered(cellX, cellY, overrideLayer, overrideCell, excludeLayer);
+    return this._composeCellData(altered, bgCell, ZX_SPECTRUM.CELL_HEIGHT);
+  }
+
+  /**
+   * The altered-layer list composeCellToCanvas would build for this cell, with
+   * one layer's cell substituted and (optionally) one layer left out. Shared
+   * by both preview entry points so they cannot disagree about which layers
+   * take part. In GigaScreen the sub-screen filter is the compositor's own
+   * (partitioned inside _gigaCellColours), so nothing is filtered here.
+   * @returns {Array<{layer: Layer, cell: Object, index: number}>}
+   * @private
+   */
+  _previewAltered(cellX, cellY, overrideLayer, overrideCell, excludeLayer) {
+    const fp = window.SelectionService && SelectionService.floatingPaste;
+    const fpLayer = fp ? fp.floatingLayer : null;
+    const layers = this.layers;
+    const altered = [];
+    for (let i = 1; i < layers.length; i++) {
+      const layer = layers[i];
+      if (!layer.visible || layer === excludeLayer) continue;
+      if (layer.isStamp && layer !== fpLayer) continue;
+      const cell = (overrideCell && layer === overrideLayer)
+        ? overrideCell : layer.getCell(cellX, cellY);
+      if (cell && cell.altered) altered.push({ layer, cell, index: i });
+    }
+    return altered;
+  }
+
+  /**
    * Indexed-mode cell compose (Phase 13, the pure half): start from the
    * background cell's index grid, then let every altered layer's set
    * (≥ 0) pixels win bottom -> top — the topmost set pixel shows,
@@ -1712,6 +1889,34 @@ class LayerManagerClass {
    * @private
    */
   _composeGigaCell(cellX, cellY, alteredLayers, bgCell, cellW, cellH, baseX, baseY) {
+    const { colours, flashing } = this._gigaCellColours(alteredLayers, bgCell, cellW, cellH);
+
+    const flashKey = `${cellX},${cellY}`;
+    if (flashing) {
+      this._flashingCells.add(flashKey);
+    } else {
+      this._flashingCells.delete(flashKey);
+    }
+
+    for (let row = 0; row < cellH; row++) {
+      for (let col = 0; col < cellW; col++) {
+        const color = colours[row * cellW + col];
+        CanvasSystem.setPixel(baseX + col, baseY + row, color[0], color[1], color[2]);
+      }
+    }
+
+    CanvasSystem.markCellDirty(cellX, cellY);
+  }
+
+  /**
+   * The colour of every pixel of one GigaScreen cell: both sub-screens
+   * composited over the shared background, FLASH applied per sub-screen, then
+   * the blend (or one sub-screen, per the view toggle). Shared by the live
+   * compose and previewCellColours so the two cannot disagree.
+   * @returns {{colours: Array<Uint8Array>, flashing: boolean}}
+   * @private
+   */
+  _gigaCellColours(alteredLayers, bgCell, cellW, cellH) {
     const listA = [];
     const listB = [];
     for (const entry of alteredLayers) {
@@ -1722,13 +1927,6 @@ class LayerManagerClass {
     const b = this._composeCellData(listB, bgCell, cellH);
     const resA = this._resolveCellColors(a.attrs);
     const resB = this._resolveCellColors(b.attrs);
-
-    const flashKey = `${cellX},${cellY}`;
-    if (resA.flashing || resB.flashing) {
-      this._flashingCells.add(flashKey);
-    } else {
-      this._flashingCells.delete(flashKey);
-    }
 
     let inkA = resA.ink, paperA = resA.paper;
     if (resA.flashing && this._flashInverted) { const t = inkA; inkA = paperA; paperA = t; }
@@ -1742,20 +1940,21 @@ class LayerManagerClass {
       this._blendRGB(inkA, paperB), this._blendRGB(inkA, inkB)
     ] : null;
 
+    const colours = new Array(cellW * cellH);
     for (let row = 0; row < cellH; row++) {
       for (let col = 0; col < cellW; col++) {
-        const bit = 7 - col;
+        const bit = cellW - 1 - col;
         const bitA = (a.pixels[row] >> bit) & 1;
         const bitB = (b.pixels[row] >> bit) & 1;
         let color;
         if (view === 'a') color = bitA ? inkA : paperA;
         else if (view === 'b') color = bitB ? inkB : paperB;
         else color = blends[bitA * 2 + bitB];
-        CanvasSystem.setPixel(baseX + col, baseY + row, color[0], color[1], color[2]);
+        colours[row * cellW + col] = color;
       }
     }
 
-    CanvasSystem.markCellDirty(cellX, cellY);
+    return { colours, flashing: resA.flashing || resB.flashing };
   }
 
   /** Per-channel average of two RGB triplets (RECOIL's blend). @private */

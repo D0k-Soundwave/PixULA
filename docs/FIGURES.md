@@ -427,6 +427,37 @@ the cost of a full recompose of the same canvas, repeated for a picture that
 had not changed. "After" is the cached path; the first frame after the
 selection actually moves still pays the full cost, which is correct.
 
+### Live previews after the "use existing" rewrite - measured 2026-09-16
+
+The shape/curve/gradient overlay and the floating-stamp preview stopped
+reimplementing the drawing rules and now simulate the write through the gate
+(`PixelDrawRoutine.simulateCell`) and ask the compositor how the page would
+show it. That buys correctness in every draw mode, screen mode and layer
+arrangement; this is what it costs. Measured back-to-back in one sitting
+against a `git archive` of the pre-change tree, 9 layers with real content,
+instrument `preview-bench.js` (median of 15, plus the repo's own
+`gradient-preview.spec.js` driving a real drag).
+
+| Path | Before | After | Tag |
+|---|---|---|---|
+| Shape preview, 39,100 pending pixels (a near-full-canvas drag) | 9.30 / 8.90 ms | 9.90 ms | M |
+| Stamp preview, 200x150 stamp redrawn in place | 0.20 / 0.10 ms | 0.60 ms | M |
+| Real gradient drag, `_updatePreview` average | 5.03 / 5.00 ms | 5.23 ms | M |
+| Real gradient drag, `_updatePreview` worst | 7.60 / 7.70 ms | 9.60 ms | M |
+
+Two "before" figures per row because the before tree was measured on both sides
+of the after run: the spread between them (0.4 ms, 0.1 ms, 0.03 ms) is this
+machine's drift, and it is the right yardstick for the differences.
+
+The user-facing path costs **+0.2 ms an update, 4%** (C: 5.23 - 5.01 mean of
+the two before runs). The synthetic worst case costs +0.8 ms, about twice the
+drift. The stamp preview is 3-6x its old cost and still 0.6 ms, an order of
+magnitude inside `CoverageOps.LIVE_BUDGET_MS` (7 ms, half a 60fps frame).
+Nothing was optimised on the strength of this: the one figure that grew past
+the half-frame budget is the worst case of a full-canvas gradient drag, which
+was already at 7.6 ms before the change, and the gradient tool coalesces its
+preview to one pass per animation frame.
+
 ### What was measured and NOT acted on
 
 | Path | Figure | Tag | Why it was left |

@@ -602,11 +602,16 @@ class GradientToolClass extends ToolBase {
   // erase branch (NORMAL_ERASE under the default draw mode), which cleared
   // the pixel AND re-stamped the cell's ink/paper/bright/flash - wiping out
   // whatever was underneath the non-ink half of the gradient.
+  //
+  // "Use existing" is a colour, never a veto: with Ink on "use existing" the
+  // gradient still lays its ink and the drawing gate keeps the colour already
+  // showing in each cell. It used to skip every ink pixel instead, so the
+  // gradient drew NOTHING - and Recolour leaves that box on, so the tool
+  // looked broken straight after using it (2026-09-16).
   _drawGradient(rect, reverse) {
     if (rect.width < 1 || rect.height < 1) return;
 
     const color = ColorManager.getCurrentSelection();
-    const skipInk   = color.inkTransparent;
     const region    = this._cachedFloodRegion;
     const encodeKey = region ? (x, y) => (y << 16) | x : null;
     const checkShape = !this._shapeConstraint && this._fillShape !== 'none';
@@ -627,7 +632,7 @@ class GradientToolClass extends ToolBase {
         }
         if (reverse) gradientPos = 1 - gradientPos;
 
-        if (!this._shouldBeInk(pixelX, pixelY, gradientPos) || skipInk) continue;
+        if (!this._shouldBeInk(pixelX, pixelY, gradientPos)) continue;
         PixelDrawRoutine.draw(pixelX, pixelY, color, PixelDrawRoutine.resolveUserMode(true));
       }
     }
@@ -785,7 +790,6 @@ class GradientToolClass extends ToolBase {
     gradientPaprSet.clear();
 
     const colorSelection = ColorManager.getCurrentSelection();
-    const skipInk        = colorSelection.inkTransparent;
     const region         = this._cachedFloodRegion;
     const encodeKey      = region ? (x, y) => (y << 16) | x : null;
     const checkShape     = !this._shapeConstraint && this._fillShape !== 'none';
@@ -807,7 +811,7 @@ class GradientToolClass extends ToolBase {
         }
         if (this.isReverseMode) gradientPos = 1 - gradientPos;
 
-        if (!this._shouldBeInk(pixelX, pixelY, gradientPos) || skipInk) continue;
+        if (!this._shouldBeInk(pixelX, pixelY, gradientPos)) continue;
 
         affectedCells.add(Math.floor(pixelX / ZX_SPECTRUM.CELL_WIDTH) + ',' + Math.floor(pixelY / ZX_SPECTRUM.CELL_HEIGHT));
         gradientInkSet.add(pixelX + ',' + pixelY);

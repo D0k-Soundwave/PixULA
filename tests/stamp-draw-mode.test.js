@@ -206,4 +206,65 @@ SelectionService.commitStamp(stamp);
 check('normal: commitStamp bakes the same paper the drag painted',
   cellAttrs().ink === 3 && cellAttrs().paper === 1);
 
+// ── The preview IS the commit, in every mode and box combination ──────────
+//
+// Not "shows the right colours" but "is the same picture": the floating
+// layer's cell is compared with the composite the commit actually leaves.
+// The three hand-written previews this replaced read the colour already there
+// from the target or else the BACKGROUND, skipping any layer between them,
+// and one of them showed a flash the commit did not write (2026-09-16).
+{
+  const composite = () => {
+    const altered = [];
+    for (let i = 1; i < LayerManager.layers.length; i++) {
+      const layer = LayerManager.layers[i];
+      if (!layer.visible || layer.isStamp) continue;
+      const cell = layer.getCell(CELL_X, CELL_Y);
+      if (cell && cell.altered) altered.push({ layer, cell, index: i });
+    }
+    const out = LayerManager._composeCellData(altered,
+      LayerManager.layers[0].getCell(CELL_X, CELL_Y), ZX_SPECTRUM.CELL_HEIGHT);
+    return JSON.stringify({
+      ink: out.attrs.ink, paper: out.attrs.paper,
+      bright: out.attrs.bright, flash: out.attrs.flash,
+      pixels: Array.from(out.pixels)
+    });
+  };
+  const previewed = (stampLayer) => {
+    const cell = stampLayer.getCell(CELL_X, CELL_Y);
+    return JSON.stringify({
+      ink: cell.ink, paper: cell.paper, bright: cell.bright, flash: cell.flash,
+      pixels: Array.from(cell.pixels)
+    });
+  };
+
+  let disagreements = 0;
+  for (const dm of ['normal', 'pixel_only', 'ink', 'paper', 'xor', 'xor_pixel']) {
+    for (const inkT of [false, true]) {
+      for (const paperT of [false, true]) {
+        target.clearCell(CELL_X, CELL_Y);
+        paintHalfCell(2, 6);
+        StateManager.setDrawMode(dm);
+        global.ColorManager._sel = { ink: 4, paper: 1, bright: true, flash: true,
+          inkTransparent: inkT, paperTransparent: paperT };
+        const s = makeSolidStamp();
+        const before = previewed(s);
+        SelectionService.commitStamp(s);
+        const after = composite();
+        if (before !== after) {
+          disagreements++;
+          if (disagreements <= 3) {
+            console.log(`  preview != commit: ${dm} inkT=${inkT} paperT=${paperT}`);
+            console.log(`    preview ${before}`);
+            console.log(`    commit  ${after}`);
+          }
+        }
+      }
+    }
+  }
+  check('the floating preview equals the committed composite in all 24 ' +
+    'draw-mode x transparent-box combinations', disagreements === 0);
+  StateManager.setDrawMode('normal');
+}
+
 summary();

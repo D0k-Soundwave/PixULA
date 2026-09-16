@@ -118,10 +118,14 @@ class ClutBarClass {
         this._inkDisplay = makeWell('color.ink', 'Ink', 'ink-color');
         this._paperDisplay = makeWell('color.paper', 'Paper', 'paper-color');
 
-        // Double-click a preview well toggles that channel's transparency.
+        // Double-click a preview well toggles that channel's transparency -
+        // except where cells have no attributes for it to mean anything (the
+        // indexed Next modes, Timex hi-res), where it would be a control that
+        // silently does nothing.
         host.addEventListener('dblclick', (e) => {
             const well = e.target.closest('.clut-preview');
             if (!well) return;
+            if (!ColorManager.hasCellAttributes()) return;
             if (well.id === 'paper-color') ColorManager.togglePaperTransparent();
             else ColorManager.toggleInkTransparent();
             this._updateColorDisplays();
@@ -230,6 +234,19 @@ class ClutBarClass {
                 this._makeDivider(),
                 this._buildClutRow('color-swatches-bright', 'clut.brightPalette',
                     'Bright palette', 8, 16, 'both', true)));
+            // Those two rows are colour BANKS, not the ink and paper channels,
+            // so the "use existing" boxes get a pair of their own beneath them
+            // rather than hanging off a bank that is neither.
+            host.appendChild(this._buildPair(
+                this._captionGroup(this._buildTransparentBox('ink'),
+                    'color.ink', 'Ink'),
+                this._captionGroup(this._buildTransparentBox('paper'),
+                    'color.paper', 'Paper')));
+            // ULANext stores FLASH and never flashes it (constants.js), and it
+            // round-trips to Standard ULA - so it is real state the artist must
+            // be able to set. BRIGHT is the choice of bank above, which is why
+            // only Flash appears here.
+            if (bits) bits.appendChild(this._buildBitToggles({ bright: false }));
             return;
         }
 
@@ -341,9 +358,11 @@ class ClutBarClass {
      * flips both ink and paper to the bright bank; Flash marks the cell as
      * flashing. Bound here (not in _attachColorEvents) because they are
      * recreated on every rebuild.
+     * @param {Object} [show] - which toggles to build; ULANext takes Flash
+     *   only, because its two swatch banks ARE the bright choice
      * @private
      */
-    _buildBitToggles() {
+    _buildBitToggles({ bright = true, flash = true } = {}) {
         const wrap = document.createElement('div');
         wrap.className = 'clut-bits';
 
@@ -381,15 +400,19 @@ class ClutBarClass {
             return { wrap: Helpers.captionWrap(label, i18n, fallback), input };
         };
 
-        const bright = makeToggle('bright-toggle', 'icon-bright', 'color.bright', 'Bright',
-            ColorManager.getBright(), (v) => ColorManager.setBright(v));
-        this._brightToggle = bright.input;
-        wrap.appendChild(bright.wrap);
+        if (bright) {
+            const brightToggle = makeToggle('bright-toggle', 'icon-bright', 'color.bright',
+                'Bright', ColorManager.getBright(), (v) => ColorManager.setBright(v));
+            this._brightToggle = brightToggle.input;
+            wrap.appendChild(brightToggle.wrap);
+        }
 
-        const flash = makeToggle('flash-toggle', 'icon-flash', 'color.flash', 'Flash',
-            ColorManager.getFlash(), (v) => ColorManager.setFlash(v));
-        this._flashToggle = flash.input;
-        wrap.appendChild(flash.wrap);
+        if (flash) {
+            const flashToggle = makeToggle('flash-toggle', 'icon-flash', 'color.flash', 'Flash',
+                ColorManager.getFlash(), (v) => ColorManager.setFlash(v));
+            this._flashToggle = flashToggle.input;
+            wrap.appendChild(flashToggle.wrap);
+        }
 
         return wrap;
     }
@@ -428,13 +451,17 @@ class ClutBarClass {
         }
         host.appendChild(selector);
 
+        // Each half carries its own "use existing" box, exactly as the classic
+        // ink/paper groups do: ULAplus cells have ink and paper attributes, so
+        // the boxes mean the same thing here, and without them the setting was
+        // still in force with nothing in the rail to show or change it.
         const base = activeClut * 16;
         host.appendChild(this._buildPair(
             this._buildClutRow('color-swatches-ink', 'clut.inkHalf',
-                'Ink colours', base, base + 8, 'ink', false),
+                'Ink colours', base, base + 8, 'ink', false, 'ink'),
             this._makeDivider(),
             this._buildClutRow('color-swatches-paper', 'clut.paperHalf',
-                'Paper colours', base + 8, base + 16, 'paper', false)));
+                'Paper colours', base + 8, base + 16, 'paper', false, 'paper')));
     }
 
     /**
@@ -589,10 +616,14 @@ class ClutBarClass {
      * @param {string} role - 'both' (rgb333 rows: ink on click, paper on
      *   right-click), 'ink' or 'paper' (ULAplus half-rows)
      * @param {boolean} bright - selects the bright bank
+     * @param {'ink'|'paper'|null} [transparentChannel] - append that channel's
+     *   "use existing" box under the row, inside the same captioned block, so
+     *   the pair still has exactly two captioned children
      * @returns {HTMLElement} the CAPTIONED wrapper around the swatch row
      * @private
      */
-    _buildClutRow(id, i18nLabel, fallbackLabel, from, to, role, bright) {
+    _buildClutRow(id, i18nLabel, fallbackLabel, from, to, role, bright,
+        transparentChannel = null) {
         const row = document.createElement('div');
         row.id = id;
         row.className = 'clut-row';
@@ -613,9 +644,17 @@ class ClutBarClass {
             row.appendChild(sw);
             this._swatches.push(sw);
         }
-        // Visible heading matching the radiogroup's aria-label, captioned
-        // above the row like every other control in the bar.
-        return this._captionGroup(row, i18nLabel, fallbackLabel);
+        if (!transparentChannel) {
+            // Visible heading matching the radiogroup's aria-label, captioned
+            // above the row like every other control in the bar.
+            return this._captionGroup(row, i18nLabel, fallbackLabel);
+        }
+        const group = document.createElement('div');
+        group.className = 'clut-channel';
+        group.dataset.channel = transparentChannel;
+        group.appendChild(row);
+        group.appendChild(this._buildTransparentBox(transparentChannel));
+        return this._captionGroup(group, i18nLabel, fallbackLabel);
     }
 
     /** Delegated swatch interactions — survive rebuilds. @private */

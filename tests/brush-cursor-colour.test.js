@@ -162,6 +162,32 @@ StateManager.setDrawMode('normal');
   StateManager.setDrawMode('normal');
 }
 
+// --- an EMPTY cell on an upper layer ----------------------------------------
+//
+// The dot promises the colour the click will paint. On an empty upper-layer
+// cell that is the colour the PAGE shows there, because that is what the write
+// itself takes (LayerManager.attrsShowing) - not the placeholder black-on-white
+// the empty cell stores, which is what the dot used to promise (2026-09-16).
+{
+  enter('standard_ula');
+  LayerManager.addLayer('L2', false);
+  const below = LayerManager.layers[1];
+  PixelDrawRoutine.draw(X, Y, { ink: 3, paper: 6, bright: false, flash: false,
+    inkTransparent: false, paperTransparent: false }, DRAW_MODE.NORMAL,
+  { layer: below, mirror: false });
+  LayerManager.setCurrentLayer(2);
+  StateManager.setDrawMode('pixel_only');
+  select({ ink: 2, paper: 5, bright: false });
+  check('Pixels Only on an empty upper cell promises the ink showing below (3)',
+    preview() === 3);
+
+  StateManager.setDrawMode('normal');
+  select({ inkT: true, bright: false });
+  check('Ink on "use existing" on an empty upper cell promises the ink below (3)',
+    preview() === 3);
+  select({ inkT: false, bright: false });
+}
+
 // --- off the picture --------------------------------------------------------
 
 check('off the picture: null', PixelDrawRoutine.previewInkIndex(-1, 5) === null &&

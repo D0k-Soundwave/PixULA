@@ -530,19 +530,36 @@ class ColorManagerClass {
     }
 
     /**
-     * Get INK transparent flag
+     * Does the active screen mode have cell attributes at all?
+     *
+     * "Use existing" means "take the colour the cell already has", so it only
+     * means anything where a cell HAS an ink and a paper. The indexed Next
+     * modes give every pixel its own palette index, and Timex hi-res shares
+     * one pair across the whole screen and ignores cell attributes at render.
+     * In those modes the flags stay stored (so they come back when the artist
+     * returns to a classic mode) but report as off, and the rail offers no
+     * control for them - a switch that does nothing is worse than no switch.
      * @returns {boolean}
      */
-    isInkTransparent() {
-        return this.inkTransparent;
+    hasCellAttributes() {
+        return ZX_SPECTRUM.PIXEL_DEPTH === 1
+            && ACTIVE_SCREEN_MODE.paletteModel !== 'timexMono';
     }
 
     /**
-     * Get PAPER transparent flag
+     * Get INK transparent flag (always false where cells have no attributes)
+     * @returns {boolean}
+     */
+    isInkTransparent() {
+        return this.inkTransparent && this.hasCellAttributes();
+    }
+
+    /**
+     * Get PAPER transparent flag (always false where cells have no attributes)
      * @returns {boolean}
      */
     isPaperTransparent() {
-        return this.paperTransparent;
+        return this.paperTransparent && this.hasCellAttributes();
     }
 
     /**
@@ -580,15 +597,32 @@ class ColorManagerClass {
     }
 
     /**
-     * Swap INK and PAPER colors
+     * Swap INK and PAPER.
+     *
+     * Swaps what the two wells HOLD, which includes "use existing" - leaving
+     * the flags behind put a colour under a well that was still ignoring it.
+     * In the indexed Next modes the two wells are the indexed drawing and
+     * background indices, so those are what swap there; the classic pair
+     * behind them is not what the artist is looking at.
      */
     swapColors() {
+        if (ZX_SPECTRUM.PIXEL_DEPTH > 1) {
+            const tempIndex = this.nextInk;
+            this.setNextInk(this.nextPaper);
+            this.setNextPaper(tempIndex);
+            return;
+        }
         const tempInk = this.ink;
         this.ink = this.paper;
         this.paper = tempInk;
+        const tempTransparent = this.inkTransparent;
+        this.inkTransparent = this.paperTransparent;
+        this.paperTransparent = tempTransparent;
         StateManager.setMultiple({
             'color.ink': this.ink,
-            'color.paper': this.paper
+            'color.paper': this.paper,
+            'color.inkTransparent': this.inkTransparent,
+            'color.paperTransparent': this.paperTransparent
         });
         EventBus.emit(EVENTS.COLOR_INK, this.getCurrentSelection());
         EventBus.emit(EVENTS.COLOR_PAPER, this.getCurrentSelection());
@@ -604,8 +638,10 @@ class ColorManagerClass {
             paper: this.paper,
             bright: this.bright,
             flash: this.flash,
-            inkTransparent: this.inkTransparent,
-            paperTransparent: this.paperTransparent
+            // The EFFECTIVE flags: off in modes whose cells have no
+            // attributes, so no drawing path has to know about the exception.
+            inkTransparent: this.isInkTransparent(),
+            paperTransparent: this.isPaperTransparent()
         };
     }
 
@@ -660,11 +696,22 @@ class ColorManagerClass {
     }
 
     /**
-     * Set complete color selection from object
-     * @param {Object} selection - { ink, paper, bright, flash }
+     * Set a complete colour selection in one go (the eyedropper's path).
+     *
+     * Announces EVERY channel that actually changed, not just ink: the
+     * Bright and Flash toggles, the bright swatch bank and the ULAplus CLUT
+     * buttons all render from their own facts, so a pick that quietly changed
+     * bright left the rail showing the old state (2026-09-16).
+     * @param {Object} selection - { ink, paper, bright, flash,
+     *   inkTransparent, paperTransparent }
      */
     setSelection(selection) {
         if (!selection || typeof selection !== 'object') return;
+
+        const before = {
+            paper: this.paper, bright: this.bright, flash: this.flash,
+            paperTransparent: this.paperTransparent
+        };
 
         if (Validators.isValidBaseColor(selection.ink)) {
             this.ink = selection.ink;
@@ -678,15 +725,33 @@ class ColorManagerClass {
         if (typeof selection.flash === 'boolean') {
             this.flash = selection.flash;
         }
+        if (typeof selection.inkTransparent === 'boolean') {
+            this.inkTransparent = selection.inkTransparent;
+        }
+        if (typeof selection.paperTransparent === 'boolean') {
+            this.paperTransparent = selection.paperTransparent;
+        }
 
         StateManager.setSection('color', {
             ink: this.ink,
             paper: this.paper,
             bright: this.bright,
-            flash: this.flash
+            flash: this.flash,
+            inkTransparent: this.inkTransparent,
+            paperTransparent: this.paperTransparent
         });
 
         EventBus.emit(EVENTS.COLOR_INK, this.getCurrentSelection());
+        if (this.paper !== before.paper ||
+            this.paperTransparent !== before.paperTransparent) {
+            EventBus.emit(EVENTS.COLOR_PAPER, this.getCurrentSelection());
+        }
+        if (this.bright !== before.bright) {
+            EventBus.emit(EVENTS.COLOR_BRIGHT, this.getCurrentSelection());
+        }
+        if (this.flash !== before.flash) {
+            EventBus.emit(EVENTS.COLOR_FLASH, this.getCurrentSelection());
+        }
     }
 
     /**
@@ -701,7 +766,12 @@ class ColorManagerClass {
         this.paperTransparent = false;
 
         StateManager.setSection('color', this.getCurrentSelection());
+        // All four channels, so every control that renders from its own fact
+        // (the Bright/Flash toggles, the swatch banks) follows a New document.
         EventBus.emit(EVENTS.COLOR_INK, this.getCurrentSelection());
+        EventBus.emit(EVENTS.COLOR_PAPER, this.getCurrentSelection());
+        EventBus.emit(EVENTS.COLOR_BRIGHT, this.getCurrentSelection());
+        EventBus.emit(EVENTS.COLOR_FLASH, this.getCurrentSelection());
     }
 }
 

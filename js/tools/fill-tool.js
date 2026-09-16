@@ -252,13 +252,17 @@ class FillToolClass extends ToolBase {
     if (!layer) return;
 
     const { x: startCellX, y: startCellY } = ZX_COORDS.pixelToCell(startX, startY);
-    const startCell  = layer.getCell(startCellX, startCellY);
-    if (!startCell) return;
+    if (!layer.getCell(startCellX, startCellY)) return;
 
-    const srcInk    = startCell.ink;
-    const srcPaper  = startCell.paper;
-    const srcBright = startCell.bright;
-    const srcFlash  = startCell.flash;
+    // Cells are compared by what they SHOW (LayerManager.attrsAsSeen), so a
+    // fill on an upper layer follows the colours the artist can see rather
+    // than the placeholder black-on-white every empty cell stores - which
+    // matched every empty cell on the layer and flooded the lot.
+    const start = LayerManager.attrsAsSeen(layer, startCellX, startCellY);
+    const srcInk    = start.ink;
+    const srcPaper  = start.paper;
+    const srcBright = start.bright;
+    const srcFlash  = start.flash;
 
     const COLS = ZX_SPECTRUM.GRID_COLS; // 32
     const ROWS = ZX_SPECTRUM.GRID_ROWS; // 24
@@ -279,10 +283,10 @@ class FillToolClass extends ToolBase {
       const cy = Math.floor(key / COLS);
       if (cx < 0 || cx >= COLS || cy < 0 || cy >= ROWS) continue;
 
-      const cell = layer.getCell(cx, cy);
-      if (!cell) continue;
-      if (cell.ink !== srcInk || cell.paper !== srcPaper ||
-          cell.bright !== srcBright || cell.flash !== srcFlash) continue;
+      if (!layer.getCell(cx, cy)) continue;
+      const seen = LayerManager.attrsAsSeen(layer, cx, cy);
+      if (seen.ink !== srcInk || seen.paper !== srcPaper ||
+          seen.bright !== srcBright || seen.flash !== srcFlash) continue;
 
       visited.add(key);
 
