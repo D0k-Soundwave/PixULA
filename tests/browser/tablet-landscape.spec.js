@@ -19,7 +19,7 @@
  * tests/TESTLOG.md.
  */
 const { test, expect } = require('@playwright/test');
-const { boot } = require('./helpers');
+const { boot, reload } = require('./helpers');
 
 /** Everything the assertions need, measured in one pass. */
 async function layout(page) {
@@ -153,6 +153,67 @@ test.describe('a zoom the artist chose', () => {
         const l = await layout(page);
         expect(l.followFit).toBe(true);
         expect(l.zoom).toBe(l.fitZoom);
+    });
+});
+
+/*
+ * Interface Size on a tablet.
+ *
+ * The automatic fit used to apply on top of EVERY choice, and on a tablet it
+ * lands around 84% - below the smallest size the list offered - so all five
+ * entries applied the same scale and the control did nothing at all (reported
+ * from a real tablet, 2026-09-16). Fitting is now one entry in the list, and
+ * the default; a size the artist picks is applied exactly, on any device.
+ */
+test.describe('tablet: the Interface Size control', () => {
+    test.use({ viewport: { width: 1024, height: 768 }, hasTouch: true });
+
+    const applied = (page) => page.evaluate(() =>
+        parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale')));
+
+    const choose = async (page, value) => {
+        await page.selectOption('#font-scale-selector', value);
+        await page.waitForTimeout(150);
+        return applied(page);
+    };
+
+    test('every size does what it says, and "Fit to screen" still fits', async ({ page }) => {
+        await boot(page);
+        await settle(page);
+
+        // The default is the fit, so a tablet still shrinks to fit on first use
+        expect(await page.locator('#font-scale-selector').inputValue()).toBe('fit');
+        const fitted = await applied(page);
+        expect(fitted).toBeGreaterThanOrEqual(0.815);
+        expect(fitted).toBeLessThanOrEqual(1);
+
+        // ...and a chosen size is that size, above the fitted value as well as
+        // below it - each one distinct, which is what "the control works" means
+        const seen = new Set();
+        for (const [value, expected] of [['0.65', 0.65], ['0.85', 0.85],
+            ['1', 1], ['1.5', 1.5], ['2', 2]]) {
+            const got = await choose(page, value);
+            expect(got, `choosing ${value} applies ${expected}`).toBeCloseTo(expected, 3);
+            seen.add(got);
+        }
+        expect(seen.size, 'five choices, five different scales').toBe(5);
+
+        // Back to fitting, and the rail stays reachable at the fitted size
+        const back = await choose(page, 'fit');
+        expect(back).toBeCloseTo(fitted, 3);
+        const l = await layout(page);
+        expect(l.toolsClipped).toBe(0);
+        expect(l.smallestTool).toBeGreaterThanOrEqual(44);
+    });
+
+    test('the chosen size survives a reload', async ({ page }) => {
+        await boot(page);
+        await settle(page);
+        await choose(page, '1.5');
+        await reload(page);
+        await settle(page);
+        expect(await page.locator('#font-scale-selector').inputValue()).toBe('1.5');
+        expect(await applied(page)).toBeCloseTo(1.5, 3);
     });
 });
 

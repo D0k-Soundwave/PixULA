@@ -126,6 +126,7 @@ const hu = {
 
     // Accessibility
     'a11y.textSize': 'Felület mérete',
+    'opt.fitToScreen': 'Illesztés a képernyőhöz',
 
     // Transform panel options
     'tools.selectPrompt': 'Válasszon eszközt a beállítások megtekintéséhez',

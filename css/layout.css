@@ -12,6 +12,18 @@
 html,
 body {
     height: 100%;
+    /* NOT the reset's `min-height: 100vh` (css/reset.css), which is the
+       classic full-height-page idiom and wrong for an app that fills the
+       viewport exactly. On a phone or tablet `vh` is the LARGE viewport - the
+       height the page would have if the browser's address bar were hidden - so
+       body came out taller than what is actually on screen, `overflow: hidden`
+       above meant it could not be scrolled to, and the bottom of the app (the
+       status bar, and the canvas controls above it) sat under the browser's
+       own chrome with no way to reach them (2026-09-16).
+       100% follows the REAL viewport, and keeps following it as the address
+       bar hides and shows; `dvh` says the same thing and is only needed where
+       there is no height chain to inherit from. */
+    min-height: 100%;
     overflow: hidden;
 }
 

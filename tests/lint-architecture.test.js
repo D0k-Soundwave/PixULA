@@ -18,12 +18,20 @@ function fail(file, line, rule, text) {
   console.log(`FAIL [${rule}] ${file}:${line}  ${text.trim().slice(0, 100)}`);
 }
 
-function walk(dir, out = []) {
+/**
+ * Every file under `dir` with one of `exts`.
+ *
+ * The extension used to be hardcoded to '.js', which quietly emptied every
+ * pass that walked css/: the pictograph rule says it covers "js/, css/ and
+ * index.html" and had in fact never read a stylesheet (found 2026-09-16 while
+ * adding the vh rule below, which found nothing for the same reason).
+ */
+function walk(dir, out = [], exts = ['.js']) {
   if (!fs.existsSync(dir)) return out;
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, entry.name);
-    if (entry.isDirectory()) walk(p, out);
-    else if (entry.name.endsWith('.js')) out.push(p);
+    if (entry.isDirectory()) walk(p, out, exts);
+    else if (exts.some((e) => entry.name.endsWith(e))) out.push(p);
   }
   return out;
 }
@@ -162,7 +170,7 @@ function firstPictograph(line) {
 const textFiles = [
   ...jsFiles,
   ...['index.html'].map((f) => path.join(ROOT, f)),
-  ...walk(path.join(ROOT, 'css')),
+  ...walk(path.join(ROOT, 'css'), [], ['.css']),
 ];
 for (const file of textFiles) {
   if (!fs.existsSync(file)) continue;
@@ -173,6 +181,66 @@ for (const file of textFiles) {
     const cp = 'U+' + ch.codePointAt(0).toString(16).toUpperCase().padStart(4, '0');
     fail(r, i + 1, 'pictograph',
       `${line.trim().slice(0, 70)}  -> ${cp} - use words, "->", or an SVG sprite icon`);
+  });
+}
+
+/*
+ * A height measured in `vh` must be paired with the same height in `dvh`.
+ *
+ * On a phone or tablet `vh` is the LARGE viewport - the height the page would
+ * have if the browser's address bar were hidden - so anything sized by it is
+ * taller than what is actually on screen. The app found this the hard way
+ * (2026-09-16): the reset's `body { min-height: 100vh }` made the page taller
+ * than the visible area while `overflow: hidden` stopped it being scrolled to,
+ * so the bottom of the app - the status bar and the canvas controls - sat
+ * under the browser's own chrome with no way to reach it, and the dialogs'
+ * `max-height: 90vh` could take their buttons off screen the same way.
+ *
+ * `dvh` is the visible viewport and follows the bar as it hides and shows. The
+ * `vh` line stays as the fallback for anything that does not know `dvh`, so
+ * the rule is "paired", not "banned". A `vh` inside a comment is prose.
+ */
+// Matches the declaration anywhere in the line, so a one-line rule
+// (`.x { max-height: 70vh; }`) is caught as well as the app's usual
+// one-declaration-per-line form. The pairing may be on the same line or the
+// next one, which is how both forms are written.
+// `\bvh\b` would never match: in `70vh` the digit and the unit are both word
+// characters, so there is no boundary in front of the `v`. The digit is part
+// of the pattern instead, which also stops `90dvh` matching as a bare `vh`.
+const HEIGHT_VH = /(min-height|max-height|height)\s*:\s*[^;}]*?\d\s*vh\b/g;
+for (const file of walk(path.join(ROOT, 'css'), [], ['.css'])) {
+  const r = rel(file);
+  const lines = fs.readFileSync(file, 'utf8').split('\n');
+  // Block-comment state, so PROSE about a rule ("the global grid sets
+  // max-height: 40vh, we must not apply it here") is not read as the rule.
+  const inComment = [];
+  let open = false;
+  for (const line of lines) {
+    const started = line.indexOf('/*');
+    const ended = line.lastIndexOf('*/');
+    inComment.push(open || (started >= 0 && ended < started));
+    if (started >= 0 && ended < started) open = true;
+    else if (ended >= 0 && open && ended > line.indexOf('/*')) open = false;
+  }
+  lines.forEach((line, i) => {
+    if (inComment[i] || line.trim().startsWith('/*') || line.trim().startsWith('*')) return;
+    // The pair may be on this line or on the next DECLARATION - a comment
+    // between the two is still a pair.
+    let here = line;
+    for (let j = i + 1; j < lines.length && j <= i + 8; j++) {
+      const t = lines[j].trim();
+      if (!t || t.startsWith('/*') || t.startsWith('*') || inComment[j]) continue;
+      here += '\n' + lines[j];
+      break;
+    }
+    for (const m of line.matchAll(HEIGHT_VH)) {
+      const prop = m[1];
+      const paired = new RegExp(`${prop}\\s*:\\s*[^;}]*dvh\\b`);
+      if (paired.test(here)) continue;
+      fail(r, i + 1, 'vh-without-dvh',
+        `${line.trim()}  -> follow it with the same ${prop} in dvh (vh is the ` +
+        'address-bar-hidden height; the bottom ends up off screen on a tablet)');
+    }
   });
 }
 

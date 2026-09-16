@@ -126,6 +126,7 @@ const ru = {
 
     // Accessibility
     'a11y.textSize': 'Размер интерфейса',
+    'opt.fitToScreen': 'Подогнать под экран',
 
     // Transform panel options
     'tools.selectPrompt': 'Выберите инструмент, чтобы увидеть параметры',

@@ -63,8 +63,18 @@
                     <option value="ru">Русский</option>
                 </select>
                 <select id="font-scale-selector" name="font-scale" aria-label="Interface size" data-i18n-aria-label="a11y.textSize" title="Interface size">
+                    <!-- "Fit to screen" is the default and the only entry that
+                         SHRINKS the interface by itself (UiFit, on a
+                         touch-primary screen). Every other entry is a size the
+                         artist asked for and is applied exactly, on any device
+                         - before this the automatic fit capped them all, and on
+                         a tablet it landed below the smallest of them, so the
+                         whole control did nothing (2026-09-16). -->
+                    <option value="fit" selected data-i18n="opt.fitToScreen">Fit to screen</option>
+                    <option value="0.65">65%</option>
+                    <option value="0.75">75%</option>
                     <option value="0.85">85%</option>
-                    <option value="1" selected>100%</option>
+                    <option value="1">100%</option>
                     <option value="1.25">125%</option>
                     <option value="1.5">150%</option>
                     <option value="2">200%</option>

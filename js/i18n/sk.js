@@ -126,6 +126,7 @@ const sk = {
 
     // Accessibility
     'a11y.textSize': 'Veľkosť rozhrania',
+    'opt.fitToScreen': 'Prispôsobiť obrazovke',
 
     // Transform panel options
     'tools.selectPrompt': 'Vyberte nástroj na zobrazenie možností',

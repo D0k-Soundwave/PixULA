@@ -126,6 +126,7 @@ const tr = {
 
     // Accessibility
     'a11y.textSize': 'Arayüz boyutu',
+    'opt.fitToScreen': 'Ekrana sığdır',
 
     // Transform panel options
     'tools.selectPrompt': 'Seçenekleri görmek için bir araç seçin',

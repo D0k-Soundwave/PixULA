@@ -360,8 +360,13 @@ test.describe('ColorBarFit keeps the top strip at one row across interface sizes
         async ({ page }) => {
             await boot(page);
             const values = await page.$$eval('#font-scale-selector option', o => o.map(x => x.value));
-            expect(values.map(Number)).toEqual(expect.arrayContaining([0.85, 1, 1.25, 1.5, 2]));
-            expect(Math.max(...values.map(Number))).toBe(2);
+            // "fit" is the automatic entry (the default) and has no number;
+            // the sizes are everything else - see the Interface Size tests in
+            // tablet-landscape.spec.js.
+            expect(values[0]).toBe('fit');
+            const sizes = values.filter((v) => v !== 'fit').map(Number);
+            expect(sizes).toEqual(expect.arrayContaining([0.65, 0.75, 0.85, 1, 1.25, 1.5, 2]));
+            expect(Math.max(...sizes)).toBe(2);
 
             await page.evaluate(() => Storage.set('uiFontScale', '3'));
             await reload(page);
