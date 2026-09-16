@@ -112,10 +112,19 @@ for (const [, cls] of TOOL_FILES) {
       fp.every(p => typeof p.x === 'number' && typeof p.y === 'number')));
 }
 
-// Tools that write no pixels (or own the hover canvas) must opt out with null.
-for (const cls of ['MoveTool', 'ZoomTool', 'GradientTool', 'PatternCreatorTool']) {
-  check(`${cls}: opts out of the footprint outline (null)`,
+// Tools that MARK NOTHING opt out with null, and keep their own cursor (pan's
+// grab hand, zoom's lens). Owning a preview canvas is no longer a reason to opt
+// out - the pointer mark has a layer of its own (index.html #pointer-canvas),
+// so the gradient, which previews a whole dragged region, still gets a pointer
+// (2026-09-16).
+for (const cls of ['MoveTool', 'ZoomTool', 'PatternCreatorTool']) {
+  check(`${cls}: marks nothing, so it opts out of the footprint (null)`,
     new global[cls]().getFootprint(100, 100) === null);
+}
+{
+  const fp = new global.GradientTool().getFootprint(42, 24);
+  check('GradientTool: has a pointer mark now - the pixel under the cursor',
+    Array.isArray(fp) && fp.length === 1 && fp[0].x === 42 && fp[0].y === 24);
 }
 
 // Point-sized tools inherit the single-pixel default — at high zoom this is the
@@ -289,9 +298,12 @@ for (const thickness of [1, 3, 8]) {
   check('bezier: footprint while idle is the nib',
     bezier.getFootprint(100, 100).length >= 1);
 
-  bezier._phase = 'edit';   // anchors down: the tool owns the preview canvas
-  check('bezier: no footprint once it owns the preview canvas (edit phase)',
-    bezier.getFootprint(100, 100) === null);
+  // Anchors down: the tool draws the live curve on the preview canvas, and
+  // still has a pointer of its own on the pointer layer - bending a curve used
+  // to cost the artist their pointer entirely (2026-09-16).
+  bezier._phase = 'edit';
+  check('bezier: keeps its nib while editing, the mark has its own layer',
+    bezier.getFootprint(100, 100).length >= 1);
 }
 
 // ── MaskOps.boundaryPoints — what GridOverlay actually renders ────────────

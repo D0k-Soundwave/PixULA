@@ -178,9 +178,9 @@ class BrushToolClass extends ToolBase {
 
   constructor() {
     super(TOOLS.BRUSH, 'Brush');
-    // The outline (or, at size 1, the pixel cursor) is the pointer. Shared by
-    // every button riding on this tool: spray, fade, pattern and hatch too.
-    this.footprintCursor = true;
+    // footprintCursor is ToolBase's default now (2026-09-16) - the outline,
+    // or the pixel cursor at size 1, is the pointer for every tool that marks
+    // the picture, not just this one.
     this.lastPoint = null;
     this.lastPressure = 1.0;
     this.continuous = false;

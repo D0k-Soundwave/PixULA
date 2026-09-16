@@ -242,6 +242,15 @@
                                       legible ON TOP of what the tool previews:
                                       the bezier handles, GridOverlay.drawHandles)
                                  450: reference-layer-canvas ('above', created dynamically by ReferenceLayerService)
+                                 500: pointer-canvas (the tool's mark standing in
+                                      for the mouse pointer - above EVERYTHING,
+                                      including a tracing photo laid over the
+                                      picture, because it is the pointer and the
+                                      pointer is never hidden by content. Its own
+                                      canvas so a tool's preview and the pointer
+                                      cannot clear each other: that collision is
+                                      why the gradient and the curve tools used
+                                      to have no mark at all, 2026-09-16)
                                grid-wrapper (z=2, sub-pixel rendering)
                                  200: grid-1x1-canvas
                                  250: grid-8x8-canvas
@@ -260,6 +269,7 @@
                             #grid-16x16-canvas { z-index: 300; pointer-events: none; }
                             #selection-canvas { z-index: 350; pointer-events: none; }
                             #cursor-canvas { z-index: 400; pointer-events: none; }
+                            #pointer-canvas { z-index: 500; pointer-events: none; }
                             #main-canvas:focus { outline: none; }
                         </style>
                     </head>
@@ -272,6 +282,7 @@
                                 <canvas id='selection-canvas' width='256' height='192'></canvas>
                                 <canvas id='cursor-canvas' width='256' height='192'></canvas>
                                 <canvas id='reference-canvas' width='256' height='192'></canvas>
+                                <canvas id='pointer-canvas' width='256' height='192'></canvas>
                             </div>
                             <div id='grid-wrapper'>
                                 <canvas id='grid-1x1-canvas'></canvas>
@@ -291,6 +302,7 @@
                                     grid16x16: document.getElementById('grid-16x16-canvas'),
                                     selection: document.getElementById('selection-canvas'),
                                     cursor: document.getElementById('cursor-canvas'),
+                                    pointer: document.getElementById('pointer-canvas'),
                                     reference: document.getElementById('reference-canvas'),
                                     grid: document.getElementById('grid-8x8-canvas'),
                                     preview: document.getElementById('composite-preview-canvas')
