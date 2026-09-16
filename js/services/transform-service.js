@@ -110,7 +110,6 @@ class TransformServiceClass {
    */
   _applyBufferWithAttrs(buffer, area) {
     const layer   = LayerManager.getCurrentLayer();
-    const bgLayer = LayerManager.layers[0];
     const fallback = ColorManager.getCurrentSelection();
 
     // Indexed modes (Phase 13): write the buffered palette indices back;
@@ -145,10 +144,12 @@ class TransformServiceClass {
         const cellPos = ZX_COORDS.pixelToCell(pixelX, pixelY);
         const key = `${cellPos.x},${cellPos.y}`;
         if (!destPaper.has(key)) {
-          const cell  = layer   ? layer.getCell(cellPos.x, cellPos.y)   : null;
-          const bg    = bgLayer ? bgLayer.getCell(cellPos.x, cellPos.y) : null;
-          const src   = (cell && cell.altered) ? cell : bg;
-          destPaper.set(key, src ? src.paper : fallback.paper);
+          // The paper the destination cell SHOWS (its own when it has one,
+          // else what the page shows there) - never the placeholder white an
+          // empty upper-layer cell stores.
+          destPaper.set(key, layer
+            ? LayerManager.attrsAsSeen(layer, cellPos.x, cellPos.y).paper
+            : fallback.paper);
         }
       }
     }
@@ -196,7 +197,6 @@ class TransformServiceClass {
   _applyBuffer(buffer, area) {
     const color   = ColorManager.getCurrentSelection();
     const layer   = LayerManager.getCurrentLayer();
-    const bgLayer = LayerManager.layers[0];
 
     // Snapshot destination-cell paper before writing (same reason as _applyBufferWithAttrs)
     const destPaper = new Map();
@@ -207,10 +207,9 @@ class TransformServiceClass {
         const cellPos = ZX_COORDS.pixelToCell(pixelX, pixelY);
         const key = `${cellPos.x},${cellPos.y}`;
         if (!destPaper.has(key)) {
-          const cell  = layer   ? layer.getCell(cellPos.x, cellPos.y)   : null;
-          const bg    = bgLayer ? bgLayer.getCell(cellPos.x, cellPos.y) : null;
-          const src   = (cell && cell.altered) ? cell : bg;
-          destPaper.set(key, src ? src.paper : color.paper);
+          destPaper.set(key, layer
+            ? LayerManager.attrsAsSeen(layer, cellPos.x, cellPos.y).paper
+            : color.paper);
         }
       }
     }

@@ -132,11 +132,16 @@ class EyedropperToolClass extends ToolBase {
    * @private
    */
   _pickCellAttributes(cell) {
+    // Picking is choosing colours, so it clears "use existing" on both
+    // channels - exactly as clicking a swatch does. Leaving the boxes on
+    // handed back a colour the next stroke would then ignore.
     ColorManager.setSelection({
       ink: cell.ink,
       paper: cell.paper,
       bright: cell.bright,
-      flash: cell.flash
+      flash: cell.flash,
+      inkTransparent: false,
+      paperTransparent: false
     });
     Logger.debug('EyedropperTool', `Picked cell attributes: ink=${cell.ink}, paper=${cell.paper}, bright=${cell.bright}, flash=${cell.flash}`);
   }

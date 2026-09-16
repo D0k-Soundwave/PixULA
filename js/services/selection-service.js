@@ -47,6 +47,13 @@ class SelectionServiceClass {
     EventBus.on(EVENTS.COLOR_PAPER,  refreshColor);
     EventBus.on(EVENTS.COLOR_BRIGHT, refreshColor);
     EventBus.on(EVENTS.COLOR_FLASH,  refreshColor);
+    // The draw mode and the layer a stamp commits INTO decide the preview just
+    // as much as the colours do (Pixels Only, Ink Recolour and XOR each land
+    // differently, and "use existing" reads the page under the target), so
+    // both redraw it too - otherwise the stamp went on showing the picture a
+    // different mode would have left.
+    EventBus.on(EVENTS.DRAW_MODE_CHANGED, () => this.refreshStampColor());
+    EventBus.on(EVENTS.LAYER_SELECTED,    () => this.refreshStampColor());
   }
 
   /**
@@ -423,35 +430,6 @@ class SelectionServiceClass {
     PixelDrawRoutine.endBatch();
 
     Logger.debug('SelectionService', `Pasted at (${targetX}, ${targetY})`);
-  }
-
-  /**
-   * Paste from clipboard preserving original attributes
-   * @param {number} targetX - Target X pixel coordinate
-   * @param {number} targetY - Target Y pixel coordinate
-   */
-  pasteWithAttributes(targetX = 0, targetY = 0) {
-    if (!this.clipboard || !this.clipboard.cells) return;
-
-    const layer = LayerManager.getCurrentLayer();
-    if (!layer || layer.locked) return;
-
-    UndoRedo.beginAction('Paste with attributes');
-
-    const startCell = ZX_COORDS.pixelToCell(targetX, targetY);
-
-    this.clipboard.cells.forEach(cellData => {
-      const cellX = startCell.x + cellData.relX;
-      const cellY = startCell.y + cellData.relY;
-
-      if (Validators.isValidCellCoord(cellX, cellY)) {
-        layer.setCell(cellX, cellY, cellData.data);
-        LayerManager.deferCellCompose(cellX, cellY);
-      }
-    });
-
-    UndoRedo.endAction();
-    CanvasSystem.requestRender();
   }
 
   /**
@@ -1869,23 +1847,30 @@ class SelectionServiceClass {
   }
 
   /**
-   * Draw the clipboard pixels onto the floating layer at its current offset.
-   * The floating preview must show exactly what committing will produce, so
-   * it resolves the SAME top-bar draw mode a commit will bake with.
+   * Draw the stamp onto the floating layer at its current offset.
+   *
+   * The preview must be the same picture the commit leaves, so it does not
+   * reproduce the drawing rules: it SIMULATES the commit's own writes against
+   * the layer the stamp would land on (PixelDrawRoutine.simulateCell, same
+   * modes stampAt/commitStamp use), composites the stack with that simulated
+   * cell substituted (LayerManager.previewCellData), and writes the result
+   * into the stamp layer's cell, flagged `xorReplace` so the compositor takes
+   * it whole. One path now covers Normal, Ink/Paper Recolour, Pixels Only, the
+   * draw mode's XOR and the stamp's own XOR checkbox - they used to be three
+   * hand-written previews, and they read "the colour already there" from the
+   * target or else the BACKGROUND, skipping every layer in between.
    * @private
    */
   _drawFloatingLayer() {
-    const { pixels, width, height, x, y, colorSelection, floatingLayer } = this.floatingPaste;
-
     // Attributed stamps (Map Editor tiles/rooms, 2026-08-28): each cell
-    // brings its own ink/paper/bright/flash — never mixed with indexed or
+    // brings its own ink/paper/bright/flash - never mixed with indexed or
     // colorSelection-driven stamps.
     if (this.floatingPaste.attrs) {
       this._drawFloatingLayerAttributed();
       return;
     }
 
-    // Indexed modes (Phase 13): stamp cells carry palette indices — the
+    // Indexed modes (Phase 13): stamp cells carry palette indices - the
     // stamp's own indices when it was cut/copied in an indexed mode, else
     // the mask painted with the current indexed ink.
     if (ZX_SPECTRUM.PIXEL_DEPTH > 1) {
@@ -1893,140 +1878,35 @@ class SelectionServiceClass {
       return;
     }
 
-    // The stamp's OWN "XOR mode" checkbox (LayerPanel) is a persisted,
-    // per-stamp feature independent of the global draw-mode selector, and
-    // takes priority when engaged: pre-compute (target XOR stamp_shape) into
-    // the floating layer's cells so the compositor can render the toggled
-    // result directly.
-    if (floatingLayer.xorMode) {
-      this._drawFloatingLayerXOR();
-      return;
-    }
-
-    // The global draw mode's own XOR entry needs the same "replace, don't
-    // OR-stack" compositing the checkbox above uses, but must not touch the
-    // persisted layer.xorMode flag (that would desync the UI checkbox and
-    // make commitStamp/stampAt run the WRONG bake branch). It has its own
-    // method and composites via a per-CELL flag instead — see
-    // LayerManager._composeCellData's cell.xorReplace check. XOR_PIXEL reuses
-    // the same preview: a stamp touches each pixel once, so the once-per-
-    // stroke gate that tells XOR and XOR_PIXEL apart never comes into play here.
-    const mode = PixelDrawRoutine.resolveUserMode(true);
-    if (mode === DRAW_MODE.XOR || mode === DRAW_MODE.XOR_PIXEL) {
-      this._drawFloatingLayerModeXOR(colorSelection);
-      return;
-    }
-
-    const targetLayer = this._findTargetBelow(floatingLayer);
-    const bgLayer = LayerManager.layers[0];
-    const CW = ZX_SPECTRUM.CELL_WIDTH;
-    const CH = ZX_SPECTRUM.CELL_HEIGHT;
-
-    // Iterate cell by cell — mirrors _drawFloatingLayerXOR so paper colour is
-    // inherited from the target (or background) rather than from colorSelection.
-    // This ensures the stamp preview does not impose paper onto the canvas below.
-    const startCellX = Math.max(0, ZX_COORDS.pixelToCell(x, y).x);
-    const startCellY = Math.max(0, ZX_COORDS.pixelToCell(x, y).y);
-    const endCellX = Math.min(ZX_SPECTRUM.GRID_COLS - 1, ZX_COORDS.pixelToCell(x + width - 1, y).x);
-    const endCellY = Math.min(ZX_SPECTRUM.GRID_ROWS - 1, ZX_COORDS.pixelToCell(x, y + height - 1).y);
-
-    for (let cy = startCellY; cy <= endCellY; cy++) {
-      for (let cx = startCellX; cx <= endCellX; cx++) {
-        const fpCell = floatingLayer.getCell(cx, cy);
-        if (!fpCell) continue;
-
-        // Build stamp pixel mask for this cell
-        let touched = false;
-        for (let ly = 0; ly < CH; ly++) {
-          const stampY = cy * CH + ly - y;
-          if (stampY < 0 || stampY >= height) continue;
-          const row = pixels[stampY];
-          if (!row) continue;
-          for (let lx = 0; lx < CW; lx++) {
-            const stampX = cx * CW + lx - x;
-            if (stampX < 0 || stampX >= width) continue;
-            if (row[stampX]) {
-              fpCell.pixels[ly] |= (1 << (CW - 1 - lx));
-              touched = true;
-            }
-          }
-        }
-
-        if (!touched) continue;
-
-        // Attributes inherited from the target (or background) — the
-        // starting point for every mode below, since Ink/Paper/Pixels Only
-        // only ever change PART of a cell's attributes/pixels and must leave
-        // the rest exactly as the target already shows it.
-        const targetCell = targetLayer ? targetLayer.getCell(cx, cy) : null;
-        const attrSource = (targetCell && targetCell.altered)
-          ? targetCell
-          : (bgLayer ? bgLayer.getCell(cx, cy) : null);
-        const srcInk    = attrSource ? attrSource.ink    : DEFAULT_CELL_ATTRS.ink;
-        const srcPaper  = attrSource ? attrSource.paper  : DEFAULT_CELL_ATTRS.paper;
-        const srcBright = attrSource ? attrSource.bright : DEFAULT_CELL_ATTRS.bright;
-        const srcFlash  = attrSource ? attrSource.flash  : DEFAULT_CELL_ATTRS.flash;
-
-        fpCell.xorReplace = false;
-
-        if (mode === DRAW_MODE.PIXEL_ONLY) {
-          // Pixels Only never touches attributes — the floating layer's
-          // topmost-attrs-win compositing must be a visual no-op here.
-          fpCell.ink = srcInk; fpCell.paper = srcPaper;
-          fpCell.bright = srcBright; fpCell.flash = srcFlash;
-        } else if (mode === DRAW_MODE.INK) {
-          // Ink Recolour never places a pixel shape — undo the mask bits
-          // just OR'd in above so the composite shows only the target's own
-          // ink, recoloured.
-          fpCell.pixels.fill(0);
-          fpCell.ink    = colorSelection.inkTransparent ? srcInk : colorSelection.ink;
-          fpCell.paper  = srcPaper;
-          fpCell.bright = colorSelection.bright;
-          fpCell.flash  = colorSelection.flash;
-        } else if (mode === DRAW_MODE.PAPER) {
-          fpCell.pixels.fill(0);
-          fpCell.paper  = colorSelection.paperTransparent ? srcPaper : colorSelection.paper;
-          fpCell.ink    = srcInk;
-          fpCell.bright = colorSelection.bright;
-          fpCell.flash  = colorSelection.flash;
-        } else {
-          // Normal: the whole attribute from the current selection, which is
-          // what stampAt and commitStamp now write. The preview showed the
-          // target's paper while the commit wrote the same, so this was
-          // honest - but it also showed the SELECTED flash against a commit
-          // that inherited it, so the two were never quite the same picture.
-          fpCell.ink    = colorSelection.inkTransparent   ? srcInk   : colorSelection.ink;
-          fpCell.paper  = colorSelection.paperTransparent ? srcPaper : colorSelection.paper;
-          fpCell.bright = colorSelection.bright;
-          fpCell.flash  = colorSelection.flash;
-        }
-
-        fpCell.altered = true;
-        LayerManager.deferCellCompose(cx, cy);
-      }
-    }
+    this._drawFloatingLayerClassic();
   }
 
   /**
-   * Live preview for the top-bar draw-mode selector's XOR entry — distinct
-   * from the per-stamp "XOR mode" checkbox (_drawFloatingLayerXOR): this one
-   * applies the CURRENT colour selection to the toggled pixels (mirroring
-   * DRAW_MODE.XOR / PixelDrawRoutine._applyXOR on commit) rather than
-   * inheriting the target's own attributes untouched. It composites through
-   * the same per-cell "replace, don't OR-stack" path as the checkbox
-   * (cell.xorReplace, checked by LayerManager._composeCellData) but sets that
-   * flag on the CELL rather than the layer, so it never touches the
-   * persisted layer.xorMode flag or its UI checkbox.
-   * @param {Object} colorSelection
+   * The classic (1-bit, attribute-cell) stamp preview - see _drawFloatingLayer.
+   *
+   * The colour selection is read LIVE rather than from the captured
+   * `fp.colorSelection`, because the commit reads it live: a re-engaged stamp
+   * carried the colours it was created with and previewed something the bake
+   * would not produce.
    * @private
    */
-  _drawFloatingLayerModeXOR(colorSelection) {
+  _drawFloatingLayerClassic() {
     const { pixels, width, height, x, y, floatingLayer } = this.floatingPaste;
+    const colorSelection = (window.ColorManager && ColorManager.getCurrentSelection)
+      ? ColorManager.getCurrentSelection()
+      : this.floatingPaste.colorSelection;
     const targetLayer = this._findTargetBelow(floatingLayer);
-    const bgLayer = LayerManager.layers[0];
+    // With no drawing layer below, a commit would refuse; the preview still
+    // has to show something, so it simulates onto the stamp layer itself -
+    // whose empty cells seed from the page exactly as a real cell would.
+    const writeLayer = targetLayer || floatingLayer;
+    const excludeLayer = targetLayer ? floatingLayer : null;
+    // XOR_PIXEL reuses XOR's preview: a stamp touches each pixel once, so the
+    // once-per-stroke gate that tells them apart never comes into play here.
+    const mode = PixelDrawRoutine.resolveUserMode(true);
+
     const CW = ZX_SPECTRUM.CELL_WIDTH;
     const CH = ZX_SPECTRUM.CELL_HEIGHT;
-
     const startCellX = Math.max(0, ZX_COORDS.pixelToCell(x, y).x);
     const startCellY = Math.max(0, ZX_COORDS.pixelToCell(x, y).y);
     const endCellX = Math.min(ZX_SPECTRUM.GRID_COLS - 1, ZX_COORDS.pixelToCell(x + width - 1, y).x);
@@ -2036,9 +1916,13 @@ class SelectionServiceClass {
       for (let cx = startCellX; cx <= endCellX; cx++) {
         const fpCell = floatingLayer.getCell(cx, cy);
         if (!fpCell) continue;
-        const targetCell = targetLayer ? targetLayer.getCell(cx, cy) : null;
 
-        const stampMask = new Uint8Array(CH);
+        // The writes the stamp would make inside this cell. The stamp's own
+        // XOR-mode checkbox (LayerPanel) is a persisted, per-stamp feature
+        // independent of the draw-mode selector and takes priority when
+        // engaged: it toggles ink <-> paper against the target, which is
+        // exactly what stampAt and commitStamp bake.
+        const writes = [];
         for (let ly = 0; ly < CH; ly++) {
           const py = cy * CH + ly;
           const stampY = py - y;
@@ -2049,36 +1933,36 @@ class SelectionServiceClass {
             const px = cx * CW + lx;
             const stampX = px - x;
             if (stampX < 0 || stampX >= width) continue;
-            if (row[stampX]) stampMask[ly] |= (1 << (CW - 1 - lx));
+            if (!row[stampX]) continue;
+            writes.push({
+              localX: lx,
+              localY: ly,
+              mode: floatingLayer.xorMode
+                ? (writeLayer.getPixelState(px, py) ? DRAW_MODE.ERASE : DRAW_MODE.NORMAL)
+                : mode
+            });
           }
         }
 
-        let touched = false;
-        for (let row = 0; row < CH; row++) { if (stampMask[row]) { touched = true; break; } }
-        if (!touched) { fpCell.xorReplace = false; continue; }
-
-        const targetPixels = (targetCell && targetCell.altered) ? targetCell.pixels : null;
-        for (let row = 0; row < CH; row++) {
-          fpCell.pixels[row] = (targetPixels ? targetPixels[row] : 0) ^ stampMask[row];
+        if (writes.length === 0) {
+          fpCell.xorReplace = false;
+          continue;
         }
 
-        const attrSource = (targetCell && targetCell.altered)
-          ? targetCell
-          : (bgLayer ? bgLayer.getCell(cx, cy) : null);
-        const srcInk    = attrSource ? attrSource.ink    : DEFAULT_CELL_ATTRS.ink;
-        const srcPaper  = attrSource ? attrSource.paper  : DEFAULT_CELL_ATTRS.paper;
+        const simulated = PixelDrawRoutine.simulateCell(
+          writeLayer, cx, cy, writes, colorSelection);
+        const composed = LayerManager.previewCellData(
+          cx, cy, writeLayer, simulated, excludeLayer);
 
-        // Mirrors _applyXOR (PixelDrawRoutine._stampAttributes) exactly: ink
-        // and paper follow their transparent boxes, bright and flash are
-        // always the selection's own values - even with both colours on
-        // "use existing".
-        fpCell.ink    = colorSelection.inkTransparent   ? srcInk   : colorSelection.ink;
-        fpCell.paper  = colorSelection.paperTransparent ? srcPaper : colorSelection.paper;
-        fpCell.bright = colorSelection.bright;
-        fpCell.flash  = colorSelection.flash;
+        fpCell.pixels.set(composed.pixels);
+        fpCell.ink = composed.attrs.ink;
+        fpCell.paper = composed.attrs.paper;
+        fpCell.bright = composed.attrs.bright;
+        fpCell.flash = composed.attrs.flash;
         fpCell.altered = true;
-        fpCell.xorReplace = true;   // this cell IS the final composite for its position — never OR'd with layers below
-
+        // This cell IS the final composite for its position - never OR'd with
+        // the layers below (LayerManager._composeCellData's xorReplace check).
+        fpCell.xorReplace = true;
         LayerManager.deferCellCompose(cx, cy);
       }
     }
@@ -2204,76 +2088,6 @@ class SelectionServiceClass {
         fpCell.flash  = (attr & 0x80) !== 0;
         fpCell.xorReplace = false;
         fpCell.altered = true;
-        LayerManager.deferCellCompose(cx, cy);
-      }
-    }
-  }
-
-  /**
-   * XOR preview: per-cell, compute target_pixels XOR stamp_mask and copy target's
-   * attributes into the floating layer. The compositor's xorMode branch then renders
-   * those cells as final (no OR-stacking with anything below).
-   * @private
-   */
-  _drawFloatingLayerXOR() {
-    const { pixels, width, height, x, y, floatingLayer } = this.floatingPaste;
-    const targetLayer = this._findTargetBelow(floatingLayer);
-    if (!targetLayer) return;
-
-    const bgLayer = LayerManager.layers[0];
-    const CW = ZX_SPECTRUM.CELL_WIDTH;
-    const CH = ZX_SPECTRUM.CELL_HEIGHT;
-
-    const startCellX = Math.max(0, ZX_COORDS.pixelToCell(x, y).x);
-    const startCellY = Math.max(0, ZX_COORDS.pixelToCell(x, y).y);
-    const endCellX = Math.min(ZX_SPECTRUM.GRID_COLS - 1, ZX_COORDS.pixelToCell(x + width - 1, y).x);
-    const endCellY = Math.min(ZX_SPECTRUM.GRID_ROWS - 1, ZX_COORDS.pixelToCell(x, y + height - 1).y);
-
-    for (let cy = startCellY; cy <= endCellY; cy++) {
-      for (let cx = startCellX; cx <= endCellX; cx++) {
-        const fpCell = floatingLayer.getCell(cx, cy);
-        if (!fpCell) continue;
-        const targetCell = targetLayer.getCell(cx, cy);
-
-        // Build stamp-shape mask for this cell (one byte per row of 8 pixels)
-        const stampMask = new Uint8Array(CH);
-        for (let ly = 0; ly < CH; ly++) {
-          const py = cy * CH + ly;
-          const stampY = py - y;
-          if (stampY < 0 || stampY >= height) continue;
-          const row = pixels[stampY];
-          if (!row) continue;
-          for (let lx = 0; lx < CW; lx++) {
-            const px = cx * CW + lx;
-            const stampX = px - x;
-            if (stampX < 0 || stampX >= width) continue;
-            if (row[stampX]) stampMask[ly] |= (1 << (CW - 1 - lx));
-          }
-        }
-
-        // Skip cells that the stamp shape doesn't actually touch
-        let touched = false;
-        for (let row = 0; row < CH; row++) { if (stampMask[row]) { touched = true; break; } }
-        if (!touched) continue;
-
-        // Floating pixels = target XOR stamp; attributes copied from the target
-        // (or background if target's cell is unaltered) so colours don't change.
-        const targetPixels = (targetCell && targetCell.altered) ? targetCell.pixels : null;
-        for (let row = 0; row < CH; row++) {
-          fpCell.pixels[row] = (targetPixels ? targetPixels[row] : 0) ^ stampMask[row];
-        }
-
-        const attrSource = (targetCell && targetCell.altered)
-          ? targetCell
-          : (bgLayer ? bgLayer.getCell(cx, cy) : null);
-        if (attrSource) {
-          fpCell.ink    = attrSource.ink;
-          fpCell.paper  = attrSource.paper;
-          fpCell.bright = attrSource.bright;
-          fpCell.flash  = attrSource.flash;
-        }
-        fpCell.altered = true;
-
         LayerManager.deferCellCompose(cx, cy);
       }
     }

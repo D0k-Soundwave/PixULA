@@ -316,10 +316,12 @@ class InputHandlerClass {
       PixelDrawRoutine.draw(px.x, px.y,
         ColorManager.getCurrentSelection(), DRAW_MODE.ATTRIBUTES_ONLY, { layer, mirror: false });
     } else if (this._attrPaintMode === 'swap') {
-      const cellData = layer.getCell(cell.x, cell.y);
-      if (!cellData) return;
+      // What the cell SHOWS, not the placeholder black-on-white an empty
+      // upper-layer cell stores - swapping that produced white ink on black
+      // out of nowhere (2026-09-16).
+      const attrs = LayerManager.attrsAsSeen(layer, cell.x, cell.y);
       PixelDrawRoutine.draw(px.x, px.y,
-        { ink: cellData.paper, paper: cellData.ink, bright: cellData.bright, flash: cellData.flash },
+        { ink: attrs.paper, paper: attrs.ink, bright: attrs.bright, flash: attrs.flash },
         DRAW_MODE.ATTRIBUTES_ONLY, { layer, mirror: false });
     }
 

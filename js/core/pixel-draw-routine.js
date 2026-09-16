@@ -244,13 +244,15 @@ class PixelDrawRoutineClass {
    * centre dot of the size-1 brush cursor, which promises the colour the click
    * will actually paint rather than merely the selected ink.
    *
-   * Mirrors the _apply* functions below, so the two cannot disagree without a
-   * test noticing (tests/brush-cursor-colour.test.js): which modes set, keep or
-   * toggle the pixel, which write ink and paper (the transparent boxes still
-   * suppress them), and bright and flash written by every mode except Pixels
-   * Only. It reads the CURRENT layer's own cell, because that is where the
-   * write lands - an unaltered upper-layer cell holds the default attributes,
-   * and with Ink on "use existing" those are what the new pixel really takes.
+   * It SIMULATES the write (simulateCell) rather than reproducing its rules,
+   * so the dot cannot disagree with what the click does - which modes set,
+   * keep or toggle the pixel, which channels a transparent box takes from the
+   * page, bright and flash written by every mode except Pixels Only. Pinned
+   * by tests/brush-cursor-colour.test.js.
+   *
+   * It reads the CURRENT layer's own cell, because that is where the write
+   * lands; an empty cell there is seeded from what the page shows, exactly as
+   * a real write seeds it.
    *
    * @param {number} pixelX
    * @param {number} pixelY
@@ -268,46 +270,20 @@ class PixelDrawRoutineClass {
     const cellY = Math.floor(pixelY / ZX_SPECTRUM.CELL_HEIGHT);
     const localX = pixelX % ZX_SPECTRUM.CELL_WIDTH;
     const localY = pixelY % ZX_SPECTRUM.CELL_HEIGHT;
-    const cell = layer.getCell(cellX, cellY);
-    if (!cell) return null;
 
-    const mode = this.resolveUserMode(true);
+    const after = this.simulateCell(layer, cellX, cellY,
+      [{ localX, localY, mode: this.resolveUserMode(true) }],
+      ColorManager.getCurrentSelection());
+    if (!after) return null;
 
-    // Indexed modes: the same mapping as _applyIndexed
-    if (cell.indices) {
-      const ink = ColorManager.getIndexedInk();
-      const paper = ColorManager.getIndexedPaper();
-      if (mode === DRAW_MODE.PAPER) return paper;
-      if (mode === DRAW_MODE.XOR || mode === DRAW_MODE.XOR_PIXEL) {
-        const current = cell.indices[localY * ZX_SPECTRUM.CELL_WIDTH + localX];
-        if (current !== ink) return ink;
-        return layer.isBackground ? paper : null;
-      }
-      return ink;
+    if (after.indices) {
+      const index = after.indices[localY * ZX_SPECTRUM.CELL_WIDTH + localX];
+      return index < 0 ? null : index;
     }
 
-    const sel = ColorManager.getCurrentSelection();
-    const isSet = (cell.pixels[localY] & (1 << (7 - localX))) !== 0;
-    const xor = mode === DRAW_MODE.XOR || mode === DRAW_MODE.XOR_PIXEL;
-
-    let setAfter = isSet;                              // INK / PAPER keep the bit
-    if (mode === DRAW_MODE.NORMAL || mode === DRAW_MODE.PIXEL_ONLY) setAfter = true;
-    else if (xor) setAfter = !isSet;
-
-    const writesInk = mode === DRAW_MODE.NORMAL || mode === DRAW_MODE.INK || xor;
-    const writesPaper = mode === DRAW_MODE.NORMAL || mode === DRAW_MODE.PAPER || xor;
-    const writesBits = mode !== DRAW_MODE.PIXEL_ONLY;
-    const own = (value, fallback) => (value === undefined ? fallback : value);
-
-    const attrs = {
-      ink: (writesInk && !sel.inkTransparent) ? sel.ink : own(cell.ink, DEFAULT_CELL_ATTRS.ink),
-      paper: (writesPaper && !sel.paperTransparent)
-        ? sel.paper : own(cell.paper, DEFAULT_CELL_ATTRS.paper),
-      bright: writesBits ? sel.bright : own(cell.bright, DEFAULT_CELL_ATTRS.bright),
-      flash: writesBits ? sel.flash : own(cell.flash, DEFAULT_CELL_ATTRS.flash)
-    };
-    const resolved = ColorManager.attrToIndices(attrs);
-    return setAfter ? resolved.ink : resolved.paper;
+    const resolved = ColorManager.attrToIndices(LayerManagerClass.cellAttrs(after));
+    return (after.pixels[localY] & (1 << (ZX_SPECTRUM.CELL_WIDTH - 1 - localX)))
+      ? resolved.ink : resolved.paper;
   }
 
   /**
@@ -339,13 +315,7 @@ class PixelDrawRoutineClass {
     }
     if (!cell.altered && !layer.isBackground) return null;
 
-    const own = (value, fallback) => (value === undefined ? fallback : value);
-    const resolved = ColorManager.attrToIndices({
-      ink: own(cell.ink, DEFAULT_CELL_ATTRS.ink),
-      paper: own(cell.paper, DEFAULT_CELL_ATTRS.paper),
-      bright: own(cell.bright, DEFAULT_CELL_ATTRS.bright),
-      flash: own(cell.flash, DEFAULT_CELL_ATTRS.flash)
-    });
+    const resolved = ColorManager.attrToIndices(LayerManagerClass.cellAttrs(cell));
     return (cell.pixels[localY] & (1 << (7 - localX))) !== 0 ? resolved.ink : resolved.paper;
   }
 
@@ -421,7 +391,7 @@ class PixelDrawRoutineClass {
     // cancels visibly, which is the literal bitwise XOR some artists want.
     if (mode === DRAW_MODE.XOR && this.isInBatch) {
       const xorKey = `${layer.id}:${pixelY * ZX_SPECTRUM.WIDTH + pixelX}`;
-      if (this._xorStroke.has(xorKey)) return;
+      if (this._xorStroke.has(xorKey)) return false;
       this._xorStroke.add(xorKey);
     }
 
@@ -440,62 +410,9 @@ class PixelDrawRoutineClass {
     // not record state. The `skipUndo` option is accepted for backward
     // compatibility but has no effect in the snapshot model.
 
-    // Indexed modes (pixelDepth > 1, Phase 13): pixels are palette indices,
-    // not ink bits — route to the indexed apply and share the compose/emit
-    // tail below. Modes that only make sense on attributes are no-ops.
-    if (cell.indices) {
-      if (!this._applyIndexed(layer, cell, localX, localY, colorSelection, mode)) {
-        return false;
-      }
-    } else {
-    // Apply drawing based on mode
-    switch (mode) {
-      case DRAW_MODE.NORMAL:
-        this._applyNormalDraw(cell, localX, localY, colorSelection);
-        break;
-
-      case DRAW_MODE.NORMAL_ERASE:
-        this._applyNormalErase(cell, localX, localY, colorSelection);
-        break;
-
-      case DRAW_MODE.ERASE_ALL:
-        this._applyEraseAll(cell, localX, localY, layer,
-          `${layer.id}:${cellY * ZX_SPECTRUM.GRID_COLS + cellX}`);
-        break;
-
-      case DRAW_MODE.ERASE:
-        this._applyErase(cell, localX, localY);
-        break;
-
-      case DRAW_MODE.TRANSPARENT:
-        this._applyTransparent(cell, localX, localY);
-        break;
-
-      case DRAW_MODE.ATTRIBUTES_ONLY:
-        this._applyAttributesOnly(cell, colorSelection);
-        break;
-
-      case DRAW_MODE.PIXEL_ONLY:
-        this._applyPixelOnly(cell, localX, localY, true);
-        break;
-
-      case DRAW_MODE.INK:
-        this._applyInkDraw(cell, localX, localY, colorSelection);
-        break;
-
-      case DRAW_MODE.PAPER:
-        this._applyPaperDraw(cell, localX, localY, colorSelection);
-        break;
-
-      case DRAW_MODE.XOR:
-      case DRAW_MODE.XOR_PIXEL:
-        this._applyXOR(cell, localX, localY, colorSelection);
-        break;
-
-      default:
-        Logger.warn('PixelDrawRoutine', `Unknown draw mode: ${mode}`);
-        return false;
-    }
+    if (!this._applyToCell(layer, cell, cellX, cellY, localX, localY,
+      colorSelection, mode, this._eraseStroke, this.isInBatch)) {
+      return false;
     }
 
     // Defer cell composition to the RAF render pass — each unique cell is
@@ -587,6 +504,184 @@ class PixelDrawRoutineClass {
     this.pendingChanges.clear();
 
     EventBus.emit(EVENTS.PIXEL_BATCH_END);
+  }
+
+  // ── The apply core ─────────────────────────────────────────────────────────
+  //
+  // Everything draw() does once the write has passed its gates (bounds,
+  // symmetry, clip, dither, layer, XOR stroke dedup), factored out so a
+  // PREVIEW can run exactly the same rules against a copy of the cell -
+  // see simulateCell. draw() owns the gates; this owns the pixel and the
+  // attributes.
+
+  /**
+   * Apply one write to one cell.
+   * @param {Layer} layer - the layer the cell belongs to
+   * @param {Object} cell - the cell to write (a copy, when simulating)
+   * @param {number} cellX
+   * @param {number} cellY
+   * @param {number} localX - 0..CELL_WIDTH-1
+   * @param {number} localY - 0..CELL_HEIGHT-1
+   * @param {Object} colorSelection - { ink, paper, bright, flash, *Transparent }
+   * @param {string} mode - DRAW_MODE value
+   * @param {Map} eraseStroke - per-batch "wipe or keep" memory for ERASE_ALL
+   * @param {boolean} inBatch - whether a stroke is open (see _applyEraseAll)
+   * @returns {boolean} true if the write changed something
+   * @private
+   */
+  _applyToCell(layer, cell, cellX, cellY, localX, localY, colorSelection, mode,
+    eraseStroke, inBatch) {
+    // Indexed modes (pixelDepth > 1, Phase 13): pixels are palette indices,
+    // not ink bits. No cell attributes, so nothing here applies to them.
+    if (cell.indices) {
+      return this._applyIndexed(layer, cell, localX, localY, colorSelection, mode);
+    }
+
+    if (!layer.isBackground && !cell.altered) {
+      // An empty upper-layer cell is see-through, and its stored attributes
+      // are placeholder black-on-white that the artist never saw. Clearing a
+      // pixel there has nothing to clear: marking it altered would turn a
+      // transparent square opaque, which is what Delete, Outline and every
+      // flip used to do to the layers below (2026-09-16).
+      if (mode === DRAW_MODE.ERASE) return false;
+      // Every other mode is about to make this cell real, so it starts from
+      // what the page shows there - otherwise the channels this mode does not
+      // write (Pixels Only's four, Ink Recolour's paper) would come out as
+      // that placeholder. ERASE_ALL is exempt: it resets to the defaults by
+      // definition and leaves the cell see-through.
+      if (mode !== DRAW_MODE.ERASE_ALL) {
+        const shown = LayerManager.attrsShowing(cellX, cellY, layer.gigaScreen || 0);
+        cell.ink = shown.ink;
+        cell.paper = shown.paper;
+        cell.bright = shown.bright;
+        cell.flash = shown.flash;
+      }
+    }
+
+    const sel = this._resolveTransparent(layer, cellX, cellY, colorSelection, mode);
+
+    switch (mode) {
+      case DRAW_MODE.NORMAL:
+        this._applyNormalDraw(cell, localX, localY, sel);
+        return true;
+
+      case DRAW_MODE.NORMAL_ERASE:
+        this._applyNormalErase(cell, localX, localY, sel);
+        return true;
+
+      case DRAW_MODE.ERASE_ALL:
+        this._applyEraseAll(cell, localX, localY, layer,
+          `${layer.id}:${cellY * ZX_SPECTRUM.GRID_COLS + cellX}`, eraseStroke, inBatch);
+        return true;
+
+      case DRAW_MODE.ERASE:
+        this._applyErase(cell, localX, localY);
+        return true;
+
+      case DRAW_MODE.TRANSPARENT:
+        this._applyTransparent(cell, localX, localY);
+        return true;
+
+      case DRAW_MODE.ATTRIBUTES_ONLY:
+        this._applyAttributesOnly(cell, sel);
+        return true;
+
+      case DRAW_MODE.PIXEL_ONLY:
+        this._applyPixelOnly(cell, localX, localY, true);
+        return true;
+
+      case DRAW_MODE.INK:
+        this._applyInkDraw(cell, localX, localY, sel);
+        return true;
+
+      case DRAW_MODE.PAPER:
+        this._applyPaperDraw(cell, localX, localY, sel);
+        return true;
+
+      case DRAW_MODE.XOR:
+      case DRAW_MODE.XOR_PIXEL:
+        this._applyXOR(cell, localX, localY, sel);
+        return true;
+
+      default:
+        Logger.warn('PixelDrawRoutine', `Unknown draw mode: ${mode}`);
+        return false;
+    }
+  }
+
+  /**
+   * Resolve the transparent ("use existing") boxes into concrete colours.
+   *
+   * THE DEFINITION (the artist's, 2026-09-16): a transparent Ink or Paper
+   * takes the cell's PRE-EXISTING value, and that value is what the page
+   * SHOWS at that cell - the topmost visible layer that has its own value
+   * there, even one ABOVE the layer being drawn on, else the background
+   * (LayerManager.attrsShowing). Hidden layers do not count. It is copied at
+   * the moment of the write and does not keep following the page afterwards.
+   *
+   * Only the modes that write colours need it; the rest never read these
+   * fields. The resolved selection carries the flags as false, so the _apply*
+   * functions below simply write what they are given.
+   * @returns {Object} colorSelection, resolved (the original when nothing is transparent)
+   * @private
+   */
+  _resolveTransparent(layer, cellX, cellY, colorSelection, mode) {
+    if (!colorSelection) return colorSelection;
+    if (!colorSelection.inkTransparent && !colorSelection.paperTransparent) {
+      return colorSelection;
+    }
+    if (mode !== DRAW_MODE.NORMAL && mode !== DRAW_MODE.NORMAL_ERASE &&
+        mode !== DRAW_MODE.ATTRIBUTES_ONLY && mode !== DRAW_MODE.INK &&
+        mode !== DRAW_MODE.PAPER && mode !== DRAW_MODE.XOR &&
+        mode !== DRAW_MODE.XOR_PIXEL) {
+      return colorSelection;
+    }
+    const shown = LayerManager.attrsShowing(cellX, cellY, layer.gigaScreen || 0);
+    return {
+      ...colorSelection,
+      ink: colorSelection.inkTransparent ? shown.ink : colorSelection.ink,
+      paper: colorSelection.paperTransparent ? shown.paper : colorSelection.paper,
+      inkTransparent: false,
+      paperTransparent: false
+    };
+  }
+
+  /**
+   * What ONE cell would look like after a set of writes, without touching the
+   * document - the preview half of the gate.
+   *
+   * Runs the real `_applyToCell` against a copy of the cell, so a preview
+   * cannot drift from what a commit does: same seeding, same transparent
+   * resolution, same per-mode rules. Pair it with
+   * LayerManager.previewCellColours to get the pixels a preview should paint.
+   *
+   * ERASE_ALL's "wipe or keep" memory is local to the call, so a simulation
+   * never disturbs a live stroke.
+   * @param {Layer} layer - the layer the write would land on
+   * @param {number} cellX
+   * @param {number} cellY
+   * @param {Array<{localX: number, localY: number, mode: string}>} writes
+   * @param {Object} colorSelection
+   * @returns {Object|null} the modified COPY of the cell, or null out of bounds
+   */
+  simulateCell(layer, cellX, cellY, writes, colorSelection) {
+    const src = layer && layer.getCell(cellX, cellY);
+    if (!src) return null;
+
+    const clone = {
+      ink: src.ink, paper: src.paper, bright: src.bright, flash: src.flash,
+      altered: src.altered,
+      pixels: new Uint8Array(src.pixels)
+    };
+    if (src.indices) clone.indices = new Int16Array(src.indices);
+
+    const eraseStroke = new Map();
+    for (let i = 0; i < writes.length; i++) {
+      const w = writes[i];
+      this._applyToCell(layer, clone, cellX, cellY, w.localX, w.localY,
+        colorSelection, w.mode, eraseStroke, true);
+    }
+    return clone;
   }
 
   /**
@@ -689,8 +784,10 @@ class PixelDrawRoutineClass {
    * The cell's ink/paper/bright/flash from the attribute bar.
    *
    * Shared by every mode that colours a cell, so "what does drawing do to the
-   * attributes" has ONE answer. The ink/paper transparent boxes suppress their
-   * own channel; bright and flash are ALWAYS written, each as its own value.
+   * attributes" has ONE answer. All four fields are written; a transparent
+   * ("use existing") Ink or Paper has already been resolved to the colour the
+   * page shows there by _resolveTransparent, so this writes that. Bright and
+   * flash are ALWAYS written, each as its own value.
    *
    * They used to be written only alongside a colour, on the argument that they
    * are bits of the same attribute byte. That never followed - the byte is
@@ -751,14 +848,17 @@ class PixelDrawRoutineClass {
    * held for the rest of it (_eraseStroke) - otherwise the stamp after the one
    * that took the last dot would wipe the colours in the same stroke. Outside
    * a batch every call is its own pass.
-   * @param {string} strokeKey - layer + cell identity for _eraseStroke
+   * @param {string} strokeKey - layer + cell identity for the stroke memory
+   * @param {Map} eraseStroke - the stroke memory (the live one, or a
+   *   simulation's own)
+   * @param {boolean} inBatch - true while a stroke is open
    * @private
    */
-  _applyEraseAll(cell, localX, localY, layer, strokeKey) {
-    let wipe = this.isInBatch ? this._eraseStroke.get(strokeKey) : undefined;
+  _applyEraseAll(cell, localX, localY, layer, strokeKey, eraseStroke, inBatch) {
+    let wipe = inBatch ? eraseStroke.get(strokeKey) : undefined;
     if (wipe === undefined) {
       wipe = cell.pixels.every(row => row === 0);
-      if (this.isInBatch) this._eraseStroke.set(strokeKey, wipe);
+      if (inBatch) eraseStroke.set(strokeKey, wipe);
     }
 
     const bitPosition = 7 - localX;
@@ -783,6 +883,10 @@ class PixelDrawRoutineClass {
    * rewritten underneath them, and Pixels Only uses it for its right button.
    * The right button in Normal wants _applyNormalErase; the eraser tool wants
    * _applyEraseAll.
+   *
+   * On an EMPTY upper-layer cell it never runs at all (_applyToCell returns
+   * false): there is no pixel to clear, and marking the cell altered would
+   * make a see-through square opaque black-on-white over the layers below.
    * @private
    */
   _applyErase(cell, localX, localY) {
