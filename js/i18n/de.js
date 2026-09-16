@@ -126,6 +126,7 @@ const de = {
 
     // Accessibility
     'a11y.textSize': 'Oberflächengröße',
+    'opt.fitToScreen': 'An Bildschirm anpassen',
 
     // Transform panel options
     'tools.selectPrompt': 'Werkzeug wählen, um Optionen zu sehen',

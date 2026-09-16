@@ -1947,6 +1947,10 @@
     box-shadow: var(--glass-shadow);
     max-width: 92vw;
     max-height: 90vh;
+    /* The visible viewport, so a dialog cannot run under a tablet's
+       address bar and take its buttons with it (2026-09-16). The vh line
+       above is the fallback where dvh is unknown. */
+    max-height: 90dvh;
 }
 
 .app-dialog::backdrop {
@@ -2115,6 +2119,7 @@
     flex-direction: column;
     gap: 2px;
     max-height: 50vh;
+    max-height: 50dvh;
     overflow-y: auto;
 }
 
@@ -2608,6 +2613,7 @@
     position: relative;
     overflow: auto;
     height: min(52vh, 520px);
+    height: min(52dvh, 520px);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     background: var(--bg-secondary);
@@ -2838,6 +2844,7 @@
 /* 256-entry editor grid: tighter swatches, capped height, scrolls */
 .palette-editor-large {
     max-height: min(60vh, 480px);
+    max-height: min(60dvh, 480px);
     overflow-y: auto;
 }
 
@@ -2907,6 +2914,7 @@
 .indexed-palette-grid {
     grid-template-columns: repeat(8, 1fr);
     max-height: 40vh;
+    max-height: 40dvh;
     overflow-y: auto;
 }
 
@@ -3148,6 +3156,7 @@
 /* Every slot is listed, so the list scrolls rather than the dialog growing. */
 .preset-list {
     max-height: min(60vh, 480px);
+    max-height: min(60dvh, 480px);
     overflow-y: auto;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
@@ -3264,6 +3273,7 @@
 .manual-dialog {
     width: 78rem;
     height: 88vh;
+    height: 88dvh;
     /* The reset zeroes dialog margins, which is fine for a box that sizes to
        its content but pins an explicitly sized one to the top-left corner. */
     margin: auto;

@@ -488,6 +488,7 @@ const en = {
 
     // Accessibility
     'a11y.textSize': 'Interface size',
+    'opt.fitToScreen': 'Fit to screen',
     'a11y.skipToCanvas': 'Skip to canvas',
     'app.rotateTitle': 'Turn your device sideways',
     'app.rotateText': 'PixULA works in landscape. Turn your tablet or phone on its side to continue.',

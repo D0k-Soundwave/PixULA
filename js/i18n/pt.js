@@ -126,6 +126,7 @@ const pt = {
 
     // Accessibility
     'a11y.textSize': 'Tamanho da interface',
+    'opt.fitToScreen': 'Ajustar ao ecrã',
 
     // Transform panel options
     'tools.selectPrompt': 'Selecione uma ferramenta para ver as opções',

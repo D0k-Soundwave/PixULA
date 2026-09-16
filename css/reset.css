@@ -20,7 +20,14 @@ html {
 }
 
 body {
+    /* dvh, not vh: on a phone or tablet `vh` is the height the page would
+       have with the browser's address bar hidden, so a `100vh` page is taller
+       than what is on screen and its bottom cannot be reached. `dvh` is the
+       visible viewport and follows the bar as it hides and shows. The vh line
+       stays first as the fallback for anything that does not know `dvh`.
+       (css/layout.css pins this app's own chain to 100% on top of this.) */
     min-height: 100vh;
+    min-height: 100dvh;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

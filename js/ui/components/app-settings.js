@@ -25,8 +25,23 @@
 class AppSettingsClass {
     constructor() {
         this.SCALE_KEY = 'uiFontScale';
+        /** The selector value that means "let UiFit decide" - the default. */
+        this.FIT = 'fit';
         /** What the artist chose (the selector / Storage value). */
         this._userScale = 1;
+        /**
+         * True while the artist has asked for "Fit to screen" rather than a
+         * size of their own.
+         *
+         * The fit used to apply on top of EVERY choice, which made the whole
+         * control dead on a tablet: the fitted value there is around 0.84,
+         * below even the smallest size the list offered, so all five entries
+         * applied the same scale (M, 2026-09-16, the harness's Chrome at
+         * 1024x768 with touch). Fitting is now one entry in the list, and a
+         * size the artist picks is applied exactly - if it does not fit, the
+         * rail and the panels scroll, which is the artist's business.
+         */
+        this._autoFit = true;
         /** What is on --ui-scale right now; null until first applied. */
         this._appliedScale = null;
         /** (hover: none) and (pointer: coarse) - see UiFit. */
@@ -74,20 +89,30 @@ class AppSettingsClass {
             .sort((a, b) => a - b);
 
         const apply = (scale) => {
+            if (String(scale) === this.FIT) {
+                this._autoFit = true;
+                this.refitScale();
+                return this.FIT;
+            }
             let n = parseFloat(scale);
-            if (!(n > 0)) return this._userScale;
+            if (!(n > 0)) return this._autoFit ? this.FIT : this._userScale;
             if (sel) {
                 const values = presets();
                 if (values.length) n = clamp(n, values[0], values[values.length - 1]);
             }
+            this._autoFit = false;
             this._userScale = n;
             this.refitScale();
             return n;
         };
 
         if (sel) {
-            const chosen = parseFloat(sel.value);
-            if (chosen > 0) this._userScale = chosen;
+            if (sel.value === this.FIT) {
+                this._autoFit = true;
+            } else {
+                const chosen = parseFloat(sel.value);
+                if (chosen > 0) { this._autoFit = false; this._userScale = chosen; }
+            }
         }
 
         // Re-fit whenever the room changes: a resize (which a rotation is),
@@ -167,9 +192,14 @@ class AppSettingsClass {
      */
     refitScale() {
         const touchPrimary = !!(this._touchQuery && this._touchQuery.matches);
-        const next = (window.UiFit && touchPrimary)
-            ? UiFit.effectiveScale(Object.assign({ userScale: this._userScale, touchPrimary }, this._measureRoom()))
-            : this._userScale;
+        // Only "Fit to screen" fits. A size the artist picked is applied as
+        // picked, on any device - the fit is an option in the list now, not a
+        // cap over every other one. Fitting still never scales UP (the ceiling
+        // it fits under is 1), and a desktop is never fitted at all: a desktop
+        // short of room has a bigger window as its answer.
+        const next = (this._autoFit && window.UiFit && touchPrimary)
+            ? UiFit.effectiveScale(Object.assign({ userScale: 1, touchPrimary }, this._measureRoom()))
+            : (this._autoFit ? 1 : this._userScale);
         if (this._appliedScale !== null && Math.abs(next - this._appliedScale) < 1e-6) return;
         this._appliedScale = next;
         document.documentElement.style.setProperty('--ui-scale', String(next));

@@ -126,6 +126,7 @@ const cs = {
 
     // Accessibility
     'a11y.textSize': 'Velikost rozhraní',
+    'opt.fitToScreen': 'Přizpůsobit obrazovce',
 
     // Transform panel options
     'tools.selectPrompt': 'Vyberte nástroj pro zobrazení možností',

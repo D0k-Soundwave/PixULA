@@ -126,6 +126,7 @@ const ro = {
 
     // Accessibility
     'a11y.textSize': 'Dimensiunea interfeței',
+    'opt.fitToScreen': 'Potrivește la ecran',
 
     // Transform panel options
     'tools.selectPrompt': 'Selectați un instrument pentru a vedea opțiunile',
