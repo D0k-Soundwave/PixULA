@@ -27,13 +27,24 @@
 // buttons for one job is a choice the artist has to make and cannot get right.
 // Recolour is the one that names what it does. The DRAW_MODE.ATTRIBUTES_ONLY
 // primitive stays — Recolour, Swap and TransformService all write through it.
+//
+// A mode whose 7th field is true acts on CELL ATTRIBUTES, so it means nothing
+// in a screen mode whose cells have none - the indexed Next modes give every
+// pixel its own palette index, and Timex hi-res shares one pair across the
+// screen and ignores cell attributes at render. Offered there, Ink Recolour
+// did exactly what Normal did and Paper Recolour painted the background index,
+// while in Timex hi-res both wrote attributes nothing ever draws (2026-09-16).
+// _syncAvailability hides them in those modes, exactly as ClutBar hides the
+// Swap/Recolour attribute ops in the same ones and for the same reason.
 const MODES = [
     ['normal',          'icon-dm-normal',     'dm.normal',         'Normal',
      'dm.normal.hint', 'Sets pixels and stamps the cell\'s ink, paper, bright and flash together'],
     ['ink',             'icon-dm-ink',        'dm.ink',            'Ink Recolour',
-     'dm.ink.hint', 'Repaints the ink colour and flash of the cell under the pointer, without touching any pixel'],
+     'dm.ink.hint', 'Repaints the ink colour, bright and flash of the cell under the pointer, without touching any pixel',
+     true],
     ['paper',           'icon-dm-paper',      'dm.paper',          'Paper Recolour',
-     'dm.paper.hint', 'Repaints the paper colour and flash of the cell under the pointer, without touching any pixel'],
+     'dm.paper.hint', 'Repaints the paper colour, bright and flash of the cell under the pointer, without touching any pixel',
+     true],
     ['pixel_only',      'icon-dm-pixels',     'dm.pixelsOnly',     'Pixels Only',
      'dm.pixelsOnly.hint', 'Sets or clears pixels without touching that cell\'s ink, paper, bright or flash'],
     ['xor',             'icon-dm-xor',        'dm.xor',            'XOR / Over',
@@ -86,6 +97,11 @@ class DrawModeBarClass {
 
         EventBus.on(EVENTS.DRAW_MODE_CHANGED, ({ mode }) => {
             this._sync(mode);
+            // A mode can also arrive from a workspace preset or a restored
+            // session, which never passed these buttons - so the same
+            // availability rule is applied to whatever arrives, not only to
+            // what a click sets. Terminates: the fallback is always available.
+            this._syncAvailability();
             Storage.set(this.STORAGE_KEY, mode, Storage.STORES.PREFERENCES).catch(() => {});
         });
 
@@ -103,9 +119,42 @@ class DrawModeBarClass {
             if (StateManager.getDrawMode() !== 'normal') StateManager.setDrawMode('normal');
         });
 
+        // Which modes mean anything depends on the screen mode's cells.
+        EventBus.on(EVENTS.SCREEN_MODE_CHANGED, () => this._syncAvailability());
+
+        this._syncAvailability();
         this._sync(StateManager.getDrawMode());
         this._buildMirrorControls();
         Logger.info('DrawModeBar', 'Initialized');
+    }
+
+    /**
+     * Offer only the modes the active screen mode can actually carry out, and
+     * leave Normal in force if the artist was standing in one that just became
+     * meaningless (see the MODES table).
+     *
+     * Hidden with `visibility`, not `display`, and never removed: #color-bar's
+     * width would otherwise depend on the screen mode, and ColorBarFit would
+     * settle on a different scale for one mode than for another, visibly
+     * resizing every icon in the strip on a mode switch. The same reason
+     * ClutBar hides the attribute ops that way.
+     * @private
+     */
+    _syncAvailability() {
+        const hasAttributes = !window.ColorManager ||
+            typeof ColorManager.hasCellAttributes !== 'function' ||
+            ColorManager.hasCellAttributes();
+        let activeLost = false;
+        for (const [value, , , , , , needsAttributes] of MODES) {
+            const btn = this._buttons.get(value);
+            if (!btn) continue;
+            const available = hasAttributes || !needsAttributes;
+            btn.style.visibility = available ? '' : 'hidden';
+            btn.disabled = !available;
+            btn.setAttribute('aria-hidden', String(!available));
+            if (!available && StateManager.getDrawMode() === value) activeLost = true;
+        }
+        if (activeLost) StateManager.setDrawMode('normal');
     }
 
     /**

@@ -1176,7 +1176,8 @@ class PatternBrush extends BaseBrush {
 
         const mode = (!isInk || this._tileBit(patternData, x, y))
             ? PixelDrawRoutine.resolveUserMode(isInk)
-            : PixelDrawRoutine.resolveUserMode(false);
+            : PixelDrawRoutine.resolvePatternGapMode();
+        if (mode === null) return false;   // XOR: the gaps are not written
 
         return !!PixelDrawRoutine.draw(x, y, options.colorSelection, mode);
     }
@@ -1220,7 +1221,8 @@ class PatternBrush extends BaseBrush {
 
                 const mode = this._tileBit(patternData, pixelX, pixelY)
                     ? PixelDrawRoutine.resolveUserMode(true)
-                    : PixelDrawRoutine.resolveUserMode(false);
+                    : PixelDrawRoutine.resolvePatternGapMode();
+                if (mode === null) continue;   // XOR: the gaps are not written
                 if (PixelDrawRoutine.draw(pixelX, pixelY, colorSelection, mode)) applied = true;
             }
         }

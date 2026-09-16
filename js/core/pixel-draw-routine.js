@@ -240,6 +240,24 @@ class PixelDrawRoutineClass {
   }
 
   /**
+   * The mode a PATTERN's gap pixels take - the 0-bits of the tile, the half
+   * that is not ink - or null when they must not be written at all.
+   *
+   * A pattern lays ink on its 1-bits and paper on its 0-bits, so the gaps
+   * normally take the right-button mode (they clear the pixel and colour the
+   * cell, the scratch-off the pattern brush is named for). XOR has no paper
+   * half: it only toggles, so writing the gaps toggled the WHOLE footprint and
+   * the pattern vanished into a plain rectangular invert (2026-09-16). In the
+   * XOR modes the gaps are left alone, which is what makes an XOR pattern
+   * stroke still a pattern.
+   * @returns {string|null} DRAW_MODE value, or null to skip the gap
+   */
+  resolvePatternGapMode() {
+    const mode = this.resolveUserMode(false);
+    return (mode === DRAW_MODE.XOR || mode === DRAW_MODE.XOR_PIXEL) ? null : mode;
+  }
+
+  /**
    * The palette index a LEFT-button write at (x, y) would leave showing - the
    * centre dot of the size-1 brush cursor, which promises the colour the click
    * will actually paint rather than merely the selected ink.
