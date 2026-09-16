@@ -98,14 +98,11 @@ const inkAll = (page) => page.evaluate(() => {
     PixelDrawRoutine.endBatch();
 });
 
-/** Lit-pixel count on the hover-outline overlay. */
+/** How many pixels the hover mark covers - read from GridOverlay.markPixels(),
+ *  because the mark may be the hardware cursor, which a test cannot see. */
 const overlayLit = (page) => page.evaluate(() => {
-    const cvs = GridOverlay.pointerCanvas;
-    if (!cvs) return 0;
-    const { data } = cvs.getContext('2d').getImageData(0, 0, cvs.width, cvs.height);
-    let lit = 0;
-    for (let i = 3; i < data.length; i += 4) if (data[i] > 0) lit++;
-    return lit;
+    const mark = GridOverlay.markPixels();
+    return mark ? mark.points.length : 0;
 });
 
 const TIP = 1, BARREL = 2, BARREL2 = 4, ERASER = 32;

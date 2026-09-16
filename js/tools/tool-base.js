@@ -19,11 +19,12 @@ class ToolBaseClass {
     // footprintCursor below.
     this.cursor = 'crosshair';
     /*
-     * The tool's own mark REPLACES the system pointer over the picture, and
-     * this is the default: InputHandler swaps `cursor` for the small position
-     * ring (GridOverlay.positionCursor) while the mark is drawn there, keeps
-     * drawing the mark through a stroke, and draws a size-1 footprint as that
-     * one pixel rather than skipping it.
+     * The tool's own mark IS the system pointer over the picture, and this is
+     * the default: InputHandler hands the footprint to the operating system as
+     * the cursor image (GridOverlay.brushCursor) - one brush pixel per canvas
+     * pixel at the current zoom, in the colours it will leave - keeps it up
+     * through a stroke, and draws it on the pointer canvas instead where Chrome
+     * would refuse the image.
      *
      * It was the brush's alone until 2026-09-16, when the artist asked for
      * like-for-like everywhere: a crosshair says where the pointer is but

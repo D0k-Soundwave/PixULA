@@ -152,6 +152,13 @@ class InputHandlerClass {
     this._lastHoverPoint = null;
     // True while a footprintCursor tool's mark stands in for the pointer
     this._markCursorOn = false;
+    // How that mark is shown: 'cursor' (the hardware brush cursor), 'canvas'
+    // (drawn on the pointer canvas) or null
+    this._markVia = null;
+    // The pointer as _getCanvasPoint last saw it, unrounded: fractional
+    // picture pixels plus canvas-frame client px - what seats the brush
+    // cursor's grid on the canvas grid
+    this._pointerAt = null;
   }
 
   /** Initialize: wait for the canvas iframe, then attach all listeners. */
@@ -1135,21 +1142,11 @@ class InputHandlerClass {
   }
 
   /**
-   * While the tool's mark is over the picture, the system pointer becomes the
-   * POSITION marker (GridOverlay.positionCursor, a small hollow two-tone
-   * ring); off it, the current tool gets its own cursor back. Only ever undoes
-   * what it did, so the move and zoom tools' self-managed cursors are left
-   * alone.
-   *
-   * Why a hardware cursor at all, when the mark already shows where the
-   * pointer is: the mark is drawn by the app, so it reaches the screen a
-   * refresh after the hand moved, while the operating system paints its
-   * cursor at once. Hiding the cursor entirely left nothing on screen at the
-   * true position, which made the mark - and the ink under it - read as late
-   * (reported 2026-09-16). The two do different jobs and neither can do the
-   * other's: a cursor image cannot follow the brush size or the ink colour,
-   * and the mark cannot beat a refresh. The mark still trails by that
-   * refresh; what no longer does is the position.
+   * The system pointer while a tool's mark stands in for it but is drawn on
+   * the pointer canvas (the fallback where the hardware brush cursor cannot
+   * be used): hidden, so there is one mark on screen and not two. Off the
+   * picture the current tool gets its own cursor back. Only ever undoes what
+   * it did, so the move and zoom tools' self-managed cursors are left alone.
    * @private
    */
   _setMarkCursor(on) {
@@ -1157,8 +1154,7 @@ class InputHandlerClass {
       // Written every time rather than only on a change: ToolRail rewrites
       // the cursor on a tool switch, and a cached "already set" would then
       // leave the tool's own cursor showing under the mark.
-      CanvasSystem.setCanvasCursor(window.GridOverlay
-        ? GridOverlay.positionCursor() : 'none');
+      CanvasSystem.setCanvasCursor('none');
       this._markCursorOn = true;
       return;
     }
@@ -1201,10 +1197,12 @@ class InputHandlerClass {
    * both invalidate the memo) — so a stationary cursor costs nothing.
    *
    * For a footprintCursor tool (every tool that marks the picture) the mark
-   * stands in for the pointer: the system cursor becomes the position ring
-   * while it is over the picture, a size-1 footprint is drawn as that one
-   * pixel, and every pixel of the mark takes the colour from
-   * PixelDrawRoutine.markColours.
+   * IS the pointer: over the picture it becomes the system cursor image
+   * (GridOverlay.brushCursor), one brush pixel per canvas pixel at the
+   * current zoom, each pixel in the colour from PixelDrawRoutine.markColours,
+   * moved by the operating system with no app lag. Where Chrome would refuse
+   * that image (over 128 DIP, or crossing the window edge) the same mark is
+   * drawn on the pointer canvas with the system cursor hidden.
    *
    * @param {{x: number, y: number}} point
    * @param {Object} tool
@@ -1220,7 +1218,17 @@ class InputHandlerClass {
     if (!force && this._hoverOutlinePoint &&
         this._hoverOutlinePoint.x === point.x &&
         this._hoverOutlinePoint.y === point.y &&
-        this._hoverOutlineTool === tool.id) return;
+        this._hoverOutlineTool === tool.id) {
+      if (this._markVia !== 'cursor') return;
+      // Same canvas pixel, so the image is unchanged - but the hotspot must
+      // follow the pointer inside the pixel, or the image's grid slides off
+      // the canvas grid. If it no longer fits, redraw below as the fallback.
+      const value = GridOverlay.moveBrushCursor(this._pointerAt);
+      if (value) {
+        CanvasSystem.setCanvasCursor(value);
+        return;
+      }
+    }
 
     const pixels = (typeof tool.getFootprint === 'function')
       ? tool.getFootprint(point.x, point.y)
@@ -1245,20 +1253,27 @@ class InputHandlerClass {
     // Each pixel of the mark in the colour it will be left in (or, for the
     // eyedropper, the colour it will take) - PixelDrawRoutine.markColours.
     const colourAt = PixelDrawRoutine.markColours(tool, pixels, { live });
-    if (pixels.length === 1) {
-      const p = pixels[0];
-      GridOverlay.drawPixelCursor(p.x, p.y, colourAt(p.x, p.y));
+    const onPicture = isPointer && this._onPicture(point);
+    const cursor = onPicture
+      ? GridOverlay.brushCursor(pixels, colourAt, this._pointerAt)
+      : null;
+    if (cursor) {
+      CanvasSystem.setCanvasCursor(cursor);
+      this._markCursorOn = true;
+      this._markVia = 'cursor';
     } else {
       GridOverlay.drawFootprintOutline(pixels, colourAt);
+      this._markVia = 'canvas';
+      this._setMarkCursor(onPicture);
     }
     this._hoverOutlineShown = true;
-    this._setMarkCursor(isPointer && this._onPicture(point));
   }
 
   /** @private */
   _clearHoverOutline() {
     this._hoverOutlinePoint = null;
     this._hoverOutlineTool = null;
+    this._markVia = null;
     this._setMarkCursor(false);
     if (!this._hoverOutlineShown) return;
     this._hoverOutlineShown = false;
@@ -1577,8 +1592,11 @@ class InputHandlerClass {
     const scaleX = rect.width  / ZX_SPECTRUM.WIDTH;
     const scaleY = rect.height / ZX_SPECTRUM.HEIGHT;
 
-    let px = Math.floor((e.clientX - rect.left) / scaleX);
-    let py = Math.floor((e.clientY - rect.top) / scaleY);
+    const fx = (e.clientX - rect.left) / scaleX;
+    const fy = (e.clientY - rect.top) / scaleY;
+    this._pointerAt = { fx, fy, clientX: e.clientX, clientY: e.clientY };
+    let px = Math.floor(fx);
+    let py = Math.floor(fy);
 
     if (snap && StateManager.getGridSnap() && this._snapContextActive()) {
       const cellW = ZX_SPECTRUM.CELL_WIDTH;
