@@ -13,11 +13,12 @@ The left mouse button draws ink. The right button draws paper: it clears the
 dot and sets the same four values the left button would. On a pen, the barrel
 button does what the right button does.
 
-The **eraser** does something different from either. As well as clearing dots it
-empties the cell of colour: paper and flash go as soon as you touch the cell,
-and ink and bright go when the last dot in it is cleared. Those two wait because
-the ink colour belongs to all 64 dots at once, and dropping it earlier would
-recolour dots you had not erased yet.
+The **eraser** does something different from either. It clears dots and leaves
+the cell's colours alone, even when it clears the last dot in the cell. To wipe
+the colours as well, erase over the empty cell again with a new stroke: ink,
+paper, bright and flash go back to black on white, and on an upper layer the
+cell becomes see-through again. A cell that still has dots in it keeps its
+colours however many times you erase over it.
 
 ### Draw modes
 

@@ -125,10 +125,10 @@ class EraserToolClass extends ToolBase {
         if (seen.has(key)) continue;
         seen.add(key);
       }
-      // ERASE_ALL, not ERASE: the eraser undoes the fact that anything was
-      // drawn here, so a cell it empties gives up its attributes too. The
-      // right mouse button is the one that clears ink while still colouring
-      // the cell - see the DRAW_MODE block in constants.js.
+      // ERASE_ALL, not ERASE: a later stroke over a cell this one emptied
+      // resets its attributes too, which the primitive never does. The right
+      // mouse button is the one that clears ink while still colouring the
+      // cell - see the DRAW_MODE block in constants.js.
       PixelDrawRoutine.draw(x, y, color, DRAW_MODE.ERASE_ALL);
     }
   }

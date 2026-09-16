@@ -27,6 +27,7 @@ class PixelDrawRoutineClass {
     this._clipSuspend = 0;         // depth counter — see suspendClip()
     this._ditherGate = null;       // active thinning predicate — see withDitherGate()
     this._xorStroke = new Set();   // pixels already toggled in this batch — see draw()
+    this._eraseStroke = new Map(); // cell -> "was empty when this batch reached it" - see _applyEraseAll
   }
 
   // ── The dither gate (thinning) ─────────────────────────────────────────────
@@ -348,7 +349,8 @@ class PixelDrawRoutineClass {
         break;
 
       case DRAW_MODE.ERASE_ALL:
-        this._applyEraseAll(cell, localX, localY, layer);
+        this._applyEraseAll(cell, localX, localY, layer,
+          `${layer.id}:${cellY * ZX_SPECTRUM.GRID_COLS + cellX}`);
         break;
 
       case DRAW_MODE.ERASE:
@@ -432,6 +434,7 @@ class PixelDrawRoutineClass {
     this.isInBatch = true;
     this.pendingChanges.clear();
     this._xorStroke.clear();
+    this._eraseStroke.clear();
 
     if (window.UndoRedo) UndoRedo.beginAction(label);
 
@@ -450,6 +453,7 @@ class PixelDrawRoutineClass {
 
     this.isInBatch = false;
     this._xorStroke.clear();
+    this._eraseStroke.clear();
 
     // Close the UndoRedo action. If NO cell was modified during the batch
     // (e.g. a stamp click with no valid draw layer below it), cancel instead of
@@ -619,47 +623,43 @@ class PixelDrawRoutineClass {
   }
 
   /**
-   * The eraser TOOL: remove everything, in the order the cell allows.
+   * The eraser TOOL: dots first, colours only on a later pass.
    *
-   * Where the right button recolours as it clears, the eraser undoes the fact
-   * that anything was drawn here. It cannot do all of that at once, because
-   * attributes belong to all 64 pixels of a cell and some of those pixels may
-   * be ink the artist has not erased. So the reset comes in two stages, split
-   * by what the remaining ink still needs:
+   * A stroke that reaches a cell with ink in it clears dots and touches none of
+   * the four colours - not even when it takes the last dot. A stroke that
+   * reaches a cell ALREADY empty of ink wipes them: ink, paper, bright and
+   * flash go back to DEFAULT_CELL_ATTRS, and an upper-layer cell becomes
+   * unaltered, which is what makes it transparent again.
    *
-   *   ON CONTACT   paper and flash. Neither is needed to render ink, and both
-   *                are what the erased area itself shows - leaving a flashing
-   *                coloured background behind an erase is not erasing.
-   *   ON THE LAST  ink, and bright with it. Bright is a single bit shared by
-   *   PIXEL        both colours, so clearing it early would dim ink that is
-   *                still standing - the one thing this staging exists to
-   *                avoid. It goes when the ink it belongs to goes.
+   * The artist asked for this (2026-09-15): erasing dots must not cost the
+   * cell's colours, and wiping them is a separate, deliberate second pass. It
+   * replaced a staged reset (paper and flash on contact, ink and bright with
+   * the last dot), which recoloured cells the artist had only meant to clear.
    *
-   * On an upper layer the emptied cell becomes unaltered, which is what makes
-   * it transparent again rather than an opaque patch of paper.
+   * "Pass" is the BATCH, not the call. One drag crosses the same cell many
+   * times, so the decision is made when the batch first reaches the cell and
+   * held for the rest of it (_eraseStroke) - otherwise the stamp after the one
+   * that took the last dot would wipe the colours in the same stroke. Outside
+   * a batch every call is its own pass.
+   * @param {string} strokeKey - layer + cell identity for _eraseStroke
    * @private
    */
-  _applyEraseAll(cell, localX, localY, layer) {
+  _applyEraseAll(cell, localX, localY, layer, strokeKey) {
+    let wipe = this.isInBatch ? this._eraseStroke.get(strokeKey) : undefined;
+    if (wipe === undefined) {
+      wipe = cell.pixels.every(row => row === 0);
+      if (this.isInBatch) this._eraseStroke.set(strokeKey, wipe);
+    }
+
     const bitPosition = 7 - localX;
     cell.pixels[localY] &= ~(1 << bitPosition);
 
-    // Stage one, on every touch
-    cell.paper = DEFAULT_CELL_ATTRS.paper;
-    cell.flash = DEFAULT_CELL_ATTRS.flash;
+    if (!wipe) return;
 
-    let empty = true;
-    for (let row = 0; row < cell.pixels.length; row++) {
-      if (cell.pixels[row] !== 0) { empty = false; break; }
-    }
-
-    if (!empty) {
-      cell.altered = true;
-      return;
-    }
-
-    // Stage two: nothing is left that needed the ink colour
     cell.ink = DEFAULT_CELL_ATTRS.ink;
+    cell.paper = DEFAULT_CELL_ATTRS.paper;
     cell.bright = DEFAULT_CELL_ATTRS.bright;
+    cell.flash = DEFAULT_CELL_ATTRS.flash;
     // The background has nothing behind it, so it stays painted; an upper
     // layer goes back to showing what is underneath.
     cell.altered = !!(layer && layer.isBackground);

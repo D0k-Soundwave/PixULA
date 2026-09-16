@@ -55,6 +55,51 @@ test('the eraser size slider runs to 128', async ({ page }) => {
     expect(await page.evaluate(() => ToolManager.getCurrentTool().getSize())).toBe(128);
 });
 
+/**
+ * One stroke clears dots and keeps the colours; a SECOND stroke over the now
+ * empty cells wipes them. The Node suite drives the tool directly; this is the
+ * real pointer path, where InputHandler decides where a stroke begins and ends
+ * - and a "pass" is exactly that stroke.
+ */
+test('the eraser keeps colours on the first stroke and wipes them on the second', async ({ page }) => {
+    await boot(page);
+    // Two cells fully inked in bright flashing red on cyan, on the drawing layer
+    await page.evaluate(() => {
+        const layer = LayerManager.getCurrentLayer();
+        for (const cx of [10, 11]) {
+            const c = layer.getCell(cx, 10);
+            c.pixels.fill(0xFF);
+            c.ink = 2; c.paper = 5; c.bright = true; c.flash = true;
+            c.altered = true;
+        }
+    });
+    const cells = () => page.evaluate(() => [10, 11].map((cx) => {
+        const c = LayerManager.getCurrentLayer().getCell(cx, 10);
+        return { ink: c.ink, paper: c.paper, bright: c.bright, flash: c.flash,
+                 altered: c.altered, inked: c.pixels.some((r) => r !== 0) };
+    }));
+
+    await page.keyboard.press('e');
+    await setSize(page, 32);
+    const from = await pixelPoint(page, 84, 84);
+    const to = await pixelPoint(page, 91, 84);
+    const drag = async () => {
+        await page.mouse.move(from.x, from.y);
+        await page.mouse.down();
+        await page.mouse.move(to.x, to.y, { steps: 4 });
+        await page.mouse.move(from.x, from.y, { steps: 4 });   // back over the same cells
+        await page.mouse.up();
+    };
+
+    await drag();
+    const kept = { ink: 2, paper: 5, bright: true, flash: true, altered: true, inked: false };
+    expect(await cells(), 'first stroke: dots gone, colours kept').toEqual([kept, kept]);
+
+    await drag();
+    const wiped = { ink: 0, paper: 7, bright: false, flash: false, altered: false, inked: false };
+    expect(await cells(), 'second stroke: colours wiped, cells transparent').toEqual([wiped, wiped]);
+});
+
 test('a size-128 drag clears the swathe the disc promises', async ({ page }) => {
     await boot(page);
     await inkAll(page);
