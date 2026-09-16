@@ -174,8 +174,13 @@ class FillToolClass extends ToolBase {
           if (!matches(state)) continue;
 
           if (!isErase && this._usePattern && PatternService.getCurrentPattern()) {
-            const pm = PixelDrawRoutine.resolveUserMode(PatternService.shouldDrawPixel(pixelX, pixelY));
-            PixelDrawRoutine.draw(pixelX, pixelY, color, pm);
+            // The pattern's gaps take the gap mode, which is null in XOR (see
+            // PixelDrawRoutine.resolvePatternGapMode) - without that, every
+            // gap toggled too and the fill came out as a plain invert.
+            const pm = PatternService.shouldDrawPixel(pixelX, pixelY)
+              ? PixelDrawRoutine.resolveUserMode(true)
+              : PixelDrawRoutine.resolvePatternGapMode();
+            if (pm !== null) PixelDrawRoutine.draw(pixelX, pixelY, color, pm);
           } else {
             PixelDrawRoutine.draw(pixelX, pixelY, color, mode);
           }
@@ -218,8 +223,10 @@ class FillToolClass extends ToolBase {
       visited.add(key);
 
       if (!isErase && this._usePattern && PatternService.getCurrentPattern()) {
-        const pm = PixelDrawRoutine.resolveUserMode(PatternService.shouldDrawPixel(x, y));
-        PixelDrawRoutine.draw(x, y, color, pm);
+        const pm = PatternService.shouldDrawPixel(x, y)
+          ? PixelDrawRoutine.resolveUserMode(true)
+          : PixelDrawRoutine.resolvePatternGapMode();
+        if (pm !== null) PixelDrawRoutine.draw(x, y, color, pm);
       } else {
         PixelDrawRoutine.draw(x, y, color, mode);
       }

@@ -292,9 +292,14 @@ class PatternServiceClass {
                     const pixelY = y + py;
 
                     if (Validators.isValidPixelCoord(pixelX, pixelY)) {
-                        const shouldDraw = this.shouldDrawPixel(pixelX, pixelY);
-                        const mode = PixelDrawRoutine.resolveUserMode(shouldDraw);
-                        PixelDrawRoutine.draw(pixelX, pixelY, color, mode);
+                        // The gaps take the pattern gap mode, which is null in
+                        // XOR - see PixelDrawRoutine.resolvePatternGapMode.
+                        const mode = this.shouldDrawPixel(pixelX, pixelY)
+                            ? PixelDrawRoutine.resolveUserMode(true)
+                            : PixelDrawRoutine.resolvePatternGapMode();
+                        if (mode !== null) {
+                            PixelDrawRoutine.draw(pixelX, pixelY, color, mode);
+                        }
                     }
                 }
             }
@@ -352,9 +357,12 @@ class PatternServiceClass {
                         const patY = ((py + offsetY) % data.height + data.height) % data.height;
                         const idx = patY * data.width + patX;
 
-                        const shouldDraw = data.bitmap[idx] === 1;
-                        const mode = PixelDrawRoutine.resolveUserMode(shouldDraw);
-                        PixelDrawRoutine.draw(pixelX, pixelY, color, mode);
+                        const mode = data.bitmap[idx] === 1
+                            ? PixelDrawRoutine.resolveUserMode(true)
+                            : PixelDrawRoutine.resolvePatternGapMode();
+                        if (mode !== null) {
+                            PixelDrawRoutine.draw(pixelX, pixelY, color, mode);
+                        }
                     }
                 }
             }
