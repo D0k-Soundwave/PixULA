@@ -447,6 +447,8 @@ const ru = {
 
     // Attribute panel, accessibility, layers (extended), stamps, patterns (extended), tool hints
     'a11y.skipToCanvas': 'Перейти к холсту',
+    'app.rotateTitle': 'Поверните устройство',
+    'app.rotateText': 'PixULA работает в горизонтальной ориентации. Поверните планшет или телефон, чтобы продолжить.',
     'a11y.attrModeSwap': 'Режим обмена чернила/бумага включён',
     'a11y.attrModeApply': 'Режим применения атрибутов включён',
     'a11y.attrModeOff': 'Режим атрибутов выключен',

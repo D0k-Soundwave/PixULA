@@ -71,9 +71,10 @@ class CanvasControlsClass {
         return CanvasSystem.fitZoom();
     }
 
-    /** Apply the fit zoom (menu View -> Fit reuses this). */
+    /** Apply the fit zoom (menu View -> Fit reuses this), and keep following
+     *  it through frame resizes until another zoom is chosen. */
     applyFit() {
-        CanvasSystem.setZoom(this.fitZoom());
+        CanvasSystem.zoomToFit();
     }
 
     /** Step zoom along ZOOM_CONFIG.LADDER (multiplicative stops). */

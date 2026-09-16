@@ -447,6 +447,8 @@ const pt = {
 
     // Attribute panel, accessibility, layers (extended), stamps, patterns (extended), tool hints
     'a11y.skipToCanvas': 'Saltar para a tela',
+    'app.rotateTitle': 'Gire o dispositivo',
+    'app.rotateText': 'O PixULA funciona na horizontal. Gire o tablet ou o celular para continuar.',
     'a11y.attrModeSwap': 'Modo de troca tinta/papel ativado',
     'a11y.attrModeApply': 'Modo de aplicação de atributos ativado',
     'a11y.attrModeOff': 'Modo de atributos desativado',

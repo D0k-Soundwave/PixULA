@@ -447,6 +447,8 @@ const de = {
 
     // Attribute panel, accessibility, layers (extended), stamps, patterns (extended), tool hints
     'a11y.skipToCanvas': 'Zum Canvas springen',
+    'app.rotateTitle': 'Gerät quer halten',
+    'app.rotateText': 'PixULA funktioniert im Querformat. Drehen Sie Ihr Tablet oder Smartphone, um fortzufahren.',
     'a11y.attrModeSwap': 'Tinte/Papier-Tauschmodus aktiviert',
     'a11y.attrModeApply': 'Attribut-Anwendungsmodus aktiviert',
     'a11y.attrModeOff': 'Attributmodus aus',

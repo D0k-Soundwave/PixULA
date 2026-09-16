@@ -206,7 +206,7 @@ class ZoomToolClass extends ToolBase {
      * Fit canvas to the visible viewport (CanvasSystem owns the computation)
      */
     fitToWindow() {
-        CanvasSystem.setZoom(CanvasSystem.fitZoom());
+        CanvasSystem.zoomToFit();
         Logger.debug('ZoomTool', `Fit to window at ${this.getZoom()}%`);
     }
 

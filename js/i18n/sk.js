@@ -447,6 +447,8 @@ const sk = {
 
     // Attribute panel, accessibility, layers (extended), stamps, patterns (extended), tool hints
     'a11y.skipToCanvas': 'Prejsť na plátno',
+    'app.rotateTitle': 'Otočte zariadenie',
+    'app.rotateText': 'PixULA funguje na šírku. Otočte tablet alebo telefón, aby ste mohli pokračovať.',
     'a11y.attrModeSwap': 'Režim výmeny atramentu a papiera zapnutý',
     'a11y.attrModeApply': 'Režim použitia atribútov zapnutý',
     'a11y.attrModeOff': 'Režim atribútov vypnutý',

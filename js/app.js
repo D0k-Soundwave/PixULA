@@ -29,6 +29,7 @@ const BOOT_MANIFEST = [
     ['MaskOps',          'js/utils/mask-ops.js'],
     ['BrushShapes',      'js/utils/brush-shapes.js'],
     ['TouchPolicy',      'js/utils/touch-policy.js'],
+    ['UiFit',            'js/utils/ui-fit.js'],
     ['PaletteOps',       'js/utils/palette-ops.js'],
     ['Storage',          'js/utils/storage.js'],
     ['BackupService',    'js/services/backup-service.js'],
@@ -363,8 +364,15 @@ class AppClass {
             alert(data.message);
         });
 
-        // Start at the largest clean 100% zoom that fits the frame here.
-        CanvasSystem.setZoom(CanvasControls.fitZoom());
+        // The interface scale first: AppSettings initialised before the tool
+        // rail existed, and on a small touch screen the rail is what decides
+        // how far the one layout has to shrink (UiFit).
+        AppSettings.refitScale();
+
+        // Start at the largest clean 100% zoom that fits the frame here, and
+        // follow the frame if it changes (a tablet turned from the rotate
+        // notice, the scale settling) until the artist picks a zoom.
+        CanvasSystem.zoomToFit();
 
         await this._checkAutosave();
         // Before the timer: restoring the folder handle decides whether the

@@ -77,6 +77,15 @@ need real hardware — marked **pending-hardware** for the user's pass.
 - [ ] No browser scroll/double-tap-zoom steals a stroke (touch-action none + viewport meta)
 - [ ] Coarse-pointer CSS: 44px hit targets, ≥40px swatches, 28px slider thumbs
 
+### Tablets: one layout, landscape only, scaled to fit (2026-09-15) — **pending-hardware** (iPad Safari / Android tablet, via the GitHub Pages link)
+Emulated coverage is AUTO (browser: tablet-landscape.spec at 1024x768, 1180x820 and 1280x800 with touch emulation; Node: ui-fit.test). These rows are what emulation cannot say.
+- [ ] Held upright, the "Turn your device sideways" notice covers the app; turned sideways it clears at once, with no reload — PART: AUTO in emulation (hover: none + pointer: coarse); manual: that the REAL browser reports those media features for a bare tablet, and does not report them once a mouse/trackpad is attached (iPad with Magic Keyboard: expected NOT to show the notice — record which)
+- [ ] Sideways, every panel (Reference, Layers, Tool Options, Transform, Presets) is on screen and scrolls; every tool in the left rail is visible without scrolling — PART: AUTO in emulation; manual: Safari's and Chrome's own toolbars eat real height the emulation does not model, so record the device, browser and whether any tool was cut off
+- [ ] Tool buttons are comfortable to hit with a finger at the shrunk size (UiFit's floor keeps them at 44 CSS px or more, WCAG 2.1 SC 2.5.5) — the floor is a published minimum, not a measured comfort level; if they feel small on the real device, record it
+- [ ] Turning the device re-fits the picture (upright boot -> sideways: the picture grows to the new frame) — PART: AUTO in emulation; manual: a real rotation event
+- [ ] The picture sits clear of the floating colour rail at Fit zoom, or note how much of its left edge the rail covers (known and accepted, same as a small desktop window)
+- [ ] Phone held sideways (best effort, not a target): the app opens at the 0.815 floor, the tool rail scrolls, the picture fits at 100% — record whether it is usable at all
+
 ## Phase 4 — UI shell parity walk-through (2026-07-03)
 
 Automated: `node tests/run-all.js` green (lint + core-draw + tools-draw +

@@ -447,6 +447,8 @@ const tr = {
 
     // Attribute panel, accessibility, layers (extended), stamps, patterns (extended), tool hints
     'a11y.skipToCanvas': 'Tuvale geç',
+    'app.rotateTitle': 'Cihazınızı yan çevirin',
+    'app.rotateText': 'PixULA yatay modda çalışır. Devam etmek için tabletinizi veya telefonunuzu yan çevirin.',
     'a11y.attrModeSwap': 'Mürekkep/kâğıt değiştirme modu açık',
     'a11y.attrModeApply': 'Öznitelik uygulama modu açık',
     'a11y.attrModeOff': 'Öznitelik modu kapalı',

@@ -14,10 +14,23 @@
  * region (and multiplies the #app grid tracks) so the whole interface scales
  * together. The drawing canvas is excluded by design. Ctrl/⌘+wheel over the
  * chrome steps through the selector's presets.
+ *
+ * The selector holds what the artist CHOSE; --ui-scale holds what is APPLIED,
+ * and on a touch-primary screen too small for the one layout the two differ:
+ * UiFit (js/utils/ui-fit.js) shrinks the applied scale until the picture and
+ * the tool rail fit, never below its 44px touch floor and never above the
+ * choice. The choice is what gets stored, so turning a tablet or moving to a
+ * bigger screen gives the artist their own size back.
  */
 class AppSettingsClass {
     constructor() {
         this.SCALE_KEY = 'uiFontScale';
+        /** What the artist chose (the selector / Storage value). */
+        this._userScale = 1;
+        /** What is on --ui-scale right now; null until first applied. */
+        this._appliedScale = null;
+        /** (hover: none) and (pointer: coarse) - see UiFit. */
+        this._touchQuery = null;
     }
 
     init() {
@@ -62,17 +75,42 @@ class AppSettingsClass {
 
         const apply = (scale) => {
             let n = parseFloat(scale);
-            if (n <= 0) return;
+            if (!(n > 0)) return this._userScale;
             if (sel) {
                 const values = presets();
                 if (values.length) n = clamp(n, values[0], values[values.length - 1]);
             }
-            root.style.setProperty('--ui-scale', String(n));
-            // ColorBarFit (and anything else that cares) reacts here rather
-            // than being called directly - one fact, whoever is listening.
-            EventBus.emit(EVENTS.UI_SCALE_CHANGED, { scale: n });
+            this._userScale = n;
+            this.refitScale();
             return n;
         };
+
+        if (sel) {
+            const chosen = parseFloat(sel.value);
+            if (chosen > 0) this._userScale = chosen;
+        }
+
+        // Re-fit whenever the room changes: a resize (which a rotation is),
+        // a screen mode with a different picture size, or the device's
+        // primary input changing (a mouse plugged into a tablet). Coalesced
+        // to one measurement per frame - a window drag fires resize far more
+        // often than the layout can change.
+        let framePending = false;
+        const refitSoon = () => {
+            if (framePending) return;
+            framePending = true;
+            requestAnimationFrame(() => {
+                framePending = false;
+                this.refitScale();
+            });
+        };
+        window.addEventListener('resize', refitSoon);
+        EventBus.on(EVENTS.SCREEN_MODE_CHANGED, refitSoon);
+        if (window.matchMedia) {
+            this._touchQuery = window.matchMedia('(hover: none) and (pointer: coarse)');
+            if (this._touchQuery.addEventListener) this._touchQuery.addEventListener('change', refitSoon);
+        }
+        this.refitScale();
         // Apply a scale, reflect it in the selector, and persist it.
         // Programmatically setting sel.value does not fire 'change', so this
         // is safe to call from the wheel handler without re-entrancy.
@@ -116,6 +154,89 @@ class AppSettingsClass {
             const next = clamp(idx + (e.deltaY < 0 ? 1 : -1), 0, values.length - 1);
             if (values[next] !== values[idx]) setScale(values[next]);
         }, { passive: false });
+    }
+
+    /**
+     * Apply the scale this screen needs: the artist's choice, shrunk by UiFit
+     * if the one layout would not otherwise fit. Public so app.js can re-run
+     * it once the tool rail exists - AppSettings initialises before the rail
+     * is built, and a rail with no buttons in it fits any screen.
+     *
+     * Emits UI_SCALE_CHANGED only when the applied value actually moves, so a
+     * resize that changes nothing costs ColorBarFit nothing either.
+     */
+    refitScale() {
+        const touchPrimary = !!(this._touchQuery && this._touchQuery.matches);
+        const next = (window.UiFit && touchPrimary)
+            ? UiFit.effectiveScale(Object.assign({ userScale: this._userScale, touchPrimary }, this._measureRoom()))
+            : this._userScale;
+        if (this._appliedScale !== null && Math.abs(next - this._appliedScale) < 1e-6) return;
+        this._appliedScale = next;
+        document.documentElement.style.setProperty('--ui-scale', String(next));
+        // ColorBarFit (and anything else that cares) reacts here rather
+        // than being called directly - one fact, whoever is listening.
+        EventBus.emit(EVENTS.UI_SCALE_CHANGED, { scale: next, userScale: this._userScale });
+    }
+
+    /**
+     * The live sizes UiFit needs, converted to UNZOOMED CSS px (each zoomed
+     * region measures `scale` times its natural size, so dividing by the
+     * scale in force when it was measured recovers the natural size - which
+     * is what lets UiFit predict any OTHER scale from one measurement).
+     * @private
+     */
+    _measureRoom() {
+        const byId = (id) => document.getElementById(id);
+        const rootStyle = getComputedStyle(document.documentElement);
+        const token = (name) => parseFloat(rootStyle.getPropertyValue(name)) || 0;
+        const scale = this._appliedScale || parseFloat(rootStyle.getPropertyValue('--ui-scale')) || 1;
+        const height = (el, extra) => el ? el.getBoundingClientRect().height / (scale * extra) : 0;
+
+        // The top strip carries its own shrink on top of --ui-scale
+        // (ColorBarFit); its NATURAL height is what fits must plan for, since
+        // that shrink can relax again at any scale.
+        const bar = byId('color-bar');
+        const barScale = bar ? (parseFloat(getComputedStyle(bar).getPropertyValue('--colorbar-scale')) || 1) : 1;
+
+        // The rail's full content, scrolled or not, measured from its first
+        // child's top to its last child's bottom. NOT scrollHeight: a rail
+        // with room to spare reports its own box height there, which would
+        // read as "exactly fits at the current scale" and pin the scale
+        // wherever it last shrank to - a tablet turned to a bigger screen
+        // would never get its size back. Padding is read as specified (it
+        // scales with the box), so it is added unzoomed.
+        const rail = byId('toolbar');
+        let railContentH = 0;
+        if (rail && rail.firstElementChild) {
+            const top = rail.firstElementChild.getBoundingClientRect().top;
+            const bottom = rail.lastElementChild.getBoundingClientRect().bottom;
+            const railStyle = getComputedStyle(rail);
+            railContentH = Math.max(0, bottom - top) / scale +
+                (parseFloat(railStyle.paddingTop) || 0) + (parseFloat(railStyle.paddingBottom) || 0);
+        }
+
+        const viewport = byId('canvas-viewport');
+        const pad = viewport ? getComputedStyle(viewport) : null;
+        const px = (v) => parseFloat(v) || 0;
+
+        return {
+            viewportW: window.innerWidth,
+            viewportH: window.innerHeight,
+            chrome: {
+                toolbarW: token('--toolbar-width'),
+                panelsW: token('--panel-width'),
+                colourRailW: token('--colorrail-width'),
+                headerH: token('--header-height'),
+                statusH: token('--status-height'),
+                colourBarH: height(bar, barScale),
+                canvasControlsH: height(byId('canvas-controls'), 1),
+                padW: pad ? px(pad.paddingLeft) + px(pad.paddingRight) : 0,
+                padH: pad ? px(pad.paddingTop) + px(pad.paddingBottom) : 0
+            },
+            railContentH,
+            modeW: ZX_SPECTRUM.WIDTH,
+            modeH: ZX_SPECTRUM.HEIGHT
+        };
     }
 }
 

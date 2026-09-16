@@ -447,6 +447,8 @@ const hu = {
 
     // Attribute panel, accessibility, layers (extended), stamps, patterns (extended), tool hints
     'a11y.skipToCanvas': 'Ugrás a vászonra',
+    'app.rotateTitle': 'Fordítsa el az eszközt',
+    'app.rotateText': 'A PixULA fekvő tájolásban működik. A folytatáshoz fordítsa el a táblagépet vagy a telefont.',
     'a11y.attrModeSwap': 'Tinta/papír csere mód bekapcsolva',
     'a11y.attrModeApply': 'Attribútum-alkalmazás mód bekapcsolva',
     'a11y.attrModeOff': 'Attribútum mód kikapcsolva',

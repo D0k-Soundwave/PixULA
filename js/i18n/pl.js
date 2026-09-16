@@ -447,6 +447,8 @@ const pl = {
 
     // Attribute panel, accessibility, layers (extended), stamps, patterns (extended), tool hints
     'a11y.skipToCanvas': 'Przejdź do płótna',
+    'app.rotateTitle': 'Obróć urządzenie',
+    'app.rotateText': 'PixULA działa w orientacji poziomej. Obróć tablet lub telefon, aby kontynuować.',
     'a11y.attrModeSwap': 'Tryb zamiany tuszu i papieru włączony',
     'a11y.attrModeApply': 'Tryb nakładania atrybutów włączony',
     'a11y.attrModeOff': 'Tryb atrybutów wyłączony',
