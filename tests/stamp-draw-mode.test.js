@@ -129,6 +129,26 @@ check('xor mode: top half (was ink) toggled OFF', xorBits.slice(0, 4).every(b =>
 check('xor mode: bottom half (was paper) toggled ON', xorBits.slice(4, 8).every(b => b === 0xFF));
 check('xor mode: attributes overwritten by selection', cellAttrs().ink === 6 && cellAttrs().paper === 0);
 
+// ── XOR with both colours transparent: bright and flash still land ─────────
+// Bright and flash are their own functions: with Ink and Paper on "use
+// existing" they are still written, in the preview AND the commit. Both used
+// to skip them in this case (2026-09-15), while the Normal preview did not.
+target.clearCell(CELL_X, CELL_Y);
+paintHalfCell(2, 6);
+StateManager.setDrawMode('xor');
+global.ColorManager._sel = { ink: 6, paper: 0, bright: true, flash: true, inkTransparent: true, paperTransparent: true };
+stamp = makeSolidStamp();
+const xorPreview = stamp.getCell(CELL_X, CELL_Y);
+check('xor, both colours transparent: the preview shows bright and flash from the selection',
+  xorPreview.bright === true && xorPreview.flash === true);
+check('xor, both colours transparent: the preview keeps the target colours',
+  xorPreview.ink === 2 && xorPreview.paper === 6);
+SelectionService.commitStamp(stamp);
+check('xor, both colours transparent: the commit writes bright and flash',
+  cellAttrs().bright === true && cellAttrs().flash === true);
+check('xor, both colours transparent: the commit keeps the target colours',
+  cellAttrs().ink === 2 && cellAttrs().paper === 6);
+
 // ── Normal (default) is unaffected — the pre-existing, still-tested path ───
 target.clearCell(CELL_X, CELL_Y);
 StateManager.setDrawMode('normal');
