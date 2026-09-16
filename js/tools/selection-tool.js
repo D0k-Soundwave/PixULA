@@ -22,6 +22,9 @@ class SelectionToolClass extends ToolBase {
   constructor() {
     super(TOOLS.SELECTION, 'Selection');
     this.cursor = 'crosshair';
+    // A selection bounds a region rather than painting it, so its pixel
+    // cursor marks the spot without promising a colour.
+    this.previewsInk = false;
     this.isSelecting = false;
     this.startX = 0;
     this.startY = 0;

@@ -385,15 +385,15 @@ class GradientToolClass extends ToolBase {
     };
   }
 
-  /**
-   * No hover footprint: the gradient has no nib (it fills a dragged region),
-   * and in phase 2 it owns the function-preview canvas via onPointerHover
-   * above — a footprint drawn there would clear the live gradient preview.
-   * @returns {null}
+  /*
+   * The gradient has no nib - it fills a dragged region - so its mark is the
+   * single pixel under the pointer, which ToolBase already answers with. It
+   * used to return null to protect its own preview, because the pointer mark
+   * and the tool previews shared the function-preview canvas and cleared each
+   * other; the mark has its own layer now (index.html, #pointer-canvas), so
+   * the gradient can have a pointer like every other tool while its preview
+   * stays up (2026-09-16).
    */
-  getFootprint() {
-    return null;
-  }
 
   // ── State helpers ──────────────────────────────────────────────────────────
 

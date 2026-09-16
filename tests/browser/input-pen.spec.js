@@ -100,7 +100,7 @@ const inkAll = (page) => page.evaluate(() => {
 
 /** Lit-pixel count on the hover-outline overlay. */
 const overlayLit = (page) => page.evaluate(() => {
-    const cvs = GridOverlay.functionPreviewCanvas;
+    const cvs = GridOverlay.pointerCanvas;
     if (!cvs) return 0;
     const { data } = cvs.getContext('2d').getImageData(0, 0, cvs.width, cvs.height);
     let lit = 0;

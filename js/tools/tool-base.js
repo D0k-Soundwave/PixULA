@@ -15,13 +15,31 @@ class ToolBaseClass {
     this.id = id;
     this.name = name;
     this.nameKey = `tool.${id}`;
+    // Only ever seen over the grey surround, where nothing can be drawn - see
+    // footprintCursor below.
     this.cursor = 'crosshair';
-    // True when the hover footprint REPLACES the system pointer over the
-    // picture: InputHandler hides `cursor` while the footprint is drawn there,
-    // keeps drawing it through a stroke, and draws a size-1 footprint as the
-    // 3x3 pixel cursor instead of skipping it. Over the grey surround, where
-    // nothing can be drawn, the pointer comes back.
-    this.footprintCursor = false;
+    /*
+     * The tool's own mark REPLACES the system pointer over the picture, and
+     * this is the default: InputHandler hides `cursor` while the mark is drawn
+     * there, keeps drawing it through a stroke, and draws a size-1 footprint as
+     * the 3x3 pixel cursor rather than skipping it.
+     *
+     * It was the brush's alone until 2026-09-16, when the artist asked for
+     * like-for-like everywhere: a crosshair says where the pointer is but
+     * nothing about what will happen there, and the tools that had one were
+     * exactly the ones whose size, shape and thickness the artist had chosen.
+     * Every tool that answers getFootprint() now shows it; the ones that mark
+     * nothing (pan, zoom, the pattern creator) return null and keep their own
+     * cursors, which name what they do.
+     */
+    this.footprintCursor = true;
+    /*
+     * Does a left click at the pointer PAINT? The 3x3 pixel cursor fills its
+     * centre with the colour the click would leave, which is a promise only a
+     * tool that draws can keep - the eyedropper and the selection tools take
+     * or bound a colour rather than lay one, so theirs stays see-through.
+     */
+    this.previewsInk = true;
     this.isActive = false;
     this.isDrawing = false;
   }

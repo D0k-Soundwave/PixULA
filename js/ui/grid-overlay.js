@@ -38,6 +38,15 @@ class GridOverlayClass {
         this.cursorCanvas = null;
         this.cursorCtx = null;
 
+        // Pointer-layer canvas (z 500 - above everything, including a tracing
+        // photo laid over the picture): the active tool's own mark, standing in
+        // for the mouse pointer. Its OWN canvas because a pointer and a preview
+        // must not be able to clear each other - sharing the function-preview
+        // canvas is exactly why the gradient and the curve tools had no mark at
+        // all while they were previewing (2026-09-16).
+        this.pointerCanvas = null;
+        this.pointerCtx = null;
+
         // Selection overlay canvas
         this.selectionCanvas = null;
         this.selectionCtx = null;
@@ -119,6 +128,7 @@ class GridOverlayClass {
         this.compositePreviewCanvas = CanvasSystem.getCanvasElement('composite-preview-canvas');
         this.selectionCanvas        = CanvasSystem.getCanvasElement('selection-canvas');
         this.cursorCanvas           = CanvasSystem.getCanvasElement('cursor-canvas');
+        this.pointerCanvas          = CanvasSystem.getCanvasElement('pointer-canvas');
 
         if (!this.grid8x8Canvas) {
             Logger.error('GridOverlay', 'Grid canvases not found in iframe');
@@ -140,6 +150,7 @@ class GridOverlayClass {
         if (this.compositePreviewCanvas) this.compositePreviewCtx = this.compositePreviewCanvas.getContext('2d');
         if (this.selectionCanvas)        this.selectionCtx        = this.selectionCanvas.getContext('2d');
         if (this.cursorCanvas)           this.cursorCtx           = this.cursorCanvas.getContext('2d');
+        if (this.pointerCanvas)          this.pointerCtx          = this.pointerCanvas.getContext('2d');
 
         this._attachEvents();
         this._refreshGridColors();
@@ -489,6 +500,10 @@ class GridOverlayClass {
             this.cursorCanvas.width  = width;
             this.cursorCanvas.height = height;
         }
+        if (this.pointerCanvas) {
+            this.pointerCanvas.width  = width;
+            this.pointerCanvas.height = height;
+        }
         this._updateGridLayout(this._scale());
         this.render();
     }
@@ -522,6 +537,20 @@ class GridOverlayClass {
     clearCursorOverlay() {
         if (this.cursorCtx && this.cursorCanvas) {
             this.cursorCtx.clearRect(0, 0, this.cursorCanvas.width, this.cursorCanvas.height);
+        }
+    }
+
+    /**
+     * Clear the pointer layer - the tool's mark standing in for the pointer.
+     *
+     * Deliberately NOT part of clearPreview() below: the mark belongs to the
+     * INPUT layer (InputHandler decides when a pointer is over the picture),
+     * not to whichever tool happens to be previewing. A tool taking its own
+     * preview down must not take the pointer with it.
+     */
+    clearPointerOverlay() {
+        if (this.pointerCtx && this.pointerCanvas) {
+            this.pointerCtx.clearRect(0, 0, this.pointerCanvas.width, this.pointerCanvas.height);
         }
     }
 
@@ -569,16 +598,18 @@ class GridOverlayClass {
      * pixels that would hide the very artwork the user is aiming at, while a
      * sparse set (a dither pattern, a crosshatch) is almost all boundary and so
      * shows in full. Uses the dimmer --overlay-outline-brush token — this is a
-     * passive cursor affordance, not an active preview like the shape/gradient
-     * rasters that share this canvas.
+     * passive cursor affordance, not an active preview - which is why it has
+     * its own layer above them all (#pointer-canvas) rather than sharing the
+     * function-preview canvas with the shape and gradient rasters, as it did
+     * until 2026-09-16.
      *
      * @param {Array<{x: number, y: number}>} pixels - The tool's affected-pixel set
      */
     drawFootprintOutline(pixels) {
         if (!this._initialized) return;
 
-        const ctx = this.functionPreviewCtx || this.compositePreviewCtx;
-        const canvas = this.functionPreviewCanvas || this.compositePreviewCanvas;
+        const ctx = this.pointerCtx || this.functionPreviewCtx;
+        const canvas = this.pointerCanvas || this.functionPreviewCanvas;
         if (!ctx || !canvas) return;
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -609,8 +640,8 @@ class GridOverlayClass {
     drawPixelCursor(x, y, centreColor) {
         if (!this._initialized) return;
 
-        const ctx = this.functionPreviewCtx || this.compositePreviewCtx;
-        const canvas = this.functionPreviewCanvas || this.compositePreviewCanvas;
+        const ctx = this.pointerCtx || this.functionPreviewCtx;
+        const canvas = this.pointerCanvas || this.functionPreviewCanvas;
         if (!ctx || !canvas) return;
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);

@@ -109,16 +109,18 @@ class BezierToolClass extends ToolBase {
   }
 
   /**
-   * Hover footprint — the nib the curve will be dilated with, but ONLY while
-   * idle: once anchors are down the tool owns the function-preview canvas
-   * (_renderPreview draws the live curve there), and a footprint would clear
-   * it on the next mouse move.
+   * Hover footprint - the nib the curve will be dilated with, in every phase.
+   *
+   * It used to be answered only while idle, because once the anchors were down
+   * the tool owned the function-preview canvas (_renderPreview draws the live
+   * curve there) and the mark would have cleared it on the next move. The mark
+   * has its own layer now (index.html, #pointer-canvas), so bending a curve no
+   * longer costs the artist their pointer (2026-09-16).
    * @param {number} pixelX - X coordinate
    * @param {number} pixelY - Y coordinate
-   * @returns {Array<{x: number, y: number}>|null}
+   * @returns {Array<{x: number, y: number}>}
    */
   getFootprint(pixelX, pixelY) {
-    if (this._phase !== 'idle') return null;
     return ShapeGenerator.nibFootprint(pixelX, pixelY, this._thickness);
   }
 

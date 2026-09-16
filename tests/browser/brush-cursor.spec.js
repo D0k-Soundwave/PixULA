@@ -26,14 +26,15 @@ const hover = async (page, px, py) => {
 
 const bodyCursor = (page) => page.evaluate(() => CanvasSystem.getIframeDocument().body.style.cursor);
 
-/** RGBA of one pixel of the overlay the footprint is drawn on. */
+/** RGBA of one pixel of the POINTER layer the mark is drawn on (its own
+ *  canvas since 2026-09-16, so a tool's preview cannot clear it). */
 const overlayAt = (page, x, y) => page.evaluate(([px, py]) =>
-    Array.from(GridOverlay.functionPreviewCtx.getImageData(px, py, 1, 1).data), [x, y]);
+    Array.from(GridOverlay.pointerCtx.getImageData(px, py, 1, 1).data), [x, y]);
 
 /** How many overlay pixels carry any ink at all. */
 const overlayCount = (page) => page.evaluate(() => {
-    const c = GridOverlay.functionPreviewCanvas;
-    const d = GridOverlay.functionPreviewCtx.getImageData(0, 0, c.width, c.height).data;
+    const c = GridOverlay.pointerCanvas;
+    const d = GridOverlay.pointerCtx.getImageData(0, 0, c.width, c.height).data;
     let n = 0;
     for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++;
     return n;
@@ -119,23 +120,41 @@ test('the pointer comes back over the grey surround', async ({ page }) => {
     expect(await bodyCursor(page)).toBe('crosshair');
 });
 
-test('other tools keep their own cursor; brush variants share the brush pointer', async ({ page }) => {
+/*
+ * Every tool that marks the picture shows its OWN mark instead of a pointer -
+ * the crosshair is gone from the picture entirely (the artist's ask,
+ * 2026-09-16). The ones that mark nothing keep the cursor that names what they
+ * do: the pan hand, the zoom lens.
+ */
+test('every marking tool hides the system pointer; pan and zoom keep their own', async ({ page }) => {
     await boot(page);
     await page.keyboard.press('b');
     await setSize(page, 8);
     await hover(page, 100, 100);
-    expect(await bodyCursor(page)).toBe('none');
+    expect(await bodyCursor(page), 'brush').toBe('none');
 
     // Spray rides on the brush: switching with the pointer parked keeps it hidden
     await page.keyboard.press('a');
     await page.evaluate(() => new Promise((r) => setTimeout(r, 0)));
     expect(await bodyCursor(page), 'spray').toBe('none');
 
-    await page.keyboard.press('e');
-    await hover(page, 110, 100);
-    expect(await bodyCursor(page), 'eraser').toBe('cell');
+    // The tools that used to keep a crosshair (or the eraser's cell cursor)
+    let x = 110;
+    for (const [id, name] of [['eraser', 'eraser'], ['fill', 'fill'],
+        ['eyedropper', 'eyedropper'], ['rectangle', 'rectangle'],
+        ['bezier', 'curve'], ['gradient', 'gradient'], ['selection', 'selection'],
+        ['text', 'text']]) {
+        await page.evaluate((t) => ToolManager.selectTool(t), id);
+        await hover(page, x, 100);
+        x += 4;
+        expect(await bodyCursor(page), name).toBe('none');
+    }
 
-    await page.keyboard.press('g');
-    await hover(page, 120, 100);
-    expect(await bodyCursor(page), 'fill').toBe('crosshair');
+    // Pan and zoom mark nothing, so they keep the cursor that names what they do
+    await page.evaluate(() => ToolManager.selectTool(TOOLS.MOVE));
+    await hover(page, 140, 100);
+    expect(await bodyCursor(page), 'pan').toBe('grab');
+    await page.evaluate(() => ToolManager.selectTool(TOOLS.ZOOM));
+    await hover(page, 144, 100);
+    expect(await bodyCursor(page), 'zoom').toBe('zoom-in');
 });

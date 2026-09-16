@@ -24,7 +24,7 @@ async function pixelPoint(page, px, py) {
 /** Read the overlay the footprint is drawn on: lit-pixel count + specific probes. */
 function readOverlay(page, probes) {
     return page.evaluate((pts) => {
-        const cvs = GridOverlay.functionPreviewCanvas;
+        const cvs = GridOverlay.pointerCanvas;
         if (!cvs) return null;
         const ctx = cvs.getContext('2d');
         const { data, width, height } = ctx.getImageData(0, 0, cvs.width, cvs.height);
@@ -112,14 +112,15 @@ test('every stamping tool shows a footprint on mouse hover', async ({ page }) =>
     }
 });
 
-test('a single-pixel footprint is not drawn (gated at 1px)', async ({ page }) => {
+test('a point-sized tool draws the pixel cursor, not nothing', async ({ page }) => {
     await boot(page);
     const p = await pixelPoint(page, 128, 96);
 
-    // Brush at size 1 — the default. The brush is the one exception to the
-    // gate (2026-09-16): its mark replaces the system pointer, so at size 1 it
-    // draws the 3x3 pixel cursor - five pixels - rather than nothing.
-    // tests/browser/brush-cursor.spec.js pins the cursor itself.
+    // A single-pixel footprint used to be drawn as nothing at all, on the
+    // argument that the crosshair already pointed at it. With the crosshair
+    // gone from the picture (2026-09-16) the mark IS the pointer, so a
+    // point-sized tool draws the 3x3 plus - four arms, plus a centre wherever
+    // the tool actually paints. brush-cursor.spec.js pins the cursor itself.
     await page.keyboard.press('b');
     await page.evaluate(() => { BrushEngine.setBrush('round'); BrushEngine.setSize(1); });
     await page.mouse.move(p.x + 2, p.y + 2);
@@ -127,16 +128,22 @@ test('a single-pixel footprint is not drawn (gated at 1px)', async ({ page }) =>
     expect(await page.evaluate(() =>
         ToolManager.currentTool.getFootprint(128, 96).length),
         'the tool still reports its true 1px footprint').toBe(1);
-    expect((await readOverlay(page, [])).lit, 'brush size 1: the 5-pixel cursor, no outline').toBe(5);
+    expect((await readOverlay(page, [])).lit, 'brush size 1: the 5-pixel cursor').toBe(5);
 
-    // Point tools (fill, eyedropper) keep the gate: nothing drawn.
-    for (const key of ['g', 'i']) {
-        await page.keyboard.press(key);
-        await page.mouse.move(p.x + 2, p.y + 2);
-        await page.mouse.move(p.x, p.y);
-        const id = await page.evaluate(() => ToolManager.currentTool?.id);
-        expect((await readOverlay(page, [])).lit, `${id}: nothing drawn`).toBe(0);
-    }
+    // The fill paints, so its centre carries the colour: five pixels.
+    await page.evaluate(() => ToolManager.selectTool(TOOLS.FILL));
+    await page.mouse.move(p.x + 2, p.y + 2);
+    await page.mouse.move(p.x, p.y);
+    expect((await readOverlay(page, [])).lit, 'fill: the 5-pixel cursor').toBe(5);
+
+    // The eyedropper TAKES a colour rather than laying one, so its centre stays
+    // see-through: the four arms alone.
+    await page.evaluate(() => ToolManager.selectTool(TOOLS.EYEDROPPER));
+    await page.mouse.move(p.x + 2, p.y + 2);
+    await page.mouse.move(p.x, p.y);
+    const dropper = await readOverlay(page, [[128, 96]]);
+    expect(dropper.lit, 'eyedropper: arms only').toBe(4);
+    expect(dropper.at[0], 'eyedropper: nothing over the pixel itself').toBe(false);
 
     // Size 2 crosses the gate — the outline comes back.
     await page.keyboard.press('b');

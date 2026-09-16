@@ -1229,9 +1229,12 @@ class InputHandlerClass {
     this._hoverOutlineTool = tool.id;
     if (pixels.length === 1) {
       const p = pixels[0];
-      const index = live
-        ? PixelDrawRoutine.shownIndex(p.x, p.y)
-        : PixelDrawRoutine.previewInkIndex(p.x, p.y);
+      // The centre is the colour the click would leave - a promise only a tool
+      // that paints can keep, so the eyedropper and the selection tools show
+      // the arms alone and leave the picture showing through the middle.
+      const index = (tool.previewsInk === false) ? null
+        : (live ? PixelDrawRoutine.shownIndex(p.x, p.y)
+          : PixelDrawRoutine.previewInkIndex(p.x, p.y));
       GridOverlay.drawPixelCursor(p.x, p.y,
         index === null ? null : ColorManager.getPalette()[index]);
     } else {
@@ -1248,7 +1251,9 @@ class InputHandlerClass {
     this._setPointerHidden(false);
     if (!this._hoverOutlineShown) return;
     this._hoverOutlineShown = false;
-    if (window.GridOverlay) GridOverlay.clearFunctionPreview();
+    // The pointer layer only - a tool's own preview is not ours to clear
+    // (it was, while the two shared a canvas).
+    if (window.GridOverlay) GridOverlay.clearPointerOverlay();
   }
 
   // ── Two-finger pan + pinch zoom ───────────────────────────────────────────
