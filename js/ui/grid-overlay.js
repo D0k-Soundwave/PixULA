@@ -625,17 +625,25 @@ class GridOverlayClass {
     }
 
     /**
-     * The size-1 brush cursor: a 3x3 plus in picture pixels. The four arms use
-     * the same dim --overlay-outline-brush token as the bigger brushes'
-     * outline; the centre is the one pixel the brush will paint, filled with
-     * the colour it will paint (PixelDrawRoutine.previewInkIndex) - so the
-     * mark is at once the pointer and a preview. It replaces the system
-     * crosshair over the picture, which is why it has to be findable at all.
+     * A point-sized tool's mark: THE one pixel it acts on, and nothing else.
+     *
+     * It was a 3x3 plus for a day (2026-09-16) - four dim arms around the
+     * pixel, on the argument that one pixel is hard to find at low zoom. That
+     * plus is a crosshair, which is the thing the artist asked to be rid of,
+     * and it stayed the same shape at every zoom while the pixel it surrounded
+     * grew. Like for like means the mark is the size of the mark.
+     *
+     * A tool that PAINTS fills the pixel with the colour it would leave
+     * (PixelDrawRoutine.previewInkIndex), so the mark is at once the pointer
+     * and a preview. One that does not (the eyedropper takes a colour, the
+     * selection bounds a region) has no such colour to show, so it draws the
+     * pixel in the overlay token instead - the pointer still has to be
+     * somewhere, and the system one is hidden.
      *
      * @param {number} x - picture pixel under the pointer
      * @param {number} y
-     * @param {string|null} centreColor - palette colour for the centre, or
-     *   null to leave the picture showing through it
+     * @param {string|null} centreColor - the colour a click would paint, or
+     *   null for a tool that paints nothing
      */
     drawPixelCursor(x, y, centreColor) {
         if (!this._initialized) return;
@@ -645,18 +653,10 @@ class GridOverlayClass {
         if (!ctx || !canvas) return;
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const W = ZX_SPECTRUM.WIDTH, H = ZX_SPECTRUM.HEIGHT;
-        const inside = (px, py) => px >= 0 && px < W && py >= 0 && py < H;
+        if (x < 0 || x >= ZX_SPECTRUM.WIDTH || y < 0 || y >= ZX_SPECTRUM.HEIGHT) return;
 
-        ctx.fillStyle = this._overlayColors.outlineBrush;
-        for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
-            if (inside(x + dx, y + dy)) ctx.fillRect(x + dx, y + dy, 1, 1);
-        }
-
-        if (centreColor && inside(x, y)) {
-            ctx.fillStyle = centreColor;
-            ctx.fillRect(x, y, 1, 1);
-        }
+        ctx.fillStyle = centreColor || this._overlayColors.outlineBrush;
+        ctx.fillRect(x, y, 1, 1);
     }
 
     /**

@@ -112,15 +112,14 @@ test('every stamping tool shows a footprint on mouse hover', async ({ page }) =>
     }
 });
 
-test('a point-sized tool draws the pixel cursor, not nothing', async ({ page }) => {
+test('a point-sized tool draws exactly its one pixel', async ({ page }) => {
     await boot(page);
     const p = await pixelPoint(page, 128, 96);
 
     // A single-pixel footprint used to be drawn as nothing at all, on the
-    // argument that the crosshair already pointed at it. With the crosshair
-    // gone from the picture (2026-09-16) the mark IS the pointer, so a
-    // point-sized tool draws the 3x3 plus - four arms, plus a centre wherever
-    // the tool actually paints. brush-cursor.spec.js pins the cursor itself.
+    // argument that the crosshair already pointed at it, and then briefly as a
+    // 3x3 plus - which is itself a crosshair. The mark is the mark: one pixel,
+    // at every zoom. brush-cursor.spec.js pins the colour it carries.
     await page.keyboard.press('b');
     await page.evaluate(() => { BrushEngine.setBrush('round'); BrushEngine.setSize(1); });
     await page.mouse.move(p.x + 2, p.y + 2);
@@ -128,22 +127,23 @@ test('a point-sized tool draws the pixel cursor, not nothing', async ({ page }) 
     expect(await page.evaluate(() =>
         ToolManager.currentTool.getFootprint(128, 96).length),
         'the tool still reports its true 1px footprint').toBe(1);
-    expect((await readOverlay(page, [])).lit, 'brush size 1: the 5-pixel cursor').toBe(5);
+    expect((await readOverlay(page, [])).lit, 'brush size 1: one pixel').toBe(1);
 
-    // The fill paints, so its centre carries the colour: five pixels.
+    // The fill paints, so its pixel carries the colour it would leave.
     await page.evaluate(() => ToolManager.selectTool(TOOLS.FILL));
     await page.mouse.move(p.x + 2, p.y + 2);
     await page.mouse.move(p.x, p.y);
-    expect((await readOverlay(page, [])).lit, 'fill: the 5-pixel cursor').toBe(5);
+    expect((await readOverlay(page, [])).lit, 'fill: one pixel').toBe(1);
 
-    // The eyedropper TAKES a colour rather than laying one, so its centre stays
-    // see-through: the four arms alone.
+    // The eyedropper TAKES a colour rather than laying one, so it has none to
+    // show - but it still has to say WHICH pixel, so the pixel is drawn in the
+    // overlay colour rather than left blank.
     await page.evaluate(() => ToolManager.selectTool(TOOLS.EYEDROPPER));
     await page.mouse.move(p.x + 2, p.y + 2);
     await page.mouse.move(p.x, p.y);
     const dropper = await readOverlay(page, [[128, 96]]);
-    expect(dropper.lit, 'eyedropper: arms only').toBe(4);
-    expect(dropper.at[0], 'eyedropper: nothing over the pixel itself').toBe(false);
+    expect(dropper.lit, 'eyedropper: one pixel').toBe(1);
+    expect(dropper.at[0], 'eyedropper: and it is the pixel under the pointer').toBe(true);
 
     // Size 2 crosses the gate — the outline comes back.
     await page.keyboard.press('b');
