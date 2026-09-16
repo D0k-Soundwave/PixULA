@@ -489,6 +489,8 @@ const en = {
     // Accessibility
     'a11y.textSize': 'Interface size',
     'a11y.skipToCanvas': 'Skip to canvas',
+    'app.rotateTitle': 'Turn your device sideways',
+    'app.rotateText': 'PixULA works in landscape. Turn your tablet or phone on its side to continue.',
     'a11y.attrModeSwap': 'Swap ink/paper mode on',
     'a11y.attrModeApply': 'Apply attributes mode on',
     'a11y.attrModeOff': 'Attribute mode off',

@@ -447,6 +447,8 @@ const ro = {
 
     // Attribute panel, accessibility, layers (extended), stamps, patterns (extended), tool hints
     'a11y.skipToCanvas': 'Treceți la pânză',
+    'app.rotateTitle': 'Rotiți dispozitivul',
+    'app.rotateText': 'PixULA funcționează în modul peisaj. Rotiți tableta sau telefonul pentru a continua.',
     'a11y.attrModeSwap': 'Mod schimb cerneală/hârtie activat',
     'a11y.attrModeApply': 'Mod aplicare atribute activat',
     'a11y.attrModeOff': 'Mod atribute dezactivat',

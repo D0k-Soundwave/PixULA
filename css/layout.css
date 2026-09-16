@@ -461,86 +461,51 @@ body {
     text-align: right;
 }
 
-/* Responsive Breakpoints */
+/* ONE layout at every size (2026-09-15). There are no width breakpoints:
+   the two that stood here from the initial commit turned #panels into a
+   drawer at <=1024px that nothing could open, which cost a 1024x768 tablet
+   every panel. A small screen is handled by SCALING this same layout
+   (AppSettings + UiFit, js/utils/ui-fit.js), never by rearranging it.
 
-/* Tablet: Collapse panels to slide-out drawer */
-@media (max-width: 1024px) {
-    #app {
-        /* No "colorrail" column here either (removed 2026-08-27, main #app
-           rule above) — #color-rail floats over the canvas at every width
-           now, so reserving a column for it here would waste exactly the
-           space this breakpoint exists to protect. */
-        grid-template-areas:
-            "header   header"
-            "toolbar  colorbar"
-            "toolbar  canvas"
-            "status   status";
-        grid-template-rows: calc(var(--header-height) * var(--ui-scale)) auto 1fr calc(var(--status-height) * var(--ui-scale));
-        grid-template-columns:
-            calc(var(--toolbar-width) * var(--ui-scale))
-            1fr;
-    }
+   Landscape only on finger-driven devices. A page in a browser tab cannot
+   lock the orientation (screen.orientation.lock() needs full screen and is
+   not supported everywhere), so an upright tablet or phone gets this notice
+   over the app until it is turned. The gate is "the PRIMARY input is a
+   finger" - hover: none AND pointer: coarse - so a desktop window, a
+   portrait monitor, a touchscreen laptop with a trackpad or an iPad with a
+   mouse attached is never blocked. Portrait measured 2026-09-15 on a
+   768x1024 viewport: a 328px canvas frame, 180px of it clear of the colour
+   rail, against 584px at 2x zoom held sideways. A dialog already open sits
+   in the browser's top layer and stays above this; that is accepted. */
+#rotate-notice {
+    display: none;
+}
 
-    #panels {
+@media (orientation: portrait) and (hover: none) and (pointer: coarse) {
+    #rotate-notice {
         position: fixed;
-        right: -280px;
-        top: var(--header-height);
-        bottom: var(--status-height);
-        width: 280px;
-        transition: right 0.3s ease;
-        box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
-    }
-
-    #panels.visible {
-        right: 0;
-    }
-
-    /* Add panel toggle button in header */
-    .panel-toggle-btn {
+        inset: 0;
+        z-index: var(--z-rotate-notice);
         display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-md);
+        padding: var(--space-xl);
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        text-align: center;
     }
 }
 
-/* Small tablet / large phone */
-@media (max-width: 768px) {
-    #app {
-        /* Room for the 2-wide tool grid + the vertical scrollbar. */
-        --toolbar-width: 120px;
-    }
-
-    #panels {
-        width: 240px;
-        right: -240px;
-    }
-
-    #panels.visible {
-        right: 0;
-    }
-
-    #toolbar {
-        padding: var(--space-xs);
-    }
-
-    .tool-btn {
-        width: 32px;
-        height: 32px;
-    }
-
-    #status-bar {
-        gap: var(--space-sm);
-        font-size: 10px;
-    }
-
-    #canvas-info {
-        display: none;
-    }
+.rotate-notice-title {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
 }
 
-/* Hide panel toggle button on larger screens */
-@media (min-width: 1025px) {
-    .panel-toggle-btn {
-        display: none;
-    }
+.rotate-notice-text {
+    font-size: var(--font-size-lg);
+    max-width: 24em;
 }
 
 /* Accessibility: skip-to-canvas link, hidden until keyboard-focused */

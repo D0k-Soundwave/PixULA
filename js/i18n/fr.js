@@ -447,6 +447,8 @@ const fr = {
 
     // Attribute panel, accessibility, layers (extended), stamps, patterns (extended), tool hints
     'a11y.skipToCanvas': 'Passer au canevas',
+    'app.rotateTitle': 'Tournez votre appareil',
+    'app.rotateText': 'PixULA fonctionne en mode paysage. Tournez votre tablette ou votre téléphone pour continuer.',
     'a11y.attrModeSwap': 'Mode échange encre/papier activé',
     'a11y.attrModeApply': 'Mode application des attributs activé',
     'a11y.attrModeOff': 'Mode attributs désactivé',

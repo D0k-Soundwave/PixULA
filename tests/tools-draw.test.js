@@ -61,7 +61,8 @@ global.CanvasSystem = {
       }
     }
     return ZOOM_CONFIG.MIN;
-  }
+  },
+  zoomToFit() { this.zoomTo(this.fitZoom()); this._followFit = true; }
 };
 
 const colorCalls = [];

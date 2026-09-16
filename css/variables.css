@@ -265,6 +265,9 @@
     --z-modal: 50;
     --z-tooltip: 60;
     --z-loading: 100;
+    /* The landscape-only notice (css/layout.css #rotate-notice) covers the
+       whole app, the skip link and tooltips included. */
+    --z-rotate-notice: 110;
 }
 
 /* Respect the user's reduced-motion preference: collapse the transition

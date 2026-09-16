@@ -349,6 +349,14 @@
 
     </div>
 
+    <!-- Landscape-only notice: shown ONLY on an upright finger-driven device
+         (css/layout.css #rotate-notice), covering the app until it is turned.
+         Pure CSS, so it follows a rotation instantly and costs nothing elsewhere. -->
+    <div id="rotate-notice" role="alert">
+        <p class="rotate-notice-title" data-i18n="app.rotateTitle">Turn your device sideways</p>
+        <p class="rotate-notice-text" data-i18n="app.rotateText">PixULA works in landscape. Turn your tablet or phone on its side to continue.</p>
+    </div>
+
     <!-- Panel chrome template — the ONE source of panel markup.
          PanelSection stamps this for every sidebar section. -->
     <template id="tpl-panel">
@@ -471,6 +479,7 @@
     <script defer src="js/utils/brush-shapes.js"></script>
     <script defer src="js/utils/pen-map.js"></script>
     <script defer src="js/utils/touch-policy.js"></script>
+    <script defer src="js/utils/ui-fit.js"></script>
     <script defer src="js/utils/palette-ops.js"></script>
     <script defer src="js/utils/storage.js"></script>
     <script defer src="js/utils/font-probe.js"></script>

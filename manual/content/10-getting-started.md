@@ -60,3 +60,13 @@ The rail carries no labels - there is not room for them beside the buttons.
 Hover over any control to see its name, and keep hovering for a sentence
 explaining it. On a tablet, press and hold instead; the hold does not also
 switch tools.
+
+### On a tablet
+
+Hold the tablet sideways. PixULA uses the same window on a tablet as on a
+computer, and held upright there is not enough width for the canvas beside the
+panels, so it asks you to turn the device until you do. On a small screen the
+whole interface shrinks to fit, never below a size a finger can still hit, and
+the Interface Size you chose comes back on a bigger screen. With a mouse or
+trackpad attached, the tablet is treated like a computer and can be used either
+way up.

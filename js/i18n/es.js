@@ -447,6 +447,8 @@ const es = {
 
     // Attribute panel, accessibility, layers (extended), stamps, patterns (extended), tool hints
     'a11y.skipToCanvas': 'Saltar al lienzo',
+    'app.rotateTitle': 'Gire el dispositivo',
+    'app.rotateText': 'PixULA funciona en horizontal. Gire la tableta o el teléfono para continuar.',
     'a11y.attrModeSwap': 'Modo intercambiar tinta/papel activado',
     'a11y.attrModeApply': 'Modo aplicar atributos activado',
     'a11y.attrModeOff': 'Modo de atributos desactivado',

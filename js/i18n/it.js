@@ -447,6 +447,8 @@ const it = {
 
     // Attribute panel, accessibility, layers (extended), stamps, patterns (extended), tool hints
     'a11y.skipToCanvas': 'Vai alla tela',
+    'app.rotateTitle': 'Ruotare il dispositivo',
+    'app.rotateText': 'PixULA funziona in orizzontale. Ruotare il tablet o il telefono per continuare.',
     'a11y.attrModeSwap': 'Modalità scambio inchiostro/carta attiva',
     'a11y.attrModeApply': 'Modalità applica attributi attiva',
     'a11y.attrModeOff': 'Modalità attributi disattivata',

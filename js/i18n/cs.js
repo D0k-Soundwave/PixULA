@@ -447,6 +447,8 @@ const cs = {
 
     // Attribute panel, accessibility, layers (extended), stamps, patterns (extended), tool hints
     'a11y.skipToCanvas': 'Přejít na plátno',
+    'app.rotateTitle': 'Otočte zařízení',
+    'app.rotateText': 'PixULA funguje na šířku. Otočte tablet nebo telefon, abyste mohli pokračovat.',
     'a11y.attrModeSwap': 'Režim záměny inkoustu a papíru zapnut',
     'a11y.attrModeApply': 'Režim použití atributů zapnut',
     'a11y.attrModeOff': 'Režim atributů vypnut',

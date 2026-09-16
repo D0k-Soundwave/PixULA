@@ -25,6 +25,8 @@ class CanvasSystemClass {
     this.panY = 0;
     this._pendingScroll = null;  // scroll target consumed by updateCanvasSize (zoomTo)
     this._zoomPreview = null;    // live pinch preview { baseScale, zoom, ax, ay }
+    this._followFit = false;     // re-fit on frame resize (zoomToFit; cleared by any other zoom)
+    this._frameObserver = null;  // ResizeObserver on the iframe (_watchFrameSize)
 
     // ImageData for efficient pixel manipulation
     this.imageData = null;
@@ -200,6 +202,7 @@ class CanvasSystemClass {
 
     this._startRenderLoop();
     this._watchDevicePixelRatio();
+    this._watchFrameSize();
 
     this.clear();
     this.syncBackdropColor();
@@ -1074,6 +1077,19 @@ class CanvasSystemClass {
   }
 
   /**
+   * Zoom to the largest level that fits the frame AND keep following it:
+   * while nothing else has set a zoom since, a change in the frame's size
+   * (a rotation, a window resize, the interface shrinking to fit a tablet)
+   * re-fits rather than leaving the picture at a size chosen for a frame
+   * that no longer exists. Any other zoom - a button, a pinch, a restored
+   * autosave or preset - is the artist's, and a resize keeps it.
+   */
+  zoomToFit() {
+    this.zoomTo(this.fitZoom());
+    this._followFit = true;
+  }
+
+  /**
    * Zoom keeping a canvas point visually stationary (anchored zoom). The
    * scroll correction rides into updateCanvasSize via _pendingScroll so it
    * lands in the same frame as the transform change.
@@ -1085,6 +1101,9 @@ class CanvasSystemClass {
    *                                   instead of holding its current position
    */
   zoomTo(zoom, anchorX, anchorY, centre = false) {
+    // Every zoom path runs through here, so this is the one place that can
+    // say "the view stopped following fit" (zoomToFit sets it back after).
+    this._followFit = false;
     zoom = ZOOM_CONFIG.snap(zoom);
     const scroller = this.iframeDoc &&
         (this.iframeDoc.scrollingElement || this.iframeDoc.body);
@@ -1229,6 +1248,36 @@ class CanvasSystemClass {
   }
 
   /**
+   * Re-lay the canvas when the frame itself changes size. Before this, only a
+   * zoom or a mode switch did, so turning a tablet left the picture centred
+   * and scroll-margined for the old frame, and nothing re-fitted it. A
+   * ResizeObserver rather than window `resize` because the frame also changes
+   * when the chrome around it does (the interface scale, the top strip's own
+   * fit) with the window standing still. @private
+   */
+  _watchFrameSize() {
+    if (typeof ResizeObserver !== 'function' || !this.iframe) return;
+    let lastW = this.iframe.clientWidth;
+    let lastH = this.iframe.clientHeight;
+    this._frameObserver = new ResizeObserver(() => {
+      if (!this.iframe) return;
+      const w = this.iframe.clientWidth;
+      const h = this.iframe.clientHeight;
+      if (w === lastW && h === lastH) return;
+      lastW = w;
+      lastH = h;
+      // A pinch in flight owns the transform; its commit re-lays everything.
+      if (this._zoomPreview) return;
+      if (this._followFit && this.fitZoom() !== this.zoom) {
+        this.zoomToFit();
+      } else {
+        this.updateCanvasSize();
+      }
+    });
+    this._frameObserver.observe(this.iframe);
+  }
+
+  /**
    * Destroy the canvas system and cleanup resources
    */
   destroy() {
@@ -1242,6 +1291,10 @@ class CanvasSystemClass {
       }
     });
     this._eventUnsubscribers = [];
+    if (this._frameObserver) {
+      this._frameObserver.disconnect();
+      this._frameObserver = null;
+    }
     this._boundOnZoomChanged = null;
     this._boundOnCanvasModified = null;
 
