@@ -59,7 +59,12 @@ test('size 8: only the outline over the picture, no system pointer', async ({ pa
     expect(await overlayCount(page), 'the outline is drawn').toBeGreaterThan(8);
 });
 
-test('size 1: a 3x3 plus whose centre is the ink it will paint', async ({ page }) => {
+/*
+ * ONE pixel, the size of the mark itself. It was a 3x3 plus for a day, and a
+ * plus is a crosshair - the thing the artist asked to be rid of - which kept
+ * its shape at every zoom while the pixel it surrounded grew (2026-09-16).
+ */
+test('size 1: exactly the one pixel it will paint, in the colour it will paint', async ({ page }) => {
     await boot(page);
     await page.keyboard.press('b');
     await setSize(page, 1);
@@ -67,14 +72,11 @@ test('size 1: a 3x3 plus whose centre is the ink it will paint', async ({ page }
     await hover(page, 100, 100);
 
     expect(await bodyCursor(page)).toBe('none');
-    expect(await overlayAt(page, 100, 100), 'centre = bright red').toEqual(await paletteRGBA(page, 10));
-    for (const [x, y] of [[99, 100], [101, 100], [100, 99], [100, 101]]) {
-        expect((await overlayAt(page, x, y))[3], `arm at ${x},${y}`).toBeGreaterThan(0);
+    expect(await overlayAt(page, 100, 100), 'the pixel = bright red').toEqual(await paletteRGBA(page, 10));
+    for (const [x, y] of [[99, 100], [101, 100], [100, 99], [100, 101], [99, 99], [101, 101]]) {
+        expect((await overlayAt(page, x, y))[3], `nothing around it at ${x},${y}`).toBe(0);
     }
-    for (const [x, y] of [[99, 99], [101, 101], [98, 100], [100, 102]]) {
-        expect((await overlayAt(page, x, y))[3], `nothing at ${x},${y}`).toBe(0);
-    }
-    expect(await overlayCount(page), 'exactly five pixels').toBe(5);
+    expect(await overlayCount(page), 'exactly one pixel').toBe(1);
 
     // The dot follows the colour controls without the pointer moving
     await page.evaluate(() => ColorManager.setInk(4));
@@ -95,7 +97,7 @@ test('the mark follows the pointer through a stroke', async ({ page }) => {
     expect(await bodyCursor(page), 'mid-stroke').toBe('none');
     expect(await overlayAt(page, 70, 60), 'the dot is at the pointer, mid-stroke')
         .toEqual(await paletteRGBA(page, 2));
-    expect(await overlayCount(page)).toBe(5);
+    expect(await overlayCount(page)).toBe(1);
 
     await page.mouse.up();
     expect(await bodyCursor(page), 'after release').toBe('none');
