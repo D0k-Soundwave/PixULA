@@ -594,6 +594,41 @@ class GridOverlayClass {
     }
 
     /**
+     * The size-1 brush cursor: a 3x3 plus in picture pixels. The four arms use
+     * the same dim --overlay-outline-brush token as the bigger brushes'
+     * outline; the centre is the one pixel the brush will paint, filled with
+     * the colour it will paint (PixelDrawRoutine.previewInkIndex) - so the
+     * mark is at once the pointer and a preview. It replaces the system
+     * crosshair over the picture, which is why it has to be findable at all.
+     *
+     * @param {number} x - picture pixel under the pointer
+     * @param {number} y
+     * @param {string|null} centreColor - palette colour for the centre, or
+     *   null to leave the picture showing through it
+     */
+    drawPixelCursor(x, y, centreColor) {
+        if (!this._initialized) return;
+
+        const ctx = this.functionPreviewCtx || this.compositePreviewCtx;
+        const canvas = this.functionPreviewCanvas || this.compositePreviewCanvas;
+        if (!ctx || !canvas) return;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const W = ZX_SPECTRUM.WIDTH, H = ZX_SPECTRUM.HEIGHT;
+        const inside = (px, py) => px >= 0 && px < W && py >= 0 && py < H;
+
+        ctx.fillStyle = this._overlayColors.outlineBrush;
+        for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+            if (inside(x + dx, y + dy)) ctx.fillRect(x + dx, y + dy, 1, 1);
+        }
+
+        if (centreColor && inside(x, y)) {
+            ctx.fillStyle = centreColor;
+            ctx.fillRect(x, y, 1, 1);
+        }
+    }
+
+    /**
      * Draw drag handles on the function preview canvas — the grab markers a
      * tool puts on the artwork (the bezier curve's anchors and control points).
      *

@@ -16,6 +16,12 @@ class ToolBaseClass {
     this.name = name;
     this.nameKey = `tool.${id}`;
     this.cursor = 'crosshair';
+    // True when the hover footprint REPLACES the system pointer over the
+    // picture: InputHandler hides `cursor` while the footprint is drawn there,
+    // keeps drawing it through a stroke, and draws a size-1 footprint as the
+    // 3x3 pixel cursor instead of skipping it. Over the grey surround, where
+    // nothing can be drawn, the pointer comes back.
+    this.footprintCursor = false;
     this.isActive = false;
     this.isDrawing = false;
   }
