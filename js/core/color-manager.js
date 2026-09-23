@@ -33,6 +33,10 @@ class ColorManagerClass {
         // (RECOIL renders hi-res fully saturated). Carried by undo snapshots,
         // autosave and the 12289 SCR variant's port byte.
         this.timexHiresInk = 0;
+        // The hi-res flicker pair (.hrg) gives screen B a scheme of its own -
+        // each frame carries its own port byte [P, RECOIL DecodeHrg]. Only
+        // read while the mode is timexMono with two screens.
+        this.timexHiresInkB = 0;
         // Next RGB333 register file (Uint16Array(256), 9-bit values) —
         // document state for every rgb333 mode (Phase 13), lazily seeded
         // from NEXTRGB333.defaultRegisters(); ONE palette per document,
@@ -45,6 +49,15 @@ class ColorManagerClass {
         // document state.
         this.nextInk = NEXTRGB333.DEFAULT_INK;
         this.nextPaper = NEXTRGB333.DEFAULT_PAPER;
+        // GigaScreen drawing state (tool state like ink/paper): screen B's
+        // ink, paper and bright, and which of the cell's four blends a stroke
+        // paints (GIGA_SLOTS). Screen A is the classic ink/paper/bright above;
+        // FLASH is one setting for both screens. Only read while the mode has
+        // two screens.
+        this.inkB = 0;
+        this.paperB = 7;
+        this.brightB = false;
+        this.gigaSlot = GIGA_SLOTS.INK_INK;
         this._writtenTokenCount = 0;
     }
 
@@ -58,6 +71,13 @@ class ColorManagerClass {
             this.paper = colorState.paper;
             this.bright = colorState.bright;
             this.flash = colorState.flash;
+            if (Validators.isValidBaseColor(colorState.inkB)) this.inkB = colorState.inkB;
+            if (Validators.isValidBaseColor(colorState.paperB)) this.paperB = colorState.paperB;
+            if (typeof colorState.brightB === 'boolean') this.brightB = colorState.brightB;
+            if (Number.isInteger(colorState.gigaSlot)
+                && colorState.gigaSlot >= 0 && colorState.gigaSlot < GIGA_SLOTS.COUNT) {
+                this.gigaSlot = colorState.gigaSlot;
+            }
         }
         this.applyScreenMode();
         Logger.info('ColorManager', 'Initialized', this.getCurrentSelection());
@@ -119,6 +139,13 @@ class ColorManagerClass {
         const paper = ink ^ 7;
         this.palette = [ZX_PALETTE[paper + 8], ZX_PALETTE[ink + 8]];
         this.paletteRGB = [ZX_PALETTE_RGB[paper + 8], ZX_PALETTE_RGB[ink + 8]];
+        // The hi-res pair: screen B's [paper, ink] follow at entries 2 and 3
+        if (ZX_SPECTRUM.SCREENS === 2) {
+            const inkB = this.timexHiresInkB & 7;
+            const paperB = inkB ^ 7;
+            this.palette.push(ZX_PALETTE[paperB + 8], ZX_PALETTE[inkB + 8]);
+            this.paletteRGB.push(ZX_PALETTE_RGB[paperB + 8], ZX_PALETTE_RGB[inkB + 8]);
+        }
     }
 
     /** Rebuild palette/paletteRGB from the ULAplus register file. @private */
@@ -203,7 +230,7 @@ class ColorManagerClass {
      * @param {Object} attrs - { ink, paper, bright, flash }
      * @returns {{ink: number, paper: number, flashing: boolean}}
      */
-    attrToIndices(attrs) {
+    attrToIndices(attrs, plane = 0) {
         if (ACTIVE_SCREEN_MODE.paletteModel === 'ulaplus64') {
             const clut = (attrs.flash ? 2 : 0) + (attrs.bright ? 1 : 0);
             return {
@@ -215,7 +242,10 @@ class ColorManagerClass {
         if (ACTIVE_SCREEN_MODE.paletteModel === 'timexMono') {
             // The whole hi-res screen shares one ink/paper pair — cell
             // attribute bytes are ignored at render, and nothing flashes.
-            return { ink: 1, paper: 0, flashing: false };
+            // The hi-res pair's screen B uses its own pair, entries 2 and 3.
+            return plane === 1 && ZX_SPECTRUM.SCREENS === 2
+                ? { ink: 3, paper: 2, flashing: false }
+                : { ink: 1, paper: 0, flashing: false };
         }
         if (ACTIVE_SCREEN_MODE.paletteModel === 'rgb333') {
             if (ACTIVE_SCREEN_MODE.pixelDepth > 1) {
@@ -294,6 +324,24 @@ class ColorManagerClass {
      */
     setTimexHiresInk(ink) {
         this.timexHiresInk = ink & 7;
+        if (ACTIVE_SCREEN_MODE.paletteModel === 'timexMono') {
+            this.applyScreenMode();
+        }
+        StateManager.markModified();
+    }
+
+    /** @returns {number} screen B's hi-res scheme ink (0-7), the hi-res pair only */
+    getTimexHiresInkB() {
+        return this.timexHiresInkB & 7;
+    }
+
+    /**
+     * Set screen B's hi-res colour scheme (document state, like
+     * setTimexHiresInk).
+     * @param {number} ink - 0-7; paper is its complement
+     */
+    setTimexHiresInkB(ink) {
+        this.timexHiresInkB = ink & 7;
         if (ACTIVE_SCREEN_MODE.paletteModel === 'timexMono') {
             this.applyScreenMode();
         }
@@ -511,6 +559,94 @@ class ColorManagerClass {
     }
 
     /**
+     * GigaScreen: set screen B's INK base colour (0-7).
+     * @param {number} ink
+     */
+    setInkB(ink) {
+        if (!Validators.isValidBaseColor(ink)) return;
+        this.inkB = ink;
+        this.inkTransparent = false;
+        StateManager.set('color.inkB', ink);
+        StateManager.set('color.inkTransparent', false);
+        EventBus.emit(EVENTS.COLOR_INK, this.getCurrentSelection());
+    }
+
+    /**
+     * GigaScreen: set screen B's PAPER base colour (0-7).
+     * @param {number} paper
+     */
+    setPaperB(paper) {
+        if (!Validators.isValidBaseColor(paper)) return;
+        this.paperB = paper;
+        this.paperTransparent = false;
+        StateManager.set('color.paperB', paper);
+        StateManager.set('color.paperTransparent', false);
+        EventBus.emit(EVENTS.COLOR_PAPER, this.getCurrentSelection());
+    }
+
+    /**
+     * GigaScreen: set screen B's BRIGHT flag.
+     * @param {boolean} bright
+     */
+    setBrightB(bright) {
+        this.brightB = Boolean(bright);
+        StateManager.set('color.brightB', this.brightB);
+        EventBus.emit(EVENTS.COLOR_BRIGHT, this.getCurrentSelection());
+    }
+
+    /**
+     * GigaScreen: choose which of the cell's four blends a stroke paints
+     * (GIGA_SLOTS). Announced as an ink change, since it changes what the
+     * left button lays down.
+     * @param {number} slot - 0..3
+     */
+    setGigaSlot(slot) {
+        if (!Number.isInteger(slot) || slot < 0 || slot >= GIGA_SLOTS.COUNT) return;
+        this.gigaSlot = slot;
+        StateManager.set('color.gigaSlot', slot);
+        EventBus.emit(EVENTS.COLOR_INK, this.getCurrentSelection());
+    }
+
+    /** @returns {number} the GigaScreen slot a stroke paints (0..3) */
+    getGigaSlot() {
+        return this.gigaSlot;
+    }
+
+    /** @returns {{ink:number, paper:number, bright:boolean}} screen B's drawing colours */
+    getScreenB() {
+        return { ink: this.inkB, paper: this.paperB, bright: this.brightB };
+    }
+
+    /**
+     * The four blends the current GigaScreen selection paints, as the
+     * Average display shows them (index = GIGA_SLOTS slot) - computed by the
+     * compositor's own blend so a swatch cannot disagree with the canvas.
+     * @returns {Array<Uint8Array>|null} null outside GigaScreen
+     */
+    getGigaSlotRGB() {
+        if (ZX_SPECTRUM.SCREENS !== 2 || !window.LayerManager) return null;
+        return LayerManager.gigaSlotColours(
+            { ink: this.ink, paper: this.paper, bright: this.bright },
+            this.getScreenB());
+    }
+
+    /**
+     * Publish the four paintable GigaScreen blends as CSS tokens
+     * (--zx-giga-slot-0 ... 3), so the colour rail's Paint swatches and the
+     * preview wells show them without any colour set inline. They are not
+     * palette entries, which is why they get tokens of their own - the same
+     * reason the Timex schemes do.
+     */
+    writeGigaSlotTokens() {
+        if (typeof document === 'undefined') return;
+        const rgb = this.getGigaSlotRGB();
+        if (!rgb) return;
+        const root = document.documentElement;
+        rgb.forEach((c, i) => root.style.setProperty(
+            `--zx-giga-slot-${i}`, `rgb(${c[0]}, ${c[1]}, ${c[2]})`));
+    }
+
+    /**
      * Get the document border colour (0-7, non-bright only — real border has no BRIGHT)
      * @returns {number}
      */
@@ -618,9 +754,15 @@ class ColorManagerClass {
         const tempTransparent = this.inkTransparent;
         this.inkTransparent = this.paperTransparent;
         this.paperTransparent = tempTransparent;
+        // GigaScreen: screen B's wells swap with screen A's.
+        const tempInkB = this.inkB;
+        this.inkB = this.paperB;
+        this.paperB = tempInkB;
         StateManager.setMultiple({
             'color.ink': this.ink,
             'color.paper': this.paper,
+            'color.inkB': this.inkB,
+            'color.paperB': this.paperB,
             'color.inkTransparent': this.inkTransparent,
             'color.paperTransparent': this.paperTransparent
         });
@@ -633,7 +775,7 @@ class ColorManagerClass {
      * @returns {Object} { ink, paper, bright, flash, inkTransparent, paperTransparent }
      */
     getCurrentSelection() {
-        return {
+        const sel = {
             ink: this.ink,
             paper: this.paper,
             bright: this.bright,
@@ -643,6 +785,17 @@ class ColorManagerClass {
             inkTransparent: this.isInkTransparent(),
             paperTransparent: this.isPaperTransparent()
         };
+        // GigaScreen: screen B's colours and the blend a stroke paints. The
+        // draw gate falls back to screen A's colours and a solid ink where
+        // these are absent, so single-screen modes never carry them.
+        if (ZX_SPECTRUM.SCREENS === 2) {
+            sel.inkB = this.inkB;
+            sel.paperB = this.paperB;
+            sel.brightB = this.brightB;
+            sel.flashB = this.flash;
+            sel.gigaSlot = this.gigaSlot;
+        }
+        return sel;
     }
 
     /**
@@ -731,6 +884,14 @@ class ColorManagerClass {
         if (typeof selection.paperTransparent === 'boolean') {
             this.paperTransparent = selection.paperTransparent;
         }
+        const brightBBefore = this.brightB;
+        if (Validators.isValidBaseColor(selection.inkB)) this.inkB = selection.inkB;
+        if (Validators.isValidBaseColor(selection.paperB)) this.paperB = selection.paperB;
+        if (typeof selection.brightB === 'boolean') this.brightB = selection.brightB;
+        if (Number.isInteger(selection.gigaSlot)
+            && selection.gigaSlot >= 0 && selection.gigaSlot < GIGA_SLOTS.COUNT) {
+            this.gigaSlot = selection.gigaSlot;
+        }
 
         StateManager.setSection('color', {
             ink: this.ink,
@@ -738,7 +899,11 @@ class ColorManagerClass {
             bright: this.bright,
             flash: this.flash,
             inkTransparent: this.inkTransparent,
-            paperTransparent: this.paperTransparent
+            paperTransparent: this.paperTransparent,
+            inkB: this.inkB,
+            paperB: this.paperB,
+            brightB: this.brightB,
+            gigaSlot: this.gigaSlot
         });
 
         EventBus.emit(EVENTS.COLOR_INK, this.getCurrentSelection());
@@ -746,7 +911,7 @@ class ColorManagerClass {
             this.paperTransparent !== before.paperTransparent) {
             EventBus.emit(EVENTS.COLOR_PAPER, this.getCurrentSelection());
         }
-        if (this.bright !== before.bright) {
+        if (this.bright !== before.bright || this.brightB !== brightBBefore) {
             EventBus.emit(EVENTS.COLOR_BRIGHT, this.getCurrentSelection());
         }
         if (this.flash !== before.flash) {
@@ -764,6 +929,10 @@ class ColorManagerClass {
         this.flash = false;
         this.inkTransparent = false;
         this.paperTransparent = false;
+        this.inkB = 0;
+        this.paperB = 7;
+        this.brightB = false;
+        this.gigaSlot = GIGA_SLOTS.INK_INK;
 
         StateManager.setSection('color', this.getCurrentSelection());
         // All four channels, so every control that renders from its own fact

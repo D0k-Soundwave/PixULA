@@ -22,6 +22,47 @@
  * - When a cell is drawn, it becomes "altered" with the palette colors
  * - Compositing: Ink pixels stack (OR), attributes come from topmost altered cell
  */
+/*
+ * GigaScreen's second screen lives IN the cell, beside the first (2026-09-23):
+ * `pixelsB` plus `inkB`/`paperB`/`brightB`/`flashB`, allocated only while the
+ * active mode has two screens - the same way `indices` exists only in indexed
+ * modes. One layer stack holds both screens; there are no per-layer sub-screen
+ * tags any more.
+ *
+ * `swapCellPlanes` exchanges the two planes in place. The draw gate uses it to
+ * run the classic per-mode rules on plane B without a second copy of every
+ * rule; it is its own inverse, so a caller swaps, works and swaps back.
+ */
+function swapCellPlanes(cell) {
+  let t = cell.pixels; cell.pixels = cell.pixelsB; cell.pixelsB = t;
+  t = cell.ink; cell.ink = cell.inkB; cell.inkB = t;
+  t = cell.paper; cell.paper = cell.paperB; cell.paperB = t;
+  t = cell.bright; cell.bright = cell.brightB; cell.brightB = t;
+  t = cell.flash; cell.flash = cell.flashB; cell.flashB = t;
+}
+
+/** Give a cell a plane B that mirrors plane A (a solid, unchanged picture). */
+function mirrorPlaneB(cell, cellH) {
+  cell.pixelsB = cell.pixels ? new Uint8Array(cell.pixels) : new Uint8Array(cellH);
+  cell.inkB = cell.ink;
+  cell.paperB = cell.paper;
+  cell.brightB = cell.bright;
+  cell.flashB = cell.flash;
+}
+
+/** Field names of each GigaScreen plane, for code that reads either one. */
+const PLANE_KEYS_A = Object.freeze({ pixels: 'pixels', ink: 'ink', paper: 'paper', bright: 'bright', flash: 'flash' });
+const PLANE_KEYS_B = Object.freeze({ pixels: 'pixelsB', ink: 'inkB', paper: 'paperB', bright: 'brightB', flash: 'flashB' });
+
+/** Drop a cell's plane B (leaving GigaScreen, or a grid without one). */
+function dropPlaneB(cell) {
+  delete cell.pixelsB;
+  delete cell.inkB;
+  delete cell.paperB;
+  delete cell.brightB;
+  delete cell.flashB;
+}
+
 class LayerClass {
   /**
    * Create a new layer
@@ -40,11 +81,6 @@ class LayerClass {
     this.isBackground = isBackground;
     this.isStamp = false; // Stamp layers are repositionable brush-stamp objects
     this.xorMode = false; // When true, stamp commit/preview XORs against target layer below
-    // GigaScreen sub-screen tag (0 = screen A, 1 = screen B) — only
-    // meaningful when the active mode has screens === 2; cleared when the
-    // document leaves GigaScreen mode. The background layer is shared by
-    // both sub-screens and its tag stays 0.
-    this.gigaScreen = 0;
 
     // Stamp data — only set when isStamp = true
     // { mask: bool[][], x, y, w, h, colorSelection }
@@ -71,6 +107,7 @@ class LayerClass {
     const cellH = ZX_SPECTRUM.CELL_HEIGHT;
     const cellW = ZX_SPECTRUM.CELL_WIDTH;
     const indexed = ZX_SPECTRUM.PIXEL_DEPTH > 1;
+    const giga = ZX_SPECTRUM.SCREENS === 2;
     this.attributeData = [];
     for (let y = 0; y < ZX_SPECTRUM.GRID_ROWS; y++) {
       const row = [];
@@ -87,6 +124,7 @@ class LayerClass {
           cell.indices = new Int16Array(cellW * cellH)
             .fill(this.isBackground ? NEXTRGB333.DEFAULT_PAPER : -1);
         }
+        if (giga) mirrorPlaneB(cell, cellH);
         row.push(cell);
       }
       this.attributeData.push(row);
@@ -130,6 +168,11 @@ class LayerClass {
     if (data.flash !== undefined) cell.flash = data.flash;
     if (data.pixels) cell.pixels = new Uint8Array(data.pixels);
     if (data.indices) cell.indices = Int16Array.from(data.indices);
+    if (data.inkB !== undefined) cell.inkB = data.inkB;
+    if (data.paperB !== undefined) cell.paperB = data.paperB;
+    if (data.brightB !== undefined) cell.brightB = data.brightB;
+    if (data.flashB !== undefined) cell.flashB = data.flashB;
+    if (data.pixelsB) cell.pixelsB = new Uint8Array(data.pixelsB);
     if (data.altered !== undefined) {
       cell.altered = data.altered;
     } else {
@@ -163,6 +206,7 @@ class LayerClass {
       cell.flash = DEFAULT_CELL_ATTRS.flash;
       cell.pixels = new Uint8Array(ZX_SPECTRUM.CELL_HEIGHT);
       if (cell.indices) cell.indices.fill(-1);
+      if (cell.pixelsB) mirrorPlaneB(cell, ZX_SPECTRUM.CELL_HEIGHT);
       cell.altered = false;
     }
   }
@@ -187,7 +231,30 @@ class LayerClass {
       return cell.indices[localY * ZX_SPECTRUM.CELL_WIDTH + localX] >= 0;
     }
     const bitPosition = 7 - localX;
+    // GigaScreen: a pixel is marked when either screen shows ink there, so
+    // every mask-based consumer (selection, fill, transforms) sees it.
+    if (cell.pixelsB && ((cell.pixelsB[localY] >> bitPosition) & 1)) return true;
     return (cell.pixels[localY] >> bitPosition) & 1 ? true : false;
+  }
+
+  /**
+   * GigaScreen: which of the cell's four blends a pixel shows (GIGA_SLOTS),
+   * `bitA * 2 + bitB`. A single-screen cell answers 3 for ink and 0 for paper,
+   * which is the same colour on both screens.
+   * @param {number} pixelX
+   * @param {number} pixelY
+   * @returns {number} 0..3
+   */
+  getPixelSlot(pixelX, pixelY) {
+    const cell = this.getCell(
+      Math.floor(pixelX / ZX_SPECTRUM.CELL_WIDTH),
+      Math.floor(pixelY / ZX_SPECTRUM.CELL_HEIGHT));
+    if (!cell) return GIGA_SLOTS.PAPER_PAPER;
+    const localY = pixelY % ZX_SPECTRUM.CELL_HEIGHT;
+    const bitPosition = 7 - (pixelX % ZX_SPECTRUM.CELL_WIDTH);
+    const a = (cell.pixels[localY] >> bitPosition) & 1;
+    const b = cell.pixelsB ? (cell.pixelsB[localY] >> bitPosition) & 1 : a;
+    return a * 2 + b;
   }
 
   /**
@@ -243,8 +310,10 @@ class LayerClass {
     const bitPosition = 7 - localX;
     if (isInk) {
       cell.pixels[localY] |= (1 << bitPosition);
+      if (cell.pixelsB) cell.pixelsB[localY] |= (1 << bitPosition);
     } else {
       cell.pixels[localY] &= ~(1 << bitPosition);
+      if (cell.pixelsB) cell.pixelsB[localY] &= ~(1 << bitPosition);
     }
     // Mark cell as altered when pixels are changed
     cell.altered = true;
@@ -276,6 +345,13 @@ class LayerClass {
           altered: cell.altered
         };
         if (cell.indices) copy.indices = new Int16Array(cell.indices);
+        if (cell.pixelsB) {
+          copy.pixelsB = new Uint8Array(cell.pixelsB);
+          copy.inkB = cell.inkB;
+          copy.paperB = cell.paperB;
+          copy.brightB = cell.brightB;
+          copy.flashB = cell.flashB;
+        }
         row.push(copy);
       }
       clone.push(row);
@@ -315,6 +391,8 @@ class LayerClass {
 
     const probe = this.attributeData[0] && this.attributeData[0][0];
     const tile = probe && probe.indices ? probe.indices.length : 0;
+    // GigaScreen's plane B packs beside plane A in the same form.
+    const giga = !!(probe && probe.pixelsB);
 
     const packed = {
       packed: true,
@@ -334,7 +412,11 @@ class LayerClass {
       flags: new Uint8Array(cells),
       pixels: new Uint8Array(cells * cellH),
       indices: tile ? new Uint8Array(cells * tile) : null,
-      transparent: tile ? new Uint8Array(Math.ceil(cells * tile / 8)) : null
+      transparent: tile ? new Uint8Array(Math.ceil(cells * tile / 8)) : null,
+      inkB: giga ? new Uint8Array(cells) : null,
+      paperB: giga ? new Uint8Array(cells) : null,
+      flagsB: giga ? new Uint8Array(cells) : null,
+      pixelsB: giga ? new Uint8Array(cells * cellH) : null
     };
 
     let c = 0;
@@ -349,6 +431,17 @@ class LayerClass {
         packed.flags[c] = (cell.bright ? 1 : 0) | (cell.flash ? 2 : 0) |
                           (cell.altered ? 4 : 0) | (defined ? 8 : 0);
         packed.pixels.set(cell.pixels, c * cellH);
+
+        if (giga && cell.pixelsB) {
+          const definedB = cell.inkB !== undefined;
+          if (definedB) {
+            packed.inkB[c] = cell.inkB;
+            packed.paperB[c] = cell.paperB;
+          }
+          packed.flagsB[c] = (cell.brightB ? 1 : 0) | (cell.flashB ? 2 : 0) |
+                             (definedB ? 8 : 0);
+          packed.pixelsB.set(cell.pixelsB, c * cellH);
+        }
 
         if (!tile || !cell.indices) continue;
         const base = c * tile;
@@ -399,6 +492,26 @@ class LayerClass {
         cell.altered = (flags & 4) !== 0;
 
         cell.pixels = p.pixels.slice(c * cellH, c * cellH + cellH);
+
+        if (p.pixelsB && cell.pixelsB) {
+          const fB = p.flagsB[c];
+          if (fB & 8) {
+            cell.inkB = p.inkB[c];
+            cell.paperB = p.paperB[c];
+            cell.brightB = (fB & 1) !== 0;
+            cell.flashB = (fB & 2) !== 0;
+          } else {
+            cell.inkB = undefined;
+            cell.paperB = undefined;
+            cell.brightB = undefined;
+            cell.flashB = undefined;
+          }
+          cell.pixelsB = p.pixelsB.slice(c * cellH, c * cellH + cellH);
+        } else if (cell.pixelsB) {
+          // A single-screen snapshot restored into a GigaScreen grid: both
+          // screens show what the snapshot showed.
+          mirrorPlaneB(cell, cellH);
+        }
 
         if (p.tile && cell.indices) {
           const base = c * p.tile;
@@ -458,6 +571,20 @@ class LayerClass {
         } else if (cell.indices) {
           cell.indices.fill(this.isBackground ? NEXTRGB333.DEFAULT_PAPER : -1);
         }
+
+        // GigaScreen plane B. A source without one shows the same picture on
+        // both screens.
+        if (cell.pixelsB) {
+          if (source.pixelsB && source.pixelsB.length !== undefined) {
+            cell.pixelsB = new Uint8Array(source.pixelsB);
+            cell.inkB = source.inkB;
+            cell.paperB = source.paperB;
+            cell.brightB = source.brightB;
+            cell.flashB = source.flashB;
+          } else {
+            mirrorPlaneB(cell, ZX_SPECTRUM.CELL_HEIGHT);
+          }
+        }
       }
     }
   }
@@ -507,9 +634,14 @@ class LayerManagerClass {
     // render with INK/PAPER swapped. Toggled by the flash clock.
     this._flashInverted = false;
     this._flashClockId = null;
-    // GigaScreen canvas view: 'blend' (flicker average), 'a' or 'b'.
-    // Session view state, only read when the mode has screens === 2.
-    this._gigaView = 'blend';
+    // GigaScreen display: 'average' (the per-channel blend), 'flicker' (the
+    // two screens alternating), 'a' or 'b'. What the canvas SHOWS, never where
+    // a stroke goes - every stroke writes both screens. Session view state,
+    // only read when the mode has two screens.
+    this._gigaView = 'average';
+    // Which screen the flicker display is showing this frame (0|1).
+    this._gigaFlickerPhase = 0;
+    this._gigaFlickerId = null;
     this._startFlashClock();
   }
 
@@ -718,9 +850,6 @@ class LayerManagerClass {
     const layerId = this._nextLayerId++;
     const layer = new LayerClass(this.layers.length, name, false, layerId);
     layer.isStamp = true;
-    // GigaScreen: preview the stamp on the sub-screen it will commit to
-    const current = this.getCurrentLayer();
-    if (current) layer.gigaScreen = current.gigaScreen || 0;
     this._layerIdMap.set(layerId, layer);
     this.layers.push(layer); // Always topmost
     this._reindexLayers();
@@ -934,7 +1063,6 @@ class LayerManagerClass {
       isBackground: layer.isBackground,
       isStamp: layer.isStamp || false,
       xorMode: layer.xorMode || false,
-      gigaScreen: layer.gigaScreen || 0,
       stamp: layer.stamp ? {
         x: layer.stamp.x, y: layer.stamp.y,
         w: layer.stamp.w, h: layer.stamp.h,
@@ -1062,7 +1190,6 @@ class LayerManagerClass {
     layer.locked = state.locked;
     layer.isStamp = state.isStamp || false;
     layer.xorMode = state.xorMode || false;
-    layer.gigaScreen = state.gigaScreen || 0;
     layer.stamp = state.stamp ? {
       x: state.stamp.x, y: state.stamp.y,
       w: state.stamp.w, h: state.stamp.h,
@@ -1465,12 +1592,11 @@ class LayerManagerClass {
       }
     }
 
-    // GigaScreen (screens === 2): the layer stack partitions into two
-    // sub-screens by each layer's gigaScreen tag (the background is shared);
-    // both composite independently and the canvas shows the flicker blend
-    // (per-channel average, like RECOIL's ApplyBlend) or a single sub-screen
-    // when the view toggle says so.
-    if ((ACTIVE_SCREEN_MODE.screens || 1) === 2) {
+    // GigaScreen: every cell holds both screens, so the stack composites
+    // twice - once per plane - and the canvas shows the per-channel average
+    // (RECOIL's ApplyBlend), the flicker, or one screen, per the display
+    // control.
+    if (ZX_SPECTRUM.SCREENS === 2) {
       this._composeGigaCell(cellX, cellY, alteredLayers, bgCell, cellW, cellH, baseX, baseY);
       return;
     }
@@ -1543,10 +1669,13 @@ class LayerManagerClass {
    * @param {Array} alteredLayers - [{ layer, cell, index }] bottom -> top
    * @param {Object|null} bgCell - Background layer's cell
    * @param {number} cellH - Active cell height
+   * @param {number} [plane=0] - GigaScreen: 1 composites screen B from each
+   *   cell's `pixelsB`/`inkB`/... fields, by exactly the same rules
    * @returns {{attrs: Object, pixels: Uint8Array}}
    * @private
    */
-  _composeCellData(alteredLayers, bgCell, cellH) {
+  _composeCellData(alteredLayers, bgCell, cellH, plane = 0) {
+    const K = plane === 1 ? PLANE_KEYS_B : PLANE_KEYS_A;
     let xorEntry = null;
     for (let i = alteredLayers.length - 1; i >= 0; i--) {
       if (alteredLayers[i].layer.xorMode || alteredLayers[i].cell.xorReplace) { xorEntry = alteredLayers[i]; break; }
@@ -1557,8 +1686,9 @@ class LayerManagerClass {
 
     if (xorEntry) {
       const c = xorEntry.cell;
-      attrs = { ink: c.ink, paper: c.paper, bright: c.bright, flash: c.flash };
-      for (let row = 0; row < cellH; row++) pixels[row] = c.pixels[row];
+      attrs = { ink: c[K.ink], paper: c[K.paper], bright: c[K.bright], flash: c[K.flash] };
+      const src = c[K.pixels] || c.pixels;
+      for (let row = 0; row < cellH; row++) pixels[row] = src[row];
       return { attrs, pixels };
     }
 
@@ -1566,18 +1696,18 @@ class LayerManagerClass {
       // Use attributes from topmost altered layer
       const topCell = alteredLayers[alteredLayers.length - 1].cell;
       attrs = {
-        ink: topCell.ink,
-        paper: topCell.paper,
-        bright: topCell.bright,
-        flash: topCell.flash
+        ink: topCell[K.ink],
+        paper: topCell[K.paper],
+        bright: topCell[K.bright],
+        flash: topCell[K.flash]
       };
     } else {
       // No altered layers - use background's attributes
       attrs = bgCell ? {
-        ink: bgCell.ink,
-        paper: bgCell.paper,
-        bright: bgCell.bright,
-        flash: bgCell.flash
+        ink: bgCell[K.ink],
+        paper: bgCell[K.paper],
+        bright: bgCell[K.bright],
+        flash: bgCell[K.flash]
       } : {
         ink: 0,
         paper: 7,
@@ -1589,8 +1719,9 @@ class LayerManagerClass {
     // Stack (OR) all ink pixels from altered layers
     for (let i = 0; i < alteredLayers.length; i++) {
       const { cell } = alteredLayers[i];
+      const src = cell[K.pixels] || cell.pixels;
       for (let row = 0; row < cellH; row++) {
-        pixels[row] |= cell.pixels[row];
+        pixels[row] |= src[row];
       }
     }
 
@@ -1613,22 +1744,20 @@ class LayerManagerClass {
    * the background is visible), read top-down so it stops at the first hit.
    * @param {number} cellX
    * @param {number} cellY
-   * @param {number} [gigaScreen=0] - in GigaScreen, the sub-screen to read
+   * @param {number} [plane=0] - in GigaScreen, the screen to read (0 = A, 1 = B)
    * @returns {{ink: number, paper: number, bright: boolean, flash: boolean}}
    */
-  attrsShowing(cellX, cellY, gigaScreen = 0) {
-    const giga = (ACTIVE_SCREEN_MODE.screens || 1) === 2;
+  attrsShowing(cellX, cellY, plane = 0) {
     const layers = this.layers;
     let source = null;
     for (let i = layers.length - 1; i >= 1; i--) {
       const layer = layers[i];
       if (!layer.visible || layer.isStamp) continue;
-      if (giga && (layer.gigaScreen || 0) !== gigaScreen) continue;
       const cell = layer.getCell(cellX, cellY);
       if (cell && cell.altered) { source = cell; break; }
     }
     if (!source && layers[0]) source = layers[0].getCell(cellX, cellY);
-    return LayerManagerClass.cellAttrs(source);
+    return LayerManagerClass.cellAttrs(source, plane);
   }
 
   /**
@@ -1643,14 +1772,15 @@ class LayerManagerClass {
    * @param {Layer} layer
    * @param {number} cellX
    * @param {number} cellY
+   * @param {number} [plane=0] - in GigaScreen, the screen to read
    * @returns {{ink: number, paper: number, bright: boolean, flash: boolean}}
    */
-  attrsAsSeen(layer, cellX, cellY) {
+  attrsAsSeen(layer, cellX, cellY, plane = 0) {
     const cell = layer ? layer.getCell(cellX, cellY) : null;
     if (cell && (cell.altered || layer.isBackground)) {
-      return LayerManagerClass.cellAttrs(cell);
+      return LayerManagerClass.cellAttrs(cell, plane);
     }
-    return this.attrsShowing(cellX, cellY, layer ? (layer.gigaScreen || 0) : 0);
+    return this.attrsShowing(cellX, cellY, plane);
   }
 
   /**
@@ -1658,18 +1788,32 @@ class LayerManagerClass {
    * for a missing cell or an undefined field (see packAttributeData on why a
    * field can be undefined).
    * @param {Object|null} cell
+   * @param {number} [plane=0] - 1 reads GigaScreen's screen B; a cell with no
+   *   screen B answers with its only screen
    * @returns {{ink: number, paper: number, bright: boolean, flash: boolean}}
    */
-  static cellAttrs(cell) {
+  static cellAttrs(cell, plane = 0) {
     const d = DEFAULT_CELL_ATTRS;
     if (!cell) return { ink: d.ink, paper: d.paper, bright: d.bright, flash: d.flash };
+    const K = (plane === 1 && cell.pixelsB) ? PLANE_KEYS_B : PLANE_KEYS_A;
+    const ink = cell[K.ink], paper = cell[K.paper];
+    const bright = cell[K.bright], flash = cell[K.flash];
     return {
-      ink: cell.ink === undefined ? d.ink : cell.ink,
-      paper: cell.paper === undefined ? d.paper : cell.paper,
-      bright: cell.bright === undefined ? d.bright : !!cell.bright,
-      flash: cell.flash === undefined ? d.flash : !!cell.flash
+      ink: ink === undefined ? d.ink : ink,
+      paper: paper === undefined ? d.paper : paper,
+      bright: bright === undefined ? d.bright : !!bright,
+      flash: flash === undefined ? d.flash : !!flash
     };
   }
+
+  /** Swap a cell's GigaScreen planes in place (its own inverse). */
+  static swapCellPlanes(cell) { swapCellPlanes(cell); }
+
+  /** Give a cell a screen B identical to its screen A. */
+  static mirrorPlaneB(cell) { mirrorPlaneB(cell, ZX_SPECTRUM.CELL_HEIGHT); }
+
+  /** Remove a cell's screen B. */
+  static dropPlaneB(cell) { dropPlaneB(cell); }
 
   /**
    * What one cell WOULD look like on the canvas with `overrideCell` standing
@@ -1696,7 +1840,7 @@ class LayerManagerClass {
       : (bgLayer ? bgLayer.getCell(cellX, cellY) : null);
     const altered = this._previewAltered(cellX, cellY, overrideLayer, overrideCell, null);
 
-    if ((ACTIVE_SCREEN_MODE.screens || 1) === 2) {
+    if (ZX_SPECTRUM.SCREENS === 2) {
       return this._gigaCellColours(altered, bgCell, cellW, cellH).colours;
     }
 
@@ -1738,7 +1882,8 @@ class LayerManagerClass {
    * @param {Layer|null} overrideLayer
    * @param {Object|null} overrideCell
    * @param {Layer|null} excludeLayer
-   * @returns {{attrs: Object, pixels: Uint8Array}}
+   * @returns {{attrs: Object, pixels: Uint8Array, attrsB?: Object, pixelsB?: Uint8Array}}
+   *   GigaScreen adds screen B's composite as attrsB/pixelsB
    */
   previewCellData(cellX, cellY, overrideLayer, overrideCell, excludeLayer) {
     const bgLayer = this.layers[0];
@@ -1746,15 +1891,21 @@ class LayerManagerClass {
       ? overrideCell
       : (bgLayer ? bgLayer.getCell(cellX, cellY) : null);
     const altered = this._previewAltered(cellX, cellY, overrideLayer, overrideCell, excludeLayer);
-    return this._composeCellData(altered, bgCell, ZX_SPECTRUM.CELL_HEIGHT);
+    const cellH = ZX_SPECTRUM.CELL_HEIGHT;
+    const out = this._composeCellData(altered, bgCell, cellH);
+    if (ZX_SPECTRUM.SCREENS === 2) {
+      const b = this._composeCellData(altered, bgCell, cellH, 1);
+      out.attrsB = b.attrs;
+      out.pixelsB = b.pixels;
+    }
+    return out;
   }
 
   /**
    * The altered-layer list composeCellToCanvas would build for this cell, with
    * one layer's cell substituted and (optionally) one layer left out. Shared
    * by both preview entry points so they cannot disagree about which layers
-   * take part. In GigaScreen the sub-screen filter is the compositor's own
-   * (partitioned inside _gigaCellColours), so nothing is filtered here.
+   * take part.
    * @returns {Array<{layer: Layer, cell: Object, index: number}>}
    * @private
    */
@@ -1889,14 +2040,25 @@ class LayerManagerClass {
    * @private
    */
   _composeGigaCell(cellX, cellY, alteredLayers, bgCell, cellW, cellH, baseX, baseY) {
-    const { colours, flashing } = this._gigaCellColours(alteredLayers, bgCell, cellW, cellH);
-
-    const flashKey = `${cellX},${cellY}`;
-    if (flashing) {
-      this._flashingCells.add(flashKey);
-    } else {
-      this._flashingCells.delete(flashKey);
+    const view = this._gigaView;
+    // One screen at a time (A, B, or a flicker frame) is an ordinary
+    // two-colour cell, so it takes the classic blit - the flicker display
+    // recomposes every frame and cannot afford 64 setPixel calls per cell.
+    if (view !== 'average') {
+      const plane = view === 'b' ? 1 : view === 'a' ? 0 : this._gigaFlickerPhase;
+      const data = this._composeCellData(alteredLayers, bgCell, cellH, plane);
+      const res = this._resolveCellColors(data.attrs, plane);
+      this._trackFlash(cellX, cellY, res.flashing);
+      let ink = res.ink, paper = res.paper;
+      if (res.flashing && this._flashInverted) { const t = ink; ink = paper; paper = t; }
+      CanvasSystem.blitCellBits(baseX, baseY, cellW, cellH, data.pixels,
+        CanvasSystem.packRGB(ink), CanvasSystem.packRGB(paper));
+      CanvasSystem.markCellDirty(cellX, cellY);
+      return;
     }
+
+    const { colours, flashing } = this._gigaCellColours(alteredLayers, bgCell, cellW, cellH);
+    this._trackFlash(cellX, cellY, flashing);
 
     for (let row = 0; row < cellH; row++) {
       for (let col = 0; col < cellW; col++) {
@@ -1908,34 +2070,41 @@ class LayerManagerClass {
     CanvasSystem.markCellDirty(cellX, cellY);
   }
 
+  /** Keep a cell in (or out of) the FLASH clock's set. @private */
+  _trackFlash(cellX, cellY, flashing) {
+    const flashKey = `${cellX},${cellY}`;
+    if (flashing) {
+      this._flashingCells.add(flashKey);
+    } else {
+      this._flashingCells.delete(flashKey);
+    }
+  }
+
   /**
-   * The colour of every pixel of one GigaScreen cell: both sub-screens
-   * composited over the shared background, FLASH applied per sub-screen, then
-   * the blend (or one sub-screen, per the view toggle). Shared by the live
-   * compose and previewCellColours so the two cannot disagree.
+   * The colour of every pixel of one GigaScreen cell: both screens composited
+   * from the cells' two planes, FLASH applied per screen, then the average
+   * (or one screen, per the display control). Shared by the live compose and
+   * previewCellColours so the two cannot disagree.
    * @returns {{colours: Array<Uint8Array>, flashing: boolean}}
    * @private
    */
   _gigaCellColours(alteredLayers, bgCell, cellW, cellH) {
-    const listA = [];
-    const listB = [];
-    for (const entry of alteredLayers) {
-      ((entry.layer.gigaScreen || 0) === 1 ? listB : listA).push(entry);
-    }
-
-    const a = this._composeCellData(listA, bgCell, cellH);
-    const b = this._composeCellData(listB, bgCell, cellH);
-    const resA = this._resolveCellColors(a.attrs);
-    const resB = this._resolveCellColors(b.attrs);
+    const a = this._composeCellData(alteredLayers, bgCell, cellH, 0);
+    const b = this._composeCellData(alteredLayers, bgCell, cellH, 1);
+    const resA = this._resolveCellColors(a.attrs, 0);
+    const resB = this._resolveCellColors(b.attrs, 1);
 
     let inkA = resA.ink, paperA = resA.paper;
     if (resA.flashing && this._flashInverted) { const t = inkA; inkA = paperA; paperA = t; }
     let inkB = resB.ink, paperB = resB.paper;
     if (resB.flashing && this._flashInverted) { const t = inkB; inkB = paperB; paperB = t; }
 
-    const view = this._gigaView;
+    const view = this._gigaView === 'flicker'
+      ? (this._gigaFlickerPhase ? 'b' : 'a')
+      : this._gigaView;
     // The 4 possible blended colours of this cell, indexed bitA*2 + bitB
-    const blends = view === 'blend' ? [
+    // (GIGA_SLOTS)
+    const blends = view === 'average' ? [
       this._blendRGB(paperA, paperB), this._blendRGB(paperA, inkB),
       this._blendRGB(inkA, paperB), this._blendRGB(inkA, inkB)
     ] : null;
@@ -1967,7 +2136,25 @@ class LayerManagerClass {
   }
 
   /**
-   * The GigaScreen view mode: 'blend' (default), 'a' or 'b'.
+   * The four colours a GigaScreen cell can show, as the page would show them
+   * in the Average display - index = GIGA_SLOTS slot. The colour rail's four
+   * paintable swatches read this, so they are exactly the blend the canvas
+   * paints.
+   * @param {{ink:number, paper:number, bright:boolean}} a - screen A attributes
+   * @param {{ink:number, paper:number, bright:boolean}} b - screen B attributes
+   * @returns {Array<Uint8Array>} four RGB triplets
+   */
+  gigaSlotColours(a, b) {
+    const ra = this._resolveCellColors({ ink: a.ink, paper: a.paper, bright: a.bright, flash: false });
+    const rb = this._resolveCellColors({ ink: b.ink, paper: b.paper, bright: b.bright, flash: false }, 1);
+    return [
+      this._blendRGB(ra.paper, rb.paper), this._blendRGB(ra.paper, rb.ink),
+      this._blendRGB(ra.ink, rb.paper), this._blendRGB(ra.ink, rb.ink)
+    ];
+  }
+
+  /**
+   * The GigaScreen display: 'average' (default), 'flicker', 'a' or 'b'.
    * @returns {string}
    */
   getGigaView() {
@@ -1975,16 +2162,79 @@ class LayerManagerClass {
   }
 
   /**
-   * Toggle what the canvas shows in GigaScreen mode. Session view state
-   * (not document state — not carried by undo/autosave).
-   * @param {string} view - 'blend' | 'a' | 'b'
+   * Choose what the canvas SHOWS in GigaScreen mode. It never changes where a
+   * stroke goes - every stroke writes both screens - which is the whole point
+   * of it being a display control and not a screen selector. Session view
+   * state (not carried by undo/autosave).
+   *
+   * 'flicker' alternates the two screens once per display frame, the nearest
+   * a browser can come to the hardware's 50 Hz swap: requestAnimationFrame
+   * follows the display's refresh, which is 60 Hz on most monitors, and no
+   * page can pin it to 50.
+   * @param {string} view - 'average' | 'flicker' | 'a' | 'b'
    */
   setGigaView(view) {
-    if (view !== 'blend' && view !== 'a' && view !== 'b') return;
+    if (!LayerManagerClass.GIGA_VIEWS.includes(view)) return;
     if (view === this._gigaView) return;
     this._gigaView = view;
+    this._syncGigaFlicker();
     this.composeToCanvas();
     EventBus.emit(EVENTS.GIGA_VIEW_CHANGED, { view });
+  }
+
+  /**
+   * The canvas as a still picture, for the image exporters (PNG, BMP, JPG).
+   *
+   * The canvas buffer is whatever was last composed, and under the Flicker
+   * display that is whichever screen the last frame showed - so an export
+   * would come out as screen A or screen B at random. A still picture cannot
+   * flicker, so it gets the Average, which is what the eye sees; every other
+   * display (Average, A, B) exports as shown, exactly as before.
+   * @returns {ImageData} the live buffer, or a copy rendered in Average
+   */
+  stillImageData() {
+    if (ZX_SPECTRUM.SCREENS !== 2 || this._gigaView !== 'flicker') {
+      return CanvasSystem.getImageData();
+    }
+    this._gigaView = 'average';
+    this.composeToCanvas();
+    const live = CanvasSystem.getImageData();
+    const copy = Helpers.createCanvas(live.width, live.height).getContext('2d')
+      .createImageData(live.width, live.height);
+    copy.data.set(live.data);
+    this._gigaView = 'flicker';
+    this.composeToCanvas();
+    return copy;
+  }
+
+  /**
+   * Run the flicker display's frame loop exactly while it is wanted: the
+   * display says flicker AND the mode has two screens. Called on a view
+   * change and on every mode switch.
+   */
+  _syncGigaFlicker() {
+    const want = this._gigaView === 'flicker' && ZX_SPECTRUM.SCREENS === 2;
+    const raf = typeof window !== 'undefined' && window.requestAnimationFrame;
+    if (!want || !raf) {
+      if (this._gigaFlickerId !== null && window.cancelAnimationFrame) {
+        window.cancelAnimationFrame(this._gigaFlickerId);
+      }
+      this._gigaFlickerId = null;
+      this._gigaFlickerPhase = 0;
+      return;
+    }
+    if (this._gigaFlickerId !== null) return;
+    const tick = () => {
+      if (this._gigaView !== 'flicker' || ZX_SPECTRUM.SCREENS !== 2) {
+        this._gigaFlickerId = null;
+        this._gigaFlickerPhase = 0;
+        return;
+      }
+      this._gigaFlickerPhase ^= 1;
+      this.composeToCanvas();
+      this._gigaFlickerId = window.requestAnimationFrame(tick);
+    };
+    this._gigaFlickerId = window.requestAnimationFrame(tick);
   }
 
   /**
@@ -1994,12 +2244,15 @@ class LayerManagerClass {
    * Node test harness loads this module without ColorManager — same seam
    * the tests already stub CanvasSystem through).
    * @param {Object} attrs - { ink, paper, bright, flash }
+   * @param {number} [plane=0] - in a two-screen mode, the screen these
+   *   attributes belong to (the hi-res pair resolves each screen through its
+   *   own colour scheme)
    * @returns {{ink: Uint8Array, paper: Uint8Array, flashing: boolean}}
    * @private
    */
-  _resolveCellColors(attrs) {
+  _resolveCellColors(attrs, plane = 0) {
     if (window.ColorManager && ColorManager.attrToIndices) {
-      const t = ColorManager.attrToIndices(attrs);
+      const t = ColorManager.attrToIndices(attrs, plane);
       return {
         ink: ColorManager.getRGB(t.ink),
         paper: ColorManager.getRGB(t.paper),
@@ -2054,15 +2307,11 @@ class LayerManagerClass {
 
   /**
    * Flatten all visible layers into a single layer
-   * Follows ZX Spectrum compositing: pixels stack (OR), attributes from topmost altered
-   * @param {Object} [options]
-   * @param {number} [options.gigaScreen] - When set (0|1), only layers on
-   *   that sub-screen participate (the shared background always does) —
-   *   the GigaScreen export path flattens each sub-screen separately.
+   * Follows ZX Spectrum compositing: pixels stack (OR), attributes from topmost
+   * altered. In GigaScreen both planes flatten, each by the same rule.
    * @returns {Layer} A new layer containing the flattened result
    */
-  flattenVisible(options = {}) {
-    const screenFilter = options.gigaScreen;
+  flattenVisible() {
     const result = new LayerClass(0, 'Flattened');
     const cellW = ZX_SPECTRUM.CELL_WIDTH;
     const cellH = ZX_SPECTRUM.CELL_HEIGHT;
@@ -2076,14 +2325,12 @@ class LayerManagerClass {
         const resultCell = result.getCell(cellX, cellY);
         const bgCell = (bgLayer && bgLayer.visible) ? bgLayer.getCell(cellX, cellY) : null;
 
-        // Collect visible, non-stamp, sub-screen-matching altered layers
-        // (skip background and components) — same filter as before.
+        // Collect visible, non-stamp altered layers (skip background and
+        // components) - same filter as before.
         const alteredLayers = [];
         for (let i = 1; i < this.layers.length; i++) {
           const layer = this.layers[i];
           if (!layer.visible || layer.isStamp) continue;
-          if (screenFilter !== undefined
-              && (layer.gigaScreen || 0) !== screenFilter) continue;
 
           const cell = layer.getCell(cellX, cellY);
           if (cell && cell.altered) alteredLayers.push({ layer, cell, index: i });
@@ -2099,6 +2346,14 @@ class LayerManagerClass {
           resultCell.bright = attrs.bright;
           resultCell.flash = attrs.flash;
           resultCell.pixels.set(pixels);
+          if (resultCell.pixelsB) {
+            const b = this._composeCellData(alteredLayers, bgCell, cellH, 1);
+            resultCell.inkB = b.attrs.ink;
+            resultCell.paperB = b.attrs.paper;
+            resultCell.brightB = b.attrs.bright;
+            resultCell.flashB = b.attrs.flash;
+            resultCell.pixelsB.set(b.pixels);
+          }
         }
 
         if (alteredLayers.length > 0) {
@@ -2143,6 +2398,17 @@ class LayerManagerClass {
       targetCell.paper = sourceCell.paper;
       targetCell.bright = sourceCell.bright;
       targetCell.flash = sourceCell.flash;
+
+      // GigaScreen: plane B merges by the same rule
+      if (targetCell.pixelsB && sourceCell.pixelsB) {
+        for (let row = 0; row < cellH; row++) {
+          targetCell.pixelsB[row] |= sourceCell.pixelsB[row];
+        }
+        targetCell.inkB = sourceCell.inkB;
+        targetCell.paperB = sourceCell.paperB;
+        targetCell.brightB = sourceCell.brightB;
+        targetCell.flashB = sourceCell.flashB;
+      }
     }
     targetCell.altered = true;
   }
@@ -2368,7 +2634,6 @@ class LayerManagerClass {
       opacity: layer.opacity,
       locked: layer.locked,
       isBackground: layer.isBackground,
-      gigaScreen: layer.gigaScreen || 0,
       attributeData: layer.cloneAttributeData()
     }));
   }
@@ -2392,7 +2657,6 @@ class LayerManagerClass {
       layer.visible = layerData.visible !== undefined ? layerData.visible : true;
       layer.opacity = layerData.opacity !== undefined ? layerData.opacity : 100;
       layer.locked = layerData.locked !== undefined ? layerData.locked : isBackground;
-      layer.gigaScreen = layerData.gigaScreen || 0;
       if (layerData.attributeData) {
         layer.restoreAttributeData(layerData.attributeData);
       }
@@ -2400,11 +2664,62 @@ class LayerManagerClass {
       this.layers.push(layer);
     });
 
+    if (ZX_SPECTRUM.SCREENS === 2 && data.some(d => d && d.gigaScreen === 1)) {
+      this._convertTaggedGigaLayers(data.map(d => (d && d.gigaScreen) || 0));
+    }
+
     // Set current layer to first drawing layer (not background)
     this.currentLayerIndex = this.layers.length > 1 ? 1 : 0;
     this.activeDrawLayerIndex = this.currentLayerIndex;
     StateManager.set('layer.count', this.layers.length);
     StateManager.set('layer.current', this.currentLayerIndex);
+  }
+
+  /**
+   * Convert a document saved under the old GigaScreen model, where each layer
+   * was tagged to screen A or B and the background was shared.
+   *
+   * Layers cannot convert one by one: a layer that was on screen A alone would
+   * need its cells to be see-through on screen B only, and `altered` belongs to
+   * the whole cell. So each old screen is composited exactly as the old
+   * compositor did it - the background plus that screen's layers - and the two
+   * results become planes A and B of ONE layer above the background. The
+   * picture is unchanged; the old layer split is not kept.
+   * @param {number[]} tags - each restored layer's old tag, by index
+   * @private
+   */
+  _convertTaggedGigaLayers(tags) {
+    const cellH = ZX_SPECTRUM.CELL_HEIGHT;
+    const bgLayer = this.layers[0];
+    const merged = new LayerClass(1, 'GigaScreen', false, this._nextLayerId++);
+    for (let cellY = 0; cellY < ZX_SPECTRUM.GRID_ROWS; cellY++) {
+      for (let cellX = 0; cellX < ZX_SPECTRUM.GRID_COLS; cellX++) {
+        const bgCell = bgLayer ? bgLayer.getCell(cellX, cellY) : null;
+        const lists = [[], []];
+        for (let i = 1; i < this.layers.length; i++) {
+          const layer = this.layers[i];
+          if (!layer.visible || layer.isStamp) continue;
+          const cell = layer.getCell(cellX, cellY);
+          if (cell && cell.altered) lists[tags[i] === 1 ? 1 : 0].push({ layer, cell, index: i });
+        }
+        if (lists[0].length === 0 && lists[1].length === 0) continue;
+        const a = this._composeCellData(lists[0], bgCell, cellH);
+        const b = this._composeCellData(lists[1], bgCell, cellH);
+        const out = merged.getCell(cellX, cellY);
+        out.ink = a.attrs.ink; out.paper = a.attrs.paper;
+        out.bright = a.attrs.bright; out.flash = a.attrs.flash;
+        out.pixels = a.pixels;
+        out.inkB = b.attrs.ink; out.paperB = b.attrs.paper;
+        out.brightB = b.attrs.bright; out.flashB = b.attrs.flash;
+        out.pixelsB = b.pixels;
+        out.altered = true;
+      }
+    }
+    this.layers = bgLayer ? [bgLayer, merged] : [merged];
+    this._layerIdMap.clear();
+    this.layers.forEach(l => this._layerIdMap.set(l.id, l));
+    this._reindexLayers();
+    Logger.info('LayerManager', 'Converted a tagged GigaScreen document to one two-screen layer');
   }
 
   /**
@@ -2445,13 +2760,20 @@ class LayerManagerClass {
  * @param {Object} a @param {Object} b
  * @returns {boolean}
  */
+LayerManagerClass.PACKED_KEYS = Object.freeze([
+  'ink', 'paper', 'flags', 'pixels', 'indices', 'transparent',
+  'inkB', 'paperB', 'flagsB', 'pixelsB'
+]);
+
 LayerManagerClass.packedGridsEqual = function(a, b) {
     if (!a || !b) return false;
     if (a.rows !== b.rows || a.cols !== b.cols || a.cellH !== b.cellH || a.tile !== b.tile) {
         return false;
     }
 
-    for (const key of ['ink', 'paper', 'flags', 'pixels', 'indices', 'transparent']) {
+    // Every array the pack writes, GigaScreen's screen B included - an action
+    // that only touched screen B must not compare as unchanged.
+    for (const key of LayerManagerClass.PACKED_KEYS) {
         const x = a[key], y = b[key];
         if (!x !== !y) return false;      // one present, one not
         if (!x) continue;
@@ -2468,6 +2790,9 @@ const LayerManagerInstance = new LayerManagerClass();
 window.Layer = LayerClass;
 window.LayerManager = LayerManagerInstance;
 window.LayerManagerClass = LayerManagerClass;
+
+/** The GigaScreen displays, in the order the colour rail offers them. */
+LayerManagerClass.GIGA_VIEWS = Object.freeze(['average', 'flicker', 'a', 'b']);
 
 Logger.debug('LayerManager', 'Layer manager loaded');
 

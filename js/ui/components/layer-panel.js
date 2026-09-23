@@ -80,8 +80,6 @@ class LayerPanelClass {
         EventBus.on(EVENTS.LAYER_ORDER,      rerenderAll);
         EventBus.on(EVENTS.LAYER_SELECTED,   rerenderAll);
         EventBus.on(EVENTS.LAYER_VISIBILITY, rerenderAll);
-        // GigaScreen A/B badges appear/disappear with the mode
-        EventBus.on(EVENTS.SCREEN_MODE_CHANGED, rerenderAll);
 
         rerenderAll();
 
@@ -175,14 +173,6 @@ class LayerPanelClass {
             item.setAttribute('aria-selected', String(isCurrent));
             item.setAttribute('tabindex', '0');
 
-            // GigaScreen: an A/B badge per layer — which sub-screen it sits on
-            const gigaBadge = (ACTIVE_SCREEN_MODE.screens || 1) === 2
-                ? `<button type="button" class="layer-btn layer-giga ${layer.gigaScreen === 1 ? 'giga-b' : 'giga-a'}"
-                        title="${this._t('giga.layerScreen.hint', 'Which GigaScreen sub-screen this layer belongs to — click to switch')}" data-i18n-title="giga.layerScreen.hint"
-                        aria-label="Toggle sub-screen">${layer.gigaScreen === 1
-                            ? this._t('giga.viewB', 'B') : this._t('giga.viewA', 'A')}</button>`
-                : '';
-
             item.innerHTML = `
                 <button type="button" class="layer-btn layer-checkbox ${isSelected ? 'checked' : ''}"
                         title="${this._t('layer.selectForMerge', 'Select for merge')}" data-i18n-title="layer.selectForMerge"
@@ -191,7 +181,6 @@ class LayerPanelClass {
                         title="${this._t(layer.visible ? 'layer.visibility.hide' : 'layer.visibility.show', layer.visible ? 'Hide layer' : 'Show layer')}" data-i18n-title="${layer.visible ? 'layer.visibility.hide' : 'layer.visibility.show'}"
                         aria-label="Toggle layer visibility">${svgUse(layer.visible ? 'icon-eye' : 'icon-eye-off')}</button>
                 <span class="layer-name" title="${this._t('layer.selectHint', 'Click to select; double-click to rename')}" data-i18n-title="layer.selectHint">${Helpers.escapeHTML(layer.name)}</span>
-                ${gigaBadge}
                 <button type="button" class="layer-btn layer-lock ${layer.locked ? 'locked' : ''}"
                         title="${this._t(layer.locked ? 'layer.lock.unlock' : 'layer.lock.lock', layer.locked ? 'Unlock layer' : 'Lock layer')}" data-i18n-title="${layer.locked ? 'layer.lock.unlock' : 'layer.lock.lock'}"
                         aria-label="Toggle layer lock">${svgUse(layer.locked ? 'icon-lock' : 'icon-unlock')}</button>
@@ -260,19 +249,6 @@ class LayerPanelClass {
                 const layer = LayerManager.getLayer(layerIndex);
                 if (layer) {
                     LayerManager.setLayerLocked(layerIndex, !layer.locked);
-                    this._renderLayerList();
-                }
-                return;
-            }
-
-            // GigaScreen sub-screen badge: move the layer to the other screen
-            if (e.target.closest('.layer-giga')) {
-                e.stopPropagation();
-                const layer = LayerManager.getLayer(layerIndex);
-                if (layer) {
-                    layer.gigaScreen = layer.gigaScreen === 1 ? 0 : 1;
-                    StateManager.markModified();
-                    LayerManager.composeToCanvas();
                     this._renderLayerList();
                 }
                 return;

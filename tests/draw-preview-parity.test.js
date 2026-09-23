@@ -40,7 +40,8 @@ loadModule('js/core/pixel-draw-routine.js');
 
 ColorManager.initialize();
 
-const MODES = ['standard_ula', 'multicolor_8x4', 'ula_plus', 'gigascreen', 'layer2_256'];
+const MODES = ['standard_ula', 'multicolor_8x4', 'ula_plus', 'gigascreen', 'multigiga_8x1',
+  'timex_hires_giga', 'layer2_256'];
 const DRAW_MODES = ['normal', 'pixel_only', 'ink', 'paper', 'xor', 'xor_pixel'];
 
 const CELL_X = 3, CELL_Y = 3;

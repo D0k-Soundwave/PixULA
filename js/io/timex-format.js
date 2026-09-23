@@ -13,12 +13,14 @@
  *        bits 3–5 = the ink colour, bits 0–2 = the screen-mode bits (we
  *        write 110 = hi-res). Paper is always the ink's complement and both
  *        render at BRIGHT levels (RECOIL renders hi-res fully saturated).
- *   .hrg (24578, import + export) — two 12289-byte hi-res screens (a
- *        GigaScreen hi-res pair, RECOIL blends them). We have no hi-res
- *        flicker mode, so IMPORT reads the FIRST sub-screen and drops the
- *        second (documented loss); EXPORT writes the same screen twice —
- *        two identical frames blend to exactly the exported image, and the
- *        file round-trips through our own import.
+ *   .hrg (24578, import + export) — two 12289-byte hi-res screens, a
+ *        flicker pair, each with its OWN port byte and so its own colour
+ *        scheme (RECOIL DecodeHrg reads content[offset + 0x3000] per frame
+ *        and blends). Since 2026-09-23 it imports whole into the
+ *        TIMEX_HIRES_GIGA mode - both frames, both schemes; it used to drop
+ *        the second. EXPORT from the pair mode writes each screen with its
+ *        own scheme; from single-screen hi-res it writes the screen twice,
+ *        which blends to exactly the exported image.
  *
  * Timex hi-COLOUR (8×1 attributes) is deliberately NOT a separate mode or
  * handler: its cell model is MULTICOLOR_8x1 (ZX-Paintbrush itself treats
@@ -68,21 +70,73 @@ class TimexFormatClass {
   // ── Import ────────────────────────────────────────────────────────────────
 
   /**
-   * Parse a .hrg GigaScreen hi-res pair — the first sub-screen becomes the
-   * document (the second is dropped; we have no hi-res flicker mode).
+   * Parse a .hrg hi-res flicker pair into the TIMEX_HIRES_GIGA mode: frame A
+   * into the current layer's first plane with its scheme, frame B into the
+   * second with its own.
    * @param {ArrayBuffer} buffer
    * @returns {Object} { success } | { success: false, error }
    */
   parseHrg(buffer) {
     const bytes = new Uint8Array(buffer);
     const HIRES = SCREEN_MODES.TIMEX_HIRES;
-    if (bytes.length !== HIRES.fileSize * 2) {
+    const PAIR = SCREEN_MODES.TIMEX_HIRES_GIGA;
+    if (bytes.length !== PAIR.fileSize) {
       return {
         success: false,
-        error: `Invalid .hrg file size: ${bytes.length} bytes (expected ${HIRES.fileSize * 2})`
+        error: `Invalid .hrg file size: ${bytes.length} bytes (expected ${PAIR.fileSize})`
       };
     }
-    return this.importHires(bytes.subarray(0, HIRES.fileSize), 'Load HRG');
+    UndoRedoService.beginAction('Load HRG');
+    if (window.ScreenModeService && ScreenModeService.getModeId() !== PAIR.id) {
+      ScreenModeService.applyModeRaw(PAIR.id);
+    }
+    const layer = LayerManager.getCurrentLayer();
+    if (!layer) {
+      if (typeof UndoRedoService.cancelAction === 'function') UndoRedoService.cancelAction();
+      else UndoRedoService.endAction();
+      return { success: false, error: 'No active layer' };
+    }
+    const frameA = bytes.subarray(0, HIRES.fileSize);
+    const frameB = bytes.subarray(HIRES.fileSize, PAIR.fileSize);
+    const inkA = this._portInk(frameA);
+    const inkB = this._portInk(frameB);
+    if (window.ColorManager) {
+      ColorManager.setTimexHiresInk(inkA);
+      ColorManager.setTimexHiresInkB(inkB);
+    }
+    this._loadHiresFrame(frameA, layer, 0, inkA);
+    this._loadHiresFrame(frameB, layer, 1, inkB);
+
+    LayerManager.composeToCanvas();
+    UndoRedoService.endAction();
+    Logger.info('TimexFormat', 'Hi-res pair loaded');
+    EventBus.emit(EVENTS.FILE_IMPORT, { format: 'hrg' });
+    return { success: true };
+  }
+
+  /** The scheme ink (0-7) in a hi-res screen's port byte, bits 3-5. @private */
+  _portInk(frame) {
+    return (frame[SCREEN_MODES.TIMEX_HIRES.bitmapSize] >> 3) & 7;
+  }
+
+  /**
+   * Write one decoded hi-res screen into a layer - screen A's fields, or
+   * screen B's for plane 1. The scheme's colours go into the cells too:
+   * hi-res ignores them at render, but leaving the mode stamps this same
+   * scheme, so the stored attributes never contradict what the artist saw.
+   * @private
+   */
+  _loadHiresFrame(frame, layer, plane, ink) {
+    const rows = this.decodeHiresRows(frame);
+    for (let cy = 0; cy < rows.length; cy++) {
+      for (let cx = 0; cx < rows[cy].length; cx++) {
+        layer.setCell(cx, cy, plane === 1 ? {
+          inkB: ink, paperB: ink ^ 7, brightB: true, flashB: false, pixelsB: rows[cy][cx]
+        } : {
+          ink, paper: ink ^ 7, bright: true, flash: false, pixels: rows[cy][cx]
+        });
+      }
+    }
   }
 
   /**
@@ -102,7 +156,7 @@ class TimexFormatClass {
       ScreenModeService.applyModeRaw(HIRES.id);
     }
 
-    const ink = (bytes[HIRES.bitmapSize] >> 3) & 7;
+    const ink = this._portInk(bytes);
     if (window.ColorManager) ColorManager.setTimexHiresInk(ink);
 
     const layer = LayerManager.getCurrentLayer();
@@ -111,22 +165,7 @@ class TimexFormatClass {
       else UndoRedoService.endAction();
       return { success: false, error: 'No active layer' };
     }
-
-    // Store the scheme's colours in the cells too — hi-res ignores them at
-    // render, but leaving the mode stamps this same scheme, so the stored
-    // attrs never contradict what the user saw.
-    const rows = this.decodeHiresRows(bytes);
-    for (let cy = 0; cy < rows.length; cy++) {
-      for (let cx = 0; cx < rows[cy].length; cx++) {
-        layer.setCell(cx, cy, {
-          ink,
-          paper: ink ^ 7,
-          bright: true,
-          flash: false,
-          pixels: rows[cy][cx]
-        });
-      }
-    }
+    this._loadHiresFrame(bytes, layer, 0, ink);
 
     LayerManager.composeToCanvas();
     UndoRedoService.endAction();
@@ -144,7 +183,8 @@ class TimexFormatClass {
    * @returns {Uint8Array}
    */
   exportHires() {
-    if (ACTIVE_SCREEN_MODE.paletteModel !== 'timexMono') {
+    // One screen only: the pair's own container is .hrg (exportHrg).
+    if (ACTIVE_SCREEN_MODE.paletteModel !== 'timexMono' || ZX_SPECTRUM.SCREENS !== 1) {
       throw new Error(Helpers.localizedMessage('mode.exportNeedsHires',
         'This format holds Timex hi-res screens — switch to Timex hi-res mode first.'));
     }
@@ -154,12 +194,34 @@ class TimexFormatClass {
     return this.encodeHiresRows(rows, ink);
   }
 
-  /** Export the .hrg pair — the same screen twice (blends to itself). */
+  /**
+   * Export the .hrg pair. From the pair mode each screen is written with its
+   * own scheme; from single-screen hi-res the same screen twice (two
+   * identical frames blend to exactly the exported image).
+   * @returns {Uint8Array}
+   */
   exportHrg() {
-    const scr = this.exportHires();
-    const out = new Uint8Array(scr.length * 2);
-    out.set(scr, 0);
-    out.set(scr, scr.length);
+    if (ACTIVE_SCREEN_MODE.paletteModel !== 'timexMono') {
+      throw new Error(Helpers.localizedMessage('mode.exportNeedsHires',
+        'This format holds Timex hi-res screens — switch to Timex hi-res mode first.'));
+    }
+    if (ZX_SPECTRUM.SCREENS !== 2) {
+      const scr = this.exportHires();
+      const out = new Uint8Array(scr.length * 2);
+      out.set(scr, 0);
+      out.set(scr, scr.length);
+      return out;
+    }
+    const flattened = LayerManager.flattenVisible();
+    const a = this.encodeHiresRows(
+      flattened.attributeData.map(row => row.map(c => c.pixels)),
+      ColorManager.getTimexHiresInk());
+    const b = this.encodeHiresRows(
+      flattened.attributeData.map(row => row.map(c => c.pixelsB)),
+      ColorManager.getTimexHiresInkB());
+    const out = new Uint8Array(a.length + b.length);
+    out.set(a, 0);
+    out.set(b, a.length);
     return out;
   }
 

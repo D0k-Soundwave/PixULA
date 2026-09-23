@@ -291,6 +291,7 @@ class UndoRedoManagerClass {
       ulaplusRegisters: null,
       nextRegisters: null,
       timexHiresInk: null,
+      timexHiresInkB: null,
       background: null,
       layers: null,
       floatingPaste: null,
@@ -305,6 +306,10 @@ class UndoRedoManagerClass {
     }
     if (window.ColorManager && typeof ColorManager.getTimexHiresInk === 'function') {
       snap.timexHiresInk = ColorManager.getTimexHiresInk();
+    }
+    // The hi-res pair's screen B scheme
+    if (window.ColorManager && typeof ColorManager.getTimexHiresInkB === 'function') {
+      snap.timexHiresInkB = ColorManager.getTimexHiresInkB();
     }
     if (window.LayerManager) {
       snap.layers = LayerManager.captureAllLayersState();
@@ -346,6 +351,11 @@ class UndoRedoManagerClass {
         && snap.timexHiresInk !== undefined
         && typeof ColorManager.setTimexHiresInk === 'function') {
       ColorManager.setTimexHiresInk(snap.timexHiresInk);
+    }
+    if (window.ColorManager && snap.timexHiresInkB !== null
+        && snap.timexHiresInkB !== undefined
+        && typeof ColorManager.setTimexHiresInkB === 'function') {
+      ColorManager.setTimexHiresInkB(snap.timexHiresInkB);
     }
     if (snap.layers && window.LayerManager) {
       // Background first — restoreAllLayersState ends with a full
@@ -511,7 +521,7 @@ UndoRedoManagerClass.entryBytes = function(entry) {
     const gridBytes = (g) => {
         if (!g) return 0;
         let n = 0;
-        for (const key of ['ink', 'paper', 'flags', 'pixels', 'indices', 'transparent']) {
+        for (const key of LayerManagerClass.PACKED_KEYS) {
             if (g[key]) n += g[key].byteLength;
         }
         return n;

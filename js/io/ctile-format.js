@@ -133,12 +133,15 @@ class CtileFormatClass {
    */
   canExport() {
     const mode = ACTIVE_SCREEN_MODE;
-    return mode.attrCellH === 1 && mode.paletteModel === 'fixed16';
+    // One screen only: a ColorTile has no second frame, so MultiGigaScreen
+    // 8x1 would lose screen B without a word.
+    return mode.attrCellH === 1 && mode.paletteModel === 'fixed16'
+      && (mode.screens || 1) === 1;
   }
 
   export() {
     const mode = ACTIVE_SCREEN_MODE;
-    if (mode.attrCellH !== 1 || mode.paletteModel !== 'fixed16') {
+    if (!this.canExport()) {
       throw new Error(Helpers.localizedMessage('mode.ctileNeedsTimex',
         'ColorTiles are 8×1-attribute tiles — switch to Multicolor 8×1 (Timex) mode first.'));
     }

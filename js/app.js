@@ -555,6 +555,7 @@ class AppClass {
             nextRegisters: ColorManager.nextRegisters
                 ? Array.from(ColorManager.nextRegisters) : null,
             timexHiresInk: ColorManager.getTimexHiresInk(),
+            timexHiresInkB: ColorManager.getTimexHiresInkB(),
             layers: LayerManager.getAllLayers(),
             slices
         };
@@ -583,6 +584,9 @@ class AppClass {
         }
         if (data.timexHiresInk !== undefined && data.timexHiresInk !== null) {
             ColorManager.setTimexHiresInk(data.timexHiresInk);
+        }
+        if (data.timexHiresInkB !== undefined && data.timexHiresInkB !== null) {
+            ColorManager.setTimexHiresInkB(data.timexHiresInkB);
         }
 
         if (data.layers) {

@@ -231,6 +231,7 @@ test('working map and working font persist across F5 (MAPS/FONTS stores)', async
 const MODES = [
     'STANDARD_ULA', 'MULTICOLOR_8x4', 'MULTICOLOR_8x2', 'MULTICOLOR_8x1',
     'ULA_PLUS', 'ULA_PLUS_8x1', 'TIMEX_HIRES', 'GIGASCREEN',
+    'MULTIGIGA_8x4', 'MULTIGIGA_8x2', 'MULTIGIGA_8x1', 'TIMEX_HIRES_GIGA',
     'ULANEXT', 'LAYER2_256', 'LAYER2_320', 'LAYER2_640',
     'LORES', 'LORES_RADASTAN'
 ];
@@ -252,12 +253,20 @@ for (const mode of MODES) {
             } else if (ACTIVE_SCREEN_MODE.paletteModel === 'rgb333') {
                 ColorManager.setNextRegister?.(10, 0x155);
                 extra = ['next', 10, ColorManager.nextRegisters[10]];
+            } else if (ACTIVE_SCREEN_MODE.paletteModel === 'timexMono'
+                && ACTIVE_SCREEN_MODE.screens === 2) {
+                // The hi-res pair: screen B's own scheme must survive F5
+                ColorManager.setTimexHiresInkB(6);
+                extra = ['timexB', null, 6];
             } else if (ACTIVE_SCREEN_MODE.paletteModel === 'timexMono') {
                 ColorManager.setTimexHiresInk(3);
                 extra = ['timex', null, 3];
             } else if (ACTIVE_SCREEN_MODE.screens === 2) {
-                extra = ['giga', null,
-                    LayerManager.layers.filter(l => l.gigaScreen !== undefined).length];
+                // Screen B is its own data: give the drawn cell a screen B
+                // ink screen A does not have, and it must survive F5.
+                LayerManager.getCurrentLayer().getCell(
+                    Math.floor(9 / ZX_SPECTRUM.CELL_WIDTH), Math.floor(9 / ZX_SPECTRUM.CELL_HEIGHT)).inkB = 5;
+                extra = ['giga', null, 5];
             }
             await Storage.set('autosave', App._getProjectData());
             return { id, extra };
@@ -276,8 +285,9 @@ for (const mode of MODES) {
                 if (k === 'ulaplus') return ColorManager.ulaplusRegisters[i];
                 if (k === 'next') return ColorManager.nextRegisters[i];
                 if (k === 'timex') return ColorManager.getTimexHiresInk();
-                if (k === 'giga') return LayerManager.layers
-                    .filter(l => l.gigaScreen !== undefined).length;
+                if (k === 'timexB') return ColorManager.getTimexHiresInkB();
+                if (k === 'giga') return LayerManager.getCurrentLayer().getCell(
+                    Math.floor(9 / ZX_SPECTRUM.CELL_WIDTH), Math.floor(9 / ZX_SPECTRUM.CELL_HEIGHT)).inkB;
                 return null;
             }, [kind, idx]);
             expect(got, `${kind} state after F5`).toBe(want);

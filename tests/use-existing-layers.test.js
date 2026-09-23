@@ -240,20 +240,17 @@ const enterMode = (id) => {
 }
 
 {
-  // GigaScreen: each sub-screen is its own picture, so B never feeds A
+  // GigaScreen: each screen is its own picture, so "use existing" on screen A
+  // takes screen A's colour and on screen B takes screen B's - never the other.
   const { L1, L2 } = enterMode('gigascreen');
-  L1.gigaScreen = 0;
-  L2.gigaScreen = 0;
-  LayerManager.addLayer('B layer', false);
-  const B = LayerManager.layers[3];
-  B.gigaScreen = 1;
-  paintCell(L1, 5, 5, { ink: 2, paper: 5 });
-  paintCell(B, 5, 5, { ink: 7, paper: 0 });
+  paintCell(L1, 5, 5, { ink: 2, paper: 5, inkB: 7, paperB: 0 });
   LayerManager.setCurrentLayer(2);
   PixelDrawRoutine.draw(41, 41,
     sel({ inkTransparent: true, paperTransparent: true }), DRAW_MODE.NORMAL);
-  check('GigaScreen: a sub-screen reads its OWN screen, not the other one',
+  check('GigaScreen: screen A reads its OWN screen, not the other one',
     attrsJSON(LayerManagerClass.cellAttrs(L2.getCell(5, 5))) === want({ ink: 2, paper: 5 }));
+  check('GigaScreen: screen B reads its OWN screen, not the other one',
+    attrsJSON(LayerManagerClass.cellAttrs(L2.getCell(5, 5), 1)) === want({ ink: 7, paper: 0 }));
 }
 
 __setActiveScreenMode('standard_ula');

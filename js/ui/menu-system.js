@@ -26,6 +26,10 @@ const EXPORT_FORMATS = Object.freeze([
     ['ifl',   'Multicolor Screen 8\u00d72 (.ifl)'],
     ['hrg',   'Timex Hi-res Screen (.hrg)'],
     ['img',   'GigaScreen Image (.img)'],
+    ['mg8',   'MultiArtist 8×8 Image (.mg8)'],
+    ['mg4',   'MultiArtist 8×4 Image (.mg4)'],
+    ['mg2',   'MultiArtist 8×2 Image (.mg2)'],
+    ['mg1',   'MultiArtist 8×1 Image (.mg1)'],
     ['nxi',   'Next Layer 2 Image (.nxi)'],
     ['sl2',   'Next Layer 2 Dump (.sl2)'],
     ['slr',   'Next LoRes Dump (.slr)'],
@@ -317,7 +321,7 @@ class MenuSystemClass {
                     { id: 'clear', label: 'Clear Canvas', action: 'image:clear' },
                     { type: 'separator' },
                     // Screen modes (Phase 12a/13) live in their own flyout —
-                    // 14 radio-style toggles is a wall in a flat dropdown.
+                    // 18 radio-style toggles is a wall in a flat dropdown.
                     // Labels reuse the mode.* keys from the SCREEN_MODES
                     // registry; `mode` names the descriptor whose composed
                     // tooltip the row shows (Helpers.describeScreenMode).
@@ -330,6 +334,11 @@ class MenuSystemClass {
                         { id: 'mode-ula_plus_8x1',   label: 'ULAplus 8×1 (Timex)', action: 'image:modeUlaPlus8x1', toggle: true, i18n: 'mode.ulaPlus8x1', mode: 'ula_plus_8x1' },
                         { id: 'mode-timex_hires',    label: 'Timex Hi-res 512×192', action: 'image:modeTimexHires', toggle: true, i18n: 'mode.timexHires', mode: 'timex_hires' },
                         { id: 'mode-gigascreen',     label: 'GigaScreen',     action: 'image:modeGigascreen',    toggle: true, i18n: 'mode.gigascreen', mode: 'gigascreen' },
+                        // Flicker pairs on the finer cells and in hi-res (2026-09-23)
+                        { id: 'mode-multigiga_8x4',  label: 'MultiGigaScreen 8×4', action: 'image:modeMultigiga8x4', toggle: true, i18n: 'mode.multigiga8x4', mode: 'multigiga_8x4' },
+                        { id: 'mode-multigiga_8x2',  label: 'MultiGigaScreen 8×2', action: 'image:modeMultigiga8x2', toggle: true, i18n: 'mode.multigiga8x2', mode: 'multigiga_8x2' },
+                        { id: 'mode-multigiga_8x1',  label: 'MultiGigaScreen 8×1', action: 'image:modeMultigiga8x1', toggle: true, i18n: 'mode.multigiga8x1', mode: 'multigiga_8x1' },
+                        { id: 'mode-timex_hires_giga', label: 'Timex Hi-res GigaScreen', action: 'image:modeTimexHiresGiga', toggle: true, i18n: 'mode.timexHiresGiga', mode: 'timex_hires_giga' },
                         { type: 'separator' },
                         // ZX Spectrum Next modes (Phase 13)
                         { id: 'mode-ulanext',        label: 'ULANext',         action: 'image:modeUlanext',       toggle: true, i18n: 'mode.ulanext', mode: 'ulanext' },
@@ -789,6 +798,10 @@ class MenuSystemClass {
             case 'image:modeUlaPlus8x1':    this.requestScreenMode('ula_plus_8x1');   break;
             case 'image:modeTimexHires':    this.requestScreenMode('timex_hires');    break;
             case 'image:modeGigascreen':    this.requestScreenMode('gigascreen');     break;
+            case 'image:modeMultigiga8x4':  this.requestScreenMode('multigiga_8x4');  break;
+            case 'image:modeMultigiga8x2':  this.requestScreenMode('multigiga_8x2');  break;
+            case 'image:modeMultigiga8x1':  this.requestScreenMode('multigiga_8x1');  break;
+            case 'image:modeTimexHiresGiga': this.requestScreenMode('timex_hires_giga'); break;
             // ZX Spectrum Next modes (Phase 13)
             case 'image:modeUlanext':       this.requestScreenMode('ulanext');        break;
             case 'image:modeLayer2_256':    this.requestScreenMode('layer2_256');     break;

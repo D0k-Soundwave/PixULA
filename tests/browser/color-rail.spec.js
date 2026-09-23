@@ -187,34 +187,34 @@ test('Bright/Flash line up with the Ink/Paper columns beneath them', async ({ pa
 });
 
 /*
- * The same misalignment applied to the GigaScreen view picker (also a
- * stretched-then-left-packed grid inside #colour-bits) - Blend/A/B must
- * line up with Bright/Flash's column too.
+ * The same misalignment applied to the GigaScreen display picker (also a
+ * stretched-then-left-packed grid inside #colour-bits) - A/B must line up
+ * with Bright A / Bright B's column too.
  */
-test('GigaScreen: Blend/A/B line up with the Bright/Flash column', async ({ page }) => {
+test('GigaScreen: the A/B display buttons line up with Bright A / Bright B', async ({ page }) => {
     await boot(page);
     page.on('dialog', (d) => d.accept());
     await page.evaluate(() => ScreenModeService.switchMode('gigascreen'));
 
     const layout = await page.evaluate(() => {
-        const bright = document.getElementById('bright-toggle').closest('.clut-bit').getBoundingClientRect();
-        const flash = document.getElementById('flash-toggle').closest('.clut-bit').getBoundingClientRect();
+        const brightA = document.getElementById('bright-toggle').closest('.clut-bit').getBoundingClientRect();
+        const brightB = document.getElementById('bright-b-toggle').closest('.clut-bit').getBoundingClientRect();
         const a = document.querySelector('[data-giga-view="a"]').getBoundingClientRect();
         const b = document.querySelector('[data-giga-view="b"]').getBoundingClientRect();
         return {
-            aMatchesBrightLeft: Math.abs(a.left - bright.left) <= 1,
-            bMatchesFlashRight: Math.abs(b.right - flash.right) <= 1
+            aMatchesBrightALeft: Math.abs(a.left - brightA.left) <= 1,
+            bMatchesBrightBRight: Math.abs(b.right - brightB.right) <= 1
         };
     });
-    expect(layout.aMatchesBrightLeft).toBe(true);
-    expect(layout.bMatchesFlashRight).toBe(true);
+    expect(layout.aMatchesBrightALeft).toBe(true);
+    expect(layout.bMatchesBrightBRight).toBe(true);
 });
 
 /*
  * ULAplus: the CLUT selector (0-3) is a 2x2 grid of icon-sized squares -
  * the same fixed size as every swatch and toggle in the rail - not small
  * text buttons wrapping freely. A single digit never needs the wrap
- * behaviour the GigaScreen view row's text labels ("Blend") do.
+ * behaviour the GigaScreen display row's text labels ("Average") do.
  */
 test('ULAplus: the CLUT selector is a 2x2 grid of icons the same size as the rail\'s other controls', async ({ page }) => {
     await boot(page);
@@ -278,19 +278,18 @@ test('ULAplus and ULANext: the paired swatch rows sit side by side with a vertic
 });
 
 /*
- * GigaScreen: Blend spans both icon columns on its own row (the "no split"
- * choice reads as the odd one out above the pair, not a third option
- * beside them); A and B sit below it, one icon each, side by side - never
- * three options crammed into one row.
+ * GigaScreen: Average and Flicker each span both icon columns on a row of
+ * their own (they show both screens, and their words need the width); A and
+ * B sit below them, one icon each, side by side.
  */
-test('GigaScreen: Blend spans two icon columns, with A and B beneath it', async ({ page }) => {
+test('GigaScreen: Average spans two icon columns, with A and B beneath it', async ({ page }) => {
     await boot(page);
     await page.evaluate(() => ScreenModeService.switchMode('gigascreen'));
 
     const layout = await page.evaluate(() => {
         const swatch = document.querySelector('#clut-cluster .color-swatch').getBoundingClientRect();
         const byView = (v) => document.querySelector(`#giga-view-row [data-giga-view="${v}"]`).getBoundingClientRect();
-        const blend = byView('blend');
+        const blend = byView('average');
         const a = byView('a');
         const b = byView('b');
         const round = (n) => Math.round(n);

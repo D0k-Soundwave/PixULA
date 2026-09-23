@@ -60,18 +60,34 @@ class GIFFormatClass {
    * @returns {Uint8Array} Complete GIF89a file
    */
   export(options = {}) {
-    // GigaScreen (Phase 12b): the two sub-screens ARE the animation — a
-    // fast two-frame loop approximates the hardware flicker blend. The
-    // 'animated' option is implied; FLASH phases are not layered on top.
+    // Two-screen modes (GigaScreen, MultiGigaScreen, the hi-res pair): the
+    // two screens ARE the animation — a fast two-frame loop approximates the
+    // hardware flicker blend. The 'animated' option is implied; FLASH phases
+    // are not layered on top. 8x8 GigaScreen keeps its byte-tested SCR
+    // path; the others decode each plane of the flattened document against
+    // the live palette (the hi-res pair's 4-entry [paperA, inkA, paperB,
+    // inkB] table).
     if ((ACTIVE_SCREEN_MODE.screens || 1) === 2) {
-      const frames = [
-        { indices: this.screenToIndices(GigascreenFormat.subScreenBytes(0), 0), delayCs: this.GIGA_DELAY_CS },
-        { indices: this.screenToIndices(GigascreenFormat.subScreenBytes(1), 0), delayCs: this.GIGA_DELAY_CS }
-      ];
+      let frames, palette;
+      if (ACTIVE_SCREEN_MODE === SCREEN_MODES.GIGASCREEN) {
+        frames = [
+          { indices: this.screenToIndices(GigascreenFormat.subScreenBytes(0), 0), delayCs: this.GIGA_DELAY_CS },
+          { indices: this.screenToIndices(GigascreenFormat.subScreenBytes(1), 0), delayCs: this.GIGA_DELAY_CS }
+        ];
+        palette = ZX_PALETTE_RGB;
+      } else {
+        const flat = LayerManager.flattenVisible();
+        frames = [
+          { indices: this.layerToIndices(flat, 0, 0), delayCs: this.GIGA_DELAY_CS },
+          { indices: this.layerToIndices(flat, 0, 1), delayCs: this.GIGA_DELAY_CS }
+        ];
+        palette = ACTIVE_SCREEN_MODE.paletteModel === 'fixed16'
+          ? ZX_PALETTE_RGB : ColorManager.paletteRGB;
+      }
       const gigaGif = this.encode({
         width: ZX_SPECTRUM.WIDTH,
         height: ZX_SPECTRUM.HEIGHT,
-        palette: ZX_PALETTE_RGB,
+        palette,
         frames,
         loop: 0
       });
@@ -207,9 +223,10 @@ class GIFFormatClass {
    * the default paper entry).
    * @param {Layer} layer - From LayerManager.flattenVisible()
    * @param {number} flashPhase - 0 = normal, 1 = fixed16 FLASH cells swap
+   * @param {number} [plane=0] - two-screen modes: 1 decodes screen B
    * @returns {Uint8Array} width*height palette indices, row-major
    */
-  layerToIndices(layer, flashPhase = 0) {
+  layerToIndices(layer, flashPhase = 0, plane = 0) {
     const W = ZX_SPECTRUM.WIDTH;
     const cw = ZX_SPECTRUM.CELL_WIDTH;
     const ch = ZX_SPECTRUM.CELL_HEIGHT;
@@ -235,14 +252,17 @@ class GIFFormatClass {
           continue;
         }
 
-        const t = ColorManager.attrToIndices(cell);
+        const b = plane === 1 && cell.pixelsB;
+        const attrs = b ? LayerManagerClass.cellAttrs(cell, 1) : cell;
+        const t = ColorManager.attrToIndices(attrs, plane);
         let inkIdx = t.ink;
         let paperIdx = t.paper;
-        if (fixed16 && flashPhase === 1 && cell.flash) {
+        if (fixed16 && flashPhase === 1 && attrs.flash) {
           const s = inkIdx; inkIdx = paperIdx; paperIdx = s;
         }
+        const planeBits = b ? cell.pixelsB : cell.pixels;
         for (let ly = 0; ly < ch; ly++) {
-          const bits = cell.pixels[ly];
+          const bits = planeBits[ly];
           const rowBase = (y0 + ly) * W + x0;
           for (let lx = 0; lx < cw; lx++) {
             out[rowBase + lx] = (bits & (0x80 >> lx)) ? inkIdx : paperIdx;

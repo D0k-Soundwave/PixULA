@@ -180,13 +180,35 @@ LayerManager.initialize();
   AttributeSystem.clearAll();
   LayerManager.initialize();
   const hres = TimexFormat.parseHrg(hrg.buffer.slice(0));
-  check('.hrg parses (first frame)', hres.success === true, hres.error);
-  check('.hrg import matches the 12289 document',
-    Buffer.from(SCRFormat.export()).equals(Buffer.from(scr)));
+  check('.hrg parses into the hi-res pair', hres.success === true
+    && ACTIVE_SCREEN_MODE.id === 'timex_hires_giga', hres.error);
+  check('.hrg of two identical frames re-exports byte-identically',
+    Buffer.from(TimexFormat.exportHrg()).equals(Buffer.from(hrg)));
+
+  // Two DIFFERENT frames with different schemes - both survive (the second
+  // frame and its port byte used to be dropped).
+  const pair = new Uint8Array(24578);
+  pair.set(scr, 0);
+  const frameB = new Uint8Array(scr);
+  frameB[0] = 0x81;                   // a different byte in display file 1
+  frameB[12288] = 0x06 | (5 << 3);    // scheme B: cyan ink
+  pair.set(frameB, 12289);
+  LayerManager.initialize();
+  const pres = TimexFormat.parseHrg(pair.buffer.slice(0));
+  const c0 = LayerManager.getCurrentLayer().getCell(0, 0);
+  check('.hrg pair keeps both schemes', pres.success === true
+    && ColorManager.getTimexHiresInk() === 3 && ColorManager.getTimexHiresInkB() === 5);
+  check('.hrg pair keeps both frames', c0.pixels[0] === 0xDE && c0.pixelsB[0] === 0x81);
+  check('.hrg pair re-exports byte-identically',
+    Buffer.from(TimexFormat.exportHrg()).equals(Buffer.from(pair)));
+  let threw = false;
+  try { SCRFormat.export(); } catch (e) { threw = /\.hrg/.test(e.message); }
+  check('.scr export from the hi-res pair points at .hrg', threw);
 
   check('.hrg rejects wrong sizes',
     TimexFormat.parseHrg(new ArrayBuffer(24577)).success === false);
   ColorManager.setTimexHiresInk(0);
+  ColorManager.setTimexHiresInkB(0);
 }
 
 // ─── Export gates ───────────────────────────────────────────────────────────
@@ -237,16 +259,13 @@ LayerManager.initialize();
   AttributeSystem.clearAll();
   ColorManager.applyScreenMode();
   LayerManager.initialize();
+  // One cell holding both screens: screen A red, screen B blue.
   const la = LayerManager.getCurrentLayer();
   la.setCell(0, 0, {
     ink: 2, paper: 7, bright: false, flash: false,
-    pixels: Uint8Array.from([0x80, 0, 0, 0, 0, 0, 0, 0]), altered: true
-  });
-  const lb = LayerManager.addLayer('B side', false);
-  lb.gigaScreen = 1;
-  lb.setCell(0, 0, {
-    ink: 1, paper: 7, bright: false, flash: false,
-    pixels: Uint8Array.from([0x01, 0, 0, 0, 0, 0, 0, 0]), altered: true
+    pixels: Uint8Array.from([0x80, 0, 0, 0, 0, 0, 0, 0]),
+    inkB: 1, paperB: 7, brightB: false, flashB: false,
+    pixelsB: Uint8Array.from([0x01, 0, 0, 0, 0, 0, 0, 0]), altered: true
   });
 
   const img = GigascreenFormat.export();
@@ -278,8 +297,10 @@ LayerManager.initialize();
   const res = GigascreenFormat.parse('img', img.buffer.slice(0));
   check('.img parses', res.success === true, res.error);
   check('.img switched to gigascreen', ACTIVE_SCREEN_MODE.id === 'gigascreen');
-  check('.img import created a tagged Screen B layer',
-    LayerManager.layers.some(l => l.gigaScreen === 1));
+  const imported = LayerManager.getCurrentLayer().getCell(0, 0);
+  check('.img import loads both screens into one layer',
+    LayerManager.layers.length === 2 && imported.pixels[0] === 0x80 && imported.pixelsB[0] === 0x01
+      && imported.ink === 2 && imported.inkB === 1);
   check('.img round-trip is byte-identical',
     Buffer.from(GigascreenFormat.export()).equals(Buffer.from(img)));
   UndoRedo.undo();

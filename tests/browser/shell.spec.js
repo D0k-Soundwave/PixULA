@@ -556,7 +556,10 @@ test('Image > Screen Mode lists every registered mode as a radio', async ({ page
     await page.click('.menu-item[data-menu="image"] .menu-label');
     await page.click('.menu-action--parent[data-id="screen-mode"]');
     const modes = await page.$$eval('.menu-action[data-id^="mode-"]', els => els.map(e => e.dataset.id));
-    expect(modes.length).toBe(14);
+    // Every registered mode, counted from the registry so a new mode cannot
+    // leave this number stale (it read 14 until the flicker pairs made 18).
+    const registered = await page.evaluate(() => Object.values(SCREEN_MODES).map(m => `mode-${m.id}`));
+    expect(modes.sort()).toEqual(registered.sort());
     await page.keyboard.press('Escape');
 });
 

@@ -749,6 +749,9 @@
 #color-rail .clut-bits {
     display: flex;
     flex-direction: row;
+    /* GigaScreen has three toggles (Bright A, Bright B, Flash) and the rail
+       holds two icon columns, so the third wraps onto a row of its own. */
+    flex-wrap: wrap;
     align-items: center;
     justify-content: center;
     gap: 4px;
@@ -799,11 +802,11 @@
     gap: 3px;
 }
 
-/* GigaScreen view toggle: Blend spans both columns on its own row (it is
-   the "no split" choice, so it reads as the odd one out sitting above the
-   pair rather than a third equal option beside them); A and B are two
-   single-column icons on the row beneath - default grid auto-placement
-   puts them there for free once Blend claims the whole row above them.
+/* GigaScreen display row: Average and Flicker each span both columns on a
+   row of their own (they show both screens, so they read as the odd ones
+   out above the pair, and their words need the width in most languages);
+   A and B are two single-column buttons on the row beneath - default grid
+   auto-placement puts them there once the two wide rows are claimed.
    grid-template-rows matters here even though every row is the same
    height: without it, rows auto-size to content, and a button's own
    `height` loses to the utilities-layer `.panel-button { height: auto }`
@@ -813,7 +816,7 @@
 #color-rail .clut-row.clut-selector.giga-picker {
     display: grid;
     grid-template-columns: repeat(2, var(--rail-icon-size));
-    grid-template-rows: repeat(2, var(--rail-icon-size));
+    grid-template-rows: repeat(3, var(--rail-icon-size));
     gap: 3px;
     /* Same reason .clut-bits needs justify-content: center (above) - this
        grid is itself stretched to #colour-bits' full width by that section's
@@ -838,9 +841,21 @@
    (one id + two classes/attributes each), so it must come AFTER that rule
    in source order to win. Height stays the single-icon --rail-icon-size;
    only the width stretches across the spanned grid-column pair. */
-#color-rail .giga-picker [data-giga-view="blend"] {
+#color-rail .giga-picker [data-giga-view="average"],
+#color-rail .giga-picker [data-giga-view="flicker"] {
     grid-column: span 2;
     width: 100%;
+    overflow-wrap: anywhere;
+}
+
+/* GigaScreen Paint grid: the four blends a cell can show, as a 2x2 block of
+   ordinary rail swatches (sized by #color-rail .color-swatch above). Three
+   classes for the reason .clut-picker gives. */
+#color-rail .clut-row.clut-selector.giga-slots {
+    display: grid;
+    grid-template-columns: repeat(2, var(--rail-icon-size));
+    gap: 3px;
+    justify-content: center;
 }
 
 /* Next indexed palettes (up to 256 entries): the 16-or-fewer case already
@@ -1458,20 +1473,6 @@
 .layer-checkbox.checked,
 .stamp-xor.active {
     color: var(--accent-primary);
-}
-
-/* GigaScreen sub-screen badge (Phase 12b) — text button that may carry a
-   localised letter, so it grows rather than clips */
-.layer-btn.layer-giga {
-    width: auto;
-    min-width: 22px;
-    padding: 0 var(--space-xs);
-    font-weight: 700;
-    border: 1px solid var(--border-color);
-}
-.layer-btn.layer-giga.giga-b {
-    color: var(--text-primary);
-    background: var(--bg-active);
 }
 
 .layer-visibility:not(.visible),

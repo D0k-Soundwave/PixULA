@@ -126,25 +126,38 @@ function mgHeader(height, size) {
   return mg;
 }
 
+// Since 2026-09-23 every MGH height imports BOTH frames, as RECOIL's
+// DecodeMg does, into the matching MultiGigaScreen mode - frame B used to be
+// dropped below 8x8. Each file also re-exports byte-identically.
+const roundTrips = (ext, mg) => Buffer.from(GigascreenFormat.exportMg(Number(ext.slice(2))))
+  .equals(Buffer.from(mg));
+
 reset();
 {
   const mg = mgHeader(2, 18688);
-  mg[256 + lineOffset(0)] = 0xF0;
+  mg[256 + lineOffset(0)] = 0xF0;          // frame A bitmap
+  mg[256 + 6144 + lineOffset(0)] = 0x0F;   // frame B bitmap
   mg[12544 + 0] = 0x43;  // frame A, attr row 0 (lines 0-1)
   mg[12544 + 32] = 0x44; // frame A, attr row 1 (lines 2-3)
+  mg[12544 + 3072] = 0x46; // frame B, attr row 0
   const res = GigascreenFormat.parse('mg2', mg.buffer.slice(0));
-  check('.mg2 imports frame A as MULTICOLOR_8x2', res.success === true
-    && ACTIVE_SCREEN_MODE.id === 'multicolor_8x2');
-  check('.mg2 bitmap + linear attr rows land',
+  check('.mg2 imports as MULTIGIGA_8x2', res.success === true
+    && ACTIVE_SCREEN_MODE.id === 'multigiga_8x2');
+  check('.mg2 frame A bitmap + linear attr rows land',
     cell(0, 0).pixels[0] === 0xF0 && cell(0, 0).ink === 3 && cell(0, 1).ink === 4);
+  check('.mg2 frame B lands in screen B',
+    cell(0, 0).pixelsB[0] === 0x0F && cell(0, 0).inkB === 6);
+  check('.mg2 re-exports byte-identically', roundTrips('mg2', mg));
 }
 reset();
 {
   const mg = mgHeader(4, 15616);
   mg[12544 + 0] = 0x45;
+  mg[12544 + 1536] = 0x42;
   const res = GigascreenFormat.parse('mg4', mg.buffer.slice(0));
-  check('.mg4 imports frame A as MULTICOLOR_8x4', res.success === true
-    && ACTIVE_SCREEN_MODE.id === 'multicolor_8x4' && cell(0, 0).ink === 5);
+  check('.mg4 imports as MULTIGIGA_8x4 with both frames', res.success === true
+    && ACTIVE_SCREEN_MODE.id === 'multigiga_8x4' && cell(0, 0).ink === 5 && cell(0, 0).inkB === 2);
+  check('.mg4 re-exports byte-identically', roundTrips('mg4', mg));
 }
 reset();
 {
@@ -153,13 +166,19 @@ reset();
   mg[18688 + 0] = 0x41;          // col 0, lines 0-7
   mg[12536 + 3 * 16 + 8] = 0x42; // col 8, line 3
   mg[18688 + 24 - 16] = 0x43;    // col 24, lines 0-7
+  // Frame B: its own side and middle blocks (RECOIL 0x4A80 / 0x3CF8)
+  mg[19072 + 0] = 0x44;          // col 0, lines 0-7
+  mg[15608 + 5 * 16 + 9] = 0x45; // col 9, line 5
   const res = GigascreenFormat.parse('mg1', mg.buffer.slice(0));
-  check('.mg1 imports frame A as MULTICOLOR_8x1', res.success === true
-    && ACTIVE_SCREEN_MODE.id === 'multicolor_8x1');
+  check('.mg1 imports as MULTIGIGA_8x1', res.success === true
+    && ACTIVE_SCREEN_MODE.id === 'multigiga_8x1');
   check('.mg1 side columns expand across their cell row',
     cell(0, 0).ink === 1 && cell(0, 5).ink === 1 && cell(24, 2).ink === 3);
   check('.mg1 middle columns stay per-line',
     cell(8, 3).ink === 2 && cell(8, 2).ink === 0);
+  check('.mg1 frame B side and middle land in screen B',
+    cell(0, 6).inkB === 4 && cell(9, 5).inkB === 5 && cell(9, 4).inkB === 0);
+  check('.mg1 re-exports byte-identically', roundTrips('mg1', mg));
 }
 
 // ─── .zxp standalone ─────────────────────────────────────────────────────────

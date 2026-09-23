@@ -616,7 +616,7 @@ Manual matrix (deferred to the end-of-rebuild consolidated pass):
 ### Drawing in each new mode
 - [ ] ULAplus 8×1: per-line cells + CLUT palette drawing both work; palette dialog edits apply live (and the 12a repaint fix holds: palette edits recolour the canvas immediately in plain ULAplus too) — PART: register edit -> live --zx-N recompose AUTO (browser: editors.spec, plain ULAplus); manual: 8×1 variant drawing
 - [ ] Timex hi-res: brush/shapes/fill/text draw mono at 512×192; the scheme selector switches the whole screen's ink/paper pair and recomposes; attribute ops are hidden in the rail — PART: 512 geometry + scheme selector present + attr ops hidden AUTO (browser: modes.spec); manual: drawing feel + scheme recompose look
-- [ ] GigaScreen: drawing lands on the current layer's sub-screen (A/B badge in the Layers panel); the blend view shows mixed colours; views A/B show each sub-screen alone — PART: tags + badges + view API AUTO (browser: modes.spec), blend math AUTO (node: mode-12b.test.js); manual: visual blend/A/B looks
+- [ ] GigaScreen (one surface since 2026-09-23): each Paint swatch paints its blend, in every display; Average shows mixed colours; A/B show each screen alone; Flicker visibly alternates — PART: slots, displays, eyedropper and solid colour AUTO (browser: gigascreen.spec; node: mode-12b.test.js); manual: whether Average/Flicker look right to the eye
 - [ ] GigaScreen FLASH cells flash per sub-screen in the blended view
 
 ### Zoom/fit/input/selection at 512×192
@@ -626,8 +626,9 @@ Manual matrix (deferred to the end-of-rebuild consolidated pass):
 - [x] Mode switches 256<->512 double/halve the picture as documented (pixel doubling in, OR-merge out; leaving hi-res stamps the scheme colours) — AUTO (node: mode-12b.test.js; incl. double-then-halve identity + exit stamp)
 
 ### GigaScreen flicker preview + sub-screen editing
-- [ ] The Blend/A/B toggle in the rail switches the canvas view instantly; the layer A/B badges move layers between sub-screens undoably-composited (recompose on click)
-- [ ] GIF export of a GigaScreen document produces a fast 2-frame loop that flickers in a browser/viewer; PNG/BMP export capture the currently shown view (document: blend view = the 102-colour look) — PART: 2-frame GIF structure AUTO (node: mode-formats-12b.test.js); manual: viewer flicker + PNG/BMP view capture
+- [x] The Average/Flicker/A/B row in the rail switches the canvas display and never where a stroke lands (the per-layer A/B badges are gone, 2026-09-23) — AUTO (browser: gigascreen.spec, modes.spec)
+- [ ] MultiGigaScreen / hi-res pair interop (2026-09-23): a `.mg1`/`.mg2`/`.mg4` saved by PixULA opens in MultiArtist, and an `.hrg` in a Timex viewer, showing both frames; a real MultiArtist file imports both frames — PART: layouts, both frames and byte-identical re-export AUTO (node: recoil-parity.test.js, mode-formats-12b.test.js, both built from RECOIL's DecodeMg/DecodeHrg offsets); manual: the real programs, since no public MultiArtist spec exists and header bytes past 4 are written as zeros
+- [ ] GIF export of a GigaScreen document produces a fast 2-frame loop that flickers in a browser/viewer; PNG/BMP export capture the currently shown view, Average when Flicker is showing (`LayerManager.stillImageData`) — PART: 2-frame GIF structure AUTO (node: mode-formats-12b.test.js); manual: viewer flicker + PNG/BMP view capture
 - [ ] .img export/import round-trips both sub-screens; opening a wild .img (13824) shows a plausible blend; .mg type-8 files open, type-1/2/4 show the localized reject — PART: .img pair round-trips + .mg type gates AUTO (node: mode-formats-12b.test.js); manual: wild files
 - [x] SCR/TAP export in GigaScreen mode gates with the "save as .img" message — AUTO (node: mode-formats-12b.test.js; every reject/gate)
 
@@ -640,11 +641,11 @@ Manual matrix (deferred to the end-of-rebuild consolidated pass):
 
 ### Mode-switch conversions to/from the new modes
 - [ ] Colour -> hi-res warns (lossy: mono); hi-res -> colour warns (width halves); both are single-undo actions — PART: colour->hi-res warn accepted in the browser flow (modes.spec), lossy matrix + conversions AUTO (node: mode-12b.test.js); manual: hi-res->colour warn + single-undo check in UI
-- [x] Entering GigaScreen is silent (lossless); leaving it warns only when a screen-B layer exists; tags clear on exit — AUTO (browser: modes.spec silent entry; node: mode-12b.test.js exit rules + tag clearing)
+- [x] Entering GigaScreen is silent and leaves the picture unchanged; leaving it warns only when some cell's screen B differs, and keeps screen A — AUTO (browser: gigascreen.spec; node: mode-12b.test.js)
 - [x] ULAplus 8×1 <-> ULAplus/Multicolor 8×1 conversions keep bits per the 12a rules (refine silent, coarsen warns) — AUTO (node: mode-12b.test.js + screen-mode.test.js)
 
 ### F5 persistence per mode
-- [x] F5 in each of the eight modes restores mode + content; hi-res also restores the colour scheme; GigaScreen also restores the layer A/B tags — AUTO (browser: persistence.spec; all 14 modes incl. timexHiresInk + giga tags)
+- [x] F5 in each of the eight modes restores mode + content; hi-res also restores the colour scheme; GigaScreen also restores screen B — AUTO (browser: persistence.spec; all 14 modes incl. timexHiresInk + a screen-B-only value)
 - [ ] The persisted clipboard still refuses cross-mode pastes for the new modes — PART: codec rejection AUTO (node: clipboard-codec/mode suites); manual: menu state in the flow
 - [ ] All new UI strings render localized in all 13 languages (menu radios, scheme selector, giga view row, layer badges, gate messages) with no clipped labels — PART: chrome clip sweep AUTO (browser: i18n-themes.spec); manual: mode-specific strings per locale
 
