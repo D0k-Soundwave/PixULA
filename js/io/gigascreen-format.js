@@ -269,10 +269,16 @@ class GigascreenFormatClass {
     };
   }
 
-  /** Split a 13824-byte .img into its two 6912-byte screens. @private */
+  /**
+   * Split a 13824-byte .img into its two 6912-byte screens. A 13952-byte
+   * file is the same behind a 128-byte header, which RECOIL's DecodeGsc
+   * skips unconditionally (a +3DOS disk header is exactly 128 bytes).
+   * @private
+   */
   _decodeImg(bytes) {
     const GIGA = SCREEN_MODES.GIGASCREEN;
     const STD = SCREEN_MODES.STANDARD_ULA;
+    if (bytes.length === GIGA.fileSize + 128) bytes = bytes.subarray(128);
     if (bytes.length !== GIGA.fileSize) {
       return { error: `Invalid .img file size: ${bytes.length} bytes (expected ${GIGA.fileSize})` };
     }

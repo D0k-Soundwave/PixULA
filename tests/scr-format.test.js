@@ -36,6 +36,8 @@ check('attrs default to 0x38', calls.attrs && calls.attrs.length === 768 &&
 
 // wrong sizes still rejected
 check('reject 100 bytes', SCRFormat.parse(new Uint8Array(100).buffer).success === false);
-check('reject 6913 bytes', SCRFormat.parse(new Uint8Array(6913).buffer).success === false);
+check('reject 6914 bytes', SCRFormat.parse(new Uint8Array(6914).buffer).success === false);
+// 6913 = a screen plus a trailing border byte, which RECOIL's DecodeScr accepts
+check('accept 6913 bytes (screen + border byte)', SCRFormat.parse(new Uint8Array(6913).buffer).success === true);
 
 summary();

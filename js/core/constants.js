@@ -87,14 +87,19 @@ const APP_VERSION = '0.1.0-alpha.4';
  *     a true 128×96 surface, zoom/fit scale it up (sub-256 presentation)
  *   LORES_RADASTAN — Radastan 128×96×4bpp, 16 colours (6656 = 512 + 6144)
  *   ULANEXT     — ULANext enhanced attributes: classic 8×8 cells and 1-bit
- *     pixels, but the palette is the 256-entry RGB333 register file. OUR
- *     editing model (documented, ZX-PB has no Next modes): a cell's ink
- *     resolves to palette entry (bright?8:0)+ink, its paper to entry
- *     128+(bright?8:0)+paper — the ink/paper halves of the ULANext
- *     palette; FLASH is stored/exported but nothing flashes. The default
- *     register file reproduces the classic colours in both halves, so
- *     STANDARD_ULA -> ULANEXT is visually lossless. fileSize 6912 (the
- *     palette travels separately via .npl/.pal).
+ *     pixels, but the palette is the 256-entry RGB333 register file. The
+ *     HARDWARE rule with the default ink mask of 7 (2026-09-23): "there are
+ *     no 'flash' or 'bright' bits when ULANext mode is enabled, all eight
+ *     attribute bits contribute either to ink or paper colour index" [P,
+ *     wiki.specnext.dev/Enhanced_ULA_Ink_Color_Mask, fetched 2026-09-23] -
+ *     ink = entry (attr & 7), paper = entry 128 + (attr >> 3), i.e.
+ *     128 + paper + 8*bright + 16*flash. So BRIGHT and FLASH pick one of four
+ *     paper banks and never touch the ink, and nothing flashes. It used to
+ *     add 8 to the ink for BRIGHT and ignore FLASH - an "editing model" that
+ *     kept STANDARD_ULA -> ULANEXT looking identical, and made every picture
+ *     look different on a real Next. Conversion keeps every bit either way;
+ *     only how bright ink LOOKS changes. Other ink masks (1..255) are not
+ *     modelled. fileSize 6912 (the palette travels via .npl/.pal).
  * @const {Object}
  */
 const SCREEN_MODES = Object.freeze({
@@ -315,7 +320,12 @@ const SCREEN_MODES = Object.freeze({
         paletteBytes: 512,
         bitmapSize: 81920,
         attrSize: 1280,
-        fileSize: 82432
+        fileSize: 82432,
+        // The Next stores 320x256 and 640x256 COLUMN by column: "the second
+        // byte is first pixel on second line, 256th byte is second pixel on
+        // first line" [P, wiki.specnext.dev/Layer_2, fetched 2026-09-23].
+        // 256x192 is ordinary reading order.
+        columnMajor: true
     }),
     LAYER2_640: Object.freeze({
         id: 'layer2_640',
@@ -330,7 +340,10 @@ const SCREEN_MODES = Object.freeze({
         paletteBytes: 512,
         bitmapSize: 81920,
         attrSize: 2560,
-        fileSize: 82432
+        fileSize: 82432,
+        // Column-major like 320x256, two pixels a byte, the LEFT pixel in the
+        // high nibble [P, wiki.specnext.dev/Layer_2, fetched 2026-09-23].
+        columnMajor: true
     }),
     LORES: Object.freeze({
         id: 'lores',
@@ -1267,14 +1280,20 @@ const ZX_COORDS = Object.freeze({
 
 /**
  * ULAplus palette register math — single source for the G3R3B2 encoding
- * (register byte layout GGGRRRBB, per the ULAplus spec; integer scaling
- * replicates RECOIL's reference decoder exactly so our rendering matches
- * the ecosystem's).
+ * (register byte layout GGGRRRBB, per the ULAplus spec). Red and green are
+ * 3-bit levels scaled n*73>>1. Blue has only two bits, and the spec makes
+ * the missing third bit "the OR of the other two" [P, sinclair.wiki.zxnet.
+ * co.uk/wiki/ULAplus, fetched 2026-09-23] - levels 0/109/182/255 - the same
+ * rule the Next applies to its 8-bit palette writes (NEXTRGB333.
+ * byteToRegister). It used to copy RECOIL's shortcut, (b & 3) * 85 =
+ * 0/85/170/255, which rendered the two middle blues 24 and 12 levels too
+ * dark; RECOIL is the reference for layouts, but the hardware defines the
+ * colour.
  *
  * defaultRegisters(): a 64-register set that reproduces the standard
  * Spectrum palette as closely as G3R3B2 allows. CLUT layout follows the
  * hardware mapping CLUT = FLASH*2 + BRIGHT: CLUTs 0/2 hold the non-bright
- * colours (G=R=level 5 of 7 ≈ 0xB6, B=level 2 of 3 ≈ 0xAA — chosen so
+ * colours (G=R=level 5 of 7 ≈ 0xB6, B=level 2 of 3 = 0xB6 — chosen so
  * bright and non-bright stay visually distinct within 2-bit blue), CLUTs
  * 1/3 the bright ones. Ink half = entries 0–7, paper half = entries 8–15
  * of each CLUT, both holding the same 8 base colours.
@@ -1284,16 +1303,31 @@ const ULAPLUS = Object.freeze({
     registerToRGB(byte) {
         const r = (byte & 0x1C) * 73 >> 3;
         const g = (byte >> 5) * 73 >> 1;
-        const b = (byte & 0x03) * 85;
+        const b = this.blueLevel(byte & 0x03);
         return [r, g, b];
+    },
+
+    /**
+     * The 8-bit level of a 2-bit ULAplus blue: the third bit is the OR of
+     * the two stored bits, then the 3-bit level scales like red and green.
+     * @param {number} b2 - 0..3
+     * @returns {number} 0, 109, 182 or 255
+     */
+    blueLevel(b2) {
+        const b3 = (b2 << 1) | ((b2 | (b2 >> 1)) & 1);
+        return b3 * 73 >> 1;
     },
 
     /** [r, g, b] -> nearest G3R3B2 register byte. */
     rgbToRegister(r, g, b) {
         const r3 = Math.round(r * 7 / 255);
         const g3 = Math.round(g * 7 / 255);
-        const b2 = Math.round(b * 3 / 255);
-        return ((g3 & 7) << 5) | ((r3 & 7) << 2) | (b2 & 3);
+        // Blue's four levels are not evenly spaced, so pick the nearest
+        let b2 = 0;
+        for (let i = 1; i < 4; i++) {
+            if (Math.abs(this.blueLevel(i) - b) < Math.abs(this.blueLevel(b2) - b)) b2 = i;
+        }
+        return ((g3 & 7) << 5) | ((r3 & 7) << 2) | b2;
     },
 
     /** G3R3B2 register byte -> '#rrggbb' hex string. */
@@ -1336,12 +1370,13 @@ const ULAPLUS = Object.freeze({
  * stored blue bits.
  *
  * defaultRegisters(): OUR documented default (the hardware boot palette
- * is the plain identity RRRGGGBB ramp): entries 0–15 and 128–143 hold the
- * classic ZX 16 colours (non-bright at level 6 of 7 — 219 ≈ the ZX's 215,
- * exact enough that classic->indexed conversion lands on these slots;
- * bright at 7), so every rgb333 mode starts with usable classics and
- * ULANEXT reproduces the standard look in both its ink and paper halves;
- * every other entry is the identity ramp. DEFAULT_INK/DEFAULT_PAPER are
+ * is the plain identity RRRGGGBB ramp): entries 0–15 hold the classic ZX 16
+ * colours (non-bright at level 6 of 7 — 219 ≈ the ZX's 215, exact enough that
+ * classic->indexed conversion lands on these slots; bright at 7), and so do
+ * ULANEXT's four paper banks 128–159 (normal, bright, flash, flash+bright -
+ * 128 + (attr >> 3) at the default ink mask), so every rgb333 mode starts
+ * with usable classics and a FLASH cell's paper is not a ramp colour. Every
+ * other entry is the identity ramp. DEFAULT_INK/DEFAULT_PAPER are
  * the boot drawing indices for indexed modes (black on white, like the
  * classic ink 0 / paper 7).
  */
@@ -1404,8 +1439,9 @@ const NEXTRGB333 = Object.freeze({
                     | (((base & 4) ? level : 0) << 3)
                     | ((base & 1) ? level : 0);
                 const i = base + (bright ? 8 : 0);
-                regs[i] = reg;        // ink half (and Layer 2 classics)
-                regs[128 + i] = reg;  // ULANext paper half
+                regs[i] = reg;        // ink entries (and Layer 2 classics)
+                regs[128 + i] = reg;  // ULANext paper banks: normal / bright
+                regs[144 + i] = reg;  //   ... and the same with FLASH set
             }
         }
         return regs;

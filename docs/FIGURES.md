@@ -60,6 +60,10 @@ measured.
 | GigaScreen colours on screen | 102 | C | `Helpers.gigaBlendCount()`: the 16 attribute colours' 136 unordered pairs averaged per channel as the compositor blends them, 21 RGB values reached by more than one pair; 87 of the 102 are not any solid ZX colour. Computed at call time from `ZX_PALETTE_RGB`, 2026-09-23 |
 | MGH (.mg) sizes by attribute height | 8: 14080, 4: 15616, 2: 18688, 1: 19456 bytes | P | RECOIL DecodeMg size checks, fetched 2026-09-23; `GigascreenFormat._mgLayout` derives every offset from the mode descriptors and reproduces these |
 | .hrg size | 24578 bytes | P | RECOIL DecodeHrg: two 12289-byte hi-res screens, frame B at 0x3001, each with its own port byte |
+| ULAplus blue levels | 0 / 109 / 182 / 255 | P | the missing third blue bit is the OR of the other two - sinclair.wiki.zxnet.co.uk/wiki/ULAplus, fetched 2026-09-23; `ULAPLUS.blueLevel`. Was 0/85/170/255 (RECOIL's `(b & 3) * 0x55`) until 2026-09-23 |
+| ULANext colour indices (default ink mask 7) | ink = attr & 7; paper = 128 + (attr >> 3) | P | wiki.specnext.dev/Enhanced_ULA_Ink_Color_Mask, fetched 2026-09-23. Was ink = (bright ? 8 : 0) + ink, paper = 128 + (bright ? 8 : 0) + paper until 2026-09-23 |
+| Layer 2 byte order | 256x192 row-major; 320x256 and 640x256 column-major (byte n = column n >> 8, line n & 255) | P | wiki.specnext.dev/Layer_2, fetched 2026-09-23. Was row-major for all three until 2026-09-23 |
+| .rad size | 6160 bytes (6144 bitmap + 16 G3R3B2 palette) | P | RECOIL DecodeRad, fetched 2026-09-23 |
 | GigaScreen colours per cell | 4 | P | two screens x (ink, paper) per 8x8 cell; RECOIL DecodeZxImg (two 768-byte attribute blocks in the 13824-byte `.img`) and SpectraLab's README, fetched 2026-09-23 |
 | GigaScreen Flicker display rate | display refresh (60 Hz typical) | A | `LayerManager._syncGigaFlicker` - one `requestAnimationFrame` per swap; the hardware swaps at 50 Hz (P) and no page can pin its frame rate |
 | Autosave interval | user-set, default 1 min | A (default) | `StateManager.AUTOSAVE_DEFAULT_MINUTES`; 0 = off, max 60. Was a fixed 60 s behind an on/off checkbox until 2026-08-07 |

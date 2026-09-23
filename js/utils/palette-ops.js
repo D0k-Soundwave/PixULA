@@ -271,8 +271,8 @@ class PaletteOpsClass {
    * Build a 256-register Next RGB333 file whose first `n` entries (the
    * active mode's drawable palette window) are median-cut from the image —
    * "a palette as close to the source as possible". Registers outside the
-   * window keep the documented defaults, so the classic slots at 128–143
-   * (ULANext paper half) survive for 16-entry windows.
+   * window keep the documented defaults, so the classic slots at 128–159
+   * (the ULANext paper banks, 128-159) survive for 16-entry windows.
    * @param {ImageData|{width:number,height:number,data:Uint8ClampedArray}} imageData
    * @param {number} n - Palette window size (16 for 4bpp modes, 256 for 8bpp)
    * @returns {Uint16Array} 256 9-bit registers

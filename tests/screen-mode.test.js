@@ -119,6 +119,20 @@ check('setter rejects unknown ids', threw && ACTIVE_SCREEN_MODE.id === 'standard
 check('registerToRGB(0xFF) = white', ULAPLUS.registerToRGB(0xFF).join(',') === '255,255,255');
 check('registerToRGB(0x00) = black', ULAPLUS.registerToRGB(0x00).join(',') === '0,0,0');
 check('registerToRGB(0x03) = full blue', ULAPLUS.registerToRGB(0x03).join(',') === '0,0,255');
+// The ULAplus spec: blue's missing third bit is "the OR of the other two"
+// [P, sinclair.wiki.zxnet.co.uk/wiki/ULAplus, fetched 2026-09-23], so the four
+// blue levels are 3-bit 0/3/5/7 = 0/109/182/255 - not RECOIL's 0/85/170/255.
+check('ULAplus blue levels follow the spec OR rule',
+  [0, 1, 2, 3].map(b => ULAPLUS.registerToRGB(b)[2]).join(',') === '0,109,182,255',
+  [0, 1, 2, 3].map(b => ULAPLUS.registerToRGB(b)[2]).join(','));
+// Both formats keep blue in bits 0-1 (ULAplus is GGGRRRBB, the Next RRRGGGBB),
+// so their blue expansion must agree byte for byte.
+check('ULAplus and the Next 8-bit write expand blue identically',
+  Array.from({ length: 256 }, (_, i) => i).every(i =>
+    ULAPLUS.registerToRGB(i)[2] === NEXTRGB333.registerToRGB(NEXTRGB333.byteToRegister(i))[2]));
+check('every ULAplus register survives rgb -> register',
+  Array.from({ length: 256 }, (_, i) => i).every(i =>
+    ULAPLUS.rgbToRegister(...ULAPLUS.registerToRGB(i)) === i));
 check('registerToRGB(0x1C) = full red', ULAPLUS.registerToRGB(0x1C).join(',') === '255,0,0');
 check('registerToRGB(0xE0) = full green', ULAPLUS.registerToRGB(0xE0).join(',') === '0,255,0');
 // mid-level: G=4 -> (4*73)>>1 = 146

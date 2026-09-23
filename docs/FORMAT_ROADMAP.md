@@ -73,6 +73,15 @@ implementing, per this project's usual method for a new format.
 | `.ssx` | Flexible/mode-tagged variant, up to 512×192 | Mode carried in the file itself rather than fixed by extension |
 | `.lce` | 256×384, 2 frames | Purpose unconfirmed — likely a paint program's own layered/dual-screen format, not a plain mode dump |
 
+## Sizes added from RECOIL's decoders (2026-09-23)
+
+A spec audit found four sizes RECOIL decodes that were rejected here; all now
+import: `.scr` 6913 (screen + trailing border byte, kept as the document
+border), `.scr` 13824 (a GigaScreen pair, the `.img` layout), `.img` 13952
+(128-byte header skipped, as `DecodeGsc` does), and `.rad` / `.scr` 6160 (the
+ZX-Uno Radastan picture: 4bpp 128x96 + 16 G3R3B2 bytes, into LORES_RADASTAN
+with the 16 colours as its palette window - import only).
+
 ## Known partial-support decisions (documented losses)
 
 - ~~`.hrg`, `.mg1`, `.mg2`, `.mg4`: only the FIRST sub-screen imports~~ -

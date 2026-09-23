@@ -31,6 +31,7 @@ loadModule('js/io/scr-format.js');
 loadModule('js/io/gigascreen-format.js');
 loadModule('js/io/dev-format.js');
 loadModule('js/io/zxm-format.js');
+loadModule('js/io/nxi-format.js');
 
 ColorManager.initialize();
 LayerManager.initialize();
@@ -179,6 +180,50 @@ reset();
   check('.mg1 frame B side and middle land in screen B',
     cell(0, 6).inkB === 4 && cell(9, 5).inkB === 5 && cell(9, 4).inkB === 0);
   check('.mg1 re-exports byte-identically', roundTrips('mg1', mg));
+}
+
+// ─── Sizes RECOIL's DecodeScr / DecodeGsc / DecodeRad accept ───────────────
+// (recoil.fu fetched 2026-09-23; every one used to be rejected here)
+
+reset();
+{
+  // GigaScreen saved as .scr: the .img layout at 13824 bytes
+  const pair = new Uint8Array(13824);
+  pair[6144] = 0x0A;          // screen A cell (0,0): ink 2, paper 1
+  pair[6912 + 6144] = 0x13;   // screen B cell (0,0): ink 3, paper 2
+  const res = SCRFormat.parse(pair.buffer);
+  check('.scr of 13824 bytes imports as a GigaScreen pair', res.success === true
+    && ACTIVE_SCREEN_MODE.id === 'gigascreen' && cell(0, 0).ink === 2 && cell(0, 0).inkB === 3);
+}
+reset();
+{
+  // .img behind a 128-byte header (13952)
+  const img = new Uint8Array(13952);
+  img[128 + 6144] = 0x0A;
+  const res = GigascreenFormat.parse('img', img.buffer);
+  check('.img with a 128-byte header imports', res.success === true && cell(0, 0).ink === 2);
+}
+reset();
+{
+  // ZX-Uno Radastan .rad: 128x96 4bpp + 16 G3R3B2 palette bytes (6160)
+  const rad = new Uint8Array(6160);
+  rad[0] = 0x3C;                 // pixels (0,0)=3 and (1,0)=12, left pixel high
+  rad[64] = 0x50;                // row 1 starts at byte 64 (128 pixels / 2)
+  rad[6144 + 3] = 0b11100011;    // palette entry 3: G7 R0 B3 - full green + blue
+  const res = NXIFormat.parse('rad', rad.buffer);
+  const L = LayerManager.getCurrentLayer();
+  check('.rad imports into LoRes Radastan', res.success === true
+    && ACTIVE_SCREEN_MODE.id === 'lores_radastan');
+  check('.rad pixels land, left pixel in the high nibble',
+    L.getPixelIndex(0, 0) === 3 && L.getPixelIndex(1, 0) === 12 && L.getPixelIndex(0, 1) === 5);
+  check('.rad palette byte becomes the register colour exactly',
+    ColorManager.getRGB(3).join(',') === ULAPLUS.registerToRGB(0b11100011).join(','),
+    ColorManager.getRGB(3).join(','));
+  check('.scr of 6160 bytes is read as .rad', (() => {
+    reset();
+    return SCRFormat.parse(rad.buffer).success === true && ACTIVE_SCREEN_MODE.id === 'lores_radastan';
+  })());
+  ColorManager.setNextRegisters(null);
 }
 
 // ─── .zxp standalone ─────────────────────────────────────────────────────────

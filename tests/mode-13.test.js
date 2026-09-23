@@ -29,6 +29,7 @@ const { withBlit } = require('./helpers/canvas-stub.js');
 installStubs();
 loadModule('js/utils/validators.js');
 loadModule('js/core/event-bus.js');
+loadModule('js/utils/palette-ops.js');
 loadModule('js/core/state-manager.js');
 loadModule('js/core/attribute-system.js');
 
@@ -248,17 +249,74 @@ enter('ulanext');
 {
   check('ULANext palette is the 256-entry register file',
     ColorManager.getPalette().length === 256);
+  // The hardware rule at the default ink mask: "there are no 'flash' or
+  // 'bright' bits when ULANext mode is enabled" - ink = attr & 7, paper =
+  // 128 + (attr >> 3) [P, wiki.specnext.dev/Enhanced_ULA_Ink_Color_Mask,
+  // fetched 2026-09-23]. For attr = FLASH|BRIGHT|paper 7|ink 2 = 0xFA:
   const t = ColorManager.attrToIndices({ ink: 2, paper: 7, bright: true, flash: true });
-  check('ULANext ink resolves in the ink half', t.ink === 8 + 2);
-  check('ULANext paper resolves in the paper half at 128+', t.paper === 128 + 8 + 7);
+  check('ULANext ink is attr & 7 - BRIGHT does not move it', t.ink === (0xFA & 7), `got ${t.ink}`);
+  check('ULANext paper is 128 + (attr >> 3)', t.paper === 128 + (0xFA >> 3), `got ${t.paper}`);
+  check('ULANext paper banks: normal, bright, flash, flash+bright',
+    [[false, false], [true, false], [false, true], [true, true]]
+      .map(([bright, flash]) => ColorManager.attrToIndices({ ink: 0, paper: 3, bright, flash }).paper)
+      .join(',') === '131,139,147,155');
   check('nothing flashes in ULANext', t.flashing === false);
-  // Default registers reproduce the classic look in both halves
+  // The default register file seeds the classics in every paper bank
   const inkRGB = ColorManager.getRGB(t.ink);
   const paperRGB = ColorManager.getRGB(t.paper);
-  check('ULANext defaults: bright red ink renders red-ish',
-    inkRGB[0] > 200 && inkRGB[1] === 0);
-  check('ULANext defaults: bright white paper renders white-ish',
+  check('ULANext defaults: red ink renders red-ish', inkRGB[0] > 200 && inkRGB[1] === 0);
+  check('ULANext defaults: flash+bright white paper renders white-ish',
     paperRGB[0] > 200 && paperRGB[1] > 200 && paperRGB[2] > 200);
+}
+
+// ─── 7b. ULAplus <-> ULANext keeps every paper colour ────────────────────────
+// ULANext's four paper banks (128 + bank*8, bank = flash*2 + bright) are the
+// four ULAplus CLUTs' paper halves, so paper converts exactly both ways.
+{
+  enter('standard_ula');
+  ScreenModeService.switchMode('ula_plus');
+  const regs = ULAPLUS.defaultRegisters();
+  regs[3 * 16 + 8 + 5] = 0b10101101; // CLUT 3 (flash+bright) paper 5
+  regs[0 * 16 + 8 + 2] = 0b01110001; // CLUT 0 paper 2
+  regs[0 * 16 + 4] = 0b11000010;     // CLUT 0 ink 4
+  ColorManager.setUlaplusRegisters(regs);
+  const rgbOf = (a) => ColorManager.getRGB(ColorManager.attrToIndices(a).paper).join(',');
+  const inkOf = (a) => ColorManager.getRGB(ColorManager.attrToIndices(a).ink).join(',');
+  const cells = [
+    { ink: 0, paper: 5, bright: true, flash: true },
+    { ink: 0, paper: 2, bright: false, flash: false }
+  ];
+  const before = cells.map(rgbOf);
+  const inkBefore = inkOf({ ink: 4, paper: 0, bright: false, flash: false });
+  ScreenModeService.switchMode('ulanext');
+  check('ULAplus -> ULANext keeps the paper of every CLUT exactly',
+    cells.map(rgbOf).join('|') === before.join('|'), `${cells.map(rgbOf).join('|')} vs ${before.join('|')}`);
+  check('ULAplus -> ULANext keeps CLUT 0 ink exactly',
+    inkOf({ ink: 4, paper: 0, bright: false, flash: false }) === inkBefore);
+  ColorManager.setUlaplusRegisters(null);
+  ScreenModeService.switchMode('ula_plus');
+  check('ULANext -> ULAplus keeps the paper of every bank',
+    cells.map(rgbOf).join('|') === before.join('|'), `${cells.map(rgbOf).join('|')} vs ${before.join('|')}`);
+  ColorManager.setUlaplusRegisters(null);
+  ColorManager.setNextRegisters(null);
+  ScreenModeService.switchMode('standard_ula');
+}
+
+// ─── 7c. The border takes its colour from where the hardware does ───────────
+{
+  enter('standard_ula');
+  check('standard border is the classic colour', ColorManager.borderColour(2) === ZX_PALETTE[2]);
+  enter('ula_plus');
+  ColorManager.setUlaplusRegister(8 + 2, 0b00011100); // CLUT 0 paper 2 -> pure red
+  check('ULAplus border is CLUT 0 paper (entries 8-15)',
+    ColorManager.borderColour(2) === ULAPLUS.registerToHex(0b00011100));
+  ColorManager.setUlaplusRegisters(null);
+  enter('ulanext');
+  ColorManager.setNextRegister(128 + 2, 0x1C7);
+  check('ULANext border is entry 128 + n',
+    ColorManager.borderColour(2) === NEXTRGB333.registerToHex(0x1C7));
+  ColorManager.setNextRegisters(null);
+  enter('standard_ula');
 }
 
 // ─── 8. Undo snapshot carries the Next state ────────────────────────────────
