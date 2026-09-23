@@ -170,6 +170,46 @@ test('Flicker alternates the two screens, exports a still Average, and stops whe
 });
 
 /*
+ * The hardware swaps screens on the 50 Hz frame interrupt, so each screen is
+ * shown 25 times a second. The display used to swap once per monitor refresh,
+ * which on a 119 Hz monitor [M, 2026-09-23] is more than twice the hardware
+ * rate and blends into something no real Spectrum ever showed. The count here
+ * is taken against wall-clock time, so it holds on any refresh rate.
+ */
+test('Flicker swaps screens at the hardware 50 Hz, not the monitor refresh', async ({ page }) => {
+    await boot(page);
+    await selectMode(page, 'gigascreen');
+    await page.waitForTimeout(200);
+    await page.keyboard.press('b');
+    await page.click('#clut-cluster .color-swatch[data-role="ink"][data-base="2"]');
+    await page.click('#clut-cluster .color-swatch[data-role="inkB"][data-base="1"]');
+    await page.click('#giga-slot-picker [data-slot="3"]');
+    await dab(page, 100, 100);
+    await page.click('#giga-view-row [data-giga-view="flicker"]');
+
+    const rate = await page.evaluate(async () => {
+        const doc = document.getElementById('canvas-frame').contentDocument;
+        const ctx = doc.getElementById('main-canvas').getContext('2d');
+        const read = () => ctx.getImageData(100, 100, 1, 1).data[0];
+        let last = read(), swaps = 0;
+        const start = performance.now();
+        while (performance.now() - start < 2000) {
+            await new Promise(r => requestAnimationFrame(r));
+            const now = read();
+            if (now !== last) { swaps++; last = now; }
+        }
+        return swaps / ((performance.now() - start) / 1000);
+    });
+    // 50 swaps a second. The window is wide because a display frame rarely
+    // lands exactly on a 20 ms boundary - a 60 Hz display can only show 50 Hz
+    // swaps by occasionally holding one screen for two refreshes, and a
+    // throttled headless frame can drop one - but it excludes the 60 per
+    // second the old loop produced at 60 Hz.
+    expect(rate).toBeGreaterThan(40);
+    expect(rate).toBeLessThan(55);
+});
+
+/*
  * The other flicker pairs (2026-09-23) reuse the same surface. The rail must
  * offer Paint in each, and each Paint swatch must paint the colour it shows.
  */

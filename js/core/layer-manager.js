@@ -2167,10 +2167,11 @@ class LayerManagerClass {
    * of it being a display control and not a screen selector. Session view
    * state (not carried by undo/autosave).
    *
-   * 'flicker' alternates the two screens once per display frame, the nearest
-   * a browser can come to the hardware's 50 Hz swap: requestAnimationFrame
-   * follows the display's refresh, which is 60 Hz on most monitors, and no
-   * page can pin it to 50.
+   * 'flicker' alternates the two screens at the hardware's 50 Hz
+   * (GIGA_FRAME_MS), timed by the clock rather than the display's refresh.
+   * The swap is whole-screen, as on the machine; a cell whose two screens
+   * hold the same data looks the same on both frames and so stays steady,
+   * which is also what a real Spectrum shows.
    * @param {string} view - 'average' | 'flicker' | 'a' | 'b'
    */
   setGigaView(view) {
@@ -2224,14 +2225,25 @@ class LayerManagerClass {
       return;
     }
     if (this._gigaFlickerId !== null) return;
-    const tick = () => {
+    // The phase follows a 50 Hz clock, not the display: the frame callback
+    // only asks which hardware frame it is now, and recomposes when that
+    // changed. Swapping once per callback tied the rate to the monitor - 119
+    // swaps a second on a 119 Hz display [M, 2026-09-23], more than twice the
+    // hardware's, which blends into a picture no Spectrum ever showed. On a
+    // 60 Hz display a 50 Hz swap means one screen is occasionally held for
+    // two refreshes; an emulator on the same display does exactly that.
+    const frameMs = LayerManagerClass.GIGA_FRAME_MS;
+    const tick = (now) => {
       if (this._gigaView !== 'flicker' || ZX_SPECTRUM.SCREENS !== 2) {
         this._gigaFlickerId = null;
         this._gigaFlickerPhase = 0;
         return;
       }
-      this._gigaFlickerPhase ^= 1;
-      this.composeToCanvas();
+      const phase = Math.floor(now / frameMs) & 1;
+      if (phase !== this._gigaFlickerPhase) {
+        this._gigaFlickerPhase = phase;
+        this.composeToCanvas();
+      }
       this._gigaFlickerId = window.requestAnimationFrame(tick);
     };
     this._gigaFlickerId = window.requestAnimationFrame(tick);
@@ -2793,6 +2805,16 @@ window.LayerManagerClass = LayerManagerClass;
 
 /** The GigaScreen displays, in the order the colour rail offers them. */
 LayerManagerClass.GIGA_VIEWS = Object.freeze(['average', 'flicker', 'a', 'b']);
+
+/**
+ * One hardware frame, the interval between GigaScreen swaps. Every two-screen
+ * mode alternates on the frame interrupt, which is the PAL 50 Hz field [P,
+ * archiveteam "Gigascreen" and Wikipedia "ZX Spectrum graphic modes", read
+ * 2026-09-23: "alternating between two screens on every frame interrupt (50
+ * Hz)"]. 1000 / 50 = 20 [C]. The 128K's own frame is 70,908 T-states at
+ * 3.5469 MHz, 19.99 ms [C], which no display could tell apart from 20.
+ */
+LayerManagerClass.GIGA_FRAME_MS = 20;
 
 Logger.debug('LayerManager', 'Layer manager loaded');
 
