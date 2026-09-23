@@ -5,7 +5,7 @@
  * Undo/Redo Manager — snapshot-based.
  *
  * Each entry is a complete snapshot of all drawing layers + the floating
- * paste state + the active selection rectangle, captured at the START of
+ * paste state + the active selection (rectangle and shape mask), captured at the START of
  * the user-visible action. Undo restores that snapshot; redo restores the
  * snapshot taken at the moment undo was pressed.
  *
@@ -320,8 +320,13 @@ class UndoRedoManagerClass {
       if (typeof SelectionService.captureFloatingState === 'function') {
         snap.floatingPaste = SelectionService.captureFloatingState();
       }
+      // The mask is what makes a freehand or ellipse selection that shape
+      // rather than its bounding box, so it travels too, bit-packed.
       const sel = SelectionService.getSelection();
-      snap.selection = sel ? { x: sel.x, y: sel.y, width: sel.width, height: sel.height } : null;
+      snap.selection = sel ? {
+        x: sel.x, y: sel.y, width: sel.width, height: sel.height,
+        mask: UndoRedoManagerClass.packMask(sel.mask)
+      } : null;
     }
     return snap;
   }
@@ -372,7 +377,10 @@ class UndoRedoManagerClass {
       }
       // Set selection without triggering side effects beyond the canvas re-render
       if (snap.selection) {
-        SelectionService.setSelection(snap.selection);
+        SelectionService.setSelection({
+          ...snap.selection,
+          mask: UndoRedoManagerClass.unpackMask(snap.selection.mask)
+        });
       } else {
         SelectionService.clear();
       }
@@ -528,6 +536,8 @@ UndoRedoManagerClass.entryBytes = function(entry) {
     };
 
     let total = gridBytes(entry.before && entry.before.background);
+    const selMask = entry.before && entry.before.selection && entry.before.selection.mask;
+    if (selMask) total += selMask.bits.byteLength;
     const layers = entry.before && entry.before.layers && entry.before.layers.layers;
     if (Array.isArray(layers)) {
         for (const state of layers) total += gridBytes(state.attributeData);
@@ -535,6 +545,50 @@ UndoRedoManagerClass.entryBytes = function(entry) {
 
     entry._bytes = total;
     return total;
+};
+
+/**
+ * Pack a selection's bool[][] mask to one bit per pixel for a snapshot.
+ *
+ * Packing rather than keeping the live array: the history must not share the
+ * object the selection holds, and a bool[][] is one JS array slot per pixel
+ * where this is a bit - 20,480 B at LAYER2_640's 640x256 [C: 640*256/8]. The
+ * row and column counts are the MASK's own, not the selection's, because
+ * setSelection clips width/height at the canvas edge and keeps the mask whole.
+ * @param {boolean[][]|null} mask
+ * @returns {{rows:number, cols:number, bits:Uint8Array}|null} null for a rectangle
+ */
+UndoRedoManagerClass.packMask = function(mask) {
+    if (!mask || !mask.length) return null;
+    const rows = mask.length;
+    const cols = mask[0].length;
+    const bits = new Uint8Array(Math.ceil(rows * cols / 8));
+    let i = 0;
+    for (let y = 0; y < rows; y++) {
+        const row = mask[y];
+        for (let x = 0; x < cols; x++, i++) {
+            if (row[x]) bits[i >> 3] |= 0x80 >> (i & 7);
+        }
+    }
+    return { rows, cols, bits };
+};
+
+/**
+ * Rebuild a fresh bool[][] from a packMask() result.
+ * @param {{rows:number, cols:number, bits:Uint8Array}|null} packed
+ * @returns {boolean[][]|null}
+ */
+UndoRedoManagerClass.unpackMask = function(packed) {
+    if (!packed) return null;
+    const { rows, cols, bits } = packed;
+    const mask = new Array(rows);
+    let i = 0;
+    for (let y = 0; y < rows; y++) {
+        const row = new Array(cols);
+        for (let x = 0; x < cols; x++, i++) row[x] = (bits[i >> 3] & (0x80 >> (i & 7))) !== 0;
+        mask[y] = row;
+    }
+    return mask;
 };
 
 window.UndoRedo = new UndoRedoManagerClass();
