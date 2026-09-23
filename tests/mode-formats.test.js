@@ -231,7 +231,15 @@ __setActiveScreenMode('standard_ula');
 LayerManager.initialize();
 check('6912 still parses', SCRFormat.parse(new Uint8Array(6912).buffer).success === true);
 check('6144 still parses', SCRFormat.parse(new Uint8Array(6144).buffer).success === true);
-check('6913 still rejected', SCRFormat.parse(new Uint8Array(6913).buffer).success === false);
+check('6911 still rejected', SCRFormat.parse(new Uint8Array(6911).buffer).success === false);
+{
+  // RECOIL DecodeScr sizes (fetched 2026-09-23): 6913 = screen + border byte
+  const withBorder = new Uint8Array(6913);
+  withBorder[6912] = 0x05;
+  check('6913 imports and keeps the trailing byte as the border',
+    SCRFormat.parse(withBorder.buffer).success === true && ColorManager.getBorder() === 5);
+  ColorManager.setBorder(0);
+}
 
 // ─── Image2ULAplus pipeline (pure) ──────────────────────────────────────────
 

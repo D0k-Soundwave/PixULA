@@ -177,14 +177,19 @@ class ColorManagerClass {
         }
         this._writtenTokenCount = this.palette.length;
 
-        // The border is a ULA HARDWARE register, not part of the document
-        // palette: it is always one of the 8 non-bright classic colours, in
-        // every screen mode, and no editable palette model (ULAplus, rgb333,
-        // timexMono) can redefine it. Publishing it as its own token set keeps
-        // the border preview exact — reading --zx-0…7 instead would hand it a
-        // ULAplus register, or nothing at all in the 2-entry timexMono palette.
+        // The border's 3-bit value picks a colour from wherever the mode's
+        // hardware takes it (2026-09-23 - it was the fixed classic colours in
+        // every mode, which both specs below contradict):
+        //   ULAplus  - "the BORDER colour is the same as the PAPER colour in
+        //              the first CLUT", entries 8-15 [P, sinclair.wiki.zxnet.
+        //              co.uk/wiki/ULAplus, fetched 2026-09-23]
+        //   ULANext  - "Border index is also 128 + 0..7" [P, wiki.specnext.dev/
+        //              Enhanced_ULA_Ink_Color_Mask, fetched 2026-09-23]
+        //   anything else - the 8 non-bright classic colours. A token set of
+        //              its own, because --zx-0..7 is an ink half in ULAplus and
+        //              does not exist in the 2-entry timexMono palette.
         for (let n = 0; n < 8; n++) {
-            root.style.setProperty(`--zx-border-${n}`, ZX_PALETTE[n]);
+            root.style.setProperty(`--zx-border-${n}`, this.borderColour(n));
         }
 
         // Timex hi-res: the scheme selector previews all 8 ink/paper pairs,
@@ -201,6 +206,21 @@ class ColorManagerClass {
                 root.style.removeProperty(`--zx-scheme-paper-${n}`);
             }
         }
+    }
+
+    /**
+     * The colour a border value shows in the active mode (see
+     * _writePaletteTokens for the per-mode rule and its sources).
+     * @param {number} n - border value 0-7
+     * @returns {string} '#rrggbb'
+     */
+    borderColour(n) {
+        const model = ACTIVE_SCREEN_MODE.paletteModel;
+        if (model === 'ulaplus64' && this.palette[8 + n]) return this.palette[8 + n];
+        if (model === 'rgb333' && ZX_SPECTRUM.PIXEL_DEPTH === 1 && this.palette[128 + n]) {
+            return this.palette[128 + n];
+        }
+        return ZX_PALETTE[n & 7];
     }
 
     /**
@@ -255,13 +275,12 @@ class ColorManagerClass {
                 // working unchanged).
                 return { ink: this.nextInk, paper: this.nextPaper, flashing: false };
             }
-            // ULANext (documented model, constants.js): ink resolves in the
-            // palette's ink half, paper in the paper half at 128+; BRIGHT
-            // offsets by 8 within each half, FLASH is stored but nothing
-            // flashes.
+            // ULANext, the hardware rule at the default ink mask (see
+            // constants.js ULANEXT): ink = attr & 7, paper = 128 + (attr >> 3)
+            // - BRIGHT and FLASH are paper-bank bits and nothing flashes.
             return {
-                ink: (attrs.bright ? 8 : 0) + (attrs.ink & 7),
-                paper: 128 + (attrs.bright ? 8 : 0) + (attrs.paper & 7),
+                ink: attrs.ink & 7,
+                paper: 128 + (attrs.paper & 7) + (attrs.bright ? 8 : 0) + (attrs.flash ? 16 : 0),
                 flashing: false
             };
         }

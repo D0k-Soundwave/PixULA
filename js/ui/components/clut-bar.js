@@ -38,8 +38,9 @@
  *
  *   ulaplus64 mode — CLUT selector (0–3) + the active CLUT's ink half and
  *     paper half as separate single-role rows, one above the other.
- *   rgb333 (ULANext) — the classic normal/bright rows over the Next palette,
- *     stacked with a divider between them.
+ *   rgb333 (ULANext) — the Ink row (entries 0-7) beside the Paper row, whose
+ *     bank (128 + bank*8) the Bright and Flash toggles choose, as the
+ *     hardware does.
  *   timexMono — the 8 hi-res colour schemes. indexed Next — the palette
  *     index grid (picking is index-based; a 2-column grid up to 16 entries,
  *     a denser 4-column grid at 256).
@@ -241,28 +242,20 @@ class ClutBarClass {
             return;
         }
 
-        // ULANext: classic normal/bright rows over the Next palette, side by
-        // side like every other related pair in the rail.
+        // ULANext, the hardware rule (constants.js ULANEXT): ink is palette
+        // entries 0-7 whatever the bits say, and BRIGHT and FLASH choose which
+        // of the four paper banks (128 + bank*8) the paper comes from. So the
+        // rail is the classic Ink / Paper pair, and the Bright and Flash
+        // toggles switch the Paper row between banks - exactly what those two
+        // bits do on the hardware. Nothing flashes.
         if (model === 'rgb333') {
+            const bank = (ColorManager.getBright() ? 1 : 0) + (ColorManager.getFlash() ? 2 : 0);
             host.appendChild(this._buildPair(
-                this._buildClutRow('color-swatches-normal', 'clut.normalPalette',
-                    'Normal palette', 0, 8, 'both', false),
-                this._makeDivider(),
-                this._buildClutRow('color-swatches-bright', 'clut.brightPalette',
-                    'Bright palette', 8, 16, 'both', true)));
-            // Those two rows are colour BANKS, not the ink and paper channels,
-            // so the "use existing" boxes get a pair of their own beneath them
-            // rather than hanging off a bank that is neither.
-            host.appendChild(this._buildPair(
-                this._captionGroup(this._buildTransparentBox('ink'),
-                    'color.ink', 'Ink'),
-                this._captionGroup(this._buildTransparentBox('paper'),
-                    'color.paper', 'Paper')));
-            // ULANext stores FLASH and never flashes it (constants.js), and it
-            // round-trips to Standard ULA - so it is real state the artist must
-            // be able to set. BRIGHT is the choice of bank above, which is why
-            // only Flash appears here.
-            if (bits) bits.appendChild(this._buildBitToggles({ bright: false }));
+                this._buildClutRow('color-swatches-ink', 'clut.inkColours',
+                    'Ink colours', 0, 8, 'ink', false, 'ink'),
+                this._buildClutRow('color-swatches-paper', 'clut.paperColours',
+                    'Paper colours', 128 + bank * 8, 136 + bank * 8, 'paper', false, 'paper')));
+            if (bits) bits.appendChild(this._buildBitToggles());
             return;
         }
 
@@ -446,8 +439,7 @@ class ClutBarClass {
      * flips both ink and paper to the bright bank; Flash marks the cell as
      * flashing. Bound here (not in _attachColorEvents) because they are
      * recreated on every rebuild.
-     * @param {Object} [show] - which toggles to build; ULANext takes Flash
-     *   only, because its two swatch banks ARE the bright choice. `giga`
+     * @param {Object} [show] - which toggles to build. `giga`
      *   splits Bright into one toggle per screen (Flash stays one setting for
      *   both).
      * @private
@@ -565,7 +557,7 @@ class ClutBarClass {
     /**
      * Wraps two related swatch blocks (optionally with a divider between
      * them) side by side, instead of one stacked above the other - Ink +
-     * Paper, the ULAplus ink/paper halves, the ULANext normal/bright rows.
+     * Paper, the ULAplus ink/paper halves, the ULANext ink row and paper bank.
      * #color-rail is wide enough for two icon columns (matches the CLUT/
      * GigaScreen pickers, css/components.css .clut-pair), the same reason
      * Bright/Flash sit side by side rather than stacked.
@@ -707,7 +699,7 @@ class ClutBarClass {
 
     /**
      * Only ever rendered between two halves of a _buildPair() (the ULAplus
-     * ink/paper halves or the ULANext normal/bright rows), which sit side by
+     * ink/paper halves), which sit side by
      * side (`.clut-pair`, css/components.css) — a vertical rule between them,
      * hence the orientation below.
      * @private
@@ -721,8 +713,8 @@ class ClutBarClass {
     }
 
     /**
-     * @param {string} role - 'both' (rgb333 rows: ink on click, paper on
-     *   right-click), 'ink' or 'paper' (ULAplus half-rows)
+     * @param {string} role - 'ink' or 'paper' (the ULAplus half-rows, the
+     *   ULANext ink row and paper bank)
      * @param {boolean} bright - selects the bright bank
      * @param {'ink'|'paper'|null} [transparentChannel] - append that channel's
      *   "use existing" box under the row, inside the same captioned block, so
@@ -808,7 +800,6 @@ class ClutBarClass {
                 ColorManager.setPaper(base);
             } else {
                 ColorManager.setInk(base);
-                if (role === 'both') ColorManager.setBright(sw.dataset.bright === '1');
             }
             this._updateColorDisplays();
         });
@@ -847,7 +838,6 @@ class ClutBarClass {
             this._lastRightClickTime = now;
 
             ColorManager.setPaper(parseInt(sw.dataset.base, 10));
-            if (role === 'both') ColorManager.setBright(sw.dataset.bright === '1');
             this._updateColorDisplays();
         });
 
@@ -940,8 +930,8 @@ class ClutBarClass {
 
         // ink/paper single-role rows show one bright bank at a time and match
         // by BASE index (bright-black resolves to palette index 0, so a
-        // palette-index match would miss the bright-bank swatch). The 'both'
-        // and indexed grids show every colour, so they match by palette index.
+        // palette-index match would miss the bright-bank swatch). The indexed
+        // grid shows every colour, so it matches by palette index.
         const inkBase = ColorManager.getInk();
         const paperBase = ColorManager.getPaper();
         const inkIndex = ColorManager.getInkColorIndex();
@@ -966,7 +956,7 @@ class ClutBarClass {
                 inkActive = !inkTransparent && parseInt(swatch.dataset.base, 10) === inkBase;
             } else if (role === 'paper') {
                 paperActive = !paperTransparent && parseInt(swatch.dataset.base, 10) === paperBase;
-            } else if (role === 'both' || role === 'indexed') {
+            } else if (role === 'indexed') {
                 const colorIndex = parseInt(swatch.dataset.color, 10);
                 inkActive = !inkTransparent && colorIndex === inkIndex;
                 paperActive = !paperTransparent && colorIndex === paperIndex;

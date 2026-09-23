@@ -109,13 +109,31 @@ class SCRFormatClass {
     const HIRES = SCREEN_MODES.TIMEX_HIRES;
 
     // The byte length declares the variant / target mode
-    if (bytes.length === STD.fileSize || bytes.length === STD.bitmapSize) {
+    // 6913 = a standard screen plus one trailing BORDER byte, which some
+    // savers append (RECOIL DecodeScr accepts it and ignores the byte; we
+    // keep it as the document border, since we have one).
+    const withBorder = bytes.length === STD.fileSize + 1;
+    if (bytes.length === STD.fileSize || bytes.length === STD.bitmapSize || withBorder) {
       const bitmapOnly = bytes.length === STD.bitmapSize;
       const bitmap = bytes.slice(0, STD.bitmapSize);
       const attrs = bitmapOnly
         ? new Uint8Array(STD.attrSize).fill(0x38) // paper 7, ink 0
         : bytes.slice(STD.bitmapSize, STD.fileSize);
-      return this.importScreen(bitmap, attrs, STD.id, 'Load SCR');
+      const result = this.importScreen(bitmap, attrs, STD.id, 'Load SCR');
+      if (withBorder && result.success && window.ColorManager) {
+        ColorManager.setBorder(bytes[STD.fileSize] & 7);
+      }
+      return result;
+    }
+
+    // Two more sizes RECOIL's .scr decoder recognises: a GigaScreen pair
+    // saved under .scr (13824, the .img layout) and a ZX-Uno Radastan
+    // picture (6160, the .rad layout).
+    if (bytes.length === SCREEN_MODES.GIGASCREEN.fileSize && window.GigascreenFormat) {
+      return GigascreenFormat.parse('img', bytes.slice().buffer);
+    }
+    if (window.NXIFormat && bytes.length === NXIFormat.RAD_SIZE) {
+      return NXIFormat.parse('rad', bytes.slice().buffer);
     }
 
     if (bytes.length === UPLUS.fileSize) {

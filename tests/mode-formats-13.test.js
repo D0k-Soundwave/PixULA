@@ -124,6 +124,32 @@ enter('layer2_256');
   check('4bpp packing round-trips', back[0] === 0xA && back[1] === 0x5);
 }
 
+// Byte order per wiki.specnext.dev/Layer_2 (fetched 2026-09-23): 256x192 is
+// reading order; 320x256 and 640x256 are column-major - "second byte is first
+// pixel on second line, 256th byte is second pixel on first line".
+{
+  const L256 = SCREEN_MODES.LAYER2_256, L320 = SCREEN_MODES.LAYER2_320, L640 = SCREEN_MODES.LAYER2_640;
+  const at = (mode, x, y, v) => {
+    const idx = new Int16Array(mode.width * mode.height);
+    idx[y * mode.width + x] = v;
+    return NXIFormat.packBitmap(idx, mode);
+  };
+  check('256x192: pixel (1,0) is byte 1', at(L256, 1, 0, 7)[1] === 7);
+  check('256x192: pixel (0,1) is byte 256', at(L256, 0, 1, 7)[256] === 7);
+  check('320x256: pixel (0,1) is byte 1 (column-major)', at(L320, 0, 1, 7)[1] === 7);
+  check('320x256: pixel (1,0) is byte 256 (column-major)', at(L320, 1, 0, 7)[256] === 7);
+  check('640x256: pixels (0,0)/(1,0) share byte 0, left high', (() => {
+    const idx = new Int16Array(L640.width * L640.height);
+    idx[0] = 0xA; idx[1] = 0x5;
+    return NXIFormat.packBitmap(idx, L640)[0] === 0xA5;
+  })());
+  check('640x256: pixel (0,1) is byte 1 (column-major)', at(L640, 0, 1, 0xC)[1] === 0xC0);
+  check('640x256: pixel (2,0) is byte 256 (column-major)', at(L640, 2, 0, 0xC)[256] === 0xC0);
+  const rt = new Int16Array(L320.width * L320.height).map((_, i) => (i * 7) & 0xFF);
+  const back320 = NXIFormat.unpackBitmap(NXIFormat.packBitmap(rt, L320), L320);
+  check('320x256 column-major round-trips', back320.every((v, i) => v === rt[i]));
+}
+
 // ─── Radastan 4bpp round-trip ───────────────────────────────────────────────
 
 enter('lores_radastan');

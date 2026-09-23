@@ -242,15 +242,15 @@ test('ULAplus: the CLUT selector is a 2x2 grid of icons the same size as the rai
 });
 
 /*
- * ULAplus's ink/paper halves, and ULANext's normal/bright rows, are the same
- * kind of pair Ink/Paper is in classic mode - so they sit side by side too,
- * with a vertical divider between them, not one stacked above the other.
+ * ULAplus's ink/paper halves are the same kind of pair Ink/Paper is in
+ * classic mode - so they sit side by side too, with a vertical divider
+ * between them, not one stacked above the other.
  */
-test('ULAplus and ULANext: the paired swatch rows sit side by side with a vertical divider', async ({ page }) => {
+test('ULAplus: the paired swatch rows sit side by side with a vertical divider', async ({ page }) => {
     await boot(page);
     page.on('dialog', (d) => d.accept());
 
-    for (const mode of ['ula_plus', 'ulanext']) {
+    for (const mode of ['ula_plus']) {
         await page.evaluate((m) => ScreenModeService.switchMode(m), mode);
         await page.waitForTimeout(150);
         const layout = await page.evaluate(() => {
@@ -275,6 +275,33 @@ test('ULAplus and ULANext: the paired swatch rows sit side by side with a vertic
         expect(layout.dividerOrientation).toBe('vertical');
         expect(layout.dividerTallerThanWide).toBe(true);
     }
+});
+
+/*
+ * ULANext follows the hardware (2026-09-23): ink is palette entries 0-7 whatever
+ * BRIGHT and FLASH say, and those two bits choose the paper bank 128 + bank*8
+ * (wiki.specnext.dev/Enhanced_ULA_Ink_Color_Mask). So the rail is an Ink row
+ * of entries 0-7 and a Paper row that the Bright and Flash toggles move
+ * between banks.
+ */
+test('ULANext: ink is entries 0-7 and Bright/Flash switch the paper bank', async ({ page }) => {
+    await boot(page);
+    page.on('dialog', (d) => d.accept());
+    await page.evaluate(() => ScreenModeService.switchMode('ulanext'));
+    await page.waitForTimeout(150);
+    const rows = async () => page.evaluate(() => ({
+        ink: [...document.querySelectorAll('#color-swatches-ink .color-swatch')].map(e => +e.dataset.color),
+        paper: [...document.querySelectorAll('#color-swatches-paper .color-swatch')].map(e => +e.dataset.color)
+    }));
+    const range = (a) => Array.from({ length: 8 }, (_, i) => a + i);
+    expect(await rows()).toEqual({ ink: range(0), paper: range(128) });
+    await page.click('label:has(#bright-toggle)');
+    expect(await rows()).toEqual({ ink: range(0), paper: range(136) });
+    await page.click('label:has(#flash-toggle)');
+    expect(await rows()).toEqual({ ink: range(0), paper: range(152) });
+    // A paper pick under Bright+Flash resolves to that bank's entry
+    await page.click('#color-swatches-paper .color-swatch[data-base="3"]');
+    expect(await page.evaluate(() => ColorManager.getPaperColorIndex())).toBe(155);
 });
 
 /*

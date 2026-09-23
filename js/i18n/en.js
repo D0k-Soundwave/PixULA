@@ -476,8 +476,6 @@ const en = {
 
     // Colour + attribute strip (top bar)
     'clut.barLabel': 'Colour and attributes',
-    'clut.normalPalette': 'Normal palette',
-    'clut.brightPalette': 'Bright palette',
     'clut.inkColours': 'Ink colours',
     'clut.paperColours': 'Paper colours',
     'clut.inkTransparent': 'Use existing Ink colour on page',
@@ -1097,7 +1095,7 @@ const en = {
     'mode.desc.multigiga8x2': 'GigaScreen on Multicolor 8×2 cells: two screens alternate every frame, each with its own attributes every 2 scanlines, so every cell can show four colours. Not a hardware mode — MultiArtist pictures, saved as .mg2.',
     'mode.desc.multigiga8x1': 'GigaScreen on Multicolor 8×1 cells: two screens alternate every frame, each with its own attributes on every scanline, so every cell can show four colours. Not a hardware mode — MultiArtist pictures, saved as .mg1.',
     'mode.desc.timexHiresGiga': 'Two Timex hi-res screens alternate every frame, each with its own colour scheme, so every pixel shows one of four mixes of the two schemes. Not a hardware mode — saved as .hrg.',
-    'mode.desc.ulanext': 'Spectrum Next ULANext: classic 8×8 cells, but ink and paper index the 256-entry Next palette instead of the fixed ULA colours. FLASH is stored and never flashes. With an untouched palette it looks exactly like Standard ULA.',
+    'mode.desc.ulanext': 'Spectrum Next ULANext: classic 8×8 cells, but ink and paper index the 256-entry Next palette instead of the fixed ULA colours. As on the hardware, BRIGHT and FLASH are not effects here: ink always comes from palette entries 0-7, and the two bits choose one of four paper banks (entries 128-159), so nothing flashes.',
     'mode.desc.layer2_256': 'Spectrum Next Layer 2, 256×192 at 8 bits per pixel: one palette index per pixel, so attribute clash is gone. 48 KB of banked video RAM, drawn over or under the ULA layer with per-pixel transparency. Files are .nxi/.sl2.',
     'mode.desc.layer2_320': 'Spectrum Next Layer 2 at 320×256, 8 bits per pixel (80 KB, stored column by column). The wide mode covers the border area, so it suits full-bleed artwork and title screens.',
     'mode.desc.layer2_640': 'Spectrum Next Layer 2 at 640×256, 4 bits per pixel (80 KB, two pixels per byte with the left pixel in the high nibble). The highest Next resolution, in exchange for 16 palette entries.',

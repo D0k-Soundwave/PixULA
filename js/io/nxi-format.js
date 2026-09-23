@@ -13,10 +13,17 @@
  *     Raw palette-less bitmaps are also accepted on import (the document
  *     palette is kept).
  *   .sl2 — the raw Layer 2 bitmap dump (LOAD "…" LAYER format): no
- *     palette block, bytes row-major from the top-left.
+ *     palette block, bytes in the mode's own memory order.
  *
  * Bitmap packing: 8bpp = one byte per pixel; 4bpp (640×256, Radastan
  *   LoRes) = two pixels per byte, LEFT pixel in the high nibble.
+ *
+ * Byte ORDER follows the hardware: 256×192 and both LoRes forms are reading
+ *   order (row by row), but 320×256 and 640×256 are COLUMN by column - byte
+ *   n is column n >> 8, line n & 255 (descriptor `columnMajor`,
+ *   wiki.specnext.dev/Layer_2). Both used to be read and written row by
+ *   row, which round-tripped through this app and nowhere else: a real Next
+ *   file imported scrambled and our exports displayed scrambled on a Next.
  *
  * Size -> mode mapping (documented assumptions, chosen to round-trip our
  * own output; no public spec distinguishes them):
@@ -43,7 +50,11 @@ class NXIFormatClass {
     // byte length resolves the LoRes/Radastan variant via modeForLength.
     FormatRegistry.registerImport('slr', this._adapter('slr'));
     FormatRegistry.registerExport('slr', this._adapter('slr'));
-    Logger.info('NXIFormat', 'Initialized (nxi/sl2/slr)');
+    // .rad - the ZX-Uno Radastan picture (RECOIL DecodeRad): the 128x96
+    // 4bpp bitmap followed by 16 ULAplus G3R3B2 palette bytes. Import only;
+    // it loads into LORES_RADASTAN with the 16 colours as its palette.
+    FormatRegistry.registerImport('rad', this._adapter('rad'));
+    Logger.info('NXIFormat', 'Initialized (nxi/sl2/slr, rad import)');
   }
 
   /** Registry adapter. @private */
@@ -92,15 +103,25 @@ class NXIFormatClass {
   unpackBitmap(bytes, mode) {
     const n = mode.width * mode.height;
     const out = new Int16Array(n);
-    if (mode.pixelDepth === 8) {
-      for (let i = 0; i < n; i++) out[i] = bytes[i];
-    } else {
-      for (let i = 0; i < n; i++) {
-        const b = bytes[i >> 1];
-        out[i] = (i & 1) ? (b & 0x0F) : (b >> 4);
-      }
+    for (let i = 0; i < n; i++) {
+      const b = bytes[this._byteOf(i, mode)];
+      out[i] = mode.pixelDepth === 8 ? b
+        : ((i & 1) ? (b & 0x0F) : (b >> 4));
     }
     return out;
+  }
+
+  /**
+   * The bitmap byte holding pixel i (row-major index into the picture).
+   * 4bpp packs horizontal pairs, left pixel high, in either order.
+   * @private
+   */
+  _byteOf(i, mode) {
+    const perByte = mode.pixelDepth === 8 ? 1 : 2;
+    if (!mode.columnMajor) return (i / perByte) | 0;
+    const x = i % mode.width;
+    const y = (i / mode.width) | 0;
+    return ((x / perByte) | 0) * mode.height + y;
   }
 
   /**
@@ -112,12 +133,13 @@ class NXIFormatClass {
   packBitmap(indices, mode) {
     const out = new Uint8Array(mode.bitmapSize);
     const n = mode.width * mode.height;
-    if (mode.pixelDepth === 8) {
-      for (let i = 0; i < n; i++) out[i] = indices[i] & 0xFF;
-    } else {
-      for (let i = 0; i < n; i++) {
+    for (let i = 0; i < n; i++) {
+      const at = this._byteOf(i, mode);
+      if (mode.pixelDepth === 8) {
+        out[at] = indices[i] & 0xFF;
+      } else {
         const v = indices[i] & 0x0F;
-        out[i >> 1] |= (i & 1) ? v : (v << 4);
+        out[at] |= (i & 1) ? v : (v << 4);
       }
     }
     return out;
@@ -168,6 +190,7 @@ class NXIFormatClass {
     if (bytes.length > 128 && String.fromCharCode(...bytes.subarray(0, 8)) === 'PLUS3DOS') {
       bytes = bytes.subarray(128);
     }
+    if (ext === 'rad' || bytes.length === this.RAD_SIZE) return this._parseRad(bytes);
     const activeId = window.ScreenModeService
       ? ScreenModeService.getModeId() : SCREEN_MODES.STANDARD_ULA.id;
     const resolved = this.modeForLength(bytes.length, activeId);
@@ -181,6 +204,39 @@ class NXIFormatClass {
     const { mode, hasPalette } = resolved;
     const palette = hasPalette ? this.decodePalette(bytes.subarray(0, 512)) : null;
     const bitmap = bytes.subarray(hasPalette ? 512 : 0);
+    return this._load(ext, mode, bitmap, palette);
+  }
+
+  /** Bytes in a .rad file: the Radastan bitmap plus 16 palette bytes. */
+  get RAD_SIZE() {
+    return SCREEN_MODES.LORES_RADASTAN.bitmapSize + 16;
+  }
+
+  /**
+   * A .rad: the Radastan bitmap, then 16 G3R3B2 bytes. The colours become
+   * the first 16 registers (the Radastan palette window); every G3R3B2
+   * colour is exactly representable in 9-bit RGB333, so nothing is rounded.
+   * @private
+   */
+  _parseRad(bytes) {
+    const RAD = SCREEN_MODES.LORES_RADASTAN;
+    if (bytes.length !== this.RAD_SIZE) {
+      return { success: false, error: `Invalid .rad file size: ${bytes.length} bytes (expected ${this.RAD_SIZE})` };
+    }
+    const regs = window.ColorManager
+      ? Uint16Array.from(ColorManager.getNextRegisters()) : NEXTRGB333.defaultRegisters();
+    for (let i = 0; i < 16; i++) {
+      const rgb = ULAPLUS.registerToRGB(bytes[RAD.bitmapSize + i]);
+      regs[i] = NEXTRGB333.rgbToRegister(rgb[0], rgb[1], rgb[2]);
+    }
+    return this._load('rad', RAD, bytes.subarray(0, RAD.bitmapSize), regs);
+  }
+
+  /**
+   * Load a decoded bitmap (and optionally a register file) into the mode.
+   * @private
+   */
+  _load(ext, mode, bitmap, palette) {
     const indices = this.unpackBitmap(bitmap, mode);
 
     UndoRedoService.beginAction(`Load ${ext.toUpperCase()}`);

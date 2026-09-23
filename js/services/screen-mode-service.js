@@ -753,9 +753,24 @@ class ScreenModeServiceClass {
             && !ColorManager.isNextPaletteEdited()) {
             const src = ColorManager.getUlaplusRegisters();
             const regs = NEXTRGB333.defaultRegisters();
-            for (let i = 0; i < 64; i++) {
-                const rgb = ULAPLUS.registerToRGB(src[i]);
-                regs[i] = NEXTRGB333.rgbToRegister(rgb[0], rgb[1], rgb[2]);
+            const toNext = (g3r3b2) => {
+                const rgb = ULAPLUS.registerToRGB(g3r3b2);
+                return NEXTRGB333.rgbToRegister(rgb[0], rgb[1], rgb[2]);
+            };
+            if ((to.pixelDepth || 1) === 1) {
+                // ULAplus -> ULANext keeps the same cell bits, so place the
+                // colours where ULANext will look for them: ULANext's four
+                // paper banks ARE the four CLUTs' paper halves (bank = flash*2
+                // + bright = CLUT), exactly. Ink has one bank only, so it
+                // takes CLUT 0's ink - ink in the other CLUTs cannot be kept.
+                for (let c = 0; c < 8; c++) regs[c] = toNext(src[c]);
+                for (let clut = 0; clut < 4; clut++) {
+                    for (let c = 0; c < 8; c++) {
+                        regs[128 + clut * 8 + c] = toNext(src[clut * 16 + 8 + c]);
+                    }
+                }
+            } else {
+                for (let i = 0; i < 64; i++) regs[i] = toNext(src[i]);
             }
             ColorManager.setNextRegisters(regs);
             return;
@@ -775,15 +790,15 @@ class ScreenModeServiceClass {
             } else if (ColorManager.isNextPaletteEdited()) {
                 // ULANext (1-bit rgb333) -> ULAplus: the cell bits transfer
                 // unchanged, so map the palette deterministically onto the
-                // CLUT layout (CLUT = flash×2 + bright; ink from the ink
-                // window, paper from 128+) — appearance is preserved.
+                // CLUT layout (CLUT = flash*2 + bright). ULANext's ink ignores
+                // those bits, so every CLUT's ink half is entries 0-7; its
+                // paper bank is 128 + CLUT*8 - appearance is preserved.
                 const next = ColorManager.getNextRegisters();
                 const regs = new Uint8Array(64);
                 for (let clut = 0; clut < 4; clut++) {
-                    const brightOff = (clut & 1) ? 8 : 0;
                     for (let c = 0; c < 8; c++) {
-                        const inkRGB = NEXTRGB333.registerToRGB(next[brightOff + c]);
-                        const paperRGB = NEXTRGB333.registerToRGB(next[128 + brightOff + c]);
+                        const inkRGB = NEXTRGB333.registerToRGB(next[c]);
+                        const paperRGB = NEXTRGB333.registerToRGB(next[128 + clut * 8 + c]);
                         regs[clut * 16 + c] = ULAPLUS.rgbToRegister(inkRGB[0], inkRGB[1], inkRGB[2]);
                         regs[clut * 16 + 8 + c] =
                             ULAPLUS.rgbToRegister(paperRGB[0], paperRGB[1], paperRGB[2]);
