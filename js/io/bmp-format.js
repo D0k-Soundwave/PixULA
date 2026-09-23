@@ -63,7 +63,7 @@ class BMPFormatClass {
     view.setUint32(50, 0, true);                    // Important colors
 
     // Get image data
-    const imageData = CanvasSystem.getImageData();
+    const imageData = LayerManager.stillImageData();
     const data = imageData.data;
 
     // Write pixel data (BGR format, top-down due to negative height)

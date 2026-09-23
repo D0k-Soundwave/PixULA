@@ -1176,6 +1176,17 @@ PresetServiceClass.SLICES = Object.freeze([
             if (typeof ColorManager.getTimexHiresInk === 'function') {
                 out.timexHiresInk = ColorManager.getTimexHiresInk();
             }
+            if (typeof ColorManager.getTimexHiresInkB === 'function') {
+                out.timexHiresInkB = ColorManager.getTimexHiresInkB();
+            }
+            // GigaScreen: screen B's colours and the blend a stroke paints
+            if (typeof ColorManager.getScreenB === 'function') {
+                const b = ColorManager.getScreenB();
+                out.inkB = b.ink;
+                out.paperB = b.paper;
+                out.brightB = b.bright;
+                out.gigaSlot = ColorManager.getGigaSlot();
+            }
             return out;
         },
 
@@ -1185,6 +1196,20 @@ PresetServiceClass.SLICES = Object.freeze([
             if (Number.isFinite(value.paper)) ColorManager.setPaper(value.paper);
             if (typeof value.bright === 'boolean') ColorManager.setBright(value.bright);
             if (typeof value.flash === 'boolean') ColorManager.setFlash(value.flash);
+            // Before the transparency flags below: setting a colour clears
+            // its channel's "use existing", as clicking a swatch does.
+            if (Number.isFinite(value.inkB) && typeof ColorManager.setInkB === 'function') {
+                ColorManager.setInkB(value.inkB);
+            }
+            if (Number.isFinite(value.paperB) && typeof ColorManager.setPaperB === 'function') {
+                ColorManager.setPaperB(value.paperB);
+            }
+            if (typeof value.brightB === 'boolean' && typeof ColorManager.setBrightB === 'function') {
+                ColorManager.setBrightB(value.brightB);
+            }
+            if (Number.isFinite(value.gigaSlot) && typeof ColorManager.setGigaSlot === 'function') {
+                ColorManager.setGigaSlot(value.gigaSlot);
+            }
             if (Number.isFinite(value.border)) ColorManager.setBorder(value.border);
             // Both directions, like every other boolean here: a preset saved
             // with opaque ink has to be able to turn transparency back OFF, or
@@ -1207,6 +1232,10 @@ PresetServiceClass.SLICES = Object.freeze([
             if (Number.isFinite(value.timexHiresInk) &&
                 typeof ColorManager.setTimexHiresInk === 'function') {
                 ColorManager.setTimexHiresInk(value.timexHiresInk);
+            }
+            if (Number.isFinite(value.timexHiresInkB) &&
+                typeof ColorManager.setTimexHiresInkB === 'function') {
+                ColorManager.setTimexHiresInkB(value.timexHiresInkB);
             }
         }
     },

@@ -25,8 +25,9 @@ const APP_VERSION = '0.1.0-alpha.4';
  *   pixelDepth       — 1 = ink/paper bitmask; 4/8 = indexed per-pixel colour
  *   paletteModel     — 'fixed16' | 'ulaplus64' | 'timexMono' | 'rgb333'
  *   screens          — sub-screen count (absent/1 = single screen; 2 =
- *     GigaScreen flicker pair: layers carry a `gigaScreen` 0|1 tag and the
- *     compositor blends the two composites)
+ *     GigaScreen flicker pair: every cell carries a second bitmap plane and
+ *     a second attribute set - `pixelsB`/`inkB`/`paperB`/`brightB`/`flashB`
+ *     - and the compositor blends the two planes)
  *   bitmapSize/attrSize/fileSize — native encoding sizes in bytes; the file
  *     layout itself lives in the io/ handler for the mode. ALL magic file
  *     sizes live here (lint bans the literals elsewhere). attrSize always
@@ -62,8 +63,11 @@ const APP_VERSION = '0.1.0-alpha.4';
  *     canvas shows the per-channel average like RECOIL's ApplyBlend).
  *     fileSize 13824 = the .img container (two 6912 screens back to back).
  *     ZX-Paintbrush has NO GigaScreen support — this mode is a Plus over
- *     parity; the editing model (layer `gigaScreen` tags + a view toggle)
- *     is our own, documented in docs/ZX_PAINTBRUSH_COMPARISON.md.
+ *     parity. The editing model is one surface (2026-09-23): each cell holds
+ *     both screens, the artist paints one of the cell's four blends
+ *     (GIGA_SLOTS) and the two planes are storage. Average / Flicker / A / B
+ *     are display choices only. It replaced per-layer A/B tags, which let a
+ *     stroke land on a screen the canvas was not showing.
  *
  * Phase 13 added the ZX Spectrum Next family — the indexed-pixel half of
  * the seam (§1a's reserved pixelDepth 4/8 goes live). In indexed modes
@@ -202,6 +206,72 @@ const SCREEN_MODES = Object.freeze({
         bitmapSize: 6144,
         attrSize: 768,
         fileSize: 13824
+    }),
+    // MultiGigaScreen (2026-09-23): the multicolor cell heights as flicker
+    // pairs - GigaScreen's one-surface editing on finer colour cells. The
+    // container is MultiArtist's MGH (.mg2/.mg4/.mg1, RECOIL DecodeMg): a
+    // 256-byte header, both bitmaps, then both attribute blocks, so
+    // fileSize = 256 + 2 x (6144 + attrSize) for 8x4/8x2 [C]. 8x1 is the
+    // exception - .mg1 stores the side columns (0-7, 24-31) at 8x8 and only
+    // the middle sixteen per line, 19456 bytes [P, RECOIL DecodeMg].
+    MULTIGIGA_8x4: Object.freeze({
+        id: 'multigiga_8x4',
+        i18n: 'mode.multigiga8x4',
+        width: 256,
+        height: 192,
+        attrCellW: 8,
+        attrCellH: 4,
+        pixelDepth: 1,
+        paletteModel: 'fixed16',
+        screens: 2,
+        bitmapSize: 6144,
+        attrSize: 1536,
+        fileSize: 15616
+    }),
+    MULTIGIGA_8x2: Object.freeze({
+        id: 'multigiga_8x2',
+        i18n: 'mode.multigiga8x2',
+        width: 256,
+        height: 192,
+        attrCellW: 8,
+        attrCellH: 2,
+        pixelDepth: 1,
+        paletteModel: 'fixed16',
+        screens: 2,
+        bitmapSize: 6144,
+        attrSize: 3072,
+        fileSize: 18688
+    }),
+    MULTIGIGA_8x1: Object.freeze({
+        id: 'multigiga_8x1',
+        i18n: 'mode.multigiga8x1',
+        width: 256,
+        height: 192,
+        attrCellW: 8,
+        attrCellH: 1,
+        pixelDepth: 1,
+        paletteModel: 'fixed16',
+        screens: 2,
+        bitmapSize: 6144,
+        attrSize: 6144,
+        fileSize: 19456
+    }),
+    // Timex hi-res as a flicker pair (.hrg, RECOIL DecodeHrg): two 12289-byte
+    // hi-res screens, each with its OWN port byte and so its own ink/paper
+    // scheme (ColorManager.timexHiresInk / timexHiresInkB).
+    TIMEX_HIRES_GIGA: Object.freeze({
+        id: 'timex_hires_giga',
+        i18n: 'mode.timexHiresGiga',
+        width: 512,
+        height: 192,
+        attrCellW: 8,
+        attrCellH: 8,
+        pixelDepth: 1,
+        paletteModel: 'timexMono',
+        screens: 2,
+        bitmapSize: 12288,
+        attrSize: 1536,
+        fileSize: 24578
     }),
     ULANEXT: Object.freeze({
         id: 'ulanext',
@@ -345,9 +415,16 @@ const ZX_SPECTRUM = Object.freeze({
     // indices. PALETTE_SIZE is the number of drawable palette entries in the
     // active mode (16 fixed / 64 ULAplus / 2 timexMono / 16 or 256 rgb333).
     get PIXEL_DEPTH()  { return _activeScreenMode.pixelDepth; },
+    // 1 for every mode except GigaScreen (2). Read it here rather than
+    // `ACTIVE_SCREEN_MODE.screens || 1` inline.
+    get SCREENS()      { return _activeScreenMode.screens || 1; },
     get PALETTE_SIZE() {
         if (_activeScreenMode.paletteSize) return _activeScreenMode.paletteSize;
-        return _activeScreenMode.paletteModel === 'timexMono' ? 2 : 16;
+        // timexMono: [paper, ink] per screen - 4 entries for the hi-res pair
+        if (_activeScreenMode.paletteModel === 'timexMono') {
+            return 2 * (_activeScreenMode.screens || 1);
+        }
+        return 16;
     },
     MAX_COLORS_PER_CELL: 2,
 
@@ -445,6 +522,30 @@ const DEFAULT_CELL_ATTRS = Object.freeze({
     paper: 7,
     bright: false,
     flash: false
+});
+
+/**
+ * GigaScreen's four paintable colours per cell (2026-09-23).
+ *
+ * A GigaScreen cell holds two screens, each with its own ink and paper, so a
+ * pixel is one of four blends: which plane's ink or paper shows on each of the
+ * two alternating frames. The slot number is `bitA * 2 + bitB` - the order the
+ * compositor's blend table has always used - so slot 3 is ink on both screens
+ * (a solid colour when the two inks match) and slot 0 is paper on both.
+ * [P] The four-blend model and the 13824-byte two-attribute-block container:
+ * RECOIL DecodeZxImg and SpectraLab's README (fetched 2026-09-23).
+ * @const {Object}
+ */
+const GIGA_SLOTS = Object.freeze({
+    PAPER_PAPER: 0,
+    PAPER_INK: 1,
+    INK_PAPER: 2,
+    INK_INK: 3,
+    COUNT: 4,
+    /** The plane-A bit a slot writes (0|1). */
+    bitA(slot) { return (slot >> 1) & 1; },
+    /** The plane-B bit a slot writes (0|1). */
+    bitB(slot) { return slot & 1; }
 });
 
 /**
@@ -1331,6 +1432,7 @@ window.ZX_PALETTE_RGB = ZX_PALETTE_RGB;
 window.DEFAULT_ZOOM = DEFAULT_ZOOM;
 window.DRAW_MODE = DRAW_MODE;
 window.DEFAULT_CELL_ATTRS = DEFAULT_CELL_ATTRS;
+window.GIGA_SLOTS = GIGA_SLOTS;
 window.TOOLS = TOOLS;
 window.TOOL_GROUPS = TOOL_GROUPS;
 window.PEN_CONTROLS = PEN_CONTROLS;

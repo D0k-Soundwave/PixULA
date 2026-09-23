@@ -30,7 +30,7 @@ Next tilemap dev export.
 
 | Ext | What it is (per recoil.c) | Notes for a future implementation |
 |---|---|---|
-| `.stl` | Attribute GigaScreen at 4×4 blocks: 3072 bytes = two 1536-byte frames, blended (`DecodeStl`, SPECTRUM4X4, 2 frames) | Needs either a 4×4-block attribute view or the .hlr treatment (pattern bitmap + attrs); frame pairing would drop to frame A like .mg1/2/4 |
+| `.stl` | Attribute GigaScreen at 4×4 blocks: 3072 bytes = two 1536-byte frames, blended (`DecodeStl`, SPECTRUM4X4, 2 frames) | Needs either a 4×4-block attribute view or the .hlr treatment (pattern bitmap + attrs); the two frames could ride the two-screen cell model the way .mg1/2/4 now do |
 | `.rgb` | Three 6144-byte monochrome screens = R/G/B channels blended (`DecodeZxRgb`, components 16/8/0) | Could import as three layers or a quantized composite; no cell model holds true RGB per pixel |
 | `.3` | Same tri-screen container with the components in 0/16/8 order (`Decode3`) | Same as `.rgb` |
 | `.zxs` | "ZX_SSCII" 2452-byte character-mapped screen (SSCII text art) | Rasterize via the ROM font like the ZED importer; import-only |
@@ -75,10 +75,13 @@ implementing, per this project's usual method for a new format.
 
 ## Known partial-support decisions (documented losses)
 
-- `.hrg`, `.mg1`, `.mg2`, `.mg4`: only the FIRST sub-screen imports (our
-  GigaScreen model pairs 8×8-cell screens only); export of the pair exists
-  for .hrg (same screen twice) and .img/8×8 .mg has no export (mg is
-  import-only).
+- ~~`.hrg`, `.mg1`, `.mg2`, `.mg4`: only the FIRST sub-screen imports~~ -
+  closed 2026-09-23. All four now import both frames into their own
+  two-screen modes (MULTIGIGA_8x4/8x2/8x1, TIMEX_HIRES_GIGA) and export
+  byte-identically; `.mg1/.mg2/.mg4/.mg8` gained export. The one remaining
+  loss: `.mg1` stores its side columns (0-7, 24-31) at 8x8, so side columns
+  given per-line colours in the app are reduced to each 8-line block's most
+  frequent attribute on export.
 - `.bsc`: border stripe bytes are dropped both variants (no border bitmap
   model); the 11904 variant's screen core imports as MULTICOLOR_8x4.
 - `.atr`/`.hlr`: the bitmap RECOIL synthesizes ((x^y)&1 dither / the file's
@@ -90,5 +93,5 @@ implementing, per this project's usual method for a new format.
 - `.zxp`: pictures smaller than the screen import top-left over 0x38
   attrs; larger crop. 8×2/8×4 documents export as the extended (8×1)
   form — lossless upward, and what ZX-Paintbrush itself loads.
-- GigaScreen GIF/img exports blend/pair only the two flattened sub-screen
-  composites; per-layer sub-screen detail beyond the tags is flattened.
+- Two-screen GIF/img/mg/hrg exports write the flattened document's two
+  screens; layers are flattened, as in every picture format.

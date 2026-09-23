@@ -38,7 +38,8 @@ loadModule('js/services/screen-mode-service.js');
 // ─── 1. Registry invariants ─────────────────────────────────────────────────
 
 const modeKeys = Object.keys(SCREEN_MODES);
-check('registry has the 8 classic (12a/12b) + 6 Next (13) modes', modeKeys.length === 14,
+check('registry has the 8 classic (12a/12b) + 4 flicker pairs (2026-09-23) + 6 Next (13) modes',
+  modeKeys.length === 18,
   `got ${modeKeys.join(',')}`);
 
 for (const key of modeKeys) {
@@ -56,8 +57,17 @@ for (const key of modeKeys) {
   // indexed (Phase 13) containers are bitmap + optional 512-byte palette
   // (no attribute block — the 8×8 grid is storage-only); ULANEXT is a
   // plain 6912 SCR (its palette travels separately via .npl/.pal).
+  // The flicker pairs: the hi-res pair is two hi-res screens (.hrg); the
+  // MultiGigaScreen containers are MultiArtist's MGH - a 256-byte header,
+  // both bitmaps and both attribute blocks, except .mg1, whose mixed layout
+  // stores 16 middle columns per line and 16 side columns per 8-line row.
+  const mgHeader = 256;
   const expectedFile = m.paletteModel === 'timexMono'
-    ? m.bitmapSize + 1
+    ? (m.screens || 1) * (m.bitmapSize + 1)
+    : m.id === 'multigiga_8x1'
+      ? mgHeader + 2 * (m.bitmapSize + 16 * m.height + 16 * (m.height / 8))
+    : m.id.startsWith('multigiga_')
+      ? mgHeader + 2 * (m.bitmapSize + m.attrSize)
     : m.pixelDepth > 1
       ? m.bitmapSize + (m.paletteBytes || 0)
       : (m.screens || 1) * (m.bitmapSize + m.attrSize)
@@ -74,6 +84,11 @@ check('ULA_PLUS native size is 6976', SCREEN_MODES.ULA_PLUS.fileSize === 6976);
 check('ULA_PLUS_8x1 native size is 12352', SCREEN_MODES.ULA_PLUS_8x1.fileSize === 12352);
 check('TIMEX_HIRES native size is 12289', SCREEN_MODES.TIMEX_HIRES.fileSize === 12289);
 check('GIGASCREEN native size is 13824', SCREEN_MODES.GIGASCREEN.fileSize === 13824);
+// [P] RECOIL DecodeMg / DecodeHrg size checks, fetched 2026-09-23
+check('MULTIGIGA_8x4 (.mg4) is 15616', SCREEN_MODES.MULTIGIGA_8x4.fileSize === 15616);
+check('MULTIGIGA_8x2 (.mg2) is 18688', SCREEN_MODES.MULTIGIGA_8x2.fileSize === 18688);
+check('MULTIGIGA_8x1 (.mg1) is 19456', SCREEN_MODES.MULTIGIGA_8x1.fileSize === 19456);
+check('TIMEX_HIRES_GIGA (.hrg) is 24578', SCREEN_MODES.TIMEX_HIRES_GIGA.fileSize === 24578);
 
 // ─── 2. The live seam ───────────────────────────────────────────────────────
 

@@ -9,10 +9,12 @@
  *     cell attributes; the scheme is document state.
  *  3. Lossy matrix additions — width shrink, colour->mono, GigaScreen exit
  *     with screen-B content.
- *  4. GigaScreen compositing — layers partition by gigaScreen tag; the
- *     blend view averages sub-screen colours per channel (RECOIL blend);
- *     single-screen views show one sub-screen only; tags survive the
- *     undo snapshot round-trip; leaving GigaScreen clears the tags.
+ *  4. GigaScreen — every cell holds both screens (2026-09-23). Entering
+ *     leaves the picture unchanged; the Average display averages the two
+ *     planes per channel (RECOIL blend) and A/B/Flicker show one plane; the
+ *     draw gate paints each of the four slots onto the right bits of both
+ *     planes; screen B survives undo; leaving is lossy only when screen B
+ *     differs; a document from the old per-layer tag model converts.
  *  5. Leaving Timex hi-res stamps the scheme's ink/paper (BRIGHT) onto
  *     altered cells so the switched document keeps the hi-res look.
  * Every block restores standard_ula before the next one (12a convention).
@@ -158,72 +160,278 @@ check('ULAplus -> ULAplus 8×1 (refine) is lossless',
 check('ULAplus 8×1 -> ULAplus (coarsen) is lossy',
   ScreenModeService.isConversionLossy('ula_plus_8x1', 'ula_plus') === true);
 
-// ─── 4. GigaScreen compositing + tags ───────────────────────────────────────
+// ─── 4. GigaScreen: one surface, two planes per cell ────────────────────────
+
+const onePixel = () => { const p = new Uint8Array(8); p[0] = 0x80; return p; };
+const pxAt = (x, y) => { painted.clear(); LayerManager.composeCellToCanvas(x >> 3, y >> 3); return painted.get(`${x},${y}`); };
+const same = (a, b) => a && b && a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
 
 {
+  // Entering leaves the picture exactly as it was (the old tag model entered
+  // everything on screen A and rendered black ink as (107,107,107)).
   LayerManager.initialize();
+  const layer = LayerManager.getCurrentLayer();
+  layer.setCell(0, 0, { ink: 0, paper: 7, bright: false, flash: false, pixels: onePixel() });
+  const before = pxAt(0, 0);
   ScreenModeService.switchMode('gigascreen');
   check('switched to gigascreen', ACTIVE_SCREEN_MODE === GIGA);
+  const after = pxAt(0, 0);
+  check('entering gigascreen leaves an ink pixel unchanged', same(before, after),
+    `before ${before} after ${after}`);
+  const cell = LayerManager.getCurrentLayer().getCell(0, 0);
+  check('entering gives every cell a screen B equal to screen A',
+    cell.pixelsB && cell.pixelsB[0] === 0x80 && cell.inkB === 0 && cell.paperB === 7);
+  check('standard -> gigascreen reports lossless',
+    ScreenModeService.isConversionLossy('standard_ula', 'gigascreen') === false);
+  check('leaving an untouched screen B is lossless',
+    ScreenModeService.isConversionLossy('gigascreen', 'standard_ula') === false);
+  ScreenModeService.switchMode('standard_ula');
+}
 
-  // Layer 1 (screen A): ink pixel at (0,0), red ink.
-  // Layer 2 (screen B): ink pixel at (0,0) too, blue ink.
+{
+  // Average / A / B / Flicker read the two planes of ONE cell.
+  LayerManager.initialize();
+  ScreenModeService.switchMode('gigascreen');
   const la = LayerManager.getCurrentLayer();
   la.setCell(0, 0, {
-    ink: 2, paper: 7, bright: false, flash: false,
-    pixels: (() => { const p = new Uint8Array(8); p[0] = 0x80; return p; })()
-  });
-  LayerManager.addLayer('B side');
-  const lb = LayerManager.layers[LayerManager.layers.length - 1];
-  lb.gigaScreen = 1;
-  lb.setCell(0, 0, {
-    ink: 1, paper: 7, bright: false, flash: false,
-    pixels: (() => { const p = new Uint8Array(8); p[0] = 0x80; return p; })()
+    ink: 2, paper: 7, bright: false, flash: false, pixels: onePixel(),
+    inkB: 1, paperB: 7, brightB: false, flashB: false, pixelsB: onePixel()
   });
 
-  painted.clear();
-  LayerManager.composeCellToCanvas(0, 0);
-  let px = painted.get('0,0');
-  // red (215,0,0) blended with blue (0,0,215) -> (107,0,107)
-  check('blend view averages the sub-screens per channel',
+  check('default display is average', LayerManager.getGigaView() === 'average');
+  let px = pxAt(0, 0);
+  // red (215,0,0) averaged with blue (0,0,215) -> (107,0,107)
+  check('average display blends the two screens per channel',
     px[0] === 107 && px[1] === 0 && px[2] === 107, `got ${px}`);
-  // paper pixel: white/white blends to white
-  px = painted.get('1,0');
-  check('blend of identical paper stays put', px[0] === 215 && px[1] === 215 && px[2] === 215);
+  px = pxAt(1, 0);
+  check('average of identical paper stays put', px[0] === 215 && px[1] === 215 && px[2] === 215);
 
   LayerManager.setGigaView('a');
-  painted.clear();
-  LayerManager.composeCellToCanvas(0, 0);
-  px = painted.get('0,0');
-  check('view A shows only screen A', px[0] === 215 && px[1] === 0 && px[2] === 0);
-
+  px = pxAt(0, 0);
+  check('display A shows only screen A', px[0] === 215 && px[1] === 0 && px[2] === 0, `got ${px}`);
   LayerManager.setGigaView('b');
-  painted.clear();
-  LayerManager.composeCellToCanvas(0, 0);
-  px = painted.get('0,0');
-  check('view B shows only screen B', px[0] === 0 && px[1] === 0 && px[2] === 215);
-  LayerManager.setGigaView('blend');
+  px = pxAt(0, 0);
+  check('display B shows only screen B', px[0] === 0 && px[1] === 0 && px[2] === 215, `got ${px}`);
 
-  // flattenVisible per sub-screen
-  const flatA = LayerManager.flattenVisible({ gigaScreen: 0 });
-  const flatB = LayerManager.flattenVisible({ gigaScreen: 1 });
-  check('flattenVisible filters by sub-screen',
-    flatA.getCell(0, 0).ink === 2 && flatB.getCell(0, 0).ink === 1);
+  // Flicker: no requestAnimationFrame in Node, so drive the phase directly.
+  LayerManager.setGigaView('flicker');
+  LayerManager._gigaFlickerPhase = 0;
+  const f0 = pxAt(0, 0);
+  LayerManager._gigaFlickerPhase = 1;
+  const f1 = pxAt(0, 0);
+  check('flicker shows screen A then screen B', f0[0] === 215 && f0[2] === 0 && f1[0] === 0 && f1[2] === 215,
+    `got ${f0} / ${f1}`);
+  LayerManager.setGigaView('bogus');
+  check('an unknown display is refused', LayerManager.getGigaView() === 'flicker');
+  LayerManager.setGigaView('average');
 
-  // Tag survives an undo snapshot round-trip
+  // flattenVisible carries both planes
+  const flat = LayerManager.flattenVisible();
+  check('flattenVisible keeps screen A', flat.getCell(0, 0).ink === 2);
+  check('flattenVisible keeps screen B', flat.getCell(0, 0).inkB === 1 && flat.getCell(0, 0).pixelsB[0] === 0x80);
+
+  // Screen B survives an undo snapshot round-trip
   UndoRedo.beginAction('probe');
-  la.setCell(1, 1, { ink: 3 });
+  la.setCell(0, 0, { inkB: 4 });
   UndoRedo.endAction();
-  lb.gigaScreen = 0; // mutate after capture…
-  UndoRedo.undo();   // …undo restores the captured tag
-  const restoredB = LayerManager.layers.find(l => l.name === 'B side');
-  check('gigaScreen tag survives undo restore', restoredB && restoredB.gigaScreen === 1);
+  check('screen B edit landed', la.getCell(0, 0).inkB === 4);
+  UndoRedo.undo();
+  const restored = LayerManager.getCurrentLayer().getCell(0, 0);
+  check('undo restores screen B', restored.inkB === 1 && restored.pixelsB[0] === 0x80, `inkB ${restored.inkB}`);
 
-  check('leaving gigascreen with B content is lossy',
+  check('leaving with a different screen B is lossy',
     ScreenModeService.isConversionLossy('gigascreen', 'standard_ula') === true);
   ScreenModeService.switchMode('standard_ula');
-  check('leaving gigascreen clears the tags',
-    LayerManager.layers.every(l => (l.gigaScreen || 0) === 0));
+  const leftCell = LayerManager.getCurrentLayer().getCell(0, 0);
+  check('leaving keeps screen A and drops screen B', leftCell.ink === 2 && leftCell.pixelsB === undefined);
   check('back to standard_ula', ACTIVE_SCREEN_MODE === STD);
+}
+
+{
+  // The draw gate: each slot writes the right bit on each screen, and both
+  // colour sets are stamped. Screen A red on white, screen B blue on yellow.
+  LayerManager.initialize();
+  ScreenModeService.switchMode('gigascreen');
+  const sel = {
+    ink: 2, paper: 7, bright: false, flash: false, inkTransparent: false, paperTransparent: false,
+    inkB: 1, paperB: 6, brightB: false, flashB: false
+  };
+  const expected = LayerManager.gigaSlotColours({ ink: 2, paper: 7, bright: false }, { ink: 1, paper: 6, bright: false });
+  for (let slot = 0; slot < GIGA_SLOTS.COUNT; slot++) {
+    const x = slot * 8; // one cell per slot
+    PixelDrawRoutine.draw(x, 0, { ...sel, gigaSlot: slot }, DRAW_MODE.NORMAL);
+    const cell = LayerManager.getCurrentLayer().getCell(slot, 0);
+    const bitA = (cell.pixels[0] >> 7) & 1;
+    const bitB = (cell.pixelsB[0] >> 7) & 1;
+    check(`slot ${slot} writes bitA=${GIGA_SLOTS.bitA(slot)} bitB=${GIGA_SLOTS.bitB(slot)}`,
+      bitA === GIGA_SLOTS.bitA(slot) && bitB === GIGA_SLOTS.bitB(slot), `got ${bitA}${bitB}`);
+    check(`slot ${slot} stamps both colour sets`,
+      cell.ink === 2 && cell.paper === 7 && cell.inkB === 1 && cell.paperB === 6);
+    const px = pxAt(x, 0);
+    check(`slot ${slot} shows its blend on the canvas`, same(px, expected[slot]),
+      `got ${px} want ${expected[slot]}`);
+  }
+
+  // No slot and no screen B colours (every caller that knows nothing of
+  // GigaScreen): solid ink on both screens.
+  PixelDrawRoutine.draw(40, 0, { ink: 0, paper: 7, bright: false, flash: false }, DRAW_MODE.NORMAL);
+  const solid = LayerManager.getCurrentLayer().getCell(5, 0);
+  check('a plain selection paints ink on both screens',
+    (solid.pixels[0] & 0x80) && (solid.pixelsB[0] & 0x80) && solid.inkB === 0);
+  const solidPx = pxAt(40, 0);
+  check('a plain selection paints a solid colour', solidPx[0] === 0 && solidPx[1] === 0 && solidPx[2] === 0,
+    `got ${solidPx}`);
+
+  // XOR inverts the slot on both screens: slot 1 -> slot 2
+  PixelDrawRoutine.draw(8, 0, { ...sel }, DRAW_MODE.XOR_PIXEL);
+  check('XOR inverts both screens (slot 1 -> 2)',
+    LayerManager.getCurrentLayer().getPixelSlot(8, 0) === 2);
+
+  // Right button (NORMAL_ERASE) clears both screens
+  PixelDrawRoutine.draw(24, 0, { ...sel }, DRAW_MODE.NORMAL_ERASE);
+  check('right button clears both screens', LayerManager.getCurrentLayer().getPixelSlot(24, 0) === 0);
+
+  // Eraser: first pass clears the dot and keeps the colours; a pass over a
+  // cell empty on both screens wipes both colour sets.
+  PixelDrawRoutine.draw(40, 0, sel, DRAW_MODE.ERASE_ALL);
+  const erased = LayerManager.getCurrentLayer().getCell(5, 0);
+  check('eraser first pass clears both screens and keeps colours',
+    erased.pixels[0] === 0 && erased.pixelsB[0] === 0 && erased.altered === true);
+  PixelDrawRoutine.draw(40, 0, sel, DRAW_MODE.ERASE_ALL);
+  check('eraser second pass leaves the upper-layer cell see-through',
+    LayerManager.getCurrentLayer().getCell(5, 0).altered === false);
+
+  // "Use existing" takes each screen's own existing colour
+  const layer = LayerManager.getCurrentLayer();
+  layer.setCell(10, 0, { ink: 3, paper: 7, bright: false, flash: false, pixels: new Uint8Array(8),
+    inkB: 5, paperB: 0, brightB: false, flashB: false, pixelsB: new Uint8Array(8) });
+  PixelDrawRoutine.draw(80, 0, { ...sel, inkTransparent: true, gigaSlot: 3 }, DRAW_MODE.NORMAL);
+  const kept = layer.getCell(10, 0);
+  check('use-existing ink keeps each screen\'s own ink', kept.ink === 3 && kept.inkB === 5,
+    `ink ${kept.ink} inkB ${kept.inkB}`);
+
+  // getPixelState reports the slot
+  const st = PixelDrawRoutine.getPixelState(16, 0);
+  check('getPixelState reports the slot and screen B colours', st.slot === 2 && st.cellB && st.cellB.ink === 1);
+  ScreenModeService.switchMode('standard_ula');
+}
+
+{
+  // A document saved under the old per-layer tag model converts to one
+  // two-screen layer showing the same two screens.
+  LayerManager.initialize();
+  ScreenModeService.switchMode('gigascreen');
+  const cellWith = (ink) => {
+    const grid = [];
+    for (let y = 0; y < 24; y++) {
+      const row = [];
+      for (let x = 0; x < 32; x++) {
+        row.push({ ink: 0, paper: 7, bright: false, flash: false, pixels: new Uint8Array(8), altered: false });
+      }
+      grid.push(row);
+    }
+    grid[0][0] = { ink, paper: 7, bright: false, flash: false, pixels: onePixel(), altered: true };
+    return grid;
+  };
+  const bg = LayerManager.getAllLayers()[0];
+  LayerManager.restoreFromData([
+    bg,
+    { name: 'A side', visible: true, opacity: 100, locked: false, gigaScreen: 0, attributeData: cellWith(2) },
+    { name: 'B side', visible: true, opacity: 100, locked: false, gigaScreen: 1, attributeData: cellWith(1) }
+  ]);
+  check('tagged document converts to background + one layer', LayerManager.layers.length === 2);
+  const c = LayerManager.layers[1].getCell(0, 0);
+  check('converted screen A holds the A-tagged layer', c.ink === 2 && c.pixels[0] === 0x80);
+  check('converted screen B holds the B-tagged layer', c.inkB === 1 && c.pixelsB[0] === 0x80);
+  ScreenModeService.switchMode('standard_ula');
+}
+
+// ─── 4b. The other flicker pairs (2026-09-23) ───────────────────────────────
+
+{
+  // Two screens to two screens keeps screen B. The survey that preceded
+  // this found the conversion plane-blind: GigaScreen -> MultiGiga 8x1 wiped
+  // screen B and reported the switch as lossless.
+  LayerManager.initialize();
+  ScreenModeService.switchMode('gigascreen');
+  const la = LayerManager.getCurrentLayer();
+  const rows = (v) => Uint8Array.from([v, v, v, v, v, v, v, v]);
+  la.setCell(0, 0, { ink: 2, paper: 7, bright: false, flash: false, pixels: rows(0xF0),
+    inkB: 1, paperB: 6, brightB: true, flashB: false, pixelsB: rows(0x0F) });
+
+  check('gigascreen -> multigiga 8x1 (refine) is lossless',
+    ScreenModeService.isConversionLossy('gigascreen', 'multigiga_8x1') === false);
+  ScreenModeService.switchMode('multigiga_8x1');
+  const refined = LayerManager.getCurrentLayer().getCell(0, 5); // line 5 of the old cell
+  check('refining keeps screen A', refined.ink === 2 && refined.pixels[0] === 0xF0);
+  check('refining keeps screen B', refined.inkB === 1 && refined.paperB === 6
+    && refined.brightB === true && refined.pixelsB[0] === 0x0F, JSON.stringify(refined));
+
+  // Give one 8x1 line of screen B its own colour, then coarsen
+  LayerManager.getCurrentLayer().getCell(0, 3).inkB = 4;
+  check('multigiga 8x1 -> 8x4 (coarsen) is lossy',
+    ScreenModeService.isConversionLossy('multigiga_8x1', 'multigiga_8x4') === true);
+  ScreenModeService.switchMode('multigiga_8x4');
+  const coarse = LayerManager.getCurrentLayer().getCell(0, 0);
+  check('coarsening votes screen B by the same rule as screen A',
+    coarse.inkB === 1 && coarse.ink === 2 && coarse.pixelsB[3] === 0x0F);
+
+  UndoRedo.undo();
+  check('one undo restores the 8x1 pair, screen B included',
+    ACTIVE_SCREEN_MODE.id === 'multigiga_8x1'
+      && LayerManager.getCurrentLayer().getCell(0, 3).inkB === 4);
+
+  // Painting a slot works at the finer cell height too
+  PixelDrawRoutine.draw(8, 1, { ink: 2, paper: 7, bright: false, flash: false,
+    inkB: 1, paperB: 6, brightB: false, flashB: false, gigaSlot: 2 }, DRAW_MODE.NORMAL);
+  check('a slot paints onto an 8x1 pair cell', LayerManager.getCurrentLayer().getPixelSlot(8, 1) === 2);
+  ScreenModeService.switchMode('standard_ula');
+}
+
+{
+  // The hi-res pair: each screen resolves through its own scheme.
+  LayerManager.initialize();
+  ScreenModeService.switchMode('timex_hires');
+  ColorManager.setTimexHiresInk(2); // red on cyan
+  const layer = LayerManager.getCurrentLayer();
+  layer.setCell(0, 0, { pixels: Uint8Array.from([0x80, 0, 0, 0, 0, 0, 0, 0]) });
+  const before = pxAt(0, 0);
+  ScreenModeService.switchMode('timex_hires_giga');
+  check('entering the hi-res pair copies the scheme to screen B',
+    ColorManager.getTimexHiresInkB() === 2);
+  check('entering the hi-res pair leaves the picture unchanged', same(pxAt(0, 0), before),
+    `before ${before} after ${pxAt(0, 0)}`);
+  check('the hi-res pair palette has four entries', ColorManager.getPalette().length === 4
+    && ZX_SPECTRUM.PALETTE_SIZE === 4);
+
+  ColorManager.setTimexHiresInkB(4); // screen B: green on magenta
+  const inkA = ZX_PALETTE_RGB[2 + 8], inkB = ZX_PALETTE_RGB[4 + 8];
+  const avg = [0, 1, 2].map(k => (inkA[k] + inkB[k]) >> 1);
+  check('Average blends the two schemes', same(pxAt(0, 0), avg), `got ${pxAt(0, 0)} want ${avg}`);
+  LayerManager.setGigaView('b');
+  check('display B uses screen B\'s scheme', same(pxAt(0, 0), inkB));
+  LayerManager.setGigaView('a');
+  check('display A uses screen A\'s scheme', same(pxAt(0, 0), inkA));
+  LayerManager.setGigaView('average');
+
+  const slots = ColorManager.getGigaSlotRGB();
+  check('the Paint colours are the four mixes of the two schemes',
+    same(slots[3], avg) && new Set(slots.map(String)).size === 4);
+
+  UndoRedo.beginAction('scheme');
+  ColorManager.setTimexHiresInkB(6);
+  UndoRedo.endAction();
+  UndoRedo.undo();
+  check('undo restores screen B\'s scheme', ColorManager.getTimexHiresInkB() === 4);
+
+  // Leaving for another two-screen mode stamps each screen with its scheme
+  ScreenModeService.switchMode('gigascreen');
+  const g = LayerManager.getCurrentLayer().getCell(0, 0);
+  check('hi-res pair -> gigascreen keeps each screen\'s scheme',
+    g.ink === 2 && g.bright === true && g.inkB === 4 && g.brightB === true, JSON.stringify(g));
+  ColorManager.setTimexHiresInk(0);
+  ColorManager.setTimexHiresInkB(0);
+  ScreenModeService.switchMode('standard_ula');
 }
 
 // ─── 5. Leaving hi-res stamps the scheme ────────────────────────────────────

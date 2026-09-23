@@ -52,14 +52,18 @@ const Helpers = {
      * (Node tests) or before I18n loads.
      * @param {string} key - i18n key
      * @param {string} fallback - English fallback
+     * @param {Object} [params] - {placeholder} values, applied to the
+     *   fallback too so a headless run reads the same sentence
      * @returns {string}
      */
-    localizedMessage(key, fallback) {
+    localizedMessage(key, fallback, params) {
         if (window.I18n && typeof I18n.t === 'function') {
-            const v = I18n.t(key);
+            const v = I18n.t(key, params);
             if (v && v !== key) return v;
         }
-        return fallback;
+        if (!params) return fallback;
+        return fallback.replace(/\{(\w+)\}/g, (m, name) =>
+            (params[name] !== undefined ? String(params[name]) : m));
     },
 
     /**
@@ -935,6 +939,27 @@ const Helpers = {
     },
 
     /**
+     * How many distinct colours GigaScreen can put on screen: every pair of
+     * the 16 attribute colours averaged per channel, as the compositor blends
+     * them, counted once per resulting RGB. [C] 102 with the fixed ULA palette
+     * (136 pairs, 21 RGB values reached by more than one pair); computed here
+     * rather than typed so it cannot drift from the palette.
+     * @returns {number}
+     */
+    gigaBlendCount() {
+        const seen = new Set();
+        const pal = ZX_PALETTE_RGB;
+        for (let i = 0; i < pal.length; i++) {
+            for (let j = i; j < pal.length; j++) {
+                seen.add(((pal[i][0] + pal[j][0]) >> 1) << 16
+                    | ((pal[i][1] + pal[j][1]) >> 1) << 8
+                    | ((pal[i][2] + pal[j][2]) >> 1));
+            }
+        }
+        return seen.size;
+    },
+
+    /**
      * The screen-mode tooltip: name, exact canvas size and attribute layout,
      * how many colours are on screen at once, whether the palette is
      * editable, and what machine the mode belongs to. Every number is read
@@ -952,9 +977,14 @@ const Helpers = {
             (window.I18n && typeof I18n.t === 'function') ? I18n.t(key, params) : key;
 
         const depth = mode.pixelDepth || 1;
-        const colours = mode.paletteModel === 'fixed16' ? 15
-            : mode.paletteModel === 'timexMono' ? 2
-                : (mode.paletteSize || 16);
+        const giga = (mode.screens || 1) === 2;
+        // The hi-res pair ignores cell attributes: two schemes of two
+        // colours, blended pairwise, give 2 x 2 = 4 on screen [C].
+        const colours = giga
+            ? (mode.paletteModel === 'timexMono' ? 4 : Helpers.gigaBlendCount())
+            : mode.paletteModel === 'fixed16' ? 15
+                : mode.paletteModel === 'timexMono' ? 2
+                    : (mode.paletteSize || 16);
 
         // Timex hi-res carries attribute bytes but the ULA ignores them —
         // the whole screen shares one colour pair, so saying "8×8 cells"
@@ -963,7 +993,8 @@ const Helpers = {
             ? t('mode.info.indexed', { bpp: depth })
             : mode.paletteModel === 'timexMono'
                 ? t('mode.info.cellsIgnored')
-                : t('mode.info.cells', { cw: mode.attrCellW, ch: mode.attrCellH });
+                : t(giga ? 'mode.info.cellsGiga' : 'mode.info.cells',
+                    { cw: mode.attrCellW, ch: mode.attrCellH });
 
         const paletteKey = {
             fixed16: 'mode.info.paletteFixed',

@@ -130,24 +130,26 @@ test('Timex hi-res: 512-wide geometry + scheme selector; attr ops hidden', async
     expect(state.schemeSelector).toBeGreaterThanOrEqual(1);
 });
 
-test('GigaScreen: layer A/B badges + view toggle; drawing lands per sub-screen', async ({ page }) => {
+test('GigaScreen: one surface - no layer A/B badges, cells carry both screens, display row works', async ({ page }) => {
     await boot(page);
     await selectMode(page, 'gigascreen'); // entering is silent
     await page.waitForTimeout(200);
     expect(await modeId(page)).toBe('gigascreen');
 
-    const giga = await page.evaluate(() => {
-        const tags = LayerManager.layers.map(l => l.gigaScreen).filter(t => t !== undefined);
-        LayerManager.setGigaView('a');
-        const va = LayerManager.gigaView ?? 'a';
-        LayerManager.setGigaView('blend');
-        return { tags: tags.length, viewApiWorked: va === 'a' };
-    });
-    expect(giga.tags).toBeGreaterThanOrEqual(1);
-    expect(giga.viewApiWorked).toBe(true);
-    // Badge visible in the layer panel
-    const badges = await page.locator('#layer-panel [class*="giga"], #layer-panel .layer-badge').count();
-    expect(badges).toBeGreaterThanOrEqual(1);
+    // The per-layer sub-screen tag is gone, and so is its badge
+    expect(await page.locator('#layer-panel .layer-giga').count()).toBe(0);
+    expect(await page.evaluate(() => {
+        const c = LayerManager.getCurrentLayer().getCell(0, 0);
+        return !!c.pixelsB && c.inkB !== undefined;
+    })).toBe(true);
+
+    // The display row drives the display, and reads it back through the getter
+    for (const view of ['flicker', 'a', 'b', 'average']) {
+        await page.click(`#giga-view-row [data-giga-view="${view}"]`);
+        expect(await page.evaluate(() => LayerManager.getGigaView())).toBe(view);
+        await expect(page.locator(`#giga-view-row [data-giga-view="${view}"]`))
+            .toHaveAttribute('aria-checked', 'true');
+    }
 });
 
 test('indexed modes: attr ops hidden, index grid in the rail, classic exports gated', async ({ page }) => {

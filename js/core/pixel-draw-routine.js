@@ -659,12 +659,34 @@ class PixelDrawRoutineClass {
         cell.paper = shown.paper;
         cell.bright = shown.bright;
         cell.flash = shown.flash;
+        if (cell.pixelsB) {
+          const shownB = this._shownFor(layer, cellX, cellY, shownStroke, inBatch, 1);
+          cell.inkB = shownB.ink;
+          cell.paperB = shownB.paper;
+          cell.brightB = shownB.bright;
+          cell.flashB = shownB.flash;
+        }
       }
     }
 
     const sel = this._resolveTransparent(layer, cellX, cellY, colorSelection, mode,
       shownStroke, inBatch);
 
+    if (cell.pixelsB) {
+      return this._applyGiga(layer, cell, cellX, cellY, localX, localY, sel, mode,
+        eraseStroke, inBatch);
+    }
+    return this._applyMode(layer, cell, cellX, cellY, localX, localY, sel, mode,
+      eraseStroke, inBatch);
+  }
+
+  /**
+   * The per-mode rules on one bitmap plane and one attribute set - the whole
+   * classic cell, or one screen of a GigaScreen cell (see _applyGiga).
+   * @returns {boolean} true if the write changed something
+   * @private
+   */
+  _applyMode(layer, cell, cellX, cellY, localX, localY, sel, mode, eraseStroke, inBatch) {
     switch (mode) {
       case DRAW_MODE.NORMAL:
         this._applyNormalDraw(cell, localX, localY, sel);
@@ -732,16 +754,111 @@ class PixelDrawRoutineClass {
    * stroke and is answered fresh.
    * @private
    */
-  _shownFor(layer, cellX, cellY, shownStroke, inBatch) {
-    const screen = layer.gigaScreen || 0;
-    if (!inBatch || !shownStroke) return LayerManager.attrsShowing(cellX, cellY, screen);
-    const key = (screen * ZX_SPECTRUM.GRID_ROWS + cellY) * ZX_SPECTRUM.GRID_COLS + cellX;
+  _shownFor(layer, cellX, cellY, shownStroke, inBatch, plane = 0) {
+    if (!inBatch || !shownStroke) return LayerManager.attrsShowing(cellX, cellY, plane);
+    const key = (plane * ZX_SPECTRUM.GRID_ROWS + cellY) * ZX_SPECTRUM.GRID_COLS + cellX;
     let shown = shownStroke.get(key);
     if (shown === undefined) {
-      shown = LayerManager.attrsShowing(cellX, cellY, screen);
+      shown = LayerManager.attrsShowing(cellX, cellY, plane);
       shownStroke.set(key, shown);
     }
     return shown;
+  }
+
+  /**
+   * GigaScreen: one write lands on BOTH screens of the cell (2026-09-23).
+   *
+   * The artist paints one of the cell's four blends (GIGA_SLOTS, carried as
+   * `colorSelection.gigaSlot`; ink on both screens when absent, so every
+   * caller that knows nothing of GigaScreen paints a solid colour). The slot
+   * says, per screen, whether that screen's pixel is ink or paper, and the
+   * ordinary per-mode rules then run once on each screen - screen B swapped
+   * into place so there is ONE definition of every mode, not two. Screen B's
+   * colours come from `inkB`/`paperB`/`brightB`/`flashB`, falling back to
+   * screen A's.
+   *
+   * What each mode does with the slot:
+   *   NORMAL                - each screen's bit set or cleared by the slot; both
+   *                           colour sets stamped. Slot 0 paints the paper blend.
+   *   PIXEL_ONLY/TRANSPARENT - the same bits, no colours
+   *   NORMAL_ERASE, ERASE   - clear both screens (the right button's paper,
+   *                           the primitive)
+   *   XOR / XOR_PIXEL       - invert both screens: slot s becomes 3 - s
+   *   INK, PAPER, ATTRIBUTES_ONLY - recolour each screen from its own colours
+   *   ERASE_ALL             - see _applyGigaEraseAll
+   * @returns {boolean} true if the write changed something
+   * @private
+   */
+  _applyGiga(layer, cell, cellX, cellY, localX, localY, sel, mode, eraseStroke, inBatch) {
+    if (mode === DRAW_MODE.ERASE_ALL) {
+      return this._applyGigaEraseAll(cell, localX, localY, layer,
+        `${layer.id}:${cellY * ZX_SPECTRUM.GRID_COLS + cellX}`, eraseStroke, inBatch);
+    }
+    const slot = sel && sel.gigaSlot != null ? sel.gigaSlot : GIGA_SLOTS.INK_INK;
+    const modeA = this._gigaPlaneMode(mode, GIGA_SLOTS.bitA(slot));
+    const modeB = this._gigaPlaneMode(mode, GIGA_SLOTS.bitB(slot));
+    const selB = sel ? {
+      ...sel,
+      ink: sel.inkB != null ? sel.inkB : sel.ink,
+      paper: sel.paperB != null ? sel.paperB : sel.paper,
+      bright: sel.brightB != null ? sel.brightB : sel.bright,
+      flash: sel.flashB != null ? sel.flashB : sel.flash
+    } : sel;
+
+    const changedA = this._applyMode(layer, cell, cellX, cellY, localX, localY, sel, modeA,
+      eraseStroke, inBatch);
+    LayerManagerClass.swapCellPlanes(cell);
+    let changedB;
+    try {
+      changedB = this._applyMode(layer, cell, cellX, cellY, localX, localY, selB, modeB,
+        eraseStroke, inBatch);
+    } finally {
+      LayerManagerClass.swapCellPlanes(cell);
+    }
+    return changedA || changedB;
+  }
+
+  /**
+   * The single-screen mode a GigaScreen write applies to one screen, given
+   * that screen's bit in the painted slot.
+   * @private
+   */
+  _gigaPlaneMode(mode, bit) {
+    switch (mode) {
+      case DRAW_MODE.NORMAL: return bit ? DRAW_MODE.NORMAL : DRAW_MODE.NORMAL_ERASE;
+      case DRAW_MODE.PIXEL_ONLY: return bit ? DRAW_MODE.PIXEL_ONLY : DRAW_MODE.ERASE;
+      case DRAW_MODE.TRANSPARENT: return bit ? DRAW_MODE.TRANSPARENT : DRAW_MODE.ERASE;
+      default: return mode;
+    }
+  }
+
+  /**
+   * The eraser tool on a GigaScreen cell: _applyEraseAll's rule over the whole
+   * cell. The first pass clears the dot on both screens and keeps both colour
+   * sets; a pass that finds the cell empty of ink on BOTH screens wipes both
+   * colour sets and leaves an upper-layer cell see-through again.
+   * @private
+   */
+  _applyGigaEraseAll(cell, localX, localY, layer, strokeKey, eraseStroke, inBatch) {
+    let wipe = inBatch ? eraseStroke.get(strokeKey) : undefined;
+    if (wipe === undefined) {
+      wipe = cell.pixels.every(row => row === 0) && cell.pixelsB.every(row => row === 0);
+      if (inBatch) eraseStroke.set(strokeKey, wipe);
+    }
+
+    const bitPosition = 7 - localX;
+    cell.pixels[localY] &= ~(1 << bitPosition);
+    cell.pixelsB[localY] &= ~(1 << bitPosition);
+
+    if (!wipe) return true;
+
+    const d = DEFAULT_CELL_ATTRS;
+    cell.ink = cell.inkB = d.ink;
+    cell.paper = cell.paperB = d.paper;
+    cell.bright = cell.brightB = d.bright;
+    cell.flash = cell.flashB = d.flash;
+    cell.altered = !!(layer && layer.isBackground);
+    return true;
   }
 
   /**
@@ -772,13 +889,20 @@ class PixelDrawRoutineClass {
       return colorSelection;
     }
     const shown = this._shownFor(layer, cellX, cellY, shownStroke, inBatch);
-    return {
+    const resolved = {
       ...colorSelection,
       ink: colorSelection.inkTransparent ? shown.ink : colorSelection.ink,
       paper: colorSelection.paperTransparent ? shown.paper : colorSelection.paper,
       inkTransparent: false,
       paperTransparent: false
     };
+    // GigaScreen: "use existing" means each screen's own existing colour.
+    if (ZX_SPECTRUM.SCREENS === 2) {
+      const shownB = this._shownFor(layer, cellX, cellY, shownStroke, inBatch, 1);
+      if (colorSelection.inkTransparent) resolved.inkB = shownB.ink;
+      if (colorSelection.paperTransparent) resolved.paperB = shownB.paper;
+    }
+    return resolved;
   }
 
   /**
@@ -809,6 +933,13 @@ class PixelDrawRoutineClass {
       pixels: new Uint8Array(src.pixels)
     };
     if (src.indices) clone.indices = new Int16Array(src.indices);
+    if (src.pixelsB) {
+      clone.pixelsB = new Uint8Array(src.pixelsB);
+      clone.inkB = src.inkB;
+      clone.paperB = src.paperB;
+      clone.brightB = src.brightB;
+      clone.flashB = src.flashB;
+    }
 
     const eraseStroke = new Map();
     const shownStroke = new Map();
@@ -1171,10 +1302,24 @@ class PixelDrawRoutineClass {
     }
 
     const bitPosition = 7 - localX;
-    const isInk = (cell.pixels[localY] >> bitPosition) & 1 ? true : false;
+    const bitA = (cell.pixels[localY] >> bitPosition) & 1;
+
+    // GigaScreen: a pixel is marked when either screen shows ink, and `slot`
+    // says which of the cell's four blends it is; `cellB` is screen B's colours.
+    if (cell.pixelsB) {
+      const bitB = (cell.pixelsB[localY] >> bitPosition) & 1;
+      return {
+        isInk: !!(bitA || bitB),
+        slot: bitA * 2 + bitB,
+        cell: { ink: cell.ink, paper: cell.paper, bright: cell.bright, flash: cell.flash },
+        cellB: { ink: cell.inkB, paper: cell.paperB, bright: cell.brightB, flash: cell.flashB },
+        cellX,
+        cellY
+      };
+    }
 
     return {
-      isInk,
+      isInk: !!bitA,
       cell: {
         ink: cell.ink,
         paper: cell.paper,

@@ -29,7 +29,12 @@
  *       click a paper colour  -> set PAPER (clears paper-transparent)
  *       click a transparent box-> that channel keeps whatever is underneath
  *       Bright toggle          -> flips BOTH ink and paper to the bright bank
- *   GigaScreen additionally gets the sub-screen view toggle.
+ *   GigaScreen (two screens per cell) - Screen A's ink/paper groups (the
+ *     classic ones), Screen B's ink/paper groups, and a 2x2 Paint grid of the
+ *     four blends a cell can show; the controls line gets Bright A, Bright B,
+ *     Flash and the Average / Flicker / A / B display row. Picking a Paint
+ *     blend chooses what a stroke lays down; the display row only chooses
+ *     what the canvas shows.
  *
  *   ulaplus64 mode — CLUT selector (0–3) + the active CLUT's ink half and
  *     paper half as separate single-role rows, one above the other.
@@ -215,6 +220,17 @@ class ClutBarClass {
         if (attrHost) attrHost.style.visibility = (model === 'timexMono' || indexed) ? 'hidden' : '';
 
         if (model === 'timexMono') {
+            if (ZX_SPECTRUM.SCREENS === 2) {
+                // The hi-res pair: each screen has its own scheme, and the
+                // four blends of the two schemes are what a stroke paints.
+                host.appendChild(this._buildGigaSlotPicker());
+                host.appendChild(this._captionGroup(this._buildHiresSchemeRow(0),
+                    'giga.screenA', 'Screen A'));
+                host.appendChild(this._captionGroup(this._buildHiresSchemeRow(1),
+                    'giga.screenB', 'Screen B'));
+                if (bits) bits.appendChild(this._buildGigaViewRow());
+                return;
+            }
             host.appendChild(this._buildHiresSchemeRow());
             return;
         }
@@ -266,14 +282,76 @@ class ClutBarClass {
      * @private
      */
     _buildClassicCluster(host, bits) {
+        if (ZX_SPECTRUM.SCREENS === 2) {
+            this._buildGigaCluster(host, bits);
+            return;
+        }
         host.appendChild(this._buildPair(
             this._buildChannelGroup('ink'),
             this._buildChannelGroup('paper')));
         if (!bits) return;
         bits.appendChild(this._buildBitToggles());
-        if ((ACTIVE_SCREEN_MODE.screens || 1) === 2) {
-            bits.appendChild(this._buildGigaViewRow());
+    }
+
+    /**
+     * GigaScreen: every cell holds two screens, so the artist picks two ink
+     * and two paper colours and then which of the four resulting blends to
+     * paint. Screen A's groups are the classic ones (they carry the "use
+     * existing" boxes, which apply to both screens); Screen B's are the same
+     * swatches bound to screen B's colours.
+     * @private
+     */
+    _buildGigaCluster(host, bits) {
+        // Paint first: it is what the artist reaches for between strokes, and
+        // the two screens' sixteen swatches each below it are set far less
+        // often - at the bottom it sat a long scroll away.
+        host.appendChild(this._buildGigaSlotPicker());
+        host.appendChild(this._captionGroup(this._buildPair(
+            this._buildChannelGroup('ink'),
+            this._buildChannelGroup('paper')), 'giga.screenA', 'Screen A'));
+        host.appendChild(this._captionGroup(this._buildPair(
+            this._buildChannelGroup('ink', true),
+            this._buildChannelGroup('paper', true)), 'giga.screenB', 'Screen B'));
+        if (!bits) return;
+        bits.appendChild(this._buildBitToggles({ giga: true }));
+        bits.appendChild(this._buildGigaViewRow());
+    }
+
+    /**
+     * The four colours a stroke can paint in a GigaScreen cell, each swatch
+     * filled with its blend (--zx-giga-slot-N, published by ColorManager).
+     * Ordered ink-on-both first, paper-on-both last.
+     * @private
+     */
+    _buildGigaSlotPicker() {
+        const grid = document.createElement('div');
+        grid.id = 'giga-slot-picker';
+        grid.className = 'clut-row clut-selector giga-slots';
+        grid.setAttribute('role', 'radiogroup');
+        grid.setAttribute('aria-label', this._t('giga.paint', 'Paint'));
+        grid.dataset.i18nAriaLabel = 'giga.paint';
+        const slots = [
+            [GIGA_SLOTS.INK_INK, 'giga.slot.inkInk', 'Ink on screen A, ink on screen B'],
+            [GIGA_SLOTS.INK_PAPER, 'giga.slot.inkPaper', 'Ink on screen A, paper on screen B'],
+            [GIGA_SLOTS.PAPER_INK, 'giga.slot.paperInk', 'Paper on screen A, ink on screen B'],
+            [GIGA_SLOTS.PAPER_PAPER, 'giga.slot.paperPaper', 'Paper on screen A, paper on screen B']
+        ];
+        for (const [slot, i18n, fallback] of slots) {
+            const sw = document.createElement('div');
+            sw.className = 'color-swatch';
+            sw.dataset.role = 'giga-slot';
+            sw.dataset.slot = String(slot);
+            sw.tabIndex = 0;
+            sw.setAttribute('role', 'radio');
+            sw.dataset.i18nTitle = i18n;
+            sw.title = this._t(i18n, fallback);
+            sw.dataset.i18nAriaLabel = i18n;
+            sw.setAttribute('aria-label', sw.title);
+            sw.style.setProperty('background-color', `var(--zx-giga-slot-${slot})`);
+            grid.appendChild(sw);
+            this._swatches.push(sw);
         }
+        return this._captionGroup(grid, 'giga.paint', 'Paint');
     }
 
     /**
@@ -281,18 +359,21 @@ class ClutBarClass {
      * preview well now lives in the left-rail preview block (built once),
      * not per-mode here.
      * @param {'ink'|'paper'} channel
+     * @param {boolean} [screenB] - GigaScreen: bind to screen B's colours. The
+     *   "use existing" box is shown once, under screen A, since it applies to
+     *   both screens.
      * @private
      */
-    _buildChannelGroup(channel) {
+    _buildChannelGroup(channel, screenB = false) {
         const group = document.createElement('div');
         group.className = 'clut-channel';
-        group.dataset.channel = channel;
+        group.dataset.channel = screenB ? `${channel}B` : channel;
 
         // Colour row (8 swatches at the current bright level)
-        group.appendChild(this._buildChannelRow(channel));
+        group.appendChild(this._buildChannelRow(channel, screenB));
 
         // Transparent / keep-existing box
-        group.appendChild(this._buildTransparentBox(channel));
+        if (!screenB) group.appendChild(this._buildTransparentBox(channel));
 
         // Visible Ink / Paper caption, centred above the swatches
         return this._captionGroup(group,
@@ -303,25 +384,32 @@ class ClutBarClass {
     /**
      * The 8 selectable colours for a channel, shown at the active bright bank.
      * @param {'ink'|'paper'} channel
+     * @param {boolean} [screenB] - GigaScreen: screen B's colours and bank
      * @private
      */
-    _buildChannelRow(channel) {
+    _buildChannelRow(channel, screenB = false) {
         const row = document.createElement('div');
         row.className = 'clut-row';
         row.setAttribute('role', 'radiogroup');
-        const labelKey = channel === 'ink' ? 'clut.inkColours' : 'clut.paperColours';
-        const fallback = channel === 'ink' ? 'Ink colours' : 'Paper colours';
+        const labelKey = screenB
+            ? (channel === 'ink' ? 'giga.inkColoursB' : 'giga.paperColoursB')
+            : (channel === 'ink' ? 'clut.inkColours' : 'clut.paperColours');
+        const fallback = screenB
+            ? (channel === 'ink' ? 'Screen B ink colours' : 'Screen B paper colours')
+            : (channel === 'ink' ? 'Ink colours' : 'Paper colours');
         row.setAttribute('aria-label', this._t(labelKey, fallback));
         row.dataset.i18nAriaLabel = labelKey;
 
-        const brightOffset = ColorManager.getBright() ? 8 : 0;
+        const bright = screenB ? ColorManager.getScreenB().bright : ColorManager.getBright();
+        const brightOffset = bright ? 8 : 0;
+        const role = screenB ? `${channel}B` : channel;
         for (let base = 0; base < 8; base++) {
             const index = base + brightOffset;
             const sw = document.createElement('div');
             sw.className = 'color-swatch';
             sw.dataset.color = String(index);
             sw.dataset.base = String(base);
-            sw.dataset.role = channel;
+            sw.dataset.role = role;
             sw.tabIndex = 0;
             sw.setAttribute('role', 'radio');
             sw.style.setProperty('background-color', `var(--zx-${index})`);
@@ -359,10 +447,12 @@ class ClutBarClass {
      * flashing. Bound here (not in _attachColorEvents) because they are
      * recreated on every rebuild.
      * @param {Object} [show] - which toggles to build; ULANext takes Flash
-     *   only, because its two swatch banks ARE the bright choice
+     *   only, because its two swatch banks ARE the bright choice. `giga`
+     *   splits Bright into one toggle per screen (Flash stays one setting for
+     *   both).
      * @private
      */
-    _buildBitToggles({ bright = true, flash = true } = {}) {
+    _buildBitToggles({ bright = true, flash = true, giga = false } = {}) {
         const wrap = document.createElement('div');
         wrap.className = 'clut-bits';
 
@@ -401,10 +491,18 @@ class ClutBarClass {
         };
 
         if (bright) {
-            const brightToggle = makeToggle('bright-toggle', 'icon-bright', 'color.bright',
-                'Bright', ColorManager.getBright(), (v) => ColorManager.setBright(v));
+            const brightToggle = giga
+                ? makeToggle('bright-toggle', 'icon-bright', 'giga.brightA',
+                    'Bright A', ColorManager.getBright(), (v) => ColorManager.setBright(v))
+                : makeToggle('bright-toggle', 'icon-bright', 'color.bright',
+                    'Bright', ColorManager.getBright(), (v) => ColorManager.setBright(v));
             this._brightToggle = brightToggle.input;
             wrap.appendChild(brightToggle.wrap);
+        }
+        if (giga) {
+            const brightB = makeToggle('bright-b-toggle', 'icon-bright', 'giga.brightB',
+                'Bright B', ColorManager.getScreenB().bright, (v) => ColorManager.setBrightB(v));
+            wrap.appendChild(brightB.wrap);
         }
 
         if (flash) {
@@ -484,17 +582,19 @@ class ClutBarClass {
 
     /**
      * Timex hi-res: one radio row of the 8 colour schemes.
+     * @param {number} [plane=0] - the hi-res pair: 1 edits screen B's scheme
      * @private
      */
-    _buildHiresSchemeRow() {
+    _buildHiresSchemeRow(plane = 0) {
         const row = document.createElement('div');
-        row.id = 'hires-scheme-row';
+        row.id = plane === 1 ? 'hires-scheme-row-b' : 'hires-scheme-row';
         row.className = 'clut-row';
         row.setAttribute('role', 'radiogroup');
         row.setAttribute('aria-label', this._t('clut.hiresScheme', 'Hi-res colour scheme'));
         row.dataset.i18nAriaLabel = 'clut.hiresScheme';
 
-        const active = ColorManager.getTimexHiresInk();
+        const active = plane === 1
+            ? ColorManager.getTimexHiresInkB() : ColorManager.getTimexHiresInk();
         for (let n = 0; n < 8; n++) {
             const sw = document.createElement('div');
             sw.className = 'color-swatch';
@@ -509,7 +609,8 @@ class ClutBarClass {
             sw.style.setProperty('background',
                 `linear-gradient(135deg, var(--zx-scheme-ink-${n}) 50%, var(--zx-scheme-paper-${n}) 50%)`);
             sw.addEventListener('click', () => {
-                ColorManager.setTimexHiresInk(n);
+                if (plane === 1) ColorManager.setTimexHiresInkB(n);
+                else ColorManager.setTimexHiresInk(n);
                 LayerManager.composeToCanvas();
                 this._rebuildSwatches();
                 this._updateColorDisplays();
@@ -560,33 +661,40 @@ class ClutBarClass {
     }
 
     /**
-     * GigaScreen: Blend / A / B canvas-view toggle.
+     * GigaScreen display: Average / Flicker / A / B. What the canvas SHOWS -
+     * it never changes where a stroke goes (every stroke writes both screens),
+     * which is why it sits with the controls and not beside the Paint grid.
      * @private
      */
     _buildGigaViewRow() {
         const row = document.createElement('div');
         row.id = 'giga-view-row';
-        // giga-picker (its own modifier, like ULAplus's clut-picker): Blend
-        // spans both columns of a --clut-btn-size grid on its own row, with
-        // A and B as two single-column icons on the row beneath it - see
-        // css/components.css.
+        // giga-picker (its own modifier, like ULAplus's clut-picker): Average
+        // and Flicker each span both columns of the grid, with A and B as two
+        // single-column buttons on the row beneath - see css/components.css.
         row.className = 'clut-row clut-selector giga-picker';
         row.setAttribute('role', 'radiogroup');
-        row.setAttribute('aria-label', this._t('giga.view', 'GigaScreen view'));
+        row.setAttribute('aria-label', this._t('giga.view', 'GigaScreen display'));
         row.dataset.i18nAriaLabel = 'giga.view';
 
         const views = [
-            ['blend', 'giga.viewBlend', 'Blend'],
-            ['a', 'giga.viewA', 'A'],
-            ['b', 'giga.viewB', 'B']
+            ['average', 'giga.viewAverage', 'Average', 'giga.viewAverage.hint',
+                'Both screens mixed, as the eye sees them on the real machine'],
+            ['flicker', 'giga.viewFlicker', 'Flicker', 'giga.viewFlicker.hint',
+                'The two screens swapped every frame, as the hardware does it'],
+            ['a', 'giga.viewA', 'A', 'giga.viewA.hint', 'Screen A on its own'],
+            ['b', 'giga.viewB', 'B', 'giga.viewB.hint', 'Screen B on its own']
         ];
         const activeView = LayerManager.getGigaView();
-        for (const [view, i18n, fallback] of views) {
+        for (const [view, i18n, fallback, hintI18n, hint] of views) {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'panel-button small clut-select-btn';
             btn.dataset.gigaView = view;
             btn.dataset.i18n = i18n;
+            btn.dataset.i18nTitle = hintI18n;
+            btn.dataset.i18nTitleName = i18n;
+            btn.title = Helpers.composeTitle(this._t(i18n, fallback), this._t(hintI18n, hint));
             btn.textContent = this._t(i18n, fallback);
             btn.setAttribute('role', 'radio');
             btn.setAttribute('aria-checked', String(view === activeView));
@@ -680,7 +788,22 @@ class ClutBarClass {
                 this._updateColorDisplays();
                 return;
             }
+            if (role === 'giga-slot') {
+                ColorManager.setGigaSlot(parseInt(sw.dataset.slot, 10));
+                this._updateColorDisplays();
+                return;
+            }
             const base = parseInt(sw.dataset.base, 10);
+            if (role === 'inkB') {
+                ColorManager.setInkB(base);
+                this._updateColorDisplays();
+                return;
+            }
+            if (role === 'paperB') {
+                ColorManager.setPaperB(base);
+                this._updateColorDisplays();
+                return;
+            }
             if (role === 'paper') {
                 ColorManager.setPaper(base);
             } else {
@@ -702,7 +825,13 @@ class ClutBarClass {
             }
             // In the split layout ink/paper each have their own row; right-click
             // on a paper swatch still sets paper (harmless), ink returns.
-            if (role === 'ink' || role === 'transparent-ink') return;
+            if (role === 'ink' || role === 'transparent-ink'
+                || role === 'inkB' || role === 'giga-slot') return;
+            if (role === 'paperB') {
+                ColorManager.setPaperB(parseInt(sw.dataset.base, 10));
+                this._updateColorDisplays();
+                return;
+            }
             if (role === 'transparent-paper') {
                 ColorManager.setPaperTransparent(true);
                 this._updateColorDisplays();
@@ -781,13 +910,23 @@ class ClutBarClass {
     _updateColorDisplays() {
         const inkTransparent = ColorManager.isInkTransparent();
         const paperTransparent = ColorManager.isPaperTransparent();
+        const giga = ZX_SPECTRUM.SCREENS === 2;
+        if (giga) ColorManager.writeGigaSlotTokens();
+        // GigaScreen: the Ink well shows the blend the left button paints and
+        // the Paper well the blend the right button paints (paper on both).
+        const inkToken = giga
+            ? `var(--zx-giga-slot-${ColorManager.getGigaSlot()})`
+            : `var(--zx-${ColorManager.getInkColorIndex()})`;
+        const paperToken = giga
+            ? `var(--zx-giga-slot-${GIGA_SLOTS.PAPER_PAPER})`
+            : `var(--zx-${ColorManager.getPaperColorIndex()})`;
 
         if (this._inkDisplay) {
             this._inkDisplay.classList.toggle('transparent', inkTransparent);
             if (inkTransparent) {
                 this._inkDisplay.style.removeProperty('background-color');
             } else {
-                this._inkDisplay.style.setProperty('background-color', `var(--zx-${ColorManager.getInkColorIndex()})`);
+                this._inkDisplay.style.setProperty('background-color', inkToken);
             }
         }
         if (this._paperDisplay) {
@@ -795,7 +934,7 @@ class ClutBarClass {
             if (paperTransparent) {
                 this._paperDisplay.style.removeProperty('background-color');
             } else {
-                this._paperDisplay.style.setProperty('background-color', `var(--zx-${ColorManager.getPaperColorIndex()})`);
+                this._paperDisplay.style.setProperty('background-color', paperToken);
             }
         }
 
@@ -807,11 +946,23 @@ class ClutBarClass {
         const paperBase = ColorManager.getPaper();
         const inkIndex = ColorManager.getInkColorIndex();
         const paperIndex = ColorManager.getPaperColorIndex();
+        const screenB = ColorManager.getScreenB();
+        const slot = ColorManager.getGigaSlot();
         this._swatches.forEach((swatch) => {
             const role = swatch.dataset.role;
             let inkActive = false;
             let paperActive = false;
-            if (role === 'ink') {
+            if (role === 'giga-slot') {
+                const on = parseInt(swatch.dataset.slot, 10) === slot;
+                swatch.classList.toggle('active-ink', on);
+                swatch.setAttribute('aria-checked', String(on));
+                return;
+            }
+            if (role === 'inkB') {
+                inkActive = !inkTransparent && parseInt(swatch.dataset.base, 10) === screenB.ink;
+            } else if (role === 'paperB') {
+                paperActive = !paperTransparent && parseInt(swatch.dataset.base, 10) === screenB.paper;
+            } else if (role === 'ink') {
                 inkActive = !inkTransparent && parseInt(swatch.dataset.base, 10) === inkBase;
             } else if (role === 'paper') {
                 paperActive = !paperTransparent && parseInt(swatch.dataset.base, 10) === paperBase;

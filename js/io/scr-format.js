@@ -236,8 +236,12 @@ class SCRFormatClass {
     Helpers.assertClassicPixelModel();
 
     if ((mode.screens || 1) === 2) {
+      // Name the container that fits THIS pair: .img for 8x8 GigaScreen,
+      // .mg1/.mg2/.mg4 for MultiGigaScreen, .hrg for the hi-res pair.
+      const ext = mode.paletteModel === 'timexMono' ? '.hrg'
+        : mode.attrCellH === 8 ? '.img' : `.mg${mode.attrCellH}`;
       throw new Error(Helpers.localizedMessage('mode.scrUseImg',
-        'GigaScreen documents hold two sub-screens — save as .img instead.'));
+        'GigaScreen documents hold two sub-screens — save as {ext} instead.', { ext }));
     }
     if (mode.paletteModel === 'timexMono') {
       return TimexFormat.exportHires();
@@ -318,27 +322,32 @@ class SCRFormatClass {
 
   /**
    * Load one screen's bitmap + attribute blocks into a specific layer
-   * (GigaScreen sub-screen import path). The caller owns the undo action,
-   * mode switch and recompose.
+   * (GigaScreen import path). The caller owns the undo action, mode switch
+   * and recompose.
+   *
+   * Goes through the shared AttributeSystem as scratch, so it is not
+   * reentrant: load one screen, then the other.
    * @param {Uint8Array} bitmap - Interleaved bitmap block
    * @param {Uint8Array} attrs - Linear attribute block
    * @param {Layer} layer - Target layer
+   * @param {number} [plane=0] - GigaScreen: 1 loads into screen B
    */
-  loadScreenIntoLayer(bitmap, attrs, layer) {
+  loadScreenIntoLayer(bitmap, attrs, layer, plane = 0) {
     AttributeSystem.importBitmap(bitmap);
     AttributeSystem.importAttributes(attrs);
-    this._syncToLayer(layer);
+    this._syncToLayer(layer, plane);
   }
 
   /**
    * Serialize one flattened layer as bitmap + linear attribute bytes
-   * (GigaScreen sub-screen export path — 6912 bytes per sub-screen in
-   * 8×8 modes).
+   * (GigaScreen export path - 6912 bytes per screen in 8x8 modes). Not
+   * reentrant, for the reason loadScreenIntoLayer gives.
    * @param {Layer} layer - Flattened source layer
+   * @param {number} [plane=0] - GigaScreen: 1 serializes screen B
    * @returns {Uint8Array}
    */
-  screenBytesFromLayer(layer) {
-    this._syncFromLayer(layer);
+  screenBytesFromLayer(layer, plane = 0) {
+    this._syncFromLayer(layer, plane);
     const out = new Uint8Array(this.BITMAP_SIZE + this.ATTR_SIZE);
     out.set(AttributeSystem.exportBitmap(), 0);
     out.set(AttributeSystem.exportAttributes(), this.BITMAP_SIZE);
@@ -357,21 +366,27 @@ class SCRFormatClass {
   /**
    * Sync AttributeSystem cells to a layer
    * @param {Layer} layer - Target layer
+   * @param {number} [plane=0] - GigaScreen: 1 writes screen B
    * @private
    */
-  _syncToLayer(layer) {
+  _syncToLayer(layer, plane = 0) {
     for (let cellY = 0; cellY < ZX_SPECTRUM.GRID_ROWS; cellY++) {
       for (let cellX = 0; cellX < ZX_SPECTRUM.GRID_COLS; cellX++) {
         const attrCell = AttributeSystem.getCell(cellX, cellY);
-        if (attrCell) {
-          layer.setCell(cellX, cellY, {
-            ink: attrCell.ink,
-            paper: attrCell.paper,
-            bright: attrCell.bright,
-            flash: attrCell.flash,
-            pixels: new Uint8Array(attrCell.pixels)
-          });
-        }
+        if (!attrCell) continue;
+        layer.setCell(cellX, cellY, plane === 1 ? {
+          inkB: attrCell.ink,
+          paperB: attrCell.paper,
+          brightB: attrCell.bright,
+          flashB: attrCell.flash,
+          pixelsB: new Uint8Array(attrCell.pixels)
+        } : {
+          ink: attrCell.ink,
+          paper: attrCell.paper,
+          bright: attrCell.bright,
+          flash: attrCell.flash,
+          pixels: new Uint8Array(attrCell.pixels)
+        });
       }
     }
   }
@@ -379,21 +394,22 @@ class SCRFormatClass {
   /**
    * Sync layer data to AttributeSystem
    * @param {Layer} layer - Source layer
+   * @param {number} [plane=0] - GigaScreen: 1 reads screen B
    * @private
    */
-  _syncFromLayer(layer) {
+  _syncFromLayer(layer, plane = 0) {
     for (let cellY = 0; cellY < ZX_SPECTRUM.GRID_ROWS; cellY++) {
       for (let cellX = 0; cellX < ZX_SPECTRUM.GRID_COLS; cellX++) {
         const layerCell = layer.getCell(cellX, cellY);
-        if (layerCell) {
-          AttributeSystem.setCell(cellX, cellY, {
-            ink: layerCell.ink,
-            paper: layerCell.paper,
-            bright: layerCell.bright,
-            flash: layerCell.flash,
-            pixels: new Uint8Array(layerCell.pixels)
-          });
-        }
+        if (!layerCell) continue;
+        const b = plane === 1 && layerCell.pixelsB;
+        AttributeSystem.setCell(cellX, cellY, {
+          ink: b ? layerCell.inkB : layerCell.ink,
+          paper: b ? layerCell.paperB : layerCell.paper,
+          bright: b ? layerCell.brightB : layerCell.bright,
+          flash: b ? layerCell.flashB : layerCell.flash,
+          pixels: new Uint8Array(b ? layerCell.pixelsB : layerCell.pixels)
+        });
       }
     }
   }

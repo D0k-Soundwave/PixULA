@@ -57,6 +57,11 @@ measured.
 | FLASH clock | 320 ms | P | `layer-manager.js` - the real ULA rate (16 frames at 50 Hz) |
 | GIF FLASH frame delay | 32 cs | C | `gif-format.js` - 320 ms expressed in GIF centiseconds |
 | GigaScreen frame delay | 2 cs | A | `gif-format.js` - fastest most decoders honour |
+| GigaScreen colours on screen | 102 | C | `Helpers.gigaBlendCount()`: the 16 attribute colours' 136 unordered pairs averaged per channel as the compositor blends them, 21 RGB values reached by more than one pair; 87 of the 102 are not any solid ZX colour. Computed at call time from `ZX_PALETTE_RGB`, 2026-09-23 |
+| MGH (.mg) sizes by attribute height | 8: 14080, 4: 15616, 2: 18688, 1: 19456 bytes | P | RECOIL DecodeMg size checks, fetched 2026-09-23; `GigascreenFormat._mgLayout` derives every offset from the mode descriptors and reproduces these |
+| .hrg size | 24578 bytes | P | RECOIL DecodeHrg: two 12289-byte hi-res screens, frame B at 0x3001, each with its own port byte |
+| GigaScreen colours per cell | 4 | P | two screens x (ink, paper) per 8x8 cell; RECOIL DecodeZxImg (two 768-byte attribute blocks in the 13824-byte `.img`) and SpectraLab's README, fetched 2026-09-23 |
+| GigaScreen Flicker display rate | display refresh (60 Hz typical) | A | `LayerManager._syncGigaFlicker` - one `requestAnimationFrame` per swap; the hardware swaps at 50 Hz (P) and no page can pin its frame rate |
 | Autosave interval | user-set, default 1 min | A (default) | `StateManager.AUTOSAVE_DEFAULT_MINUTES`; 0 = off, max 60. Was a fixed 60 s behind an on/off checkbox until 2026-08-07 |
 | Cursor readout throttle | 32 ms | C | `canvas-controls.js` - every 2nd frame at 60 Hz (P), ~31/s |
 | Status-line dwell | 3000 ms | C | 3 dialogs - ~5 words/s reading (P) x <=8 words, plus ~1 s to notice |

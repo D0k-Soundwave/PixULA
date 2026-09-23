@@ -138,7 +138,7 @@ class PNGFormatClass {
     ctx.imageSmoothingEnabled = false;
 
     // Get current canvas image data
-    const imageData = CanvasSystem.getImageData();
+    const imageData = LayerManager.stillImageData();
 
     if (scale === 1) {
       ctx.putImageData(imageData, 0, 0);

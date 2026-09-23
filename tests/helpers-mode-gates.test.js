@@ -17,7 +17,8 @@ installStubs();
 // is what tests/export-mode-matrix.test.js pins for TAP/TZX/ZED/SEV.
 const STANDARD_LAYOUT_MODES = ['standard_ula', 'ula_plus', 'ulanext'];
 const NON_STANDARD_LAYOUT_MODES = ['multicolor_8x4', 'multicolor_8x2', 'multicolor_8x1',
-  'ula_plus_8x1', 'timex_hires', 'gigascreen', 'layer2_256', 'layer2_320', 'layer2_640',
+  'ula_plus_8x1', 'timex_hires', 'gigascreen', 'multigiga_8x4', 'multigiga_8x2', 'multigiga_8x1',
+  'timex_hires_giga', 'layer2_256', 'layer2_320', 'layer2_640',
   'lores', 'lores_radastan'];
 
 for (const id of STANDARD_LAYOUT_MODES) {
@@ -37,7 +38,8 @@ for (const id of NON_STANDARD_LAYOUT_MODES) {
 }
 
 const CLASSIC_PIXEL_MODES = ['standard_ula', 'multicolor_8x4', 'multicolor_8x2', 'multicolor_8x1',
-  'ula_plus', 'ula_plus_8x1', 'timex_hires', 'gigascreen', 'ulanext'];
+  'ula_plus', 'ula_plus_8x1', 'timex_hires', 'gigascreen', 'multigiga_8x4', 'multigiga_8x2',
+  'multigiga_8x1', 'timex_hires_giga', 'ulanext'];
 const INDEXED_PIXEL_MODES = ['layer2_256', 'layer2_320', 'layer2_640', 'lores', 'lores_radastan'];
 
 for (const id of CLASSIC_PIXEL_MODES) {

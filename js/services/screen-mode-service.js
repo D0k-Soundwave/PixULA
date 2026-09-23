@@ -49,11 +49,14 @@
  *     stamped with the hi-res scheme's ink/paper (BRIGHT set), so the
  *     switched document looks exactly like the hi-res canvas did.
  *
- * GigaScreen rules (Phase 12b — ZX-PB has no GigaScreen; our model):
- *   - Layers carry a `gigaScreen` 0|1 tag (sub-screen A/B); entering
- *     GigaScreen tags nothing (everything starts on screen A) — LOSSLESS.
- *   - Leaving GigaScreen clears the tags, so both sub-screens' layers
- *     stack into one screen — LOSSY when any drawing layer sat on screen B.
+ * GigaScreen rules (ZX-PB has no GigaScreen; our model, 2026-09-23):
+ *   - Every cell carries both screens (see constants.js GIGA_SLOTS).
+ *     Entering copies each cell into BOTH screens, so the picture looks
+ *     exactly as it did - LOSSLESS in appearance as well as in data. (Under
+ *     the earlier per-layer A/B tags everything entered on screen A alone and
+ *     rendered at half intensity against a blank screen B.)
+ *   - Leaving keeps screen A and drops screen B - LOSSY whenever any cell's
+ *     screen B differs from its screen A.
  *
  * isConversionLossy(from, to) encodes exactly those rules so the UI can
  * warn before calling switchMode. Boot default stays STANDARD_ULA.
@@ -107,9 +110,74 @@ class ScreenModeServiceClass {
             return true;
         }
         if ((from.screens || 1) === 2 && (to.screens || 1) !== 2
-            && window.LayerManager
-            && LayerManager.layers.some(l => !l.isBackground && l.gigaScreen === 1)) {
-            return true; // screen-B layers merge into the single screen
+            && window.LayerManager && this._gigaScreensDiffer()) {
+            return true; // screen B is dropped
+        }
+        return false;
+    }
+
+    /**
+     * Convert screen B of a two-screen grid: swap the planes into place,
+     * run the ordinary (plane-blind, pure) conversion, swap back. The draw
+     * gate's trick - one definition of every conversion rule, used twice.
+     * @param {Array} grid - live attributeData whose cells carry plane B
+     * @returns {Array} a converted grid holding screen B in its A fields
+     * @private
+     */
+    _convertPlaneB(grid, from, to) {
+        const swapAll = () => grid.forEach(row => row.forEach(cell => {
+            if (cell.pixelsB) LayerManagerClass.swapCellPlanes(cell);
+        }));
+        swapAll();
+        try {
+            return this.convertAttributeData(grid, from, to);
+        } finally {
+            swapAll();
+        }
+    }
+
+    /**
+     * Store a converted screen-B grid (in its A fields) as plane B of the
+     * converted screen-A grid, cell for cell.
+     * @private
+     */
+    _attachPlaneB(gridA, gridB) {
+        for (let y = 0; y < gridA.length; y++) {
+            for (let x = 0; x < gridA[y].length; x++) {
+                const a = gridA[y][x];
+                const b = gridB[y] && gridB[y][x];
+                if (!a || !b) continue;
+                a.pixelsB = b.pixels;
+                a.inkB = b.ink;
+                a.paperB = b.paper;
+                a.brightB = b.bright;
+                a.flashB = b.flash;
+                // A cell is real if either screen was drawn on
+                a.altered = a.altered || b.altered;
+            }
+        }
+    }
+
+    /**
+     * Does any cell of any layer show something on screen B that screen A
+     * does not? Only then does leaving GigaScreen lose anything.
+     * @returns {boolean}
+     * @private
+     */
+    _gigaScreensDiffer() {
+        for (const layer of LayerManager.layers) {
+            for (const row of layer.attributeData) {
+                for (const cell of row) {
+                    if (!cell.pixelsB) continue;
+                    if (!layer.isBackground && !cell.altered) continue;
+                    if (cell.ink !== cell.inkB || cell.paper !== cell.paperB
+                        || !!cell.bright !== !!cell.brightB
+                        || !!cell.flash !== !!cell.flashB) return true;
+                    for (let r = 0; r < cell.pixels.length; r++) {
+                        if (cell.pixels[r] !== cell.pixelsB[r]) return true;
+                    }
+                }
+            }
         }
         return false;
     }
@@ -586,9 +654,15 @@ class ScreenModeServiceClass {
                 layer => this.convertAttributeData(layer.attributeData, from, target))
             : LayerManager.layers.map(
                 layer => this._convertDepthGrid(layer, from, target));
+        // Two screens to two screens: screen B converts by the same rules.
+        const convertedB = ((from.screens || 1) === 2 && (target.screens || 1) === 2
+            && fromDepth === 1 && targetDepth === 1)
+            ? LayerManager.layers.map(layer => this._convertPlaneB(layer.attributeData, from, target))
+            : null;
         __setActiveScreenMode(target.id);
         LayerManager.layers.forEach((layer, i) => {
             layer.attributeData = converted[i];
+            if (convertedB) this._attachPlaneB(converted[i], convertedB[i]);
         });
 
         // Leaving Timex hi-res: the mono canvas showed the scheme's colours,
@@ -599,6 +673,9 @@ class ScreenModeServiceClass {
             && targetDepth === 1 && window.ColorManager) {
             const ink = ColorManager.getTimexHiresInk();
             const paper = ink ^ 7;
+            // The hi-res pair into another two-screen mode: screen B keeps
+            // ITS scheme (the plane conversion above already carried it).
+            const inkB = ColorManager.getTimexHiresInkB();
             for (const layer of LayerManager.layers) {
                 for (const row of layer.attributeData) {
                     for (const cell of row) {
@@ -607,16 +684,40 @@ class ScreenModeServiceClass {
                         cell.paper = paper;
                         cell.bright = true;
                         cell.flash = false;
+                        if (cell.pixelsB) {
+                            cell.inkB = inkB;
+                            cell.paperB = inkB ^ 7;
+                            cell.brightB = true;
+                            cell.flashB = false;
+                        }
                     }
                 }
             }
         }
 
-        // Leaving GigaScreen: clear the sub-screen tags — every layer now
-        // stacks into the single screen (lossy when screen B had content;
-        // isConversionLossy warned first).
-        if ((from.screens || 1) === 2 && (target.screens || 1) !== 2) {
-            LayerManager.layers.forEach(layer => { layer.gigaScreen = 0; });
+        // Entering the hi-res pair from anything else: screen B starts with
+        // screen A's scheme, so the picture looks as it did (every cell's
+        // screen B mirrors screen A just below).
+        if (target.paletteModel === 'timexMono' && (target.screens || 1) === 2
+            && !(from.paletteModel === 'timexMono' && (from.screens || 1) === 2)
+            && window.ColorManager) {
+            ColorManager.setTimexHiresInkB(ColorManager.getTimexHiresInk());
+        }
+
+        // GigaScreen: entering gives every cell a screen B identical to its
+        // screen A (the picture is unchanged); leaving drops screen B
+        // (isConversionLossy warned first when it held anything different).
+        const toGiga = (target.screens || 1) === 2;
+        for (const layer of LayerManager.layers) {
+            for (const row of layer.attributeData) {
+                for (const cell of row) {
+                    if (toGiga) {
+                        if (!cell.pixelsB) LayerManagerClass.mirrorPlaneB(cell);
+                    } else if (cell.pixelsB) {
+                        LayerManagerClass.dropPlaneB(cell);
+                    }
+                }
+            }
         }
 
         this._rebuildEnvironment();
@@ -770,6 +871,8 @@ class ScreenModeServiceClass {
         if (window.CanvasSystem && CanvasSystem.applyScreenMode) {
             CanvasSystem.applyScreenMode();
         }
+        // The flicker display runs only while the mode has two screens.
+        if (LayerManager._syncGigaFlicker) LayerManager._syncGigaFlicker();
         LayerManager.composeToCanvas();
     }
 }

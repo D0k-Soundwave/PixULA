@@ -114,6 +114,15 @@ class EyedropperToolClass extends ToolBase {
       return;
     }
 
+    // GigaScreen: pick exactly the colour clicked - both screens' colours and
+    // which of the cell's four blends that pixel shows - so the next stroke
+    // paints the same blend.
+    if (ZX_SPECTRUM.SCREENS === 2) {
+      this._pickGigaColour(pixelX, pixelY);
+      EventBus.emit(EVENTS.TOOL_OPTIONS, { tool: this.id, action: 'pick', x: pixelX, y: pixelY });
+      return;
+    }
+
     // Ink and paper are one attribute byte in these modes, not two
     // independent picks — every click picks the whole cell, regardless of
     // button or Alt. (Button/Alt only matter in indexed modes, above,
@@ -126,6 +135,30 @@ class EyedropperToolClass extends ToolBase {
       action: 'pick',
       x: pixelX,
       y: pixelY
+    });
+  }
+
+  /**
+   * GigaScreen pick: the page's composite at the cell (both planes, exactly as
+   * the compositor builds them) gives both colour sets, and the pixel's two
+   * composite bits give the slot.
+   * @private
+   */
+  _pickGigaColour(pixelX, pixelY) {
+    const { x: cellX, y: cellY } = ZX_COORDS.pixelToCell(pixelX, pixelY);
+    const data = LayerManager.previewCellData(cellX, cellY, null, null, null);
+    const localY = pixelY % ZX_SPECTRUM.CELL_HEIGHT;
+    const bit = ZX_SPECTRUM.CELL_WIDTH - 1 - (pixelX % ZX_SPECTRUM.CELL_WIDTH);
+    const bitA = (data.pixels[localY] >> bit) & 1;
+    const bitB = data.pixelsB ? (data.pixelsB[localY] >> bit) & 1 : bitA;
+    const a = LayerManagerClass.cellAttrs(data.attrs);
+    const b = LayerManagerClass.cellAttrs(data.attrsB || data.attrs);
+    ColorManager.setSelection({
+      ink: a.ink, paper: a.paper, bright: a.bright, flash: a.flash,
+      inkB: b.ink, paperB: b.paper, brightB: b.bright,
+      gigaSlot: bitA * 2 + bitB,
+      inkTransparent: false,
+      paperTransparent: false
     });
   }
 

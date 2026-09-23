@@ -1959,6 +1959,14 @@ class SelectionServiceClass {
         fpCell.paper = composed.attrs.paper;
         fpCell.bright = composed.attrs.bright;
         fpCell.flash = composed.attrs.flash;
+        // GigaScreen: the preview is the composite of BOTH screens
+        if (fpCell.pixelsB && composed.pixelsB) {
+          fpCell.pixelsB.set(composed.pixelsB);
+          fpCell.inkB = composed.attrsB.ink;
+          fpCell.paperB = composed.attrsB.paper;
+          fpCell.brightB = composed.attrsB.bright;
+          fpCell.flashB = composed.attrsB.flash;
+        }
         fpCell.altered = true;
         // This cell IS the final composite for its position - never OR'd with
         // the layers below (LayerManager._composeCellData's xorReplace check).
@@ -2086,6 +2094,9 @@ class SelectionServiceClass {
         fpCell.paper  = (attr >> 3) & 7;
         fpCell.bright = (attr & 0x40) !== 0;
         fpCell.flash  = (attr & 0x80) !== 0;
+        // GigaScreen: a single-screen tile shows the same on both screens,
+        // exactly as its commit (no slot = ink on both) will leave it.
+        if (fpCell.pixelsB) LayerManagerClass.mirrorPlaneB(fpCell);
         fpCell.xorReplace = false;
         fpCell.altered = true;
         LayerManager.deferCellCompose(cx, cy);

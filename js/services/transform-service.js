@@ -82,13 +82,23 @@ class TransformServiceClass {
           }
           const cellPos = ZX_COORDS.pixelToCell(pixelX, pixelY);
           const cell  = layer.getCell(cellPos.x, cellPos.y);
-          row.push({
+          const entry = {
             isInk:  layer.getPixelState(pixelX, pixelY),
             ink:    cell ? cell.ink   : 0,
             paper:  cell ? cell.paper : 7,
             bright: cell ? cell.bright : false,
             flash:  cell ? cell.flash  : false
-          });
+          };
+          // GigaScreen: which of the four blends the pixel shows, and screen
+          // B's colours, so a transform moves the picture on both screens.
+          if (cell && cell.pixelsB) {
+            entry.slot = layer.getPixelSlot(pixelX, pixelY);
+            entry.inkB = cell.inkB;
+            entry.paperB = cell.paperB;
+            entry.brightB = cell.brightB;
+            entry.flashB = cell.flashB;
+          }
+          row.push(entry);
         } else {
           row.push(indexed
             ? { idx: -1 }
@@ -137,6 +147,8 @@ class TransformServiceClass {
     // (rotate, flip, scale, shift) inherit the paper already on the canvas rather
     // than importing the source pixel's paper into the wrong destination cell.
     const destPaper = new Map();
+    const giga = ZX_SPECTRUM.SCREENS === 2;
+    const destPaperB = new Map();
     for (let py = 0; py < buffer.length; py++) {
       for (let px = 0; px < buffer[py].length; px++) {
         const pixelX = area.x + px, pixelY = area.y + py;
@@ -150,6 +162,11 @@ class TransformServiceClass {
           destPaper.set(key, layer
             ? LayerManager.attrsAsSeen(layer, cellPos.x, cellPos.y).paper
             : fallback.paper);
+          if (giga) {
+            destPaperB.set(key, layer
+              ? LayerManager.attrsAsSeen(layer, cellPos.x, cellPos.y, 1).paper
+              : fallback.paper);
+          }
         }
       }
     }
@@ -163,10 +180,12 @@ class TransformServiceClass {
         const cellPos = ZX_COORDS.pixelToCell(pixelX, pixelY);
         const key = `${cellPos.x},${cellPos.y}`;
         const p = buffer[py][px];
+        const colours = { ink: p.ink, bright: p.bright, flash: p.flash, hasInk: p.isInk,
+          inkB: p.inkB, brightB: p.brightB, flashB: p.flashB };
         if (!cellColors.has(key)) {
-          cellColors.set(key, { ink: p.ink, bright: p.bright, flash: p.flash, hasInk: p.isInk });
+          cellColors.set(key, colours);
         } else if (p.isInk && !cellColors.get(key).hasInk) {
-          cellColors.set(key, { ink: p.ink, bright: p.bright, flash: p.flash, hasInk: true });
+          cellColors.set(key, colours);
         }
       }
     }
@@ -182,6 +201,13 @@ class TransformServiceClass {
           const key = `${cellPos.x},${cellPos.y}`;
           const c   = cellColors.get(key) || fallback;
           const colorSel = { ink: c.ink, paper: destPaper.get(key) ?? fallback.paper, bright: c.bright, flash: c.flash };
+          if (giga) {
+            colorSel.inkB = c.inkB != null ? c.inkB : c.ink;
+            colorSel.paperB = destPaperB.get(key) ?? colorSel.paper;
+            colorSel.brightB = c.brightB != null ? c.brightB : c.bright;
+            colorSel.flashB = c.flashB != null ? c.flashB : c.flash;
+            colorSel.gigaSlot = p.slot != null ? p.slot : GIGA_SLOTS.INK_INK;
+          }
           PixelDrawRoutine.draw(pixelX, pixelY, colorSel, p.isInk ? DRAW_MODE.NORMAL : DRAW_MODE.ERASE);
         }
       }
@@ -224,7 +250,12 @@ class TransformServiceClass {
             const cellPos = ZX_COORDS.pixelToCell(pixelX, pixelY);
             const key   = `${cellPos.x},${cellPos.y}`;
             const mode  = buffer[py][px] ? DRAW_MODE.NORMAL : DRAW_MODE.ERASE;
-            PixelDrawRoutine.draw(pixelX, pixelY, { ...color, paper: destPaper.get(key) ?? color.paper }, mode);
+            const sel = { ...color, paper: destPaper.get(key) ?? color.paper };
+            // GigaScreen: screen B keeps the paper it shows too
+            if (sel.gigaSlot != null && layer) {
+              sel.paperB = LayerManager.attrsAsSeen(layer, cellPos.x, cellPos.y, 1).paper;
+            }
+            PixelDrawRoutine.draw(pixelX, pixelY, sel, mode);
           }
         }
       }
