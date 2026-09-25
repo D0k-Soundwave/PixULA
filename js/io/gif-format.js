@@ -61,7 +61,7 @@ class GIFFormatClass {
    */
   export(options = {}) {
     // Two-screen modes (GigaScreen, MultiGigaScreen, the hi-res pair): the
-    // two screens ARE the animation — a fast two-frame loop approximates the
+    // two screens ARE the animation - a fast two-frame loop approximates the
     // hardware flicker blend. The 'animated' option is implied; FLASH phases
     // are not layered on top. 8x8 GigaScreen keeps its byte-tested SCR
     // path; the others decode each plane of the flattened document against
@@ -69,14 +69,15 @@ class GIFFormatClass {
     // inkB] table).
     if ((ACTIVE_SCREEN_MODE.screens || 1) === 2) {
       let frames, palette;
+      // One flatten serves both frames: it composites every layer
+      const flat = LayerManager.flattenVisible();
       if (ACTIVE_SCREEN_MODE === SCREEN_MODES.GIGASCREEN) {
         frames = [
-          { indices: this.screenToIndices(GigascreenFormat.subScreenBytes(0), 0), delayCs: this.GIGA_DELAY_CS },
-          { indices: this.screenToIndices(GigascreenFormat.subScreenBytes(1), 0), delayCs: this.GIGA_DELAY_CS }
+          { indices: this.screenToIndices(GigascreenFormat.subScreenBytes(0, flat), 0), delayCs: this.GIGA_DELAY_CS },
+          { indices: this.screenToIndices(GigascreenFormat.subScreenBytes(1, flat), 0), delayCs: this.GIGA_DELAY_CS }
         ];
         palette = ZX_PALETTE_RGB;
       } else {
-        const flat = LayerManager.flattenVisible();
         frames = [
           { indices: this.layerToIndices(flat, 0, 0), delayCs: this.GIGA_DELAY_CS },
           { indices: this.layerToIndices(flat, 0, 1), delayCs: this.GIGA_DELAY_CS }

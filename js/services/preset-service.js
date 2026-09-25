@@ -1173,12 +1173,12 @@ PresetServiceClass.SLICES = Object.freeze([
             if (typeof ColorManager.getClut === 'function') {
                 out.clut = ColorManager.getClut();
             }
-            if (typeof ColorManager.getTimexHiresInk === 'function') {
-                out.timexHiresInk = ColorManager.getTimexHiresInk();
-            }
-            if (typeof ColorManager.getTimexHiresInkB === 'function') {
-                out.timexHiresInkB = ColorManager.getTimexHiresInkB();
-            }
+            // Not the Timex hi-res schemes (2026-09-25, the artist's call).
+            // A scheme recolours the whole picture, as a palette does, so it
+            // is document state - carried by undo, autosave and .pixula - and
+            // a preset never changes the document. A preset that did could
+            // recolour a picture with no way back, and a single-screen one
+            // carried a leftover screen-B scheme into the hi-res pair.
             // GigaScreen: screen B's colours and the blend a stroke paints
             if (typeof ColorManager.getScreenB === 'function') {
                 const b = ColorManager.getScreenB();
@@ -1229,14 +1229,8 @@ PresetServiceClass.SLICES = Object.freeze([
             if (Number.isFinite(value.clut) && typeof ColorManager.setClut === 'function') {
                 ColorManager.setClut(value.clut);
             }
-            if (Number.isFinite(value.timexHiresInk) &&
-                typeof ColorManager.setTimexHiresInk === 'function') {
-                ColorManager.setTimexHiresInk(value.timexHiresInk);
-            }
-            if (Number.isFinite(value.timexHiresInkB) &&
-                typeof ColorManager.setTimexHiresInkB === 'function') {
-                ColorManager.setTimexHiresInkB(value.timexHiresInkB);
-            }
+            // A preset saved before 2026-09-25 may still hold timexHiresInk /
+            // timexHiresInkB. They are ignored: see capture().
         }
     },
 

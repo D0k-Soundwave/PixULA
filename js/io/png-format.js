@@ -317,6 +317,7 @@ class PNGFormatClass {
     const cw = ZX_SPECTRUM.CELL_WIDTH;
     const ch = ZX_SPECTRUM.CELL_HEIGHT;
     const ulaplus = ACTIVE_SCREEN_MODE.paletteModel === 'ulaplus64';
+    const twoScreens = ZX_SPECTRUM.SCREENS === 2;
 
     UndoRedoService.beginAction('Load PNG');
 
@@ -353,13 +354,25 @@ class PNGFormatClass {
           };
         }
 
-        layer.setCell(cellX, cellY, {
+        const data = {
           ink: attrs.ink,
           paper: attrs.paper,
           bright: attrs.bright,
           flash: attrs.flash,
           pixels: pixels
-        });
+        };
+        // Two-screen modes: the picture goes onto BOTH screens, solid, as
+        // entering GigaScreen does. Written to screen A alone, screen B kept
+        // whatever was there before - the old drawing, or blank paper that
+        // showed the photo at half strength.
+        if (twoScreens) {
+          data.inkB = attrs.ink;
+          data.paperB = attrs.paper;
+          data.brightB = attrs.bright;
+          data.flashB = attrs.flash;
+          data.pixelsB = pixels;
+        }
+        layer.setCell(cellX, cellY, data);
       }
     }
 

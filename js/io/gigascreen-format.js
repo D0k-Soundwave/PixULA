@@ -11,7 +11,7 @@
  *        standard screens back to back, blended on display. (The .img
  *        extension also names Disciple/PlusD disk images elsewhere; the
  *        byte length disambiguates.)
- *   .mg / .mg1 / .mg2 / .mg4 / .mg8 (import; .mg1/2/4/8 also export) —
+ *   .mg / .mg1 / .mg2 / .mg4 / .mg8 (import; .mg1/2/4/8 also export) -
  *        RECOIL_DecodeMg: 'MGH' + version 1 header byte, byte 4 =
  *        attribute height (1/2/4/8; MultiArtist names files by that
  *        height); 256-byte header, the two interleaved bitmaps at 256 and
@@ -45,10 +45,10 @@ class GigascreenFormatClass {
   initialize() {
     FormatRegistry.registerImport('img', this._adapter('img'));
     FormatRegistry.registerExport('img', this._adapter('img'));
-    // MultiArtist names its files by attribute height — RECOIL's format
+    // MultiArtist names its files by attribute height - RECOIL's format
     // list has MG1/MG2/MG4/MG8, not a bare .mg. The MGH header byte
-    // governs either way: height 8 (.mg8) loads, the multicolor
-    // sub-variants get the localized reject. Bare .mg stays as the
+    // governs either way, whatever the extension says: it picks GigaScreen
+    // or the MultiGigaScreen mode of that height. Bare .mg stays as the
     // family alias.
     for (const ext of ['mg', 'mg1', 'mg2', 'mg4', 'mg8']) {
       FormatRegistry.registerImport(ext, this._adapter(ext));
@@ -85,7 +85,7 @@ class GigascreenFormatClass {
 
   /**
    * Parse a GigaScreen container.
-   * @param {string} ext - 'img' | 'mg'
+   * @param {string} ext - 'img' | 'hlr' | 'mg' | 'mg1' | 'mg2' | 'mg4' | 'mg8'
    * @param {ArrayBuffer} buffer
    * @returns {Object} { success } | { success: false, error }
    */
@@ -131,14 +131,11 @@ class GigascreenFormatClass {
 
   /**
    * Parse an MGH container (RECOIL_DecodeMg): 'MGH' + version 1, byte 4 =
-   * attribute height. Height 8 imports as a GigaScreen pair; the
-   * MultiArtist multicolor sub-variants (1/2/4) cannot pair in our
-   * GigaScreen model (8×8 cells only), so — like .hrg — the FIRST
-   * sub-screen imports into the matching multicolor mode and the second
-   * is dropped (documented loss). Height 1 uses MultiArtist's mixed
-   * layout (8×8 side columns at 18688/19072, per-line middle 16 columns
-   * at 12536/15608), expanded to full per-line attributes — 8×1 is the
-   * superset. @private
+   * attribute height. Every height imports BOTH screens as a pair: 8 into
+   * GigaScreen, 4/2/1 into MultiGigaScreen 8x4/8x2/8x1 (_mgLayout). Height 1
+   * uses MultiArtist's mixed layout (8x8 side columns, per-line middle 16
+   * columns - offsets in _mgLayout), expanded to full per-line attributes,
+   * since 8x1 is the superset. Any other height is refused. @private
    */
   _parseMg(bytes) {
     const STD = SCREEN_MODES.STANDARD_ULA;
@@ -324,8 +321,9 @@ class GigascreenFormatClass {
   // ── Export ────────────────────────────────────────────────────────────────
 
   /**
-   * One screen's 6912 bytes - that plane of the flattened document.
-   * GigaScreen mode only.
+   * One screen's bytes - that plane of the flattened document, laid out as
+   * SCRFormat.screenBytesFromLayer lays out the active mode (6912 in
+   * GigaScreen). Two-screen modes only.
    * @param {number} n - Screen 0 (A) or 1 (B)
    * @param {Layer} [flat] - an already-flattened document, so export() does
    *   not flatten twice
@@ -334,7 +332,7 @@ class GigascreenFormatClass {
   subScreenBytes(n, flat = null) {
     if (ZX_SPECTRUM.SCREENS !== 2) {
       throw new Error(Helpers.localizedMessage('mode.exportNeedsGiga',
-        'This format holds a GigaScreen pair — switch to GigaScreen mode first.'));
+        'This format holds a GigaScreen pair - switch to GigaScreen mode first.'));
     }
     return SCRFormat.screenBytesFromLayer(flat || LayerManager.flattenVisible(), n);
   }
@@ -371,7 +369,7 @@ class GigascreenFormatClass {
   exportMg(height) {
     if (!this.canExportMg(height)) {
       throw new Error(Helpers.localizedMessage('mode.exportNeedsGiga',
-        'This format holds a GigaScreen pair — switch to GigaScreen mode first.'));
+        'This format holds a GigaScreen pair - switch to GigaScreen mode first.'));
     }
     const layout = this._mgLayout(height);
     const bitmapSize = layout.mode.bitmapSize;
@@ -402,7 +400,15 @@ class GigascreenFormatClass {
    */
   export() {
     const GIGA = SCREEN_MODES.GIGASCREEN;
-    const flat = ZX_SPECTRUM.SCREENS === 2 ? LayerManager.flattenVisible() : null;
+    // The same gate as canExport(). The other pairs' screens are larger than
+    // 6912 bytes and would overflow the fixed .img buffer, so they are sent
+    // to their own container rather than failing with a RangeError.
+    if (!this.canExport()) {
+      if (ZX_SPECTRUM.SCREENS === 2) Helpers.assertNotPair();
+      throw new Error(Helpers.localizedMessage('mode.exportNeedsGiga',
+        'This format holds a GigaScreen pair - switch to GigaScreen mode first.'));
+    }
+    const flat = LayerManager.flattenVisible();
     const a = this.subScreenBytes(0, flat);
     const b = this.subScreenBytes(1, flat);
     const out = new Uint8Array(GIGA.fileSize);

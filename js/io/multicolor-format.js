@@ -111,10 +111,9 @@ class MulticolorFormatClass {
       ? SCREEN_MODES.MULTICOLOR_8x2
       : SCREEN_MODES.MULTICOLOR_8x1;
 
-    if ((ACTIVE_SCREEN_MODE.screens || 1) === 2) {
-      throw new Error(Helpers.localizedMessage('mode.scrUseImg',
-        'GigaScreen documents hold two sub-screens — save as .img instead.'));
-    }
+    // Names the pair's own container; it used to pass no {ext}, so the
+    // message read "save as {ext} instead"
+    Helpers.assertNotPair();
     if (ACTIVE_SCREEN_MODE.paletteModel !== 'fixed16') {
       throw new Error(Helpers.localizedMessage('mode.formatNeedsFixed16',
         'This format needs the fixed 16-colour palette — switch out of ULAplus mode first.'));

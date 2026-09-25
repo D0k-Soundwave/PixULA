@@ -253,14 +253,8 @@ class SCRFormatClass {
     // representation. Save as .nxi/.sl2 instead (localized gate).
     Helpers.assertClassicPixelModel();
 
-    if ((mode.screens || 1) === 2) {
-      // Name the container that fits THIS pair: .img for 8x8 GigaScreen,
-      // .mg1/.mg2/.mg4 for MultiGigaScreen, .hrg for the hi-res pair.
-      const ext = mode.paletteModel === 'timexMono' ? '.hrg'
-        : mode.attrCellH === 8 ? '.img' : `.mg${mode.attrCellH}`;
-      throw new Error(Helpers.localizedMessage('mode.scrUseImg',
-        'GigaScreen documents hold two sub-screens — save as {ext} instead.', { ext }));
-    }
+    // A pair names the container that fits it (.img, .mg1/2/4, .hrg)
+    Helpers.assertNotPair();
     if (mode.paletteModel === 'timexMono') {
       return TimexFormat.exportHires();
     }

@@ -40,7 +40,11 @@ global.ColorManager = {
   getInk() { return 1; }, getPaper() { return 6; },
   getBright() { return true; }, getFlash() { return false; }, getBorder() { return 2; },
   setInk() {}, setPaper() {}, setBright() {}, setFlash() {}, setBorder() {},
-  setInkTransparent() {}, setPaperTransparent() {}
+  setInkTransparent() {}, setPaperTransparent() {},
+  // The Timex hi-res schemes, so the colour slice can be shown to leave them alone
+  schemeWrites: 0,
+  getTimexHiresInk() { return 3; }, getTimexHiresInkB() { return 5; },
+  setTimexHiresInk() { this.schemeWrites++; }, setTimexHiresInkB() { this.schemeWrites++; }
 };
 global.PatternService = {
   getCurrentPattern() { return null; }, getCurrentPatternData() { return null; },
@@ -252,5 +256,20 @@ check('a stored preset carrying a palette slice decodes without it, intact', (()
 })());
 check('every slice has a label key for the dialogs',
   global.PresetService.SLICES.every(s => typeof s.i18n === 'string' && s.i18n));
+
+// The Timex hi-res schemes left the colour slice on 2026-09-25: a scheme
+// recolours the whole picture, like a palette, and a preset never changes the
+// document. Before that a preset saved in single-screen hi-res carried a
+// leftover screen-B scheme into the hi-res pair and recoloured screen B.
+{
+  const color = global.PresetService.getSlice('color');
+  const captured = color.capture();
+  check('the colour slice does not capture either hi-res scheme',
+    !('timexHiresInk' in captured) && !('timexHiresInkB' in captured), JSON.stringify(captured));
+  global.ColorManager.schemeWrites = 0;
+  color.apply({ ink: 1, timexHiresInk: 6, timexHiresInkB: 4 });
+  check('an old preset still holding the schemes does not apply them',
+    global.ColorManager.schemeWrites === 0, `${global.ColorManager.schemeWrites} scheme writes`);
+}
 
 summary();

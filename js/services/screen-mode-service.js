@@ -110,7 +110,7 @@ class ScreenModeServiceClass {
             return true;
         }
         if ((from.screens || 1) === 2 && (to.screens || 1) !== 2
-            && window.LayerManager && this._gigaScreensDiffer()) {
+            && window.LayerManager && this._gigaScreensDiffer(from)) {
             return true; // screen B is dropped
         }
         return false;
@@ -159,20 +159,31 @@ class ScreenModeServiceClass {
     }
 
     /**
-     * Does any cell of any layer show something on screen B that screen A
-     * does not? Only then does leaving GigaScreen lose anything.
+     * Does screen B show anything screen A does not? Only then does leaving
+     * a two-screen mode lose anything.
+     *
+     * The hi-res pair colours each screen from its own scheme and ignores the
+     * cell attributes, so there the schemes are compared instead of the cell
+     * colours: a scheme of its own on screen B is lost on leaving, and cell
+     * attributes that never render are not.
+     * @param {Object} from - the two-screen mode being left
      * @returns {boolean}
      * @private
      */
-    _gigaScreensDiffer() {
+    _gigaScreensDiffer(from) {
+        const schemes = from.paletteModel === 'timexMono';
+        if (schemes && window.ColorManager
+            && ColorManager.getTimexHiresInk() !== ColorManager.getTimexHiresInkB()) {
+            return true;
+        }
         for (const layer of LayerManager.layers) {
             for (const row of layer.attributeData) {
                 for (const cell of row) {
                     if (!cell.pixelsB) continue;
                     if (!layer.isBackground && !cell.altered) continue;
-                    if (cell.ink !== cell.inkB || cell.paper !== cell.paperB
+                    if (!schemes && (cell.ink !== cell.inkB || cell.paper !== cell.paperB
                         || !!cell.bright !== !!cell.brightB
-                        || !!cell.flash !== !!cell.flashB) return true;
+                        || !!cell.flash !== !!cell.flashB)) return true;
                     for (let r = 0; r < cell.pixels.length; r++) {
                         if (cell.pixels[r] !== cell.pixelsB[r]) return true;
                     }

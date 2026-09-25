@@ -18,8 +18,8 @@
  * Bitmap packing: 8bpp = one byte per pixel; 4bpp (640×256, Radastan
  *   LoRes) = two pixels per byte, LEFT pixel in the high nibble.
  *
- * Byte ORDER follows the hardware: 256×192 and both LoRes forms are reading
- *   order (row by row), but 320×256 and 640×256 are COLUMN by column - byte
+ * Byte ORDER follows the hardware: 256x192 and both LoRes forms are reading
+ *   order (row by row), but 320x256 and 640x256 are COLUMN by column - byte
  *   n is column n >> 8, line n & 255 (descriptor `columnMajor`,
  *   wiki.specnext.dev/Layer_2). Both used to be read and written row by
  *   row, which round-tripped through this app and nowhere else: a real Next

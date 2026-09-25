@@ -404,14 +404,31 @@ class ColorManagerClass {
         StateManager.markModified();
     }
 
-    /** True if the Next register file differs from the default set. */
+    /**
+     * True if the Next register file differs from the default set. The
+     * defaults saved before 2026-09-23 count as unedited too: nobody chose
+     * them, so leaving an rgb333 mode loses nothing and the ULAplus <-> Next
+     * seeding still applies.
+     */
     isNextPaletteEdited() {
         if (!this.nextRegisters) return false;
-        const def = NEXTRGB333.defaultRegisters();
-        for (let i = 0; i < def.length; i++) {
-            if (this.nextRegisters[i] !== def[i]) return true;
-        }
-        return false;
+        return NEXTRGB333.defaultsVersion(this.nextRegisters) === null;
+    }
+
+    /**
+     * Give a palette nobody edited before 2026-09-23 today's defaults. Those
+     * held ramp colours at 144-159, which are the FLASH paper banks ULANext
+     * reads now, so a FLASH cell's paper came out a ramp colour instead of
+     * the classic one. Left alone when the picture paints with those entries
+     * itself (the 8bpp Next modes can): there the ramp is part of the artwork.
+     * @param {boolean} rampInUse - some pixel uses a palette index in 144-159
+     * @returns {boolean} whether the registers were replaced
+     */
+    upgradeLegacyNextDefaults(rampInUse) {
+        if (!this.nextRegisters || rampInUse) return false;
+        if (NEXTRGB333.defaultsVersion(this.nextRegisters) !== 'legacy') return false;
+        this.setNextRegisters(NEXTRGB333.defaultRegisters());
+        return true;
     }
 
     // ─── Indexed drawing indices (tool state in pixelDepth > 1 modes) ──────

@@ -13,7 +13,7 @@
  *        bits 3–5 = the ink colour, bits 0–2 = the screen-mode bits (we
  *        write 110 = hi-res). Paper is always the ink's complement and both
  *        render at BRIGHT levels (RECOIL renders hi-res fully saturated).
- *   .hrg (24578, import + export) — two 12289-byte hi-res screens, a
+ *   .hrg (24578, import + export) - two 12289-byte hi-res screens, a
  *        flicker pair, each with its OWN port byte and so its own colour
  *        scheme (RECOIL DecodeHrg reads content[offset + 0x3000] per frame
  *        and blends). Since 2026-09-23 it imports whole into the
@@ -186,7 +186,7 @@ class TimexFormatClass {
     // One screen only: the pair's own container is .hrg (exportHrg).
     if (ACTIVE_SCREEN_MODE.paletteModel !== 'timexMono' || ZX_SPECTRUM.SCREENS !== 1) {
       throw new Error(Helpers.localizedMessage('mode.exportNeedsHires',
-        'This format holds Timex hi-res screens — switch to Timex hi-res mode first.'));
+        'This format holds Timex hi-res screens - switch to Timex hi-res mode first.'));
     }
     const flattened = LayerManager.flattenVisible();
     const rows = flattened.attributeData.map(row => row.map(c => c.pixels));
@@ -203,7 +203,7 @@ class TimexFormatClass {
   exportHrg() {
     if (ACTIVE_SCREEN_MODE.paletteModel !== 'timexMono') {
       throw new Error(Helpers.localizedMessage('mode.exportNeedsHires',
-        'This format holds Timex hi-res screens — switch to Timex hi-res mode first.'));
+        'This format holds Timex hi-res screens - switch to Timex hi-res mode first.'));
     }
     if (ZX_SPECTRUM.SCREENS !== 2) {
       const scr = this.exportHires();

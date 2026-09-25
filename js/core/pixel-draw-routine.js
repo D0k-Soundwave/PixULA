@@ -647,7 +647,7 @@ class PixelDrawRoutineClass {
       // pixel there has nothing to clear: marking it altered would turn a
       // transparent square opaque, which is what Delete, Outline and every
       // flip used to do to the layers below (2026-09-16).
-      if (mode === DRAW_MODE.ERASE) return false;
+      if (this._clearsOnly(cell, colorSelection, mode)) return false;
       // Every other mode is about to make this cell real, so it starts from
       // what the page shows there - otherwise the channels this mode does not
       // write (Pixels Only's four, Ink Recolour's paper) would come out as
@@ -816,6 +816,23 @@ class PixelDrawRoutineClass {
       LayerManagerClass.swapCellPlanes(cell);
     }
     return changedA || changedB;
+  }
+
+  /**
+   * Does this write only clear pixels and touch no colour - the primitive
+   * ERASE, on every screen the cell has? In GigaScreen that is also Pixels
+   * Only and Transparent painting paper on both screens (slot 0), which
+   * _applyGiga turns into ERASE on each plane: on an empty upper-layer cell
+   * it has nothing to clear, and must not make the cell opaque either.
+   * @private
+   */
+  _clearsOnly(cell, colorSelection, mode) {
+    if (mode === DRAW_MODE.ERASE) return true;
+    if (!cell.pixelsB) return false;
+    const slot = colorSelection && colorSelection.gigaSlot != null
+      ? colorSelection.gigaSlot : GIGA_SLOTS.INK_INK;
+    return this._gigaPlaneMode(mode, GIGA_SLOTS.bitA(slot)) === DRAW_MODE.ERASE
+      && this._gigaPlaneMode(mode, GIGA_SLOTS.bitB(slot)) === DRAW_MODE.ERASE;
   }
 
   /**

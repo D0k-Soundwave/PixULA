@@ -1293,7 +1293,7 @@ const ZX_COORDS = Object.freeze({
  * defaultRegisters(): a 64-register set that reproduces the standard
  * Spectrum palette as closely as G3R3B2 allows. CLUT layout follows the
  * hardware mapping CLUT = FLASH*2 + BRIGHT: CLUTs 0/2 hold the non-bright
- * colours (G=R=level 5 of 7 ≈ 0xB6, B=level 2 of 3 = 0xB6 — chosen so
+ * colours (G=R=level 5 of 7 ~ 0xB6, B=level 2 of 3 = 0xB6 - chosen so
  * bright and non-bright stay visually distinct within 2-bit blue), CLUTs
  * 1/3 the bright ones. Ink half = entries 0–7, paper half = entries 8–15
  * of each CLUT, both holding the same 8 base colours.
@@ -1370,10 +1370,10 @@ const ULAPLUS = Object.freeze({
  * stored blue bits.
  *
  * defaultRegisters(): OUR documented default (the hardware boot palette
- * is the plain identity RRRGGGBB ramp): entries 0–15 hold the classic ZX 16
- * colours (non-bright at level 6 of 7 — 219 ≈ the ZX's 215, exact enough that
+ * is the plain identity RRRGGGBB ramp): entries 0-15 hold the classic ZX 16
+ * colours (non-bright at level 6 of 7 - 219 ~ the ZX's 215, exact enough that
  * classic->indexed conversion lands on these slots; bright at 7), and so do
- * ULANEXT's four paper banks 128–159 (normal, bright, flash, flash+bright -
+ * ULANEXT's four paper banks 128-159 (normal, bright, flash, flash+bright -
  * 128 + (attr >> 3) at the default ink mask), so every rgb333 mode starts
  * with usable classics and a FLASH cell's paper is not a ramp colour. Every
  * other entry is the identity ramp. DEFAULT_INK/DEFAULT_PAPER are
@@ -1383,6 +1383,10 @@ const ULAPLUS = Object.freeze({
 const NEXTRGB333 = Object.freeze({
     DEFAULT_INK: 0,
     DEFAULT_PAPER: 7,
+    // ULANext's two FLASH paper banks (128 + (attr >> 3) with bit 4 set):
+    // the entries whose defaults changed on 2026-09-23
+    FLASH_PAPER_FIRST: 144,
+    FLASH_PAPER_LAST: 159,
 
     /** 9-bit register -> [r, g, b] (0–255 each; RECOIL's n*73>>1 scale). */
     registerToRGB(reg) {
@@ -1445,6 +1449,34 @@ const NEXTRGB333 = Object.freeze({
             }
         }
         return regs;
+    },
+
+    /**
+     * The defaults as they were before 2026-09-23: entries 144-159 still the
+     * identity ramp, because the FLASH paper banks came in with the ULANext
+     * hardware rule. A document saved before then holds exactly these when
+     * its palette was never edited.
+     * @returns {Uint16Array}
+     */
+    legacyDefaultRegisters() {
+        const regs = this.defaultRegisters();
+        for (let i = this.FLASH_PAPER_FIRST; i <= this.FLASH_PAPER_LAST; i++) {
+            regs[i] = this.byteToRegister(i);
+        }
+        return regs;
+    },
+
+    /**
+     * Which default set a register file is, if any.
+     * @param {ArrayLike<number>} regs - 256 registers
+     * @returns {'current'|'legacy'|null}
+     */
+    defaultsVersion(regs) {
+        const same = (def) => regs.length === def.length
+            && def.every((v, i) => regs[i] === v);
+        if (same(this.defaultRegisters())) return 'current';
+        if (same(this.legacyDefaultRegisters())) return 'legacy';
+        return null;
     }
 });
 
