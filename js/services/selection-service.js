@@ -488,7 +488,12 @@ class SelectionServiceClass {
   }
 
   /**
-   * Invert pixels within the selection
+   * Invert pixels within the selection.
+   *
+   * GigaScreen inverts each screen on its own, so a pixel's blend becomes its
+   * complement (slot s -> 3 - s) and inverting twice gives the picture back.
+   * The Paint slot plays no part: it used to decide what the paper pixels
+   * became, so with Paper/Paper chosen an invert wiped the region.
    */
   invertSelection() {
     if (!this.selection) return;
@@ -498,6 +503,7 @@ class SelectionServiceClass {
 
     const color = ColorManager.getCurrentSelection();
     const { x, y, width, height, mask } = this.selection;
+    const giga = ZX_SPECTRUM.SCREENS === 2;
 
     PixelDrawRoutine.beginBatch();
 
@@ -507,11 +513,19 @@ class SelectionServiceClass {
           if (mask && !mask[py][px]) continue;
           const pixelX = x + px;
           const pixelY = y + py;
-          if (Validators.isValidPixelCoord(pixelX, pixelY)) {
-            const isInk = layer.getPixelState(pixelX, pixelY);
-            const mode = isInk ? DRAW_MODE.ERASE : DRAW_MODE.NORMAL;
-            PixelDrawRoutine.draw(pixelX, pixelY, color, mode);
+          if (!Validators.isValidPixelCoord(pixelX, pixelY)) continue;
+          if (giga) {
+            const target = GIGA_SLOTS.INK_INK - layer.getPixelSlot(pixelX, pixelY);
+            if (target === GIGA_SLOTS.PAPER_PAPER) {
+              PixelDrawRoutine.draw(pixelX, pixelY, color, DRAW_MODE.ERASE);
+            } else {
+              PixelDrawRoutine.draw(pixelX, pixelY, { ...color, gigaSlot: target }, DRAW_MODE.NORMAL);
+            }
+            continue;
           }
+          const isInk = layer.getPixelState(pixelX, pixelY);
+          const mode = isInk ? DRAW_MODE.ERASE : DRAW_MODE.NORMAL;
+          PixelDrawRoutine.draw(pixelX, pixelY, color, mode);
         }
       }
     });

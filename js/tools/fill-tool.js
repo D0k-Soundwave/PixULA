@@ -271,6 +271,19 @@ class FillToolClass extends ToolBase {
     const srcBright = start.bright;
     const srcFlash  = start.flash;
 
+    // GigaScreen: a cell's colours are BOTH screens' sets, so a cell matches
+    // only when screen B matches too. Comparing screen A alone flooded cells
+    // that merely shared screen A's colours, and recoloured screen B of cells
+    // that looked nothing like the one clicked.
+    const giga = ZX_SPECTRUM.SCREENS === 2;
+    const startB = giga ? LayerManager.attrsAsSeen(layer, startCellX, startCellY, 1) : null;
+    const matchesB = (cx, cy) => {
+      if (!giga) return true;
+      const b = LayerManager.attrsAsSeen(layer, cx, cy, 1);
+      return b.ink === startB.ink && b.paper === startB.paper &&
+        b.bright === startB.bright && b.flash === startB.flash;
+    };
+
     const COLS = ZX_SPECTRUM.GRID_COLS; // 32
     const ROWS = ZX_SPECTRUM.GRID_ROWS; // 24
 
@@ -294,6 +307,7 @@ class FillToolClass extends ToolBase {
       const seen = LayerManager.attrsAsSeen(layer, cx, cy);
       if (seen.ink !== srcInk || seen.paper !== srcPaper ||
           seen.bright !== srcBright || seen.flash !== srcFlash) continue;
+      if (!matchesB(cx, cy)) continue;
 
       visited.add(key);
 

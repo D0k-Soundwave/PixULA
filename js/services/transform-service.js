@@ -55,6 +55,32 @@ class TransformServiceClass {
   }
 
   /**
+   * GigaScreen: the blend (GIGA_SLOTS) each pixel of an area shows - the
+   * two-screen counterpart of _copyToBuffer, for the transforms that compute
+   * pixels rather than move them (invert, outline). Paper on both screens
+   * outside the canvas.
+   * @param {Object} area - { x, y, width, height }
+   * @returns {number[][]|null}
+   * @private
+   */
+  _copySlots(area) {
+    const layer = LayerManager.getCurrentLayer();
+    if (!layer) return null;
+    const slots = [];
+    for (let py = 0; py < area.height; py++) {
+      const row = [];
+      for (let px = 0; px < area.width; px++) {
+        const pixelX = area.x + px;
+        const pixelY = area.y + py;
+        row.push(Validators.isValidPixelCoord(pixelX, pixelY)
+          ? layer.getPixelSlot(pixelX, pixelY) : GIGA_SLOTS.PAPER_PAPER);
+      }
+      slots.push(row);
+    }
+    return slots;
+  }
+
+  /**
    * Copy pixel states AND cell attributes from an area to an attributed buffer.
    * Each entry: { isInk, ink, paper, bright, flash }
    * @param {Object} area - { x, y, width, height }
@@ -216,16 +242,21 @@ class TransformServiceClass {
 
   /**
    * Apply buffer to an area (bool only — colour comes from current selection)
-   * @param {boolean[][]} buffer - 2D array of pixel states
+   * @param {Array[]} buffer - 2D array of pixel states; in GigaScreen, the
+   *   blend (GIGA_SLOTS) each pixel takes, 0 being paper on both screens
    * @param {Object} area - { x, y, width, height }
    * @private
    */
   _applyBuffer(buffer, area) {
     const color   = ColorManager.getCurrentSelection();
     const layer   = LayerManager.getCurrentLayer();
+    const giga    = ZX_SPECTRUM.SCREENS === 2;
 
-    // Snapshot destination-cell paper before writing (same reason as _applyBufferWithAttrs)
+    // Snapshot destination-cell paper before writing (same reason as
+    // _applyBufferWithAttrs) - screen B's too, so neither screen reads a
+    // value this loop has already written.
     const destPaper = new Map();
+    const destPaperB = new Map();
     for (let py = 0; py < buffer.length; py++) {
       for (let px = 0; px < buffer[py].length; px++) {
         const pixelX = area.x + px, pixelY = area.y + py;
@@ -236,6 +267,11 @@ class TransformServiceClass {
           destPaper.set(key, layer
             ? LayerManager.attrsAsSeen(layer, cellPos.x, cellPos.y).paper
             : color.paper);
+          if (giga) {
+            destPaperB.set(key, layer
+              ? LayerManager.attrsAsSeen(layer, cellPos.x, cellPos.y, 1).paper
+              : (color.paperB ?? color.paper));
+          }
         }
       }
     }
@@ -249,11 +285,15 @@ class TransformServiceClass {
           if (Validators.isValidPixelCoord(pixelX, pixelY)) {
             const cellPos = ZX_COORDS.pixelToCell(pixelX, pixelY);
             const key   = `${cellPos.x},${cellPos.y}`;
-            const mode  = buffer[py][px] ? DRAW_MODE.NORMAL : DRAW_MODE.ERASE;
+            const value = buffer[py][px];
+            const on    = giga ? value !== GIGA_SLOTS.PAPER_PAPER : !!value;
+            const mode  = on ? DRAW_MODE.NORMAL : DRAW_MODE.ERASE;
             const sel = { ...color, paper: destPaper.get(key) ?? color.paper };
-            // GigaScreen: screen B keeps the paper it shows too
-            if (sel.gigaSlot != null && layer) {
-              sel.paperB = LayerManager.attrsAsSeen(layer, cellPos.x, cellPos.y, 1).paper;
+            // GigaScreen: the buffer says which blend, and screen B keeps
+            // the paper it shows too
+            if (giga) {
+              sel.paperB = destPaperB.get(key) ?? sel.paper;
+              if (on) sel.gigaSlot = value;
             }
             PixelDrawRoutine.draw(pixelX, pixelY, sel, mode);
           }
@@ -827,9 +867,19 @@ class TransformServiceClass {
     const exterior = this.markExteriorBuffer(buffer, h, w);
     const inner    = this.dilateExteriorBuffer(buffer, exterior, h, w, gap);
     const outer    = this.dilateExteriorBuffer(inner,  exterior, h, w, outlineSize);
-    const outlined = buffer.map((row, ry) =>
+    let outlined = buffer.map((row, ry) =>
       row.map((cell, rx) => cell || (outer[ry][rx] && !inner[ry][rx]))
     );
+    // GigaScreen: marked pixels keep their blend and the ring takes the one
+    // the artist paints with, rather than every pixel becoming the Paint slot
+    if (ZX_SPECTRUM.SCREENS === 2) {
+      const slots = this._copySlots(area);
+      const paint = ColorManager.getGigaSlot();
+      outlined = outlined.map((row, ry) => row.map((on, rx) => {
+        if (buffer[ry][rx]) return slots[ry][rx];
+        return on ? paint : GIGA_SLOTS.PAPER_PAPER;
+      }));
+    }
 
     PixelDrawRoutine.beginBatch();
     this._applyBuffer(outlined, area);
@@ -839,14 +889,17 @@ class TransformServiceClass {
   }
 
   /**
-   * Invert all pixels in the area
+   * Invert all pixels in the area. GigaScreen inverts each screen on its own:
+   * slot s becomes 3 - s, so inverting twice gives the picture back.
    */
   invert() {
     const area = this._getWorkArea();
-    const buffer = this._copyToBuffer(area);
+    const buffer = ZX_SPECTRUM.SCREENS === 2 ? this._copySlots(area) : this._copyToBuffer(area);
     if (!buffer) return;
 
-    const inverted = buffer.map(row => row.map(pixel => !pixel));
+    const inverted = ZX_SPECTRUM.SCREENS === 2
+      ? buffer.map(row => row.map(slot => GIGA_SLOTS.INK_INK - slot))
+      : buffer.map(row => row.map(pixel => !pixel));
 
     PixelDrawRoutine.beginBatch();
     this._applyBuffer(inverted, area);

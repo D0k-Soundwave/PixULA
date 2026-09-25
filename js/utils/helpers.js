@@ -98,6 +98,31 @@ const Helpers = {
     },
 
     /**
+     * The file that holds a two-screen mode's pair: .img for 8x8 GigaScreen,
+     * .mg1/.mg2/.mg4 for MultiGigaScreen, .hrg for the hi-res pair.
+     * @param {Object} [mode=ACTIVE_SCREEN_MODE] - a two-screen descriptor
+     * @returns {string} the extension, dot included
+     */
+    pairContainerExt(mode = ACTIVE_SCREEN_MODE) {
+        if (mode.paletteModel === 'timexMono') return '.hrg';
+        return mode.attrCellH === SCREEN_MODES.GIGASCREEN.attrCellH
+            ? '.img' : `.mg${mode.attrCellH}`;
+    },
+
+    /**
+     * Throw (localized) when the active mode has two screens, naming the
+     * file that holds its pair - the gate for a format that stores one
+     * screen, or a pair of a different shape.
+     */
+    assertNotPair() {
+        if ((ACTIVE_SCREEN_MODE.screens || 1) === 2) {
+            const ext = this.pairContainerExt();
+            throw new Error(this.localizedMessage('mode.scrUseImg',
+                'GigaScreen documents hold two sub-screens - save as {ext} instead.', { ext }));
+        }
+    },
+
+    /**
      * Whether the active mode uses the classic 1-bit ink/paper cell model —
      * the non-throwing twin of assertClassicPixelModel().
      * @returns {boolean}

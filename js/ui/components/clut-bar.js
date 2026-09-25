@@ -38,7 +38,7 @@
  *
  *   ulaplus64 mode — CLUT selector (0–3) + the active CLUT's ink half and
  *     paper half as separate single-role rows, one above the other.
- *   rgb333 (ULANext) — the Ink row (entries 0-7) beside the Paper row, whose
+ *   rgb333 (ULANext) - the Ink row (entries 0-7) beside the Paper row, whose
  *     bank (128 + bank*8) the Bright and Flash toggles choose, as the
  *     hardware does.
  *   timexMono — the 8 hi-res colour schemes. indexed Next — the palette
@@ -600,12 +600,11 @@ class ClutBarClass {
             sw.title = this._t('clut.hiresSchemePick', 'Ink {n} on its complement', { n });
             sw.style.setProperty('background',
                 `linear-gradient(135deg, var(--zx-scheme-ink-${n}) 50%, var(--zx-scheme-paper-${n}) 50%)`);
+            // The rail redraws from the PALETTE_CHANGED fact this raises
             sw.addEventListener('click', () => {
                 if (plane === 1) ColorManager.setTimexHiresInkB(n);
                 else ColorManager.setTimexHiresInk(n);
                 LayerManager.composeToCanvas();
-                this._rebuildSwatches();
-                this._updateColorDisplays();
             });
             sw.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sw.click(); }
@@ -858,6 +857,18 @@ class ClutBarClass {
 
         // Mode switch swaps the whole cluster layout
         EventBus.on(EVENTS.SCREEN_MODE_CHANGED, () => {
+            this._rebuildSwatches();
+            this._updateColorDisplays();
+            this._translateRebuilt();
+        });
+
+        // Timex hi-res: the scheme IS the colour, and it changes without a
+        // swatch click too - an .hrg import, undo, a preset. The scheme rows
+        // mark the active scheme and the Paint swatches show its blends, so
+        // both follow the palette fact. No other model draws the rail from
+        // anything the palette fact carries.
+        EventBus.on(EVENTS.PALETTE_CHANGED, () => {
+            if (ACTIVE_SCREEN_MODE.paletteModel !== 'timexMono') return;
             this._rebuildSwatches();
             this._updateColorDisplays();
             this._translateRebuilt();

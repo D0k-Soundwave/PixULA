@@ -327,8 +327,17 @@ class InputHandlerClass {
       // upper-layer cell stores - swapping that produced white ink on black
       // out of nowhere (2026-09-16).
       const attrs = LayerManager.attrsAsSeen(layer, cell.x, cell.y);
-      PixelDrawRoutine.draw(px.x, px.y,
-        { ink: attrs.paper, paper: attrs.ink, bright: attrs.bright, flash: attrs.flash },
+      const swapped = { ink: attrs.paper, paper: attrs.ink, bright: attrs.bright, flash: attrs.flash };
+      // GigaScreen: each screen swaps its OWN pair. Without these the gate
+      // falls back to screen A's values and gives screen B screen A's colours.
+      if (ZX_SPECTRUM.SCREENS === 2) {
+        const b = LayerManager.attrsAsSeen(layer, cell.x, cell.y, 1);
+        swapped.inkB = b.paper;
+        swapped.paperB = b.ink;
+        swapped.brightB = b.bright;
+        swapped.flashB = b.flash;
+      }
+      PixelDrawRoutine.draw(px.x, px.y, swapped,
         DRAW_MODE.ATTRIBUTES_ONLY, { layer, mirror: false });
     }
 

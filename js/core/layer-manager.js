@@ -2636,6 +2636,28 @@ class LayerManagerClass {
   }
 
   /**
+   * Does any layer paint with a palette index in [lo, hi]? Only indexed
+   * modes store indices, so in a classic mode the answer is always false.
+   * @param {number} lo
+   * @param {number} hi
+   * @returns {boolean}
+   */
+  usesPaletteIndices(lo, hi) {
+    for (const layer of this.layers) {
+      for (const row of layer.attributeData) {
+        for (const cell of row) {
+          if (!cell.indices) continue;
+          for (let i = 0; i < cell.indices.length; i++) {
+            const v = cell.indices[i];
+            if (v >= lo && v <= hi) return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
    * Get all layers as an array (for serialization)
    * @returns {Array}
    */
@@ -2676,7 +2698,12 @@ class LayerManagerClass {
       this.layers.push(layer);
     });
 
-    if (ZX_SPECTRUM.SCREENS === 2 && data.some(d => d && d.gigaScreen === 1)) {
+    // Every layer saved under the old tag model carried a `gigaScreen` field
+    // (0 or 1) in every mode, and nothing writes one now, so the field's
+    // PRESENCE marks an old document. Testing for a 1 missed the ones whose
+    // layers were all on screen A: those showed the background alone on
+    // screen B, and loaded with screen B equal to screen A instead.
+    if (ZX_SPECTRUM.SCREENS === 2 && data.some(d => d && typeof d.gigaScreen === 'number')) {
       this._convertTaggedGigaLayers(data.map(d => (d && d.gigaScreen) || 0));
     }
 
@@ -2697,12 +2724,25 @@ class LayerManagerClass {
    * compositor did it - the background plus that screen's layers - and the two
    * results become planes A and B of ONE layer above the background. The
    * picture is unchanged; the old layer split is not kept.
+   *
+   * Hidden layers are not part of the picture, so they are not merged - and
+   * they are not dropped either. Each stays a hidden layer of its own, above
+   * the merged one in its old order, holding its content on both screens
+   * (restoreAttributeData has already mirrored it): unhiding one shows its
+   * content solid rather than on the one screen it used to belong to, which
+   * is the nearest a single layer can come (see above).
    * @param {number[]} tags - each restored layer's old tag, by index
    * @private
    */
   _convertTaggedGigaLayers(tags) {
     const cellH = ZX_SPECTRUM.CELL_HEIGHT;
     const bgLayer = this.layers[0];
+    const upper = this.layers.slice(1);
+    const hidden = upper.filter(layer => !layer.visible);
+    if (hidden.length === upper.length) {
+      Logger.info('LayerManager', 'Tagged GigaScreen document had no visible layers to convert');
+      return;
+    }
     const merged = new LayerClass(1, 'GigaScreen', false, this._nextLayerId++);
     for (let cellY = 0; cellY < ZX_SPECTRUM.GRID_ROWS; cellY++) {
       for (let cellX = 0; cellX < ZX_SPECTRUM.GRID_COLS; cellX++) {
@@ -2710,7 +2750,7 @@ class LayerManagerClass {
         const lists = [[], []];
         for (let i = 1; i < this.layers.length; i++) {
           const layer = this.layers[i];
-          if (!layer.visible || layer.isStamp) continue;
+          if (!layer.visible) continue;
           const cell = layer.getCell(cellX, cellY);
           if (cell && cell.altered) lists[tags[i] === 1 ? 1 : 0].push({ layer, cell, index: i });
         }
@@ -2727,11 +2767,12 @@ class LayerManagerClass {
         out.altered = true;
       }
     }
-    this.layers = bgLayer ? [bgLayer, merged] : [merged];
+    this.layers = bgLayer ? [bgLayer, merged, ...hidden] : [merged, ...hidden];
     this._layerIdMap.clear();
     this.layers.forEach(l => this._layerIdMap.set(l.id, l));
     this._reindexLayers();
-    Logger.info('LayerManager', 'Converted a tagged GigaScreen document to one two-screen layer');
+    Logger.info('LayerManager', 'Converted a tagged GigaScreen document to one two-screen layer'
+      + (hidden.length ? ` (${hidden.length} hidden layer(s) kept)` : ''));
   }
 
   /**

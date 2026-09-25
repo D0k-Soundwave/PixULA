@@ -265,3 +265,71 @@ test('hi-res pair: two schemes, four Paint colours, each painted as shown', asyn
         expect(swatchRGB, `slot ${slot} swatch`).toEqual(blends[slot]);
     }
 });
+
+/*
+ * Swap exchanges ink and paper on EACH screen from that screen's own pair.
+ * It used to read screen A only, so screen B came out with screen A's
+ * swapped colours - found by review 2026-09-25.
+ */
+test('Swap exchanges each screen\'s own ink and paper', async ({ page }) => {
+    await boot(page);
+    await selectMode(page, 'gigascreen');
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
+        const c = LayerManager.getCurrentLayer().getCell(12, 12);
+        c.pixels.fill(0xF0);
+        c.pixelsB.fill(0x0F);
+        c.ink = 2; c.paper = 7; c.bright = false; c.flash = false;
+        c.inkB = 4; c.paperB = 0; c.brightB = true; c.flashB = false;
+        c.altered = true;
+        LayerManager.composeToCanvas();
+    });
+    await page.click('#attr-transpose');
+    await dab(page, 12 * 8 + 3, 12 * 8 + 3);
+    const cell = await page.evaluate(() => {
+        const c = LayerManager.getCurrentLayer().getCell(12, 12);
+        return { ink: c.ink, paper: c.paper, bright: c.bright, inkB: c.inkB, paperB: c.paperB,
+            brightB: c.brightB, rowA: c.pixels[0], rowB: c.pixelsB[0] };
+    });
+    expect(cell).toEqual({ ink: 7, paper: 2, bright: false, inkB: 0, paperB: 4,
+        brightB: true, rowA: 0xF0, rowB: 0x0F });
+});
+
+/*
+ * The hi-res pair's scheme rows and Paint swatches follow a scheme change the
+ * rail did not make. An .hrg import and its undo both set the schemes through
+ * ColorManager, and the rail went on marking the old ones until an unrelated
+ * colour event - found by review 2026-09-25.
+ */
+test('hi-res pair: the rail follows an .hrg import and its undo', async ({ page }) => {
+    await boot(page);
+    page.on('dialog', (d) => d.accept()); // colour -> mono conversion warns
+    await selectMode(page, 'timex_hires_giga');
+    await page.waitForTimeout(200);
+    await page.click('#hires-scheme-row [data-scheme="1"]');
+    await page.click('#hires-scheme-row-b [data-scheme="1"]');
+
+    const marked = () => page.evaluate(() => ['#hires-scheme-row', '#hires-scheme-row-b'].map(sel => {
+        const on = document.querySelector(`${sel} [aria-checked="true"]`);
+        return on ? on.dataset.scheme : null;
+    }));
+    const paintShows = (slot) => page.locator(`#giga-slot-picker [data-slot="${slot}"]`)
+        .evaluate(el => getComputedStyle(el).backgroundColor.match(/\d+/g).slice(0, 3).map(Number));
+    const blends = () => page.evaluate(() => ColorManager.getGigaSlotRGB().map(c => Array.from(c)));
+
+    // Frame A on scheme 2, frame B on scheme 5: the scheme is the port
+    // byte's bits 3-5, the byte after each frame's bitmap
+    await page.evaluate(() => {
+        const H = SCREEN_MODES.TIMEX_HIRES;
+        const bytes = new Uint8Array(SCREEN_MODES.TIMEX_HIRES_GIGA.fileSize);
+        bytes[H.bitmapSize] = (2 << 3) | 6;
+        bytes[H.fileSize + H.bitmapSize] = (5 << 3) | 6;
+        TimexFormat.parseHrg(bytes.buffer);
+    });
+    expect(await marked(), 'rows mark the imported schemes').toEqual(['2', '5']);
+    expect(await paintShows(3), 'Paint shows the imported blend').toEqual((await blends())[3]);
+
+    await page.evaluate(() => UndoRedo.undo());
+    expect(await marked(), 'rows follow the undo').toEqual(['1', '1']);
+    expect(await paintShows(3), 'Paint follows the undo').toEqual((await blends())[3]);
+});

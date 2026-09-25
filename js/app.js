@@ -596,6 +596,14 @@ class AppClass {
             EventBus.emit(EVENTS.LAYER_ORDER);
         }
 
+        // Once the pixels are in: a Next palette saved unedited before
+        // 2026-09-23 moves to today's defaults unless the picture uses the
+        // entries that changed (ColorManager.upgradeLegacyNextDefaults).
+        if (data.nextRegisters) {
+            ColorManager.upgradeLegacyNextDefaults(LayerManager.usesPaletteIndices(
+                NEXTRGB333.FLASH_PAPER_FIRST, NEXTRGB333.FLASH_PAPER_LAST));
+        }
+
         if (data.slices) {
             await PresetService.applyCapturedSlices(data.slices);
         } else if (data.state) {
