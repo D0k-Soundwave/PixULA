@@ -278,6 +278,20 @@ class PNGFormatClass {
   }
 
   /**
+   * One cell in a two-screen mode (GigaScreen, MultiGigaScreen, the hi-res
+   * pair): its two attributes and both pixel planes, from GigaQuant. The
+   * import and the preview both come through here, so the preview IS the
+   * result. The hi-res pair has one scheme pair for the whole picture
+   * (hiresPick); every other two-screen mode chooses per cell.
+   * @returns {{pick:Object, result:Object}}
+   * @private
+   */
+  _gigaCell(hiresPick, decideRGB, cellRGB, dithering, w, h) {
+    const pick = hiresPick || GigaQuant.chooseCell(decideRGB);
+    return { pick, result: GigaQuant.renderCell(cellRGB, pick, dithering, w, h) };
+  }
+
+  /**
    * Apply an RGB image to the current layer, one attribute cell at a time.
    * Cell geometry comes from the active mode; in ULAplus mode the image
    * first GENERATES the document's 64-register palette (Image2ULAplus
@@ -328,10 +342,36 @@ class PNGFormatClass {
       paletteRGBs = Array.from(regs, (r) => ULAPLUS.registerToRGB(r));
     }
 
+    // The hi-res pair: its two schemes are document state, set inside this
+    // undo action so one Ctrl+Z restores them with the picture.
+    let hiresPick = null;
+    if (twoScreens && ACTIVE_SCREEN_MODE.paletteModel === 'timexMono') {
+      const schemes = GigaQuant.chooseHiresSchemes(imageData);
+      hiresPick = GigaQuant.hiresPick(schemes.inkA, schemes.inkB);
+      if (window.ColorManager) {
+        ColorManager.setTimexHiresInk(schemes.inkA);
+        ColorManager.setTimexHiresInkB(schemes.inkB);
+      }
+    }
+
     for (let cellY = 0; cellY < ZX_SPECTRUM.GRID_ROWS; cellY++) {
       for (let cellX = 0; cellX < ZX_SPECTRUM.GRID_COLS; cellX++) {
         const { cellRGB, decideRGB } =
           this._cellSamples(imageData, source, cellX, cellY, cw, ch);
+
+        // Two-screen modes: four steady colours per cell, both screens
+        // written (docs/superpowers/specs/2026-09-26-gigascreen-photo-import-design.md)
+        if (twoScreens) {
+          const { pick, result } =
+            this._gigaCell(hiresPick, decideRGB, cellRGB, dithering, cw, ch);
+          layer.setCell(cellX, cellY, {
+            ink: pick.a.ink, paper: pick.a.paper, bright: pick.a.bright, flash: false,
+            pixels: result.pixelsA,
+            inkB: pick.b.ink, paperB: pick.b.paper, brightB: pick.b.bright, flashB: false,
+            pixelsB: result.pixelsB
+          });
+          continue;
+        }
 
         let attrs, pixels;
         if (ulaplus) {
@@ -354,25 +394,13 @@ class PNGFormatClass {
           };
         }
 
-        const data = {
+        layer.setCell(cellX, cellY, {
           ink: attrs.ink,
           paper: attrs.paper,
           bright: attrs.bright,
           flash: attrs.flash,
           pixels: pixels
-        };
-        // Two-screen modes: the picture goes onto BOTH screens, solid, as
-        // entering GigaScreen does. Written to screen A alone, screen B kept
-        // whatever was there before - the old drawing, or blank paper that
-        // showed the photo at half strength.
-        if (twoScreens) {
-          data.inkB = attrs.ink;
-          data.paperB = attrs.paper;
-          data.brightB = attrs.bright;
-          data.flashB = attrs.flash;
-          data.pixelsB = pixels;
-        }
-        layer.setCell(cellX, cellY, data);
+        });
       }
     }
 
@@ -490,14 +518,22 @@ class PNGFormatClass {
       for (let i = 0; i < ZX_SPECTRUM.PALETTE_SIZE; i++) {
         nextRGB.push(NEXTRGB333.registerToRGB(regs[i]));
       }
-      return { scaled, source, nextRGB, paletteRGBs: null };
+      return { scaled, source, nextRGB, paletteRGBs: null, giga: false, hiresPick: null };
     }
 
     // ULAplus: preview the palette the import would generate, same rule
     const paletteRGBs = ACTIVE_SCREEN_MODE.paletteModel === 'ulaplus64'
       ? Array.from(this.buildUlaplusPalette(scaled), (r) => ULAPLUS.registerToRGB(r))
       : null;
-    return { scaled, source, nextRGB: null, paletteRGBs };
+    // Two-screen modes: the hi-res pair's schemes depend only on the scaled
+    // image, so they are chosen once here and shared by the three methods
+    const giga = ZX_SPECTRUM.SCREENS === 2;
+    let hiresPick = null;
+    if (giga && ACTIVE_SCREEN_MODE.paletteModel === 'timexMono') {
+      const schemes = GigaQuant.chooseHiresSchemes(scaled);
+      hiresPick = GigaQuant.hiresPick(schemes.inkA, schemes.inkB);
+    }
+    return { scaled, source, nextRGB: null, paletteRGBs, giga, hiresPick };
   }
 
   /**
@@ -531,6 +567,21 @@ class PNGFormatClass {
         // Same two samples as the import path, so the preview IS the result
         const { cellRGB, decideRGB } =
           this._cellSamples(scaled, source, cellX, cellY, cw, ch);
+
+        // Two-screen modes: the Average blend of the cell's steady slots,
+        // from the same _gigaCell the import writes with
+        if (prepared.giga) {
+          const { result } = this._gigaCell(prepared.hiresPick, decideRGB, cellRGB, dithering, cw, ch);
+          const start = ZX_COORDS.cellToPixel(cellX, cellY);
+          for (let dy = 0; dy < ch; dy++) {
+            for (let dx = 0; dx < cw; dx++) {
+              const rgb = result.slotRGB[result.slots[dy * cw + dx]];
+              const o = ((start.y + dy) * ZX_SPECTRUM.WIDTH + (start.x + dx)) * 4;
+              out[o] = rgb[0]; out[o + 1] = rgb[1]; out[o + 2] = rgb[2]; out[o + 3] = 255;
+            }
+          }
+          continue;
+        }
 
         let rows, inkRGB, paperRGB;
         if (paletteRGBs) {

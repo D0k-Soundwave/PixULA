@@ -51,6 +51,7 @@ loadModule('js/services/screen-mode-service.js');
 loadModule('js/services/selection-service.js');
 loadModule('js/services/transform-service.js');
 loadModule('js/utils/palette-ops.js');
+loadModule('js/utils/giga-quant.js');
 loadModule('js/io/scr-format.js');
 loadModule('js/io/multicolor-format.js');
 loadModule('js/io/gigascreen-format.js');
@@ -94,34 +95,62 @@ function seedFourSlots(layer) {
   });
 }
 
-// --- 1. Photo import fills both screens ----------------------------------
+// --- 1. Photo import: four steady colours per cell --------------------------
 
 {
   const layer = gigaDoc();
-  // Something different on screen B already, everywhere the photo will land
+  // Something different on screen B already, where the photo will land
   layer.setCell(0, 0, { ink: 0, paper: 7, bright: false, flash: false, pixels: rows(0),
     inkB: 4, paperB: 1, brightB: true, flashB: false, pixelsB: rows(0xFF) });
   const W = ZX_SPECTRUM.WIDTH, H = ZX_SPECTRUM.HEIGHT;
   const data = new Uint8ClampedArray(W * H * 4);
+  // A ramp between two neighbour colours: only mixes can show its middle
   for (let i = 0; i < W * H; i++) {
-    const x = i % W;
-    data.set(x < W / 2 ? [215, 0, 0, 255] : [215, 215, 215, 255], i * 4);
+    const t = (i % W) / (W - 1);
+    data.set([Math.round(215 * (1 - t)), 0, Math.round(215 * t), 255], i * 4);
   }
-  PNGFormat._applyToLayer({ width: W, height: H, data }, 'none', null);
-  let mismatch = null;
-  for (let cy = 0; cy < ZX_SPECTRUM.GRID_ROWS && !mismatch; cy++) {
-    for (let cx = 0; cx < ZX_SPECTRUM.GRID_COLS && !mismatch; cx++) {
+  const image = { width: W, height: H, data };
+  PNGFormat._applyToLayer(image, 'none', null);
+
+  let flicker = null, differ = false;
+  for (let cy = 0; cy < ZX_SPECTRUM.GRID_ROWS && !flicker; cy++) {
+    for (let cx = 0; cx < ZX_SPECTRUM.GRID_COLS && !flicker; cx++) {
       const c = layer.getCell(cx, cy);
-      if (c.inkB !== c.ink || c.paperB !== c.paper || c.brightB !== c.bright
-          || c.flashB !== c.flash || c.pixelsB.some((r, i) => r !== c.pixels[i])) {
-        mismatch = `${cx},${cy}`;
+      if (c.inkB !== c.ink || c.paperB !== c.paper
+          || c.pixelsB.some((r, i) => r !== c.pixels[i])) differ = true;
+      for (let y = 0; y < c.pixels.length; y++) {
+        for (let x = 0; x < 8; x++) {
+          const bitA = (c.pixels[y] >> (7 - x)) & 1, bitB = (c.pixelsB[y] >> (7 - x)) & 1;
+          const baseA = bitA ? c.ink : c.paper, baseB = bitB ? c.inkB : c.paperB;
+          if (!GigaQuant.isSteady(baseA, c.bright, baseB, c.brightB)) flicker = `${cx},${cy}`;
+        }
       }
     }
   }
-  check('a photo imported into GigaScreen lands on both screens', mismatch === null,
-    `screens differ at cell ${mismatch}`);
+  check('a photo imported into GigaScreen shows only steady mixes', flicker === null,
+    `flickering pixel in cell ${flicker}`);
+  check('the two screens are not simply copies of each other', differ);
   const c = layer.getCell(0, 0);
   check('the old screen-B drawing is gone', c.inkB !== 4 || c.pixelsB[0] !== 0xFF);
+
+  // The preview is exactly what the import wrote, seen through the Average blend
+  const flat = PNGFormat.quantizePreviewSet(image, { scaling: 'fit' }).find(s => s.id === 'flat').preview;
+  let mismatch = null;
+  for (let py = 0; py < H && !mismatch; py++) {
+    for (let px = 0; px < W && !mismatch; px++) {
+      const cell = layer.getCell(px >> 3, py >> 3);
+      const y = py & 7, bit = 7 - (px & 7);
+      const baseA = (cell.pixels[y] >> bit) & 1 ? cell.ink : cell.paper;
+      const baseB = (cell.pixelsB[y] >> bit) & 1 ? cell.inkB : cell.paperB;
+      const want = GigaQuant.blend(GigaQuant.colourRGB(baseA, cell.bright),
+        GigaQuant.colourRGB(baseB, cell.brightB));
+      const o = (py * W + px) * 4;
+      if (flat.data[o] !== want[0] || flat.data[o + 1] !== want[1] || flat.data[o + 2] !== want[2]) {
+        mismatch = `${px},${py}`;
+      }
+    }
+  }
+  check('the Flat preview is exactly the imported picture', mismatch === null, `differs at ${mismatch}`);
 }
 
 // --- 2. Invert inverts each screen -----------------------------------------
