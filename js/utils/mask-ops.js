@@ -202,25 +202,42 @@ const MaskOps = {
     boundaryPoints(points, w, h) {
         if (!points || !points.length || !w || !h) return [];
 
-        const inSet = new Set();
+        // Membership is a flat byte grid, reused across calls and left all
+        // zero after each: this runs on every pointer move of a stroke, and a
+        // Set hashed each of a size-128 disc's ~12,800 members five times.
+        // `keys` keeps first-seen order, the order the Set iterated in, so
+        // the output is unchanged.
+        const size = w * h;
+        let grid = MaskOps._boundaryGrid;
+        if (!grid || grid.length < size) grid = MaskOps._boundaryGrid = new Uint8Array(size);
+
+        const keys = [];
         for (let i = 0; i < points.length; i++) {
             const p = points[i];
-            if (p.x >= 0 && p.x < w && p.y >= 0 && p.y < h) inSet.add(p.y * w + p.x);
+            if (p.x >= 0 && p.x < w && p.y >= 0 && p.y < h) {
+                const k = p.y * w + p.x;
+                if (!grid[k]) { grid[k] = 1; keys.push(k); }
+            }
         }
 
         const out = [];
-        for (const k of inSet) {
+        for (let i = 0; i < keys.length; i++) {
+            const k = keys[i];
             const x = k % w;
             const y = (k - x) / w;
             const interior =
-                x > 0     && inSet.has(k - 1) &&
-                x < w - 1 && inSet.has(k + 1) &&
-                y > 0     && inSet.has(k - w) &&
-                y < h - 1 && inSet.has(k + w);
+                x > 0     && grid[k - 1] &&
+                x < w - 1 && grid[k + 1] &&
+                y > 0     && grid[k - w] &&
+                y < h - 1 && grid[k + w];
             if (!interior) out.push({ x, y });
         }
+        for (let i = 0; i < keys.length; i++) grid[keys[i]] = 0;
         return out;
     },
+
+    /** @private boundaryPoints' reusable membership grid (all zero between calls). */
+    _boundaryGrid: null,
 
     /**
      * Apply the text tool's post-processing chain in canonical order:
