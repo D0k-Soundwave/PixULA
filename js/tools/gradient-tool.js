@@ -954,7 +954,10 @@ class GradientToolClass extends ToolBase {
     if (seedX < 0 || seedX >= ZX_SPECTRUM.WIDTH || seedY < 0 || seedY >= ZX_SPECTRUM.HEIGHT) return region;
     const startState = PixelDrawRoutine.getPixelState(seedX, seedY);
     if (!startState) return region;
-    const targetIsInk = startState.isInk;
+    // The same region the fill tool floods (PixelDrawRoutine.regionKey):
+    // matching ink/paper alone ran across GigaScreen blends and indexed
+    // colours the artist sees as different.
+    const targetKey = PixelDrawRoutine.regionKey(startState);
     const encode = (x, y) => (y << 16) | x;
     const stack = [encode(seedX, seedY)];
     while (stack.length > 0) {
@@ -963,7 +966,7 @@ class GradientToolClass extends ToolBase {
       const x = key & 0xFFFF, y = key >> 16;
       if (x < 0 || x >= ZX_SPECTRUM.WIDTH || y < 0 || y >= ZX_SPECTRUM.HEIGHT) continue;
       const state = PixelDrawRoutine.getPixelState(x, y);
-      if (!state || state.isInk !== targetIsInk) continue;
+      if (!state || PixelDrawRoutine.regionKey(state) !== targetKey) continue;
       region.add(key);
       stack.push(encode(x + 1, y), encode(x - 1, y), encode(x, y + 1), encode(x, y - 1));
     }

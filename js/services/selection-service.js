@@ -503,7 +503,6 @@ class SelectionServiceClass {
 
     const color = ColorManager.getCurrentSelection();
     const { x, y, width, height, mask } = this.selection;
-    const giga = ZX_SPECTRUM.SCREENS === 2;
 
     PixelDrawRoutine.beginBatch();
 
@@ -514,18 +513,8 @@ class SelectionServiceClass {
           const pixelX = x + px;
           const pixelY = y + py;
           if (!Validators.isValidPixelCoord(pixelX, pixelY)) continue;
-          if (giga) {
-            const target = GIGA_SLOTS.INK_INK - layer.getPixelSlot(pixelX, pixelY);
-            if (target === GIGA_SLOTS.PAPER_PAPER) {
-              PixelDrawRoutine.draw(pixelX, pixelY, color, DRAW_MODE.ERASE);
-            } else {
-              PixelDrawRoutine.draw(pixelX, pixelY, { ...color, gigaSlot: target }, DRAW_MODE.NORMAL);
-            }
-            continue;
-          }
-          const isInk = layer.getPixelState(pixelX, pixelY);
-          const mode = isInk ? DRAW_MODE.ERASE : DRAW_MODE.NORMAL;
-          PixelDrawRoutine.draw(pixelX, pixelY, color, mode);
+          const w = PixelDrawRoutine.invertWrite(layer, pixelX, pixelY, color);
+          PixelDrawRoutine.draw(pixelX, pixelY, w.sel, w.mode);
         }
       }
     });
@@ -1591,11 +1580,8 @@ class SelectionServiceClass {
             const xorKey = targetLayer.id + ':' + (cy * ZX_SPECTRUM.WIDTH + cx);
             if (this._xorStampToggled.has(xorKey)) continue;
             this._xorStampToggled.add(xorKey);
-            if (targetLayer.getPixelState(cx, cy)) {
-              PixelDrawRoutine.draw(cx, cy, color, DRAW_MODE.ERASE, { layer: targetLayer });
-            } else {
-              PixelDrawRoutine.draw(cx, cy, color, DRAW_MODE.NORMAL, { layer: targetLayer });
-            }
+            const inv = PixelDrawRoutine.invertWrite(targetLayer, cx, cy, color);
+            PixelDrawRoutine.draw(cx, cy, inv.sel, inv.mode, { layer: targetLayer });
           }
         }
         return;
@@ -1753,11 +1739,8 @@ class SelectionServiceClass {
             if (!row[px]) continue;
             const cx = x + px, cy = y + py;
             if (!Validators.isValidPixelCoord(cx, cy)) continue;
-            if (target.getPixelState(cx, cy)) {
-              PixelDrawRoutine.draw(cx, cy, color, DRAW_MODE.ERASE, { layer: target });
-            } else {
-              PixelDrawRoutine.draw(cx, cy, color, DRAW_MODE.NORMAL, { layer: target });
-            }
+            const inv = PixelDrawRoutine.invertWrite(target, cx, cy, color);
+            PixelDrawRoutine.draw(cx, cy, inv.sel, inv.mode, { layer: target });
           }
         }
       } else {
@@ -1948,13 +1931,12 @@ class SelectionServiceClass {
             const stampX = px - x;
             if (stampX < 0 || stampX >= width) continue;
             if (!row[stampX]) continue;
-            writes.push({
-              localX: lx,
-              localY: ly,
-              mode: floatingLayer.xorMode
-                ? (writeLayer.getPixelState(px, py) ? DRAW_MODE.ERASE : DRAW_MODE.NORMAL)
-                : mode
-            });
+            if (floatingLayer.xorMode) {
+              const inv = PixelDrawRoutine.invertWrite(writeLayer, px, py, colorSelection);
+              writes.push({ localX: lx, localY: ly, mode: inv.mode, sel: inv.sel });
+            } else {
+              writes.push({ localX: lx, localY: ly, mode });
+            }
           }
         }
 

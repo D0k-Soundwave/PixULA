@@ -56,8 +56,19 @@ loadModule('js/io/multicolor-format.js');
 loadModule('js/io/gigascreen-format.js');
 loadModule('js/io/gif-format.js');
 loadModule('js/io/png-format.js');
+global.PatternService = global.PatternService || {
+  getCurrentPattern() { return null; }, getCurrentPatternData() { return null; },
+  shouldDrawPixel() { return true; }
+};
+global.GridOverlay = global.GridOverlay || {
+  drawCompositorPreview() {}, clearFunctionPreview() {}, drawPreviewPixels() {}
+};
 loadModule('js/tools/tool-base.js');
 loadModule('js/tools/fill-tool.js');
+loadModule('js/tools/gradient-tool.js');
+loadModule('js/data/zx-rom-font.js');
+loadModule('js/utils/font-codec.js');
+loadModule('js/services/font-service.js');
 
 ColorManager.initialize();
 
@@ -186,6 +197,68 @@ function seedFourSlots(layer) {
   ColorManager.setPaper(7);
   ColorManager.setInkB(0);
   ColorManager.setPaperB(7);
+}
+
+// --- 2b. The sweep after the review (2026-09-26) --------------------------
+
+{
+  // A fill's region is one BLEND, and filling a blend with another is a real
+  // change. It matched "any ink", so it ran across blends, and the "already
+  // ink" shortcut made filling slot 2 with slot 1 do nothing at all.
+  const layer = gigaDoc();
+  seedFourSlots(layer); // x = 0..3 show slots 0, 1, 2, 3
+  const fill = new FillTool();
+  ColorManager.setGigaSlot(GIGA_SLOTS.PAPER_INK);
+  fill._floodFill(2, 0, false);
+  check('fill turns the clicked blend into the Paint blend',
+    layer.getPixelSlot(2, 0) === GIGA_SLOTS.PAPER_INK, `slot ${layer.getPixelSlot(2, 0)}`);
+  check('fill stops at a different blend beside it',
+    layer.getPixelSlot(3, 0) === GIGA_SLOTS.INK_INK, `slot ${layer.getPixelSlot(3, 0)}`);
+
+  const before = UndoRedo.undoStack.length;
+  ColorManager.setGigaSlot(GIGA_SLOTS.INK_INK);
+  fill._floodFill(3, 0, false);
+  check('filling a blend with itself does nothing', UndoRedo.undoStack.length === before);
+
+  // The gradient's fill region is the same region
+  const grad = new GradientTool();
+  const region = grad._getFloodFillRegion(1, 0);
+  const has = (x, y) => region.has((y << 16) | x);
+  check('the gradient\'s fill region is one blend too',
+    has(1, 0) && has(2, 0) && !has(3, 0) && !has(0, 0),
+    `region of ${region.size}: ${[0, 1, 2, 3].map(x => has(x, 0) ? 1 : 0).join('')}`);
+  ColorManager.setGigaSlot(GIGA_SLOTS.PAPER_PAPER);
+}
+
+{
+  // A stamp's own XOR checkbox inverts each screen, in the commit and in the
+  // preview. It used to erase any pixel inked on either screen.
+  const layer = gigaDoc();
+  seedFourSlots(layer);
+  SelectionService.startFloatingPasteFromMask([[1, 1, 1, 1]], 4, 1, 0, 0, 'Place', null, 'none');
+  const stamp = SelectionService.floatingPaste.floatingLayer;
+  LayerManager.setLayerXorMode(stamp.index, true);
+  SelectionService.moveStampPreview(2, 0); // re-draws the preview at (0, 0)
+  check('the XOR stamp preview shows each screen inverted',
+    slotsAt(stamp, [0, 1, 2, 3], 0).join() === '3,2,1,0', slotsAt(stamp, [0, 1, 2, 3], 0).join());
+  PixelDrawRoutine.beginBatch();
+  SelectionService.stampAt(stamp);
+  PixelDrawRoutine.endBatch();
+  check('stamping with XOR inverts each screen (0,1,2,3 -> 3,2,1,0)',
+    slotsAt(layer, [0, 1, 2, 3], 0).join() === '3,2,1,0', slotsAt(layer, [0, 1, 2, 3], 0).join());
+  SelectionService.cancelFloatingPaste();
+}
+
+{
+  // A font glyph captured from the canvas is every pixel either screen inks
+  const layer = gigaDoc();
+  layer.setCell(0, 0, { ink: 2, paper: 7, bright: false, flash: false, pixels: rows(0xF0),
+    inkB: 1, paperB: 7, brightB: false, flashB: false, pixelsB: rows(0x0F) });
+  const code = 65;
+  FontService.captureGlyphFromCanvasCell(0, 0, code);
+  const glyph = FontService.getGlyph(code);
+  check('a captured glyph holds the ink of both screens',
+    glyph && glyph[0] === 0xFF, glyph && `row 0 = ${glyph[0].toString(16)}`);
 }
 
 // --- 3. Clearing both screens of an empty cell changes nothing -----------
