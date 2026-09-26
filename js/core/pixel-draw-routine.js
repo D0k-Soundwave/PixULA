@@ -936,7 +936,9 @@ class PixelDrawRoutineClass {
    * @param {Layer} layer - the layer the write would land on
    * @param {number} cellX
    * @param {number} cellY
-   * @param {Array<{localX: number, localY: number, mode: string}>} writes
+   * @param {Array<{localX: number, localY: number, mode: string, sel?: Object}>} writes
+   *   - `sel` overrides colorSelection for that one write (an inversion's
+   *   per-pixel GigaScreen blend)
    * @param {Object} colorSelection
    * @returns {Object|null} the modified COPY of the cell, or null out of bounds
    */
@@ -963,7 +965,7 @@ class PixelDrawRoutineClass {
     for (let i = 0; i < writes.length; i++) {
       const w = writes[i];
       this._applyToCell(layer, clone, cellX, cellY, w.localX, w.localY,
-        colorSelection, w.mode, eraseStroke, true, shownStroke);
+        w.sel || colorSelection, w.mode, eraseStroke, true, shownStroke);
     }
     return clone;
   }
@@ -1279,6 +1281,46 @@ class PixelDrawRoutineClass {
   _emitModified(cells) {
     EventBus.emit(EVENTS.CANVAS_DIRTY, { cells });
     StateManager.markModified();
+  }
+
+  /**
+   * What makes two pixels "the same colour" for a flood region - the fill
+   * and the gradient's fill both compare this. Indexed modes compare the
+   * palette index; GigaScreen compares the blend (slot), since the three
+   * inked blends are three colours the artist can see; everything else is
+   * ink or paper.
+   * @param {Object} state - from getPixelState
+   * @returns {number|boolean}
+   */
+  regionKey(state) {
+    if (state.index !== undefined) return state.index;
+    if (state.slot !== undefined) return state.slot;
+    return state.isInk;
+  }
+
+  /**
+   * The write that INVERTS one pixel of a layer - shared by Invert Selection
+   * and a stamp's own XOR checkbox. Ink becomes paper (ERASE: the cell keeps
+   * its colours) and paper becomes ink in the given colours. GigaScreen
+   * inverts each screen on its own, so blend s becomes 3 - s and inverting
+   * twice gives the picture back.
+   * @param {Layer} layer
+   * @param {number} pixelX
+   * @param {number} pixelY
+   * @param {Object} colorSelection
+   * @returns {{mode: string, sel: Object}}
+   */
+  invertWrite(layer, pixelX, pixelY, colorSelection) {
+    if (ZX_SPECTRUM.SCREENS === 2) {
+      const target = GIGA_SLOTS.INK_INK - layer.getPixelSlot(pixelX, pixelY);
+      return target === GIGA_SLOTS.PAPER_PAPER
+        ? { mode: DRAW_MODE.ERASE, sel: colorSelection }
+        : { mode: DRAW_MODE.NORMAL, sel: { ...colorSelection, gigaSlot: target } };
+    }
+    return {
+      mode: layer.getPixelState(pixelX, pixelY) ? DRAW_MODE.ERASE : DRAW_MODE.NORMAL,
+      sel: colorSelection
+    };
   }
 
   /**

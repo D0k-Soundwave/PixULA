@@ -134,26 +134,29 @@ class FillToolClass extends ToolBase {
       if (targetIndex === replacement) return; // nothing to do
     }
 
-    // Determine if we're filling ink or paper areas
-    const targetIsInk = startState.isInk;
-    const matches = indexed
-      ? (state) => state.index === targetIndex
-      : (state) => state.isInk === targetIsInk;
-
-    // If trying to fill with the same state, nothing to do. Only meaningful for
-    // plain NORMAL/ERASE — the other modes (xor/pixel_only/paper) still change
-    // a same-state region, so the guard is skipped for them.
-    if (!indexed && StateManager.getDrawMode() === 'normal') {
-      if (targetIsInk && !isErase) {
-        return;
-      }
-      if (!targetIsInk && isErase) {
-        return;
-      }
-    }
+    // The region is every connected pixel of the start pixel's colour: its
+    // palette index, its GigaScreen blend, or ink/paper (regionKey). In
+    // GigaScreen the three inked blends are three colours, so matching "any
+    // ink" flooded across blends the artist could see were different.
+    const targetKey = PixelDrawRoutine.regionKey(startState);
+    const matches = (state) => PixelDrawRoutine.regionKey(state) === targetKey;
 
     const mode = PixelDrawRoutine.resolveUserMode(!isErase);
     const color = ColorManager.getCurrentSelection();
+
+    // If trying to fill with the same state, nothing to do. Only meaningful for
+    // plain NORMAL/ERASE — the other modes (xor/pixel_only/paper) still change
+    // a same-state region, so the guard is skipped for them. In GigaScreen the
+    // state a fill writes is a blend - the Paint slot, or paper on both
+    // screens for the right button - so a region is "already filled" only when
+    // it shows that blend; filling one blend with another changes pixels.
+    if (!indexed && StateManager.getDrawMode() === 'normal') {
+      const written = startState.slot !== undefined
+        ? (isErase ? GIGA_SLOTS.PAPER_PAPER
+          : (color.gigaSlot != null ? color.gigaSlot : GIGA_SLOTS.INK_INK))
+        : !isErase;
+      if (targetKey === written) return;
+    }
 
     // Non-contiguous fill: replace ALL pixels matching the target state
     if (!this._contiguous) {

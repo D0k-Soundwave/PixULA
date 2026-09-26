@@ -337,7 +337,14 @@ class FontServiceClass {
         const y = clamp(cellY | 0, 0, rows - 1);
         const cell = LayerManager.flattenVisible().getCell(x, y);
         const { h } = this.getGlyphSize();
-        return this.setGlyph(code, cell ? cell.pixels : new Uint8Array(h));
+        if (!cell) return this.setGlyph(code, new Uint8Array(h));
+        // GigaScreen: a pixel is marked when EITHER screen shows ink there,
+        // as for every other 1-bit reading of the canvas. Screen A alone
+        // captured a glyph drawn in a screen-B-only blend as blank.
+        if (cell.pixelsB) {
+            return this.setGlyph(code, cell.pixels.map((row, i) => row | cell.pixelsB[i]));
+        }
+        return this.setGlyph(code, cell.pixels);
     }
 
     // ── Document load/save shape ───────────────────────────────────────────
