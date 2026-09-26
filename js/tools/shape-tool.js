@@ -185,6 +185,11 @@ class ShapeToolClass extends ToolBase {
    * @param {number} pixelY - Y coordinate (0-191)
    * @param {PointerEvent} e - Pointer event
    */
+  /** The drag only redraws the preview: last sample only (ToolBase). */
+  get coalescesPointerMoves() {
+    return true;
+  }
+
   onPointerMove(pixelX, pixelY, e) {
     if (!this.isDrawing || !this.startPoint) return;
 
