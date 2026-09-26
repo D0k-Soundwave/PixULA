@@ -274,7 +274,7 @@ class GridOverlayClass {
     /**
      * Resize the grid wrapper to the picture's display size at the current
      * zoom. Grid canvases live OUTSIDE the CSS-scaled canvas-container so they
-     * can render at the actual on-screen pixel size — this is what makes
+     * can render at the actual on-screen pixel size - this is what makes
      * sub-pixel grid lines possible. The canvases themselves are sized by
      * _renderGrid, and only while visible.
      * @private
