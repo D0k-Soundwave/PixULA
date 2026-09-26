@@ -156,6 +156,46 @@ test('old versions are pruned to the keep count, newest kept', async ({ page }) 
     expect(kept).toEqual([6, 5, 4]);
 });
 
+/**
+ * A write lists the folder ONCE and opens no file to do it. Listing used to
+ * open every entry with getFile() for a size and date nothing read, and did
+ * it twice per write (numbering, then prune) - every file in the folder,
+ * backups or not, twice a minute (docs/FIGURES.md section 8, 2026-09-26).
+ */
+test('a write lists the folder once and opens none of its files', async ({ page }) => {
+    await boot(page);
+    await useFakeFolder(page);
+
+    const r = await page.evaluate(async () => {
+        await BackupService.setKeepVersions(20);
+        for (let i = 1; i <= 20; i++) window.__files.set(`Castle V${i}.pixula`, new Uint8Array([1]));
+        for (let i = 0; i < 30; i++) window.__files.set(`holiday-${i}.jpg`, new Uint8Array([1]));
+
+        let listings = 0, opened = 0;
+        const entries = window.__dir.entries;
+        window.__dir.entries = async function* () {
+            listings++;
+            for await (const [name, handle] of entries.call(this)) {
+                const getFile = handle.getFile;
+                handle.getFile = async () => { opened++; return getFile(); };
+                yield [name, handle];
+            }
+        };
+
+        const written = await BackupService.writeVersion(App._getProjectData(), 'Castle');
+        const versions = [...window.__files.keys()].filter((n) => n.startsWith('Castle V'))
+            .map((n) => Number(n.match(/V(\d+)/)[1])).sort((a, b) => a - b);
+        return { written, listings, opened, lowest: versions[0], count: versions.length };
+    });
+
+    expect(r.written).toBe('Castle V21.pixula');
+    expect(r.listings).toBe(1);
+    expect(r.opened).toBe(0);
+    // ...and the one listing still prunes correctly: V1 went, 20 remain
+    expect(r.lowest).toBe(2);
+    expect(r.count).toBe(20);
+});
+
 test('keep = 0 keeps every version', async ({ page }) => {
     await boot(page);
     await useFakeFolder(page);

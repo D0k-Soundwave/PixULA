@@ -845,7 +845,10 @@ class InputHandlerClass {
     const tool = this._strokeTool || ToolManager.getCurrentTool();
     if (!tool) return;
 
-    for (let i = 0; i < events.length; i++) {
+    // A preview-only tool sees just where the pointer ended up (see
+    // ToolBase.coalescesPointerMoves); every other tool gets every sample.
+    const first = tool.coalescesPointerMoves ? events.length - 1 : 0;
+    for (let i = first; i < events.length; i++) {
       const sample = events[i];
       const samplePoint = this._getCanvasPoint(sample);
 

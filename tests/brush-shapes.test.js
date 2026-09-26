@@ -84,6 +84,30 @@ check('discOffsets: same cells as disc(), centred on floor(size/2)', SIZES.every
   return sig(rebuilt) === sig(BrushShapes.disc(s));
 }));
 
+// discOffsets is memoised (the eraser asks at every point of a drag, and at
+// size 128 each call used to build ~12,800 objects). The memo must hand back
+// the SAME answer a fresh build would, must not be mutable by a caller - every
+// caller shares it - and must not outlive the override table it was built from.
+const offsetSig = offs => offs.map(o => o.dx + ',' + o.dy).join(' ');
+check('discOffsets: a repeat call returns the same memoised array',
+  [1, 8, 32, 128].every(s => BrushShapes.discOffsets(s) === BrushShapes.discOffsets(s)));
+check('discOffsets: the memo matches a fresh build',
+  [1, 2, 3, 8, 17, 32, 128].every(s =>
+    offsetSig(BrushShapes.discOffsets(s)) ===
+    offsetSig(BrushShapes.maskOffsets(BrushShapes.disc(s), s))));
+check('discOffsets: the shared array and its offsets are frozen', (() => {
+  const offs = BrushShapes.discOffsets(16);
+  return Object.isFrozen(offs) && offs.every(o => Object.isFrozen(o));
+})());
+check('discOffsets: a replaced override table is never served a stale disc', (() => {
+  const plain = BrushShapes.discOffsets(8).length;
+  window.BRUSH_SHAPE_OVERRIDES = { masks: { 8: [{ dx: 0, dy: 0 }] }, excludedSizes: [] };
+  const overridden = BrushShapes.discOffsets(8).length;
+  delete window.BRUSH_SHAPE_OVERRIDES;
+  const restored = BrushShapes.discOffsets(8).length;
+  return plain > 1 && overridden === 1 && restored === plain;
+})());
+
 check('square: solid size x size', SIZES.every(s => count(BrushShapes.square(s)) === s * s));
 
 check('boxOffsets: the whole box, centred', SIZES.every(s =>

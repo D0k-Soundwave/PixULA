@@ -33,7 +33,9 @@ class EraserToolClass extends ToolBase {
   onPointerDown(pixelX, pixelY, e) {
     this.isDrawing = true;
     this.lastPoint = { x: pixelX, y: pixelY };
-    this._strokePixels = new Set();
+    // One byte per canvas pixel: a flat array lookup, where a Set of ints
+    // hashed every one of a big disc's ~12,800 pixels at every step.
+    this._strokePixels = new Uint8Array(ZX_SPECTRUM.WIDTH * ZX_SPECTRUM.HEIGHT);
 
     PixelDrawRoutine.beginBatch();
 
@@ -122,8 +124,8 @@ class EraserToolClass extends ToolBase {
       if (x < 0 || y < 0 || x >= W || y >= H) continue;
       if (seen) {
         const key = y * W + x;
-        if (seen.has(key)) continue;
-        seen.add(key);
+        if (seen[key]) continue;
+        seen[key] = 1;
       }
       // ERASE_ALL, not ERASE: a later stroke over a cell this one emptied
       // resets its attributes too, which the primitive never does. The right

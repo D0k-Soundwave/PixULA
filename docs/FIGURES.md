@@ -403,9 +403,11 @@ over the full history). These are throughputs that were *observed*.
 **Instrument.** `tools/perf-bench.js` - boots the real app in the harness's
 Chrome over `file://`, times each path over enough repetitions to clear
 Chrome's ~0.1 ms `performance.now()` clamp, and reports the median of 15
-samples after 3 warmup passes. `tools/boot-bench.js` is its cold-boot sibling.
-Both are instruments, not tests; re-run them rather than trusting the numbers
-below after any change to the compose path.
+samples after 3 warmup passes. `tools/boot-bench.js` is its cold-boot sibling,
+and `tools/speed-bench.js` (added 2026-09-26) times drags, sliders, zoom steps
+and autosave through the real input pipeline. All three are instruments, not
+tests; re-run them rather than trusting the numbers below after any change to
+the paths they time.
 
 **Conditions.** Baseline and optimised were measured BACK TO BACK in one
 session, because an earlier baseline taken hours before gave 17.21 ms where the
@@ -473,6 +475,62 @@ the half-frame budget is the worst case of a full-canvas gradient drag, which
 was already at 7.6 ms before the change, and the gradient tool coalesces its
 preview to one pass per animation frame.
 
+### Interaction speed pass - measured 2026-09-26
+
+A sweep of what runs per pointer move, per slider tick, per zoom step and per
+autosave, rather than per compose. Instrument `tools/speed-bench.js`: it drives
+the real input pipeline with synthetic PointerEvents, each move carrying the 16
+coalesced samples a 1000 Hz mouse delivers per 60 Hz frame. Before is a
+`git archive` of `e87a26a`; before and after were measured in ONE sitting, in
+the order before, after, before, after, and both runs are given. The machine is
+a cloud container with no GPU (headless Chromium 1194).
+
+**Software canvas** (Chromium's default without a GPU):
+
+| Path | Before | After | Tag | Change |
+|---|---|---|---|---|
+| Marquee drag over busy artwork, per move | 63.1 / 60.9 ms | 0.29 / 0.30 ms | M | coalesced samples + one masked fill |
+| Marquee preview, full canvas | 15.7 / 15.6 ms | 0.28 / 0.29 ms | M | one masked fill, not a fillRect per pixel |
+| Filled-rectangle drag, per move | 88.0 / 85.2 ms | 8.1 / 7.6 ms | M | the shape tool takes the last coalesced sample |
+| Eraser size 128, full-width drag | 797 / 815 ms | 261 / 250 ms | M | memoised disc, byte-grid dedupe, byte-grid `boundaryPoints` |
+| Rotate-image slider, per tick, full canvas | 63.1 / 66.9 ms | 25.6 / 27.7 ms | M | batched writes, source mask drawn once per snapshot |
+| Grid backing store at 1600%, DPR 2, all grids off | 1208 MB | 0 MB | M | only visible grids own a canvas |
+| ...and the zoom step that allocates it | 777 / 742 ms | 0.4 / 0.2 ms | M | |
+| Grid backing store at 1600%, DPR 2, cell grid on | 1208 MB | 201 MB | M | no hidden grids, no cache copies |
+| ...and its zoom step | 824 / 780 ms | 127 / 122 ms | M | |
+| Autosave capture, 3000x2000 reference loaded, every tick after the first | 157 / 142 ms | 16.6 / 16.0 ms | M | the reference's JPEG encode is cached per image |
+| Autosave capture, first tick after loading the reference | 144 / 183 ms | 189 / 164 ms | M | unchanged, and should be: it still encodes once |
+
+**Accelerated canvas** (the same build with `--use-angle=swiftshader`, so the
+canvas takes the GPU path on an emulated GPU). This is the only way to see the
+per-upload cost on this machine, but SwiftShader runs the GPU on the CPU and
+inflates every draw call, so read these for direction, not magnitude - a real
+GPU sits somewhere between the two tables:
+
+| Path | Before | After | Tag |
+|---|---|---|---|
+| Render pass, 165 dirty 8x1 cells (one size-32 stamp) | 1.31 / 1.21 ms | 0.090 / 0.085 ms | M |
+| Render pass, 2 dirty cells in opposite corners | 0.040 / 0.050 ms | 0.065 / 0.055 ms | M |
+| Marquee drag, per move | 1177 / 1178 ms | 0.23 / 0.35 ms | M |
+| Rotate-image slider, per tick | 725 / 713 ms | 32.9 / 33.3 ms | M |
+| Idle editor, animation frames requested per second | 60 / 60.5 | 0 / 0 | M |
+
+The corner row is the one-upload box's worst case: it re-sends every clean pixel
+between two far-apart cells. It costs +0.015 ms (C: 0.060 - 0.045 means), inside
+the drift of the rows around it, against 1.2 ms saved on an ordinary stroke.
+
+Every change was checked for identical output, not only for speed: the marquee
+preview canvas, the grid canvases (DPR 1 and 2, three modes, three zooms, after
+a theme change) and the rotated layer data (four modes, with and without a
+selection, including the undo stack) are byte-identical before and after, and
+the eraser's output is pinned by `tests/tool-footprint.test.js`.
+
+What is left in the eraser drag (CPU profile of the after tree, one drag): about
+120 ms walking all 12,796 offsets of the disc at every step, most of which the
+previous step already cleared, and about 57 ms building the per-move hover
+footprint. Stamping only the leading edge of each step would take most of the
+first; it is a rewrite of the stroke, so it was not part of this pass.
+
 ### What was measured and NOT acted on
 
 | Path | Figure | Tag | Why it was left |
@@ -483,9 +541,15 @@ preview to one pass per animation frame.
 | DOMContentLoaded, all 13 locale tables eager | 51.9 ms | M | All 13 locales load as `<script>` at boot; 12 are never read. 777 KB of 3.05 MB of app JS (C) |
 | DOMContentLoaded, 12 locales lazy-injected | 48.6 ms | M | **3.3 ms, 6.4%.** Implemented, measured, and REVERTED: it makes `I18n.setLocale` asynchronous - a trap for any future caller or test asserting on translated text straight after a switch - and 3.3 ms does not buy that. Recorded here so the decision does not have to be rediscovered. Revisit if the app is ever targeted at storage slower than this machine's |
 | Indexed stacking, top-down with early exit | 13.04 -> 16.82 ms | M | Tried as an optimisation and it was SLOWER. Upper layers are mostly transparent in any real document, so the early exit almost never fires and the per-pixel "already decided" test is pure overhead. Reverted; the reason is recorded in `_composeIndexedCellData` so it is not tried again |
+| Reference-layer slider, the IndexedDB save on every `input` tick (2026-09-26) | 0.029 ms a tick | M | Debouncing it would open a window in which a quick reload loses the last value, to save 0.03 ms |
+| `TransformPanel._sync` on every `CANVAS_RENDER` (2026-09-26) | 1.4 us a frame | M | Two lookups and two no-op writes in the usual no-stamp case. Nothing to win |
+| Boot: preset slots (24 keyed reads, the 2026-08-07 slot-drop migration included) and tool presets (28 keyed reads) (2026-09-26) | 4 ms + 4 ms | M | Read key by key on purpose - the localStorage fallback cannot enumerate a store, and a record is filed by its key, which `getAll()` does not return. Running them in parallel would change what a failed read part-way through leaves applied, for about 8 ms |
+| Boot: the Patterns panel draws its 62 thumbnails while hidden (2026-09-26) | 3.7 ms of drawing, 4.6 ms wall | M | Asynchronous and not awaited by boot, so it is not on the path to `data-app-ready`. Deferring it to first show would leave the panel empty for anything that looks at it before then |
+| Autosave: skip a tick when nothing changed since the last one (2026-09-26) | not built | - | The autosave captures layer, palette, reference and tool state, not only pixels, and not all of those set FileManager's unsaved flag. A change counter tied to that flag could silently leave a change out of the crash-recovery record. The per-tick cost is now 16 ms (the table above), once a minute at most |
 
-Two of the seven rows above are things that looked like optimisations and were
-not. That is the point of measuring first.
+Two of the rows above are things that looked like optimisations and were not,
+and four more are costs that turned out too small to be worth the change they
+would need. That is the point of measuring first.
 
 ---
 
