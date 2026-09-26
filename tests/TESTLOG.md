@@ -120,7 +120,7 @@ browser smoke matrix — run against the old app at `H:\smsh` side by side.
 - [ ] Left-click swatch sets ink (+bright by row); right-click sets paper
 - [ ] Double-click ink transparent; shift-double-click / double-right-click paper transparent
 - [ ] Flash checkbox round-trips; wells + swatch rings track eyedropper picks
-- [x] INK ◀/▶ and PAP ◀/▶ cycle attributes on written cells — REMOVED 2026-07-08: cycle buttons dropped from the UI by decision (no real use); `TransformService.cycleLayerInk/Paper` and the i18n keys retained for potential re-add
+- [x] INK ◀/▶ and PAP ◀/▶ cycle attributes on written cells — REMOVED 2026-07-08: cycle buttons dropped from the UI by decision (no real use); the i18n keys retained for potential re-add; `TransformService.cycleLayerInk/Paper` deleted 2026-09-26 by decision (unreachable, and single-screen in GigaScreen)
 - [x] Swap/Apply buttons inert (input handler lands Phase 5 — expected) — SUPERSEDED by Phase 5: they now engage attr-paint mode, covered by input-mouse.spec
 - [ ] Border dropdown previews around canvas + persists; feeds tape export default
 
