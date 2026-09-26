@@ -483,7 +483,7 @@ class OptionControlsClass {
         ta.rows = entry.rows || 3;
         if (entry.placeholderI18n) {
             ta.dataset.i18nPlaceholder = entry.placeholderI18n;
-            ta.placeholder = t(entry.placeholderI18n, 'Type text here…');
+            ta.placeholder = t(entry.placeholderI18n, 'Type text here...');
         }
         const value = this._initialValue(tool, entry);
         ta.value = value !== undefined ? String(value) : '';

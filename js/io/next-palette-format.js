@@ -191,7 +191,7 @@ class NextPaletteFormatClass {
       return npl;
     }
     throw new Error(Helpers.localizedMessage('mode.palNeedsPaletteMode',
-      'Palette export needs a mode with an editable palette — switch to a ULAplus or Next mode first.'));
+      'Palette export needs a mode with an editable palette - switch to a ULAplus or Next mode first.'));
   }
 
   /**

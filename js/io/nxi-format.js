@@ -294,7 +294,7 @@ class NXIFormatClass {
     const mode = ACTIVE_SCREEN_MODE;
     if (mode.pixelDepth === 1) {
       throw new Error(Helpers.localizedMessage('mode.exportNeedsIndexed',
-        'This format holds ZX Spectrum Next indexed screens — switch to a Layer 2 or LoRes mode first.'));
+        'This format holds ZX Spectrum Next indexed screens - switch to a Layer 2 or LoRes mode first.'));
     }
 
     // Composite: the flattened layer's cells seed from the background, so

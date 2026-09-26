@@ -99,7 +99,7 @@ class PatternPanelClass {
                     <button type="button" class="psb-tab" data-size="mine" data-i18n="pattern.mine">${this._t('pattern.mine', 'Mine')}</button>
                     <button type="button" class="psb-tab" data-size="generated">&#x2605;</button>
                 </div>
-                <input type="text" class="psb-search" id="psb-search" name="psb-search" placeholder="${this._t('pattern.filterPlaceholder', 'filter patterns…')}" data-i18n-placeholder="pattern.filterPlaceholder">
+                <input type="text" class="psb-search" id="psb-search" name="psb-search" placeholder="${this._t('pattern.filterPlaceholder', 'filter patterns...')}" data-i18n-placeholder="pattern.filterPlaceholder">
                 <div class="psb-grid"></div>
                 <div class="psb-footer">
                     <div class="psb-preview-bar">
@@ -112,7 +112,7 @@ class PatternPanelClass {
                         <button type="button" class="psb-import-btn" data-i18n="pattern.importJson">${this._t('pattern.importJson', 'Import JSON')}</button>
                         <input type="file" class="psb-file-input" id="psb-file-input" name="psb-file-input" accept=".json" hidden>
                     </div>
-                    <button type="button" class="psb-create-btn" data-i18n="pattern.create">${this._t('pattern.create', '+ Create pattern…')}</button>
+                    <button type="button" class="psb-create-btn" data-i18n="pattern.create">${this._t('pattern.create', '+ Create pattern...')}</button>
                     <div class="psb-capture-row">
                         <span class="psb-capture-label" data-i18n="pattern.capture">${this._t('pattern.capture', 'Capture:')}</span>
                         <button type="button" class="psb-cap-btn" data-cap="8">8×8</button>

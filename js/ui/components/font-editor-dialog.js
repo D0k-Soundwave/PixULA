@@ -62,8 +62,8 @@ class FontEditorDialogClass {
                 <div class="fe-row">
                     <label><span data-i18n="font.coverage">${this._t('font.coverage', 'Charset')}</span>
                         <select class="fe-coverage" id="fe-coverage" name="fe-coverage">
-                            <option value="ASCII" data-i18n="font.coverageAscii">${this._t('font.coverageAscii', '96 chars (32–127)')}</option>
-                            <option value="FULL" data-i18n="font.coverageFull">${this._t('font.coverageFull', '256 chars (0–255)')}</option>
+                            <option value="ASCII" data-i18n="font.coverageAscii">${this._t('font.coverageAscii', '96 chars (32-127)')}</option>
+                            <option value="FULL" data-i18n="font.coverageFull">${this._t('font.coverageFull', '256 chars (0-255)')}</option>
                         </select></label>
                 </div>
                 <div class="me-section-title" data-i18n="font.library">${this._t('font.library', 'Font Library')}</div>
@@ -242,7 +242,7 @@ class FontEditorDialogClass {
             if (ZX_SPECTRUM.CELL_HEIGHT !== FontService.getGlyphSize().h
                 || ZX_SPECTRUM.PIXEL_DEPTH !== 1) {
                 this._status(this._t('mode.needs8x8',
-                    'This feature needs 8×8 attribute cells — switch to Standard ULA or ULAplus mode first.'));
+                    'This feature needs 8×8 attribute cells - switch to Standard ULA or ULAplus mode first.'));
                 return;
             }
             const x = parseInt(c.querySelector('.fe-cell-x').value, 10) || 0;

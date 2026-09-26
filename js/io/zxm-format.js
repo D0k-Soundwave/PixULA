@@ -234,7 +234,7 @@ class ZXMFormatClass {
     if ((mode.pixelDepth || 1) !== 1 || (mode.screens || 1) === 2
         || (mode.paletteModel !== 'fixed16' && mode.paletteModel !== 'ulaplus64')) {
       throw new Error(Helpers.localizedMessage('mode.zxpNeedsClassic',
-        'ZXP holds classic and ULAplus cell pictures — switch out of this screen mode first.'));
+        'ZXP holds classic and ULAplus cell pictures - switch out of this screen mode first.'));
     }
 
     const flattened = LayerManager.flattenVisible();

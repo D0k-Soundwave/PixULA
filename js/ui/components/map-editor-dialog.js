@@ -55,7 +55,7 @@ class MapEditorDialogClass {
         // screen modes rather than corrupt (Phase 12a)
         if (!MapService.isCanvasCompatible()) {
             alert(this._t('mode.needs8x8',
-                'This feature needs 8×8 attribute cells — switch to Standard ULA or ULAplus mode first.'));
+                'This feature needs 8×8 attribute cells - switch to Standard ULA or ULAplus mode first.'));
             return;
         }
         this._createDialog();
