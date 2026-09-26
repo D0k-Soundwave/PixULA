@@ -71,14 +71,21 @@ The screen lives in one 16K RAM bank, with 0x4000 at its offset 0.
   page number, data. The browser's `DecompressionStream('deflate')` inflates
   zlib data, so no library is added.
 - **`SPCR`** holds the border and port 0x7FFD; **`SCLD`** holds port 0xFF.
+- **`PLTT`** (version 1.5) holds a ULAplus palette: a flags byte (bit 0 =
+  palette switched on), the current register, then the 64 registers [P,
+  libspectrum `szx.c` `read_pltt_chunk`, fetched 2026-09-26]. When it is
+  switched on, the picture imports as ULAplus with those colours
+  (`SCRFormat.parse`, 6976 bytes).
 - **Machines.** 128K-class ids: 2, 3, 4, 5, 6, 7, 10, 13, 14, 16. Timex ids:
   8, 9, 12. Any machine with an `SCLD` block uses its port 0xFF for the layout.
 
 ### 2.4 `.snx` and the `.sna` fix
 
-`.snx` is "Identical to 128K `.sna`, but leaves file handle 0 open" [P,
-wiki.specnext.dev/File_Formats, fetched 2026-09-26] - a 128K `.sna` with
-extra data after it. It is read by the `.sna` code.
+The Next wiki calls `.snx` "Identical to 128K `.sna`, but leaves file handle 0
+open" [P, wiki.specnext.dev/File_Formats, fetched 2026-09-26]. **Real files
+disagree:** all five `.snx` files in the official Next distribution are 49179
+bytes, a 48K `.sna` [M, 2026-09-26]. So `.snx` is read by the `.sna` code and
+accepts both sizes, and anything after a 128K `.sna`'s data.
 
 A 128K `.sna` (131103 or 147487 bytes) holds banks 5, 2 and the one paged at
 0xC000 (`n` = port 0x7FFD bits 0-2), then the 7FFD byte at offset 49181, then
@@ -98,6 +105,10 @@ Alternative_NEX_file_formats, fetched 2026-09-26]
   hi-res (12288), hi-colour (12288), wide Layer 2 (81920). Only flagged blocks
   are present.
 - **Hi-res colour:** byte 138, encoded like port 0xFF bits 3-5.
+- **No picture:** 13 of the 22 real `.nex` files in the Next distribution carry
+  no loading screen [M, 2026-09-26], and flags 2 = 3 is a tile-mode screen,
+  which is a palette and not a picture. Both answer "this file has no loading
+  screen".
 - **Several screens in one file:** the wiki recommends one; if several are
   present, the first in the order above is imported.
 
@@ -122,13 +133,51 @@ built completely before any importer is called.
 
 ## 5. Testing
 
-- **Node:** built byte by byte from the layouts above: `.z80` v1 compressed
-  and plain; v2 48K; v3 128K showing bank 7; a Timex hi-res and a hi-colour
-  `.z80`; `.szx` with a zlib-compressed page, 128K shadow screen and an
-  `SCLD` block; `.snx`; a 128K `.sna` showing bank 7; `.nex` with each screen
-  type, with and without palette; and every error case in section 3.
-- **Browser:** each extension opens through the app's own file loading.
-- **Limit:** no real-world snapshot files are available here, so the tests
-  prove agreement with the published specifications, not with every file in
-  the wild. A TESTLOG row records that a real file of each kind is still to
-  be opened.
+Tested against real files, not only files built from the specification.
+
+### 5.1 Real files (downloaded, never redistributed)
+
+A script, `tools/fetch-snapshot-fixtures.js`, downloads them from pinned
+addresses into a folder git ignores, and checks each against a SHA-256 in a
+committed manifest (`tests/fixtures/snapshots/manifest.json`). The manifest
+holds addresses, fingerprints and expected results only - none of the files.
+Found 2026-09-26 [M]:
+
+| Source | Files | Covers |
+|---|---|---|
+| Official Next distribution (gitlab.com/thesmog358/tbblue, commit `dbfe9443`) | 22 `.nex`, 5 `.snx`, 6 `.z80` | Layer 2 with and without palette; `.nex` with no loading screen; 48K `.snx`; `.z80` v2 48K and 128K |
+| Fuse emulator library test files (github.com/fuse-emulator/libspectrum) | 6 `.szx`, 2 `.z80` | zlib-compressed and plain RAM pages; `PLTT`; `SCLD`/`SPCR` fragments with no RAM; `.z80` v3 48K and +3 |
+| World of Spectrum mirror on archive.org | 13 `.z80` | v1 compressed; v3 48K and 128K; Timex TC2048 and TS2068 (screen 1); a 128K snapshot showing the shadow screen (`DOOM_PD.Z80`, port 0x7FFD = 0x1B) |
+
+### 5.2 Files written by third-party tools (committed)
+
+The remaining cases have no real file found, so established tools write them,
+from artwork this project owns - so they can be committed:
+
+- **SkoolKit 10.1** `bin2sna`: 128K `.z80` and `.szx` showing the shadow
+  screen, with different pictures in banks 5 and 7.
+- **sjasmplus 1.24.0** `SAVENEX`: one `.nex` per loading-screen type - ULA,
+  Timex hi-colour, Timex hi-res, LoRes, Layer 2 256, 320 and 640.
+
+A script records the tool versions and regenerates them.
+
+### 5.3 What "correct" is checked against
+
+- **`.z80` and `.szx`:** SkoolKit's own snapshot reader, run once when the
+  manifest is built. It decompresses independently, so the screen bytes it
+  reports are an oracle the app's code did not produce. The manifest stores
+  their SHA-256.
+- **`.nex` written by sjasmplus:** the artwork fed to it.
+- **Real `.nex`:** the block at the offset the spec gives, read by a separate
+  script, plus the mode and palette the app chose.
+- **`.sna` shadow screen:** no real file or third-party writer was found, so
+  this one case is built from the layout in section 2.4.
+
+### 5.4 Suites
+
+- `tests/snapshot-real-files.test.js` runs every fixture in the manifest. The
+  committed ones always run; the downloaded ones run when present, and the
+  suite says how many it skipped.
+- Node tests built from the layouts cover every error case in section 3.
+- A browser test opens one file of each kind through the app's own file
+  loading.
