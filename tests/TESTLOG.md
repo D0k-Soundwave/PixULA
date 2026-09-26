@@ -818,3 +818,36 @@ Manual matrix (deferred to the end-of-rebuild consolidated pass):
 - [x] A redo entry keeps only the layers the undo changed, not a full snapshot — AUTO (browser: undo-snapshot.spec)
 - [x] Redo still restores correctly after its entry was trimmed — AUTO (browser: undo-snapshot.spec)
 - [x] Undo all the way back through 200+ strokes at Layer 2 640 with several layers, then redo all the way forward, and confirm the picture matches at both ends and the tab's memory does not climb - OWNER 2026-09-26: confirmed working satisfactorily
+
+## Speed pass (2026-09-26)
+
+Interaction speed: what runs per pointer move, per slider tick, per zoom step
+and per autosave. Plan and outcome: `docs/superpowers/plans/2026-09-26-speed-pass.md`.
+Before/after figures: `docs/FIGURES.md` section 8, "Interaction speed pass".
+Instrument: `tools/speed-bench.js`. Every AUTO row below was also run against
+the pre-pass tree (`e87a26a`): the rows that pin a speed fix fail there, the
+rows that pin preserved behaviour pass on both.
+
+### Automated
+- [x] A filled rectangle previews once per 16-sample pointermove, and commits exactly the rectangle a one-sample drag commits — AUTO (browser: pointer-coalescing.spec)
+- [x] A marquee previews once per move; a lasso still records every sample in its path — AUTO (browser: pointer-coalescing.spec)
+- [x] The brush still receives every coalesced sample, so a fast stroke has no gaps — AUTO (browser: pointer-coalescing.spec)
+- [x] Only the preview tools (shape, gradient, bezier, eyedropper, marquee) opt in to last-sample moves; brush, eraser, spray and lasso do not — AUTO (browser: pointer-coalescing.spec)
+- [x] The marquee drag preview highlights exactly the ink of visible drawing layers inside the rectangle, none outside and none from a hidden layer, in one flat fill colour — AUTO (browser: selection-overlay-cache.spec)
+- [x] With every grid off, 1600% on a 2x screen allocates no grid canvas; one shown grid is sized alone and freed when hidden; the pixel grid only takes memory from 400% — AUTO (browser: grid-overlay-memory.spec)
+- [x] A visible grid is redrawn when the theme changes its colour — AUTO (browser: grid-overlay-memory.spec)
+- [x] An idle editor requests no animation frames, and a draw still reaches the screen on the next frame — AUTO (browser: render-loop-idle.spec)
+- [x] Each rotate-image slider tick is one draw batch, and a whole drag is still one undo step — AUTO (browser: transform-rotation-total.spec)
+- [x] The reference photo's encoded copy is made once per picture, size and quality; a new picture is always encoded afresh — AUTO (browser: reference-link.spec)
+- [x] A backup write lists the folder once and opens none of its files, and still numbers and prunes correctly — AUTO (browser: backup-versions.spec)
+- [x] The eraser's disc is memoised, frozen, identical to a fresh build, and follows a replaced override table — AUTO (node: brush-shapes.test.js)
+- [x] The footprint outline (boundaryPoints) leaves its reused grid clean between calls and keeps first-seen order — AUTO (node: tool-footprint.test.js)
+- [x] The eraser clears the same pixels as before the change — AUTO (node: tool-footprint.test.js, the existing byte-identity pin)
+
+### Needs real hardware
+- [ ] With a real 1000 Hz gaming mouse and a real pen, drag a large rectangle, a marquee and a gradient across the whole canvas: the preview keeps up with the pointer and nothing stutters
+- [ ] On a high-DPI screen (Windows scaling 200%), zoom to 1600% with no grid, then with the cell grid, then with all three: the tab stays responsive and its memory in Task Manager stays well under the 1.2 GB the grids used to take
+- [ ] On a machine with a real GPU, the cell, block and pixel grids look exactly as they did in 0.1.0-alpha.7 at 400%, 800% and 1600%
+- [ ] Leave the editor idle on a laptop or tablet on battery for a few minutes and confirm the tab no longer shows steady CPU use in Task Manager
+- [ ] With a backup folder on a real disk (and, if available, a network share) holding many other files, autosave for several minutes: numbered versions keep appearing, the keep count is honoured, and nothing slows down
+- [ ] With a large reference photo loaded and autosave at 1 minute, draw for a few minutes: no hitch once a minute

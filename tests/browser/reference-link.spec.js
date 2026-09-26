@@ -69,6 +69,59 @@ test('the thumbnail is far smaller than the photo it stands in for', async ({ pa
     expect(r.maxPx).toBe(256);
 });
 
+/**
+ * Every autosave tick and project save asks for the reference's encoded copy
+ * again, and encoding is a synchronous JPEG of up to a 4096 px photo (143 ms
+ * a tick for a 3000x2000 photo, docs/FIGURES.md section 8, 2026-09-26). The
+ * same picture at the same size and quality is now encoded once - and a new
+ * picture, or a different size or quality, must never be served the old one.
+ */
+test('the thumbnail is encoded once per picture, size and quality', async ({ page }) => {
+    await boot(page);
+    await loadImage(page);
+
+    const r = await page.evaluate(async () => {
+        let encodes = 0;
+        const encode = ImageSource._encodeThumbnail;
+        ImageSource._encodeThumbnail = function (...args) { encodes++; return encode.apply(this, args); };
+        // A size and quality nothing in the app asks for, so every encode
+        // counted here is one this test caused
+        const PX = 200, Q = 0.5;
+        try {
+            const img = ReferenceLayerService.image;
+            const a = ImageSource.thumbnail(img, PX, Q);
+            const firstEncodes = encodes;
+            const b = ImageSource.thumbnail(img, PX, Q);
+            const afterRepeat = encodes;
+            const bigger = ImageSource.thumbnail(img, 2 * PX, Q);
+            const afterOtherSize = encodes;
+
+            // A different picture: must be encoded afresh, not served the old copy
+            const c = document.createElement('canvas');
+            c.width = 300; c.height = 200;
+            c.getContext('2d').fillRect(0, 0, 150, 100);
+            ReferenceLayerService.loadImage(c.toDataURL('image/png'));
+            await new Promise((done) => {
+                const off = EventBus.on(EVENTS.REFERENCE_LOADED, () => { off(); done(); });
+            });
+            const beforeOther = encodes;
+            const other = ImageSource.thumbnail(ReferenceLayerService.image, PX, Q);
+            return { same: a === b, firstEncodes, afterRepeat, afterOtherSize, bigger: bigger !== a,
+                     otherEncoded: encodes - beforeOther, otherDiffers: other !== a };
+        } finally {
+            ImageSource._encodeThumbnail = encode;
+        }
+    });
+
+    expect(r.firstEncodes).toBe(1);
+    expect(r.same).toBe(true);
+    expect(r.afterRepeat).toBe(1);        // the repeat was served from the cache
+    expect(r.bigger).toBe(true);
+    expect(r.afterOtherSize).toBe(2);     // another size is its own entry
+    expect(r.otherEncoded).toBe(1);       // a new picture is always encoded
+    expect(r.otherDiffers).toBe(true);
+});
+
 test('an image smaller than the thumbnail box is not blown up', async ({ page }) => {
     await boot(page);
     await page.evaluate(async () => {
