@@ -1171,31 +1171,67 @@ class GridOverlayClass {
         const layers = LayerManager.layers;
         const fill = this._overlayColors.selectionFill;
 
-        // Highlight ink pixels from all visible non-background layers
-        for (let py = y; py < y + h; py++) {
-            for (let px = x; px < x + w; px++) {
-                if (px < 0 || px >= ZX_SPECTRUM.WIDTH || py < 0 || py >= ZX_SPECTRUM.HEIGHT) continue;
+        // Highlight ink pixels from all visible non-background layers. Each
+        // cell's rows are ORed across the layers once - not every layer per
+        // pixel - into a byte mask, and the mask is drawn in one go and then
+        // tinted: this runs on every move of a marquee drag, and a pixel-by-
+        // pixel fillRect over a busy full canvas was tens of thousands of
+        // draw calls a move. Tinting with source-in over the just-cleared
+        // canvas leaves exactly what a fillRect of `fill` per pixel did.
+        const x0 = Math.max(0, x), y0 = Math.max(0, y);
+        const x1 = Math.min(ZX_SPECTRUM.WIDTH, x + w), y1 = Math.min(ZX_SPECTRUM.HEIGHT, y + h);
+        if (x1 > x0 && y1 > y0) {
+            const mw = x1 - x0, mh = y1 - y0;
+            const mask = this._selectionPreviewMask();
+            const stride = mask.image.width;
+            const d = mask.image.data;
+            d.fill(0, 0, mh * stride * 4);
 
-                const cellY  = Math.floor(py / cellH);
-                const cellX  = Math.floor(px / cellW);
-                const localY = py % cellH;
-                const bitPos = cellW - 1 - (px % cellW);
+            const drawLayers = [];
+            for (let i = 1; i < layers.length; i++) {
+                if (layers[i].visible && !layers[i].isStamp) drawLayers.push(layers[i]);
+            }
 
-                let inkBit = 0;
-                for (let i = 1; i < layers.length; i++) {
-                    const layer = layers[i];
-                    if (!layer.visible || layer.isStamp) continue;
-                    const cell = layer.getCell(cellX, cellY);
-                    if (cell && cell.altered && ((cell.pixels[localY] >> bitPos) & 1)) {
-                        inkBit = 1;
-                        break;
+            let any = false;
+            const cells = [];
+            for (let cellY = Math.floor(y0 / cellH); cellY <= Math.floor((y1 - 1) / cellH); cellY++) {
+                for (let cellX = Math.floor(x0 / cellW); cellX <= Math.floor((x1 - 1) / cellW); cellX++) {
+                    cells.length = 0;
+                    for (let i = 0; i < drawLayers.length; i++) {
+                        const cell = drawLayers[i].getCell(cellX, cellY);
+                        if (cell && cell.altered) cells.push(cell);
+                    }
+                    if (!cells.length) continue;
+
+                    const baseX = cellX * cellW, baseY = cellY * cellH;
+                    // This cell's share of the rectangle.
+                    const px0 = Math.max(x0, baseX);
+                    const py0 = Math.max(y0, baseY);
+                    const px1 = Math.min(x1, baseX + cellW);
+                    const py1 = Math.min(y1, baseY + cellH);
+                    for (let py = py0; py < py1; py++) {
+                        const localY = py - baseY;
+                        let row = 0;
+                        for (let i = 0; i < cells.length; i++) row |= cells[i].pixels[localY];
+                        if (!row) continue;
+                        for (let px = px0; px < px1; px++) {
+                            if ((row >> (cellW - 1 - (px - baseX))) & 1) {
+                                d[((py - y0) * stride + (px - x0)) * 4 + 3] = 255;
+                                any = true;
+                            }
+                        }
                     }
                 }
+            }
 
-                if (inkBit) {
-                    ctx.fillStyle = fill;
-                    ctx.fillRect(px, py, 1, 1);
-                }
+            if (any) {
+                mask.ctx.putImageData(mask.image, 0, 0, 0, 0, mw, mh);
+                ctx.drawImage(mask.canvas, 0, 0, mw, mh, x0, y0, mw, mh);
+                ctx.save();
+                ctx.globalCompositeOperation = 'source-in';
+                ctx.fillStyle = fill;
+                ctx.fillRect(x0, y0, mw, mh);
+                ctx.restore();
             }
         }
 
@@ -1205,6 +1241,25 @@ class GridOverlayClass {
         ctx.lineWidth = 1;
         ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
         ctx.restore();
+    }
+
+    /**
+     * The marquee preview's scratch mask: an offscreen canvas and ImageData
+     * the size of the picture, made once per screen mode and reused for every
+     * move of every drag (the drag's rectangle changes size on nearly every
+     * move, so a mask sized to it would be reallocated each time).
+     * @private
+     * @returns {{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, image: ImageData}}
+     */
+    _selectionPreviewMask() {
+        const W = ZX_SPECTRUM.WIDTH, H = ZX_SPECTRUM.HEIGHT;
+        let m = this._previewMask;
+        if (!m || m.image.width !== W || m.image.height !== H) {
+            const canvas = Helpers.createCanvas(W, H);
+            const maskCtx = canvas.getContext('2d');
+            m = this._previewMask = { canvas, ctx: maskCtx, image: maskCtx.createImageData(W, H) };
+        }
+        return m;
     }
 
     /**
