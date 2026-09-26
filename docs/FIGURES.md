@@ -65,7 +65,12 @@ measured.
 | Layer 2 byte order | 256x192 row-major; 320x256 and 640x256 column-major (byte n = column n >> 8, line n & 255) | P | wiki.specnext.dev/Layer_2, fetched 2026-09-23. Was row-major for all three until 2026-09-23 |
 | .rad size | 6160 bytes (6144 bitmap + 16 G3R3B2 palette) | P | RECOIL DecodeRad, fetched 2026-09-23 |
 | GigaScreen colours per cell | 4 | P | two screens x (ink, paper) per 8x8 cell; RECOIL DecodeZxImg (two 768-byte attribute blocks in the 13824-byte `.img`) and SpectraLab's README, fetched 2026-09-23 |
-| GigaScreen Flicker display rate | display refresh (60 Hz typical) | A | `LayerManager._syncGigaFlicker` - one `requestAnimationFrame` per swap; the hardware swaps at 50 Hz (P) and no page can pin its frame rate |
+| GigaScreen Flicker display rate | 50 Hz (one swap per 20 ms) | P | the hardware frame interrupt (archiveteam Gigascreen page); `LayerManagerClass.GIGA_FRAME_MS`, timed by the clock since `4441f84` (2026-09-23). Was A "display refresh (60 Hz typical)" - one `requestAnimationFrame` per swap - until then |
+| Steady-mix step (four-colour photo import) | 2 | M | `GigaQuant.MAX_STEP`: two colours may mix when the same, or at most 2 apart in the ZX colour order with the same bright. `tools/giga-bench.js docs/bench-images`, 2026-09-26, 13 images; step 2 chosen by the artist over step 1 for the warm colours step 1 greys. Was A = 1 before measurement |
+| Four-colour vs two-colour import, mean dSSIM | 0.511 flat / 0.584 dithered vs 0.666 | M | same run: step 2; step 1 was 0.517 / 0.589. Lower is better |
+| Four-colour vs two-colour import, mean dEblur | 16.57 flat / 13.46 dithered vs 21.73 | M | same run: step 2; step 1 was 17.32 / 14.46 |
+| Four-colour import, mean frame luma gap | 16.8 flat / 18.3 dithered (0-255) | M | same run: mean abs luma difference between a pixel's two frames, what flickers on hardware; step 1 was 15.3 / 16.6, the two-colour import 0. How visible this is on a real Spectrum is NOT measured |
+| Four-colour import, time per picture | ~21 ms | M | same run, `ms` column mean at step 2 (Node, this machine): one Import-dialog preview pane; the dialog renders three |
 | Autosave interval | user-set, default 1 min | A (default) | `StateManager.AUTOSAVE_DEFAULT_MINUTES`; 0 = off, max 60. Was a fixed 60 s behind an on/off checkbox until 2026-08-07 |
 | Cursor readout throttle | 32 ms | C | `canvas-controls.js` - every 2nd frame at 60 Hz (P), ~31/s |
 | Status-line dwell | 3000 ms | C | 3 dialogs - ~5 words/s reading (P) x <=8 words, plus ~1 s to notice |

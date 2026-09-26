@@ -20,10 +20,15 @@ class GigaQuantClass {
     /**
      * How far apart two colours may be, in the Spectrum's own colour order
      * (n = G*4 + R*2 + B, black 0 to white 7 in rising luminance), and still
-     * mix steadily. [A] 2026-09-26 - tools/giga-bench.js measures it; until
-     * then nothing may depend on its value.
+     * mix steadily. [M] 2026-09-26, tools/giga-bench.js on the 13 images in
+     * docs/bench-images, means: step 1 dSSIM 0.517 flat / 0.589 dithered,
+     * dEblur 17.32 / 14.46, frame luma gap 15.3 / 16.6; step 2 dSSIM 0.511 /
+     * 0.584, dEblur 16.57 / 13.46, gap 16.8 / 18.3; the two-colour import
+     * it replaced 0.666, 21.73, 0. Step 2 was the artist's choice, for the
+     * warm colours step 1 turns grey. Was [A] 1 before measurement. How
+     * visible a gap of this size is on real hardware is not measured.
      */
-    this.MAX_STEP = 1;
+    this.MAX_STEP = 2;
     this._paletteCache = new Map();
   }
 
