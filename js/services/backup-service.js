@@ -29,8 +29,8 @@
  * click.
  *
  * VERSION NUMBERS SURVIVE RELOADS because they are read off the folder, not
- * remembered: `_nextVersion` lists the directory and takes the highest `V<n>`
- * matching the base name. Two sessions backing up the same picture continue one
+ * remembered: each write lists the directory and `_nextVersion` takes the
+ * highest `V<n>` matching the base name. Two sessions backing up the same picture continue one
  * sequence rather than overwriting each other's V1.
  */
 
@@ -186,14 +186,17 @@ class BackupServiceClass {
             const bytes = await ProjectFormat.encode(project);
             if (!bytes) return null;
 
-            const version = await this._nextVersion(base);
+            // One listing serves both the numbering and the prune - the folder
+            // is read once per write, not once for each.
+            const versions = await this.listVersions(base);
+            const version = this._nextVersion(versions);
             const name = `${base} V${version}.pixula`;
 
             await this._provider.writeFile(this.directory, name, bytes);
 
             this.lastWritten = { name, version, bytes: bytes.length, at: Date.now() };
             this.lastError = null;
-            await this._prune(base);
+            await this._prune([{ name, version }, ...versions]);
 
             Logger.info('BackupService', `Wrote ${name} (${bytes.length} B)`);
             EventBus.emit(EVENTS.BACKUP_WRITTEN, { ...this.lastWritten });
@@ -254,17 +257,20 @@ class BackupServiceClass {
      * Read from disk rather than counted in memory, so numbering survives a
      * reload and two sessions on one picture continue a single sequence
      * instead of fighting over V1.
+     * @param {Array<{name: string, version: number}>} versions - listVersions()
      * @private
      */
-    async _nextVersion(base) {
-        const versions = await this.listVersions(base);
+    _nextVersion(versions) {
         return versions.length ? versions[0].version + 1 : 1;
     }
 
-    /** Delete the oldest versions past the keep count. @private */
-    async _prune(base) {
+    /**
+     * Delete the oldest versions past the keep count.
+     * @param {Array<{name: string, version: number}>} versions - newest first
+     * @private
+     */
+    async _prune(versions) {
         if (!this._keep) return;
-        const versions = await this.listVersions(base);
         if (versions.length <= this._keep) return;
 
         for (const entry of versions.slice(this._keep)) {

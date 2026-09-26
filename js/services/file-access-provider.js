@@ -17,9 +17,10 @@ class FileAccessProvider {
     /** @returns {Promise<*|null>} folderRef, or null if the artist cancelled */
     async chooseFolder(label) { throw new Error('Not implemented'); }
     /**
-     * `mtime` is MILLISECONDS since the Unix epoch - the File API's
-     * `file.lastModified` / `Date.now()` convention.
-     * @returns {Promise<{name:string,size:number,mtime:number}[]>}
+     * The files directly in the folder, by name. Names only: reading each
+     * file's size or date is a filesystem read per entry, and the one caller
+     * (BackupService, on every autosave) needs only the names.
+     * @returns {Promise<{name:string}[]>}
      */
     async listFiles(folderRef) { throw new Error('Not implemented'); }
     /** @returns {Promise<ArrayBuffer>} */

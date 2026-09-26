@@ -30,14 +30,6 @@ all.
 
 ## Nice to have
 
-- **`BackupService.listVersions()` calls `entry.getFile()` for every file in
-  the backup folder** (to populate `size`/`mtime`) where the old code only
-  read names. Called twice per backup write; at the 1-minute default
-  autosave interval with retention off, an 8-hour session is ~480 files x 2
-  = ~960 real filesystem reads/minute. Not correctness-breaking, just
-  wasteful, and no consumer actually reads `size`/`mtime` from
-  `listFiles()` today - narrowing the interface back down would remove
-  both the waste and the unused fields at once.
 - **`tests/browser/font-rasterizer.spec.js` and
   `system-font-import.spec.js`'s real-font block self-skip** if none of the
   shared `findInstalledFont()` candidates (`tests/browser/helpers.js`) exist
