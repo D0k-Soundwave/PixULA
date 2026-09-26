@@ -103,6 +103,19 @@ class ToolBaseClass {
   }
 
   /**
+   * Whether a drag hands this tool only the LAST coalesced sample of each
+   * pointermove instead of every one. True for a tool whose move only redraws
+   * a preview of "where the pointer is now" (a shape, a marquee, a pick): a
+   * 1000 Hz mouse delivers ~16 samples a frame, and each earlier one was a
+   * full preview that no one ever saw. False (the default) for anything that
+   * lays or records something per sample - the brush, the eraser, the lasso.
+   * @returns {boolean}
+   */
+  get coalescesPointerMoves() {
+    return false;
+  }
+
+  /**
    * Handle pointer up event
    * @param {number} pixelX - X coordinate in pixel space (0-255)
    * @param {number} pixelY - Y coordinate in pixel space (0-191)

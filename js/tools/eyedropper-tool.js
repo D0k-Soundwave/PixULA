@@ -56,6 +56,11 @@ class EyedropperToolClass extends ToolBase {
     this._pickColor(pixelX, pixelY, e);
   }
 
+  /** Each pick replaces the last: only the final sample's lands (ToolBase). */
+  get coalescesPointerMoves() {
+    return true;
+  }
+
   /**
    * Handle pointer up - end picking
    * @param {number} pixelX - X coordinate (0-255)
