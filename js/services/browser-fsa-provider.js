@@ -42,11 +42,13 @@ class BrowserFSAProvider extends FileAccessProvider {
     }
 
     async listFiles(folderRef) {
+        // Names only. Opening every entry with getFile() to report its size
+        // and date was a real filesystem read per file - every file in the
+        // folder, backups or not, twice per autosave - for fields nothing read.
         const out = [];
         for await (const [name, entry] of folderRef.entries()) {
             if (entry.kind !== 'file') continue;
-            const file = await entry.getFile();
-            out.push({ name, size: file.size, mtime: file.lastModified });
+            out.push({ name });
         }
         return out;
     }
