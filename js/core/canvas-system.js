@@ -806,21 +806,30 @@ class CanvasSystemClass {
       // Full canvas update
       this.ctx.putImageData(this.imageData, 0, 0);
     } else if (this.dirtyRegions.size > 0) {
-      // Partial update - only dirty cells
+      // Partial update - ONE upload of the box around every dirty cell. On an
+      // accelerated canvas each putImageData is its own flush and texture
+      // upload, and a stroke in an 8x1-cell mode dirties hundreds of cells a
+      // frame; the clean pixels the box also covers already match imageData,
+      // so re-sending them changes nothing on screen.
       const cellW = ZX_SPECTRUM.CELL_WIDTH;
       const cellH = ZX_SPECTRUM.CELL_HEIGHT;
+      let minX = Infinity, minY = Infinity, maxX = -1, maxY = -1;
       for (const key of this.dirtyRegions) {
-        const [cellX, cellY] = key.split(',').map(Number);
-        const x = cellX * cellW;
-        const y = cellY * cellH;
-        // putImageData with dirty rect: source offset and size
-        this.ctx.putImageData(
-          this.imageData,
-          0, 0,  // destination x, y
-          x, y,  // source x, y (dirty rect origin)
-          cellW, cellH  // width, height
-        );
+        const comma = key.indexOf(',');
+        const cellX = +key.slice(0, comma);
+        const cellY = +key.slice(comma + 1);
+        if (cellX < minX) minX = cellX;
+        if (cellX > maxX) maxX = cellX;
+        if (cellY < minY) minY = cellY;
+        if (cellY > maxY) maxY = cellY;
       }
+      // putImageData with dirty rect: source offset and size
+      this.ctx.putImageData(
+        this.imageData,
+        0, 0,  // destination x, y
+        minX * cellW, minY * cellH,  // source x, y (dirty rect origin)
+        (maxX - minX + 1) * cellW, (maxY - minY + 1) * cellH  // width, height
+      );
     }
 
     this.dirtyRegions.clear();
