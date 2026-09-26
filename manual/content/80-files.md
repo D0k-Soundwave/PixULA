@@ -16,9 +16,9 @@ if you intend to keep working on it.
 
 ### Autosave and backups
 
-PixULA saves your work into the browser's own storage every minute or so, and
-offers it back if a session ends badly. That copy is always made and needs no
-setting up.
+PixULA can save your work into the browser's own storage every few minutes, and
+offer it back if a session ends badly. It is off until you choose how often:
+set **Autosave every (minutes, 0 = off)** in Preferences, under General.
 
 You can also choose a folder on disk, and each autosave will write a numbered
 version into it - `picture V1.pixula`, `picture V2.pixula`, and so on. The
