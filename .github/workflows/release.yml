@@ -24,14 +24,18 @@ permissions:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest moves to Ubuntu 26 from 2026-10-19 (GitHub's
+    # notice on every run), and this job is only ever exercised by a real
+    # release, so a runner change should be a deliberate edit, not a surprise.
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          # tools/build-portable.js uses fs.cpSync, which needs 16.7+.
-          node-version: '20'
+          # tools/build-portable.js uses fs.cpSync, which needs 16.7+. 24 is
+          # what the tests are run on locally; 20 left support in 2026-04.
+          node-version: '24'
 
       # The About box reads APP_VERSION. If the tag disagreed with it, the
       # release page and the running app would name different versions and
