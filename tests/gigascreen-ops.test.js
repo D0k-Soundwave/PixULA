@@ -131,7 +131,20 @@ function seedFourSlots(layer) {
     `flickering pixel in cell ${flicker}`);
   check('the two screens are not simply copies of each other', differ);
   const c = layer.getCell(0, 0);
-  check('the old screen-B drawing is gone', c.inkB !== 4 || c.pixelsB[0] !== 0xFF);
+  const oldSurvives = c.inkB === 4 && c.paperB === 1 && c.brightB === true
+    && c.pixelsB.every(r => r === 0xFF);
+  check('the old screen-B drawing is gone', !oldSurvives);
+
+  // GigaQuant's blend is the compositor's blend, for every pair of colours
+  let blendMismatch = null;
+  for (let i = 0; i < 16 && !blendMismatch; i++) {
+    for (let j = 0; j < 16 && !blendMismatch; j++) {
+      const a = GigaQuant.blend(ZX_PALETTE_RGB[i], ZX_PALETTE_RGB[j]);
+      const b = LayerManager._blendRGB(ZX_PALETTE_RGB[i], ZX_PALETTE_RGB[j]);
+      if (a[0] !== b[0] || a[1] !== b[1] || a[2] !== b[2]) blendMismatch = `${i}/${j}`;
+    }
+  }
+  check('GigaQuant.blend equals the compositor blend', blendMismatch === null, blendMismatch);
 
   // The preview is exactly what the import wrote, seen through the Average blend
   const flat = PNGFormat.quantizePreviewSet(image, { scaling: 'fit' }).find(s => s.id === 'flat').preview;

@@ -21,6 +21,10 @@ check('neighbours of different brightness are not', !Q.isSteady(1, false, 2, tru
 check('two steps apart is not steady at step 1', !Q.isSteady(1, false, 3, false, 1));
 check('two steps apart is steady at step 2', Q.isSteady(1, false, 3, false, 2));
 check('black and white never are at step 1', !Q.isSteady(0, false, 7, false, 1));
+check('black is the same colour in both brightnesses',
+  Q.isSteady(0, true, 1, false, 1) && Q.isSteady(1, false, 0, true, 1));
+check('... so bright black over dim blue gives a usable slot',
+  Q.slotsFor({ a: { ink: 0, paper: 0, bright: true }, b: { ink: 1, paper: 1, bright: false } }, 1).length > 0);
 check('the default step is MAX_STEP', Q.isSteady(4, true, 5, true) === Q.isSteady(4, true, 5, true, Q.MAX_STEP));
 
 // --- 2. Colours and the blend ---------------------------------------------
@@ -118,6 +122,23 @@ const allSteady = (pick, r) =>
 }
 
 {
+  // The same property at the step that ships (MAX_STEP), not only at 1
+  let seed = 19;
+  const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+  const steadyAt = (pick, r) =>
+    Array.from(r.slots).every(sl => Q.slotsFor(pick).some(u => u.slot === sl));
+  let ok = true;
+  for (let t = 0; t < 200 && ok; t++) {
+    const cell = cellOf(8, 8, () => [rnd() * 255, rnd() * 255, rnd() * 255]);
+    const pick = Q.chooseCell(cell);
+    for (const d of ['none', 'floyd-steinberg']) {
+      if (!steadyAt(pick, Q.renderCell(cell, pick, d, 8, 8))) ok = false;
+    }
+  }
+  check(`200 random cells use only steady slots at MAX_STEP (${Q.MAX_STEP})`, ok);
+}
+
+{
   // Review Focus 2: MultiGigaScreen 8x1 - eight pixels in a cell
   const cell = cellOf(8, 1, (x) => (x % 2 ? [0, 0, 215] : [215, 0, 0]));
   const pick = Q.chooseCell(cell, 1);
@@ -181,6 +202,28 @@ const allSteady = (pick, r) =>
   const pick = Q.hiresPick(s.inkA, s.inkB);
   check('the chosen schemes can show the image\'s colour steadily',
     Q.slotsFor(pick, 1).some(u => u.rgb.join() === target.join()),
+    `schemes ${s.inkA}/${s.inkB}`);
+}
+
+{
+  // Final-review minor: the scheme search runs on every preview slider step
+  // over a 512x192 picture, so it scores every second pixel each way. A
+  // picture whose even pixels are one colour and every other pixel another
+  // shows which were read: the chosen schemes fit the even pixels' colour.
+  const onGrid = Q.blend(ZX_PALETTE_RGB[10], ZX_PALETTE_RGB[11]); // bright red + bright magenta
+  // Bright white needs white on both screens, which no scheme pair showing
+  // red + magenta can have - so the two colours cannot both be fitted
+  const offGrid = Q.blend(ZX_PALETTE_RGB[15], ZX_PALETTE_RGB[15]);
+  const W4 = 64, H4 = 32;
+  const data = new Uint8ClampedArray(W4 * H4 * 4);
+  for (let y = 0; y < H4; y++) {
+    for (let x = 0; x < W4; x++) {
+      data.set([...((x % 2 === 0 && y % 2 === 0) ? onGrid : offGrid), 255], (y * W4 + x) * 4);
+    }
+  }
+  const s = Q.chooseHiresSchemes({ width: W4, height: H4, data }, 1);
+  check('the scheme search scores every second pixel each way',
+    Q.slotsFor(Q.hiresPick(s.inkA, s.inkB), 1).some(u => u.rgb.join() === onGrid.join()),
     `schemes ${s.inkA}/${s.inkB}`);
 }
 

@@ -22,7 +22,7 @@ class GigaQuantClass {
      * (n = G*4 + R*2 + B, black 0 to white 7 in rising luminance), and still
      * mix steadily. [M] 2026-09-26, tools/giga-bench.js on the 13 images in
      * docs/bench-images, means: step 1 dSSIM 0.517 flat / 0.589 dithered,
-     * dEblur 17.32 / 14.46, frame luma gap 15.3 / 16.6; step 2 dSSIM 0.511 /
+     * dEblur 17.32 / 14.46, frame luma gap 15.3 / 16.6; step 2 dSSIM 0.510 (0.511 before black counted in both brightnesses) /
      * 0.584, dEblur 16.57 / 13.46, gap 16.8 / 18.3; the two-colour import
      * it replaced 0.666, 21.73, 0. Step 2 was the artist's choice, for the
      * warm colours step 1 turns grey. Was [A] 1 before measurement. How
@@ -56,11 +56,14 @@ class GigaQuantClass {
   /**
    * Does a mix of these two colours hold steady? The same colour always does
    * (bright or not); otherwise they must share the bright setting and sit at
-   * most maxStep apart in the colour order.
+   * most maxStep apart in the colour order. Black is (0, 0, 0) in both
+   * brightnesses, so its bright setting never counts - as in
+   * _candidatePairs, which offers black under either.
    */
   isSteady(baseA, brightA, baseB, brightB, maxStep = this.MAX_STEP) {
     if (baseA === baseB) return true;
-    return !!brightA === !!brightB && Math.abs(baseA - baseB) <= maxStep;
+    const sameBright = !!brightA === !!brightB || baseA === 0 || baseB === 0;
+    return sameBright && Math.abs(baseA - baseB) <= maxStep;
   }
 
   /**
@@ -294,11 +297,16 @@ class GigaQuantClass {
    * so there is no per-cell choice: all 64 scheme pairings [C: 8 x 8] are
    * scored against the image using only their steady slots, and the best
    * wins. A pairing with no steady slot is skipped; (n, n) always has two.
+   *
+   * Every second pixel each way is scored: choosing 2 schemes of 64 needs
+   * the picture's colour spread, not every pixel, and a quarter of a 512x192
+   * picture is still 24,576 samples [C: 512 x 192 / 4]. It runs on every
+   * preview slider step; this cut it from 4.2 million distance calls (61
+   * ms, M 2026-09-26, noisy 512x192) to a quarter of that.
    * @param {{width:number, height:number, data:Uint8ClampedArray}} image
    * @returns {{inkA:number, inkB:number}}
    */
   chooseHiresSchemes(image, maxStep = this.MAX_STEP) {
-    const n = image.width * image.height;
     const d = image.data;
     let best = null;
     for (let inkA = 0; inkA < 8; inkA++) {
@@ -306,15 +314,18 @@ class GigaQuantClass {
         const slots = this.slotsFor(this.hiresPick(inkA, inkB), maxStep);
         if (!slots.length) continue;
         let err = 0;
-        for (let p = 0; p < n; p++) {
-          const o = p * 4;
-          let nd = Infinity;
-          for (const s of slots) {
-            const dd = this._dist2(d[o], d[o + 1], d[o + 2], s.rgb);
-            if (dd < nd) nd = dd;
+        scan:
+        for (let y = 0; y < image.height; y += 2) {
+          for (let x = 0; x < image.width; x += 2) {
+            const o = (y * image.width + x) * 4;
+            let nd = Infinity;
+            for (const s of slots) {
+              const dd = this._dist2(d[o], d[o + 1], d[o + 2], s.rgb);
+              if (dd < nd) nd = dd;
+            }
+            err += nd;
+            if (best && err >= best.err) break scan;
           }
-          err += nd;
-          if (best && err >= best.err) break;
         }
         if (!best || err < best.err) best = { inkA, inkB, err };
       }

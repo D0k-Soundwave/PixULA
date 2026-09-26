@@ -66,6 +66,12 @@ for (const mode of ['gigascreen', 'multigiga_8x4', 'multigiga_8x1', 'timex_hires
             ColorManager.setTimexHiresInkB(7);
             return [ColorManager.getTimexHiresInk(), ColorManager.getTimexHiresInkB()];
         });
+        // The picture before the import, as both screens' bytes and colours
+        const picture = () => page.evaluate(() => JSON.stringify(
+            LayerManager.getCurrentLayer().attributeData.map(row => row.map(c =>
+                [c.ink, c.paper, c.bright, Array.from(c.pixels),
+                 c.inkB, c.paperB, c.brightB, Array.from(c.pixelsB)]))));
+        const pictureBefore = await picture();
         const w = await page.evaluate(async () => {
             const res = await PNGFormat.parse(window.__buf, { method: 'standard', dithering: 'none' });
             let differ = false;
@@ -88,6 +94,7 @@ for (const mode of ['gigascreen', 'multigiga_8x4', 'multigiga_8x1', 'timex_hires
             expect(await page.evaluate(() =>
                 [ColorManager.getTimexHiresInk(), ColorManager.getTimexHiresInkB()]),
                 'undo restores both schemes').toEqual(before);
+            expect(await picture(), 'undo restores the picture').toBe(pictureBefore);
         }
     });
 }
