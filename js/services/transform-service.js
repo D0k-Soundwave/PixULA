@@ -11,6 +11,9 @@
 class TransformServiceClass {
   constructor() {
     this.tempBuffer = null;
+    // Source ink masks of the buffers _rotateAttrBuffer has turned - see there.
+    // Weak, so a snapshot the rotate slider lets go of takes its mask with it.
+    this._rotateSourceMasks = new WeakMap();
   }
 
   /**
@@ -586,7 +589,12 @@ class TransformServiceClass {
   rotateFromSnapshot(srcBuffer, area, degrees) {
     if (!srcBuffer) return;
     const output = degrees === 0 ? srcBuffer : this._rotateAttrBuffer(srcBuffer, degrees);
+    // Batched like every other transform: unbatched, each of the area's
+    // pixels emitted its own CANVAS_DIRTY and marked the document modified,
+    // on every tick of the slider. Nests inside the slider's open action.
+    PixelDrawRoutine.beginBatch();
     this._applyBufferWithAttrs(output, area);
+    PixelDrawRoutine.endBatch();
   }
 
   /**
@@ -616,12 +624,19 @@ class TransformServiceClass {
       );
     }
 
-    const src = Helpers.createCanvas(w, h);
-    const sCtx = src.getContext('2d');
-    sCtx.fillStyle = '#fff'; sCtx.fillRect(0, 0, w, h);
-    sCtx.fillStyle = '#000';
-    for (let py = 0; py < h; py++) for (let px = 0; px < w; px++)
-      if (buffer[py][px].isInk) sCtx.fillRect(px, py, 1, 1);
+    // The ink mask of the source depends on the buffer alone, and the rotate
+    // slider hands the SAME snapshot in on every tick - so it is drawn once
+    // per snapshot, not one fillRect per ink pixel per tick.
+    let src = this._rotateSourceMasks.get(buffer);
+    if (!src) {
+      src = Helpers.createCanvas(w, h);
+      const sCtx = src.getContext('2d');
+      sCtx.fillStyle = '#fff'; sCtx.fillRect(0, 0, w, h);
+      sCtx.fillStyle = '#000';
+      for (let py = 0; py < h; py++) for (let px = 0; px < w; px++)
+        if (buffer[py][px].isInk) sCtx.fillRect(px, py, 1, 1);
+      this._rotateSourceMasks.set(buffer, src);
+    }
 
     const dst = Helpers.createCanvas(w, h);
     const dCtx = dst.getContext('2d');

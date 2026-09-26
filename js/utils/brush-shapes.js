@@ -150,8 +150,29 @@ const BrushShapes = {
      * @returns {Array<{dx: number, dy: number}>}
      */
     discOffsets(size) {
-        return BrushShapes.maskOffsets(BrushShapes.disc(size), size);
+        // Memoised per size: the eraser asks at every interpolated point of a
+        // drag, and at size 128 each call built a 16,384-cell mask and 12,796
+        // offset objects. Frozen, because every caller shares the one array.
+        // Keyed on the override table too, so a replaced table is never served
+        // a stale disc.
+        const table = window.BRUSH_SHAPE_OVERRIDES;
+        if (BrushShapes._discOffsetsTable !== table) {
+            BrushShapes._discOffsetsTable = table;
+            BrushShapes._discOffsetsCache = new Map();
+        }
+        const cache = BrushShapes._discOffsetsCache;
+        let offsets = cache.get(size);
+        if (!offsets) {
+            offsets = Object.freeze(BrushShapes.maskOffsets(BrushShapes.disc(size), size)
+                .map(o => Object.freeze(o)));
+            cache.set(size, offsets);
+        }
+        return offsets;
     },
+
+    /** @private discOffsets() memo, and the override table it was built for. */
+    _discOffsetsCache: null,
+    _discOffsetsTable: null,
 
     /**
      * Set bits of a size x size mask as centre-relative offsets. The centre is

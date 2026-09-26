@@ -339,6 +339,31 @@ for (const thickness of [1, 3, 8]) {
     flushEdge.some(p => p.x === 0 && p.y === 32));
 
   check('boundary: empty input is empty output', MaskOps.boundaryPoints([], W, H).length === 0);
+
+  // Membership lives in a byte grid REUSED across calls (this runs on every
+  // pointer move), so each call must leave it clean: a set seen once must not
+  // make a later, different set's pixels look interior. A, then B overlapping
+  // it, then A again must give A's answer both times and B its own.
+  const sigOf = (pts) => pts.map(p => p.x + ',' + p.y).join(' ');
+  const setB = [];
+  for (let y = 11; y < 13; y++) for (let x = 11; x < 18; x++) setB.push({ x, y });
+  const a1 = sigOf(MaskOps.boundaryPoints(block, W, H));
+  const b1 = sigOf(MaskOps.boundaryPoints(setB, W, H));
+  const a2 = sigOf(MaskOps.boundaryPoints(block, W, H));
+  check('boundary: consecutive calls are independent (the reused grid is left clean)',
+    a1 === a2 && b1 === sigOf(setB));
+
+  // Duplicates collapse to one member, in first-seen order - the order the
+  // outline has always been drawn in.
+  const dup = [{ x: 40, y: 40 }, { x: 41, y: 40 }, { x: 40, y: 40 }, { x: 39, y: 40 }];
+  check('boundary: duplicates collapse, first-seen order is kept',
+    sigOf(MaskOps.boundaryPoints(dup, W, H)) === '40,40 41,40 39,40');
+
+  // A call at a different width (another screen mode) shares the same grid.
+  const wide = [{ x: 500, y: 3 }, { x: 501, y: 3 }];
+  check('boundary: a wider canvas after a narrower one still answers correctly',
+    MaskOps.boundaryPoints(wide, 512, 192).length === 2 &&
+    sigOf(MaskOps.boundaryPoints(block, W, H)) === a1);
 }
 
 summary();

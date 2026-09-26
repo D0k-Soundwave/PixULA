@@ -146,6 +146,14 @@ class BezierToolClass extends ToolBase {
     this.isDrawing = true;
   }
 
+  /**
+   * The baseline drag previews a line and a handle drag sets the handle's
+   * absolute position: only the last sample matters (ToolBase).
+   */
+  get coalescesPointerMoves() {
+    return true;
+  }
+
   onPointerMove(pixelX, pixelY, e) {
     if (!this.isDrawing) return;
 

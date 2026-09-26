@@ -30,14 +30,6 @@ all.
 
 ## Nice to have
 
-- **`BackupService.listVersions()` calls `entry.getFile()` for every file in
-  the backup folder** (to populate `size`/`mtime`) where the old code only
-  read names. Called twice per backup write; at the 1-minute default
-  autosave interval with retention off, an 8-hour session is ~480 files x 2
-  = ~960 real filesystem reads/minute. Not correctness-breaking, just
-  wasteful, and no consumer actually reads `size`/`mtime` from
-  `listFiles()` today - narrowing the interface back down would remove
-  both the waste and the unused fields at once.
 - **`tests/browser/font-rasterizer.spec.js` and
   `system-font-import.spec.js`'s real-font block self-skip** if none of the
   shared `findInstalledFont()` candidates (`tests/browser/helpers.js`) exist
@@ -45,6 +37,50 @@ all.
   Playwright "skipped" line is still just one line among hundreds in
   `--reporter=line` output, not a loud signal. Worth a summary step that
   fails (or at least warns distinctly) if the real-font specs skipped.
+
+## Performance - the deeper tier
+
+Left over from the 2026-09-26 speed pass (`docs/superpowers/plans/2026-09-26-speed-pass.md`,
+figures in `docs/FIGURES.md` section 8). That pass took only the fixes that
+were low-risk and provably output-identical; these are the bigger rewrites it
+found and deliberately did not do. Each touches heavily mode-tested code, so
+each wants its own before/after measurement with `tools/speed-bench.js` (or
+`tools/perf-bench.js`) and a byte-identity check across the screen modes.
+
+- **The eraser still walks its whole disc at every step of a drag.** After
+  the pass a full-width size-128 drag is ~260 ms, of which ~120 ms is visiting
+  all 12,796 offsets of the disc at each interpolated point although the
+  previous step already cleared all but the leading edge, and ~57 ms is the
+  per-move hover footprint (M, CPU profile, 2026-09-26). Stamping only the
+  leading edge per step direction would take most of the first.
+- **Flood fill is a pixel queue with a Set.** `js/tools/fill-tool.js` pushes
+  four neighbours per pixel and calls `getPixelState` (two allocations) for
+  each; a whole-canvas fill at LAYER2_640 is 164k pixels. A scanline fill
+  with a `Uint8Array` visited map, still writing every pixel through `draw()`
+  so symmetry, clip and dither apply, is the standard fix. Not yet measured.
+- **The compositor preview round-trips every pixel through strings.**
+  `GridOverlay.drawCompositorPreview` / `_renderCompositorPreview` turn each
+  pending pixel into an `"x,y"` key, parse it back to find its cell, then
+  build 64 more keys per cell - roughly 130k string builds a frame on a
+  near-full-canvas shape, most of the 8 ms such a drag still costs per move
+  (M, 2026-09-26). Numeric per-cell buckets with a reused byte mask would
+  remove them; duplicates must still collapse (XOR) and ink must still beat
+  paper for the same pixel.
+- **GigaScreen's default Average view composes through `setPixel`.** The
+  per-pixel path section 8 found to be 68% of compose time is still how
+  `layer-manager.js` draws the four blended colours, with several typed-array
+  allocations per cell; the Flicker view also recomposes the whole picture at
+  50 Hz where two buffers swapped per phase would do.
+- **The cell grid at 1600% on a 2x screen is still ~200 MB.** Only visible
+  grids own a canvas now, but a visible one is the whole picture at zoom x
+  DPR. Sizing grid canvases to the visible viewport (redrawn on scroll), or
+  drawing them as CSS repeating gradients, would make it a few MB.
+- **The brush cursor can re-encode a PNG on a pointer move.** In modes where
+  the mark shows the colour under it, a move over new colours misses the
+  cursor-image cache and `toDataURL('image/png')` runs synchronously. Encoding
+  off the main thread (`OffscreenCanvas.convertToBlob`) keeps the look; a
+  colour-stable mark while drawing would be a behaviour change and is the
+  artist's call.
 
 ## Future format support
 
