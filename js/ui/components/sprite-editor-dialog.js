@@ -210,7 +210,7 @@ class SpriteEditorDialogClass {
 
         // ── File row ────────────────────────────────────────────────────────
         const file = row('sprite-editor-file');
-        const importBtn = mkBtn('se-import', 'sprite.import', 'Import .spr…',
+        const importBtn = mkBtn('se-import', 'sprite.import', 'Import .spr...',
             'sprite.import.hint', 'Replaces the whole sheet with one loaded from a .spr file');
         const exportBtn = mkBtn('se-export', 'sprite.export', 'Export .spr',
             'sprite.export.hint', 'Saves the whole sheet as a .spr file');
@@ -268,7 +268,7 @@ class SpriteEditorDialogClass {
         const bridgeGate = () => {
             if (SpriteService.isCanvasCompatible()) return true;
             say(this._t('mode.spriteNeedsIndexed',
-                'Canvas capture/stamp works in the Layer 2 / LoRes modes — switch the screen mode first.'));
+                'Canvas capture/stamp works in the Layer 2 / LoRes modes - switch the screen mode first.'));
             return false;
         };
         capture.addEventListener('click', () => {
@@ -281,7 +281,7 @@ class SpriteEditorDialogClass {
         saveStamp.addEventListener('click', () => {
             if (!bridgeGate()) return;
             if (SpriteService.saveAsStamp(SpriteService.getCurrent())) {
-                say(this._t('sprite.stampSaved', 'Stamp created — drag it into place, then click to commit.'));
+                say(this._t('sprite.stampSaved', 'Stamp created - drag it into place, then click to commit.'));
             }
         });
 

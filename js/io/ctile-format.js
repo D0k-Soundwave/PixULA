@@ -58,7 +58,7 @@ class CtileFormatClass {
       return {
         success: false,
         error: Helpers.localizedMessage('mode.ctileBadSize',
-          'Not a ColorTile file — the size must be a multiple of 64 bytes.')
+          'Not a ColorTile file - the size must be a multiple of 64 bytes.')
       };
     }
     const tileCount = bytes.length / 64;
@@ -143,7 +143,7 @@ class CtileFormatClass {
     const mode = ACTIVE_SCREEN_MODE;
     if (!this.canExport()) {
       throw new Error(Helpers.localizedMessage('mode.ctileNeedsTimex',
-        'ColorTiles are 8×1-attribute tiles — switch to Multicolor 8×1 (Timex) mode first.'));
+        'ColorTiles are 8×1-attribute tiles - switch to Multicolor 8×1 (Timex) mode first.'));
     }
 
     // Region: selection bounds (tile-aligned) or the whole canvas
@@ -153,7 +153,7 @@ class CtileFormatClass {
     if (sel) {
       if (sel.x % 16 || sel.y % 16 || sel.width % 16 || sel.height % 16) {
         throw new Error(Helpers.localizedMessage('mode.ctileSelectionAlign',
-          'ColorTiles are 16×16 pixels — the selection must sit on the 16-pixel grid.'));
+          'ColorTiles are 16×16 pixels - the selection must sit on the 16-pixel grid.'));
       }
       x = sel.x; y = sel.y; w = sel.width; h = sel.height;
     }

@@ -261,7 +261,7 @@ class SCRFormatClass {
     if (mode.attrCellH !== SCREEN_MODES.STANDARD_ULA.attrCellH
         && mode.attrCellH !== 1) {
       throw new Error(Helpers.localizedMessage('mode.scrNeedsStandardCells',
-        'This document’s attribute cells fit no SCREEN$ container — save as .mlt or .ifl instead, or switch modes first.'));
+        'This document\'s attribute cells fit no SCREEN$ container - save as .mlt or .ifl instead, or switch modes first.'));
     }
 
     const scrData = new Uint8Array(this.FILE_SIZE);

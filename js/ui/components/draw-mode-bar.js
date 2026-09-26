@@ -231,7 +231,7 @@ class DrawModeBarClass {
     /** @private */
     _refreshMirrorLabels() {
         const hint = this._t('view.mirror.hint',
-            'Mirror drawing across the canvas centre — every tool draws on both sides');
+            'Mirror drawing across the canvas centre - every tool draws on both sides');
         for (const [mode, { btn }] of this._mirrorButtons) {
             const name = this._mirrorName(mode);
             btn.title = Helpers.composeTitle(name, hint);

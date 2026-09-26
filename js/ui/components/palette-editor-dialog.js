@@ -118,7 +118,7 @@ class PaletteEditorDialogClass {
                 titleI18n: 'palette.createTitle',
                 title: 'Create Palette',
                 hintI18n: 'palette.createHint',
-                hint: 'Click a swatch to pick a colour, or sample one from a photo below. Nothing here touches your document — save it as a file when you are happy with it.',
+                hint: 'Click a swatch to pick a colour, or sample one from a photo below. Nothing here touches your document - save it as a file when you are happy with it.',
                 getHex: (i) => ULAPLUS.registerToHex(regs[i]),
                 getReg: (i) => regs[i],
                 setFromRGB: (i, r, g, b) => { regs[i] = ULAPLUS.rgbToRegister(r, g, b); },
@@ -138,7 +138,7 @@ class PaletteEditorDialogClass {
                 titleI18n: 'palette.createTitle',
                 title: 'Create Palette',
                 hintI18n: 'palette.createHint',
-                hint: 'Click a swatch to pick a colour, or sample one from a photo below. Nothing here touches your document — save it as a file when you are happy with it.',
+                hint: 'Click a swatch to pick a colour, or sample one from a photo below. Nothing here touches your document - save it as a file when you are happy with it.',
                 getHex: (i) => NEXTRGB333.registerToHex(regs[i]),
                 getReg: (i) => regs[i],
                 setFromRGB: (i, r, g, b) => { regs[i] = NEXTRGB333.rgbToRegister(r, g, b); },
@@ -320,7 +320,7 @@ class PaletteEditorDialogClass {
     /** @private */
     _needsPaletteMode() {
         alert(this._t('mode.needsEditablePalette',
-            'The palette is editable in ULAplus and ZX Spectrum Next modes — switch the screen mode first.'));
+            'The palette is editable in ULAplus and ZX Spectrum Next modes - switch the screen mode first.'));
     }
 
     /**

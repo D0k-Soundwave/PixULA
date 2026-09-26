@@ -116,12 +116,12 @@ class MulticolorFormatClass {
     Helpers.assertNotPair();
     if (ACTIVE_SCREEN_MODE.paletteModel !== 'fixed16') {
       throw new Error(Helpers.localizedMessage('mode.formatNeedsFixed16',
-        'This format needs the fixed 16-colour palette — switch out of ULAplus mode first.'));
+        'This format needs the fixed 16-colour palette - switch out of ULAplus mode first.'));
     }
     if (ACTIVE_SCREEN_MODE.attrCellH < mode.attrCellH) {
       // Coarsening on the way out would silently lose colour detail
       throw new Error(Helpers.localizedMessage('mode.exportWouldCoarsen',
-        'This document has finer colour detail than the chosen format can hold — switch modes first if you want the lossy conversion.'));
+        'This document has finer colour detail than the chosen format can hold - switch modes first if you want the lossy conversion.'));
     }
 
     // Pure conversion of the composited grid to the variant's geometry —

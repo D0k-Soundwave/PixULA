@@ -91,7 +91,7 @@ class PresetFormatClass {
     if (free === -1) {
       return {
         success: false,
-        error: 'Every preset slot is full — free one in the preset manager first'
+        error: 'Every preset slot is full - free one in the preset manager first'
       };
     }
 
