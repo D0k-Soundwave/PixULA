@@ -236,6 +236,50 @@ class GigaQuantClass {
     buf[i + 2] += eb * factor;
   }
 
+  /**
+   * The pick a hi-res scheme pair stands for: scheme n is ink n on paper
+   * n ^ 7, both bright (ColorManager._deriveTimexMonoPalette).
+   */
+  hiresPick(inkA, inkB) {
+    return {
+      a: { ink: inkA & 7, paper: (inkA & 7) ^ 7, bright: true },
+      b: { ink: inkB & 7, paper: (inkB & 7) ^ 7, bright: true }
+    };
+  }
+
+  /**
+   * The Timex hi-res pair has ONE scheme per screen for the whole picture,
+   * so there is no per-cell choice: all 64 scheme pairings [C: 8 x 8] are
+   * scored against the image using only their steady slots, and the best
+   * wins. A pairing with no steady slot is skipped; (n, n) always has two.
+   * @param {{width:number, height:number, data:Uint8ClampedArray}} image
+   * @returns {{inkA:number, inkB:number}}
+   */
+  chooseHiresSchemes(image, maxStep = this.MAX_STEP) {
+    const n = image.width * image.height;
+    const d = image.data;
+    let best = null;
+    for (let inkA = 0; inkA < 8; inkA++) {
+      for (let inkB = 0; inkB < 8; inkB++) {
+        const slots = this.slotsFor(this.hiresPick(inkA, inkB), maxStep);
+        if (!slots.length) continue;
+        let err = 0;
+        for (let p = 0; p < n; p++) {
+          const o = p * 4;
+          let nd = Infinity;
+          for (const s of slots) {
+            const dd = this._dist2(d[o], d[o + 1], d[o + 2], s.rgb);
+            if (dd < nd) nd = dd;
+          }
+          err += nd;
+          if (best && err >= best.err) break;
+        }
+        if (!best || err < best.err) best = { inkA, inkB, err };
+      }
+    }
+    return { inkA: best.inkA, inkB: best.inkB };
+  }
+
   /** Luma-weighted squared distance - the same measure as PNGFormat._dist2. */
   _dist2(r, g, b, rgb) {
     const dr = r - rgb[0];
