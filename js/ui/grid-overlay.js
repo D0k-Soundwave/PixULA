@@ -89,11 +89,8 @@ class GridOverlayClass {
             selectionBorder: '#3399ff'
         };
 
-        // Grid caches - separate cache for each grid type
-        this._grid1x1Cache = null;
-        this._grid8x8Cache = null;
-        this._grid16x16Cache = null;
-        this._cachedZoom = null;
+        // What each grid canvas was last drawn for (_renderGrid); null = not drawn
+        this._gridSigs = { '1x1': null, '8x8': null, '16x16': null };
 
         // Grid wrapper div (sub-pixel grid rendering lives outside CSS-scaled canvas-container)
         this._gridWrapper = null;
@@ -211,8 +208,8 @@ class GridOverlayClass {
             dim:             this._cssVar('--overlay-dim',              'rgba(0,0,0,0.15)')
         };
         this._dimAlpha = GridOverlayClass.alphaByteOf(this._overlayColors.dim, 38);
-
-        this._cachedZoom = null; // rebuild caches so new colours apply
+        // No invalidation needed: a grid's colour is part of what _renderGrid
+        // compares, so the next render() redraws any grid whose colour moved.
     }
 
     /**
@@ -252,65 +249,38 @@ class GridOverlayClass {
     }
 
     /**
-     * Render all visible grid overlays (cached per zoom level)
+     * Render every grid overlay. Only a VISIBLE grid owns a backing store: it
+     * is sized to the picture at the current zoom x DPR and its lines are
+     * stroked straight into it, once per change of anything they depend on
+     * (_renderGrid's signature). A hidden grid is shrunk to 0x0.
+     *
+     * This used to size all three grid canvases, plus a same-size cache canvas
+     * of each, on every zoom step whether any grid was on or not: at 1600% on
+     * a 2x screen that is six 8192x6144 surfaces (~1.2 GB) at 256x192, and
+     * more at 640 wide. Stroking into the grid's own canvas leaves exactly the
+     * pixels the cache's 1:1 drawImage copied in.
      */
     render() {
         if (!this._initialized) return;
-
-        if (this._cachedZoom !== this.zoom) {
-            this._rebuildAllCaches();
-        }
-
-        this._render1x1Grid();
-        this._render8x8Grid();
-        this._render16x16Grid();
-    }
-
-    /** @private */
-    _render1x1Grid() {
-        if (!this.grid1x1Ctx) return;
-        this.grid1x1Ctx.clearRect(0, 0, this.grid1x1Canvas.width, this.grid1x1Canvas.height);
         // Only show pixel grid at high zoom (4x or higher; zoom stored as percentage)
-        if (this.pixelGridVisible && this.zoom >= 400 && this._grid1x1Cache) {
-            this.grid1x1Ctx.drawImage(this._grid1x1Cache, 0, 0);
-        }
-    }
-
-    /** @private */
-    _render8x8Grid() {
-        if (!this.grid8x8Ctx) return;
-        this.grid8x8Ctx.clearRect(0, 0, this.grid8x8Canvas.width, this.grid8x8Canvas.height);
-        if (this.cellGridVisible && this._grid8x8Cache) {
-            this.grid8x8Ctx.drawImage(this._grid8x8Cache, 0, 0);
-        }
-    }
-
-    /** @private */
-    _render16x16Grid() {
-        if (!this.grid16x16Ctx) return;
-        this.grid16x16Ctx.clearRect(0, 0, this.grid16x16Canvas.width, this.grid16x16Canvas.height);
-        if (this.blockGridVisible && this._grid16x16Cache) {
-            this.grid16x16Ctx.drawImage(this._grid16x16Cache, 0, 0);
-        }
-    }
-
-    /** @private */
-    _rebuildAllCaches() {
-        this._rebuildCache1x1();
-        this._rebuildCache8x8();
-        this._rebuildCache16x16();
-        this._cachedZoom = this.zoom;
+        this._renderGrid('1x1', this.grid1x1Canvas, this.grid1x1Ctx,
+            this.pixelGridVisible && this.zoom >= 400, this.pixelGridColor, 0.05, this._path1x1);
+        this._renderGrid('8x8', this.grid8x8Canvas, this.grid8x8Ctx,
+            this.cellGridVisible, this.cellGridColor, 0.1, this._path8x8);
+        this._renderGrid('16x16', this.grid16x16Canvas, this.grid16x16Ctx,
+            this.blockGridVisible, this.blockGridColor, 0.1, this._path16x16);
     }
 
     /**
-     * Resize grid wrapper and grid canvases to display resolution at the current zoom + DPR.
-     * Grid canvases live OUTSIDE the CSS-scaled canvas-container so they can render at the
-     * actual on-screen pixel size — this is what makes sub-pixel grid lines possible.
+     * Resize the grid wrapper to the picture's display size at the current
+     * zoom. Grid canvases live OUTSIDE the CSS-scaled canvas-container so they
+     * can render at the actual on-screen pixel size — this is what makes
+     * sub-pixel grid lines possible. The canvases themselves are sized by
+     * _renderGrid, and only while visible.
      * @private
      * @param {number} scale - zoom factor (e.g. 4 for 400%)
      */
     _updateGridLayout(scale) {
-        const DPR = window.devicePixelRatio || 1;
         const displayW = Math.round(ZX_SPECTRUM.WIDTH  * scale);
         const displayH = Math.round(ZX_SPECTRUM.HEIGHT * scale);
 
@@ -318,38 +288,40 @@ class GridOverlayClass {
             this._gridWrapper.style.width  = displayW + 'px';
             this._gridWrapper.style.height = displayH + 'px';
         }
-
-        const canvases = [this.grid1x1Canvas, this.grid8x8Canvas, this.grid16x16Canvas];
-        for (const c of canvases) {
-            if (!c) continue;
-            c.width  = Math.round(displayW * DPR);
-            c.height = Math.round(displayH * DPR);
-            c.style.width  = displayW + 'px';
-            c.style.height = displayH + 'px';
-        }
-
-        this._grid1x1Cache = null;
-        this._grid8x8Cache = null;
-        this._grid16x16Cache = null;
-        this._cachedZoom = null;
     }
 
     /**
-     * Build a grid cache canvas at the current zoom + DPR.
+     * Draw one grid into its own canvas at the current zoom + DPR, or release
+     * the canvas's backing store if the grid is not showing. Skips the work
+     * when nothing the lines depend on has changed since they were drawn.
      * @private
      */
-    _buildGridCache(strokeStyle, drawFn, lineWidthZx = 0.2) {
+    _renderGrid(key, canvas, ctx, visible, strokeStyle, lineWidthZx, pathFn) {
+        if (!canvas || !ctx) return;
+        if (!visible) {
+            if (canvas.width || canvas.height) {
+                canvas.width = 0;
+                canvas.height = 0;
+            }
+            this._gridSigs[key] = null;
+            return;
+        }
+
         const scale = this._scale();
         const DPR   = window.devicePixelRatio || 1;
+        const sig = [scale, DPR, strokeStyle, lineWidthZx, ZX_SPECTRUM.WIDTH, ZX_SPECTRUM.HEIGHT,
+            ZX_SPECTRUM.CELL_WIDTH, ZX_SPECTRUM.CELL_HEIGHT, ZX_SPECTRUM.CELL_SIZE].join('|');
+        if (this._gridSigs[key] === sig) return;
+        this._gridSigs[key] = sig;
+
         const displayW = Math.round(ZX_SPECTRUM.WIDTH  * scale);
         const displayH = Math.round(ZX_SPECTRUM.HEIGHT * scale);
+        // Assigning the size also clears the canvas and resets its context.
+        canvas.width  = Math.round(displayW * DPR);
+        canvas.height = Math.round(displayH * DPR);
+        canvas.style.width  = displayW + 'px';
+        canvas.style.height = displayH + 'px';
 
-        const cache = Helpers.createCanvas(
-            Math.round(displayW * DPR),
-            Math.round(displayH * DPR)
-        );
-
-        const ctx = cache.getContext('2d');
         ctx.scale(DPR, DPR);
 
         const lw   = lineWidthZx * scale;  // ZX pixels -> CSS units
@@ -358,63 +330,55 @@ class GridOverlayClass {
         ctx.strokeStyle = strokeStyle;
         ctx.lineWidth   = lw;
         ctx.beginPath();
-        drawFn(ctx, scale, half, displayW, displayH);
+        pathFn(ctx, scale, half, displayW, displayH);
         ctx.stroke();
-
-        return cache;
     }
 
-    /** Rebuild 1x1 pixel grid cache. @private */
-    _rebuildCache1x1() {
-        this._grid1x1Cache = this._buildGridCache(this.pixelGridColor, (ctx, scale, half, dW, dH) => {
-            for (let col = 1; col < ZX_SPECTRUM.WIDTH; col++) {
-                const x = col * scale;
-                ctx.moveTo(x - half, 0);  ctx.lineTo(x - half, dH);
-                ctx.moveTo(x + half, 0);  ctx.lineTo(x + half, dH);
-            }
-            for (let row = 1; row < ZX_SPECTRUM.HEIGHT; row++) {
-                const y = row * scale;
-                ctx.moveTo(0, y - half);  ctx.lineTo(dW, y - half);
-                ctx.moveTo(0, y + half);  ctx.lineTo(dW, y + half);
-            }
-        }, 0.05);
+    /** 1x1 pixel grid lines. @private */
+    _path1x1(ctx, scale, half, dW, dH) {
+        for (let col = 1; col < ZX_SPECTRUM.WIDTH; col++) {
+            const x = col * scale;
+            ctx.moveTo(x - half, 0);  ctx.lineTo(x - half, dH);
+            ctx.moveTo(x + half, 0);  ctx.lineTo(x + half, dH);
+        }
+        for (let row = 1; row < ZX_SPECTRUM.HEIGHT; row++) {
+            const y = row * scale;
+            ctx.moveTo(0, y - half);  ctx.lineTo(dW, y - half);
+            ctx.moveTo(0, y + half);  ctx.lineTo(dW, y + half);
+        }
     }
 
-    /** Rebuild attribute-cell grid cache (cell geometry from the mode). @private */
-    _rebuildCache8x8() {
+    /** Attribute-cell grid lines (cell geometry from the mode). @private */
+    _path8x8(ctx, scale, half, dW, dH) {
         const cellW = ZX_SPECTRUM.CELL_WIDTH;
         const cellH = ZX_SPECTRUM.CELL_HEIGHT;
-        this._grid8x8Cache = this._buildGridCache(this.cellGridColor, (ctx, scale, half, dW, dH) => {
-            for (let col = 1; col < ZX_SPECTRUM.GRID_COLS; col++) {
-                const x = col * cellW * scale;
-                ctx.moveTo(x - half, 0);  ctx.lineTo(x - half, dH);
-                ctx.moveTo(x + half, 0);  ctx.lineTo(x + half, dH);
-            }
-            for (let row = 1; row < ZX_SPECTRUM.GRID_ROWS; row++) {
-                const y = row * cellH * scale;
-                ctx.moveTo(0, y - half);  ctx.lineTo(dW, y - half);
-                ctx.moveTo(0, y + half);  ctx.lineTo(dW, y + half);
-            }
-        }, 0.1);
+        for (let col = 1; col < ZX_SPECTRUM.GRID_COLS; col++) {
+            const x = col * cellW * scale;
+            ctx.moveTo(x - half, 0);  ctx.lineTo(x - half, dH);
+            ctx.moveTo(x + half, 0);  ctx.lineTo(x + half, dH);
+        }
+        for (let row = 1; row < ZX_SPECTRUM.GRID_ROWS; row++) {
+            const y = row * cellH * scale;
+            ctx.moveTo(0, y - half);  ctx.lineTo(dW, y - half);
+            ctx.moveTo(0, y + half);  ctx.lineTo(dW, y + half);
+        }
     }
 
-    /** Rebuild 16x16 block grid cache. @private */
-    _rebuildCache16x16() {
+    /** 16x16 block grid lines. @private */
+    _path16x16(ctx, scale, half, dW, dH) {
         const blockSize = ZX_SPECTRUM.CELL_SIZE * 2;
         const cols = Math.ceil(ZX_SPECTRUM.WIDTH  / blockSize);
         const rows = Math.ceil(ZX_SPECTRUM.HEIGHT / blockSize);
-        this._grid16x16Cache = this._buildGridCache(this.blockGridColor, (ctx, scale, half, dW, dH) => {
-            for (let col = 1; col < cols; col++) {
-                const x = col * blockSize * scale;
-                ctx.moveTo(x - half, 0);  ctx.lineTo(x - half, dH);
-                ctx.moveTo(x + half, 0);  ctx.lineTo(x + half, dH);
-            }
-            for (let row = 1; row < rows; row++) {
-                const y = row * blockSize * scale;
-                ctx.moveTo(0, y - half);  ctx.lineTo(dW, y - half);
-                ctx.moveTo(0, y + half);  ctx.lineTo(dW, y + half);
-            }
-        }, 0.1);
+        for (let col = 1; col < cols; col++) {
+            const x = col * blockSize * scale;
+            ctx.moveTo(x - half, 0);  ctx.lineTo(x - half, dH);
+            ctx.moveTo(x + half, 0);  ctx.lineTo(x + half, dH);
+        }
+        for (let row = 1; row < rows; row++) {
+            const y = row * blockSize * scale;
+            ctx.moveTo(0, y - half);  ctx.lineTo(dW, y - half);
+            ctx.moveTo(0, y + half);  ctx.lineTo(dW, y + half);
+        }
     }
 
     /** Show the primary (8x8 cell) grid. */
