@@ -29,6 +29,17 @@ class GigaQuantClass {
      * visible a gap of this size is on real hardware is not measured.
      */
     this.MAX_STEP = 2;
+
+    /**
+     * The most samples chooseCell reads for one cell. The Sharp method hands
+     * it every source pixel the cell covers - 15,600 for a 12 MP photo [C:
+     * 4000 x 3000 / 768 cells] - and the preview re-runs it per slider step,
+     * which cost 3.5 s a step before this cap (M, final review 2026-09-26).
+     * 1024 is a 1024x768 photo's full detail per 8x8 cell [C: (1024 / 256)^2
+     * x 64], the size of every photo in docs/bench-images, so the measured
+     * results are unchanged by it; larger photos are sampled evenly.
+     */
+    this.MAX_DECIDE_SAMPLES = 1024;
     this._paletteCache = new Map();
   }
 
@@ -115,6 +126,13 @@ class GigaQuantClass {
    */
   chooseCell(samples, maxStep = this.MAX_STEP) {
     const palette = this.steadyPalette(maxStep);
+    // Nothing to fit (no source pixel reaches here today): black on both
+    // screens, rather than a throw halfway through an import's undo action
+    if (samples.length < 3) {
+      const black = { ink: 0, paper: 0, bright: false };
+      return { a: black, b: { ...black } };
+    }
+    samples = this._evenSample(samples, this.MAX_DECIDE_SAMPLES);
     const n = samples.length / 3;
     const counts = new Array(palette.length).fill(0);
     for (let i = 0; i < n; i++) {
@@ -158,6 +176,25 @@ class GigaQuantClass {
       for (const b of pairsB) tryPick({ a, b });
     }
     return best.pick;
+  }
+
+  /**
+   * At most `max` samples, taken at an even stride across the whole list so
+   * every part of the cell is represented. The list itself when it is small
+   * enough.
+   * @private
+   */
+  _evenSample(samples, max) {
+    const n = samples.length / 3;
+    if (n <= max) return samples;
+    const out = new Float32Array(max * 3);
+    for (let k = 0; k < max; k++) {
+      const i = Math.floor(k * n / max) * 3;
+      out[k * 3] = samples[i];
+      out[k * 3 + 1] = samples[i + 1];
+      out[k * 3 + 2] = samples[i + 2];
+    }
+    return out;
   }
 
   /**
