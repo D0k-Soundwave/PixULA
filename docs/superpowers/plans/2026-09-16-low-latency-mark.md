@@ -3,7 +3,12 @@
 **Goal:** make the ink and the tool's mark land closer to the pen tip, on the
 artist's own machine and tablet, and prove it with measurements taken there.
 
-**Status:** plan only. Nothing here is built. Since the brush-cursor commit
+**Status: CLOSED 2026-09-26, not needed.** The owner judged stroke and mark
+latency to be working satisfactorily as it is, so none of this plan will be
+built. It is kept as the record of what was known and what a future attempt
+would measure first.
+
+**Status before closing:** plan only. Nothing here is built. Since the brush-cursor commit
 the tool's mark IS the hardware cursor (its size at the current zoom, its
 colours), so it no longer trails the pen - except where Chrome refuses the
 image (over 128 DIP, or crossing the window edge) and the app draws it
