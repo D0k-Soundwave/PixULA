@@ -44,6 +44,8 @@ class CanvasSystemClass {
     // Animation frame
     this.rafId = null;
     this.renderPending = false;
+    this._renderLoopActive = false;
+    this._renderFrame = null;
 
     // Initialization state
     this._initialized = false;
@@ -762,27 +764,39 @@ class CanvasSystemClass {
    */
   requestRender() {
     this.renderPending = true;
+    if (this._renderLoopActive && this.rafId === null) {
+      this.rafId = requestAnimationFrame(this._renderFrame);
+    }
   }
 
   /**
-   * Start the render loop
+   * Start the render loop. A frame is only asked for when something is
+   * pending: an idle editor used to wake 60-144 times a second just to find
+   * nothing to draw, which is battery a tablet artist pays for.
    * @private
    */
   _startRenderLoop() {
-    const loop = () => {
-      if (this.renderPending) {
+    this._renderLoopActive = true;
+    this._renderFrame = () => {
+      this.rafId = null;
+      if (!this.renderPending) return;
+      // A request made DURING the render is dropped, as it always was - the
+      // flag is cleared after, not before - so a CANVAS_RENDER listener that
+      // asks for a render cannot turn this into a loop every frame.
+      try {
         this._render();
+      } finally {
         this.renderPending = false;
       }
-      this.rafId = requestAnimationFrame(loop);
     };
-    loop();
+    this._renderFrame();
   }
 
   /**
    * Stop the render loop
    */
   stopRenderLoop() {
+    this._renderLoopActive = false;
     if (this.rafId) {
       cancelAnimationFrame(this.rafId);
       this.rafId = null;
@@ -806,21 +820,30 @@ class CanvasSystemClass {
       // Full canvas update
       this.ctx.putImageData(this.imageData, 0, 0);
     } else if (this.dirtyRegions.size > 0) {
-      // Partial update - only dirty cells
+      // Partial update - ONE upload of the box around every dirty cell. On an
+      // accelerated canvas each putImageData is its own flush and texture
+      // upload, and a stroke in an 8x1-cell mode dirties hundreds of cells a
+      // frame; the clean pixels the box also covers already match imageData,
+      // so re-sending them changes nothing on screen.
       const cellW = ZX_SPECTRUM.CELL_WIDTH;
       const cellH = ZX_SPECTRUM.CELL_HEIGHT;
+      let minX = Infinity, minY = Infinity, maxX = -1, maxY = -1;
       for (const key of this.dirtyRegions) {
-        const [cellX, cellY] = key.split(',').map(Number);
-        const x = cellX * cellW;
-        const y = cellY * cellH;
-        // putImageData with dirty rect: source offset and size
-        this.ctx.putImageData(
-          this.imageData,
-          0, 0,  // destination x, y
-          x, y,  // source x, y (dirty rect origin)
-          cellW, cellH  // width, height
-        );
+        const comma = key.indexOf(',');
+        const cellX = +key.slice(0, comma);
+        const cellY = +key.slice(comma + 1);
+        if (cellX < minX) minX = cellX;
+        if (cellX > maxX) maxX = cellX;
+        if (cellY < minY) minY = cellY;
+        if (cellY > maxY) maxY = cellY;
       }
+      // putImageData with dirty rect: source offset and size
+      this.ctx.putImageData(
+        this.imageData,
+        0, 0,  // destination x, y
+        minX * cellW, minY * cellH,  // source x, y (dirty rect origin)
+        (maxX - minX + 1) * cellW, (maxY - minY + 1) * cellH  // width, height
+      );
     }
 
     this.dirtyRegions.clear();

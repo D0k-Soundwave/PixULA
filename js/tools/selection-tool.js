@@ -95,6 +95,14 @@ class SelectionToolClass extends ToolBase {
    * @param {number} pixelY - Y coordinate (0-191)
    * @param {PointerEvent} e - Pointer event
    */
+  /**
+   * A rectangle, cell or ellipse drag only redraws its preview, so it takes
+   * the last sample; the lasso records its path and needs every one (ToolBase).
+   */
+  get coalescesPointerMoves() {
+    return this._selectMode !== 'freeform';
+  }
+
   onPointerMove(pixelX, pixelY, e) {
     if (!this.isSelecting) return;
 

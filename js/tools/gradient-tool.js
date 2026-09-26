@@ -310,6 +310,11 @@ class GradientToolClass extends ToolBase {
     }
   }
 
+  /** Both phases' drags only redraw a preview: last sample only (ToolBase). */
+  get coalescesPointerMoves() {
+    return true;
+  }
+
   onPointerMove(pixelX, pixelY, e) {
     if (this._phase === 'shape') {
       if (!this.isDrawing) return;

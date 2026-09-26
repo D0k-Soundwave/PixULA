@@ -64,3 +64,45 @@ test('image-rotation gauge holds its angle across commits and resets on a new se
     await expect(rotVal).toHaveText('0°');
     await expect(rot).toHaveValue('0');
 });
+
+/**
+ * A slider tick is ONE batch. rotateFromSnapshot used to be the only transform
+ * that applied its buffer outside a PixelDrawRoutine batch, so every pixel of
+ * the work area emitted its own CANVAS_DIRTY and marked the document modified,
+ * on every tick of the drag (70.6 -> 27.5 ms a tick at full canvas,
+ * docs/FIGURES.md section 8, 2026-09-26). The batch nests inside the slider's
+ * own undo action, so the whole drag must still be one undo step.
+ */
+test('each rotate-slider tick is one batch, and a whole drag is one undo step', async ({ page }) => {
+    await boot(page);
+    await page.keyboard.press('b');
+
+    await page.evaluate(() => {
+        const sel = ColorManager.getCurrentSelection();
+        PixelDrawRoutine.beginBatch();
+        for (let y = 30; y < 66; y++) for (let x = 30; x < 66; x++)
+            if ((x + y) % 3) PixelDrawRoutine.draw(x, y, sel, DRAW_MODE.NORMAL);
+        PixelDrawRoutine.endBatch();
+        SelectionService.setSelection({ x: 24, y: 24, width: 48, height: 48 });
+        CanvasSystem.requestRender();
+        window.__ev = { ticks: 0, dirty: 0, batches: 0 };
+        document.querySelector('.tp-img-rot').addEventListener('input', () => { window.__ev.ticks++; });
+        EventBus.on(EVENTS.CANVAS_DIRTY, () => { window.__ev.dirty++; });
+        EventBus.on(EVENTS.PIXEL_BATCH_END, () => { window.__ev.batches++; });
+    });
+
+    const rot = page.locator('.tp-img-rot');
+    const before = await page.evaluate(() => UndoRedo.undoStack.length);
+    // fill() fires the slider's own 'input' event: one tick per value
+    for (const deg of [10, 20, 30]) await rot.fill(String(deg));
+    const ev = await page.evaluate(() => window.__ev);
+    await rot.dispatchEvent('change');
+    await page.waitForFunction((n) => UndoRedo.undoStack.length > n, before, { timeout: 3000 });
+
+    // One batch per tick, and a dirty event per batch - not one per pixel of
+    // the 48x48 area (2,304 a tick before the fix)
+    expect(ev.ticks).toBeGreaterThanOrEqual(3);
+    expect(ev.batches).toBe(ev.ticks);
+    expect(ev.dirty).toBeLessThanOrEqual(ev.ticks);
+    expect(await page.evaluate(() => UndoRedo.undoStack.length)).toBe(before + 1);
+});

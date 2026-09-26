@@ -153,3 +153,79 @@ test('a floating stamp outline follows the stamp as it moves', async ({ page }) 
 
     expect(moved).toBe(true);
 });
+
+/**
+ * The marquee DRAG preview (GridOverlay.drawSelectionPreview, on the
+ * function-preview canvas) highlights exactly the ink pixels inside the
+ * rectangle - ink from any visible, non-stamp drawing layer - and nothing
+ * outside it. Since 2026-09-26 it builds a per-cell mask and draws it in one
+ * masked fill instead of a fillRect per pixel (15.7 -> 0.3 ms a move over a
+ * busy full canvas, docs/FIGURES.md section 8); this pins what it shows.
+ */
+test('the marquee drag preview highlights exactly the visible ink inside it', async ({ page }) => {
+    await boot(page);
+
+    const results = await page.evaluate(() => {
+        const sel = ColorManager.getCurrentSelection();
+        const W = ZX_SPECTRUM.WIDTH, H = ZX_SPECTRUM.HEIGHT;
+        const paint = (test) => {
+            PixelDrawRoutine.beginBatch();
+            for (let y = 0; y < H; y++) for (let x = 0; x < W; x++)
+                if (test(x, y)) PixelDrawRoutine.draw(x, y, sel, DRAW_MODE.NORMAL);
+            PixelDrawRoutine.endBatch();
+        };
+        const addLayer = (name) => {
+            LayerManager.addLayer(name, false);
+            LayerManager.setCurrentLayer(LayerManager.layers.length - 1);
+        };
+        paint((x, y) => (x * 7 + y * 3) % 5 === 0);
+        addLayer('second');
+        paint((x, y) => y % 3 === 0 && x % 2 === 0);
+        // Ink on a HIDDEN layer must not show in the preview
+        addLayer('hidden');
+        paint((x, y) => x % 4 === 1);
+        LayerManager.getCurrentLayer().visible = false;
+
+        // The rule the preview promises, pixel by pixel
+        const inked = (x, y) => {
+            const cw = ZX_SPECTRUM.CELL_WIDTH, ch = ZX_SPECTRUM.CELL_HEIGHT;
+            for (let i = 1; i < LayerManager.layers.length; i++) {
+                const layer = LayerManager.layers[i];
+                if (!layer.visible || layer.isStamp) continue;
+                const cell = layer.getCell(Math.floor(x / cw), Math.floor(y / ch));
+                if (cell && cell.altered && ((cell.pixels[y % ch] >> (cw - 1 - (x % cw))) & 1)) return true;
+            }
+            return false;
+        };
+
+        const out = [];
+        for (const [rx, ry, rw, rh] of [[0, 0, W, H], [13, 9, 41, 27], [-6, -4, 30, 20], [W - 9, H - 7, 40, 40]]) {
+            GridOverlay.drawSelectionPreview(rx, ry, rw, rh);
+            const cvs = GridOverlay.functionPreviewCanvas;
+            const d = GridOverlay.functionPreviewCtx.getImageData(0, 0, cvs.width, cvs.height).data;
+            let wrong = 0, lit = 0;
+            const fills = new Set();
+            for (let y = 0; y < H; y++) {
+                for (let x = 0; x < W; x++) {
+                    const a = d[(y * W + x) * 4 + 3];
+                    // The 1px border sits on the rectangle's own edge pixels
+                    const onEdge = (x === rx || x === rx + rw - 1) && y >= ry && y < ry + rh ||
+                                   (y === ry || y === ry + rh - 1) && x >= rx && x < rx + rw;
+                    if (onEdge) continue;
+                    const inside = x > rx && x < rx + rw - 1 && y > ry && y < ry + rh - 1;
+                    const want = inside && inked(x, y);
+                    if (!!a !== want) wrong++;
+                    if (a && inside) { lit++; fills.add(d.slice((y * W + x) * 4, (y * W + x) * 4 + 4).join(',')); }
+                }
+            }
+            out.push({ rect: [rx, ry, rw, rh], wrong, lit, fills: fills.size });
+        }
+        return out;
+    });
+
+    for (const r of results) {
+        expect(r.wrong, `rect ${r.rect}`).toBe(0);
+        expect(r.lit, `rect ${r.rect}`).toBeGreaterThan(0);
+        expect(r.fills, `rect ${r.rect} is one flat fill colour`).toBe(1);
+    }
+});
