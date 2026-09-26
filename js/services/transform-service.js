@@ -908,60 +908,6 @@ class TransformServiceClass {
     Logger.debug('TransformService', 'Invert applied');
   }
 
-  /**
-   * Shift every altered cell's ink colour on the current layer by step (±1, wraps 0-7).
-   * Unaltered (transparent) cells are skipped to avoid poisoning future drawing.
-   * @param {number} step - +1 or -1
-   */
-  cycleLayerInk(step) {
-    const layer = LayerManager.getCurrentLayer();
-    if (!layer) return;
-    const baseColors = ZX_PALETTE.length / 2;
-    PixelDrawRoutine.beginBatch('Cycle Layer Ink');
-    // A whole-layer recolour, not a tool stroke: neither mirrored nor clipped.
-    PixelDrawRoutine.suspendStrokeHooks(() => {
-      for (let cy = 0; cy < ZX_SPECTRUM.GRID_ROWS; cy++) {
-        for (let cx = 0; cx < ZX_SPECTRUM.GRID_COLS; cx++) {
-          const cell = layer.getCell(cx, cy);
-          if (!cell || !cell.altered) continue;
-          const newInk = (cell.ink + step + baseColors) % baseColors;
-          const px = ZX_COORDS.cellToPixel(cx, cy);
-          PixelDrawRoutine.draw(px.x, px.y,
-            { ink: newInk, paper: cell.paper, bright: cell.bright, flash: cell.flash },
-            DRAW_MODE.ATTRIBUTES_ONLY, { layer });
-        }
-      }
-    });
-    PixelDrawRoutine.endBatch();
-  }
-
-  /**
-   * Shift every altered cell's paper colour on the current layer by step (±1, wraps 0-7).
-   * @param {number} step - +1 or -1
-   */
-  cycleLayerPaper(step) {
-    const layer = LayerManager.getCurrentLayer();
-    if (!layer) return;
-    const baseColors = ZX_PALETTE.length / 2;
-    PixelDrawRoutine.beginBatch('Cycle Layer Paper');
-    // A whole-layer recolour, not a tool stroke: neither mirrored nor clipped.
-    PixelDrawRoutine.suspendStrokeHooks(() => {
-      for (let cy = 0; cy < ZX_SPECTRUM.GRID_ROWS; cy++) {
-        for (let cx = 0; cx < ZX_SPECTRUM.GRID_COLS; cx++) {
-          const cell = layer.getCell(cx, cy);
-          if (!cell || !cell.altered) continue;
-          const newPaper = (cell.paper + step + baseColors) % baseColors;
-          const px = ZX_COORDS.cellToPixel(cx, cy);
-          PixelDrawRoutine.draw(px.x, px.y,
-            { ink: cell.ink, paper: newPaper, bright: cell.bright, flash: cell.flash },
-            DRAW_MODE.ATTRIBUTES_ONLY, { layer });
-        }
-      }
-    });
-    PixelDrawRoutine.endBatch();
-  }
-
-
 }
 
 window.TransformService = new TransformServiceClass();
