@@ -48,8 +48,15 @@ steady ones - and pixels may only take those.
 A mix of two colours is steady when:
 
 - the two are the same base colour (either brightness), or
-- their base colours are neighbours in the Spectrum's colour numbering and
-  they share the bright setting.
+- their base colours are at most `MAX_STEP` apart in the Spectrum's colour
+  numbering and they share the bright setting. Black is the same colour in
+  both brightnesses, so its bright setting never counts.
+
+**Measured and decided 2026-09-26:** `MAX_STEP` is 2 - colours up to two
+places apart - [M, `tools/giga-bench.js` on the 13 images in
+`docs/bench-images`, figures in `docs/FIGURES.md`], chosen by the artist over
+1 for the warm colours step 1 turns grey. The paragraphs below are the
+design as approved, when the threshold was still the one-step guess.
 
 The numbering is the hardware's own: colour n = G*4 + R*2 + B, so 0-7 runs
 black, blue, red, magenta, green, cyan, yellow, white in rising luminance
