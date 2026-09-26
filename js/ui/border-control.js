@@ -112,10 +112,11 @@ class BorderControlClass {
             // The border colour is document content (like pixels), not theming
             // — referencing the published palette token keeps the palette's
             // single source in ColorManager/constants. It reads the hardware
-            // border tokens (always the 8 non-bright classic colours), NOT the
-            // active-palette --zx-N ones: the border register is untouched by
-            // ULAplus/Next/Timex palette models, so the preview must show the
-            // real colour byte-for-byte in every screen mode.
+            // border tokens, NOT the active-palette --zx-N ones: ColorManager.
+            // borderColour decides, per mode, the colour the hardware shows
+            // for this value (the classics; ULAplus CLUT 0 paper; ULANext
+            // entry 128 + n; Timex hi-res, which ignores the value, its
+            // scheme's paper), and the preview follows it in every mode.
             if (canvasArea) {
                 canvasArea.style.setProperty('--zx-border-preview', `var(--zx-border-${b})`);
                 canvasArea.classList.add('border-preview');

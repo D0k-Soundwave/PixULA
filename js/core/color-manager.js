@@ -185,6 +185,8 @@ class ColorManagerClass {
         //              co.uk/wiki/ULAplus, fetched 2026-09-23]
         //   ULANext  - "Border index is also 128 + 0..7" [P, wiki.specnext.dev/
         //              Enhanced_ULA_Ink_Color_Mask, fetched 2026-09-23]
+        //   Timex hi-res - the scheme's bright paper, whatever the value
+        //              (see borderColour; the pair shows the two papers' blend)
         //   anything else - the 8 non-bright classic colours. A token set of
         //              its own, because --zx-0..7 is an ink half in ULAplus and
         //              does not exist in the 2-entry timexMono palette.
@@ -216,6 +218,19 @@ class ColorManagerClass {
      */
     borderColour(n) {
         const model = ACTIVE_SCREEN_MODE.paletteModel;
+        // Timex hi-res ignores the border value: "all colours, including the
+        // BORDER, are BRIGHT, and the BORDER colour is the same as the PAPER
+        // colour" [P, worldofspectrum.org/faq/reference/tmxreference.htm,
+        // fetched 2026-09-26]. In the hi-res pair each frame's border is its
+        // own scheme's paper, so the display alternates them; the colour
+        // shown is the Average view's blend of the two.
+        if (model === 'timexMono') {
+            const paperA = ZX_PALETTE_RGB[((this.timexHiresInk & 7) ^ 7) + 8];
+            if (ZX_SPECTRUM.SCREENS !== 2) return ZX_PALETTE[((this.timexHiresInk & 7) ^ 7) + 8];
+            const paperB = ZX_PALETTE_RGB[((this.timexHiresInkB & 7) ^ 7) + 8];
+            return '#' + [0, 1, 2].map((k) => ((paperA[k] + paperB[k]) >> 1)
+                .toString(16).padStart(2, '0')).join('').toUpperCase();
+        }
         if (model === 'ulaplus64' && this.palette[8 + n]) return this.palette[8 + n];
         if (model === 'rgb333' && ZX_SPECTRUM.PIXEL_DEPTH === 1 && this.palette[128 + n]) {
             return this.palette[128 + n];

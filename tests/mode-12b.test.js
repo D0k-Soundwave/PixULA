@@ -458,6 +458,38 @@ const same = (a, b) => a && b && a[0] === b[0] && a[1] === b[1] && a[2] === b[2]
   ColorManager.setTimexHiresInk(0);
 }
 
+// --- 6. The hi-res border is the scheme's bright paper ----------------------
+
+{
+  // "In this mode all colours, including the BORDER, are BRIGHT, and the
+  // BORDER colour is the same as the PAPER colour" [P, worldofspectrum.org
+  // /faq/reference/tmxreference.htm, fetched 2026-09-26]. The border value
+  // the artist picked is ignored by the hardware in this mode.
+  LayerManager.initialize();
+  ScreenModeService.switchMode('timex_hires');
+  ColorManager.setTimexHiresInk(2); // red ink, cyan paper
+  const cyanBright = ZX_PALETTE[(2 ^ 7) + 8];
+  check('hi-res border is the scheme\'s bright paper, whatever the border value',
+    [0, 1, 4, 7].every(n => ColorManager.borderColour(n) === cyanBright),
+    `border 0 -> ${ColorManager.borderColour(0)}, want ${cyanBright}`);
+
+  // The pair: each frame's border is that frame's paper, so the display
+  // shows the two alternating - the Average view's blend of the two papers
+  ScreenModeService.switchMode('timex_hires_giga');
+  ColorManager.setTimexHiresInk(2);  // paper cyan
+  ColorManager.setTimexHiresInkB(5); // paper red
+  const pa = ZX_PALETTE_RGB[(2 ^ 7) + 8], pb = ZX_PALETTE_RGB[(5 ^ 7) + 8];
+  const want = '#' + [0, 1, 2].map(k => ((pa[k] + pb[k]) >> 1).toString(16).padStart(2, '0')).join('');
+  check('hi-res pair border is the blend of the two schemes\' papers',
+    ColorManager.borderColour(3).toLowerCase() === want, `${ColorManager.borderColour(3)} want ${want}`);
+
+  ColorManager.setTimexHiresInk(0);
+  ColorManager.setTimexHiresInkB(0);
+  ScreenModeService.switchMode('standard_ula');
+  check('outside hi-res the border is the classic colour again',
+    ColorManager.borderColour(1) === ZX_PALETTE[1]);
+}
+
 // Leave the world as we found it for the next suite
 if (ACTIVE_SCREEN_MODE !== SCREEN_MODES.STANDARD_ULA) {
   ScreenModeService.applyModeRaw('standard_ula');
