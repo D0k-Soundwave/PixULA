@@ -134,4 +134,25 @@ const allSteady = (pick, r) =>
   check('chooseCell accepts any number of samples', Q.slotsFor(pick, 1).length > 0);
 }
 
+// --- 6. The hi-res pair ----------------------------------------------------
+
+{
+  const p = Q.hiresPick(2, 5);
+  check('a hi-res pick is each scheme\'s ink on its complement, bright',
+    p.a.ink === 2 && p.a.paper === 5 && p.a.bright === true
+      && p.b.ink === 5 && p.b.paper === 2 && p.b.bright === true);
+
+  // A 16x8 image, left half one steady mix of two bright schemes' inks,
+  // right half another: some scheme pair reproduces it exactly
+  const target = Q.blend(ZX_PALETTE_RGB[10], ZX_PALETTE_RGB[11]); // bright red + bright magenta
+  const W2 = 16, H2 = 8;
+  const data = new Uint8ClampedArray(W2 * H2 * 4);
+  for (let i = 0; i < W2 * H2; i++) data.set([...target, 255], i * 4);
+  const s = Q.chooseHiresSchemes({ width: W2, height: H2, data }, 1);
+  const pick = Q.hiresPick(s.inkA, s.inkB);
+  check('the chosen schemes can show the image\'s colour steadily',
+    Q.slotsFor(pick, 1).some(u => u.rgb.join() === target.join()),
+    `schemes ${s.inkA}/${s.inkB}`);
+}
+
 summary();
