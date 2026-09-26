@@ -475,21 +475,30 @@ class AppClass {
         const MS_PER_MINUTE = 60000;
         this._autosaveInterval = setInterval(async () => {
             if (!FileManager.hasChanges()) return;
-            const project = this._getProjectData();
-
-            // The database record FIRST and on its own try: it is the crash
-            // recovery, and it must not be lost to a folder that went away.
+            // The callback is async and setInterval does not wait for it: a
+            // slow disk (a backup folder on a network share) must not let a
+            // second tick start writing the same versions over the first.
+            if (this._autosaveInFlight) return;
+            this._autosaveInFlight = true;
             try {
-                await Storage.set('autosave', project);
-                Logger.debug('App', 'Autosaved');
-            } catch (error) {
-                Logger.error('App', 'Autosave failed', error);
-            }
+                const project = this._getProjectData();
 
-            // Versioned copies on disk are additive - better artefacts, but
-            // allowed to fail. BackupService announces its own failures.
-            if (window.BackupService && BackupService.isActive) {
-                await BackupService.writeVersion(project, this._backupBaseName());
+                // The database record FIRST and on its own try: it is the crash
+                // recovery, and it must not be lost to a folder that went away.
+                try {
+                    await Storage.set('autosave', project);
+                    Logger.debug('App', 'Autosaved');
+                } catch (error) {
+                    Logger.error('App', 'Autosave failed', error);
+                }
+
+                // Versioned copies on disk are additive - better artefacts, but
+                // allowed to fail. BackupService announces its own failures.
+                if (window.BackupService && BackupService.isActive) {
+                    await BackupService.writeVersion(project, this._backupBaseName());
+                }
+            } finally {
+                this._autosaveInFlight = false;
             }
         }, minutes * MS_PER_MINUTE);
         Logger.info('App', `Autosave every ${minutes} minute(s)`);

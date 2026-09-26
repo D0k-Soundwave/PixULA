@@ -55,6 +55,11 @@ const IMAGE_TYPES = Object.freeze({
 });
 
 class ImageSourceClass {
+    constructor() {
+        /** @private thumbnail() results, per image element - see there. */
+        this._thumbnails = new WeakMap();
+    }
+
     /** Is the handle path available at all? @returns {boolean} */
     get canLink() {
         return typeof window.showOpenFilePicker === 'function';
@@ -151,6 +156,28 @@ class ImageSourceClass {
     thumbnail(img, maxPx = THUMB_MAX_PX, quality = THUMB_QUALITY) {
         if (!img || !img.naturalWidth || !img.naturalHeight) return '';
 
+        // The same picture at the same size and quality always encodes to the
+        // same data URL, and every autosave tick and project save asks for it
+        // again - a synchronous JPEG encode of up to a 4096 px photo, each
+        // time. Kept per image element (weakly, so a replaced reference takes
+        // its entries with it) and checked against the element's src, so an
+        // element pointed at a new picture is never served the old one.
+        let cached = this._thumbnails.get(img);
+        if (!cached || cached.src !== img.src) {
+            cached = { src: img.src, urls: new Map() };
+            this._thumbnails.set(img, cached);
+        }
+        const key = maxPx + '|' + quality;
+        const hit = cached.urls.get(key);
+        if (hit) return hit;
+
+        const url = this._encodeThumbnail(img, maxPx, quality);
+        if (url) cached.urls.set(key, url);
+        return url;
+    }
+
+    /** thumbnail()'s uncached encode. @private */
+    _encodeThumbnail(img, maxPx, quality) {
         // Downscale only: an image already smaller than the box is kept as it
         // is rather than blown up into a bigger, blurrier "thumbnail".
         const longest = Math.max(img.naturalWidth, img.naturalHeight);
