@@ -32,6 +32,7 @@ const BOOT_MANIFEST = [
     ['TouchPolicy',      'js/utils/touch-policy.js'],
     ['UiFit',            'js/utils/ui-fit.js'],
     ['PaletteOps',       'js/utils/palette-ops.js'],
+    ['GigaQuant',        'js/utils/giga-quant.js'],
     ['Storage',          'js/utils/storage.js'],
     ['BackupService',    'js/services/backup-service.js'],
     ['ProjectFormat',    'js/io/project-format.js'],
