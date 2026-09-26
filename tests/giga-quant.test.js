@@ -134,6 +134,35 @@ const allSteady = (pick, r) =>
   check('chooseCell accepts any number of samples', Q.slotsFor(pick, 1).length > 0);
 }
 
+{
+  // Final review: an empty sample list must not throw mid-import
+  let threw = null;
+  try { Q.chooseCell(new Float32Array(0), 1); } catch (e) { threw = e.message; }
+  check('chooseCell with no samples returns a pick instead of throwing', threw === null, threw);
+}
+
+{
+  // Final review: Sharp hands chooseCell every source pixel of the cell,
+  // 15,600 for a 12 MP photo, and the preview re-runs it per slider step.
+  // Beyond MAX_DECIDE_SAMPLES it must cost no more than at the cap.
+  const countCalls = (samples) => {
+    const real = Q._dist2;
+    let n = 0;
+    Q._dist2 = function(...a) { n++; return real.apply(this, a); };
+    try { Q.chooseCell(samples, 1); } finally { Q._dist2 = real; }
+    return n;
+  };
+  const scene = (count) => {
+    const out = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) out.set([(i * 37) % 256, (i * 91) % 256, (i * 53) % 256], i * 3);
+    return out;
+  };
+  const atCap = countCalls(scene(Q.MAX_DECIDE_SAMPLES));
+  const huge = countCalls(scene(15600));
+  check('a 12 MP cell costs no more than one at the sample cap', huge <= atCap * 1.1,
+    `${huge} distance calls vs ${atCap} at the cap`);
+}
+
 // --- 6. The hi-res pair ----------------------------------------------------
 
 {
