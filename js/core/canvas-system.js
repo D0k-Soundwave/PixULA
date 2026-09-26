@@ -44,6 +44,8 @@ class CanvasSystemClass {
     // Animation frame
     this.rafId = null;
     this.renderPending = false;
+    this._renderLoopActive = false;
+    this._renderFrame = null;
 
     // Initialization state
     this._initialized = false;
@@ -762,27 +764,39 @@ class CanvasSystemClass {
    */
   requestRender() {
     this.renderPending = true;
+    if (this._renderLoopActive && this.rafId === null) {
+      this.rafId = requestAnimationFrame(this._renderFrame);
+    }
   }
 
   /**
-   * Start the render loop
+   * Start the render loop. A frame is only asked for when something is
+   * pending: an idle editor used to wake 60-144 times a second just to find
+   * nothing to draw, which is battery a tablet artist pays for.
    * @private
    */
   _startRenderLoop() {
-    const loop = () => {
-      if (this.renderPending) {
+    this._renderLoopActive = true;
+    this._renderFrame = () => {
+      this.rafId = null;
+      if (!this.renderPending) return;
+      // A request made DURING the render is dropped, as it always was - the
+      // flag is cleared after, not before - so a CANVAS_RENDER listener that
+      // asks for a render cannot turn this into a loop every frame.
+      try {
         this._render();
+      } finally {
         this.renderPending = false;
       }
-      this.rafId = requestAnimationFrame(loop);
     };
-    loop();
+    this._renderFrame();
   }
 
   /**
    * Stop the render loop
    */
   stopRenderLoop() {
+    this._renderLoopActive = false;
     if (this.rafId) {
       cancelAnimationFrame(this.rafId);
       this.rafId = null;
