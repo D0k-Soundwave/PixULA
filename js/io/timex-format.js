@@ -83,7 +83,8 @@ class TimexFormatClass {
     if (bytes.length !== PAIR.fileSize) {
       return {
         success: false,
-        error: `Invalid .hrg file size: ${bytes.length} bytes (expected ${PAIR.fileSize})`
+        error: Helpers.localizedMessage('err.fileSize',
+            'Invalid .{ext} file size: {size} bytes (expected {expected})', { ext: 'hrg', size: bytes.length, expected: PAIR.fileSize })
       };
     }
     UndoRedoService.beginAction('Load HRG');
@@ -94,7 +95,7 @@ class TimexFormatClass {
     if (!layer) {
       if (typeof UndoRedoService.cancelAction === 'function') UndoRedoService.cancelAction();
       else UndoRedoService.endAction();
-      return { success: false, error: 'No active layer' };
+      return { success: false, error: Helpers.localizedMessage('err.noActiveLayer', 'No active layer') };
     }
     const frameA = bytes.subarray(0, HIRES.fileSize);
     const frameB = bytes.subarray(HIRES.fileSize, PAIR.fileSize);
@@ -163,7 +164,7 @@ class TimexFormatClass {
     if (!layer) {
       if (typeof UndoRedoService.cancelAction === 'function') UndoRedoService.cancelAction();
       else UndoRedoService.endAction();
-      return { success: false, error: 'No active layer' };
+      return { success: false, error: Helpers.localizedMessage('err.noActiveLayer', 'No active layer') };
     }
     this._loadHiresFrame(bytes, layer, 0, ink);
 

@@ -235,7 +235,9 @@ class ReferenceLayerServiceClass {
 
         img.onerror = () => {
             Logger.error('ReferenceLayerService', 'Failed to load image');
-            EventBus.emit(EVENTS.REFERENCE_ERROR, { message: 'Failed to load image' });
+            EventBus.emit(EVENTS.REFERENCE_ERROR, {
+                message: Helpers.localizedMessage('err.imageLoad', 'Failed to load the image')
+            });
         };
 
         img.src = url;

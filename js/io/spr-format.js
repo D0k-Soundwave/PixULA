@@ -107,7 +107,8 @@ class SpriteFormatClass {
     if (!depth) {
       return {
         success: false,
-        error: `Invalid .spr file size: ${bytes.length} bytes (expected a multiple of 256 or 128)`
+        error: Helpers.localizedMessage('err.fileSizeMultiple',
+            'Invalid .{ext} file size: {size} bytes (expected a multiple of {a} or {b})', { ext: 'spr', size: bytes.length, a: 256, b: 128 })
       };
     }
 

@@ -48,11 +48,13 @@ class MapFormatClass {
     try {
       payload = JSON.parse(new TextDecoder().decode(buffer));
     } catch (e) {
-      return { success: false, error: 'Not a valid .zxtm file (bad JSON)' };
+      return { success: false, error: Helpers.localizedMessage('err.notValidJson',
+          'Not a valid {format} file (bad JSON)', { format: '.zxtm' }) };
     }
     const doc = MapCodec.decode(payload);
     if (!doc) {
-      return { success: false, error: 'Not a valid .zxtm file (unknown version or corrupt data)' };
+      return { success: false, error: Helpers.localizedMessage('err.notValidVersion',
+          'Not a valid {format} file (unknown version or corrupt data)', { format: '.zxtm' }) };
     }
     MapService.loadDocument(doc);
     EventBus.emit(EVENTS.FILE_IMPORT, { format: 'zxtm' });
@@ -78,7 +80,8 @@ class MapFormatClass {
     const name = filename.endsWith('.zxtm') ? filename : `${filename}.zxtm`;
     const data = this.export();
     if (!data) {
-      EventBus.emit(EVENTS.FILE_ERROR, { message: 'Map could not be encoded' });
+      EventBus.emit(EVENTS.FILE_ERROR, { message: Helpers.localizedMessage('err.mapEncode',
+          'Map could not be encoded') });
       return false;
     }
     return FormatRegistry.download(data, name, 'application/json', handle);

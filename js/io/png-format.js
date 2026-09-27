@@ -100,7 +100,7 @@ class PNGFormatClass {
     let imageData = await this._loadImage(blob);
 
     if (!imageData) {
-      return { success: false, error: 'Failed to load PNG image' };
+      return { success: false, error: Helpers.localizedMessage('err.imageLoad', 'Failed to load the image') };
     }
 
     // Pre-quantization adjustment (Import Conversion dialog options)

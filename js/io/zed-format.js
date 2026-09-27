@@ -161,7 +161,8 @@ class ZEDFormatClass {
     if (bytes.length < 60 ||
         String.fromCharCode(...bytes.slice(0, prefix.length)) !== prefix ||
         bytes[sigLen + 4] !== 0x1A) {
-      return { success: false, error: 'Not a ZX-Editor file (bad signature)' };
+      return { success: false, error: Helpers.localizedMessage('err.badSignature',
+          'Not a {format} file (bad signature)', { format: 'ZX-Editor' }) };
     }
 
     const CELL = this.CELL;
@@ -212,7 +213,8 @@ class ZEDFormatClass {
     }
 
     if (!sawBlock) {
-      return { success: false, error: 'No graphics blocks in ZED file' };
+      return { success: false, error: Helpers.localizedMessage('err.zedNoGraphics',
+          'No graphics blocks in ZED file') };
     }
     return { success: true, scr };
   }
