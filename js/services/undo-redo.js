@@ -266,7 +266,8 @@ class UndoRedoManagerClass {
     if (Validators.isValidUndoLimit(limit)) {
       this.maxStates = limit;
       this._pruneStack();
-      Storage.set('pref.undoLimit', limit);
+      Promise.resolve(Storage.set('pref.undoLimit', limit))
+        .catch((e) => Logger.warn('UndoRedo', `Undo limit not stored: ${e && e.message}`));
     }
   }
 

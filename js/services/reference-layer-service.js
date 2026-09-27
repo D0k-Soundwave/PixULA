@@ -686,7 +686,8 @@ class ReferenceLayerServiceClass {
     _saveState() {
         const state = this.getState();
         delete state.imageUrl;
-        Storage.set('referenceLayer', state);
+        Promise.resolve(Storage.set('referenceLayer', state))
+            .catch((e) => Logger.warn('ReferenceLayerService', `Reference state not stored: ${e && e.message}`));
     }
 
     /**
