@@ -121,10 +121,11 @@ body {
    grid area as its containing block in practice (tried first; measured
    the rail landing at the viewport's own top-left corner instead, full
    page height, over the header and toolbar both). Nesting it inside
-   #canvas-area, which #canvas-area's own position: relative (below) makes
-   the containing block, is the unambiguous version of the same idea: it
-   costs the canvas track no width, and is confined to exactly the canvas
-   row's box — never the colorbar row above it, since that is a sibling
+   #canvas-area, and overlapping it with the canvas frame in that area's
+   own first grid cell (below), is the unambiguous version of the same
+   idea: it costs the canvas track no width, and is confined to exactly
+   the canvas frame's box — never the zoom strip below it (it was, until
+   2026-09-27) and never the colorbar row above it, since that is a sibling
    grid area #canvas-area was never part of (the rail must never cover
    #color-bar's own icons — same reasoning as the collapse tab's placement
    below). Anchored to the LEFT edge of #canvas-area, i.e. flush against
@@ -148,10 +149,18 @@ body {
    its parent #canvas-area, which is not zoomed, sees it) and everything
    inside it by the same single factor. */
 #color-rail {
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
+    /* Shares #canvas-area's first grid cell with #canvas-viewport (see
+       #canvas-area below), so it is exactly as tall as the canvas frame and
+       stops where the zoom strip (#canvas-controls) begins. It was
+       position: absolute with top/bottom 0 until 2026-09-27, which made it
+       the height of the WHOLE canvas area, zoom strip included, and it
+       covered the zoom buttons. Relative, not static: it is still the
+       containing block for the collapse tab. */
+    position: relative;
+    grid-row: 1;
+    grid-column: 1;
+    justify-self: start;
+    min-height: 0;
     width: var(--colorrail-width);
     display: flex;
     flex-direction: column;
@@ -299,15 +308,20 @@ body {
 
 #canvas-area {
     grid-area: canvas;
-    display: flex;
-    flex-direction: column;
+    /* Two rows: the drawing frame, then the zoom strip. The colour rail and
+       #canvas-viewport OVERLAP in the first cell - two in-flow items placed
+       in one grid cell - so the rail floats over the canvas's left edge
+       without costing it any width, and is the canvas frame's height by
+       construction rather than by matching numbers. minmax(0, ...) on both
+       tracks: a bare 1fr is minmax(auto, 1fr), and would let a tall palette
+       or a wide canvas grow the area instead of scrolling inside it. */
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
     /* Match the surrounding panels/toolbar so the canvas viewport
        reads as a single themed surface rather than a lighter island. */
     background: var(--bg-secondary);
     overflow: hidden;
-    /* Containing block for #color-rail, which floats over this area as a
-       child rather than a grid column of its own — see the #color-rail
-       comment. */
     position: relative;
 }
 
@@ -316,7 +330,10 @@ body {
    ZX border colour lives INSIDE the iframe (the mirrored body backdrop), not
    in this padding. */
 #canvas-viewport {
-    flex: 1;
+    grid-row: 1;
+    grid-column: 1;
+    min-width: 0;
+    min-height: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -366,6 +383,8 @@ body {
 
 /* Canvas Controls */
 #canvas-controls {
+    grid-row: 2;
+    grid-column: 1;
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: center;

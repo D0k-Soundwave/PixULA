@@ -603,3 +603,19 @@ test('CLUT selector and hi-res scheme tooltips keep their number through a local
         expect(title).not.toContain('{n}');
     }
 });
+
+test('the colour rail is the canvas frame\'s height and never covers the zoom strip', async ({ page }) => {
+    // It used to span the whole canvas area, zoom strip included, and sat
+    // over the zoom buttons (reported 2026-09-27).
+    for (const size of [{ width: 1600, height: 900 }, { width: 1280, height: 600 }]) {
+        await page.setViewportSize(size);
+        await boot(page);
+        const box = await page.evaluate(() => {
+            const r = id => document.getElementById(id).getBoundingClientRect();
+            return { rail: r('color-rail'), viewport: r('canvas-viewport'), controls: r('canvas-controls') };
+        });
+        expect(Math.abs(box.rail.top - box.viewport.top)).toBeLessThan(1);
+        expect(Math.abs(box.rail.bottom - box.viewport.bottom)).toBeLessThan(1);
+        expect(box.rail.bottom).toBeLessThanOrEqual(box.controls.top + 0.5);
+    }
+});
