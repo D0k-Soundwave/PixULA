@@ -68,6 +68,14 @@
     background: var(--bg-hover);
 }
 
+/* Keyboard focus in an open menu lights the row as hover does, plus the
+   ring, so a row reads the same however it was reached. */
+.menu-action:focus-visible {
+    background: var(--bg-hover);
+    outline: 2px solid var(--accent-primary);
+    outline-offset: -2px;
+}
+
 .menu-action.disabled {
     color: var(--text-muted);
     pointer-events: none;
