@@ -76,7 +76,16 @@
 
     /* Component-state tokens (shared contract for toggle/state buttons —
        replaces the rgba literals repeated per button class in the old tree) */
-    --on-accent:       #ffffff;
+    /* Text and icons ON the accent colour (active tools, OK buttons, active
+       tabs). The theme's own background colour, not white: white on the
+       bright accents measured 2.0-4.3:1 against the 4.5:1 minimum in seven of
+       the eight themes (2026-09-27), and every theme's background clears it
+       on its own accent (Light 5.7, Crimson 4.8, the rest 5.4-8.6) - except
+       Sepia, whose mid-tone accent sets its own value in themes.css. */
+    --on-accent:       var(--bg-primary);
+    /* Text on --accent-error (the small delete x). White clears 4.5:1 on
+       this theme's red; themes whose red is lighter override it. */
+    --on-error:        #ffffff;
     --state-dim-bg:    rgba(255, 255, 255, 0.15);
     --state-dim-fg:    rgba(255, 255, 255, 0.5);
     --state-active-bg: rgba(255, 255, 255, 0.25);

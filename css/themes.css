@@ -114,6 +114,7 @@
    Modern premium dark UI: deep blue-black surfaces, azure->cyan accents.
    (GitHub-dark / Linear / Vercel family.) */
 [data-theme="midnight"] {
+    --on-error: var(--bg-primary);   /* white on this red is under 4.5:1 */
     --bg-primary: #0d1117;
     --bg-secondary: #161b22;
     --bg-tertiary: #21262d;
@@ -183,6 +184,7 @@
    Arctic, low-glare palette by Arctic Ice Studio. Polar-night surfaces with
    a soft frost-cyan accent and Aurora hues for status colours. */
 [data-theme="nord"] {
+    --on-error: #111111;             /* white and the background both miss 4.5:1 on this red */
     --bg-primary: #2e3440;
     --bg-secondary: #3b4252;
     --bg-tertiary: #434c5e;
@@ -251,6 +253,7 @@
 /* ── Dracula Theme ───────────────────────────────────────────────────────
    The well-known charcoal palette with purple/pink/green accents. */
 [data-theme="dracula"] {
+    --on-error: var(--bg-primary);   /* white on this red is under 4.5:1 */
     --bg-primary: #21222c;
     --bg-secondary: #282a36;
     --bg-tertiary: #343746;
@@ -321,6 +324,9 @@
    bronze accent. Canvas overlays are inverted (dark on light) like the
    light theme, since the editing canvas is a fixed light paper colour. */
 [data-theme="sepia"] {
+    /* Mid-tone accent: neither white (4.3:1) nor the light background
+       (3.5:1) reaches 4.5:1 on it; black does (4.8:1). */
+    --on-accent: #000000;
     color-scheme: light;
     --bg-primary: #efe7d6;
     --bg-secondary: #faf4e8;
@@ -417,6 +423,7 @@
    red so it reads apart from --accent-error (hue ~15, orange-red); the two
    would collide if both sat on the same red. */
 [data-theme="crimson"] {
+    --on-error: var(--bg-primary);   /* white on this red is under 4.5:1 */
     --bg-primary: #170d0d;
     --bg-secondary: #1f1414;
     --bg-tertiary: #2b1a1a;
@@ -489,6 +496,7 @@
    including Sepia's orange (~28 degrees), which this theme's own warm
    background otherwise brushes up against. */
 [data-theme="citrus"] {
+    --on-error: #111111;             /* white and the background both miss 4.5:1 on this red */
     --bg-primary: #1d1a14;
     --bg-secondary: #262219;
     --bg-tertiary: #332d1f;
