@@ -773,6 +773,16 @@
     text-wrap: balance;
 }
 
+/* A caption never widens its toggle's column: the wrapper is exactly one icon
+   wide, so a caption longer than the icon wraps (above) instead of pushing
+   the Bright/Flash row out of line with Ink/Paper and the GigaScreen view
+   picker. The shrink-to-fit wrapper otherwise took the caption's full
+   one-line width - 'Bright A' in a wide font such as DejaVu Sans is 1.5px
+   wider than the icon, and a longer translation is more. */
+#color-rail .clut-bits > .btn-captioned {
+    width: var(--rail-icon-size);
+}
+
 /* Fallback for any future button-styled .clut-selector row that genuinely
    needs to wrap (a text label wider than one icon column). Both current
    selector rows - the ULAplus CLUT picker and the GigaScreen view picker,
