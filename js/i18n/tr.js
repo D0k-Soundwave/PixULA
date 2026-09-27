@@ -47,7 +47,7 @@ const tr = {
     'tool.hatch.hint': 'Seçtiğiniz açıda düzenli tarama çizin',
     'tool.attribute': 'Öznitelik',
     'tool.zoom': 'Zum',
-    'tool.patternCreator': 'Pattern Creator',
+    'tool.patternCreator': 'Desen düzenleyici',
     'tool.pattern': 'Desen',
 
     // Tool Options
@@ -726,7 +726,7 @@ const tr = {
     'pen.act.eyedropperPaper': 'Damlalık (kâğıt)',
     'pen.act.menu': 'Tuval menüsü',
     'pen.act.prevTool': 'Önceki araç',
-    'tool.pattern-creator': 'Pattern Creator',
+    'tool.pattern-creator': 'Desen düzenleyici',
     'tool.pattern.hint': 'Kütüphaneden seçtiğiniz desen karosuyla boyayın; iki renkli hücreyi gölgelemenin yolu',
     'tool.patternCreator.hint': 'Kendi karonuzu çizin ve desen kütüphanesine ekleyin',
     'tool.selection': 'Seçim',
@@ -1256,6 +1256,9 @@ const tr = {
     'err.zxm.noBase': 'Temel ZXP resmi bulunamadı',
     'err.zxm.noEof': '[End of file] işaretçisi eksik',
     'err.zxm.noPositions': 'Konum listesi eksik',
+    // Storage and Next export notices
+    'msg.storageBlocked': 'Bu tarayıcı site depolamasını engelliyor; bu yüzden PixULA bu sekme kapandıktan sonra ayarlarınızı ve otomatik kaydı saklayamaz. Kapatmadan önce çalışmanızı bir dosyaya kaydedin.',
+    'mode.dumpNeedsLayer': 'Bir .{ext} dosyası {family} ekranı içerir - önce bir {family} moduna geçin.',
 };
 
 window.i18n_tr = tr;
