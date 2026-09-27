@@ -1256,6 +1256,9 @@ const ru = {
     'err.zxm.noBase': 'Базовое изображение ZXP не найдено',
     'err.zxm.noEof': 'Отсутствует маркер [End of file]',
     'err.zxm.noPositions': 'Отсутствует список позиций',
+    // Storage and Next export notices
+    'msg.storageBlocked': 'Этот браузер блокирует хранилище сайта, поэтому PixULA не сможет сохранить настройки и автосохранение после закрытия вкладки. Сохраните работу в файл перед закрытием.',
+    'mode.dumpNeedsLayer': 'Файл .{ext} содержит экран {family} - сначала переключитесь в режим {family}.',
 };
 
 window.i18n_ru = ru;

@@ -32,13 +32,23 @@ test('a gesture on a large stamp degrades instead of dropping frames',
             const wentCheap = SelectionService.isStampGestureCheap();
             SelectionService.endStampGesture();
             const afterRelease = SelectionService.floatingPaste.pixels.length;
+
+            // The same eight ticks outside a gesture take the exact path every
+            // time - this machine's own unbudgeted cost, measured under the
+            // same load, instead of a number measured on another computer.
+            const t1 = performance.now();
+            for (let d = 45; d <= 80; d += 5) SelectionService.setStampRotation(d);
+            const exactPerTick = (performance.now() - t1) / 8;
             SelectionService.cancelFloatingPaste();
-            return { perTick, wentCheap, afterRelease };
+            return { perTick, exactPerTick, wentCheap, afterRelease };
         });
 
-        // Eight ticks of a 400x200 stamp. Unbudgeted each is ~51 ms.
+        // Eight ticks of a 400x200 stamp. The cheap path must cost well under
+        // the exact one on the same machine (measured 2026-08-29: ~51 ms
+        // exact, under 20 ms cheap - about 40%; half leaves headroom for a
+        // loaded CPU). A fixed millisecond bar failed on slower machines.
         expect(r.wentCheap).toBe(true);
-        expect(r.perTick).toBeLessThan(20);
+        expect(r.perTick).toBeLessThan(r.exactPerTick * 0.5);
         // Releasing recomputes exactly, so the stamp is still the right shape.
         expect(r.afterRelease).toBeGreaterThan(0);
     });
@@ -48,19 +58,28 @@ test('a small stamp stays exact for the whole gesture', async ({ page }) => {
 
     // Below the budget nothing changes: the same result during the drag and
     // after release, so there is no visible snap on the stamps most people use.
+    // Best of three: the budget is wall-clock (CoverageOps.LIVE_BUDGET_MS,
+    // 7 ms) and this stamp's pass takes ~0.4 ms, so only a stalled runner can
+    // push one over - which the app then answers, correctly, by going cheap.
+    // A real regression overruns every attempt.
     const r = await page.evaluate(() => {
         const tool = ToolManager.getTool(TOOLS.TEXT);
         const m = tool._buildTextMask('AB', 'ZX ROM', false, false, 'horizontal');
-        SelectionService.startFloatingPasteFromMask(m.pixels, m.width, m.height,
-            40, 40, 'bench', null, 'none');
-        SelectionService.beginStampGesture();
-        SelectionService.setStampRotation(30);
-        const during = SelectionService.floatingPaste.pixels.map((r2) => [...r2]);
-        const wentCheap = SelectionService.isStampGestureCheap();
-        SelectionService.endStampGesture();
-        const after = SelectionService.floatingPaste.pixels.map((r2) => [...r2]);
-        SelectionService.cancelFloatingPaste();
-        return { same: JSON.stringify(during) === JSON.stringify(after), wentCheap };
+        let result = null;
+        for (let attempt = 0; attempt < 3; attempt++) {
+            SelectionService.startFloatingPasteFromMask(m.pixels, m.width, m.height,
+                40, 40, 'bench', null, 'none');
+            SelectionService.beginStampGesture();
+            SelectionService.setStampRotation(30);
+            const during = SelectionService.floatingPaste.pixels.map((r2) => [...r2]);
+            const wentCheap = SelectionService.isStampGestureCheap();
+            SelectionService.endStampGesture();
+            const after = SelectionService.floatingPaste.pixels.map((r2) => [...r2]);
+            SelectionService.cancelFloatingPaste();
+            result = { same: JSON.stringify(during) === JSON.stringify(after), wentCheap };
+            if (!wentCheap) break;
+        }
+        return result;
     });
 
     expect(r.wentCheap).toBe(false);

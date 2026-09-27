@@ -115,6 +115,9 @@ class ClutBarClass {
             well.setAttribute('role', 'button');
             well.setAttribute('aria-label', this._t(i18n, fallback));
             well.title = this._t(i18n, fallback);
+            // Keys on the element, so a locale switch re-translates both.
+            well.dataset.i18nAriaLabel = i18n;
+            well.dataset.i18nTitleName = i18n;
             cell.appendChild(span);
             cell.appendChild(well);
             host.appendChild(cell);
@@ -429,6 +432,7 @@ class ClutBarClass {
             : this._t('clut.paperTransparent', 'Use existing Paper colour on page');
         box.setAttribute('aria-label', label);
         box.dataset.i18nAriaLabel = channel === 'ink' ? 'clut.inkTransparent' : 'clut.paperTransparent';
+        box.dataset.i18nTitleName = box.dataset.i18nAriaLabel;
         box.title = label;
         if (channel === 'ink') this._inkTransparentBox = box; else this._paperTransparentBox = box;
         return box;

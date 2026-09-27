@@ -20,8 +20,9 @@ sessions cannot push tags - never try; the merge is the trigger.
   check (`tests/i18n-parity.test.js`).
 - `npm run test:browser` - the Playwright suite. In web sessions the
   SessionStart hook (`.claude/hooks/session-start.sh`) installs Playwright and
-  points its Chrome channel at the container's Chromium. Tests that fail only
-  in the cloud container are listed in the release skill.
+  points its Chrome channel at the container's Chromium. It must pass in the
+  cloud container too; the machine-dependent specs measure against the
+  machine they run on.
 
 ## Rules the tests enforce
 

@@ -377,6 +377,7 @@ class AppClass {
         CanvasSystem.zoomToFit();
 
         await this._checkAutosave();
+        this._warnIfStorageBlocked();
         // Before the timer: restoring the folder handle decides whether the
         // first tick can write to disk or has to ask for permission back.
         await BackupService.initialize();
@@ -505,6 +506,19 @@ class AppClass {
     }
 
     /** Warn before leaving with unsaved changes. */
+    /**
+     * Say once, at start-up, when the browser keeps nothing: IndexedDB and
+     * localStorage both refused (site data blocked). Everything still works,
+     * but preferences, autosave and the clipboard vanish with the tab - worth
+     * knowing before the drawing, not after it.
+     * @private
+     */
+    _warnIfStorageBlocked() {
+        if (Storage.persistent !== false) return;
+        alert(Helpers.localizedMessage('msg.storageBlocked',
+            'This browser is blocking site storage, so PixULA cannot keep your settings or autosave after this tab closes. Save your work to a file before closing.'));
+    }
+
     _setupUnloadWarning() {
         window.addEventListener('beforeunload', (e) => {
             if (FileManager.hasChanges()) {

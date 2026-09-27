@@ -47,7 +47,7 @@ const sk = {
     'tool.hatch.hint': 'Veďte pravidelné šrafovanie pod zvoleným uhlom',
     'tool.attribute': 'Atribut',
     'tool.zoom': 'Lupa',
-    'tool.patternCreator': 'Pattern Creator',
+    'tool.patternCreator': 'Editor vzorov',
     'tool.pattern': 'Vzorka',
 
     // Tool Options
@@ -726,7 +726,7 @@ const sk = {
     'pen.act.eyedropperPaper': 'Kvapkadlo (papier)',
     'pen.act.menu': 'Ponuka plátna',
     'pen.act.prevTool': 'Predchádzajúci nástroj',
-    'tool.pattern-creator': 'Pattern Creator',
+    'tool.pattern-creator': 'Editor vzorov',
     'tool.pattern.hint': 'Maľujte zvolenou dlaždicou z knižnice, čo je spôsob, ako tieňovať dvojfarebnú bunku',
     'tool.patternCreator.hint': 'Nakreslite vlastnú dlaždicu a pridajte ju do knižnice vzorov',
     'tool.selection': 'Výber',
@@ -1256,6 +1256,9 @@ const sk = {
     'err.zxm.noBase': 'Nenašiel sa základný obrázok ZXP',
     'err.zxm.noEof': 'Chýba značka [End of file]',
     'err.zxm.noPositions': 'Chýba zoznam pozícií',
+    // Storage and Next export notices
+    'msg.storageBlocked': 'Tento prehliadač blokuje úložisko stránok, takže PixULA po zatvorení karty neuchová vaše nastavenia ani automatické ukladanie. Pred zatvorením uložte prácu do súboru.',
+    'mode.dumpNeedsLayer': 'Súbor .{ext} obsahuje obrazovku {family} - najprv prepnite do režimu {family}.',
 };
 
 window.i18n_sk = sk;

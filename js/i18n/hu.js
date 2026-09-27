@@ -47,7 +47,7 @@ const hu = {
     'tool.hatch.hint': 'Húzz egyenletes vonalkázást a választott szögben',
     'tool.attribute': 'Attribútum',
     'tool.zoom': 'Nagyítás',
-    'tool.patternCreator': 'Pattern Creator',
+    'tool.patternCreator': 'Mintaszerkesztő',
     'tool.pattern': 'Minta',
 
     // Tool Options
@@ -726,7 +726,7 @@ const hu = {
     'pen.act.eyedropperPaper': 'Pipetta (papír)',
     'pen.act.menu': 'Vászon menü',
     'pen.act.prevTool': 'Előző eszköz',
-    'tool.pattern-creator': 'Pattern Creator',
+    'tool.pattern-creator': 'Mintaszerkesztő',
     'tool.pattern.hint': 'Fess a könyvtárból választott mintacsempével, így lehet árnyalni egy kétszínű cellát',
     'tool.patternCreator.hint': 'Rajzolj saját csempét, és vedd fel a mintakönyvtárba',
     'tool.selection': 'Kijelölés',
@@ -1256,6 +1256,9 @@ const hu = {
     'err.zxm.noBase': 'Nem található ZXP alapkép',
     'err.zxm.noEof': 'Hiányzó [End of file] jelölő',
     'err.zxm.noPositions': 'Hiányzó pozíciólista',
+    // Storage and Next export notices
+    'msg.storageBlocked': 'Ez a böngésző letiltja a webhelytárolót, így a PixULA a lap bezárása után nem tudja megőrizni a beállításait és az automatikus mentést. Bezárás előtt mentse a munkáját fájlba.',
+    'mode.dumpNeedsLayer': 'Egy .{ext} fájl {family} képernyőt tartalmaz - előbb váltson {family} módra.',
 };
 
 window.i18n_hu = hu;

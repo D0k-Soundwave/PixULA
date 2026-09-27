@@ -40,14 +40,14 @@ const pl = {
     'tool.pan': 'Przesuń widok',
     'tool.eyedropper': 'Pipeta',
     'tool.text': 'Tekst',
-    'tool.spray': 'Spray',
+    'tool.spray': 'Aerozol',
     'tool.fade': 'Zanikanie',
     'tool.fade.hint': 'Rozrzedzaj kreskę w miarę jej biegu, rozpraszając ją coraz dalej od początku',
     'tool.hatch': 'Kreskowanie',
     'tool.hatch.hint': 'Kreśl równomierne kreskowanie pod wybranym kątem',
     'tool.attribute': 'Atrybut',
     'tool.zoom': 'Powiększenie',
-    'tool.patternCreator': 'Pattern Creator',
+    'tool.patternCreator': 'Edytor wzorów',
     'tool.pattern': 'Wzór',
 
     // Tool Options
@@ -726,7 +726,7 @@ const pl = {
     'pen.act.eyedropperPaper': 'Zakraplacz (papier)',
     'pen.act.menu': 'Menu płótna',
     'pen.act.prevTool': 'Poprzednie narzędzie',
-    'tool.pattern-creator': 'Pattern Creator',
+    'tool.pattern-creator': 'Edytor wzorów',
     'tool.pattern.hint': 'Maluj wybranym kafelkiem z biblioteki, czyli sposób na cieniowanie dwukolorowej komórki',
     'tool.patternCreator.hint': 'Narysuj własny kafelek i dodaj go do biblioteki wzorów',
     'tool.selection': 'Zaznaczenie',
@@ -1256,6 +1256,9 @@ const pl = {
     'err.zxm.noBase': 'Nie znaleziono bazowego obrazu ZXP',
     'err.zxm.noEof': 'Brak znacznika [End of file]',
     'err.zxm.noPositions': 'Brak listy pozycji',
+    // Storage and Next export notices
+    'msg.storageBlocked': 'Ta przeglądarka blokuje pamięć witryny, więc PixULA nie zachowa ustawień ani autozapisu po zamknięciu tej karty. Przed zamknięciem zapisz pracę w pliku.',
+    'mode.dumpNeedsLayer': 'Plik .{ext} zawiera ekran {family} - najpierw przełącz na tryb {family}.',
 };
 
 window.i18n_pl = pl;
