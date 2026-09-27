@@ -872,3 +872,22 @@ format count. The shortcut rows below fail on the pre-fix tree (`131bd06`).
 - [ ] Windows and macOS: the interface shows a sans-serif font (Segoe UI / San Francisco), not Times New Roman, and nothing in the side panels wraps awkwardly
 - [ ] Firefox and Safari: Save Image As downloads a complete, openable file for .scr, .png and .tap
 - [ ] Set the language to German, load a broken .scr: the error box is in German
+
+## Second audit (2026-09-27)
+
+Found by driving every menu command, every mode x tool, every dialog in five
+languages, keyboard-only use, theme contrast, storage-blocked browsers and an
+independent structural check of 147 exported files. The rows marked AUTO fail
+on the pre-fix tree.
+
+### Automated
+- [x] .sl2 is offered only in Layer 2 modes and .slr only in LoRes modes; export() refuses the other family — AUTO (node: export-mode-matrix.test.js)
+- [x] The menu bar is a real ARIA menubar with one tab stop; F10, arrows, Enter/Space and Escape drive it; a submenu opens with Right and closes with Left; keys in an open menu never reach the canvas shortcuts — AUTO (browser: menu-keyboard.spec)
+- [x] Opening and closing any dialog leaves no event-bus listeners behind (Preferences leaked two per opening) — AUTO (browser: dialog-listeners.spec)
+- [x] Landmark labels, list labels, the Interface-size tooltip, panel collapse buttons, Ink/Paper wells and slider -/+ buttons follow the language on a live switch and after a reload — AUTO (browser: i18n-labels.spec)
+- [x] With site storage blocked the app shows one notice, logs no errors and still draws; normal storage shows nothing — AUTO (browser: storage-blocked.spec)
+- [x] The font, speed and timing specs judge against the machine they run on, and pass in a cloud container — AUTO (browser: text-fonts, text-render-quality, stamp-live-budget, gradient-preview)
+
+### Needs a human
+- [ ] With a screen reader (NVDA or VoiceOver), open File > Save Image As using only the keyboard; the menus announce as a menu bar and menus
+- [ ] Load a .slr exported from LoRes mode, and a .sl2 from Layer 2 mode, on a real ZX Spectrum Next or in an emulator
