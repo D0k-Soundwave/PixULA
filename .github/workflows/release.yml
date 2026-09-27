@@ -1,21 +1,30 @@
-# Cut a release from a tag.
+# Cut a release.
 #
-# Push a tag and this builds the portable folder from a CLEAN checkout of that
-# exact commit, zips it, and publishes it as a GitHub Release. Building here
-# rather than uploading a local folder is the whole point: a working copy can
-# be stale, or carry files nothing references any more, and neither is
-# detectable by looking at the resulting zip.
+# Builds the portable folder from a CLEAN checkout of one exact commit, zips
+# it, and publishes it as a GitHub Release. Building here rather than
+# uploading a local folder is the whole point: a working copy can be stale, or
+# carry files nothing references any more, and neither is detectable by
+# looking at the resulting zip.
 #
-#   1. bump APP_VERSION in js/core/constants.js
-#   2. commit it
-#   3. git tag v<APP_VERSION> && git push origin v<APP_VERSION>
+# A release is simply a new APP_VERSION (js/core/constants.js) reaching main.
+# Any of these starts it:
 #
-# Or, instead of step 3, run this workflow from the Actions tab (Release >
-# Run workflow, on main). It then takes the tag from APP_VERSION itself, and
-# the Publish step creates it on the exact commit it built - for anyone (or
-# any session) that can merge to main but cannot push a tag. A tag created
-# that way does not start this workflow a second time: GitHub never triggers
-# a workflow from a ref its own token created.
+#   - AUTOMATIC: merge a change that bumps APP_VERSION into main. The push
+#     touches js/core/constants.js, this runs, sees that v<APP_VERSION> has
+#     no tag yet, and publishes it. A constants.js change that does NOT bump
+#     the version finds its tag already there and stops, successfully, with
+#     nothing published. This is the path Claude Code on the web uses: it
+#     cannot push tags, but it can merge (.claude/skills/release/SKILL.md).
+#   - Run workflow: Actions > Release > Run workflow, on main. Same as the
+#     automatic path, except an existing tag is an error - asked for
+#     explicitly, a release that cannot happen should say so.
+#   - Push a tag: git tag v<APP_VERSION> && git push origin v<APP_VERSION>.
+#
+# On the first two the Publish step creates the tag itself, on the commit it
+# built. That tag does not start this workflow again: GitHub never triggers a
+# workflow from a ref its own token created. Runs never overlap (concurrency
+# below), so an automatic run and a Run-workflow click for the same version
+# cannot both publish.
 #
 # Every step below is a gate: a release is only published if the tag agrees
 # with the app's own version and the test suite passes.
@@ -25,10 +34,19 @@ on:
   push:
     tags:
       - 'v*'
+    # Path filters apply only to the branch push; a tag push always runs.
+    branches:
+      - main
+    paths:
+      - 'js/core/constants.js'
   workflow_dispatch:
 
 permissions:
   contents: write        # required to create the release
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -47,25 +65,30 @@ jobs:
 
       # The About box reads APP_VERSION. If the tag disagreed with it, the
       # release page and the running app would name different versions and
-      # nobody could tell which build they had. A manual run has no tag yet:
-      # it takes v<APP_VERSION>, only from main, and refuses a tag that
-      # already exists - so a forgotten version bump cannot overwrite or
-      # duplicate a release.
+      # nobody could tell which build they had. Without a pushed tag (a push
+      # to main, or Run workflow) the tag is v<APP_VERSION>, only ever from
+      # main, and never one that already exists - so a constants.js edit
+      # that is not a version bump cannot overwrite or duplicate a release.
       - name: Tag must match APP_VERSION
         run: |
           APP=$(node -p "require('./tools/build-portable.js').appVersion('.')")
-          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            TAG="$GITHUB_REF_NAME"
+          else
             if [ "$GITHUB_REF_NAME" != "main" ]; then
               echo "::error::Run the release from main, not $GITHUB_REF_NAME." >&2
               exit 1
             fi
             TAG="v$APP"
             if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
-              echo "::error::$TAG already exists. Bump APP_VERSION in js/core/constants.js first." >&2
-              exit 1
+              if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+                echo "::error::$TAG already exists. Bump APP_VERSION in js/core/constants.js first." >&2
+                exit 1
+              fi
+              echo "::notice::$TAG is already released - this change did not bump APP_VERSION, so there is nothing to publish."
+              echo "SKIP=true" >> "$GITHUB_ENV"
+              exit 0
             fi
-          else
-            TAG="$GITHUB_REF_NAME"
           fi
           echo "APP_VERSION=$APP  tag=$TAG"
           if [ "$APP" != "${TAG#v}" ]; then
@@ -79,13 +102,16 @@ jobs:
       # (channel: 'chrome'), which would drag npm into an otherwise
       # dependency-free job for a browser this runner has no reason to have.
       - name: Test
+        if: env.SKIP != 'true'
         run: node tests/run-all.js
 
       - name: Build the portable folder
+        if: env.SKIP != 'true'
         run: node tools/build-portable.js
 
       # Named after the version so two downloads cannot unzip over each other.
       - name: Package
+        if: env.SKIP != 'true'
         run: |
           NAME="PixULA-${TAG#v}"
           cp -r PixULA_Distilled "$NAME"
@@ -95,10 +121,12 @@ jobs:
 
       # gh is already on the runner, so a zero-dependency project does not
       # take on a third-party action to publish. An alpha/beta/rc tag is
-      # marked pre-release automatically. --target only matters on a manual
-      # run, where the tag does not exist yet: gh creates it on the commit
-      # this job built. A pushed tag already exists and is left as it is.
+      # marked pre-release automatically. --target matters only when the tag
+      # does not exist yet (a push to main, or Run workflow): gh creates it on
+      # the commit this job built. A pushed tag already exists and is left as
+      # it is.
       - name: Publish
+        if: env.SKIP != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
