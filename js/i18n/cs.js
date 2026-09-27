@@ -47,7 +47,7 @@ const cs = {
     'tool.hatch.hint': 'Veďte pravidelné šrafování pod zvoleným úhlem',
     'tool.attribute': 'Atribut',
     'tool.zoom': 'Lupa',
-    'tool.patternCreator': 'Pattern Creator',
+    'tool.patternCreator': 'Editor vzorů',
     'tool.pattern': 'Vzorek',
 
     // Tool Options
@@ -726,7 +726,7 @@ const cs = {
     'pen.act.eyedropperPaper': 'Kapátko (papír)',
     'pen.act.menu': 'Nabídka plátna',
     'pen.act.prevTool': 'Předchozí nástroj',
-    'tool.pattern-creator': 'Pattern Creator',
+    'tool.pattern-creator': 'Editor vzorů',
     'tool.pattern.hint': 'Malujte zvolenou dlaždicí z knihovny, což je způsob, jak stínovat dvoubarevnou buňku',
     'tool.patternCreator.hint': 'Nakreslete vlastní dlaždici a přidejte ji do knihovny vzorů',
     'tool.selection': 'Výběr',
@@ -1256,6 +1256,9 @@ const cs = {
     'err.zxm.noBase': 'Nebyl nalezen základní obrázek ZXP',
     'err.zxm.noEof': 'Chybí značka [End of file]',
     'err.zxm.noPositions': 'Chybí seznam pozic',
+    // Storage and Next export notices
+    'msg.storageBlocked': 'Tento prohlížeč blokuje úložiště stránek, takže PixULA po zavření karty neuchová vaše nastavení ani automatické ukládání. Před zavřením uložte práci do souboru.',
+    'mode.dumpNeedsLayer': 'Soubor .{ext} obsahuje obrazovku {family} - nejprve přepněte do režimu {family}.',
 };
 
 window.i18n_cs = cs;

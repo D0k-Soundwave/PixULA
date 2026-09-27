@@ -111,6 +111,17 @@ class PanelSectionClass {
             this._t(hintI18n, hint)
         );
 
+        // The template's collapse button carries English text and a
+        // composed English tooltip; panels are stamped after I18n's first
+        // pass over the page, so translate them here (their data-i18n*
+        // attributes keep them live on a later locale switch).
+        button.title = Helpers.composeTitle(
+            this._t('panel.collapse', 'Collapse'),
+            this._t('panel.collapseExpand.hint', 'Collapses this panel to its title bar, or expands it back')
+        );
+        const srLabel = button.querySelector('.sr-only');
+        if (srLabel) srLabel.textContent = this._t('panel.collapse', 'Collapse');
+
         const entry = { section, content, title: titleEl, button, persistVisibility };
         this._sections.set(id, entry);
 

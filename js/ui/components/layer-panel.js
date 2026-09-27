@@ -91,7 +91,7 @@ class LayerPanelClass {
     /** @private */
     _buildContent(content) {
         content.innerHTML = `
-            <div id="layer-list" role="listbox" aria-label="Layers" aria-multiselectable="true"></div>
+            <div id="layer-list" role="listbox" aria-label="${this._t('panels.layers', 'Layers')}" data-i18n-aria-label="panels.layers" aria-multiselectable="true"></div>
             <div id="layer-controls" role="group" aria-label="Layer controls">
                 ${captionedIconBtn('cap.add', 'Add', 'layer.add', 'Add Layer',
                     'layer.add.hint', 'Add new layer',
@@ -117,7 +117,7 @@ class LayerPanelClass {
             </div>
             <div id="stamp-section">
                 <h3 id="stamp-section-title" class="panel-subheading" data-i18n="panels.stamps">${this._t('panels.stamps', 'Stamps')}</h3>
-                <div id="stamp-list" role="listbox" aria-label="Stamps"></div>
+                <div id="stamp-list" role="listbox" aria-label="${this._t('panels.stamps', 'Stamps')}" data-i18n-aria-label="panels.stamps"></div>
                 <div id="stamp-empty" class="panel-help">
                     <small data-i18n="stamp.emptyHint">${this._t('stamp.emptyHint', 'Paste, copy, or use the Text tool to create a stamp. Click a stamp to engage; click again to release and return to brush.')}</small>
                 </div>

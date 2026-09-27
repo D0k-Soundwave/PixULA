@@ -763,6 +763,7 @@ class OptionControlsClass {
         minusBtn.className = 'slider-step slider-step-minus';
         minusBtn.textContent = '−';
         minusBtn.setAttribute('aria-label', t('a11y.decrease', 'Decrease'));
+        minusBtn.dataset.i18nAriaLabel = 'a11y.decrease';
 
         const num = document.createElement('input');
         num.type = 'number';
@@ -779,6 +780,7 @@ class OptionControlsClass {
         plusBtn.className = 'slider-step slider-step-plus';
         plusBtn.textContent = '+';
         plusBtn.setAttribute('aria-label', t('a11y.increase', 'Increase'));
+        plusBtn.dataset.i18nAriaLabel = 'a11y.increase';
 
         rowEl.appendChild(minusBtn);
         rowEl.appendChild(num);

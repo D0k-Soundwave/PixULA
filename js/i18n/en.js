@@ -1280,6 +1280,9 @@ const en = {
     'err.zxm.noBase': 'No base ZXP picture found',
     'err.zxm.noEof': 'Missing [End of file] marker',
     'err.zxm.noPositions': 'Missing position list',
+    // Storage and Next export notices
+    'msg.storageBlocked': 'This browser is blocking site storage, so PixULA cannot keep your settings or autosave after this tab closes. Save your work to a file before closing.',
+    'mode.dumpNeedsLayer': 'A .{ext} file holds a {family} screen - switch to a {family} mode first.',
 };
 
 window.i18n_en = en;

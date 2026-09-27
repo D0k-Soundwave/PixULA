@@ -47,7 +47,7 @@ const de = {
     'tool.hatch.hint': 'Gleichmäßige Schraffur im gewählten Winkel ziehen',
     'tool.attribute': 'Attribut',
     'tool.zoom': 'Zoom',
-    'tool.patternCreator': 'Pattern Creator',
+    'tool.patternCreator': 'Muster-Editor',
     'tool.pattern': 'Muster',
 
     // Tool Options
@@ -726,7 +726,7 @@ const de = {
     'pen.act.eyedropperPaper': 'Pipette (Papier)',
     'pen.act.menu': 'Leinwandmenü',
     'pen.act.prevTool': 'Vorheriges Werkzeug',
-    'tool.pattern-creator': 'Pattern Creator',
+    'tool.pattern-creator': 'Muster-Editor',
     'tool.pattern.hint': 'Mit der gewählten Kachel malen, die Art, eine Zweifarbzelle zu schattieren',
     'tool.patternCreator.hint': 'Eine eigene Kachel zeichnen und in die Musterbibliothek aufnehmen',
     'tool.selection': 'Auswahl',
@@ -1256,6 +1256,9 @@ const de = {
     'err.zxm.noBase': 'Kein ZXP-Basisbild gefunden',
     'err.zxm.noEof': 'Markierung [End of file] fehlt',
     'err.zxm.noPositions': 'Positionsliste fehlt',
+    // Storage and Next export notices
+    'msg.storageBlocked': 'Dieser Browser blockiert den Website-Speicher, daher kann PixULA Ihre Einstellungen und die automatische Sicherung nach dem Schließen dieses Tabs nicht behalten. Speichern Sie Ihre Arbeit vor dem Schließen in einer Datei.',
+    'mode.dumpNeedsLayer': 'Eine .{ext}-Datei enthält einen {family}-Bildschirm - wechseln Sie zuerst in einen {family}-Modus.',
 };
 
 window.i18n_de = de;
