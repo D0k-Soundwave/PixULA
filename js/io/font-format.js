@@ -120,7 +120,8 @@ class FontFormatClass {
   async exportAndDownload(filename = 'font.ch8', handle = null) {
     const ext = FormatRegistry.getExtension(filename);
     if (!this.EXTENSIONS.includes(ext)) {
-      EventBus.emit(EVENTS.FILE_ERROR, { message: `Not a font extension: .${ext}` });
+      EventBus.emit(EVENTS.FILE_ERROR, { message: Helpers.localizedMessage('err.notFontExt',
+          'Not a font file extension: .{ext}', { ext }) });
       return false;
     }
     return FormatRegistry.download(this.export(ext), filename, 'application/octet-stream', handle);
@@ -141,7 +142,8 @@ class FontFormatClass {
       case 'ch8': return this._parseRaw(bytes, 8, [256]);
       case 'chr': return this._parseRaw(bytes, 8, [256, 96]);
       case 'chx': return this._parseChx(bytes);
-      default: return { success: false, error: `Unknown font extension .${ext}` };
+      default: return { success: false, error: Helpers.localizedMessage('err.notFontExt',
+          'Not a font file extension: .{ext}', { ext }) };
     }
   }
 
@@ -170,8 +172,9 @@ class FontFormatClass {
     const cellH = SCREEN_MODES.STANDARD_ULA.attrCellH; // glyphs are 8-row, mode-independent
     const count = bytes.length / cellH;
     if (!allowedCounts.includes(count)) {
-      const sizes = allowedCounts.map(c => c * cellH).join(' or ');
-      return { success: false, error: `Illegal character file size (expected ${sizes} bytes, got ${bytes.length})` };
+      const sizes = allowedCounts.map(c => c * cellH).join(', ');
+      return { success: false, error: Helpers.localizedMessage('err.charFileSize',
+          'Illegal character file size (expected {expected} bytes, got {size})', { expected: sizes, size: bytes.length }) };
     }
     // The 768-byte variant is the 96-char window starting at space
     const firstCode = count === 96 ? 32 : 0;
@@ -207,7 +210,8 @@ class FontFormatClass {
     const cellH = SCREEN_MODES.STANDARD_ULA.attrCellH; // glyphs are 8-row, mode-independent
     const tableEnd = 5 + 256 * 2;
     if (bytes.length < tableEnd + 1 + 2 + cellH) {
-      return { success: false, error: 'Missing CHX header (file too short)' };
+      return { success: false, error: Helpers.localizedMessage('err.chxNoHeader',
+          'Missing CHX header (file too short)') };
     }
     for (let i = 0; i < this.CHX_MAGIC.length; i++) {
       if (bytes[i] !== this.CHX_MAGIC[i]) {
@@ -220,20 +224,24 @@ class FontFormatClass {
       const offset = bytes[5 + code * 2] | (bytes[6 + code * 2] << 8);
       if (offset === 0) continue;
       if (offset + 2 >= bytes.length) {
-        return { success: false, error: `Invalid character header (code ${code})` };
+        return { success: false, error: Helpers.localizedMessage('err.chxBadHeader',
+            'Invalid character header (code {code})', { code }) };
       }
       const transparent = bytes[offset];
       const columns = bytes[offset + 1];
       const rows = bytes[offset + 2];
       if (transparent > 1) {
-        return { success: false, error: `Invalid character header (code ${code})` };
+        return { success: false, error: Helpers.localizedMessage('err.chxBadHeader',
+            'Invalid character header (code {code})', { code }) };
       }
       if (columns < 1 || columns > 4 || rows < 1 || rows > 4) {
-        return { success: false, error: `Illegal character size (code ${code})` };
+        return { success: false, error: Helpers.localizedMessage('err.chxBadSize',
+            'Illegal character size (code {code})', { code }) };
       }
       const blockSize = cellH + (transparent ? 0 : 1);
       if (offset + 3 + rows * columns * blockSize > bytes.length) {
-        return { success: false, error: `Unexpected end of file (code ${code})` };
+        return { success: false, error: Helpers.localizedMessage('err.chxEnd',
+            'Unexpected end of file (code {code})', { code }) };
       }
       // Top-left cell only — our glyphs are one attribute cell
       const g = new Uint8Array(cellH);
@@ -241,7 +249,8 @@ class FontFormatClass {
       defined.set(code, g);
     }
     if (defined.size === 0) {
-      return { success: false, error: 'CHX file defines no characters' };
+      return { success: false, error: Helpers.localizedMessage('err.chxEmpty',
+          'CHX file defines no characters') };
     }
 
     const codes = [...defined.keys()];

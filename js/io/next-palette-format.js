@@ -141,7 +141,8 @@ class NextPaletteFormatClass {
     if (!regs) {
       return {
         success: false,
-        error: `Invalid .${ext} file size: ${bytes.length} bytes (expected 64, 256, 512 or 513)`
+        error: Helpers.localizedMessage('err.fileSize',
+            'Invalid .{ext} file size: {size} bytes (expected {expected})', { ext, size: bytes.length, expected: '64, 256, 512, 513' })
       };
     }
 

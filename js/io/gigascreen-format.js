@@ -112,7 +112,8 @@ class GigascreenFormatClass {
     if (bytes.length !== 1628 || SIG.some((v, i) => bytes[i] !== v)) {
       return {
         success: false,
-        error: `Not an HLR attribute GigaScreen (${bytes.length} bytes)`
+        error: Helpers.localizedMessage('err.notValid',
+            'Not a valid {format} file', { format: 'HLR GigaScreen' })
       };
     }
     const STD = SCREEN_MODES.STANDARD_ULA;
@@ -143,18 +144,21 @@ class GigascreenFormatClass {
     if (bytes.length < HEADER
         || bytes[0] !== 0x4D || bytes[1] !== 0x47 || bytes[2] !== 0x48 // 'MGH'
         || bytes[3] !== 1) {
-      return { success: false, error: 'Not an MGH GigaScreen file' };
+      return { success: false, error: Helpers.localizedMessage('err.notValid',
+          'Not a valid {format} file', { format: 'MGH GigaScreen' }) };
     }
 
     const height = bytes[4];
     const layout = this._mgLayout(height);
     if (!layout) {
-      return { success: false, error: `Unsupported .mg attribute height: ${height}` };
+      return { success: false, error: Helpers.localizedMessage('err.mgHeight',
+          'Unsupported .mg attribute height: {height}', { height }) };
     }
     if (bytes.length !== layout.size) {
       return {
         success: false,
-        error: `Invalid .mg file size: ${bytes.length} bytes (expected ${layout.size})`
+        error: Helpers.localizedMessage('err.fileSize',
+            'Invalid .{ext} file size: {size} bytes (expected {expected})', { ext: 'mg', size: bytes.length, expected: layout.size })
       };
     }
     const screen = (f) => {
@@ -277,7 +281,8 @@ class GigascreenFormatClass {
     const STD = SCREEN_MODES.STANDARD_ULA;
     if (bytes.length === GIGA.fileSize + 128) bytes = bytes.subarray(128);
     if (bytes.length !== GIGA.fileSize) {
-      return { error: `Invalid .img file size: ${bytes.length} bytes (expected ${GIGA.fileSize})` };
+      return { error: Helpers.localizedMessage('err.fileSize',
+          'Invalid .{ext} file size: {size} bytes (expected {expected})', { ext: 'img', size: bytes.length, expected: GIGA.fileSize }) };
     }
     return {
       a: bytes.subarray(0, STD.fileSize),
@@ -305,7 +310,7 @@ class GigascreenFormatClass {
     if (!layerA) {
       if (typeof UndoRedoService.cancelAction === 'function') UndoRedoService.cancelAction();
       else UndoRedoService.endAction();
-      return { success: false, error: 'No active layer' };
+      return { success: false, error: Helpers.localizedMessage('err.noActiveLayer', 'No active layer') };
     }
     SCRFormat.loadScreenIntoLayer(a.bitmap, a.attrs, layerA, 0);
     SCRFormat.loadScreenIntoLayer(b.bitmap, b.attrs, layerA, 1);

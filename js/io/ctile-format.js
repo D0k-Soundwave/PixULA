@@ -82,7 +82,7 @@ class CtileFormatClass {
     if (!layer) {
       if (typeof UndoRedoService.cancelAction === 'function') UndoRedoService.cancelAction();
       else UndoRedoService.endAction();
-      return { success: false, error: 'No active layer' };
+      return { success: false, error: Helpers.localizedMessage('err.noActiveLayer', 'No active layer') };
     }
 
     for (let t = 0; t < tileCount; t++) {
