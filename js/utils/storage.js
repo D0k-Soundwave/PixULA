@@ -205,13 +205,28 @@ const Storage = {
 
                 const request = objectStore.put(data);
 
-                request.onerror = () => reject(request.error);
-                request.onsuccess = () => resolve();
+                this._settleWrite(transaction, request, resolve, reject);
             } catch (error) {
                 Logger.error('Storage', 'Set failed', { key, store, error: error.message });
                 reject(error);
             }
         });
+    },
+
+    /**
+     * Settle a write when its TRANSACTION commits, not when its request
+     * succeeds. A request's success only means the change was queued: the
+     * commit can still fail after it (a full disk surfaces as the transaction
+     * aborting with QuotaExceededError), and a page that reloads between the
+     * two loses the write. Resolving on `complete` is what makes
+     * `await Storage.set(...)` mean the value is actually stored.
+     * @private
+     */
+    _settleWrite(transaction, request, resolve, reject) {
+        request.onerror = () => reject(request.error);
+        transaction.oncomplete = () => resolve();
+        transaction.onabort = () =>
+            reject(transaction.error || request.error || new Error('Storage write aborted'));
     },
 
     /**
@@ -235,8 +250,7 @@ const Storage = {
                 const objectStore = transaction.objectStore(store);
                 const request = objectStore.delete(key);
 
-                request.onerror = () => reject(request.error);
-                request.onsuccess = () => resolve();
+                this._settleWrite(transaction, request, resolve, reject);
             } catch (error) {
                 Logger.error('Storage', 'Delete failed', { key, store, error: error.message });
                 reject(error);
@@ -295,8 +309,7 @@ const Storage = {
                 const objectStore = transaction.objectStore(store);
                 const request = objectStore.clear();
 
-                request.onerror = () => reject(request.error);
-                request.onsuccess = () => resolve();
+                this._settleWrite(transaction, request, resolve, reject);
             } catch (error) {
                 Logger.error('Storage', 'Clear failed', { store, error: error.message });
                 reject(error);

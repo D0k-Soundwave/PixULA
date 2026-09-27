@@ -76,14 +76,16 @@ class PresetFormatClass {
     try {
       text = new TextDecoder().decode(buffer);
     } catch (e) {
-      return { success: false, error: 'Not a valid .zxpreset file' };
+      return { success: false, error: Helpers.localizedMessage('err.notValid',
+          'Not a valid {format} file', { format: '.zxpreset' }) };
     }
 
     const decoded = PresetCodec.decodeFile(text);
     if (!decoded) {
       return {
         success: false,
-        error: 'Not a valid .zxpreset file (unknown version or corrupt data)'
+        error: Helpers.localizedMessage('err.notValidVersion',
+            'Not a valid {format} file (unknown version or corrupt data)', { format: '.zxpreset' })
       };
     }
 
@@ -91,12 +93,14 @@ class PresetFormatClass {
     if (free === -1) {
       return {
         success: false,
-        error: 'Every preset slot is full - free one in the preset manager first'
+        error: Helpers.localizedMessage('preset.full',
+            'Every preset slot is full. Delete one in the preset manager first.')
       };
     }
 
     const stored = await PresetService.fromFile(text, free);
-    if (!stored) return { success: false, error: 'Preset could not be stored' };
+    if (!stored) return { success: false, error: Helpers.localizedMessage('err.presetStore',
+        'Preset could not be stored') };
 
     EventBus.emit(EVENTS.FILE_IMPORT, { format: PresetCodec.EXTENSION });
     Logger.info('PresetFormat', `Preset "${stored.name}" imported into slot ${free + 1}`);
@@ -138,7 +142,8 @@ class PresetFormatClass {
 
     const data = await this.export(slot);
     if (!data) {
-      EventBus.emit(EVENTS.FILE_ERROR, { message: 'Preset could not be exported' });
+      EventBus.emit(EVENTS.FILE_ERROR, { message: Helpers.localizedMessage('err.presetExport',
+          'Preset could not be exported') });
       return false;
     }
 

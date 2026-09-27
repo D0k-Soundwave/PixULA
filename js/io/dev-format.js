@@ -79,8 +79,10 @@ class DevFormatClass {
     if (!modeId) {
       return {
         success: false,
-        error: `Invalid .atr file size: ${attrs.length} bytes ` +
-               `(expected ${[...modes.keys()].sort((a, b) => a - b).join(', ')})`
+        error: Helpers.localizedMessage('err.fileSize',
+            'Invalid .{ext} file size: {size} bytes (expected {expected})', {
+          ext: 'atr', size: attrs.length,
+          expected: [...modes.keys()].sort((a, b) => a - b).join(', ') })
       };
     }
     const mode = SCREEN_MODES[Object.keys(SCREEN_MODES)

@@ -49,12 +49,12 @@ The project is released under the **GPL 3.0** license on purpose. Most ZX Spectr
 
 ## ![#BF8700](https://img.shields.io/badge/-BF8700?style=flat-square) Supported file formats
 
-PixULA can save images in 23 formats via **File → Save Image As** (or the `Ctrl+E` picker). Available formats depend on the active screen mode.
+PixULA can save images in 27 formats via **File → Save Image As**. Available formats depend on the active screen mode.
 
 | Category | Formats |
 |---|---|
 | ZX Spectrum classic | `.scr` `.zxp` `.tap` `.tzx` |
-| Multicolor / Timex / GigaScreen | `.mlt` `.ifl` `.hrg` `.img` |
+| Multicolor / Timex / GigaScreen | `.mlt` `.ifl` `.hrg` `.img` `.mg1` `.mg2` `.mg4` `.mg8` |
 | ZX Spectrum Next | `.nxi` `.sl2` `.slr` `.ctile` |
 | Standard images | `.png` `.bmp` `.jpg` |
 | Other ZX-family formats | `.zed` `.sev` |

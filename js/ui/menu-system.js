@@ -202,7 +202,7 @@ class MenuSystemClass {
                 id: 'file',
                 label: 'File',
                 items: [
-                    { id: 'new', label: 'New', shortcut: 'Ctrl+N', action: 'file:new' },
+                    { id: 'new', label: 'New', shortcut: 'Alt+N', action: 'file:new' },
                     { id: 'import', label: 'Load...', shortcut: 'Ctrl+O', action: 'file:import' },
                     // One leaf per picture format — picking a format here IS
                     // the only step; each leaf goes straight to the OS's own
@@ -263,7 +263,7 @@ class MenuSystemClass {
                     { id: 'zoom-fit-selection', label: 'Fit to Selection', action: 'view:zoomFitSelection' },
                     { id: 'zoom-actual', label: 'Actual Size', shortcut: '0', action: 'view:zoomActual' },
                     { type: 'separator' },
-                    { id: 'grid', label: 'Show Grid', shortcut: 'G', action: 'view:toggleGrid', toggle: true },
+                    { id: 'grid', label: 'Show Grid', shortcut: 'Shift+G', action: 'view:toggleGrid', toggle: true },
                     { id: 'pixel-grid', label: 'Show Pixel Grid', action: 'view:togglePixelGrid', toggle: true },
                     { id: 'grid-snap', label: 'Snap', shortcut: 'Shift+S', action: 'view:toggleSnap', toggle: true, i18n: 'view.snap' },
                     { type: 'separator' },
@@ -295,7 +295,7 @@ class MenuSystemClass {
                 id: 'layer',
                 label: 'Layer',
                 items: [
-                    { id: 'layer-new', label: 'New Layer', shortcut: 'Ctrl+Shift+N', action: 'layer:new' },
+                    { id: 'layer-new', label: 'New Layer', shortcut: 'Shift+N', action: 'layer:new' },
                     { id: 'layer-duplicate', label: 'Duplicate Layer', action: 'layer:duplicate' },
                     { id: 'layer-delete', label: 'Delete Layer', action: 'layer:delete' },
                     { type: 'separator' },
@@ -942,7 +942,7 @@ class MenuSystemClass {
     /** @private */
     _showShortcuts() {
         const shortcuts = [
-            ['Ctrl+N', this._t('app.new', 'New')],
+            ['Alt+N', this._t('app.new', 'New')],
             ['Ctrl+O', this._t('app.open', 'Load')],
             ['Ctrl+S', this._t('app.save', 'Save Project')],
             ['Ctrl+Z', this._t('app.undo', 'Undo')],

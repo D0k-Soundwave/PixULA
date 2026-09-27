@@ -235,7 +235,9 @@ class ReferenceLayerServiceClass {
 
         img.onerror = () => {
             Logger.error('ReferenceLayerService', 'Failed to load image');
-            EventBus.emit(EVENTS.REFERENCE_ERROR, { message: 'Failed to load image' });
+            EventBus.emit(EVENTS.REFERENCE_ERROR, {
+                message: Helpers.localizedMessage('err.imageLoad', 'Failed to load the image')
+            });
         };
 
         img.src = url;
@@ -686,7 +688,8 @@ class ReferenceLayerServiceClass {
     _saveState() {
         const state = this.getState();
         delete state.imageUrl;
-        Storage.set('referenceLayer', state);
+        Promise.resolve(Storage.set('referenceLayer', state))
+            .catch((e) => Logger.warn('ReferenceLayerService', `Reference state not stored: ${e && e.message}`));
     }
 
     /**

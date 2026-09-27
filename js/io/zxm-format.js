@@ -127,7 +127,7 @@ class ZXMFormatClass {
     while (i < lines.length && lines[i].trim() === '') i++;
     const ident = (lines[i] || '').trim();
     if (ident !== this.IDENTIFIER && ident !== this.IDENTIFIER_EXT) {
-      return { success: false, error: 'Missing ZXP identifier' };
+      return { success: false, error: Helpers.localizedMessage('err.zxp.noIdent', 'Missing ZXP identifier') };
     }
     i++;
     while (i < lines.length && lines[i].trim() === '') i++;
@@ -136,17 +136,20 @@ class ZXMFormatClass {
     const rows = [];
     while (i < lines.length && lines[i].trim() !== '') {
       const row = lines[i].trim();
-      if (!/^[01*]+$/.test(row)) return { success: false, error: 'Invalid pixel definition(s)' };
+      if (!/^[01*]+$/.test(row)) return { success: false, error: Helpers.localizedMessage('err.zxp.pixels',
+          'Invalid pixel definition(s)') };
       if (rows.length && row.length !== rows[0].length) {
-        return { success: false, error: 'Pixel width error' };
+        return { success: false, error: Helpers.localizedMessage('err.zxp.pixelWidth', 'Pixel width error') };
       }
       rows.push(row);
       i++;
     }
-    if (!rows.length) return { success: false, error: 'Bad image content' };
+    if (!rows.length) return { success: false, error: Helpers.localizedMessage('err.zxp.content',
+        'Bad image content') };
     const width = rows[0].length;
     const height = rows.length;
-    if (width % 8 !== 0) return { success: false, error: 'Invalid picture size' };
+    if (width % 8 !== 0) return { success: false, error: Helpers.localizedMessage('err.zxp.size',
+        'Invalid picture size') };
 
     // Attribute rows (count decides the form), then the optional palette
     while (i < lines.length && lines[i].trim() === '') i++;
@@ -170,7 +173,8 @@ class ZXMFormatClass {
       const parts = line.split(/\s+/);
       if (parts.length !== width / 8
           || !parts.every(p => /^[0-9a-fA-F]{1,2}$/.test(p))) {
-        return { success: false, error: 'Invalid attribute definition(s)' };
+        return { success: false, error: Helpers.localizedMessage('err.zxp.attrs',
+            'Invalid attribute definition(s)') };
       }
       attrRows.push(Uint8Array.from(parts, p => parseInt(p, 16)));
       i++;
@@ -178,7 +182,8 @@ class ZXMFormatClass {
 
     const perLine = attrRows.length === height;
     if (!perLine && attrRows.length !== Math.ceil(height / 8)) {
-      return { success: false, error: 'Invalid attribute definition(s)' };
+      return { success: false, error: Helpers.localizedMessage('err.zxp.attrs',
+          'Invalid attribute definition(s)') };
     }
 
     const mode = perLine
@@ -390,13 +395,16 @@ class ZXMFormatClass {
       if (this._sameMarker(marker, this.SEC_EOF)) { sawEof = true; break; }
 
       if (this._sameMarker(marker, this.SEC_BASE)) {
-        if (base) return { success: false, error: 'Only one base picture allowed' };
+        if (base) return { success: false, error: Helpers.localizedMessage('err.zxm.oneBase',
+            'Only one base picture allowed') };
         i++;
         const img = this._parseZxpImage(lines, () => i, v => { i = v; }, false);
-        if (img.error) return { success: false, error: `Base picture: ${img.error}` };
+        if (img.error) return { success: false, error: Helpers.localizedMessage('err.zxm.basePicture',
+            'Base picture: {reason}', { reason: img.error }) };
         const { w: baseW, h: baseH } = this._baseSize();
         if (img.width !== baseW || img.height !== baseH) {
-          return { success: false, error: 'Base picture is not one screen' };
+          return { success: false, error: Helpers.localizedMessage('err.zxm.baseNotScreen',
+              'Base picture is not one screen') };
         }
         base = img;
         continue;
@@ -405,9 +413,11 @@ class ZXMFormatClass {
       if (this._sameMarker(marker, this.SEC_ELEMENT)) {
         i++;
         const img = this._parseZxpImage(lines, () => i, v => { i = v; }, true);
-        if (img.error) return { success: false, error: `Map element: ${img.error}` };
+        if (img.error) return { success: false, error: Helpers.localizedMessage('err.zxm.element',
+            'Map element: {reason}', { reason: img.error }) };
         if (img.width % tw !== 0 || img.height % th !== 0) {
-          return { success: false, error: 'Map element size is not a multiple of the cell size' };
+          return { success: false, error: Helpers.localizedMessage('err.zxm.elementSize',
+              'Map element size is not a multiple of the cell size') };
         }
         elements.push({
           cellsW: img.width / tw,
@@ -419,9 +429,11 @@ class ZXMFormatClass {
       }
 
       if (this._sameMarker(marker, this.SEC_POSITIONS)) {
-        if (!elements.length) return { success: false, error: 'Position list without a map element' };
+        if (!elements.length) return { success: false, error: Helpers.localizedMessage('err.zxm.orphanPositions',
+            'Position list without a map element') };
         const el = elements[elements.length - 1];
-        if (el.positions) return { success: false, error: 'Duplicate position list' };
+        if (el.positions) return { success: false, error: Helpers.localizedMessage('err.zxm.dupPositions',
+            'Duplicate position list') };
         el.positions = [];
         i++;
         while (i < lines.length) {
@@ -429,22 +441,28 @@ class ZXMFormatClass {
           if (raw === '') { i++; continue; }
           if (raw.startsWith('[') && !/^\[\s*-?\d/.test(raw)) break; // next section
           const m = raw.match(/^\[?\s*(-?\d+)\s*,\s*(-?\d+)\s*\]?$/);
-          if (!m) return { success: false, error: 'Bad map element position' };
+          if (!m) return { success: false, error: Helpers.localizedMessage('err.zxm.badPosition',
+              'Bad map element position') };
           const x = parseInt(m[1], 10), y = parseInt(m[2], 10);
-          if (x < 0 || y < 0) return { success: false, error: 'Bad map element position' };
+          if (x < 0 || y < 0) return { success: false, error: Helpers.localizedMessage('err.zxm.badPosition',
+              'Bad map element position') };
           el.positions.push({ x, y });
           i++;
         }
         continue;
       }
 
-      return { success: false, error: `Unknown section: ${marker.slice(0, 40)}` };
+      return { success: false, error: Helpers.localizedMessage('err.zxm.unknownSection',
+          'Unknown section: {name}', { name: marker.slice(0, 40) }) };
     }
 
-    if (!base) return { success: false, error: 'No base ZXP picture found' };
-    if (!sawEof) return { success: false, error: 'Missing [End of file] marker' };
+    if (!base) return { success: false, error: Helpers.localizedMessage('err.zxm.noBase',
+        'No base ZXP picture found') };
+    if (!sawEof) return { success: false, error: Helpers.localizedMessage('err.zxm.noEof',
+        'Missing [End of file] marker') };
     for (const el of elements) {
-      if (!el.positions) return { success: false, error: 'Missing position list' };
+      if (!el.positions) return { success: false, error: Helpers.localizedMessage('err.zxm.noPositions',
+          'Missing position list') };
     }
 
     return { success: true, doc: this._composeDocument(elements, tw, th) };
@@ -534,9 +552,11 @@ class ZXMFormatClass {
     while (i < lines.length && lines[i].trim() === '') i++;
     const ident = i < lines.length ? lines[i].trim() : '';
     if (ident === this.IDENTIFIER_EXT) {
-      return { error: 'Unsupported screen format (extended 8×1 attributes)' };
+      return { error: Helpers.localizedMessage('err.zxp.extended',
+          'Unsupported screen format (extended 8×1 attributes)') };
     }
-    if (ident !== this.IDENTIFIER) return { error: 'Missing ZXP identifier' };
+    if (ident !== this.IDENTIFIER) return { error: Helpers.localizedMessage('err.zxp.noIdent',
+        'Missing ZXP identifier') };
     i++;
     while (i < lines.length && lines[i].trim() === '') i++;
 
@@ -544,31 +564,36 @@ class ZXMFormatClass {
     const rows = [];
     while (i < lines.length && lines[i].trim() !== '') {
       const row = lines[i].trim();
-      if (!/^[01*]+$/.test(row)) return { error: 'Invalid pixel definition(s)' };
+      if (!/^[01*]+$/.test(row)) return { error: Helpers.localizedMessage('err.zxp.pixels',
+          'Invalid pixel definition(s)') };
       if (row.includes('*') && !allowTransparent) {
-        return { error: 'Transparent pixels are not allowed here' };
+        return { error: Helpers.localizedMessage('err.zxp.transparent',
+            'Transparent pixels are not allowed here') };
       }
       if (rows.length && row.length !== rows[0].length) {
-        return { error: 'Pixel width error' };
+        return { error: Helpers.localizedMessage('err.zxp.pixelWidth', 'Pixel width error') };
       }
       rows.push(row);
       i++;
     }
-    if (!rows.length) return { error: 'Bad image content' };
+    if (!rows.length) return { error: Helpers.localizedMessage('err.zxp.content', 'Bad image content') };
     const width = rows[0].length, height = rows.length;
-    if (width % tw !== 0 || height % th !== 0) return { error: 'Invalid picture size' };
+    if (width % tw !== 0 || height % th !== 0) return { error: Helpers.localizedMessage('err.zxp.size',
+        'Invalid picture size') };
 
     // Attribute rows: hex bytes, one row per cell row
     while (i < lines.length && lines[i].trim() === '') i++;
     const cellRows = height / th, cellCols = width / tw;
     const attrs = new Uint8Array(cellRows * cellCols);
     for (let cy = 0; cy < cellRows; cy++) {
-      if (i >= lines.length) return { error: 'Invalid attribute definition(s)' };
+      if (i >= lines.length) return { error: Helpers.localizedMessage('err.zxp.attrs',
+          'Invalid attribute definition(s)') };
       const parts = lines[i].trim().split(/\s+/);
-      if (parts.length !== cellCols) return { error: 'Invalid attribute definition(s)' };
+      if (parts.length !== cellCols) return { error: Helpers.localizedMessage('err.zxp.attrs',
+          'Invalid attribute definition(s)') };
       for (let cx = 0; cx < cellCols; cx++) {
         if (!/^[0-9a-fA-F]{1,2}$/.test(parts[cx])) {
-          return { error: 'Invalid attribute definition(s)' };
+          return { error: Helpers.localizedMessage('err.zxp.attrs', 'Invalid attribute definition(s)') };
         }
         attrs[cy * cellCols + cx] = parseInt(parts[cx], 16);
       }

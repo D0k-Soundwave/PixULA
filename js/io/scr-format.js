@@ -91,7 +91,8 @@ class SCRFormatClass {
 
     return {
       success: false,
-      error: `Invalid .bsc file size: ${bytes.length} bytes (expected 11136 or 11904)`
+      error: Helpers.localizedMessage('err.fileSize',
+          'Invalid .{ext} file size: {size} bytes (expected {expected})', { ext: 'bsc', size: bytes.length, expected: '11136, 11904' })
     };
   }
 
@@ -167,9 +168,11 @@ class SCRFormatClass {
 
     return {
       success: false,
-      error: `Invalid SCR file size: ${bytes.length} bytes ` +
-        `(expected ${STD.fileSize}, ${STD.bitmapSize}, ${UPLUS.fileSize}, ` +
-        `${MC1.fileSize}, ${UPLUS1.fileSize} or ${HIRES.fileSize})`
+      error: Helpers.localizedMessage('err.fileSize',
+          'Invalid .{ext} file size: {size} bytes (expected {expected})', {
+        ext: 'scr', size: bytes.length,
+        expected: [STD.fileSize, STD.bitmapSize, UPLUS.fileSize,
+          MC1.fileSize, UPLUS1.fileSize, HIRES.fileSize].join(', ') })
     };
   }
 
@@ -201,7 +204,7 @@ class SCRFormatClass {
     if (!layer) {
       if (typeof UndoRedoService.cancelAction === 'function') UndoRedoService.cancelAction();
       else UndoRedoService.endAction();
-      return { success: false, error: 'No active layer' };
+      return { success: false, error: Helpers.localizedMessage('err.noActiveLayer', 'No active layer') };
     }
 
     // Import to AttributeSystem (which handles the complex layout)

@@ -69,7 +69,8 @@ class MulticolorFormatClass {
     if (bytes.length !== mode.fileSize) {
       return {
         success: false,
-        error: `Invalid .${ext} file size: ${bytes.length} bytes (expected ${mode.fileSize})`
+        error: Helpers.localizedMessage('err.fileSize',
+            'Invalid .{ext} file size: {size} bytes (expected {expected})', { ext, size: bytes.length, expected: mode.fileSize })
       };
     }
 

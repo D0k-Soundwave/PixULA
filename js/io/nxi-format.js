@@ -197,7 +197,8 @@ class NXIFormatClass {
     if (!resolved) {
       return {
         success: false,
-        error: `Invalid .${ext} file size: ${bytes.length} bytes`
+        error: Helpers.localizedMessage('err.fileSizeBare',
+            'Invalid .{ext} file size: {size} bytes', { ext, size: bytes.length })
       };
     }
 
@@ -221,7 +222,8 @@ class NXIFormatClass {
   _parseRad(bytes) {
     const RAD = SCREEN_MODES.LORES_RADASTAN;
     if (bytes.length !== this.RAD_SIZE) {
-      return { success: false, error: `Invalid .rad file size: ${bytes.length} bytes (expected ${this.RAD_SIZE})` };
+      return { success: false, error: Helpers.localizedMessage('err.fileSize',
+          'Invalid .{ext} file size: {size} bytes (expected {expected})', { ext: 'rad', size: bytes.length, expected: this.RAD_SIZE }) };
     }
     const regs = window.ColorManager
       ? Uint16Array.from(ColorManager.getNextRegisters()) : NEXTRGB333.defaultRegisters();
@@ -252,7 +254,7 @@ class NXIFormatClass {
     if (!layer) {
       if (typeof UndoRedoService.cancelAction === 'function') UndoRedoService.cancelAction();
       else UndoRedoService.endAction();
-      return { success: false, error: 'No active layer' };
+      return { success: false, error: Helpers.localizedMessage('err.noActiveLayer', 'No active layer') };
     }
 
     // Bulk fill of the layer's index grid (documented bulk exception —

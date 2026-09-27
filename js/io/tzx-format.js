@@ -99,7 +99,8 @@ class TZXFormatClass {
 
     if (bytes.length < 10 ||
         String.fromCharCode(...bytes.slice(0, 7)) !== this.SIGNATURE || bytes[7] !== 0x1A) {
-      return { success: false, error: 'Not a TZX file (bad signature)' };
+      return { success: false, error: Helpers.localizedMessage('err.badSignature',
+          'Not a {format} file (bad signature)', { format: 'TZX' }) };
     }
 
     let pos = 10;
@@ -112,7 +113,8 @@ class TZXFormatClass {
         // extension rule (unknown IDs carry a DWORD length) is not applied
         // because deprecated pre-1.10 IDs (e.g. 0x16-0x17, 0x34, 0x40)
         // don't follow it; see the class header comment.
-        return { success: false, error: `No screen found before unknown TZX block 0x${id.toString(16)}` };
+        return { success: false, error: Helpers.localizedMessage('err.tzxUnknownBeforeScreen',
+            'No screen found before unknown TZX block 0x{id}', { id: id.toString(16) }) };
       }
       const { skip, dataStart, dataLen } = span;
 
@@ -132,7 +134,8 @@ class TZXFormatClass {
       if (skip < 0 || pos > bytes.length) break; // truncated file
     }
 
-    return { success: false, error: `No ${this.SCREEN_SIZE}-byte SCREEN$ block found in TZX file` };
+    return { success: false, error: Helpers.localizedMessage('err.noScreenBlock',
+        'No {size}-byte SCREEN$ block found in the {format} file', { size: this.SCREEN_SIZE, format: 'TZX' }) };
   }
 
   /**
@@ -199,7 +202,8 @@ class TZXFormatClass {
 
     if (bytes.length < 10 ||
         String.fromCharCode(...bytes.slice(0, 7)) !== this.SIGNATURE || bytes[7] !== 0x1A) {
-      return { success: false, error: 'Not a TZX file (bad signature)' };
+      return { success: false, error: Helpers.localizedMessage('err.badSignature',
+          'Not a {format} file (bad signature)', { format: 'TZX' }) };
     }
 
     const header = bytes.slice(0, 10);
@@ -210,11 +214,13 @@ class TZXFormatClass {
       const id = bytes[pos];
       const span = this._blockSpan(bytes, pos);
       if (!span) {
-        return { success: false, error: `Unknown TZX block 0x${id.toString(16)} at offset ${pos}` };
+        return { success: false, error: Helpers.localizedMessage('err.tzxUnknownBlock',
+            'Unknown TZX block 0x{id} at offset {offset}', { id: id.toString(16), offset: pos }) };
       }
       const end = pos + 1 + span.skip;
       if (span.skip < 0 || end > bytes.length) {
-        return { success: false, error: `Truncated TZX block 0x${id.toString(16)} at offset ${pos}` };
+        return { success: false, error: Helpers.localizedMessage('err.tzxTruncated',
+            'Truncated TZX block 0x{id} at offset {offset}', { id: id.toString(16), offset: pos }) };
       }
 
       const entry = {
