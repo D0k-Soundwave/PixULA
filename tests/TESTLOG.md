@@ -851,3 +851,24 @@ rows that pin preserved behaviour pass on both.
 - [ ] Leave the editor idle on a laptop or tablet on battery for a few minutes and confirm the tab no longer shows steady CPU use in Task Manager
 - [ ] With a backup folder on a real disk (and, if available, a network share) holding many other files, autosave for several minutes: numbered versions keep appearing, the keep count is honoured, and nothing slows down
 - [ ] With a large reference photo loaded and autosave at 1 minute, draw for a few minutes: no hitch once a minute
+
+## Audit fixes (2026-09-27)
+
+Eight problems found by a whole-app audit: the interface font, three menu
+shortcuts that did not do what they said, preference writes that could be lost,
+English-only file errors, the Firefox/Safari download fallback and the README's
+format count. The shortcut rows below fail on the pre-fix tree (`131bd06`).
+
+### Automated
+- [x] No key is claimed by two commands (menu vs tool rail), and no menu prints a chord the browser keeps (Ctrl+N, Ctrl+Shift+N, ...) — AUTO (browser: menu-shortcuts.spec)
+- [x] Shift+N adds a layer; Ctrl+Shift+N adds a layer and never offers to discard the picture — AUTO (browser: menu-shortcuts.spec)
+- [x] Alt+N starts a new picture and asks first when there is unsaved work — AUTO (browser: menu-shortcuts.spec)
+- [x] Ctrl+E merges the current layer down — AUTO (browser: menu-shortcuts.spec)
+- [x] Shift+G toggles the grid and leaves the tool alone; G still selects Fill — AUTO (browser: menu-shortcuts.spec)
+- [x] Preferences OK closes only once the stored copy is written, so a reload straight after keeps the change (was flaky under load) — AUTO (browser: autosave.spec)
+- [x] Every file error has a translation in all 13 locales with matching placeholders — AUTO (node: i18n-parity.test.js)
+
+### Needs a human
+- [ ] Windows and macOS: the interface shows a sans-serif font (Segoe UI / San Francisco), not Times New Roman, and nothing in the side panels wraps awkwardly
+- [ ] Firefox and Safari: Save Image As downloads a complete, openable file for .scr, .png and .tap
+- [ ] Set the language to German, load a broken .scr: the error box is in German
