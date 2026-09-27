@@ -25,6 +25,11 @@ body {
        there is no height chain to inherit from. */
     min-height: 100%;
     overflow: hidden;
+    /* The app's own typeface. The token in css/variables.css was defined but
+       never applied, so every label, menu and button fell back to the
+       browser's default serif (Times New Roman on a stock Windows or macOS
+       browser). Form controls pick it up through the reset's `font: inherit`. */
+    font-family: var(--font-family);
 }
 
 /* Main Application Grid */

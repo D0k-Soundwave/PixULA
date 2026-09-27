@@ -46,7 +46,8 @@ class SNAFormatClass {
     if (!this.VALID_SIZES.includes(bytes.length)) {
       return {
         success: false,
-        error: `Invalid SNA file size: ${bytes.length} bytes (expected ${this.VALID_SIZES.join(', ')})`
+        error: Helpers.localizedMessage('err.fileSize',
+            'Invalid .{ext} file size: {size} bytes (expected {expected})', { ext: 'sna', size: bytes.length, expected: this.VALID_SIZES.join(', ') })
       };
     }
 

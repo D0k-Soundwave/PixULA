@@ -141,10 +141,12 @@ class SEVFormatClass {
   decodeToScreen(bytes) {
     if (bytes.length < 14 ||
         bytes[0] !== 0x53 || bytes[1] !== 0x65 || bytes[2] !== 0x76 || bytes[3] !== 0x00) {
-      return { success: false, error: 'Not a SevenuP file (bad signature)' };
+      return { success: false, error: Helpers.localizedMessage('err.badSignature',
+          'Not a {format} file (bad signature)', { format: 'SevenuP' }) };
     }
     if (bytes[4] !== 0 || ![0, 6, 8].includes(bytes[5])) {
-      return { success: false, error: `Unsupported SEV version ${bytes[4]}.${bytes[5]}` };
+      return { success: false, error: Helpers.localizedMessage('err.sevVersion',
+          'Unsupported SevenuP version {version}', { version: `${bytes[4]}.${bytes[5]}` }) };
     }
 
     const u16 = (p) => bytes[p] | (bytes[p + 1] << 8);
@@ -153,7 +155,8 @@ class SEVFormatClass {
     if (p1 < 1 || p1 > 2 || p2 > 31 ||
         sx < 1 || sy < 1 ||
         sx > SCREEN_MODES.STANDARD_ULA.width || sy > SCREEN_MODES.STANDARD_ULA.height) {
-      return { success: false, error: 'Invalid SEV header fields' };
+      return { success: false, error: Helpers.localizedMessage('err.sevHeader',
+          'Invalid SEV header fields') };
     }
 
     const CELL = this.CELL;
@@ -163,7 +166,7 @@ class SEVFormatClass {
     const frameBytes = cSX * cSY * (CELL + 1);
 
     if (14 + frameBytes > bytes.length) {
-      return { success: false, error: 'Truncated SEV file' };
+      return { success: false, error: Helpers.localizedMessage('err.sevTruncated', 'Truncated SEV file') };
     }
 
     const scr = new Uint8Array(this.SCREEN_SIZE);

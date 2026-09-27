@@ -221,7 +221,8 @@ class ProjectFormatClass {
      */
     async parse(data) {
         const project = await this.decode(data);
-        if (!project) return { success: false, error: 'Not a valid .pixula project file' };
+        if (!project) return { success: false, error: Helpers.localizedMessage('err.notValid',
+            'Not a valid {format} file', { format: '.pixula project' }) };
         await App._loadProjectData(project);
         LayerManager.composeToCanvas();
         return { success: true };

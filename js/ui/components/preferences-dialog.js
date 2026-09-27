@@ -610,8 +610,14 @@ class PreferencesDialogClass {
         return { setControls };
     }
 
-    /** @private */
-    _save(dialog) {
+    /**
+     * Apply and store the dialog's values. Async so the dialog stays open
+     * until the stored copy is written (Dialog awaits an async onClick): the
+     * write used to be fired and forgotten, so a reload straight after OK
+     * could lose the change, and a failed write vanished without a word.
+     * @private
+     */
+    async _save(dialog) {
         const autosaveEl = dialog.querySelector('#pref-autosave-minutes');
         const defaultScreenModeEl = dialog.querySelector('#pref-default-screen-mode');
         const restoreOnBoot = dialog.querySelector('#pref-restore-on-boot');
@@ -671,7 +677,7 @@ class PreferencesDialogClass {
             StateManager.set('pen.actions', pen.actions);
         }
 
-        Storage.set('preferences', {
+        const stored = {
             autosaveMinutes: StateManager.getAutosaveMinutes(),
             defaultScreenMode: defaultScreenModeEl?.value,
             restoreOnBoot: restoreOnBoot?.checked,
@@ -692,9 +698,18 @@ class PreferencesDialogClass {
             penProfile: pen?.profile,
             penCustom: pen?.custom,
             penActions: pen?.actions
-        });
+        };
 
-        Logger.info('PreferencesDialog', 'Preferences saved');
+        try {
+            await Storage.set('preferences', stored);
+            Logger.info('PreferencesDialog', 'Preferences saved');
+        } catch (error) {
+            // The new values are live for this session either way; only the
+            // copy for the next visit is missing, and the artist should know.
+            Logger.error('PreferencesDialog', 'Preferences could not be stored', error);
+            alert(this._t('msg.prefsSaveFailed',
+                'Your preferences apply now, but could not be stored for next time.'));
+        }
     }
 
     /** Settings > Reset All Preferences */

@@ -285,7 +285,8 @@ class FileManagerClass {
         }
         if (FormatRegistry.getExtension(file.name) !== 'pixula') {
           Logger.error('FileManager', `Not a project file: ${file.name}`);
-          EventBus.emit(EVENTS.FILE_ERROR, { message: 'That is not a .pixula project file.' });
+          EventBus.emit(EVENTS.FILE_ERROR, { message: Helpers.localizedMessage('err.notProjectFile',
+              'That is not a .pixula project file.') });
           resolve(false);
           return;
         }
@@ -318,7 +319,8 @@ class FileManagerClass {
 
     if (!handler) {
       Logger.error('FileManager', `Unsupported format: .${extension}`);
-      EventBus.emit(EVENTS.FILE_ERROR, { message: `Unsupported file format: .${extension}` });
+      EventBus.emit(EVENTS.FILE_ERROR, { message: Helpers.localizedMessage('err.unsupportedFormat',
+          'Unsupported file format: .{ext}', { ext: extension }) });
       return false;
     }
 
@@ -374,7 +376,8 @@ class FileManagerClass {
       return true;
     } catch (error) {
       Logger.error('FileManager', `Load failed: ${error.message}`);
-      EventBus.emit(EVENTS.FILE_ERROR, { message: `Failed to load file: ${error.message}` });
+      EventBus.emit(EVENTS.FILE_ERROR, { message: Helpers.localizedMessage('err.loadFailed',
+          'Failed to load file: {reason}', { reason: error.message }) });
       return false;
     }
   }
@@ -480,7 +483,8 @@ class FileManagerClass {
       return true;
     } catch (error) {
       Logger.error('FileManager', `Save failed: ${error.message}`);
-      EventBus.emit(EVENTS.FILE_ERROR, { message: `Failed to save: ${error.message}` });
+      EventBus.emit(EVENTS.FILE_ERROR, { message: Helpers.localizedMessage('err.saveFailed',
+          'Failed to save: {reason}', { reason: error.message }) });
       return false;
     }
   }
@@ -511,7 +515,8 @@ class FileManagerClass {
 
     if (!handler) {
       Logger.error('FileManager', `Unsupported export format: .${ext}`);
-      EventBus.emit(EVENTS.FILE_ERROR, { message: `Cannot save as .${ext}` });
+      EventBus.emit(EVENTS.FILE_ERROR, { message: Helpers.localizedMessage('err.cannotSaveAs',
+          'Cannot save as .{ext}', { ext }) });
       return false;
     }
 
@@ -537,7 +542,8 @@ class FileManagerClass {
       return true;
     } catch (error) {
       Logger.error('FileManager', `Save failed: ${error.message}`);
-      EventBus.emit(EVENTS.FILE_ERROR, { message: `Failed to save: ${error.message}` });
+      EventBus.emit(EVENTS.FILE_ERROR, { message: Helpers.localizedMessage('err.saveFailed',
+          'Failed to save: {reason}', { reason: error.message }) });
       return false;
     }
   }

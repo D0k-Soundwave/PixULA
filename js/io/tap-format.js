@@ -85,7 +85,8 @@ class TAPFormatClass {
 
     return {
       success: false,
-      error: `No ${this.SCREEN_SIZE}-byte SCREEN$ block found in TAP file`
+      error: Helpers.localizedMessage('err.noScreenBlock',
+          'No {size}-byte SCREEN$ block found in the {format} file', { size: this.SCREEN_SIZE, format: 'TAP' })
     };
   }
 
@@ -184,14 +185,16 @@ class TAPFormatClass {
       const blockLen = bytes[pos] | (bytes[pos + 1] << 8);
       const end = pos + 2 + blockLen;
       if (blockLen < 2 || end > bytes.length) {
-        return { success: false, error: `Malformed TAP block at offset ${pos}` };
+        return { success: false, error: Helpers.localizedMessage('err.tapMalformed',
+            'Malformed TAP block at offset {offset}', { offset: pos }) };
       }
       blocks.push(this._describeBlock(bytes.slice(pos, end), blocks.length, pos));
       pos = end;
     }
 
     if (pos !== bytes.length) {
-      return { success: false, error: `${bytes.length - pos} stray byte(s) at end of TAP file` };
+      return { success: false, error: Helpers.localizedMessage('err.tapStray',
+          '{count} stray byte(s) at the end of the TAP file', { count: bytes.length - pos }) };
     }
     return { success: true, blocks };
   }
