@@ -36,6 +36,15 @@ const Helpers = {
     REPEAT_INTERVAL: 60,
 
     /**
+     * How long a fallback download's object URL stays alive after the click
+     * (downloadFile). [A] The only requirement is "longer than the browser
+     * takes to start reading the blob", which is well under a second in
+     * practice; a minute is a generous margin, and the cost of being too long
+     * is only that the blob's memory is released a little later.
+     */
+    DOWNLOAD_URL_LIFETIME_MS: 60000,
+
+    /**
      * Clamp a value between min and max
      * @param {number} value - Value to clamp
      * @param {number} min - Minimum value
@@ -549,7 +558,11 @@ const Helpers = {
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        // Not revoked straight away: this is the Firefox/Safari path (no
+        // native Save picker), and there the download reads the blob AFTER
+        // click() returns - revoking in the same tick can leave an empty or
+        // failed download. A minute is ample; the blob is freed after that.
+        setTimeout(() => URL.revokeObjectURL(url), this.DOWNLOAD_URL_LIFETIME_MS);
         return true;
     },
 
