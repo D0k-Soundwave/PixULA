@@ -62,7 +62,7 @@ class NXIFormatClass {
     return {
       parse: (buffer) => this.parse(ext, buffer),
       export: () => this.export(ext),
-      canExport: () => this.canExport(),
+      canExport: () => this.canExport(ext),
       exportAndDownload: (filename, options, handle) => this.exportAndDownload(ext, filename, handle)
     };
   }
@@ -276,20 +276,38 @@ class NXIFormatClass {
   // ── Export ────────────────────────────────────────────────────────────────
 
   /**
-   * Export the composited document. .nxi = palette + bitmap; .sl2 = raw
-   * bitmap. Indexed modes only (localized gate).
-   * @param {string} ext - 'nxi' | 'sl2'
+   * Export the composited document. .nxi = palette + bitmap; .sl2/.slr =
+   * raw bitmap. Indexed modes only, and each raw dump only from its own
+   * layer family (localized gates).
+   * @param {string} ext - 'nxi' | 'sl2' | 'slr'
    * @returns {Uint8Array}
    */
   /**
    * Whether export(ext) would succeed in the active mode — the
    * non-throwing mirror used to filter the Save dialogs before the artist
-   * picks a format. Same condition for nxi/sl2/slr — ext is unused, kept
-   * only so the adapter's shape matches export()'s.
+   * picks a format.
+   *
+   * .nxi carries any indexed screen (palette block + the mode's own bitmap,
+   * the Next ecosystem's convention for every size). The two raw dumps are
+   * each ONE hardware layer's file, as the header above defines them: .sl2
+   * is Layer 2 and .slr is LoRes (either LoRes form - the byte count tells
+   * them apart). They used to be offered in every indexed mode, which wrote
+   * the other layer's picture under the name - a 49152-byte .slr, a
+   * 12288-byte .sl2 - that no Next tool reads as what the extension says.
+   * @param {string} [ext='nxi'] - 'nxi' | 'sl2' | 'slr'
    * @returns {boolean}
    */
-  canExport() {
-    return ACTIVE_SCREEN_MODE.pixelDepth !== 1;
+  canExport(ext = 'nxi') {
+    const mode = ACTIVE_SCREEN_MODE;
+    if (mode.pixelDepth === 1) return false;
+    if (ext === 'sl2') return !this._isLores(mode);
+    if (ext === 'slr') return this._isLores(mode);
+    return true;
+  }
+
+  /** Either LoRes form (256-colour or Radastan). @private */
+  _isLores(mode) {
+    return mode.id === SCREEN_MODES.LORES.id || mode.id === SCREEN_MODES.LORES_RADASTAN.id;
   }
 
   export(ext) {
@@ -297,6 +315,11 @@ class NXIFormatClass {
     if (mode.pixelDepth === 1) {
       throw new Error(Helpers.localizedMessage('mode.exportNeedsIndexed',
         'This format holds ZX Spectrum Next indexed screens - switch to a Layer 2 or LoRes mode first.'));
+    }
+    if (!this.canExport(ext)) {
+      const family = ext === 'slr' ? 'LoRes' : 'Layer 2';
+      throw new Error(Helpers.localizedMessage('mode.dumpNeedsLayer',
+        'A .{ext} file holds a {family} screen - switch to a {family} mode first.', { ext, family }));
     }
 
     // Composite: the flattened layer's cells seed from the background, so

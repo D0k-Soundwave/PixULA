@@ -67,8 +67,8 @@ const CATALOGUE = {
   mg2:   () => GigascreenFormat.canExportMg(2),
   mg1:   () => GigascreenFormat.canExportMg(1),
   nxi:   () => NXIFormat.canExport(),
-  sl2:   () => NXIFormat.canExport(),
-  slr:   () => NXIFormat.canExport(),
+  sl2:   () => NXIFormat.canExport('sl2'),
+  slr:   () => NXIFormat.canExport('slr'),
   ctile: () => CtileFormat.canExport(),
   tap:   () => TAPFormat.canExport(),
   tzx:   () => TZXFormat.canExport(),
@@ -90,9 +90,11 @@ const CATALOGUE = {
 
 // ─── The expected matrix, derived directly from each handler's own gate
 //     condition (not from the earlier prose doc, which had drifted: .zxp
-//     also reaches 8x4/8x2 via its extended per-line form, and .nxi/.sl2/
-//     .slr are interchangeable dumps offered in every indexed mode, not
-//     just their "native" size). ────────────────────────────────────────
+//     also reaches 8x4/8x2 via its extended per-line form). .nxi is offered
+//     in every indexed mode; the raw dumps only from their own layer family
+//     - .sl2 from Layer 2, .slr from LoRes - since a .slr holding a Layer 2
+//     picture (or the reverse) is not a file any Next tool reads as its
+//     extension says. ─────────────────────────────────────────────────────
 
 const T = true, F = false;
 const MATRIX = {
@@ -109,11 +111,11 @@ const MATRIX = {
   multigiga_8x1:   { scr: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: T, nxi: F, sl2: F, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: F, npl: F, asm: F, c: F, bin: F, atr: F },
   timex_hires_giga:{ scr: F, zxp: F, mlt: F, ifl: F, hrg: T, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: F, sl2: F, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: F, npl: F, asm: F, c: F, bin: F, atr: F },
   ulanext:         { scr: T, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: F, sl2: F, slr: F, ctile: F, tap: T, tzx: T, png: T, bmp: T, jpg: T, zed: T, sev: T, pal: T, npl: T, asm: T, c: T, bin: T, atr: T },
-  layer2_256:      { scr: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: T, sl2: T, slr: T, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: T, npl: T, asm: F, c: F, bin: F, atr: F },
-  layer2_320:      { scr: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: T, sl2: T, slr: T, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: T, npl: T, asm: F, c: F, bin: F, atr: F },
-  layer2_640:      { scr: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: T, sl2: T, slr: T, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: T, npl: T, asm: F, c: F, bin: F, atr: F },
-  lores:           { scr: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: T, sl2: T, slr: T, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: T, npl: T, asm: F, c: F, bin: F, atr: F },
-  lores_radastan:  { scr: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: T, sl2: T, slr: T, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: T, npl: T, asm: F, c: F, bin: F, atr: F }
+  layer2_256:      { scr: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: T, sl2: T, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: T, npl: T, asm: F, c: F, bin: F, atr: F },
+  layer2_320:      { scr: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: T, sl2: T, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: T, npl: T, asm: F, c: F, bin: F, atr: F },
+  layer2_640:      { scr: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: T, sl2: T, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: T, npl: T, asm: F, c: F, bin: F, atr: F },
+  lores:           { scr: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: T, sl2: F, slr: T, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: T, npl: T, asm: F, c: F, bin: F, atr: F },
+  lores_radastan:  { scr: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: T, sl2: F, slr: T, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: T, npl: T, asm: F, c: F, bin: F, atr: F }
 };
 
 check('matrix covers every SCREEN_MODES entry',
