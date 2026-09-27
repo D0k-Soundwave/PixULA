@@ -1906,7 +1906,19 @@ class InputHandlerClass {
       return;
     }
     if (ctrl && key === 'o') { e.preventDefault(); FileManager.openFile(); return; }
+    // Ctrl+Shift+N is New LAYER (the Layer menu's label). `key` is lowercased,
+    // so this has to be tested before plain Ctrl+N: without the Shift check
+    // Ctrl+Shift+N ran New File and offered to discard the artwork. Chrome,
+    // Edge and Safari keep both chords for their own new-window commands, so
+    // neither is what the menus show - Shift+N and Alt+N below are - but where
+    // a browser does pass them through they must still do the right thing.
+    if (ctrl && e.shiftKey && key === 'n') { e.preventDefault(); LayerManager.addLayer(); return; }
     if (ctrl && key === 'n') { e.preventDefault(); FileManager.newFile(); return; }
+    if (ctrl && !e.shiftKey && !e.altKey && key === 'e') {
+      e.preventDefault();
+      LayerManager.mergeDown(LayerManager.currentLayerIndex);
+      return;
+    }
     if (ctrl && key === 'a') {
       e.preventDefault();
       SelectionService.selectAll();
@@ -1954,6 +1966,16 @@ class InputHandlerClass {
       if (presetDigit) {
         e.preventDefault();
         PresetService.applyByDigit(presetDigit[1]);
+        return;
+      }
+      // Alt+N - New. Not Ctrl+N: every mainstream browser keeps that for a
+      // new window and never hands it to the page. On a Mac, Option+N is a
+      // dead key (the tilde accent), so its `key` is 'Dead'; the physical key
+      // is matched only in that case, so a non-QWERTY layout's own N still
+      // wins everywhere else.
+      if (key === 'n' || (key === 'dead' && e.code === 'KeyN')) {
+        e.preventDefault();
+        FileManager.newFile();
         return;
       }
     }
@@ -2011,6 +2033,21 @@ class InputHandlerClass {
     if (!ctrl && e.shiftKey && !e.altKey && key === 's') {
       e.preventDefault();
       StateManager.setGridSnap(!StateManager.getGridSnap());
+      return;
+    }
+
+    // Show Grid (Shift+G). Bare G is the Fill tool's key, which the View
+    // menu used to claim for the grid as well.
+    if (!ctrl && e.shiftKey && !e.altKey && key === 'g') {
+      e.preventDefault();
+      if (window.GridOverlay) GridOverlay.toggle();
+      return;
+    }
+
+    // New Layer (Shift+N), the key Aseprite uses for the same command.
+    if (!ctrl && e.shiftKey && !e.altKey && key === 'n') {
+      e.preventDefault();
+      LayerManager.addLayer();
       return;
     }
 
