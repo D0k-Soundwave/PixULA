@@ -325,6 +325,9 @@ test('an assignment made in Preferences survives a reload', async ({ page }) => 
     await page.selectOption('#pref-pen-profile', 'wacomProPen2');
     await page.selectOption('[data-pen-control="barrel"]', 'menu');
     await page.locator('#dialog-preferences-dialog .app-dialog-footer button.primary').click();
+    // OK closes the dialog once the stored copy is written; reloading before
+    // that raced the write (the same race autosave.spec pins).
+    await expect(page.locator('#dialog-preferences-dialog')).toHaveCount(0);
 
     await page.reload();
     await page.waitForSelector('html[data-app-ready]');
@@ -394,6 +397,9 @@ test('pressure sensitivity and strength survive a reload', async ({ page }) => {
     await page.check('#pref-pressure-sensitivity');
     await page.fill('#pref-pressure-strength', '150');
     await page.locator('#dialog-preferences-dialog .app-dialog-footer button.primary').click();
+    // OK closes the dialog once the stored copy is written; reloading before
+    // that raced the write (the same race autosave.spec pins).
+    await expect(page.locator('#dialog-preferences-dialog')).toHaveCount(0);
 
     await page.reload();
     await page.waitForSelector('html[data-app-ready]');
