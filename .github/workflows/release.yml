@@ -10,6 +10,13 @@
 #   2. commit it
 #   3. git tag v<APP_VERSION> && git push origin v<APP_VERSION>
 #
+# Or, instead of step 3, run this workflow from the Actions tab (Release >
+# Run workflow, on main). It then takes the tag from APP_VERSION itself, and
+# the Publish step creates it on the exact commit it built - for anyone (or
+# any session) that can merge to main but cannot push a tag. A tag created
+# that way does not start this workflow a second time: GitHub never triggers
+# a workflow from a ref its own token created.
+#
 # Every step below is a gate: a release is only published if the tag agrees
 # with the app's own version and the test suite passes.
 name: Release
@@ -18,6 +25,7 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: write        # required to create the release
@@ -39,16 +47,32 @@ jobs:
 
       # The About box reads APP_VERSION. If the tag disagreed with it, the
       # release page and the running app would name different versions and
-      # nobody could tell which build they had.
+      # nobody could tell which build they had. A manual run has no tag yet:
+      # it takes v<APP_VERSION>, only from main, and refuses a tag that
+      # already exists - so a forgotten version bump cannot overwrite or
+      # duplicate a release.
       - name: Tag must match APP_VERSION
         run: |
           APP=$(node -p "require('./tools/build-portable.js').appVersion('.')")
-          TAG=${GITHUB_REF_NAME#v}
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            if [ "$GITHUB_REF_NAME" != "main" ]; then
+              echo "::error::Run the release from main, not $GITHUB_REF_NAME." >&2
+              exit 1
+            fi
+            TAG="v$APP"
+            if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+              echo "::error::$TAG already exists. Bump APP_VERSION in js/core/constants.js first." >&2
+              exit 1
+            fi
+          else
+            TAG="$GITHUB_REF_NAME"
+          fi
           echo "APP_VERSION=$APP  tag=$TAG"
-          if [ "$APP" != "$TAG" ]; then
-            echo "::error::Tag $GITHUB_REF_NAME does not match APP_VERSION $APP. Bump js/core/constants.js, or retag." >&2
+          if [ "$APP" != "${TAG#v}" ]; then
+            echo "::error::Tag $TAG does not match APP_VERSION $APP. Bump js/core/constants.js, or retag." >&2
             exit 1
           fi
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
 
       # Zero dependencies and all Node built-ins, so this needs no install
       # step. Not the Playwright suite: it drives an INSTALLED Chrome
@@ -63,7 +87,7 @@ jobs:
       # Named after the version so two downloads cannot unzip over each other.
       - name: Package
         run: |
-          NAME="PixULA-${GITHUB_REF_NAME#v}"
+          NAME="PixULA-${TAG#v}"
           cp -r PixULA_Distilled "$NAME"
           zip -r "$NAME.zip" "$NAME"
           echo "ASSET=$NAME.zip" >> "$GITHUB_ENV"
@@ -71,17 +95,20 @@ jobs:
 
       # gh is already on the runner, so a zero-dependency project does not
       # take on a third-party action to publish. An alpha/beta/rc tag is
-      # marked pre-release automatically.
+      # marked pre-release automatically. --target only matters on a manual
+      # run, where the tag does not exist yet: gh creates it on the commit
+      # this job built. A pushed tag already exists and is left as it is.
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           PRE=""
-          case "$GITHUB_REF_NAME" in
+          case "$TAG" in
             *-alpha*|*-beta*|*-rc*) PRE="--prerelease" ;;
           esac
-          gh release create "$GITHUB_REF_NAME" "$ASSET" \
-            --title "PixULA $GITHUB_REF_NAME" \
+          gh release create "$TAG" "$ASSET" \
+            --target "$GITHUB_SHA" \
+            --title "PixULA $TAG" \
             --generate-notes \
             $PRE \
             --notes "Download **$ASSET**, unzip it anywhere, and double-click \`PixULA.html\`. It runs in your browser with no install, no server and no internet connection. Your work never leaves your machine.
