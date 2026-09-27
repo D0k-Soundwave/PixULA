@@ -49,13 +49,12 @@ below yourself, then report the release link.
 
 4. **Test.**
    - `node tests/run-all.js` must print `ALL TEST FILES PASSED`. No exceptions.
-   - `npm run test:browser`. In the cloud container these fail for
-     environmental reasons only and are not blockers: `text-fonts.spec.js`
-     (3 tests) and `text-render-quality.spec.js` need Windows fonts (Arial and
-     a large installed-font list); `stamp-live-budget.spec.js` is a CPU-speed
-     budget; `gradient-preview.spec.js` coalescing can miss by one under full
-     load (re-run it alone; it passes). Any other failure is real: fix it
-     before releasing.
+   - `npm run test:browser` must pass too. The font, speed and timing specs
+     judge against the machine they run on (installed fonts via fontconfig,
+     the exact path's own cost, frames counted during the drag), so they
+     pass in the cloud container as well as on a desktop. A failure is real:
+     re-run that one spec alone once to rule out a stalled runner, and if it
+     fails again, fix it before releasing.
 
 5. **Commit** `js/core/constants.js` and `js/data/manual-content.js` as
    `chore: release <version>` (plus the session's attribution trailers), and

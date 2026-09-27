@@ -69,10 +69,19 @@ test('gradient: additive preview + commit, coalesced preview calls', async ({ pa
     // than there are animation frames to paint them in.
     const p2a = await pixelPoint(page, 4, 96);
     const p2b = await pixelPoint(page, 251, 96);
+    // Count animation frames across this drag: coalescing means at most one
+    // preview per frame, whatever the machine's speed.
+    const phase2 = await page.evaluate(() => {
+        window.__frames = 0;
+        const tick = () => { window.__frames++; window.__rafId = requestAnimationFrame(tick); };
+        window.__rafId = requestAnimationFrame(tick);
+        return { moves: window.__moveCount, previews: window.__previewTimes.length };
+    });
     await page.mouse.move(p2a.x, p2a.y);
     await page.mouse.down();
     await page.mouse.move(p2b.x, p2b.y, { steps: 40 });
     await page.mouse.up();
+    const frames = await page.evaluate(() => { cancelAnimationFrame(window.__rafId); return window.__frames; });
 
     const moveCount = await page.evaluate(() => window.__moveCount);
     const times = await page.evaluate(() => window.__previewTimes);
@@ -81,8 +90,14 @@ test('gradient: additive preview + commit, coalesced preview calls', async ({ pa
     console.log(`gradient preview: ${moveCount} pointermove events -> ` +
         `${times.length} _updatePreview calls (avg ${avg.toFixed(2)}ms, max ${max.toFixed(2)}ms)`);
 
-    // Coalescing: far fewer preview recomputes than raw move events.
-    expect(times.length).toBeLessThan(moveCount);
+    // Coalescing: never more than one preview recompute per animation frame.
+    // (It used to compare against the raw move count, which fails when a
+    // loaded machine happens to deliver every move in a frame of its own -
+    // then previews equal moves and that is still correct.)
+    const phase2Moves = moveCount - phase2.moves;
+    const phase2Previews = times.length - phase2.previews;
+    expect(phase2Previews).toBeLessThanOrEqual(frames + 1);
+    expect(phase2Previews).toBeLessThanOrEqual(phase2Moves);
 
     // Additive: the pre-existing pixel under the low-density end survives
     // the commit rather than being erased by the gradient's "paper" half.

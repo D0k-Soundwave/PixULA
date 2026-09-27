@@ -32,13 +32,23 @@ test('a gesture on a large stamp degrades instead of dropping frames',
             const wentCheap = SelectionService.isStampGestureCheap();
             SelectionService.endStampGesture();
             const afterRelease = SelectionService.floatingPaste.pixels.length;
+
+            // The same eight ticks outside a gesture take the exact path every
+            // time - this machine's own unbudgeted cost, measured under the
+            // same load, instead of a number measured on another computer.
+            const t1 = performance.now();
+            for (let d = 45; d <= 80; d += 5) SelectionService.setStampRotation(d);
+            const exactPerTick = (performance.now() - t1) / 8;
             SelectionService.cancelFloatingPaste();
-            return { perTick, wentCheap, afterRelease };
+            return { perTick, exactPerTick, wentCheap, afterRelease };
         });
 
-        // Eight ticks of a 400x200 stamp. Unbudgeted each is ~51 ms.
+        // Eight ticks of a 400x200 stamp. The cheap path must cost well under
+        // the exact one on the same machine (measured 2026-08-29: ~51 ms
+        // exact, under 20 ms cheap - about 40%; half leaves headroom for a
+        // loaded CPU). A fixed millisecond bar failed on slower machines.
         expect(r.wentCheap).toBe(true);
-        expect(r.perTick).toBeLessThan(20);
+        expect(r.perTick).toBeLessThan(r.exactPerTick * 0.5);
         // Releasing recomputes exactly, so the stamp is still the right shape.
         expect(r.afterRelease).toBeGreaterThan(0);
     });
