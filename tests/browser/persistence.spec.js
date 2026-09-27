@@ -155,6 +155,9 @@ test('the Presets sidebar toggle has no checkbox of its own in Preferences, and 
         // View-menu-driven preference back to its default.
         await dlg.locator('#pref-confirm-clear').click();
         await dlg.locator('button.primary').click();
+        // OK closes the dialog once the stored copy is written - wait for
+        // that rather than racing the write with the reload.
+        await expect(page.locator('#dialog-preferences-dialog')).toHaveCount(0);
 
         await reload(page);
         const afterUnrelatedSave = await page.evaluate(() => StateManager.get('showPresetsPanel'));
