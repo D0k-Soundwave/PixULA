@@ -126,7 +126,8 @@ class BorderControlClass {
         if (window.CanvasSystem) CanvasSystem.syncBackdropColor();
 
         if (persist) {
-            Storage.set(this.STORAGE_KEY, this._choice, Storage.STORES.PREFERENCES);
+            Promise.resolve(Storage.set(this.STORAGE_KEY, this._choice, Storage.STORES.PREFERENCES))
+                .catch((e) => Logger.warn('BorderControl', `Border choice not stored: ${e && e.message}`));
         }
     }
 }

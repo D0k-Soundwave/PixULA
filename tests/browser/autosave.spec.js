@@ -39,6 +39,9 @@ test('a chosen interval arms a timer of that length, and survives a reload',
 
         await page.fill('#pref-autosave-minutes', '7');
         await page.click('.app-dialog-footer button.primary');
+        // OK closes the dialog only once the stored copy is written - a
+        // reload before that point used to lose the change (flaky under load).
+        await expect(page.locator('#pref-autosave-minutes')).toBeHidden();
 
         expect(await page.evaluate(() => StateManager.getAutosaveMinutes())).toBe(7);
 
