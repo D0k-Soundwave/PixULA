@@ -388,11 +388,16 @@ class MenuSystemClass {
 
         let html = '';
 
-        menuDefinitions.forEach(menu => {
+        // ARIA menubar roles, and a roving tabindex: exactly one label is in
+        // the Tab order (the first), and the arrow keys move between the rest
+        // (_onMenuKeydown) - see the WAI-ARIA menubar pattern.
+        menuDefinitions.forEach((menu, i) => {
             html += `
-                <div class="menu-item" data-menu="${menu.id}">
-                    <span class="menu-label" data-i18n="menu.${menu.id}">${menu.label}</span>
-                    <div class="menu-dropdown" id="menu-${menu.id}">
+                <div class="menu-item" data-menu="${menu.id}" role="none">
+                    <span class="menu-label" data-i18n="menu.${menu.id}" role="menuitem"
+                          tabindex="${i === 0 ? 0 : -1}" aria-haspopup="menu" aria-expanded="false"
+                          aria-controls="menu-${menu.id}">${menu.label}</span>
+                    <div class="menu-dropdown" id="menu-${menu.id}" role="menu">
                         ${this._buildMenuItems(menu.items)}
                     </div>
                 </div>
@@ -400,6 +405,7 @@ class MenuSystemClass {
         });
 
         this.element.innerHTML = html;
+        this.element.setAttribute('role', 'menubar');
         // Localise the freshly-built menu; locale changes re-translate it via
         // the persistent data-i18n attributes (I18n.setLocale -> apply).
         if (window.I18n && typeof I18n.apply === 'function') I18n.apply(this.element);
@@ -412,17 +418,17 @@ class MenuSystemClass {
     _buildMenuItems(items) {
         return items.map(item => {
             if (item.type === 'separator') {
-                return '<div class="menu-separator"></div>';
+                return '<div class="menu-separator" role="separator"></div>';
             }
 
             // A submenu parent carries `items` instead of `action` — its own
             // i18n key is mandatory (there is no action id to derive one from).
             if (item.items) {
                 return `
-                    <div class="menu-action menu-action--parent" data-id="${item.id}" aria-haspopup="true" aria-expanded="false">
+                    <div class="menu-action menu-action--parent" data-id="${item.id}" role="menuitem" tabindex="-1" aria-haspopup="menu" aria-expanded="false">
                         <span class="menu-action-label" data-i18n="${item.i18n}">${item.label}</span>
                         <span class="menu-submenu-arrow" aria-hidden="true"></span>
-                        <div class="menu-dropdown menu-submenu" id="menu-${item.id}">
+                        <div class="menu-dropdown menu-submenu" id="menu-${item.id}" role="menu">
                             ${this._buildMenuItems(item.items)}
                         </div>
                     </div>
@@ -443,8 +449,11 @@ class MenuSystemClass {
             // I18n fills and re-translates it from this attribute.
             const modeAttr = item.mode ? ` data-i18n-mode-title="${item.mode}"` : '';
 
+            const role = item.toggle
+                ? 'role="menuitemcheckbox" aria-checked="false"' : 'role="menuitem"';
+
             return `
-                <div class="menu-action${toggleClass}" data-action="${item.action}" data-id="${item.id}"${modeAttr}>
+                <div class="menu-action${toggleClass}" data-action="${item.action}" data-id="${item.id}"${modeAttr} ${role} tabindex="-1">
                     <span class="menu-action-label" data-i18n="${i18nKey}">${item.label}</span>
                     ${shortcutHtml}
                 </div>
@@ -510,8 +519,15 @@ class MenuSystemClass {
             if (e.key === 'Escape' && this._menuOpen) {
                 this._closeAllMenus();
             }
+            // F10 puts keyboard focus on the menu bar, as in desktop apps
+            // (the bar is also the first Tab stop).
+            if (e.key === 'F10' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+                e.preventDefault();
+                this._focusLabel(this.element.querySelector('.menu-label'));
+            }
         };
         document.addEventListener('keydown', this._boundDocKeydownHandler);
+        this.element.addEventListener('keydown', (e) => this._onMenuKeydown(e));
 
         // Keep Edit menu item states in sync with selection/clipboard changes.
         // Short-circuits when state hasn't changed to avoid DOM churn per frame.
@@ -604,6 +620,7 @@ class MenuSystemClass {
 
         if (menuItem && dropdown) {
             menuItem.classList.add('active');
+            menuItem.querySelector('.menu-label')?.setAttribute('aria-expanded', 'true');
             dropdown.classList.add('visible');
             this.activeMenu = menuId;
             this._menuOpen = true;
@@ -645,11 +662,126 @@ class MenuSystemClass {
         this.element.querySelectorAll('.menu-dropdown').forEach(dropdown => {
             dropdown.classList.remove('visible', 'menu-submenu--flip');
         });
-        this.element.querySelectorAll('.menu-action--parent').forEach(parent => {
-            parent.setAttribute('aria-expanded', 'false');
+        this.element.querySelectorAll('.menu-action--parent, .menu-label').forEach(el => {
+            el.setAttribute('aria-expanded', 'false');
         });
         this.activeMenu = null;
         this._menuOpen = false;
+    }
+
+    /**
+     * Keyboard access to the menus (the WAI-ARIA menubar pattern).
+     *
+     * On the bar: Left/Right move between menus (carrying an open menu with
+     * them), Enter/Space/Down open one and focus its first item, Up its last.
+     * In a menu: Up/Down move (skipping separators and disabled rows),
+     * Enter/Space run the row or open its submenu, Right opens a submenu or
+     * moves to the next menu, Left closes a submenu or moves to the previous
+     * menu, Escape closes one level and returns focus, Tab closes and moves on.
+     *
+     * Handled keys stop here, so the canvas shortcuts on the document (arrow
+     * nudge, tool letters) never also act on them. Ctrl/Cmd/Alt chords pass
+     * straight through: Ctrl+S still saves with a menu focused.
+     * @private
+     */
+    _onMenuKeydown(e) {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        const target = e.target.closest('[role^="menuitem"]');
+        if (!target || !this.element.contains(target)) return;
+        const key = e.key;
+        const labels = [...this.element.querySelectorAll('.menu-label')];
+        const step = (list, from, delta) => list[(list.indexOf(from) + delta + list.length) % list.length];
+        let handled = true;
+
+        if (target.classList.contains('menu-label')) {
+            if (key === 'ArrowRight' || key === 'ArrowLeft') {
+                const wasOpen = this._menuOpen;
+                const next = step(labels, target, key === 'ArrowRight' ? 1 : -1);
+                this._focusLabel(next);
+                if (wasOpen) this._openFromKeyboard(next, false);
+            } else if (key === 'Home' || key === 'End') {
+                this._focusLabel(labels[key === 'Home' ? 0 : labels.length - 1]);
+            } else if (key === 'Enter' || key === ' ' || key === 'ArrowDown') {
+                this._openFromKeyboard(target, true);
+            } else if (key === 'ArrowUp') {
+                this._openFromKeyboard(target, true, true);
+            } else if (key === 'Escape') {
+                this._closeAllMenus();
+            } else if (key !== 'Tab') {
+                handled = key.length === 1; // swallow plain letters, let F-keys through
+            } else {
+                handled = false;
+            }
+        } else {
+            const list = target.parentElement;
+            const items = this._menuRows(list);
+            const isParent = target.classList.contains('menu-action--parent');
+            const inSubmenu = list.classList.contains('menu-submenu');
+            const label = target.closest('.menu-item')?.querySelector('.menu-label');
+            if (key === 'ArrowDown' || key === 'ArrowUp') {
+                step(items, target, key === 'ArrowDown' ? 1 : -1)?.focus();
+            } else if (key === 'Home' || key === 'End') {
+                items[key === 'Home' ? 0 : items.length - 1]?.focus();
+            } else if (isParent && (key === 'Enter' || key === ' ' || key === 'ArrowRight')) {
+                this._openSubmenu(target);
+                this._menuRows(target.querySelector(':scope > .menu-submenu'))[0]?.focus();
+            } else if (key === 'Enter' || key === ' ') {
+                if (!target.classList.contains('disabled')) {
+                    target.click();
+                    // Back to the bar unless the action moved focus on purpose
+                    // (a dialog it opened, say).
+                    const now = document.activeElement;
+                    if (label && (!now || now === document.body || this.element.contains(now))) {
+                        this._focusLabel(label);
+                    }
+                }
+            } else if ((key === 'ArrowLeft' || key === 'Escape') && inSubmenu) {
+                const parent = list.parentElement;
+                this._closeSubmenu(parent);
+                parent.focus();
+            } else if (key === 'ArrowRight' || key === 'ArrowLeft') {
+                const next = step(labels, label, key === 'ArrowRight' ? 1 : -1);
+                this._focusLabel(next);
+                this._openFromKeyboard(next, true);
+            } else if (key === 'Escape') {
+                this._closeAllMenus();
+                if (label) this._focusLabel(label);
+            } else if (key === 'Tab') {
+                this._closeAllMenus();
+                handled = false;
+            } else {
+                handled = key.length === 1;
+            }
+        }
+
+        if (handled) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    }
+
+    /** The rows of one menu level that keyboard focus can land on. @private */
+    _menuRows(list) {
+        if (!list) return [];
+        return [...list.children].filter(el =>
+            /^menuitem/.test(el.getAttribute('role') || '') && !el.classList.contains('disabled'));
+    }
+
+    /** Move the bar's single Tab stop to `label` and focus it. @private */
+    _focusLabel(label) {
+        if (!label) return;
+        this.element.querySelectorAll('.menu-label').forEach(l => { l.tabIndex = l === label ? 0 : -1; });
+        label.focus();
+    }
+
+    /** Open the menu under `label`; optionally focus its first (or last) row. @private */
+    _openFromKeyboard(label, focusRow, last = false) {
+        const menuItem = label.closest('.menu-item');
+        if (!menuItem) return;
+        this._showMenu(menuItem.dataset.menu);
+        if (!focusRow) return;
+        const rows = this._menuRows(menuItem.querySelector(':scope > .menu-dropdown'));
+        rows[last ? rows.length - 1 : 0]?.focus();
     }
 
     /**
@@ -837,7 +969,9 @@ class MenuSystemClass {
     /** @private */
     _updateToggleState(itemId, active) {
         const item = this.element.querySelector(`[data-id="${itemId}"]`);
-        if (item) item.classList.toggle('checked', active);
+        if (!item) return;
+        item.classList.toggle('checked', active);
+        if (item.getAttribute('role') === 'menuitemcheckbox') item.setAttribute('aria-checked', String(!!active));
     }
 
     /**
@@ -1009,7 +1143,9 @@ class MenuSystemClass {
      */
     setItemEnabled(itemId, enabled) {
         const item = this.element.querySelector(`[data-id="${itemId}"]`);
-        if (item) item.classList.toggle('disabled', !enabled);
+        if (!item) return;
+        item.classList.toggle('disabled', !enabled);
+        item.setAttribute('aria-disabled', String(!enabled));
     }
 
     /**

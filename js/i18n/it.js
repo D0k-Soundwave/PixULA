@@ -47,7 +47,7 @@ const it = {
     'tool.hatch.hint': 'Tracciare tratteggio regolare nell\'angolazione scelta',
     'tool.attribute': 'Attributo',
     'tool.zoom': 'Zoom',
-    'tool.patternCreator': 'Pattern Creator',
+    'tool.patternCreator': 'Editor di motivi',
     'tool.pattern': 'Motivo',
 
     // Tool Options
@@ -726,7 +726,7 @@ const it = {
     'pen.act.eyedropperPaper': 'Contagocce (carta)',
     'pen.act.menu': 'Menu della tela',
     'pen.act.prevTool': 'Strumento precedente',
-    'tool.pattern-creator': 'Pattern Creator',
+    'tool.pattern-creator': 'Editor di motivi',
     'tool.pattern.hint': 'Dipingere con la tessera scelta dalla libreria, il modo per sfumare una cella a due colori',
     'tool.patternCreator.hint': 'Disegnare la propria tessera e aggiungerla alla libreria dei motivi',
     'tool.selection': 'Selezione',
@@ -1256,6 +1256,9 @@ const it = {
     'err.zxm.noBase': 'Nessuna immagine di base ZXP trovata',
     'err.zxm.noEof': 'Marcatore [End of file] mancante',
     'err.zxm.noPositions': 'Elenco di posizioni mancante',
+    // Storage and Next export notices
+    'msg.storageBlocked': 'Questo browser blocca l\'archiviazione del sito, quindi PixULA non può conservare le impostazioni né il salvataggio automatico dopo la chiusura di questa scheda. Salva il lavoro in un file prima di chiudere.',
+    'mode.dumpNeedsLayer': 'Un file .{ext} contiene una schermata {family}: passa prima a una modalità {family}.',
 };
 
 window.i18n_it = it;

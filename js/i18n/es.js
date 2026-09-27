@@ -47,7 +47,7 @@ const es = {
     'tool.hatch.hint': 'Trazar rayado uniforme en el ángulo que elijas',
     'tool.attribute': 'Atributo',
     'tool.zoom': 'Zoom',
-    'tool.patternCreator': 'Pattern Creator',
+    'tool.patternCreator': 'Editor de patrones',
     'tool.pattern': 'Patrón',
 
     // Tool Options
@@ -726,7 +726,7 @@ const es = {
     'pen.act.eyedropperPaper': 'Cuentagotas (papel)',
     'pen.act.menu': 'Menú del lienzo',
     'pen.act.prevTool': 'Herramienta anterior',
-    'tool.pattern-creator': 'Pattern Creator',
+    'tool.pattern-creator': 'Editor de patrones',
     'tool.pattern.hint': 'Pintar con el mosaico elegido de la biblioteca, la forma de sombrear una celda de dos colores',
     'tool.patternCreator.hint': 'Dibujar tu propio mosaico y añadirlo a la biblioteca de patrones',
     'tool.selection': 'Selección',
@@ -1257,6 +1257,9 @@ const es = {
     'err.zxm.noBase': 'No se encontró ninguna imagen base ZXP',
     'err.zxm.noEof': 'Falta el marcador [End of file]',
     'err.zxm.noPositions': 'Falta la lista de posiciones',
+    // Storage and Next export notices
+    'msg.storageBlocked': 'Este navegador bloquea el almacenamiento del sitio, así que PixULA no puede conservar sus ajustes ni el autoguardado al cerrar esta pestaña. Guarde su trabajo en un archivo antes de cerrar.',
+    'mode.dumpNeedsLayer': 'Un archivo .{ext} contiene una pantalla {family}: cambie primero a un modo {family}.',
 };
 
 window.i18n_es = es;

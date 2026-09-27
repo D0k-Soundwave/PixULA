@@ -47,7 +47,7 @@ const fr = {
     'tool.hatch.hint': 'Tracer des hachures régulières selon l\'angle choisi',
     'tool.attribute': 'Attribut',
     'tool.zoom': 'Zoom',
-    'tool.patternCreator': 'Pattern Creator',
+    'tool.patternCreator': 'Éditeur de motifs',
     'tool.pattern': 'Motif',
 
     // Tool Options
@@ -726,7 +726,7 @@ const fr = {
     'pen.act.eyedropperPaper': 'Pipette (papier)',
     'pen.act.menu': 'Menu du canevas',
     'pen.act.prevTool': 'Outil précédent',
-    'tool.pattern-creator': 'Pattern Creator',
+    'tool.pattern-creator': 'Éditeur de motifs',
     'tool.pattern.hint': 'Peindre avec la tuile choisie dans la bibliothèque, la façon de nuancer une cellule à deux couleurs',
     'tool.patternCreator.hint': 'Dessiner votre propre tuile et l\'ajouter à la bibliothèque de motifs',
     'tool.selection': 'Sélection',
@@ -1256,6 +1256,9 @@ const fr = {
     'err.zxm.noBase': 'Aucune image de base ZXP trouvée',
     'err.zxm.noEof': 'Marqueur [End of file] manquant',
     'err.zxm.noPositions': 'Liste de positions manquante',
+    // Storage and Next export notices
+    'msg.storageBlocked': 'Ce navigateur bloque le stockage du site : PixULA ne pourra pas conserver vos réglages ni la sauvegarde automatique après la fermeture de cet onglet. Enregistrez votre travail dans un fichier avant de fermer.',
+    'mode.dumpNeedsLayer': 'Un fichier .{ext} contient un écran {family} : passez d\'abord en mode {family}.',
 };
 
 window.i18n_fr = fr;

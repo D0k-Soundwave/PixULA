@@ -169,6 +169,11 @@ class PreferencesDialogClass {
             <div class="pref-block__hint" data-i18n="a11y.speakHint">${this._t('a11y.speakHint', 'Speak UI changes aloud')}</div>
         `;
         this._initPenPreferences(content);
+        // Bus subscriptions the dialog's blocks make for as long as it is
+        // open; released in onClose below. They used to wait for a
+        // 'dialog-closed' event nothing ever sent, so every opening left two
+        // listeners (and the closed dialog they reference) behind for good.
+        this._releaseOnClose = [];
         this._initBackupPreferences(content);
         this._initPrivacyPreferences(content);
         if (window.A11yAnnouncer) A11yAnnouncer.wireTtsToggle(content);
@@ -219,7 +224,11 @@ class PreferencesDialogClass {
                     i18n: 'dialog.ok', label: 'OK', primary: true,
                     onClick: (dialog) => this._save(dialog)
                 }
-            ]
+            ],
+            onClose: () => {
+                for (const release of this._releaseOnClose) release();
+                this._releaseOnClose = [];
+            }
         });
     }
 
@@ -294,7 +303,7 @@ class PreferencesDialogClass {
 
         renderDisk();
         renderUsage();
-        EventBus.on(EVENTS.BACKUP_STATE_CHANGED, renderDisk);
+        this._releaseOnClose.push(EventBus.on(EVENTS.BACKUP_STATE_CHANGED, renderDisk));
     }
 
     /**
@@ -359,8 +368,7 @@ class PreferencesDialogClass {
 
         // The service is the fact source; the dialog only renders it. That is
         // what keeps the status right after a pick without re-reading anything.
-        const off = EventBus.on(EVENTS.BACKUP_STATE_CHANGED, render);
-        block.addEventListener('dialog-closed', off);
+        this._releaseOnClose.push(EventBus.on(EVENTS.BACKUP_STATE_CHANGED, render));
 
         render(BackupService.getState());
     }

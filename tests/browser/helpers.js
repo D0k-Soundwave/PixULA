@@ -13,6 +13,7 @@
 const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
+const { execFileSync } = require('child_process');
 
 const APP_URL = pathToFileURL(path.resolve(__dirname, '..', '..', 'index.html')).href;
 
@@ -104,4 +105,54 @@ async function selectMode(page, modeId) {
     await page.click(`.menu-action[data-id="mode-${modeId}"]`);
 }
 
-module.exports = { APP_URL, boot, reload, collectConsole, app, selectMode, findInstalledFont, FONT_CANDIDATES };
+/**
+ * The font families fontconfig reports as installed, or null where there is
+ * no fontconfig (Windows, macOS). Lets font specs judge detection against
+ * what THIS machine actually has instead of a count measured on another.
+ * @returns {?Set<string>}
+ */
+function installedFontFamilies() {
+    try {
+        const out = execFileSync('fc-list', [':', 'family'],
+            { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+        return new Set(out.split('\n').flatMap((l) => l.split(',')).map((f) => f.trim()).filter(Boolean));
+    } catch (e) {
+        return null;
+    }
+}
+
+/**
+ * The fewest fonts detection must find here. The old hardcoded list was 16
+ * names, so a normal desktop must yield more than 20. On a machine whose own
+ * font list is known and sparse (a CI or cloud container), that bar is
+ * unreachable, so it becomes nine in ten of the installed candidates - still
+ * proof that detection works, never stricter than the desktop bar.
+ * @param {string[]} candidates - FontProbe.CANDIDATES
+ * @returns {number}
+ */
+function minDetectedFonts(candidates) {
+    const families = installedFontFamilies();
+    if (!families) return 21;
+    const installed = candidates.filter((c) => families.has(c)).length;
+    return Math.min(21, Math.floor(installed * 0.9));
+}
+
+/**
+ * The family fontconfig actually uses for `family`, when that is a different
+ * font (Linux substitutes Liberation Sans for Arial); null when the real font
+ * is installed or there is no fontconfig to ask.
+ * @param {string} family
+ * @returns {?string}
+ */
+function fontSubstitute(family) {
+    try {
+        const got = execFileSync('fc-match', ['-f', '%{family[0]}', family],
+            { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+        return got && got.toLowerCase() !== family.toLowerCase() ? got : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+module.exports = { APP_URL, boot, reload, collectConsole, app, selectMode, findInstalledFont, FONT_CANDIDATES,
+    installedFontFamilies, minDetectedFonts, fontSubstitute };

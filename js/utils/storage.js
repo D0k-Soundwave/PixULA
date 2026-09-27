@@ -33,6 +33,10 @@ const Storage = {
     db: null,
     useLocalStorage: false,
     initialized: false,
+    /** False when neither IndexedDB nor localStorage will keep anything
+     *  (site data blocked): reads come back empty and writes are dropped
+     *  quietly, and App says so once at start-up. */
+    persistent: true,
 
     /**
      * Initialize the storage system
@@ -52,6 +56,10 @@ const Storage = {
             Logger.warn('Storage', 'IndexedDB not available, falling back to localStorage', error);
             this.useLocalStorage = true;
             this.initialized = true;
+            this.persistent = this._probeLocalStorage();
+            if (!this.persistent) {
+                Logger.warn('Storage', 'localStorage is blocked too - nothing will outlive this tab');
+            }
             return true;
         }
     },
@@ -477,7 +485,26 @@ const Storage = {
      * @param {string} store
      * @returns {*}
      */
+    /**
+     * Whether localStorage accepts a write at all. Blocked site data makes
+     * every access throw; without this check each read and write logged its
+     * own error (over a hundred at start-up) and nothing told the artist.
+     * @private
+     * @returns {boolean}
+     */
+    _probeLocalStorage() {
+        try {
+            const probe = 'pixula-probe';
+            localStorage.setItem(probe, '1');
+            localStorage.removeItem(probe);
+            return true;
+        } catch (error) {
+            return false;
+        }
+    },
+
     _getFromLocalStorage(key, store) {
+        if (!this.persistent) return null;
         try {
             const raw = localStorage.getItem(this._getStorageKey(key, store));
             if (!raw) return null;
@@ -499,6 +526,7 @@ const Storage = {
      * @param {string} store
      */
     _setToLocalStorage(key, value, store) {
+        if (!this.persistent) return;
         try {
             localStorage.setItem(this._getStorageKey(key, store), JSON.stringify({ key, value, modified: Date.now() }));
         } catch (error) {
@@ -517,6 +545,7 @@ const Storage = {
      * @param {string} store
      */
     _deleteFromLocalStorage(key, store) {
+        if (!this.persistent) return;
         try {
             localStorage.removeItem(this._getStorageKey(key, store));
         } catch (error) {
@@ -533,6 +562,7 @@ const Storage = {
     _getAllFromLocalStorage(store) {
         const results = [];
         const prefix = `pixula-${store}-`;
+        if (!this.persistent) return results;
 
         try {
             for (let i = 0; i < localStorage.length; i++) {
@@ -557,6 +587,7 @@ const Storage = {
      * @param {string} store
      */
     _clearLocalStorage(store) {
+        if (!this.persistent) return;
         const prefix = store ? `pixula-${store}-` : 'pixula-';
         const keysToRemove = [];
 

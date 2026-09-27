@@ -104,6 +104,9 @@ test.describe('FontRasterizer with a real font', () => {
     });
 
     test('masks to the cell width and honours smaller point sizes', async ({ page }) => {
+        // Four real-font rasterizations: comfortably inside 30 s alone, but not
+        // on a loaded runner (the full suite in parallel), so triple the time.
+        test.slow();
         await boot(page);
 
         for (const cellWidth of [4, 6]) {

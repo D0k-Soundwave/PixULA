@@ -68,6 +68,14 @@
     background: var(--bg-hover);
 }
 
+/* Keyboard focus in an open menu lights the row as hover does, plus the
+   ring, so a row reads the same however it was reached. */
+.menu-action:focus-visible {
+    background: var(--bg-hover);
+    outline: 2px solid var(--accent-primary);
+    outline-offset: -2px;
+}
+
 .menu-action.disabled {
     color: var(--text-muted);
     pointer-events: none;
@@ -987,8 +995,17 @@
 
 .panel-help {
     font-size: var(--font-size-xs);
-    color: var(--text-muted);
+    /* --text-secondary, not --text-muted: these are instructions to read, and
+       muted grey fell below the 4.5:1 contrast minimum in seven of the eight
+       themes (measured 2026-09-27). */
+    color: var(--text-secondary);
     line-height: 1.4;
+}
+
+/* The hints sit in <small>, whose browser default (font-size: smaller) took
+   the already-small --font-size-xs down to about 8px. */
+.panel-help small {
+    font-size: inherit;
 }
 
 .panel-section {

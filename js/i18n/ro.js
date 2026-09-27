@@ -47,7 +47,7 @@ const ro = {
     'tool.hatch.hint': 'Trage hașuri uniforme la unghiul ales',
     'tool.attribute': 'Atribut',
     'tool.zoom': 'Zoom',
-    'tool.patternCreator': 'Pattern Creator',
+    'tool.patternCreator': 'Editor de modele',
     'tool.pattern': 'Model',
 
     // Tool Options
@@ -726,7 +726,7 @@ const ro = {
     'pen.act.eyedropperPaper': 'Pipetă (hârtie)',
     'pen.act.menu': 'Meniul pânzei',
     'pen.act.prevTool': 'Instrumentul anterior',
-    'tool.pattern-creator': 'Pattern Creator',
+    'tool.pattern-creator': 'Editor de modele',
     'tool.pattern.hint': 'Pictează cu dala aleasă din bibliotecă, felul în care umbrești o celulă cu două culori',
     'tool.patternCreator.hint': 'Desenează-ți propria dală și adaug-o în biblioteca de modele',
     'tool.selection': 'Selecție',
@@ -1256,6 +1256,9 @@ const ro = {
     'err.zxm.noBase': 'Nu s-a găsit nicio imagine de bază ZXP',
     'err.zxm.noEof': 'Lipsește marcajul [End of file]',
     'err.zxm.noPositions': 'Lipsește lista de poziții',
+    // Storage and Next export notices
+    'msg.storageBlocked': 'Acest browser blochează stocarea site-ului, așa că PixULA nu vă poate păstra setările sau salvarea automată după închiderea acestei file. Salvați lucrarea într-un fișier înainte de a închide.',
+    'mode.dumpNeedsLayer': 'Un fișier .{ext} conține un ecran {family} - comutați mai întâi la un mod {family}.',
 };
 
 window.i18n_ro = ro;

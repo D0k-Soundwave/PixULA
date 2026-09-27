@@ -12,7 +12,7 @@
  * that detection is doing real work and that its rules hold.
  */
 const { test, expect } = require('@playwright/test');
-const { boot } = require('./helpers');
+const { boot, minDetectedFonts } = require('./helpers');
 
 test('detection finds far more than the old hardcoded list, and only real fonts',
     async ({ page }) => {
@@ -21,6 +21,7 @@ test('detection finds far more than the old hardcoded list, and only real fonts'
         const r = await page.evaluate(() => {
             const detected = FontProbe.detect();
             return {
+                candidateList: FontProbe.CANDIDATES,
                 candidates: FontProbe.CANDIDATES.length,
                 detected: detected.length,
                 // Every result must be a candidate; detection cannot invent names
@@ -31,8 +32,9 @@ test('detection finds far more than the old hardcoded list, and only real fonts'
         });
 
         expect(r.candidates).toBeGreaterThanOrEqual(250);
-        // The old list was 16. Any machine running this has more than that.
-        expect(r.detected).toBeGreaterThan(20);
+        // The old list was 16; a desktop has more than 20 (see minDetectedFonts
+        // for a machine whose own, sparser font list is known).
+        expect(r.detected).toBeGreaterThanOrEqual(minDetectedFonts(r.candidateList));
         expect(r.detected).toBeLessThanOrEqual(r.candidates);
         expect(r.allFromCandidates).toBe(true);
         expect(r.sorted).toBe(true);
@@ -79,13 +81,14 @@ test('a legacy alias is not offered alongside the font it resolves to',
 test('the font family select is populated from detection, ZX ROM first',
     async ({ page }) => {
         await boot(page);
+        const min = minDetectedFonts(await page.evaluate(() => FontProbe.CANDIDATES));
         await page.click('#tool-rail .tool-btn[data-tool="text"]');
 
-        await page.waitForFunction(() => {
+        await page.waitForFunction((min) => {
             const s = [...document.querySelectorAll('#tool-options-panel-content select')]
                 .find(x => x.name === 'fontFamily' || x.id === 'opt-fontFamily');
-            return s && s.options.length > 20;
-        });
+            return s && s.options.length > min;
+        }, min);
 
         const r = await page.evaluate(() => {
             const s = [...document.querySelectorAll('#tool-options-panel-content select')]
@@ -139,10 +142,10 @@ test('the library changing invalidates the cached font list', async ({ page }) =
         EventBus.emit(EVENTS.FONT_LIBRARY_CHANGED);
         const invalidated = tool._cachedFonts === null;
 
-        return { stillCached, invalidated, count: first.length };
+        return { stillCached, invalidated, count: first.length, candidates: FontProbe.CANDIDATES };
     });
 
-    expect(r.count).toBeGreaterThan(20);
+    expect(r.count).toBeGreaterThan(minDetectedFonts(r.candidates));
     expect(r.stillCached).toBe(true);
     expect(r.invalidated).toBe(true);
 });
