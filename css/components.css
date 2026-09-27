@@ -1695,7 +1695,7 @@
     background: var(--accent-error);
     border: none;
     border-radius: 0 0 0 var(--radius-sm);
-    color: var(--on-accent);
+    color: var(--on-error);
     font-size: 11px;
     line-height: 1;
     cursor: pointer;
