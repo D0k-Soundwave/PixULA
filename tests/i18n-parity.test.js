@@ -8,7 +8,12 @@
  *  - has an empty/whitespace-only value;
  *  - disagrees with en.js about the {param} placeholders inside a value
  *    (a translation that drops or renames {name}/{error} breaks t()
- *    interpolation at runtime).
+ *    interpolation at runtime);
+ *  - leaves out a plural form its language needs. A `plural.*` value is
+ *    tagged forms, 'one: {n} byte | other: {n} bytes' (see I18n.plural);
+ *    each locale must give `other` plus every category Intl.PluralRules puts
+ *    a whole number from 0 to 200 in (Polish: one, few, many), and every
+ *    form must carry the same placeholders as English's.
  *
  * (There was no i18n test in the old tree — this is the enforcement the
  * REFACTOR_PLAN §4 Phase 6 row calls for. Identical-to-English values are
@@ -61,6 +66,17 @@ if (!en) { console.log(`FAIL: ${SOT}.js not found`); process.exit(1); }
 const enKeys = Object.keys(en.table);
 const placeholders = (s) => (String(s).match(/\{[a-zA-Z0-9_]+\}/g) || []).sort().join(',');
 
+const isPlural = (k) => k.startsWith('plural.');
+/** Same parse as I18nClass.parsePluralForms. */
+const pluralForms = (raw) => {
+  const forms = {};
+  for (const part of String(raw).split('|')) {
+    const m = part.match(/^\s*(zero|one|two|few|many|other)\s*:\s*(.*?)\s*$/);
+    if (m) forms[m[1]] = m[2];
+  }
+  return forms;
+};
+
 let failures = 0;
 const fail = (msg) => { failures++; console.log(`FAIL: ${msg}`); };
 
@@ -79,8 +95,22 @@ for (const { code, table, text } of locales) {
   for (const [k, v] of Object.entries(table)) {
     if (typeof v !== 'string' || v.trim() === '') fail(`${code}: empty value for '${k}'`);
   }
+  for (const k of Object.keys(table).filter(isPlural)) {
+    const forms = pluralForms(table[k]);
+    const need = new Set(['other']);
+    for (let n = 0; n <= 200; n++) need.add(new Intl.PluralRules(code).select(n));
+    const lacking = [...need].filter((c) => !(c in forms));
+    if (lacking.length) fail(`${code}: '${k}' has no ${lacking.join('/')} form`);
+    const want = en.table[k] ? placeholders(pluralForms(en.table[k]).other || '') : null;
+    for (const [c, text] of Object.entries(forms)) {
+      if (want !== null && placeholders(text) !== want) {
+        fail(`${code}: '${k}' ${c} form placeholders [${placeholders(text)}] != en [${want}]`);
+      }
+    }
+  }
   if (code !== SOT) {
     for (const k of enKeys) {
+      if (isPlural(k)) continue;
       if (k in table && placeholders(table[k]) !== placeholders(en.table[k])) {
         fail(`${code}: '${k}' placeholders [${placeholders(table[k])}] != en [${placeholders(en.table[k])}]`);
       }
