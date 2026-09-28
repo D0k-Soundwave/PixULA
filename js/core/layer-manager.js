@@ -1060,7 +1060,7 @@ class LayerManagerClass {
    * @returns {Object} Complete layer state
    * @private
    */
-  _captureLayerState(layer) {
+  _captureLayerState(layer, withGrid = true) {
     return {
       id: layer.id,
       index: layer.index,
@@ -1073,22 +1073,26 @@ class LayerManagerClass {
       xorMode: layer.xorMode || false,
       stamp: this._plainStamp(layer.stamp),
       // PACKED: this feeds undo snapshots, which are held fifty deep in
-      // memory. getAllLayers() packs only when asked (autosave, backups):
-      // an explicit .pixula keeps the array form older builds read.
-      attributeData: layer.packAttributeData()
+      // memory. getAllLayers() packs when asked (autosave, backups, files).
+      // null = "grid unchanged" (see dropUnchangedLayers), when the caller
+      // already knows it will be.
+      attributeData: withGrid ? layer.packAttributeData() : null
     };
   }
 
   /**
    * Capture complete state of all drawing layers (excludes background)
    * Used for full-snapshot undo/redo of layer operations
+   * @param {?Set<number>} [skipGridIds] - layer ids whose grid to leave out
    * @returns {Object} { layerCount, layers: [...layerStates] }
    */
-  captureAllLayersState() {
+  captureAllLayersState(skipGridIds = null) {
     const layers = [];
-    // Skip background (index 0), capture all drawing layers
+    // Skip background (index 0), capture all drawing layers. A layer in
+    // `skipGridIds` keeps its properties but not its grid (see UndoRedo.undo).
     for (let i = 1; i < this.layers.length; i++) {
-      layers.push(this._captureLayerState(this.layers[i]));
+      const layer = this.layers[i];
+      layers.push(this._captureLayerState(layer, !(skipGridIds && skipGridIds.has(layer.id))));
     }
     return {
       layerCount: this.layers.length - 1, // Exclude background
@@ -2293,7 +2297,10 @@ class LayerManagerClass {
    * @param {number} cellY - Cell row (0–23)
    */
   deferCellCompose(cellX, cellY) {
-    this._pendingComposeCells.add(`${cellX},${cellY}`);
+    // A number, not a "x,y" string: this runs once per pixel written, and
+    // building (then parsing back) a string each time showed in fill
+    // profiles. Cells stay far below 65536 in either direction.
+    this._pendingComposeCells.add(cellY * 65536 + cellX);
     CanvasSystem.requestRender();
   }
 
@@ -2304,10 +2311,7 @@ class LayerManagerClass {
   flushPendingCompose() {
     if (this._pendingComposeCells.size === 0) return;
     for (const key of this._pendingComposeCells) {
-      const comma = key.indexOf(',');
-      const cx = key.substring(0, comma) | 0;
-      const cy = key.substring(comma + 1) | 0;
-      this.composeCellToCanvas(cx, cy);
+      this.composeCellToCanvas(key % 65536, Math.floor(key / 65536));
     }
     this._pendingComposeCells.clear();
   }

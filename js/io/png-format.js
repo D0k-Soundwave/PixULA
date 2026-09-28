@@ -42,6 +42,20 @@ const IMPORT_METHODS = [
     hint: 'No dithering - the cleanest blocks, with a more poster-like look' }
 ];
 
+/** ZX_PALETTE_RGB as one flat [r,g,b, r,g,b, ...] array, for the hot loops. */
+const ZX_RGB_FLAT = Float64Array.from(ZX_PALETTE_RGB.flatMap((c) => Array.from(c)));
+
+/** Colour key -> its nearest colour in each bank, 3 bits each (_chooseCellPair). */
+const NEAREST_ZX = new Map();
+
+/**
+ * How much more detail than the screen a loaded photo keeps, per direction
+ * (see _loadImage). [A] 4 matches the 1024x768 photos the conversion methods
+ * were measured on (tools/palette-bench.js, docs/bench-images) at Standard
+ * ULA's 256x192, so the methods see what they were tuned on.
+ */
+const SOURCE_OVERSAMPLE = 4;
+
 /**
  * PNG Format Handler
  *
@@ -183,6 +197,14 @@ class PNGFormatClass {
   /**
    * Load image from blob. Decodes via a data URL (Helpers owns the FileReader),
    * so no object URLs are created outside the sanctioned owners.
+   *
+   * A photo larger than SOURCE_OVERSAMPLE times the screen in both directions
+   * comes back shrunk to that (smoothly, keeping its shape). Nothing reads a
+   * photo at more detail than that: the Sharp method looks at every source
+   * pixel a cell covers, and at 4x that is still 16 per screen pixel. A
+   * 12 MP phone photo was otherwise carried whole into every preview - 1.3
+   * to 3.7 s per slider step (measured 2026-09-28). The import and its
+   * preview both load through here, so the preview is still the result.
    * @param {Blob} blob - Image blob
    * @returns {Promise<ImageData>}
    * @private
@@ -199,10 +221,16 @@ class PNGFormatClass {
       const img = new Image();
 
       img.onload = () => {
-        const canvas = Helpers.createCanvas(img.width, img.height);
+        const f = Math.max(SOURCE_OVERSAMPLE * ZX_SPECTRUM.WIDTH / img.width,
+                           SOURCE_OVERSAMPLE * ZX_SPECTRUM.HEIGHT / img.height);
+        const w = f < 1 ? Math.max(1, Math.round(img.width * f)) : img.width;
+        const h = f < 1 ? Math.max(1, Math.round(img.height * f)) : img.height;
+        const canvas = Helpers.createCanvas(w, h);
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-        resolve(ctx.getImageData(0, 0, img.width, img.height));
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(ctx.getImageData(0, 0, w, h));
       };
 
       img.onerror = () => resolve(null);
@@ -489,11 +517,22 @@ class PNGFormatClass {
    * @returns {Array<{id:string,preview:{width:number,height:number,data:Uint8ClampedArray}}>}
    */
   quantizePreviewSet(imageData, options = {}) {
-    const prepared = this._preparePreview(imageData, options.scaling || 'fit');
-    return IMPORT_METHODS.map((m) => ({
-      id: m.id,
-      preview: this._quantizePrepared(prepared, m)
-    }));
+    const render = this.previewRenderer(imageData, options.scaling || 'fit');
+    return IMPORT_METHODS.map((m) => ({ id: m.id, preview: render(m.id) }));
+  }
+
+  /**
+   * quantizePreviewSet one method at a time: the shared half is done once,
+   * here, and the function returned renders any IMPORT_METHODS id from it.
+   * The dialog renders the chosen method at once and the other two when a
+   * slider rests, so a drag redraws one preview per frame, not three.
+   * @param {ImageData|{width:number,height:number,data:Uint8ClampedArray}} imageData
+   * @param {string} scaling
+   * @returns {function(string): {width:number,height:number,data:Uint8ClampedArray}}
+   */
+  previewRenderer(imageData, scaling) {
+    const prepared = this._preparePreview(imageData, scaling);
+    return (id) => this._quantizePrepared(prepared, IMPORT_METHODS.find((m) => m.id === id));
   }
 
   /**
@@ -638,16 +677,31 @@ class PNGFormatClass {
 
     const fs = dithering === 'floyd-steinberg';
     const out = new Int16Array(W * H);
+    // The palette as one flat array, and - without dithering, where every
+    // colour is a whole number - each colour's nearest entry remembered: a
+    // screen repeats its colours, and a 256-entry search per pixel was most
+    // of a Layer 2 import preview (measured 2026-09-28). Same arithmetic in
+    // the same order, so the same entry wins.
+    const P = new Float64Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      P[i * 3] = paletteRGB[i][0]; P[i * 3 + 1] = paletteRGB[i][1]; P[i * 3 + 2] = paletteRGB[i][2];
+    }
+    const memo = fs ? null : new Map();
     for (let y = 0; y < H; y++) {
       for (let x = 0; x < W; x++) {
         const p = (y * W + x) * 3;
         const r = work[p], g = work[p + 1], b = work[p + 2];
-        let best = 0, bestD = Infinity;
-        for (let i = 0; i < n; i++) {
-          const pr = paletteRGB[i];
-          const d = (r - pr[0]) * (r - pr[0]) + (g - pr[1]) * (g - pr[1])
-            + (b - pr[2]) * (b - pr[2]);
-          if (d < bestD) { bestD = d; best = i; }
+        const key = memo ? (r << 16) | (g << 8) | b : -1;
+        let best = memo ? memo.get(key) : undefined;
+        if (best === undefined) {
+          best = 0;
+          let bestD = Infinity;
+          for (let i = 0, o = 0; i < n; i++, o += 3) {
+            const d = (r - P[o]) * (r - P[o]) + (g - P[o + 1]) * (g - P[o + 1])
+              + (b - P[o + 2]) * (b - P[o + 2]);
+            if (d < bestD) { bestD = d; best = i; }
+          }
+          if (memo) memo.set(key, best);
         }
         out[y * W + x] = best;
         if (fs) {
@@ -825,14 +879,16 @@ class PNGFormatClass {
     if (!this._hiResScratch || this._hiResScratch.length < need) {
       this._hiResScratch = new Float32Array(need);
     }
+    // Read once: `data` and `width` are getters on a real ImageData
+    const data = source.data, sw = source.width, sh = source.height;
     const full = this._hiResScratch;
     let f = 0;
-    for (let y = y0; y < y1 && y < source.height; y++) {
-      for (let x = x0; x < x1 && x < source.width; x++) {
-        const i = (y * source.width + x) * 4;
-        full[f++] = source.data[i];
-        full[f++] = source.data[i + 1];
-        full[f++] = source.data[i + 2];
+    for (let y = y0; y < y1 && y < sh; y++) {
+      for (let x = x0; x < x1 && x < sw; x++) {
+        const i = (y * sw + x) * 4;
+        full[f++] = data[i];
+        full[f++] = data[i + 1];
+        full[f++] = data[i + 2];
       }
     }
 
@@ -843,10 +899,10 @@ class PNGFormatClass {
         const bx0 = Math.floor(x0 + px * bw), bx1 = Math.max(bx0 + 1, Math.floor(x0 + (px + 1) * bw));
         const by0 = Math.floor(y0 + py * bh), by1 = Math.max(by0 + 1, Math.floor(y0 + (py + 1) * bh));
         let r = 0, g = 0, b = 0, n = 0;
-        for (let y = by0; y < by1 && y < source.height; y++) {
-          for (let x = bx0; x < bx1 && x < source.width; x++) {
-            const i = (y * source.width + x) * 4;
-            r += source.data[i]; g += source.data[i + 1]; b += source.data[i + 2]; n++;
+        for (let y = by0; y < by1 && y < sh; y++) {
+          for (let x = bx0; x < bx1 && x < sw; x++) {
+            const i = (y * sw + x) * 4;
+            r += data[i]; g += data[i + 1]; b += data[i + 2]; n++;
           }
         }
         const o = (py * w + px) * 3;
@@ -903,45 +959,67 @@ class PNGFormatClass {
    * @private
    */
   _chooseCellPair(cellRGB) {
+    // The same arithmetic as _dist2, in the same order, written out: this
+    // runs 20 distances per source pixel - 120 million for a 12 MP photo -
+    // and a call per distance was most of an import preview's time
+    // (measured 2026-09-28). Both banks are counted in one pass; each keeps
+    // its own tally and error sum, so the result is exactly the same.
+    const P = ZX_RGB_FLAT;
     const pixelCount = cellRGB.length / 3;
-    let best = null;
+    const counts = [[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0]];
 
-    for (const bright of [false, true]) {
-      const base = bright ? 8 : 0;
-
-      // Nearest in-bank colour per pixel -> frequency count
-      const counts = new Array(8).fill(0);
-      for (let i = 0; i < pixelCount; i++) {
-        const r = cellRGB[i * 3], g = cellRGB[i * 3 + 1], b = cellRGB[i * 3 + 2];
-        let nearest = 0, nd = Infinity;
-        for (let c = 0; c < 8; c++) {
-          const d = this._dist2(r, g, b, ZX_PALETTE_RGB[base + c]);
-          if (d < nd) { nd = d; nearest = c; }
+    // Nearest in-bank colour per pixel -> frequency count. A photo repeats
+    // its colours and the palette is fixed, so both banks' answers for a
+    // colour are remembered (whole-number colours only; bounded).
+    if (NEAREST_ZX.size > 1 << 20) NEAREST_ZX.clear();
+    for (let i = 0; i < pixelCount; i++) {
+      const r = cellRGB[i * 3], g = cellRGB[i * 3 + 1], b = cellRGB[i * 3 + 2];
+      const key = (r >= 0 && r < 256 && (r | 0) === r && g >= 0 && g < 256 && (g | 0) === g &&
+                   b >= 0 && b < 256 && (b | 0) === b) ? (r << 16) | (g << 8) | b : -1;
+      let packed = key >= 0 ? NEAREST_ZX.get(key) : undefined;
+      if (packed === undefined) {
+        packed = 0;
+        for (let bank = 0; bank < 2; bank++) {
+          let nearest = 0, nd = Infinity;
+          for (let c = 0; c < 8; c++) {
+            const o = (bank * 8 + c) * 3;
+            const dr = r - P[o], dg = g - P[o + 1], db = b - P[o + 2];
+            const d = dr * dr * 0.299 + dg * dg * 0.587 + db * db * 0.114;
+            if (d < nd) { nd = d; nearest = c; }
+          }
+          packed |= nearest << (bank * 3);
         }
-        counts[nearest]++;
+        if (key >= 0) NEAREST_ZX.set(key, packed);
       }
+      counts[0][packed & 7]++;
+      counts[1][packed >> 3]++;
+    }
 
-      const sorted = counts
+    const pairs = [false, true].map((bright) => {
+      const base = bright ? 8 : 0;
+      const sorted = counts[bright ? 1 : 0]
         .map((count, index) => ({ count, index }))
         .sort((a, b) => b.count - a.count);
       const paper = base + sorted[0].index;
       const ink = sorted[1].count > 0 ? base + sorted[1].index : paper;
+      return { ink, paper, bright, err: 0 };
+    });
 
-      // Score the final 2-colour pair against the cell
-      let err = 0;
-      for (let i = 0; i < pixelCount; i++) {
-        const r = cellRGB[i * 3], g = cellRGB[i * 3 + 1], b = cellRGB[i * 3 + 2];
-        err += Math.min(
-          this._dist2(r, g, b, ZX_PALETTE_RGB[ink]),
-          this._dist2(r, g, b, ZX_PALETTE_RGB[paper])
-        );
-      }
-
-      if (!best || err < best.err) {
-        best = { ink, paper, bright, err };
+    // Score each bank's final 2-colour pair against the cell
+    for (let i = 0; i < pixelCount; i++) {
+      const r = cellRGB[i * 3], g = cellRGB[i * 3 + 1], b = cellRGB[i * 3 + 2];
+      for (const pair of pairs) {
+        const oi = pair.ink * 3, op = pair.paper * 3;
+        let dr = r - P[oi], dg = g - P[oi + 1], db = b - P[oi + 2];
+        const di = dr * dr * 0.299 + dg * dg * 0.587 + db * db * 0.114;
+        dr = r - P[op]; dg = g - P[op + 1]; db = b - P[op + 2];
+        const dp = dr * dr * 0.299 + dg * dg * 0.587 + db * db * 0.114;
+        pair.err += di < dp ? di : dp;
       }
     }
 
+    // Bank 0 wins a tie, as it did when the banks were tried in turn
+    const best = pairs[1].err < pairs[0].err ? pairs[1] : pairs[0];
     return { ink: best.ink, paper: best.paper, bright: best.bright };
   }
 

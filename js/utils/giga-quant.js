@@ -41,6 +41,10 @@ class GigaQuantClass {
      */
     this.MAX_DECIDE_SAMPLES = 1024;
     this._paletteCache = new Map();
+    /** steadyPalette's colours as one flat r,g,b array, by maxStep */
+    this._paletteFlat = new Map();
+    /** by maxStep: colour key -> index of its nearest steady mix */
+    this._nearestCache = new Map();
   }
 
   /** RGB of a fixed-palette colour. */
@@ -137,13 +141,37 @@ class GigaQuantClass {
     }
     samples = this._evenSample(samples, this.MAX_DECIDE_SAMPLES);
     const n = samples.length / 3;
+    // The distances are _dist2 written out, same arithmetic in the same
+    // order: a call per distance was most of a GigaScreen import preview's
+    // time (measured 2026-09-28).
+    let flat = this._paletteFlat.get(maxStep);
+    if (!flat) {
+      flat = Float64Array.from(palette.flatMap((p) => Array.from(p.rgb)));
+      this._paletteFlat.set(maxStep, flat);
+    }
+    // A photo repeats its colours - a 1024x768 one had 786,432 pixels in
+    // 32,875 colours - and the nearest mix of a colour never changes, so it
+    // is remembered (whole-number colours only; bounded, then started over).
+    let near = this._nearestCache.get(maxStep);
+    if (!near || near.size > 1 << 20) {
+      near = new Map();
+      this._nearestCache.set(maxStep, near);
+    }
     const counts = new Array(palette.length).fill(0);
     for (let i = 0; i < n; i++) {
       const r = samples[i * 3], g = samples[i * 3 + 1], b = samples[i * 3 + 2];
-      let nearest = 0, nd = Infinity;
-      for (let p = 0; p < palette.length; p++) {
-        const d = this._dist2(r, g, b, palette[p].rgb);
-        if (d < nd) { nd = d; nearest = p; }
+      const key = (r >= 0 && r < 256 && (r | 0) === r && g >= 0 && g < 256 && (g | 0) === g &&
+                   b >= 0 && b < 256 && (b | 0) === b) ? (r << 16) | (g << 8) | b : -1;
+      let nearest = key >= 0 ? near.get(key) : undefined;
+      if (nearest === undefined) {
+        nearest = 0;
+        let nd = Infinity;
+        for (let p = 0, o = 0; p < palette.length; p++, o += 3) {
+          const dr = r - flat[o], dg = g - flat[o + 1], db = b - flat[o + 2];
+          const d = dr * dr * 0.299 + dg * dg * 0.587 + db * db * 0.114;
+          if (d < nd) { nd = d; nearest = p; }
+        }
+        if (key >= 0) near.set(key, nearest);
       }
       counts[nearest]++;
     }
@@ -157,16 +185,37 @@ class GigaQuantClass {
     const pairsA = this._candidatePairs(top.map((t) => t.a));
     const pairsB = this._candidatePairs(top.map((t) => t.b));
 
+    // Every candidate pick is scored against the same samples, and their
+    // slots are drawn from a few dozen mixed colours, so each sample's
+    // distance to a colour is worked out once per cell (a column per colour)
+    // and looked up after: the same values, in the same order, summed the
+    // same way - so the same pick wins.
+    const columns = new Map();
+    const column = (rgb) => {
+      const key = (rgb[0] << 16) | (rgb[1] << 8) | rgb[2];
+      let col = columns.get(key);
+      if (!col) {
+        col = new Float64Array(n);
+        for (let i = 0; i < n; i++) {
+          const dr = samples[i * 3] - rgb[0], dg = samples[i * 3 + 1] - rgb[1], db = samples[i * 3 + 2] - rgb[2];
+          col[i] = dr * dr * 0.299 + dg * dg * 0.587 + db * db * 0.114;
+        }
+        columns.set(key, col);
+      }
+      return col;
+    };
+
     let best = null;
     const tryPick = (pick) => {
       const slots = this.slotsFor(pick, maxStep);
       if (!slots.length) return;
+      const cols = slots.map((sl) => column(sl.rgb));
+      const k = cols.length;
       let err = 0;
       for (let i = 0; i < n; i++) {
-        const r = samples[i * 3], g = samples[i * 3 + 1], b = samples[i * 3 + 2];
         let nd = Infinity;
-        for (const s of slots) {
-          const d = this._dist2(r, g, b, s.rgb);
+        for (let j = 0; j < k; j++) {
+          const d = cols[j][i];
           if (d < nd) nd = d;
         }
         err += nd;

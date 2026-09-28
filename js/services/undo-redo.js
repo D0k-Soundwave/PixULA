@@ -205,7 +205,7 @@ class UndoRedoManagerClass {
     }
 
     const entry = this.undoStack.pop();
-    const currentSnapshot = this._captureSnapshot();
+    const currentSnapshot = this._captureSnapshot(entry.before);
     const counterpart = { timestamp: entry.timestamp, label: entry.label,
                           before: currentSnapshot };
     this.redoStack.push(counterpart);
@@ -235,7 +235,7 @@ class UndoRedoManagerClass {
     }
 
     const entry = this.redoStack.pop();
-    const currentSnapshot = this._captureSnapshot();
+    const currentSnapshot = this._captureSnapshot(entry.before);
     const counterpart = { timestamp: entry.timestamp, label: entry.label,
                           before: currentSnapshot };
     this.undoStack.push(counterpart);
@@ -280,10 +280,19 @@ class UndoRedoManagerClass {
    * across a mode switch restores the previous mode AND content. Phase 12b
    * added the Timex hi-res colour scheme (layer gigaScreen tags ride inside
    * the layer states).
+   *
+   * `restoring` is the snapshot about to be restored, when this is the
+   * counterpart undo/redo pushes onto the opposite stack. A grid that
+   * snapshot leaves out (null: the step never touched it) is one the restore
+   * will not change either, so it is left out here too instead of packed
+   * and compared only to be dropped: undo and redo in a 32-layer LAYER2_640
+   * document took 70-80 ms doing that (measured 2026-09-28). A mode change
+   * rebuilds every grid, so it always takes them all.
+   * @param {?Object} [restoring]
    * @returns {Object} { screenModeId, ulaplusRegisters, timexHiresInk, background, layers, floatingPaste, selection }
    * @private
    */
-  _captureSnapshot() {
+  _captureSnapshot(restoring = null) {
     const snap = {
       screenModeId: window.ACTIVE_SCREEN_MODE ? ACTIVE_SCREEN_MODE.id : null,
       // Register files: null is a REAL state (pristine defaults) and must
@@ -313,9 +322,14 @@ class UndoRedoManagerClass {
       snap.timexHiresInkB = ColorManager.getTimexHiresInkB();
     }
     if (window.LayerManager) {
-      snap.layers = LayerManager.captureAllLayersState();
+      const partial = restoring && restoring.layers &&
+        restoring.screenModeId === snap.screenModeId;
+      const skip = partial
+        ? new Set(restoring.layers.layers.filter(l => l.attributeData === null).map(l => l.id))
+        : null;
+      snap.layers = LayerManager.captureAllLayersState(skip);
       const bg = LayerManager.getBackgroundLayer();
-      if (bg) snap.background = bg.packAttributeData();
+      if (bg && !(partial && !restoring.background)) snap.background = bg.packAttributeData();
     }
     if (window.SelectionService) {
       if (typeof SelectionService.captureFloatingState === 'function') {

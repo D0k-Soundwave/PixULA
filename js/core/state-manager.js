@@ -14,6 +14,9 @@
 
 class StateManagerClass {
   constructor() {
+    /** @private path -> its split parts (see get) */
+    this._pathParts = new Map();
+
     // Initialize state sections
     this._state = {
       // Application state
@@ -119,7 +122,15 @@ class StateManagerClass {
    * @returns {*} - State value
    */
   get(path) {
-    const parts = path.split('.');
+    // Split once per path, not once per call: the draw gate reads the
+    // symmetry and clip modes for every pixel it writes, and a fill writes
+    // up to 164,000 of them (a fifth of a LAYER2_640 fill was spent here,
+    // measured 2026-09-28). The cached arrays are only ever read.
+    let parts = this._pathParts.get(path);
+    if (!parts) {
+      parts = path.split('.');
+      this._pathParts.set(path, parts);
+    }
     let value = this._state;
 
     for (const part of parts) {

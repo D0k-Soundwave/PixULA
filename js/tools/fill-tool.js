@@ -139,7 +139,24 @@ class FillToolClass extends ToolBase {
     // GigaScreen the three inked blends are three colours, so matching "any
     // ink" flooded across blends the artist could see were different.
     const targetKey = PixelDrawRoutine.regionKey(startState);
-    const matches = (state) => PixelDrawRoutine.regionKey(state) === targetKey;
+
+    // The same key regionKey(getPixelState(x, y)) gives, read straight from
+    // the layer's cell: getPixelState builds an object per pixel, and a
+    // fill reads up to 164,000 of them (measured 2026-09-28, LAYER2_640).
+    const W = ZX_SPECTRUM.WIDTH, H = ZX_SPECTRUM.HEIGHT;
+    const CW = ZX_SPECTRUM.CELL_WIDTH, CH = ZX_SPECTRUM.CELL_HEIGHT;
+    const keyAt = (x, y) => {
+      const cell = layer.getCell(Math.floor(x / CW), Math.floor(y / CH));
+      if (!cell) return undefined;
+      const lx = x % CW, ly = y % CH;
+      if (cell.indices) return cell.indices[ly * CW + lx];
+      const bit = 7 - lx;
+      const a = (cell.pixels[ly] >> bit) & 1;
+      if (cell.pixelsB) return a * 2 + ((cell.pixelsB[ly] >> bit) & 1);
+      return !!a;
+    };
+    // Constant for the whole fill, so read once rather than per pixel
+    const patterned = !isErase && this._usePattern && !!PatternService.getCurrentPattern();
 
     const mode = PixelDrawRoutine.resolveUserMode(!isErase);
     const color = ColorManager.getCurrentSelection();
@@ -170,13 +187,10 @@ class FillToolClass extends ToolBase {
         for (let px = 0; px < area.width; px++) {
           const pixelX = area.x + px;
           const pixelY = area.y + py;
-          if (!Validators.isValidPixelCoord(pixelX, pixelY)) continue;
+          if (pixelX < 0 || pixelX >= W || pixelY < 0 || pixelY >= H) continue;
+          if (keyAt(pixelX, pixelY) !== targetKey) continue;
 
-          const state = PixelDrawRoutine.getPixelState(pixelX, pixelY);
-          if (!state) continue;
-          if (!matches(state)) continue;
-
-          if (!isErase && this._usePattern && PatternService.getCurrentPattern()) {
+          if (patterned) {
             // The pattern's gaps take the gap mode, which is null in XOR (see
             // PixelDrawRoutine.resolvePatternGapMode) - without that, every
             // gap toggled too and the fill came out as a plain invert.
@@ -194,38 +208,32 @@ class FillToolClass extends ToolBase {
       return;
     }
 
-    // Contiguous flood fill with explicit stack
-    const visited = new Set();
-    const encode = (px, py) => (py << 16) | px;
-    const decode = (key) => ({ x: key & 0xFFFF, y: key >> 16 });
-
-    const stack = [encode(startX, startY)];
+    // Contiguous flood fill with an explicit stack of pixel numbers
+    // (y * W + x). Visited pixels are a byte map rather than a Set, and a
+    // neighbour that is off the canvas or already filled is never pushed -
+    // it would only have been popped and skipped, so the pixels are filled
+    // in exactly the order they always were. Colour is still checked when a
+    // pixel is popped, not pushed: a mirrored write (symmetry) can change it
+    // in between.
+    const visited = new Uint8Array(W * H);
+    const diagonal = this._diagonal;
+    const stack = [startY * W + startX];
+    const push = (x, y) => {
+      if (x >= 0 && x < W && y >= 0 && y < H && !visited[y * W + x]) stack.push(y * W + x);
+    };
 
     PixelDrawRoutine.beginBatch();
 
     while (stack.length > 0) {
-      const key = stack.pop();
+      const p = stack.pop();
+      if (visited[p]) continue;
 
-      if (visited.has(key)) {
-        continue;
-      }
+      const x = p % W, y = (p - x) / W;
+      if (keyAt(x, y) !== targetKey) continue;
 
-      const { x, y } = decode(key);
+      visited[p] = 1;
 
-      if (x < 0 || x >= ZX_SPECTRUM.WIDTH || y < 0 || y >= ZX_SPECTRUM.HEIGHT) {
-        continue;
-      }
-
-      const state = PixelDrawRoutine.getPixelState(x, y);
-      if (!state) continue;
-
-      if (!matches(state)) {
-        continue;
-      }
-
-      visited.add(key);
-
-      if (!isErase && this._usePattern && PatternService.getCurrentPattern()) {
+      if (patterned) {
         const pm = PatternService.shouldDrawPixel(x, y)
           ? PixelDrawRoutine.resolveUserMode(true)
           : PixelDrawRoutine.resolvePatternGapMode();
@@ -234,16 +242,16 @@ class FillToolClass extends ToolBase {
         PixelDrawRoutine.draw(x, y, color, mode);
       }
 
-      stack.push(encode(x + 1, y));
-      stack.push(encode(x - 1, y));
-      stack.push(encode(x, y + 1));
-      stack.push(encode(x, y - 1));
+      push(x + 1, y);
+      push(x - 1, y);
+      push(x, y + 1);
+      push(x, y - 1);
 
-      if (this._diagonal) {
-        stack.push(encode(x + 1, y + 1));
-        stack.push(encode(x + 1, y - 1));
-        stack.push(encode(x - 1, y + 1));
-        stack.push(encode(x - 1, y - 1));
+      if (diagonal) {
+        push(x + 1, y + 1);
+        push(x + 1, y - 1);
+        push(x - 1, y + 1);
+        push(x - 1, y - 1);
       }
     }
 
