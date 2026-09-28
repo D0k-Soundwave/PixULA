@@ -180,12 +180,28 @@ select {
    things the artist cannot work without (found 2026-09-27): the palette
    swatches and Ink/Paper wells all showed white, and every on/selected state
    drawn as an accent background - the active tool, pressed toggles, the
-   current layer - looked the same as the rest. Swatches keep their real
-   colours; on states use the system's own highlight pair. */
+   current layer - looked the same as the rest.
+
+   Opting out (forced-color-adjust: none) is INHERITED, so it goes only on
+   elements with nothing inside but their own label or icon: on the open
+   menu, the current layer row and the canvas area it took the system colours
+   away from everything inside them (found 2026-09-28 by review). Those use
+   an outline, or hand forcing back to their children. The on-state buttons
+   do need the opt-out even with system colours: forced colours paint a
+   plain backing behind text, which hid their HighlightText label. */
 @media (forced-colors: active) {
-    .color-swatch,
+    .color-swatch {
+        forced-color-adjust: none;
+    }
+
+    /* The ZX border colour is picture content too - but #canvas-area holds
+       the colour rail and the canvas controls, so hand forcing back to them. */
     #canvas-area.border-preview {
         forced-color-adjust: none;
+    }
+
+    #canvas-area.border-preview > * {
+        forced-color-adjust: auto;
     }
 
     .color-swatch.active-ink {
@@ -197,27 +213,47 @@ select {
         box-shadow: 0 0 0 1px HighlightText;
     }
 
-    .menu-item.active,
+    .menu-item.active > .menu-label,
     .tool-btn.active,
     .flash-btn:has(input:checked),
     .panel-button.active,
     .psb-tab.active,
     .pc-size-tabs button.active,
-    .grid-toggle[aria-pressed="true"],
-    .layer-item.current,
-    .stamp-item.current {
+    .grid-toggle[aria-pressed="true"] {
         forced-color-adjust: none;
         background: Highlight;
         border-color: Highlight;
         color: HighlightText;
     }
 
+    /* Their own labels and icons follow the highlight text; a form field
+       inside one (the Bright/Flash checkboxes) stays a system field. */
+    :is(.menu-item.active > .menu-label, .tool-btn.active, .flash-btn:has(input:checked),
+        .panel-button.active, .psb-tab.active, .pc-size-tabs button.active,
+        .grid-toggle[aria-pressed="true"]) :not(input, select, textarea) {
+        color: inherit;
+    }
+
+    :is(.tool-btn.active, .flash-btn:has(input:checked), .panel-button.active)
+        :is(input, select, textarea) {
+        forced-color-adjust: auto;
+    }
+
+    /* Rows hold names, icons and a rename field: an outline marks them
+       without recolouring any of it. Drawn inside the box, since the lists
+       that hold them clip anything outside. */
     .stamp-xor.active,
     .import-method.active,
     .pattern-item.selected,
     .layer-item.selected {
-        outline: 2px solid Highlight;
-        outline-offset: 1px;
+        outline: 2px dashed Highlight;
+        outline-offset: -2px;
+    }
+
+    .layer-item.current,
+    .stamp-item.current {
+        outline: 3px solid Highlight;
+        outline-offset: -3px;
     }
 }
 
