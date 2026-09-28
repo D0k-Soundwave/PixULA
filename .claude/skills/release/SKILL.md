@@ -17,6 +17,11 @@ below yourself, then report the release link.
   builds the portable zip, creates the tag and publishes the GitHub Release.
   If the tag exists (the edit was not a version bump) it stops successfully
   and publishes nothing.
+- Only the newest release is public (the owner's choice, 2026-09-28): the
+  workflow's last step turns every older release into a draft. Drafts are
+  hidden from visitors and their download links stop working, but nothing is
+  deleted - the tags and zips stay, and "Publish release" on a draft's Edit
+  page brings it back. Signed in, the owner still sees them marked Draft.
 - Web sessions cannot push tags (the push is refused), so never try; the
   merge to `main` is the trigger. `Actions > Release > Run workflow` on `main`
   is the manual fallback (GitHub MCP `actions_run_trigger`, method
@@ -68,7 +73,8 @@ below yourself, then report the release link.
    `release.yml` should show a `push` run on the merge commit; wait for it
    (poll `get_workflow_run`, about 30 seconds) and require
    `conclusion: success`. Then `get_release_by_tag v<version>` must show a
-   published pre-release with `PixULA-<version>.zip` in its assets. If no run
+   published pre-release with `PixULA-<version>.zip` in its assets, and
+   `list_releases` must show every other release with `draft: true`. If no run
    appeared within two minutes, use the Run workflow fallback above. If the
    run failed, read its logs (`get_job_logs`), fix, and release again with
    the same version (its tag was never created).
@@ -80,5 +86,5 @@ below yourself, then report the release link.
 8. **Report** to the owner in plain words: the version, the release page
    `https://github.com/D0k-Soundwave/PixULA/releases/tag/v<version>`, the
    zip's download link from the release assets, that the online copy has
-   updated, and what changed since the previous release (the release notes
-   list the merged pull requests).
+   updated, that older releases are hidden, and what changed since the
+   previous release (the release notes list the merged pull requests).
