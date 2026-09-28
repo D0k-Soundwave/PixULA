@@ -98,6 +98,3 @@ perdre des détails dans ce sens ; PixULA vous prévient avant de le faire.
   votre écran à une cassette qui contient déjà d’autres fichiers, utilisez
   **Fichier > Blocs de cassette**.
 - **Pour montrer l’image à quelqu’un sans Spectrum**, enregistrez un `.png`.
-  Si l’image utilise des cellules clignotantes, enregistrez un `.gif` et cochez
-  **Animer les cellules CLIGNOTANT** – cela écrit une boucle de deux images au
-  rythme du matériel, pour que le clignotement survive.

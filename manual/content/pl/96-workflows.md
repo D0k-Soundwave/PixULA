@@ -87,7 +87,4 @@ utratą szczegółów; PixULA uprzedzi Cię, zanim to zrobi.
   go dla każdego tabela w rozdziale o trybach ekranu.
 - **Dla prawdziwego komputera** zapisz `.tap` lub `.tzx`. Aby dodać swój ekran
   do taśmy, na której są już inne pliki, użyj **Plik > Bloki taśmy**.
-- **Żeby pokazać komuś bez Spectrum**, zapisz `.png`. Jeśli obraz używa
-  migających komórek, zapisz `.gif` i zaznacz **Animuj komórki MIGANIE** –
-  zapisuje to pętlę dwóch klatek w tempie samego sprzętu, więc miganie
-  przetrwa.
+- **Żeby pokazać komuś bez Spectrum**, zapisz `.png`.
