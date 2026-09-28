@@ -125,6 +125,51 @@ class I18nClass {
     }
 
     /**
+     * A count in words, in the form the current language uses for `n`.
+     *
+     * A plural key's value lists one form per CLDR plural category, tagged:
+     * 'one: {n} minute ago | other: {n} minutes ago'. English needs two
+     * forms; Polish, Czech, Slovak, Russian and Romanian need three or four
+     * ("2 minuty temu" but "5 minut temu"), which a single/plural key pair
+     * could not say (found 2026-09-27). The category comes from
+     * Intl.PluralRules; a missing form falls back to `other`, a missing key
+     * to English.
+     * @param {string} key - a `plural.*` key
+     * @param {number} n - the count; also available to the text as {n}
+     * @param {Object} [params] - other {placeholder} values
+     * @returns {string}
+     */
+    plural(key, n, params = {}) {
+        const pick = (code) => {
+            const raw = this.translations[code]?.[key];
+            if (!raw) return null;
+            const forms = I18nClass.parsePluralForms(raw);
+            let category = 'other';
+            try { category = new Intl.PluralRules(code).select(n); } catch (e) { /* no Intl: other */ }
+            return forms[category] || forms.other || null;
+        };
+        let text = pick(this.currentLocale) || pick(this.fallbackLocale) || key;
+        Object.entries({ n, ...params }).forEach(([param, value]) => {
+            text = text.replace(new RegExp(`\\{${param}\\}`, 'g'), value);
+        });
+        return text;
+    }
+
+    /**
+     * The tagged forms of a plural value, by category.
+     * @param {string} raw - e.g. 'one: {n} byte | other: {n} bytes'
+     * @returns {Object<string, string>}
+     */
+    static parsePluralForms(raw) {
+        const forms = {};
+        for (const part of String(raw).split('|')) {
+            const m = part.match(/^\s*(zero|one|two|few|many|other)\s*:\s*(.*?)\s*$/);
+            if (m) forms[m[1]] = m[2];
+        }
+        return forms;
+    }
+
+    /**
      * Translate a freshly-built DOM subtree (e.g. a dynamically-rendered
      * panel) so its [data-i18n*] elements show the current locale
      * immediately, without waiting for a locale change. Call after building.
