@@ -38,10 +38,14 @@ function escapeHTML(s) {
  * @returns {string}
  */
 function slug(text) {
+    // Letters and digits of ANY script survive, so a heading in Russian or
+    // Czech gets an anchor of its own words rather than collapsing to
+    // 'section' and colliding with every other heading in the chapter.
     return String(text)
+        .normalize('NFC')
         .toLowerCase()
         .replace(/<[^>]+>/g, '')
-        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/[^\p{L}\p{N}]+/gu, '-')
         .replace(/^-+|-+$/g, '') || 'section';
 }
 

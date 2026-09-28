@@ -76,7 +76,7 @@ class TextToolClass extends ToolBase {
     { type: 'textarea', key: 'textContent', setter: 'setText', i18n: 'opt.text',
       placeholderI18n: 'opt.textPlaceholder', rows: 3, value: '', preset: false },
     { type: 'select', key: 'fontFamily', setter: 'setFontFamily', i18n: 'opt.font', value: 'ZX ROM',
-      options: [{ value: 'ZX ROM', label: 'ZX ROM (8\u00d78 bitmap)' }],
+      options: [{ value: 'ZX ROM', i18n: 'opt.font.zxRom', label: 'ZX ROM (8\u00d78 bitmap)' }],
       dynamic: '_enumerateFonts' },
     { type: 'select', key: 'textSize', setter: 'setTextSize', i18n: 'opt.size', value: 16,
       options: [8, 16, 24, 32, 48, 64].map(s => ({ value: s, label: s + 'px' })),
