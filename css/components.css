@@ -1981,6 +1981,27 @@
     max-height: 90dvh;
 }
 
+/* Header and buttons stay put and only the body scrolls. The whole dialog
+   used to scroll as one, so OK/Cancel slid out of view with the content -
+   Preferences at every window size, the Sprite Editor on a phone held
+   sideways (found 2026-09-27). [open] only: a closed <dialog> must keep the
+   browser's display: none. */
+.app-dialog[open] {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.app-dialog[open] > .app-dialog-header,
+.app-dialog[open] > .app-dialog-footer {
+    flex: none;
+}
+
+.app-dialog[open] > .app-dialog-body {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
 .app-dialog::backdrop {
     background: rgba(0, 0, 0, 0.5);
 }

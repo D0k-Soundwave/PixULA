@@ -45,6 +45,10 @@ class DialogClass {
             return existing;
         }
 
+        // Where keyboard focus goes back to when this closes (see _returnFocus).
+        const opener = document.activeElement;
+        const openedByKeyboard = !!(opener && opener.matches && opener.matches(':focus-visible'));
+
         const dialog = document.createElement('dialog');
         dialog.className = `app-dialog ${className}`.trim();
         dialog.id = `dialog-${id}`;
@@ -111,6 +115,7 @@ class DialogClass {
             this._open.delete(id);
             dialog.remove();
             if (onClose) onClose();
+            this._returnFocus(opener, openedByKeyboard);
         });
 
         document.body.appendChild(dialog);
@@ -127,6 +132,37 @@ class DialogClass {
         dialog.focus();
 
         return dialog;
+    }
+
+    /**
+     * Put focus back on what opened a dialog once it closes.
+     *
+     * The browser tries this itself, but a dialog opened from a menu row
+     * finds that row hidden by the time it closes, and focus fell to the top
+     * of the page (found 2026-09-27): a keyboard user had to Tab through the
+     * whole app to get back. A menu row now hands focus to its menu's name
+     * on the bar - only when the menu was used from the keyboard, since the
+     * bar takes letter keys for itself and would swallow the drawing
+     * shortcuts of someone who clicked. Anything else that is still on
+     * screen gets focus back directly.
+     * @param {Element|null} opener - the focused element when the dialog opened
+     * @param {boolean} openedByKeyboard - it had a keyboard focus ring then
+     * @private
+     */
+    _returnFocus(opener, openedByKeyboard) {
+        if (!opener || opener === document.body || !opener.isConnected) return;
+        const menuItem = opener.closest && opener.closest('.menu-item');
+        if (menuItem) {
+            const label = menuItem.querySelector('.menu-label');
+            if (!openedByKeyboard || !label) return;
+            if (window.MenuSystem && typeof MenuSystem._focusLabel === 'function') MenuSystem._focusLabel(label);
+            else label.focus();
+            return;
+        }
+        // Another dialog opened on top of this one has taken focus already.
+        if (document.activeElement && document.activeElement.closest('dialog[open]')) return;
+        if (opener.getClientRects().length === 0 || typeof opener.focus !== 'function') return;
+        opener.focus({ preventScroll: true });
     }
 
     /** Close (and remove) an open dialog by id. */
