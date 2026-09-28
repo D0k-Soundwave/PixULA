@@ -760,11 +760,11 @@ const PEN_PROFILES = Object.freeze({
     // Every generation: no web-visible buttons at all. The 2nd-gen/Pro
     // double-tap and the Pro's squeeze are private APIs.
     applePencil1: Object.freeze({
-        id: 'applePencil1', label: 'Apple Pencil (1st generation)', group: 'Apple',
+        id: 'applePencil1', labelI18n: 'pen.profile.applePencil1', label: 'Apple Pencil (1st generation)', group: 'Apple',
         barrels: 0, eraser: false
     }),
     applePencil2: Object.freeze({
-        id: 'applePencil2', label: 'Apple Pencil (2nd generation)', group: 'Apple',
+        id: 'applePencil2', labelI18n: 'pen.profile.applePencil2', label: 'Apple Pencil (2nd generation)', group: 'Apple',
         barrels: 0, eraser: false
     }),
     applePencilUsbC: Object.freeze({
@@ -782,7 +782,7 @@ const PEN_PROFILES = Object.freeze({
     // pens drive Air actions — both travel over a channel a web page cannot
     // read, so all three list entries share this exact shape.
     sPenPhone: Object.freeze({
-        id: 'sPenPhone', label: 'Samsung S Pen (Galaxy phones)', group: 'Samsung',
+        id: 'sPenPhone', labelI18n: 'pen.profile.sPenPhone', label: 'Samsung S Pen (Galaxy phones)', group: 'Samsung',
         barrels: 1, eraser: false
     }),
     sPenTab: Object.freeze({
@@ -799,12 +799,12 @@ const PEN_PROFILES = Object.freeze({
         // Current Surface Pen: one barrel, tail eraser (its invert bit is
         // real and distinct from the tail's separate OS-level Bluetooth
         // click/hold app shortcuts, which are not).
-        id: 'surfacePen', label: 'Surface Pen (current)', group: 'Microsoft',
+        id: 'surfacePen', labelI18n: 'pen.profile.surfacePen', label: 'Surface Pen (current)', group: 'Microsoft',
         barrels: 1, eraser: true
     }),
     surfacePenLegacy: Object.freeze({
         // Surface Pro 3/4-era pen: an extra side button over the current one.
-        id: 'surfacePenLegacy', label: 'Surface Pen (2-button, older)', group: 'Microsoft',
+        id: 'surfacePenLegacy', labelI18n: 'pen.profile.surfacePenLegacy', label: 'Surface Pen (2-button, older)', group: 'Microsoft',
         barrels: 2, eraser: true
     }),
     surfaceSlimPen: Object.freeze({
@@ -869,15 +869,15 @@ const PEN_PROFILES = Object.freeze({
     // assignable actions (verified 2026-08-22 against XP-Pen's own product
     // pages: no PA model lists a separate eraser end).
     xppenX: Object.freeze({
-        id: 'xppenX', label: 'XP-Pen X3 / X4 series', group: 'XP-Pen',
+        id: 'xppenX', labelI18n: 'pen.profile.xppenX', label: 'XP-Pen X3 / X4 series', group: 'XP-Pen',
         barrels: 2, eraser: false
     }),
     xppenPA: Object.freeze({
-        id: 'xppenPA', label: 'XP-Pen PA series (PA1/PA2/PA5/PA6)', group: 'XP-Pen',
+        id: 'xppenPA', labelI18n: 'pen.profile.xppenPA', label: 'XP-Pen PA series (PA1/PA2/PA5/PA6)', group: 'XP-Pen',
         barrels: 2, eraser: false
     }),
     xppenP: Object.freeze({
-        id: 'xppenP', label: 'XP-Pen P series (Star / Deco)', group: 'XP-Pen',
+        id: 'xppenP', labelI18n: 'pen.profile.xppenP', label: 'XP-Pen P series (Star / Deco)', group: 'XP-Pen',
         barrels: 2, eraser: false
     }),
 

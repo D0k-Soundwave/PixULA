@@ -239,3 +239,46 @@ test('the manual shares no class or id with the app around it', async ({ page })
     // element carrying the id of the app's own File dropdown.
     expect(clashes, 'the manual reuses names the app owns').toEqual([]);
 });
+
+test('the manual opens in the language the app is showing', async ({ page }) => {
+    await boot(page);
+    const langs = await page.evaluate(() => I18n.supportedLocales.filter((c) => c !== 'en'));
+    expect(langs.length).toBeGreaterThan(10);
+
+    // Every language: its own file loads, its own words fill the generated
+    // tables, and the pictures still come from the one shared English file.
+    for (const code of langs) {
+        await page.evaluate((c) => I18n.setLocale(c), code);
+        await openManual(page);
+        const got = await page.evaluate((c) => {
+            const root = document.querySelector('.manual');
+            const t = window['i18n_' + c];
+            return {
+                lang: root.lang,
+                contents: root.querySelector('.mn-toc').getAttribute('aria-label'),
+                wantContents: t['manual.contents'],
+                fileMenu: root.querySelector('#mn-menu-file').textContent,
+                wantFileMenu: t['manual.menuHeading'].replace('{menu}', t['menu.file']),
+                pictures: root.querySelectorAll('img').length,
+                external: Array.from(root.querySelectorAll('img'))
+                    .filter((i) => !(i.getAttribute('src') || '').startsWith('data:')).length
+            };
+        }, code);
+        expect(got.lang, code).toBe(code);
+        expect(got.contents, code).toBe(got.wantContents);
+        expect(got.fileMenu, code).toBe(got.wantFileMenu);
+        expect(got.pictures, code).toBeGreaterThan(0);
+        expect(got.external, code + ' pictures loaded from outside the file').toBe(0);
+        await page.keyboard.press('Escape');
+    }
+});
+
+test('a missing translation falls back to the English manual', async ({ page }) => {
+    await boot(page);
+    // A language whose js/data/manual/ file is not there - as in a copy of the
+    // app that lost it. (page.route cannot intercept file:// loads.)
+    await page.evaluate(() => { I18n.getLocale = () => 'zz'; });
+    await openManual(page);
+    expect(await page.evaluate(() => document.querySelector('.manual').lang)).toBe('en');
+    await expect(page.locator('.manual h2').first()).toBeVisible();
+});

@@ -459,10 +459,14 @@ class PreferencesDialogClass {
             const profile = PEN_PROFILES[key];
             const option = document.createElement('option');
             option.value = profile.id;
-            // Brand and model names are proper nouns — only the generic entry
-            // is a phrase that needs translating.
-            option.textContent = profile.label || this._t(profile.i18n, 'Generic / other');
-            if (profile.i18n) option.setAttribute('data-i18n', profile.i18n);
+            // Brand and model names are proper nouns; what is translated is the
+            // generic entry and the words some models carry ('1st generation',
+            // 'series') - those have a labelI18n, with the English as fallback.
+            const labelKey = profile.labelI18n || profile.i18n;
+            option.textContent = profile.labelI18n
+                ? this._t(profile.labelI18n, profile.label)
+                : (profile.label || this._t(profile.i18n, 'Generic / other'));
+            if (labelKey) option.setAttribute('data-i18n', labelKey);
 
             if (!profile.group) {
                 profileSelect.appendChild(option);

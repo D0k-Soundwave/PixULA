@@ -27,11 +27,20 @@
  * **The contents links are intercepted.** They are ordinary `#anchor` hrefs, so
  * left alone they would navigate the app's own document and, from `file://`,
  * reload it. The click handler scrolls the manual's scrolling element instead.
+ *
+ * **It opens in the app's language.** The English file carries the styles and
+ * every screenshot; each translation (js/data/manual/manual-<code>.js) carries
+ * only its text and is loaded the first time the manual opens in it. The
+ * pictures are put in place here, from the English file, whichever language
+ * is showing. A translation that fails to load falls back to English rather
+ * than to no manual at all.
  */
 class ManualDialogClass {
     constructor() {
         /** @type {?Promise<Object>} in-flight or completed load */
         this._loading = null;
+        /** @type {Map<string, Promise<?Object>>} code -> translation load */
+        this._translations = new Map();
         this._styleAdded = false;
     }
 
@@ -64,6 +73,50 @@ class ManualDialogClass {
         // the rest of the session.
         this._loading.catch(() => { this._loading = null; });
         return this._loading;
+    }
+
+    /**
+     * Load one translation's text, once. Resolves to null when there is none
+     * (English, or a file that failed to load), so the caller shows English.
+     * @param {string} code
+     * @returns {Promise<?Object>} {version, html}
+     * @private
+     */
+    _loadTranslation(code) {
+        if (!code || code === 'en') return Promise.resolve(null);
+        const have = window.MANUAL_TRANSLATIONS && window.MANUAL_TRANSLATIONS[code];
+        if (have) return Promise.resolve(have);
+        if (this._translations.has(code)) return this._translations.get(code);
+
+        const loading = new Promise((resolve) => {
+            const script = document.createElement('script');
+            script.src = 'js/data/manual/manual-' + code + '.js';
+            script.addEventListener('load', () =>
+                resolve((window.MANUAL_TRANSLATIONS && window.MANUAL_TRANSLATIONS[code]) || null));
+            script.addEventListener('error', () => {
+                Logger.warn('ManualDialog', 'no ' + code + ' manual - showing English');
+                // Try again next time rather than remembering the failure.
+                this._translations.delete(code);
+                resolve(null);
+            });
+            document.head.appendChild(script);
+        });
+        this._translations.set(code, loading);
+        return loading;
+    }
+
+    /**
+     * The markup with every `img/NAME` picture put in place from the English
+     * file, which holds the one copy of each.
+     * @param {string} html
+     * @param {Object<string,string>} images
+     * @returns {string}
+     * @private
+     */
+    _withImages(html, images) {
+        if (!images) return html;
+        return html.replace(/src="img\/([^"]+)"/g, (whole, name) =>
+            (images[name] ? 'src="' + images[name] + '"' : whole));
     }
 
     /** @private */
@@ -99,8 +152,10 @@ class ManualDialogClass {
      */
     async open(anchor) {
         let content;
+        let translation = null;
         try {
             content = await this._load();
+            translation = await this._loadTranslation(I18n.getLocale());
         } catch (err) {
             Logger.error('ManualDialog', err.message);
             Dialog.open({
@@ -121,7 +176,9 @@ class ManualDialogClass {
 
         const root = document.createElement('div');
         root.className = 'manual';
-        root.innerHTML = content.html;
+        root.lang = translation ? I18n.getLocale() : 'en';
+        root.innerHTML = this._withImages(translation ? translation.html : content.html,
+            content.images);
         this._wireContents(root);
 
         Dialog.open({
