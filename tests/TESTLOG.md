@@ -891,3 +891,23 @@ on the pre-fix tree.
 ### Needs a human
 - [ ] With a screen reader (NVDA or VoiceOver), open File > Save Image As using only the keyboard; the menus announce as a menu bar and menus
 - [ ] Load a .slr exported from LoRes mode, and a .sl2 from Layer 2 mode, on a real ZX Spectrum Next or in an emulator
+
+## Third audit (2026-09-27)
+
+Found by round-tripping every screen mode through .pixula and autosave,
+Windows High Contrast emulation, dialogs at three window sizes, keyboard focus
+after each dialog, autosave timing in the largest documents, and a read of all
+13 translations for counts. The rows marked AUTO fail on the pre-fix tree.
+
+### Automated
+- [x] Stamps (shape, position, per-cell colours) and each layer's XOR setting survive a .pixula, an autosave restore and a stamp still being dragged at save time; a restored stamp still stamps; a broken stamp in a file loads as a plain layer — AUTO (browser: stamp-persistence.spec)
+- [x] In forced colours the palette swatches and Ink/Paper wells keep their colours and the active tool stands out — AUTO (browser: forced-colors.spec)
+- [x] Preferences (1280x720, 1024x768, 844x390) and the Sprite Editor (844x390) keep OK/Cancel on screen while the body scrolls — AUTO (browser: dialog-fit.spec)
+- [x] Closing a dialog opened from the menu by keyboard returns focus to that menu; after a mouse-opened one, letter shortcuts still work — AUTO (browser: dialog-fit.spec)
+- [x] Autosave stores compact grids that restore the same picture in Standard ULA, Layer 2 and GigaScreen; old records still restore; a 32-layer LAYER2_640 autosave takes under a third of the old time (about 50 ms, was about 1 s) — AUTO (browser: autosave-compact.spec, backup-versions.spec)
+- [x] Counts use each language's plural forms (Polish "2 minuty temu", "5 minut temu"); every locale gives every form its language needs; the autosave prompt says "ago" once — AUTO (browser: i18n-plurals.spec; node: i18n-parity.test.js)
+
+### Needs a human
+- [ ] Windows with a High Contrast theme on: the palette shows its real colours, and the selected tool, pressed toggles and current layer are highlighted
+- [ ] A phone held sideways: open Preferences and the Sprite Editor; OK and Close are visible without scrolling
+- [ ] Draw with a stamp parked in the Stamps panel, close the tab, reopen and accept the restore: the stamp is still in the panel and still stamps
