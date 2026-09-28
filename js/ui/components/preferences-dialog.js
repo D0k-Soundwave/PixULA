@@ -277,7 +277,8 @@ class PreferencesDialogClass {
                 const filled = info.stores.filter(s => s.records);
                 const parts = filled.map(s => `${s.store}: ${s.records}`);
                 if (info.localKeys) {
-                    parts.push(this._t('pref.privacyLocalKeys', '{count} settings keys',
+                    parts.push(Helpers.localizedPlural('plural.settingsKeys', info.localKeys,
+                        'one: {count} settings key | other: {count} settings keys',
                         { count: info.localKeys }));
                 }
                 const size = typeof info.bytes === 'number'

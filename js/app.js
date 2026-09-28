@@ -419,17 +419,9 @@ class AppClass {
             }
 
             const ageMinutes = Math.floor(ageMs / 60000);
-            let ageText;
-            if (ageMinutes < 60) {
-                ageText = ageMinutes === 1
-                    ? I18n.t('msg.minuteAgo', { n: ageMinutes })
-                    : I18n.t('msg.minutesAgo', { n: ageMinutes });
-            } else {
-                const ageHours = Math.floor(ageMinutes / 60);
-                ageText = ageHours === 1
-                    ? I18n.t('msg.hourAgo', { n: ageHours })
-                    : I18n.t('msg.hoursAgo', { n: ageHours });
-            }
+            const ageText = ageMinutes < 60
+                ? I18n.plural('plural.minutesAgo', ageMinutes)
+                : I18n.plural('plural.hoursAgo', Math.floor(ageMinutes / 60));
 
             if (confirm(I18n.t('msg.autosaveFound', { age: ageText }))) {
                 await this._loadProjectData(autosaveData);

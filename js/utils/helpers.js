@@ -76,6 +76,32 @@ const Helpers = {
     },
 
     /**
+     * localizedMessage for a count: the form of a `plural.*` key the current
+     * language uses for `n` (see I18n.plural), with an English fallback in
+     * the same tagged shape, 'one: {n} byte | other: {n} bytes'.
+     * @param {string} key - i18n key
+     * @param {number} n - the count, also {n} in the text
+     * @param {string} fallback - English forms
+     * @param {Object} [params] - other {placeholder} values
+     * @returns {string}
+     */
+    localizedPlural(key, n, fallback, params = {}) {
+        if (window.I18n && typeof I18n.plural === 'function') {
+            const v = I18n.plural(key, n, params);
+            if (v && v !== key) return v;
+        }
+        const forms = {};
+        for (const part of String(fallback).split('|')) {
+            const m = part.match(/^\s*(\w+)\s*:\s*(.*?)\s*$/);
+            if (m) forms[m[1]] = m[2];
+        }
+        const text = (n === 1 && forms.one) || forms.other || String(fallback);
+        const all = { n, ...params };
+        return text.replace(/\{(\w+)\}/g, (m, name) =>
+            (all[name] !== undefined ? String(all[name]) : m));
+    },
+
+    /**
      * Whether the active screen mode has the standard 8×8-cell 256×192
      * layout — the non-throwing twin of assertStandardScreenLayout(), for
      * callers (a format's canExport()) that want a yes/no instead of a
