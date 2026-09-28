@@ -1065,8 +1065,8 @@ class LayerManagerClass {
       xorMode: layer.xorMode || false,
       stamp: this._plainStamp(layer.stamp),
       // PACKED: this feeds undo snapshots, which are held fifty deep in
-      // memory. getAllLayers() keeps the array form for autosave, which is
-      // JSON-persisted and must stay plain.
+      // memory. getAllLayers() packs only when asked (autosave, backups):
+      // an explicit .pixula keeps the array form older builds read.
       attributeData: layer.packAttributeData()
     };
   }
@@ -2642,9 +2642,12 @@ class LayerManagerClass {
 
   /**
    * Get all layers as an array (for serialization)
+   * @param {{packed?: boolean}} [opts] - grids in the compact undo form
+   *   (packAttributeData) rather than one object per cell; see
+   *   App._getProjectData
    * @returns {Array}
    */
-  getAllLayers() {
+  getAllLayers({ packed = false } = {}) {
     // The stamp being dragged keeps its live shape and position on the
     // floating paste; layer.stamp is only written when it is parked.
     const fp = window.SelectionService && SelectionService.floatingPaste;
@@ -2655,7 +2658,7 @@ class LayerManagerClass {
         opacity: layer.opacity,
         locked: layer.locked,
         isBackground: layer.isBackground,
-        attributeData: layer.cloneAttributeData()
+        attributeData: packed ? layer.packAttributeData() : layer.cloneAttributeData()
       };
       // Written only when set, so a document without stamps saves exactly
       // as before. Until 2026-09-27 neither was written at all: every stamp

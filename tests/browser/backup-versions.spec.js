@@ -219,13 +219,14 @@ test('a backup can be opened again and is the document it saved', async ({ page 
         LayerManager.addLayer();
         PixelDrawRoutine.draw(9, 9, { mirror: false });
         const layers = LayerManager.getAllLayers().length;
-        await BackupService.writeVersion(App._getProjectData(), 'Castle');
+        // Packed grids, as the autosave tick writes them
+        await BackupService.writeVersion(App._getProjectData({ packed: true }), 'Castle');
 
         while (LayerManager.getAllLayers().length > 2) LayerManager.removeLayer(1);
 
         const bytes = window.__files.get('Castle V1.pixula');
         const project = await ProjectFormat.decode(bytes);
-        App._loadProjectData(project);
+        await App._loadProjectData(project);
         return {
             layersBefore: layers,
             layersAfter: LayerManager.getAllLayers().length,
@@ -302,20 +303,16 @@ test('the database autosave survives a folder that has gone away', async ({ page
         // The folder throws on every write, the way an unplugged drive does
         window.__dir.getFileHandle = async () => { throw new Error('device gone'); };
 
-        // Exactly what the autosave tick does
-        const project = App._getProjectData();
-        await Storage.set('autosave', project);
-        const disk = await BackupService.writeVersion(project, 'Castle');
+        // The autosave tick itself
+        await App._autosaveNow();
 
         const record = await Storage.get('autosave');
         return {
-            disk,
             recovered: !!(record && Array.isArray(record.layers)),
             reportedError: !!BackupService.lastError
         };
     });
 
-    expect(r.disk).toBeNull();        // the disk copy failed
     expect(r.recovered).toBe(true);   // the work is still recoverable
     expect(r.reportedError).toBe(true); // and it did not fail silently
 });
