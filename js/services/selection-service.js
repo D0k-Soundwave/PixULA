@@ -1275,6 +1275,9 @@ class SelectionServiceClass {
       _warpEffect: 'none',
       indices: c.indices || null,
       _srcIndices: c.indices ? c.indices.map(r => [...r]) : null,
+      // A map-editor stamp's own per-cell colours (endFloatingPaste parks
+      // them); without them a picked-up stamp drew in the current ink.
+      attrs: c.attrs || null,
     };
 
     // XOR preview depends on the live target-layer state, so re-render rather
