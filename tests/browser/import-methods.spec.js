@@ -159,11 +159,11 @@ test('the dialog shows one preview per method and the pick reaches the import',
         await expect(panes.first()).toHaveClass(/active/);
 
         // Every pane painted something, and they are not all the same picture
-        const painted = await page.evaluate(() =>
+        // (the chosen one paints first, the other two right after)
+        await expect.poll(() => page.evaluate(() => new Set(
             [...document.querySelectorAll('.import-method canvas')].map((c) =>
                 c.getContext('2d').getImageData(0, 0, c.width, c.height).data.slice(0, 4000)
-                    .reduce((h, v) => (h * 31 + v) | 0, 0)));
-        expect(new Set(painted).size).toBe(3);
+                    .reduce((h, v) => (h * 31 + v) | 0, 0))).size)).toBe(3);
 
         await panes.nth(1).click();                       // Smooth
         await expect(panes.nth(1)).toHaveClass(/active/);

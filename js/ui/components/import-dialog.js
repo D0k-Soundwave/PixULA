@@ -108,26 +108,51 @@ class ImportDialogClass {
             controls.className = 'import-controls';
             content.appendChild(controls);
 
-            // rAF-coalesced preview refresh (slider drags fire fast). One
-            // quantizePreviewSet call, not one per pane: the downscale and the
-            // generated palette are shared by all three.
+            // rAF-coalesced preview refresh (slider drags fire fast). The
+            // CHOSEN method redraws at once; the other two once the controls
+            // have rested for PREVIEW_REST_MS, so a drag costs one preview a
+            // frame instead of three (found 2026-09-28: with a big photo a
+            // step took 0.3-3.7 s). The downscale and generated palette are
+            // shared by all three (PNGFormat.previewRenderer), made once per
+            // setting.
             let rafPending = false;
-            const refresh = () => {
+            let restTimer = null;
+            let renderer = null, rendererKey = null;
+            const drawnKey = new Map();   // method id -> setting it shows
+            const paint = (ids) => {
+                const key = `${state.brightness}|${state.contrast}|${state.scaling}`;
+                if (key !== rendererKey) {
+                    const adjusted = (state.brightness !== 0 || state.contrast !== 0)
+                        ? PNGFormat.applyBrightnessContrast(decoded, state.brightness, state.contrast)
+                        : decoded;
+                    renderer = PNGFormat.previewRenderer(adjusted, state.scaling);
+                    rendererKey = key;
+                }
+                for (const p of panes) {
+                    if (!ids.includes(p.spec.id) || drawnKey.get(p.spec.id) === key) continue;
+                    const q = renderer(p.spec.id);
+                    p.ctx.putImageData(new ImageData(q.data, q.width, q.height), 0, 0);
+                    drawnKey.set(p.spec.id, key);
+                }
+            };
+            const catchUp = (ms) => {
+                clearTimeout(restTimer);
+                restTimer = setTimeout(() => {
+                    if (!settled) paint(METHODS.map((m) => m.id));
+                }, ms);
+            };
+            const refresh = (opening = false) => {
+                // Every input event puts the catch-up off again
+                if (!opening) catchUp(ImportDialogClass.PREVIEW_REST_MS);
                 if (rafPending) return;
                 rafPending = true;
                 requestAnimationFrame(() => {
                     rafPending = false;
-                    // A frame queued before Cancel/OK would otherwise render a
-                    // full set into detached canvases
+                    // A frame queued before Cancel/OK would otherwise render
+                    // into detached canvases
                     if (settled) return;
-                    const adjusted = (state.brightness !== 0 || state.contrast !== 0)
-                        ? PNGFormat.applyBrightnessContrast(decoded, state.brightness, state.contrast)
-                        : decoded;
-                    const set = PNGFormat.quantizePreviewSet(adjusted, { scaling: state.scaling });
-                    for (const p of panes) {
-                        const q = set.find((s) => s.id === p.spec.id).preview;
-                        p.ctx.putImageData(new ImageData(q.data, q.width, q.height), 0, 0);
-                    }
+                    paint([chosen.id]);
+                    if (opening) catchUp(0);
                 });
             };
 
@@ -221,10 +246,19 @@ class ImportDialogClass {
                 onClose: () => settle(null)
             });
 
-            refresh();
+            // Opening: the chosen method first, the others right after
+            refresh(true);
         });
     }
 }
+
+/**
+ * How long the controls must rest before the two previews that are not the
+ * chosen one catch up. [A] Long enough that a slider drag's steady stream
+ * of input events keeps putting it off, short enough to feel immediate once
+ * the drag stops.
+ */
+ImportDialogClass.PREVIEW_REST_MS = 150;
 
 window.ImportDialog = new ImportDialogClass();
 
