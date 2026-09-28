@@ -929,3 +929,22 @@ marked AUTO fail on the 0.1.0-alpha.13 tree.
 ### Needs a human
 - [ ] Windows High Contrast: open each menu and check its items are readable; the current layer has a clear outline
 - [ ] The releases page, signed out, shows only the newest release
+
+## Speed audit (2026-09-28)
+
+Found by profiling start-up, every drawing tool, undo, fill, mode switches,
+dialogs, idle load, exports, saving and opening, and photo import in
+13 modes. Drawing, idle load, mode switches, dialogs and exports were already
+fast and are unchanged. The rows marked AUTO fail on the 0.1.0-alpha.14 tree.
+
+### Automated
+- [x] A photo loads at no more than 4x the screen; the Sharp preview of a big photo is exactly what the import draws; a slider drag redraws one preview a frame and the other two when it rests (12 MP: 0.8-3.5 s a step, now 0.25-0.5 s) — AUTO (browser: import-speed.spec)
+- [x] The faster colour matchers choose exactly what the plain versions did — AUTO (browser: import-speed.spec); every mode's previews checked identical to the old code by hand (3 sizes x 13 modes)
+- [x] A saved .pixula holds compact grids and reopens the same; old files still open (32-layer LAYER2_640: save 2.0 s -> 0.6 s, open 1.7 s -> 0.4 s) — AUTO (browser: project-compact.spec)
+- [x] Fill stops at walls, crosses diagonals only when asked, and costs about 1.3x plain drawing, not 2.3x (LAYER2_640 whole canvas 0.25 s -> 0.12 s) — AUTO (browser: fill-speed.spec); the same pixels as the old code over 70 random pictures, by hand
+- [x] A random run of 40 edits undoes and redoes step for step; undo/redo in 32-layer LAYER2_640 no longer copy every layer (70-80 ms -> 15-20 ms) — AUTO (browser: undo-partial-capture.spec)
+- [x] Start-up loads English only; a chosen or saved language loads on demand (start-up about 7% quicker) — AUTO (browser: locale-loading.spec)
+
+### Needs a human
+- [ ] Import a phone photo on a tablet: the Brightness slider follows the finger
+- [ ] Choose a language, close the app, open the portable copy again: it starts in that language
