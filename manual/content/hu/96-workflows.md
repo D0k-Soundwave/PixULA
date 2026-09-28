@@ -94,7 +94,4 @@ számíts részletvesztésre; a PixULA szól, mielőtt megtenné.
 - **Valódi géphez** ments `.tap` vagy `.tzx` fájlt. Ha a képernyődet egy olyan
   szalaghoz akarod adni, amelyen már más fájlok is vannak, használd a
   **Fájl > Szalagblokkok** menüpontot.
-- **Ha olyannak mutatnád meg, akinek nincs Spectruma**, ments `.png` fájlt. Ha a
-  kép villogó cellákat használ, ments `.gif` fájlt, és jelöld be a **VILLOGÓ
-  cellák animálása** lehetőséget – ez a hardver saját ütemében kétképkockás
-  hurkot ír, így a villogás megmarad.
+- **Ha olyannak mutatnád meg, akinek nincs Spectruma**, ments `.png` fájlt.

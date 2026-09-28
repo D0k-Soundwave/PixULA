@@ -87,7 +87,4 @@ detailů; PixULA vám to řekne dřív, než to udělá.
 - **Pro skutečný počítač** uložte `.tap` nebo `.tzx`. Chcete-li svou obrazovku
   přidat na pásku, na které už jsou jiné soubory, použijte **Soubor > Bloky
   pásky**.
-- **Chcete-li ho ukázat někomu bez Spectra**, uložte `.png`. Pokud obrázek
-  používá blikající buňky, uložte `.gif` a zaškrtněte **Animovat buňky
-  BLIKÁNÍ** – zapíše se smyčka dvou snímků v tempu samotného hardwaru, takže
-  blikání přežije.
+- **Chcete-li ho ukázat někomu bez Spectra**, uložte `.png`.

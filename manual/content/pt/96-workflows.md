@@ -93,7 +93,4 @@ sentido; o PixULA avisa-o antes de o fazer.
 - **Para uma máquina real**, guarde um `.tap` ou `.tzx`. Para acrescentar o seu
   ecrã a uma fita que já contém outros ficheiros, use **Ficheiro > Blocos de
   fita**.
-- **Para mostrar a alguém sem Spectrum**, guarde um `.png`. Se a imagem usar
-  células a piscar, guarde um `.gif` e assinale **Animar células PISCAR** –
-  escreve um ciclo de dois fotogramas ao ritmo do próprio hardware, por isso o
-  piscar sobrevive.
+- **Para mostrar a alguém sem Spectrum**, guarde um `.png`.

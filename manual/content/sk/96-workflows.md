@@ -87,7 +87,4 @@ detailov; PixULA vám to povie skôr, než to urobí.
   každý ju uvádza tabuľka v kapitole o režimoch obrazovky.
 - **Pre skutočný počítač** uložte `.tap` alebo `.tzx`. Ak chcete svoju obrazovku
   pridať na pásku, na ktorej už sú iné súbory, použite **Súbor > Bloky pásky**.
-- **Ak ho chcete ukázať niekomu bez Spectra**, uložte `.png`. Ak obrázok
-  používa blikajúce bunky, uložte `.gif` a zaškrtnite **Animovať bunky
-  BLIKANIE** – zapíše sa slučka dvoch snímok v tempe samotného hardvéru, takže
-  blikanie prežije.
+- **Ak ho chcete ukázať niekomu bez Spectra**, uložte `.png`.

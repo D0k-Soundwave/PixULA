@@ -93,7 +93,4 @@ să pierdeți detalii în acea direcție; PixULA vă spune înainte s-o facă.
 - **Pentru o mașină reală**, salvați un `.tap` sau `.tzx`. Ca să adăugați ecranul
   pe o bandă care conține deja alte fișiere, folosiți **Fișier > Blocuri de
   bandă**.
-- **Ca să-l arătați cuiva fără Spectrum**, salvați un `.png`. Dacă imaginea
-  folosește celule care clipesc, salvați un `.gif` și bifați **Animează
-  celulele CLIPIRE** – se scrie o buclă de două cadre în ritmul hardware-ului,
-  așa că clipirea supraviețuiește.
+- **Ca să-l arătați cuiva fără Spectrum**, salvați un `.png`.

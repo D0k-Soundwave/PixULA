@@ -94,7 +94,4 @@ sentido; PixULA te lo dice antes de hacerlo.
 - **Para una máquina real**, guarda un `.tap` o `.tzx`. Para añadir tu pantalla
   a una cinta que ya contiene otros archivos, usa **Archivo > Bloques de
   cinta**.
-- **Para enseñarla a alguien sin Spectrum**, guarda un `.png`. Si la imagen usa
-  celdas con flash, guarda un `.gif` y marca **Animar celdas FLASH**: escribe
-  un bucle de dos fotogramas al ritmo del propio hardware, así que el parpadeo
-  se conserva.
+- **Para enseñarla a alguien sin Spectrum**, guarda un `.png`.
