@@ -217,9 +217,15 @@ class ProjectFormatClass {
         return { success: true };
     }
 
-    /** Export: the live document as bytes. */
+    /**
+     * Export: the live document as bytes, in compact grids (see
+     * App._getProjectData). Every released build reads them - 0.1.0-alpha.1
+     * already did - so the plain form bought no compatibility, and cost 2 s
+     * to save and 1.7 s to open a 32-layer LAYER2_640 document (0.6 s and
+     * 0.4 s now, and a ninth of the file; measured 2026-09-28).
+     */
     async export() {
-        return this.encode(App._getProjectData());
+        return this.encode(App._getProjectData({ packed: true }));
     }
 
     /**

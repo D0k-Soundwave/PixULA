@@ -1073,8 +1073,7 @@ class LayerManagerClass {
       xorMode: layer.xorMode || false,
       stamp: this._plainStamp(layer.stamp),
       // PACKED: this feeds undo snapshots, which are held fifty deep in
-      // memory. getAllLayers() packs only when asked (autosave, backups):
-      // an explicit .pixula keeps the array form older builds read.
+      // memory. getAllLayers() packs when asked (autosave, backups, files).
       attributeData: layer.packAttributeData()
     };
   }

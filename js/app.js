@@ -555,11 +555,12 @@ class AppClass {
      * shared `.zxpreset`.
      *
      * `packed` stores each layer's grid in the compact form undo uses (see
-     * LayerClass.packAttributeData), which every build since 2026-08-07
-     * reads back. Autosave and backups use it: the one-object-per-cell form
-     * made a 32-layer LAYER2_640 autosave build ~50 MB and freeze the app
-     * for about a second each time (found 2026-09-27). An explicit save
-     * keeps the plain form, for files handed to older builds.
+     * LayerClass.packAttributeData), which every released build reads back
+     * (0.1.0-alpha.1 already did). Autosave, backups and saved files all use
+     * it: the one-object-per-cell form made a 32-layer LAYER2_640 autosave
+     * build ~50 MB and freeze the app for about a second each time (found
+     * 2026-09-27). The plain form stays the default for callers that want
+     * the live cell shape.
      * @param {{packed?: boolean}} [opts]
      * @private
      */
