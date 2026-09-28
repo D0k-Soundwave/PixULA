@@ -42,6 +42,22 @@ test('the English fallback picks singular or plural without I18n', async ({ page
     expect(r).toEqual(['1 byte', '7 bytes']);
 });
 
+test('one parser for plural forms, and one set of rules per language', async ({ page }) => {
+    await boot(page);
+    const r = await page.evaluate(() => {
+        // A mistyped tag is ignored by the fallback exactly as by I18n.plural
+        const typo = Helpers.localizedPlural('plural.none', 1, 'on: {n} byte | other: {n} bytes');
+        I18n.setLocale('pl');
+        for (let n = 0; n < 50; n++) I18n.plural('plural.tapeBytes', n);
+        const rules = I18n._pluralRules.get('pl');
+        I18n.plural('plural.tapeBytes', 3);
+        const same = I18n._pluralRules.get('pl') === rules;
+        I18n.setLocale('en');
+        return { typo, same, cached: rules instanceof Intl.PluralRules };
+    });
+    expect(r).toEqual({ typo: '1 bytes', same: true, cached: true });
+});
+
 for (const [code, expected] of [
     ['pl', '(zapisaną automatycznie 2 minuty temu)'],
     ['de', '(gesichert vor 2 Minuten)'],

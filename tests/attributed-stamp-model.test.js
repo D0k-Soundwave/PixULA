@@ -88,7 +88,7 @@ check('transformStamp shape-change is a no-op on an attrs stamp',
 SelectionService.transformStamp('shiftRight', 8);
 check('transformStamp shift still repositions an attrs stamp', SelectionService.floatingPaste.x === 8);
 
-// endFloatingPaste persists attrs onto layer.stamp; _getStampData returns it
+// endFloatingPaste persists attrs onto layer.stamp; getStampData returns it
 const layer = SelectionService.floatingPaste.floatingLayer;
 SelectionService.endFloatingPaste();
 check('attrs persisted on layer.stamp', Array.isArray(layer.stamp.attrs) && layer.stamp.attrs.length === 2);

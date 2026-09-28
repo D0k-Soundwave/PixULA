@@ -14,6 +14,16 @@ const TITLE_SEPARATOR = ' — ';
 /** The base64 alphabet encodeBase64/decodeBase64 pack bytes against. */
 const BASE64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
+/** The typed arrays jsonTypedReplacer/jsonTypedReviver carry through JSON. */
+const JSON_TYPED_ARRAYS = Object.freeze({
+    Uint8Array, Int8Array, Uint8ClampedArray,
+    Uint16Array, Int16Array, Uint32Array, Int32Array,
+    Float32Array, Float64Array
+});
+
+/** Their marker key. Chosen to be one no document field would ever use. */
+const JSON_TYPED_TAG = '$ta';
+
 const Helpers = {
     /**
      * How long a press-and-hold waits before it starts repeating, and how
@@ -76,6 +86,22 @@ const Helpers = {
     },
 
     /**
+     * The tagged forms of a plural value, by CLDR category - the one parser
+     * for the format I18n.plural and localizedPlural read (an unknown tag is
+     * ignored, as the translation check ignores it).
+     * @param {string} raw - e.g. 'one: {n} byte | other: {n} bytes'
+     * @returns {Object<string, string>}
+     */
+    parsePluralForms(raw) {
+        const forms = {};
+        for (const part of String(raw).split('|')) {
+            const m = part.match(/^\s*(zero|one|two|few|many|other)\s*:\s*(.*?)\s*$/);
+            if (m) forms[m[1]] = m[2];
+        }
+        return forms;
+    },
+
+    /**
      * localizedMessage for a count: the form of a `plural.*` key the current
      * language uses for `n` (see I18n.plural), with an English fallback in
      * the same tagged shape, 'one: {n} byte | other: {n} bytes'.
@@ -90,11 +116,7 @@ const Helpers = {
             const v = I18n.plural(key, n, params);
             if (v && v !== key) return v;
         }
-        const forms = {};
-        for (const part of String(fallback).split('|')) {
-            const m = part.match(/^\s*(\w+)\s*:\s*(.*?)\s*$/);
-            if (m) forms[m[1]] = m[2];
-        }
+        const forms = this.parsePluralForms(fallback);
         const text = (n === 1 && forms.one) || forms.other || String(fallback);
         const all = { n, ...params };
         return text.replace(/\{(\w+)\}/g, (m, name) =>
@@ -1076,6 +1098,47 @@ const Helpers = {
             // 'mode.standardUla' -> 'mode.desc.standardUla'
             t(mode.i18n.replace('mode.', 'mode.desc.'))
         ].join('\n');
+    },
+
+    /**
+     * JSON replacer that keeps typed arrays: each becomes a tagged base64
+     * object that jsonTypedReviver turns back into the same typed array.
+     *
+     * Typed arrays do not survive JSON, and the failure is SILENT:
+     * `JSON.stringify` writes a Uint8Array as `{"0":255,"1":0,...}` and
+     * `JSON.parse` hands back exactly that, so a layer loads with every
+     * pixel gone. IndexedDB (structured clone) keeps them natively; anything
+     * that goes through JSON - a .pixula file, the localStorage fallback -
+     * needs this pair. Base64 rather than a number array because a number
+     * array costs about 2x (M, 2026-08-07, measured on the pattern store).
+     * Pass it to JSON.stringify as is: it reads the holder as `this`.
+     */
+    jsonTypedReplacer(key, value) {
+        // `this[key]` is the ORIGINAL value; `value` has already been through
+        // any toJSON, which for a typed array means nothing - but reading the
+        // original keeps this correct if that ever changes.
+        const raw = this[key];
+        if (!raw || !ArrayBuffer.isView(raw) || raw instanceof DataView) return value;
+        const type = raw.constructor.name;
+        if (!JSON_TYPED_ARRAYS[type]) return value;
+        const u8 = new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength);
+        let bin = '';
+        const CHUNK = 0x8000; // so a large layer cannot blow the argument limit
+        for (let i = 0; i < u8.length; i += CHUNK) {
+            bin += String.fromCharCode.apply(null, u8.subarray(i, i + CHUNK));
+        }
+        return { [JSON_TYPED_TAG]: type, d: btoa(bin) };
+    },
+
+    /** JSON reviver: rebuild a typed array jsonTypedReplacer tagged. */
+    jsonTypedReviver(key, value) {
+        if (!value || typeof value !== 'object' || !value[JSON_TYPED_TAG]) return value;
+        const Ctor = JSON_TYPED_ARRAYS[value[JSON_TYPED_TAG]];
+        if (!Ctor) return value;
+        const bin = atob(value.d || '');
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        return new Ctor(bytes.buffer, bytes.byteOffset, bytes.byteLength / Ctor.BYTES_PER_ELEMENT);
     }
 };
 
