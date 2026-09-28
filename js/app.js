@@ -483,9 +483,7 @@ class AppClass {
         if (this._autosaveInFlight) return;
         this._autosaveInFlight = true;
         try {
-            // Compact grids - unless storage fell back to localStorage,
-            // whose JSON cannot hold the typed arrays they are made of.
-            const project = this._getProjectData({ packed: !Storage.useLocalStorage });
+            const project = this._getProjectData({ packed: true });
 
             // The database record FIRST and on its own try: it is the crash
             // recovery, and it must not be lost to a folder that went away.

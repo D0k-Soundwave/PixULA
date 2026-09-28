@@ -81,21 +81,10 @@ const GZIP_MAGIC = [0x1F, 0x8B];
  *
  * The autosave record hides this because IndexedDB uses STRUCTURED CLONE, which
  * preserves typed arrays natively. The moment the same payload goes to JSON it
- * stops being true, which is why this lives here and not in the snapshot: the
- * snapshot is not JSON-safe and was never required to be.
- *
- * So typed arrays are tagged and base64'd on the way out and rebuilt on the way
- * in. Base64 rather than a number array because a number array costs about 2x
- * (M, 2026-08-07, measured on the pattern store) for the same bytes.
+ * stops being true, so they are tagged and base64'd on the way out and rebuilt
+ * on the way in (Helpers.jsonTypedReplacer / jsonTypedReviver, shared with
+ * Storage's localStorage fallback, which has the same problem).
  */
-const TYPED_ARRAYS = Object.freeze({
-    Uint8Array, Int8Array, Uint8ClampedArray,
-    Uint16Array, Int16Array, Uint32Array, Int32Array,
-    Float32Array, Float64Array
-});
-
-/** The marker key. Chosen to be one no document field would ever use. */
-const TA_TAG = '$ta';
 
 /** Bumped only for a change decode cannot infer; the payload carries its own `version`. */
 const CONTAINER_VERSION = 1;
@@ -262,47 +251,9 @@ class ProjectFormatClass {
     }
 }
 
-/** Bytes -> base64, chunked so a large layer cannot blow the argument limit. */
-function toBase64(u8) {
-    let out = '';
-    const CHUNK = 0x8000;
-    for (let i = 0; i < u8.length; i += CHUNK) {
-        out += String.fromCharCode.apply(null, u8.subarray(i, i + CHUNK));
-    }
-    return btoa(out);
-}
-
-/** base64 -> bytes. */
-function fromBase64(str) {
-    const bin = atob(str);
-    const u8 = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
-    return u8;
-}
-
-/** JSON replacer: tag and encode any typed array. */
-ProjectFormatClass.replacer = function(key, value) {
-    // `this[key]` is the ORIGINAL value; `value` has already been through any
-    // toJSON, which for a typed array means nothing - but reading the original
-    // keeps this correct if that ever changes.
-    const raw = this[key];
-    if (!raw || !ArrayBuffer.isView(raw) || raw instanceof DataView) return value;
-    const type = raw.constructor.name;
-    if (!TYPED_ARRAYS[type]) return value;
-    return {
-        [TA_TAG]: type,
-        d: toBase64(new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength))
-    };
-};
-
-/** JSON reviver: rebuild a tagged typed array. */
-ProjectFormatClass.reviver = function(key, value) {
-    if (!value || typeof value !== 'object' || !value[TA_TAG]) return value;
-    const Ctor = TYPED_ARRAYS[value[TA_TAG]];
-    if (!Ctor) return value;
-    const bytes = fromBase64(value.d || '');
-    return new Ctor(bytes.buffer, bytes.byteOffset, bytes.byteLength / Ctor.BYTES_PER_ELEMENT);
-};
+/** JSON replacer/reviver for typed arrays - see the comment at the top. */
+ProjectFormatClass.replacer = Helpers.jsonTypedReplacer;
+ProjectFormatClass.reviver = Helpers.jsonTypedReviver;
 
 window.ProjectFormat = new ProjectFormatClass();
 

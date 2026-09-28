@@ -68,15 +68,47 @@ test('a 32-layer LAYER2_640 autosave does not freeze the app', async ({ page }) 
         ScreenModeService.applyModeRaw('layer2_640');
         LayerManager.reset();
         while (LayerManager.getLayerCount() < 32) if (!LayerManager.addLayer(null, false)) break;
-        FileManager.hasUnsavedChanges = true;
-        // What the old record cost on THIS machine, as the yardstick
-        let t0 = performance.now();
-        await Storage.set('autosave-old', App._getProjectData());
-        const old = performance.now() - t0;
+        // Best of three each: a stall (garbage collection, a slow disk
+        // commit) only ever makes one run SLOWER, so the fastest run of each
+        // is its real cost on THIS machine. The old record is the yardstick.
+        const best = async (run) => {
+            let min = Infinity;
+            for (let i = 0; i < 3; i++) {
+                const t0 = performance.now();
+                await run();
+                min = Math.min(min, performance.now() - t0);
+            }
+            return min;
+        };
+        const old = await best(() => Storage.set('autosave-old', App._getProjectData()));
         await Storage.delete('autosave-old');
-        t0 = performance.now();
-        await App._autosaveNow();
-        return { old, now: performance.now() - t0 };
+        const now = await best(() => {
+            FileManager.hasUnsavedChanges = true;
+            return App._autosaveNow();
+        });
+        return { old, now };
     });
     expect(ms.now).toBeLessThan(ms.old / 3);
+});
+
+test('where the browser has only localStorage, autosave still restores the picture', async ({ page }) => {
+    // IndexedDB missing, localStorage working: the fallback stores JSON,
+    // which wrote pixel arrays as {"0":..} objects - every layer came back
+    // blank (found 2026-09-28 by review).
+    await page.addInitScript(() => {
+        Object.defineProperty(window, 'indexedDB', { get() { return undefined; }, configurable: true });
+    });
+    await boot(page);
+    expect(await page.evaluate(() => Storage.useLocalStorage)).toBe(true);
+    await draw(page, 'layer2_256');
+    const before = await fingerprint(page);
+    const stored = await page.evaluate(async () => {
+        await App._autosaveNow();
+        return !!(await Storage.get('autosave'));
+    });
+    expect(stored).toBe(true);
+
+    page.on('dialog', (d) => d.accept());
+    await reload(page);
+    expect(await fingerprint(page)).toEqual(before);
 });
