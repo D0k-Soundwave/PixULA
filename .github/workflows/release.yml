@@ -28,6 +28,10 @@
 #
 # Every step below is a gate: a release is only published if the tag agrees
 # with the app's own version and the test suite passes.
+#
+# Only the newest release stays public: once it is published, every older
+# one is turned into a draft (the owner's choice, 2026-09-28). See the last
+# step for what that does and does not remove.
 name: Release
 
 on:
@@ -134,11 +138,38 @@ jobs:
           case "$TAG" in
             *-alpha*|*-beta*|*-rc*) PRE="--prerelease" ;;
           esac
+          # The notes list what changed since the release before this one.
+          # That one is a draft by now (see the next step), and drafts are
+          # not what GitHub compares against by default, so name it.
+          START=""
+          PREV=$(gh release list --limit 1 --json tagName --jq '.[0].tagName // empty')
+          if [ -n "$PREV" ] && [ "$PREV" != "$TAG" ]; then
+            START="--notes-start-tag $PREV"
+          fi
           gh release create "$TAG" "$ASSET" \
             --target "$GITHUB_SHA" \
             --title "PixULA $TAG" \
             --generate-notes \
+            $START \
             $PRE \
             --notes "Download **$ASSET**, unzip it anywhere, and double-click \`PixULA.html\`. It runs in your browser with no install, no server and no internet connection. Your work never leaves your machine.
 
           Built from \`$GITHUB_SHA\` by the release workflow, so this archive is exactly the tagged source."
+
+      # Only the newest release is public. Each older one becomes a DRAFT:
+      # visitors no longer see it on the releases page and its download link
+      # stops working, but nothing is deleted - its tag, notes and zip stay,
+      # the owner still sees it (marked Draft) when signed in, and "Publish
+      # release" on its Edit page brings it back.
+      - name: Hide older releases
+        if: env.SKIP != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release list --limit 1000 --exclude-drafts --json tagName --jq '.[].tagName' |
+          while read -r OLD; do
+            if [ -n "$OLD" ] && [ "$OLD" != "$TAG" ]; then
+              echo "Hiding $OLD"
+              gh release edit "$OLD" --draft=true
+            fi
+          done
