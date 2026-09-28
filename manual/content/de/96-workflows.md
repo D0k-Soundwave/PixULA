@@ -99,6 +99,3 @@ bevor es passiert.
   Bildschirm zu einem Band mit anderen Dateien hinzuzufügen, verwenden Sie
   **Datei > Bandblöcke**.
 - **Um es jemandem ohne Spectrum zu zeigen**, speichern Sie eine `.png`.
-  Verwendet das Bild blinkende Zellen, speichern Sie eine `.gif` und kreuzen
-  **BLINKEN-Zellen animieren** an – das schreibt eine Schleife aus zwei Bildern
-  im Takt der Hardware, sodass das Blinken erhalten bleibt.
