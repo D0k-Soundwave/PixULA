@@ -64,7 +64,7 @@ function extractManualData() {
         };
         const valueWord = (key, value) => {
             const row = schema.find((e) => e.key === key);
-            if (typeof value === 'boolean') return value ? 'on' : 'off';
+            if (typeof value === 'boolean') return t(value ? 'manual.on' : 'manual.off');
             // `options` is what the ROW offers; `presetOptions` is what the
             // setter really accepts, and a condition often names one of the
             // latter - the brush rows key off types the Round/Square select
@@ -80,21 +80,28 @@ function extractManualData() {
             }
             return '"' + String(value) + '"';
         };
+        // The sentence is built from the manual.showIf.* strings, so it reads
+        // in the language the app is running in, word order included.
+        const and = ' ' + t('manual.showIf.and') + ' ';
+        const or = ' ' + t('manual.showIf.or') + ' ';
         const one = (c) => {
             if (!c) return '';
-            if (c.all) return c.all.map(one).filter(Boolean).join(' and ');
-            if (c.any) return c.any.map(one).filter(Boolean).join(' or ');
+            if (c.all) return c.all.map(one).filter(Boolean).join(and);
+            if (c.any) return c.any.map(one).filter(Boolean).join(or);
             if (!c.key) return '';
-            if ('equals' in c) return labelFor(c.key) + ' is ' + valueWord(c.key, c.equals);
+            const label = labelFor(c.key);
+            if ('equals' in c) {
+                return t('manual.showIf.is', { label, value: valueWord(c.key, c.equals) });
+            }
             if (c.in) {
-                return labelFor(c.key) + ' is ' +
-                    c.in.map((v) => valueWord(c.key, v)).join(' or ');
+                return t('manual.showIf.is',
+                    { label, value: c.in.map((v) => valueWord(c.key, v)).join(or) });
             }
             if (c.notIn) {
-                return labelFor(c.key) + ' is not ' +
-                    c.notIn.map((v) => valueWord(c.key, v)).join(' or ');
+                return t('manual.showIf.isNot',
+                    { label, value: c.notIn.map((v) => valueWord(c.key, v)).join(or) });
             }
-            if ('gt' in c) return labelFor(c.key) + ' is above ' + c.gt;
+            if ('gt' in c) return t('manual.showIf.above', { label, value: c.gt });
             return '';
         };
         return one(cond);
@@ -292,7 +299,7 @@ function extractManualData() {
         })),
         profiles: values(window.PEN_PROFILES).map((p) => ({
             id: p.id,
-            label: p.label || t(p.i18n),
+            label: p.labelI18n ? t(p.labelI18n) : (p.label || t(p.i18n)),
             vendor: p.group || null,
             barrels: p.barrels,
             eraser: p.eraser === true,
@@ -388,6 +395,10 @@ function extractManualData() {
 
     const readShortcuts = (menus) => {
         const rows = [];
+        // Key names as the reader's keyboard prints them ('Strg+Z'). The menu
+        // rows are read off the screen and are labelled already.
+        const keyLabel = (keys) => (window.Helpers && Helpers.shortcutLabel)
+            ? Helpers.shortcutLabel(keys) : keys;
         for (const menu of menus) {
             const walk = (items) => {
                 for (const item of items) {
@@ -403,7 +414,7 @@ function extractManualData() {
             for (const meta of group.tools) {
                 if (meta.shortcut) {
                     rows.push({
-                        keys: meta.shortcut,
+                        keys: keyLabel(meta.shortcut),
                         what: t(meta.i18n),
                         from: t(group.i18n || ('toolgroup.' + group.id))
                     });

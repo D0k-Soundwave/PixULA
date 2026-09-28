@@ -924,6 +924,21 @@ const Helpers = {
     },
 
     /**
+     * A shortcut as the keyboard in front of the user labels it: 'Ctrl+Z'
+     * reads 'Strg+Z' in German, 'Del' reads 'Suppr' in French. Only the
+     * modifier and editing-key names change; letters, digits and symbols are
+     * the same on every layout. The shortcut the app MATCHES stays the
+     * English string - this is for display only.
+     * @param {string} shortcut - e.g. 'Ctrl+Shift+S'
+     * @returns {string}
+     */
+    shortcutLabel(shortcut) {
+        if (!shortcut) return shortcut;
+        return String(shortcut).replace(/\b(Ctrl|Shift|Del)\b/g,
+            (word) => this.tr('key.' + word.toLowerCase(), word));
+    },
+
+    /**
      * The tooltip for an icon button: the FULL name, its shortcut, then what it
      * does. I18n recomposes this on a locale change from the
      * data-i18n-title-name / data-i18n-title / data-shortcut attributes, so
@@ -934,7 +949,7 @@ const Helpers = {
      * @param {string} [shortcut] keyboard shortcut, e.g. 'B'
      */
     composeTitle(name, hint, shortcut) {
-        let title = shortcut ? `${name} (${shortcut})` : name;
+        let title = shortcut ? `${name} (${this.shortcutLabel(shortcut)})` : name;
         if (hint && hint !== name && !hint.startsWith(`${name} (`)) {
             title += `${TITLE_SEPARATOR}${hint}`;
         }

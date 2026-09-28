@@ -25,6 +25,8 @@ check('anchors are stable, lowercase and punctuation-free',
     slug('Mouse, pen and touch!') === 'mouse-pen-and-touch');
 check('a heading of pure punctuation still gets a usable anchor',
     slug('...') === 'section');
+check('a heading in another script keeps its own words in the anchor',
+    slug('Режимы экрана') === 'режимы-экрана' && slug('Szín és ecset') === 'szín-és-ecset');
 
 // ── the wrapped-bullet bug ────────────────────────────────────────────────
 // Prose here is hard-wrapped at 80 columns, so almost every real bullet spans

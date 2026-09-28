@@ -255,6 +255,9 @@ class AppClass {
     /** Phase 2: managers + services (depend on core; CanvasSystem waits for the iframe) */
     async _initManagers() {
         await CanvasSystem.initialize();
+        // The language is settled before the first layer exists, so the
+        // starting layer is named in it ('Ebene 1', not 'Layer 1').
+        await I18n.init();
         LayerManager.initialize();
         ColorManager.initialize();
         UndoRedo.initialize();
@@ -303,11 +306,11 @@ class AppClass {
     /** Phase 5: UI shell — every component renders from bus events;
      *  commands go down as direct singleton calls. */
     async _initUI() {
-        // Locale + theme first, so every component below builds already
-        // translated/themed (they read I18n.t and the CSS tokens at build).
+        // Theme first (the locale is set even earlier), so every component
+        // below builds already translated/themed (they read I18n.t and the CSS tokens at build).
         // Both boot from the Storage keys the interim AppSettings paths
         // persisted under ('locale' / 'theme'), so earlier choices carry over.
-        await I18n.init();
+        // (I18n itself is already initialised in _initManagers.)
         await ThemeManager.init();
 
         // Header

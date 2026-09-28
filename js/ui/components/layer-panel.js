@@ -92,7 +92,7 @@ class LayerPanelClass {
     _buildContent(content) {
         content.innerHTML = `
             <div id="layer-list" role="listbox" aria-label="${this._t('panels.layers', 'Layers')}" data-i18n-aria-label="panels.layers" aria-multiselectable="true"></div>
-            <div id="layer-controls" role="group" aria-label="Layer controls">
+            <div id="layer-controls" role="group" aria-label="${this._t('a11y.layerControls', 'Layer controls')}" data-i18n-aria-label="a11y.layerControls">
                 ${captionedIconBtn('cap.add', 'Add', 'layer.add', 'Add Layer',
                     'layer.add.hint', 'Add new layer',
                     'id="add-layer" class="layer-ctrl-btn"', 'icon-plus')}
@@ -176,14 +176,14 @@ class LayerPanelClass {
             item.innerHTML = `
                 <button type="button" class="layer-btn layer-checkbox ${isSelected ? 'checked' : ''}"
                         title="${this._t('layer.selectForMerge', 'Select for merge')}" data-i18n-title="layer.selectForMerge"
-                        aria-label="Toggle selection for merge">${svgUse(isSelected ? 'icon-check' : 'icon-check-empty')}</button>
+                        aria-label="${this._t('a11y.toggleMerge', 'Toggle selection for merge')}" data-i18n-aria-label="a11y.toggleMerge">${svgUse(isSelected ? 'icon-check' : 'icon-check-empty')}</button>
                 <button type="button" class="layer-btn layer-visibility ${layer.visible ? 'visible' : ''}"
                         title="${this._t(layer.visible ? 'layer.visibility.hide' : 'layer.visibility.show', layer.visible ? 'Hide layer' : 'Show layer')}" data-i18n-title="${layer.visible ? 'layer.visibility.hide' : 'layer.visibility.show'}"
-                        aria-label="Toggle layer visibility">${svgUse(layer.visible ? 'icon-eye' : 'icon-eye-off')}</button>
+                        aria-label="${this._t('a11y.toggleLayerVisibility', 'Toggle layer visibility')}" data-i18n-aria-label="a11y.toggleLayerVisibility">${svgUse(layer.visible ? 'icon-eye' : 'icon-eye-off')}</button>
                 <span class="layer-name" title="${this._t('layer.selectHint', 'Click to select; double-click to rename')}" data-i18n-title="layer.selectHint">${Helpers.escapeHTML(layer.name)}</span>
                 <button type="button" class="layer-btn layer-lock ${layer.locked ? 'locked' : ''}"
                         title="${this._t(layer.locked ? 'layer.lock.unlock' : 'layer.lock.lock', layer.locked ? 'Unlock layer' : 'Lock layer')}" data-i18n-title="${layer.locked ? 'layer.lock.unlock' : 'layer.lock.lock'}"
-                        aria-label="Toggle layer lock">${svgUse(layer.locked ? 'icon-lock' : 'icon-unlock')}</button>
+                        aria-label="${this._t('a11y.toggleLayerLock', 'Toggle layer lock')}" data-i18n-aria-label="a11y.toggleLayerLock">${svgUse(layer.locked ? 'icon-lock' : 'icon-unlock')}</button>
             `;
             layerList.appendChild(item);
         }
@@ -400,17 +400,17 @@ class LayerPanelClass {
             item.innerHTML = `
                 <button type="button" class="stamp-btn stamp-visibility ${layer.visible ? 'visible' : ''}"
                         title="${this._t(layer.visible ? 'stamp.visibility.hide' : 'stamp.visibility.show', layer.visible ? 'Hide stamp' : 'Show stamp')}" data-i18n-title="${layer.visible ? 'stamp.visibility.hide' : 'stamp.visibility.show'}"
-                        aria-label="Toggle stamp visibility">${svgUse(layer.visible ? 'icon-eye' : 'icon-eye-off')}</button>
+                        aria-label="${this._t('a11y.toggleStampVisibility', 'Toggle stamp visibility')}" data-i18n-aria-label="a11y.toggleStampVisibility">${svgUse(layer.visible ? 'icon-eye' : 'icon-eye-off')}</button>
                 <span class="stamp-name" title="${this._t('stamp.selectHint', 'Click to engage; click again to release')}" data-i18n-title="stamp.selectHint">${Helpers.escapeHTML(layer.name)}</span>
                 <button type="button" class="stamp-btn stamp-xor ${layer.xorMode ? 'active' : ''}"
                         title="${this._t('stamp.xorMode', 'XOR mode')}" data-i18n-title="stamp.xorMode"
-                        aria-label="Toggle XOR mode">X</button>
+                        aria-label="${this._t('a11y.toggleXor', 'Toggle XOR mode')}" data-i18n-aria-label="a11y.toggleXor">X</button>
                 <button type="button" class="stamp-btn stamp-commit"
                         title="${this._t('stamp.commit', 'Apply stamp to drawing')}" data-i18n-title="stamp.commit"
-                        aria-label="Apply stamp to drawing">${svgUse('icon-commit')}</button>
+                        aria-label="${this._t('stamp.commit', 'Apply stamp to drawing')}" data-i18n-aria-label="stamp.commit">${svgUse('icon-commit')}</button>
                 <button type="button" class="stamp-btn stamp-delete"
                         title="${this._t('stamp.delete', 'Delete stamp')}" data-i18n-title="stamp.delete"
-                        aria-label="Delete stamp">${svgUse('icon-trash')}</button>
+                        aria-label="${this._t('stamp.delete', 'Delete stamp')}" data-i18n-aria-label="stamp.delete">${svgUse('icon-trash')}</button>
             `;
             stampList.appendChild(item);
         }

@@ -436,7 +436,7 @@ class MenuSystemClass {
             }
 
             const shortcutHtml = item.shortcut
-                ? `<span class="menu-shortcut">${item.shortcut}</span>`
+                ? `<span class="menu-shortcut" data-i18n-shortcut="${item.shortcut}">${Helpers.shortcutLabel(item.shortcut)}</span>`
                 : '';
 
             const toggleClass = item.toggle ? ' menu-toggle' : '';
@@ -1106,7 +1106,7 @@ class MenuSystemClass {
         content.className = 'shortcuts-table';
         content.innerHTML = `<tbody>${
             shortcuts.map(([key, action]) =>
-                `<tr><td><kbd>${key}</kbd></td><td>${action}</td></tr>`).join('')
+                `<tr><td><kbd>${Helpers.shortcutLabel(key)}</kbd></td><td>${action}</td></tr>`).join('')
         }</tbody>`;
 
         Dialog.open({

@@ -27,7 +27,12 @@ const readLabels = (page) => page.evaluate(() => {
         minus: attr('.slider-step-minus', 'aria-label'),
         collapseText: document.querySelector('.panel-collapse .sr-only')?.textContent.trim(),
         collapseTitle: attr('.panel-collapse', 'title'),
-        patternCreator: attr('.tool-btn[data-tool="pattern-creator"]', 'aria-label')
+        patternCreator: attr('.tool-btn[data-tool="pattern-creator"]', 'aria-label'),
+        menuBar: attr('#menu-bar', 'aria-label'),
+        language: attr('#language-selector', 'aria-label'),
+        canvasFrame: attr('#canvas-frame', 'aria-label'),
+        layerControls: attr('#layer-controls', 'aria-label'),
+        layerLock: attr('.layer-lock', 'aria-label')
     };
 });
 
@@ -39,7 +44,10 @@ const expected = (page, locale) => page.evaluate((locale) => {
         layerList: t['panels.layers'], stampList: t['panels.stamps'],
         fontScaleTitle: t['a11y.textSize'], paperTitle: t['color.paper'], paperAria: t['color.paper'],
         minus: t['a11y.decrease'], collapseText: t['panel.collapse'],
-        patternCreator: t['tool.patternCreator']
+        patternCreator: t['tool.patternCreator'],
+        menuBar: t['a11y.mainMenu'], language: t['a11y.language'],
+        canvasFrame: t['a11y.canvasFrame'].replace('{w}', '256').replace('{h}', '192'),
+        layerControls: t['a11y.layerControls'], layerLock: t['a11y.toggleLayerLock']
     };
 }, locale);
 
@@ -62,4 +70,14 @@ test('labels are translated after a reload in that language', async ({ page }) =
     const want = await expected(page, 'fr');
     for (const [k, v] of Object.entries(want)) expect(got[k], k).toBe(v);
     expect(got.collapseTitle.startsWith(want.collapseText)).toBe(true);
+});
+
+test('a new document names its first layer in the chosen language', async ({ page }) => {
+    await boot(page);
+    await page.evaluate(() => I18n.setLocale('de'));
+    await page.waitForTimeout(300); // the locale choice persists asynchronously
+    await reload(page);
+    expect(await page.evaluate(() => LayerManager.getLayer(1).name)).toBe('Ebene 1');
+    // and the keyboard's own names for the modifier keys
+    expect(await page.evaluate(() => Helpers.shortcutLabel('Ctrl+Shift+S'))).toBe('Strg+Umschalt+S');
 });

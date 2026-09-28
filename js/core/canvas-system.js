@@ -284,6 +284,15 @@ class CanvasSystemClass {
     const w = ZX_SPECTRUM.WIDTH;
     const h = ZX_SPECTRUM.HEIGHT;
 
+    // The frame's screen-reader label states the canvas size; the params ride
+    // on the element so a language switch (I18n.apply) re-reads them.
+    if (this.iframe) {
+      this.iframe.dataset.i18nParamW = String(w);
+      this.iframe.dataset.i18nParamH = String(h);
+      this.iframe.setAttribute('aria-label', Helpers.localizedMessage('a11y.canvasFrame',
+        'Drawing canvas {w} by {h} pixels', { w, h }));
+    }
+
     const container = this.iframeDoc.getElementById('canvas-container');
     if (container) {
       container.style.width = w + 'px';
