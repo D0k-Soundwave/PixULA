@@ -885,6 +885,14 @@ class LayerManagerClass {
 
     const layer = this.layers[index];
 
+    // Stamps do not count: with only stamps left there is nothing for them
+    // to stamp onto.
+    if (!layer.isStamp &&
+        this.layers.filter(l => !l.isBackground && !l.isStamp).length <= 1) {
+      Logger.warn('LayerManager', 'Cannot remove last drawing layer');
+      return false;
+    }
+
     if (pushToUndo && window.UndoRedo) UndoRedo.beginAction('Delete layer');
 
     this.layers.splice(index, 1);
@@ -1412,6 +1420,10 @@ class LayerManagerClass {
     if (fromIndex < 0 || fromIndex >= this.layers.length) return;
     if (toIndex < 0 || toIndex >= this.layers.length) return;
     if (fromIndex === toIndex) return;
+    // Stamps stay above every drawing layer: each kind moves only among its
+    // own kind. Moving Layer 1 up past a stamp used to be allowed, and that
+    // order is one a saved project could not bring its stamps back from.
+    if (!!this.layers[fromIndex].isStamp !== !!this.layers[toIndex].isStamp) return;
 
     const [layer] = this.layers.splice(fromIndex, 1);
     this.layers.splice(toIndex, 0, layer);
@@ -2648,9 +2660,6 @@ class LayerManagerClass {
    * @returns {Array}
    */
   getAllLayers({ packed = false } = {}) {
-    // The stamp being dragged keeps its live shape and position on the
-    // floating paste; layer.stamp is only written when it is parked.
-    const fp = window.SelectionService && SelectionService.floatingPaste;
     return this.layers.map(layer => {
       const out = {
         name: layer.name,
@@ -2663,17 +2672,15 @@ class LayerManagerClass {
       // Written only when set, so a document without stamps saves exactly
       // as before. Until 2026-09-27 neither was written at all: every stamp
       // reopened (and came back from autosave) as an empty plain layer.
-      if (layer.xorMode) out.xorMode = true;
       if (layer.isStamp) {
-        const live = fp && fp.floatingLayer === layer;
-        const stamp = this._plainStamp(live ? {
-          mask: fp.pixels, indices: fp.indices, attrs: fp.attrs,
-          x: fp.x, y: fp.y, w: fp.width, h: fp.height,
-          colorSelection: fp.colorSelection
-        } : layer.stamp);
+        // Live from the floating paste if this is the stamp being dragged
+        // (layer.stamp is only written when it is parked).
+        const stamp = this._plainStamp(window.SelectionService
+          ? SelectionService.getStampData(layer) : layer.stamp);
         if (stamp) {
           out.isStamp = true;
           out.stamp = stamp;
+          if (layer.xorMode) out.xorMode = true;
         }
       }
       return out;
@@ -2713,10 +2720,15 @@ class LayerManagerClass {
     const rowsOk = (rows) => Array.isArray(rows) && rows.length === h &&
       rows.every(row => Array.isArray(row) && row.length === w);
     if (!rowsOk(s.mask)) return null;
-    const stamp = this._plainStamp(s);
-    if (!rowsOk(stamp.indices)) stamp.indices = null;
-    if (!Array.isArray(s.attrs)) stamp.attrs = null;
-    return stamp;
+    // Every part checked BEFORE it is copied: a damaged `indices` ({}, or a
+    // null row) used to throw out of restoreFromData halfway through.
+    return this._plainStamp({
+      x: s.x, y: s.y, w, h,
+      mask: s.mask,
+      colorSelection: s.colorSelection && typeof s.colorSelection === 'object' ? s.colorSelection : null,
+      indices: rowsOk(s.indices) ? s.indices : null,
+      attrs: Array.isArray(s.attrs) ? s.attrs : null
+    });
   }
 
   /**
@@ -2741,11 +2753,16 @@ class LayerManagerClass {
       if (layerData.attributeData) {
         layer.restoreAttributeData(layerData.attributeData);
       }
-      layer.xorMode = layerData.xorMode === true;
-      const stamp = !isBackground && layerData.isStamp ? this._readStamp(layerData.stamp) : null;
+      let stamp = null;
+      if (!isBackground && layerData.isStamp) {
+        try { stamp = this._readStamp(layerData.stamp); } catch (e) { stamp = null; }
+      }
       if (stamp) {
         layer.isStamp = true;
         layer.stamp = stamp;
+        // Only a stamp has an XOR switch; a plain layer that kept the flag
+        // would composite as an XOR stamp with no way to turn it off.
+        layer.xorMode = layerData.xorMode === true;
         // A parked stamp holds no pixels of its own - it is drawn from
         // `stamp.mask` when picked up again.
         layer.clear();
@@ -2753,17 +2770,6 @@ class LayerManagerClass {
       this._layerIdMap.set(layerId, layer);
       this.layers.push(layer);
     });
-
-    // Stamps sit above every drawing layer, and at least one drawing layer
-    // must remain; a file that breaks either keeps its stamps as plain layers.
-    const firstStamp = this.layers.findIndex(layer => layer.isStamp);
-    if (firstStamp !== -1 && (firstStamp < 2 ||
-        this.layers.slice(firstStamp).some(layer => !layer.isStamp))) {
-      for (const layer of this.layers) {
-        layer.isStamp = false;
-        layer.stamp = null;
-      }
-    }
 
     // Every layer saved under the old tag model carried a `gigaScreen` field
     // (0 or 1) in every mode, and nothing writes one now, so the field's
@@ -2774,11 +2780,39 @@ class LayerManagerClass {
       this._convertTaggedGigaLayers(data.map(d => (d && d.gigaScreen) || 0));
     }
 
+    this._keepStampsOnTop();
+
     // Set current layer to first drawing layer (not background)
     this.currentLayerIndex = this.layers.length > 1 ? 1 : 0;
     this.activeDrawLayerIndex = this.currentLayerIndex;
     StateManager.set('layer.count', this.layers.length);
     StateManager.set('layer.current', this.currentLayerIndex);
+  }
+
+  /**
+   * Put every stamp above every drawing layer, keeping each group's order,
+   * and make sure a drawing layer exists for them to stamp onto.
+   *
+   * The app keeps both true (moveLayer, removeLayer), but a file written by
+   * a build that did not can break either, and the first version of stamp
+   * saving answered that by demoting every stamp to an empty plain layer
+   * (found 2026-09-28 by review): the artist's stamps were gone for good.
+   * Reordering loses nothing.
+   * @private
+   */
+  _keepStampsOnTop() {
+    const [bg, ...rest] = this.layers;
+    const drawing = rest.filter(layer => !layer.isStamp);
+    const stamps = rest.filter(layer => layer.isStamp);
+    if (stamps.length === 0) return;
+    if (drawing.length === 0) {
+      const layerId = this._nextLayerId++;
+      const layer = new LayerClass(1, 'Layer 1', false, layerId);
+      this._layerIdMap.set(layerId, layer);
+      drawing.push(layer);
+    }
+    this.layers = [bg, ...drawing, ...stamps];
+    this._reindexLayers();
   }
 
   /**

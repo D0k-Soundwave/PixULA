@@ -508,7 +508,7 @@ const Storage = {
         try {
             const raw = localStorage.getItem(this._getStorageKey(key, store));
             if (!raw) return null;
-            const data = JSON.parse(raw);
+            const data = JSON.parse(raw, Helpers.jsonTypedReviver);
             return data ? data.value : null;
         } catch (error) {
             Logger.error('Storage', 'localStorage get failed', { key, error: error.message });
@@ -519,7 +519,9 @@ const Storage = {
     /**
      * Set value in localStorage, wrapped the same way the IndexedDB path
      * wraps it ({key, value, modified}) so _clearOldLocalStorageData can
-     * actually evict by age instead of an always-0 timestamp.
+     * actually evict by age instead of an always-0 timestamp. Typed arrays
+     * go through Helpers.jsonTypedReplacer: plain JSON wrote the autosave's
+     * pixel arrays as `{"0":..}` objects, so it restored blank layers.
      * @private
      * @param {string} key
      * @param {*} value
@@ -528,7 +530,8 @@ const Storage = {
     _setToLocalStorage(key, value, store) {
         if (!this.persistent) return;
         try {
-            localStorage.setItem(this._getStorageKey(key, store), JSON.stringify({ key, value, modified: Date.now() }));
+            localStorage.setItem(this._getStorageKey(key, store),
+                JSON.stringify({ key, value, modified: Date.now() }, Helpers.jsonTypedReplacer));
         } catch (error) {
             Logger.error('Storage', 'localStorage set failed', { key, error: error.message });
             if (error.name === 'QuotaExceededError') {
@@ -570,7 +573,7 @@ const Storage = {
                 if (key && key.startsWith(prefix)) {
                     const data = localStorage.getItem(key);
                     if (data) {
-                        results.push(JSON.parse(data));
+                        results.push(JSON.parse(data, Helpers.jsonTypedReviver));
                     }
                 }
             }

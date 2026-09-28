@@ -993,7 +993,8 @@ class MenuSystemClass {
 
         // Strip down to background + one drawing layer, removing from top
         while (LayerManager.layers.length > 2) {
-            LayerManager.removeLayer(LayerManager.layers.length - 1, false);
+            // removeLayer refuses the last drawing layer; never spin on it
+            if (!LayerManager.removeLayer(LayerManager.layers.length - 1, false)) break;
         }
 
         // Overwrite the surviving drawing layer (index 1) with flattened data

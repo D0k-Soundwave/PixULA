@@ -143,10 +143,8 @@ class I18nClass {
         const pick = (code) => {
             const raw = this.translations[code]?.[key];
             if (!raw) return null;
-            const forms = I18nClass.parsePluralForms(raw);
-            let category = 'other';
-            try { category = new Intl.PluralRules(code).select(n); } catch (e) { /* no Intl: other */ }
-            return forms[category] || forms.other || null;
+            const forms = Helpers.parsePluralForms(raw);
+            return forms[this._pluralCategory(code, n)] || forms.other || null;
         };
         let text = pick(this.currentLocale) || pick(this.fallbackLocale) || key;
         Object.entries({ n, ...params }).forEach(([param, value]) => {
@@ -156,17 +154,18 @@ class I18nClass {
     }
 
     /**
-     * The tagged forms of a plural value, by category.
-     * @param {string} raw - e.g. 'one: {n} byte | other: {n} bytes'
-     * @returns {Object<string, string>}
+     * The CLDR plural category of `n` in language `code`, from one
+     * Intl.PluralRules per language (a tape listing asks once per block).
+     * @private
      */
-    static parsePluralForms(raw) {
-        const forms = {};
-        for (const part of String(raw).split('|')) {
-            const m = part.match(/^\s*(zero|one|two|few|many|other)\s*:\s*(.*?)\s*$/);
-            if (m) forms[m[1]] = m[2];
+    _pluralCategory(code, n) {
+        if (!this._pluralRules) this._pluralRules = new Map();
+        let rules = this._pluralRules.get(code);
+        if (rules === undefined) {
+            try { rules = new Intl.PluralRules(code); } catch (e) { rules = null; }
+            this._pluralRules.set(code, rules);
         }
-        return forms;
+        return rules ? rules.select(n) : 'other';
     }
 
     /**

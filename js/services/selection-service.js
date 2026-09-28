@@ -577,7 +577,11 @@ class SelectionServiceClass {
     UndoRedo.beginAction(label);
     const colorSelection = ColorManager.getCurrentSelection();
 
-    this._stampCounter++;
+    // Skip names already taken: stamps now come back with a reopened
+    // project, and the counter restarts at 0 with every session.
+    do {
+      this._stampCounter++;
+    } while (LayerManager.layers.some(l => l.name === `Stamp ${this._stampCounter}`));
     const floatingLayer = LayerManager.createStampLayer(`Stamp ${this._stampCounter}`);
     if (!floatingLayer) {
       UndoRedo.cancelAction();
@@ -1527,7 +1531,7 @@ class SelectionServiceClass {
    */
   stampAt(layer) {
     if (!layer || !layer.isStamp) return;
-    const data = this._getStampData(layer);
+    const data = this.getStampData(layer);
     if (!data) return;
     const { mask, x, y, w, h } = data;
     const targetLayer = this._findTargetBelow(layer);
@@ -1647,7 +1651,7 @@ class SelectionServiceClass {
    */
   eraseAt(layer) {
     if (!layer || !layer.isStamp) return;
-    const data = this._getStampData(layer);
+    const data = this.getStampData(layer);
     if (!data) return;
     const { mask, x, y, w, h } = data;
     const targetLayer = this._findTargetBelow(layer);
@@ -1690,7 +1694,7 @@ class SelectionServiceClass {
 
     // Capture stamp data FIRST, while floatingPaste is still set, so a live
     // (dragged) position is returned for the active stamp.
-    const data = this._getStampData(layer);
+    const data = this.getStampData(layer);
     if (!data) return false;
 
     // Resolve the bake target using the SAME rule as brush-stamping
@@ -1814,12 +1818,19 @@ class SelectionServiceClass {
     return count;
   }
 
-  /** Return live stamp position from floatingPaste or committed stamp data. @private */
-  _getStampData(layer) {
+  /**
+   * A stamp's data: live from the floating paste while it is the one being
+   * dragged, otherwise what it was parked with. The one place that choice is
+   * made - stamping, committing and saving the project all read it here.
+   * @param {Layer} layer
+   * @returns {?{mask, indices, attrs, x, y, w, h, colorSelection}}
+   */
+  getStampData(layer) {
     const fp = this.floatingPaste;
     if (fp && fp.floatingLayer === layer) {
       return { mask: fp.pixels, indices: fp.indices || null, attrs: fp.attrs || null,
-               x: fp.x, y: fp.y, w: fp.width, h: fp.height };
+               x: fp.x, y: fp.y, w: fp.width, h: fp.height,
+               colorSelection: fp.colorSelection };
     }
     if (layer.isStamp && layer.stamp) {
       return layer.stamp;

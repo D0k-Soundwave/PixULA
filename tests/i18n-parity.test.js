@@ -67,7 +67,7 @@ const enKeys = Object.keys(en.table);
 const placeholders = (s) => (String(s).match(/\{[a-zA-Z0-9_]+\}/g) || []).sort().join(',');
 
 const isPlural = (k) => k.startsWith('plural.');
-/** Same parse as I18nClass.parsePluralForms. */
+/** Same parse as Helpers.parsePluralForms (helpers.js needs a browser window). */
 const pluralForms = (raw) => {
   const forms = {};
   for (const part of String(raw).split('|')) {
