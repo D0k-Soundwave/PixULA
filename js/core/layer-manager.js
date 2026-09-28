@@ -2292,7 +2292,10 @@ class LayerManagerClass {
    * @param {number} cellY - Cell row (0–23)
    */
   deferCellCompose(cellX, cellY) {
-    this._pendingComposeCells.add(`${cellX},${cellY}`);
+    // A number, not a "x,y" string: this runs once per pixel written, and
+    // building (then parsing back) a string each time showed in fill
+    // profiles. Cells stay far below 65536 in either direction.
+    this._pendingComposeCells.add(cellY * 65536 + cellX);
     CanvasSystem.requestRender();
   }
 
@@ -2303,10 +2306,7 @@ class LayerManagerClass {
   flushPendingCompose() {
     if (this._pendingComposeCells.size === 0) return;
     for (const key of this._pendingComposeCells) {
-      const comma = key.indexOf(',');
-      const cx = key.substring(0, comma) | 0;
-      const cy = key.substring(comma + 1) | 0;
-      this.composeCellToCanvas(cx, cy);
+      this.composeCellToCanvas(key % 65536, Math.floor(key / 65536));
     }
     this._pendingComposeCells.clear();
   }
