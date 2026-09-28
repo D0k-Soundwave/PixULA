@@ -496,7 +496,9 @@ const PresetCodec = {
     _name(name, slot) {
         const trimmed = typeof name === 'string' ? name.trim() : '';
         if (trimmed) return trimmed.slice(0, this.MAX_NAME);
-        return `Preset ${slot + 1}`;
+        return (typeof Helpers !== 'undefined' && Helpers.localizedMessage)
+            ? Helpers.localizedMessage('preset.defaultName', 'Preset {n}', { n: slot + 1 })
+            : `Preset ${slot + 1}`;
     },
 
     /** The hover note. Optional — an empty one means "no tooltip". @private */

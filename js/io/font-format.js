@@ -215,7 +215,9 @@ class FontFormatClass {
     }
     for (let i = 0; i < this.CHX_MAGIC.length; i++) {
       if (bytes[i] !== this.CHX_MAGIC[i]) {
-        return { success: false, error: i < 3 ? 'Missing CHX header' : 'Wrong CHX version number' };
+        return { success: false, error: i < 3
+          ? Helpers.localizedMessage('err.chxMissingHeader', 'Missing CHX header')
+          : Helpers.localizedMessage('err.chxBadVersion', 'Wrong CHX version number') };
       }
     }
 
