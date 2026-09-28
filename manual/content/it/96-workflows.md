@@ -95,7 +95,4 @@ di perdere dettaglio in quella direzione; PixULA te lo dice prima di farlo.
 - **Per una macchina reale**, salva un `.tap` o un `.tzx`. Per aggiungere il tuo
   schermo a un nastro che contiene già altri file, usa **File > Blocchi
   nastro**.
-- **Per mostrarla a chi non ha uno Spectrum**, salva un `.png`. Se l’immagine
-  usa celle lampeggianti, salva un `.gif` e spunta **Anima le celle
-  LAMPEGGIO**: scrive un ciclo di due fotogrammi al ritmo dell’hardware, così il
-  lampeggio sopravvive.
+- **Per mostrarla a chi non ha uno Spectrum**, salva un `.png`.

@@ -91,7 +91,4 @@ PixULA bunu yapmadan önce size söyler.
 - **Gerçek bir makine için** `.tap` veya `.tzx` kaydedin. Ekranınızı zaten başka
   dosyalar içeren bir kasete eklemek için **Dosya > Kaset blokları**'nı
   kullanın.
-- **Spectrum'u olmayan birine göstermek için** `.png` kaydedin. Resim yanıp
-  sönen hücreler kullanıyorsa bir `.gif` kaydedin ve **YANIP SÖNME hücrelerini
-  canlandır** seçeneğini işaretleyin – donanımın kendi hızında iki karelik bir
-  döngü yazar, böylece yanıp sönme korunur.
+- **Spectrum'u olmayan birine göstermek için** `.png` kaydedin.

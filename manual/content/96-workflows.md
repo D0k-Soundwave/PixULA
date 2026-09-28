@@ -87,6 +87,4 @@ that direction; PixULA tells you before it does it.
   screen mode - the table in the screen modes chapter gives it for each.
 - **For a real machine**, save a `.tap` or `.tzx`. To add your screen to a tape
   that already holds other files, use **File > Tape Blocks**.
-- **To show someone without a Spectrum**, save a `.png`. If the picture uses
-  flashing cells, save a `.gif` and tick **Animate FLASH cells** - it
-  writes a two-frame loop at the hardware's own rate, so the flashing survives.
+- **To show someone without a Spectrum**, save a `.png`.
