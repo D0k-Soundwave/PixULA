@@ -911,3 +911,21 @@ after each dialog, autosave timing in the largest documents, and a read of all
 - [ ] Windows with a High Contrast theme on: the palette shows its real colours, and the selected tool, pressed toggles and current layer are highlighted
 - [ ] A phone held sideways: open Preferences and the Sprite Editor; OK and Close are visible without scrolling
 - [ ] Draw with a stamp parked in the Stamps panel, close the tab, reopen and accept the restore: the stamp is still in the panel and still stamps
+
+## Review of the third audit (2026-09-28)
+
+A code review of the 0.1.0-alpha.13 changes found twelve problems. The rows
+marked AUTO fail on the 0.1.0-alpha.13 tree.
+
+### Automated
+- [x] A stamp saved below a drawing layer, or with no drawing layer left, reopens on top with its shape (and a drawing layer is added); Move Up/Down and Delete Layer can no longer make that order — AUTO (browser: stamp-persistence.spec)
+- [x] A stamp that cannot load keeps no XOR switch; a damaged `indices` no longer stops the load; new stamps skip names a reopened project uses — AUTO (browser: stamp-persistence.spec)
+- [x] The real (compact) autosave keeps stamps — AUTO (browser: stamp-persistence.spec)
+- [x] With only localStorage (no IndexedDB), autosave restores the picture instead of blank layers — AUTO (browser: autosave-compact.spec)
+- [x] High Contrast stays on inside the open menu, the current layer row and the colour rail; the open menu's name stays readable — AUTO (browser: forced-colors.spec)
+- [x] The autosave speed check takes the best of three runs — AUTO (browser: autosave-compact.spec)
+- [x] One plural-form parser for both paths; one Intl.PluralRules per language — AUTO (browser: i18n-plurals.spec)
+
+### Needs a human
+- [ ] Windows High Contrast: open each menu and check its items are readable; the current layer has a clear outline
+- [ ] The releases page, signed out, shows only the newest release
