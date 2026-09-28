@@ -1060,7 +1060,7 @@ class LayerManagerClass {
    * @returns {Object} Complete layer state
    * @private
    */
-  _captureLayerState(layer) {
+  _captureLayerState(layer, withGrid = true) {
     return {
       id: layer.id,
       index: layer.index,
@@ -1074,20 +1074,25 @@ class LayerManagerClass {
       stamp: this._plainStamp(layer.stamp),
       // PACKED: this feeds undo snapshots, which are held fifty deep in
       // memory. getAllLayers() packs when asked (autosave, backups, files).
-      attributeData: layer.packAttributeData()
+      // null = "grid unchanged" (see dropUnchangedLayers), when the caller
+      // already knows it will be.
+      attributeData: withGrid ? layer.packAttributeData() : null
     };
   }
 
   /**
    * Capture complete state of all drawing layers (excludes background)
    * Used for full-snapshot undo/redo of layer operations
+   * @param {?Set<number>} [skipGridIds] - layer ids whose grid to leave out
    * @returns {Object} { layerCount, layers: [...layerStates] }
    */
-  captureAllLayersState() {
+  captureAllLayersState(skipGridIds = null) {
     const layers = [];
-    // Skip background (index 0), capture all drawing layers
+    // Skip background (index 0), capture all drawing layers. A layer in
+    // `skipGridIds` keeps its properties but not its grid (see UndoRedo.undo).
     for (let i = 1; i < this.layers.length; i++) {
-      layers.push(this._captureLayerState(this.layers[i]));
+      const layer = this.layers[i];
+      layers.push(this._captureLayerState(layer, !(skipGridIds && skipGridIds.has(layer.id))));
     }
     return {
       layerCount: this.layers.length - 1, // Exclude background
