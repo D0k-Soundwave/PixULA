@@ -12,7 +12,8 @@ const { boot, reload } = require('./helpers');
 
 test('plural forms follow each language\'s rules', async ({ page }) => {
     await boot(page);
-    const r = await page.evaluate(() => {
+    const r = await page.evaluate(async () => {
+        await Promise.all(['pl', 'cs', 'ru', 'ro'].map((c) => I18n.loadLocale(c)));
         const say = (code, key, ns) => { I18n.setLocale(code); return ns.map((n) => I18n.plural(key, n)); };
         const out = {
             en: say('en', 'plural.minutesAgo', [1, 2]),
@@ -44,10 +45,10 @@ test('the English fallback picks singular or plural without I18n', async ({ page
 
 test('one parser for plural forms, and one set of rules per language', async ({ page }) => {
     await boot(page);
-    const r = await page.evaluate(() => {
+    const r = await page.evaluate(async () => {
         // A mistyped tag is ignored by the fallback exactly as by I18n.plural
         const typo = Helpers.localizedPlural('plural.none', 1, 'on: {n} byte | other: {n} bytes');
-        I18n.setLocale('pl');
+        await I18n.setLocale('pl');
         for (let n = 0; n < 50; n++) I18n.plural('plural.tapeBytes', n);
         const rules = I18n._pluralRules.get('pl');
         I18n.plural('plural.tapeBytes', 3);
@@ -66,7 +67,7 @@ for (const [code, expected] of [
     test(`${code}: the autosave prompt says how long ago once`, async ({ page }) => {
         await boot(page);
         await page.evaluate(async (code) => {
-            I18n.setLocale(code);
+            await I18n.setLocale(code);
             const project = App._getProjectData();
             project.timestamp = Date.now() - 150000; // two and a half minutes
             await Storage.set('autosave', project);

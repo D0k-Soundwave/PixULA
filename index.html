@@ -629,20 +629,10 @@
     <script defer src="js/ui/components/manual-dialog.js"></script>
     <script defer src="js/ui/menu-system.js"></script>
 
-    <!-- i18n: locale tables first (each sets window.i18n_<code>), then the manager -->
+    <!-- i18n: the English table (the fallback) and the manager. The other
+         twelve tables in js/i18n/ load when a language is first chosen
+         (I18n.loadLocale), so start-up does not parse ~950 KB it never reads. -->
     <script defer src="js/i18n/en.js"></script>
-    <script defer src="js/i18n/es.js"></script>
-    <script defer src="js/i18n/de.js"></script>
-    <script defer src="js/i18n/fr.js"></script>
-    <script defer src="js/i18n/ru.js"></script>
-    <script defer src="js/i18n/cs.js"></script>
-    <script defer src="js/i18n/hu.js"></script>
-    <script defer src="js/i18n/it.js"></script>
-    <script defer src="js/i18n/pl.js"></script>
-    <script defer src="js/i18n/pt.js"></script>
-    <script defer src="js/i18n/ro.js"></script>
-    <script defer src="js/i18n/sk.js"></script>
-    <script defer src="js/i18n/tr.js"></script>
     <script defer src="js/i18n/i18n-manager.js"></script>
 
     <script defer src="js/app.js"></script>
