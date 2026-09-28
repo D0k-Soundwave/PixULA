@@ -579,10 +579,12 @@ class SelectionServiceClass {
 
     // Skip names already taken: stamps now come back with a reopened
     // project, and the counter restarts at 0 with every session.
+    let stampName;
     do {
       this._stampCounter++;
-    } while (LayerManager.layers.some(l => l.name === `Stamp ${this._stampCounter}`));
-    const floatingLayer = LayerManager.createStampLayer(`Stamp ${this._stampCounter}`);
+      stampName = Helpers.localizedMessage('stamp.defaultName', 'Stamp {n}', { n: this._stampCounter });
+    } while (LayerManager.layers.some(l => l.name === stampName));
+    const floatingLayer = LayerManager.createStampLayer(stampName);
     if (!floatingLayer) {
       UndoRedo.cancelAction();
       return;

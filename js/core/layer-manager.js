@@ -63,6 +63,20 @@ function dropPlaneB(cell) {
   delete cell.flashB;
 }
 
+/**
+ * A new layer's name, in the language the app is showing: 'Layer 3',
+ * 'Ebene 3'. It is only a starting name - once given, it is the layer's own
+ * and is saved with the document as it stands. (The background layer is
+ * never listed in the Layers panel, so its internal name stays English.)
+ * @param {number} n - the number shown after the word
+ * @returns {string}
+ */
+function defaultLayerName(n) {
+  return (typeof Helpers !== 'undefined' && Helpers.localizedMessage)
+    ? Helpers.localizedMessage('layer.defaultName', 'Layer {n}', { n })
+    : `Layer ${n}`;
+}
+
 class LayerClass {
   /**
    * Create a new layer
@@ -74,7 +88,7 @@ class LayerClass {
   constructor(index, name = null, isBackground = false, id = null) {
     this.id = id; // Stable unique ID (assigned by LayerManager)
     this.index = index;
-    this.name = name || (isBackground ? 'Background' : `Layer ${index}`);
+    this.name = name || (isBackground ? 'Background' : defaultLayerName(index));
     this.visible = true;
     this.opacity = 100;
     this.locked = isBackground; // Background layer is locked by default
@@ -693,7 +707,7 @@ class LayerManagerClass {
     this._createBackgroundLayer();
 
     // Create first drawing layer (layer 1) - don't push to undo during initialization
-    this.addLayer('Layer 1', false);
+    this.addLayer(defaultLayerName(1), false);
     this.selectedLayers.add(1);
 
     Logger.info('LayerManager', 'Initialized with background + 1 drawing layer');
@@ -1406,7 +1420,7 @@ class LayerManagerClass {
   renameLayer(index, name) {
     const layer = this.getLayer(index);
     if (!layer) return;
-    layer.name = name || `Layer ${index + 1}`;
+    layer.name = name || defaultLayerName(index + 1);
   }
 
   /**
@@ -2811,7 +2825,7 @@ class LayerManagerClass {
     if (stamps.length === 0) return;
     if (drawing.length === 0) {
       const layerId = this._nextLayerId++;
-      const layer = new LayerClass(1, 'Layer 1', false, layerId);
+      const layer = new LayerClass(1, defaultLayerName(1), false, layerId);
       this._layerIdMap.set(layerId, layer);
       drawing.push(layer);
     }
@@ -2898,7 +2912,7 @@ class LayerManagerClass {
     this._createBackgroundLayer();
 
     // Create first drawing layer (layer 1) - don't push to undo during reset
-    this.addLayer('Layer 1', false);
+    this.addLayer(defaultLayerName(1), false);
     this.selectedLayers.add(1);
 
     this.composeToCanvas();

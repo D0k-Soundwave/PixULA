@@ -297,6 +297,7 @@ const en = {
     'opt.text': 'Text',
     'opt.textPlaceholder': 'Type text here...',
     'opt.font': 'Font',
+    'opt.font.zxRom': 'ZX ROM (8×8 bitmap)',
     'opt.bold': 'Bold',
     'opt.italic': 'Italic',
     'text.hint': 'Move cursor over canvas to position. Left-click stamps; right-click erases.',
@@ -465,6 +466,7 @@ const en = {
     'layer.lock.lock': 'Lock layer',
     'layer.lock.unlock': 'Unlock layer',
     'layer.selectHint': 'Click to select; double-click to rename',
+    'layer.defaultName': 'Layer {n}',
     'layer.help': 'Click: select | Ctrl+click: multi-select | Shift+click: range',
 
     // Colours
@@ -520,6 +522,7 @@ const en = {
     'stamp.xorMode': 'XOR mode',
     'stamp.delete': 'Delete stamp',
     'stamp.commit': 'Apply stamp to drawing',
+    'stamp.defaultName': 'Stamp {n}',
 
     // Themes
     'theme.dark': 'Dark',
@@ -676,6 +679,9 @@ const en = {
     // Help
     'help.shortcuts': 'Keyboard Shortcuts',
     'help.shiftRightClick': 'Shift+Right-click',
+    'key.ctrl': 'Ctrl',
+    'key.shift': 'Shift',
+    'key.del': 'Del',
     'help.canvasMenu': 'Canvas menu (cut, copy, paste, select)',
     'help.documentation': 'Documentation',
     'help.about': 'About PixULA',
@@ -713,6 +719,19 @@ const en = {
     // ── Phase 6 (clean rebuild): reconciled against the live UI ──
     'a11y.decrease': 'Decrease',
     'a11y.increase': 'Increase',
+    'a11y.mainMenu': 'Main menu',
+    'a11y.language': 'Language',
+    'a11y.canvas': 'Drawing canvas',
+    'a11y.canvasFrame': 'Drawing canvas {w} by {h} pixels',
+    'a11y.zoomControls': 'Zoom controls',
+    'a11y.gridControls': 'Grid controls',
+    'a11y.panels': 'Panels',
+    'a11y.layerControls': 'Layer controls',
+    'a11y.toggleMerge': 'Toggle selection for merge',
+    'a11y.toggleLayerVisibility': 'Toggle layer visibility',
+    'a11y.toggleLayerLock': 'Toggle layer lock',
+    'a11y.toggleStampVisibility': 'Toggle stamp visibility',
+    'a11y.toggleXor': 'Toggle XOR mode',
     'a11y.speakHint': 'Speak UI changes aloud',
     'a11y.speakUnsupported': 'Speech synthesis is not available in this browser',
     'dialog.chooseBackground': 'Choose background colour',
@@ -1258,6 +1277,8 @@ const en = {
     'err.chxBadSize': 'Illegal character size (code {code})',
     'err.chxEnd': 'Unexpected end of file (code {code})',
     'err.chxEmpty': 'CHX file defines no characters',
+    'err.chxMissingHeader': 'Missing CHX header',
+    'err.chxBadVersion': 'Wrong CHX version number',
     'err.zxp.noIdent': 'Missing ZXP identifier',
     'err.zxp.pixels': 'Invalid pixel definition(s)',
     'err.zxp.pixelWidth': 'Pixel width error',

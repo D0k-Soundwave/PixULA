@@ -305,8 +305,13 @@ class I18nClass {
             el.title = Helpers.describeScreenMode(getScreenModeById(el.dataset.i18nModeTitle));
         });
 
+        // A shortcut's key names follow the keyboard's language ('Strg+Z').
+        collect('[data-i18n-shortcut]').forEach(el => {
+            el.textContent = Helpers.shortcutLabel(el.dataset.i18nShortcut);
+        });
+
         collect('[data-i18n-aria-label]').forEach(el => {
-            el.setAttribute('aria-label', this.t(el.dataset.i18nAriaLabel));
+            el.setAttribute('aria-label', this.t(el.dataset.i18nAriaLabel, I18nClass.paramsOf(el)));
         });
 
         // <optgroup label="…"> shows an attribute, not text content.
