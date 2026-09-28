@@ -22,6 +22,11 @@
  * The image builders take {width, height, data} RGBA (ImageData-shaped).
  */
 class PaletteOpsClass {
+  constructor() {
+    /** palette array -> (colour key -> packed nearest entries), see chooseUlaplusCellPair */
+    this._nearestUlaplus = new WeakMap();
+  }
+
 
   /**
    * An even RGB interpolation from `from` to `to`, inclusive of both.
@@ -71,20 +76,32 @@ class PaletteOpsClass {
    * @returns {Array<number[]>} Representative [r,g,b] colours (≥ 1)
    */
   medianCut(pixels, count) {
+    // A box's channel ranges only change when it is split, so each box's
+    // are measured once, when it is made, instead of every box being
+    // rescanned for every split - 255 rescans of every pixel for a
+    // 256-colour palette, most of a Layer 2 import preview (measured
+    // 2026-09-28). The same box is chosen, so the palette is the same.
+    const rangesOf = (box) => {
+      const out = [0, 0, 0];
+      for (let ch = 0; ch < 3; ch++) {
+        let lo = 255, hi = 0;
+        for (const p of box) {
+          if (p[ch] < lo) lo = p[ch];
+          if (p[ch] > hi) hi = p[ch];
+        }
+        out[ch] = hi - lo;
+      }
+      return out;
+    };
     let boxes = [pixels];
+    let ranges = [rangesOf(pixels)];
     while (boxes.length < count) {
       // Split the box with the largest channel range
       let bestBox = -1, bestRange = -1, bestChannel = 0;
       for (let i = 0; i < boxes.length; i++) {
-        const box = boxes[i];
-        if (box.length < 2) continue;
+        if (boxes[i].length < 2) continue;
         for (let ch = 0; ch < 3; ch++) {
-          let lo = 255, hi = 0;
-          for (const p of box) {
-            if (p[ch] < lo) lo = p[ch];
-            if (p[ch] > hi) hi = p[ch];
-          }
-          if (hi - lo > bestRange) { bestRange = hi - lo; bestBox = i; bestChannel = ch; }
+          if (ranges[i][ch] > bestRange) { bestRange = ranges[i][ch]; bestBox = i; bestChannel = ch; }
         }
       }
       if (bestBox < 0 || bestRange <= 0) break; // nothing left to split
@@ -92,7 +109,9 @@ class PaletteOpsClass {
       const box = boxes[bestBox];
       box.sort((a, b) => a[bestChannel] - b[bestChannel]);
       const mid = box.length >> 1;
-      boxes.splice(bestBox, 1, box.slice(0, mid), box.slice(mid));
+      const lo = box.slice(0, mid), hi = box.slice(mid);
+      boxes.splice(bestBox, 1, lo, hi);
+      ranges.splice(bestBox, 1, rangesOf(lo), rangesOf(hi));
     }
 
     return boxes.map((box) => {
@@ -220,27 +239,57 @@ class PaletteOpsClass {
   chooseUlaplusCellPair(cellRGB, paletteRGBs) {
     const pixelCount = cellRGB.length / 3;
     let best = null;
+    // _dist2 written out over a flat copy of the palette - the same
+    // arithmetic in the same order, without a call per distance (most of a
+    // ULAplus import preview's time, measured 2026-09-28)
+    const P = new Float64Array(64 * 3);
+    for (let i = 0; i < 64; i++) {
+      P[i * 3] = paletteRGBs[i][0]; P[i * 3 + 1] = paletteRGBs[i][1]; P[i * 3 + 2] = paletteRGBs[i][2];
+    }
+    // A photo repeats its colours, and a colour's nearest entry in each of
+    // the eight half-CLUTs never changes for this palette: all eight are
+    // worked out once per colour and remembered, 3 bits each (whole-number
+    // colours only; bounded, then started over).
+    let memo = this._nearestUlaplus.get(paletteRGBs);
+    if (!memo || memo.size > 1 << 20) {
+      memo = new Map();
+      this._nearestUlaplus.set(paletteRGBs, memo);
+    }
+    const nearest8 = (r, g, b) => {
+      const key = (r >= 0 && r < 256 && (r | 0) === r && g >= 0 && g < 256 && (g | 0) === g &&
+                   b >= 0 && b < 256 && (b | 0) === b) ? (r << 16) | (g << 8) | b : -1;
+      let packed = key >= 0 ? memo.get(key) : undefined;
+      if (packed !== undefined) return packed;
+      packed = 0;
+      for (let half = 0; half < 8; half++) {
+        let nearest = 0, nd = Infinity;
+        for (let c = 0, o = half * 24; c < 8; c++, o += 3) {
+          const dr = r - P[o], dg = g - P[o + 1], db = b - P[o + 2];
+          const d = dr * dr + dg * dg + db * db;
+          if (d < nd) { nd = d; nearest = c; }
+        }
+        packed |= nearest << (half * 3);
+      }
+      if (key >= 0) memo.set(key, packed);
+      return packed;
+    };
+    const near = new Int32Array(pixelCount);
+    for (let i = 0; i < pixelCount; i++) {
+      near[i] = nearest8(cellRGB[i * 3], cellRGB[i * 3 + 1], cellRGB[i * 3 + 2]);
+    }
 
     for (let clut = 0; clut < 4; clut++) {
       const inkHalf = paletteRGBs.slice(clut * 16, clut * 16 + 8);
       const paperHalf = paletteRGBs.slice(clut * 16 + 8, clut * 16 + 16);
+      const inkBase = clut * 16 * 3, paperBase = (clut * 16 + 8) * 3;
 
+      // Half-CLUT 2*clut is this CLUT's ink half, 2*clut+1 its paper half
+      const inkShift = clut * 2 * 3, paperShift = (clut * 2 + 1) * 3;
       const inkCounts = new Array(8).fill(0);
       const paperCounts = new Array(8).fill(0);
       for (let i = 0; i < pixelCount; i++) {
-        const r = cellRGB[i * 3], g = cellRGB[i * 3 + 1], b = cellRGB[i * 3 + 2];
-        let ni = 0, nd = Infinity;
-        for (let c = 0; c < 8; c++) {
-          const d = this._dist2(r, g, b, inkHalf[c]);
-          if (d < nd) { nd = d; ni = c; }
-        }
-        inkCounts[ni]++;
-        let np = 0; nd = Infinity;
-        for (let c = 0; c < 8; c++) {
-          const d = this._dist2(r, g, b, paperHalf[c]);
-          if (d < nd) { nd = d; np = c; }
-        }
-        paperCounts[np]++;
+        inkCounts[(near[i] >> inkShift) & 7]++;
+        paperCounts[(near[i] >> paperShift) & 7]++;
       }
 
       const argmax = (arr) => arr.reduce((m, v, i) => (v > arr[m] ? i : m), 0);
@@ -248,12 +297,14 @@ class PaletteOpsClass {
       const paperSlot = argmax(paperCounts);
 
       let err = 0;
+      const oi = inkBase + inkSlot * 3, op = paperBase + paperSlot * 3;
       for (let i = 0; i < pixelCount; i++) {
         const r = cellRGB[i * 3], g = cellRGB[i * 3 + 1], b = cellRGB[i * 3 + 2];
-        err += Math.min(
-          this._dist2(r, g, b, inkHalf[inkSlot]),
-          this._dist2(r, g, b, paperHalf[paperSlot])
-        );
+        let dr = r - P[oi], dg = g - P[oi + 1], db = b - P[oi + 2];
+        const di = dr * dr + dg * dg + db * db;
+        dr = r - P[op]; dg = g - P[op + 1]; db = b - P[op + 2];
+        const dp = dr * dr + dg * dg + db * db;
+        err += di < dp ? di : dp;
       }
 
       if (!best || err < best.err) {
