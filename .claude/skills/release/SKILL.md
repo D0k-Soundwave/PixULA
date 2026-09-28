@@ -61,7 +61,8 @@ below yourself, then report the release link.
      re-run that one spec alone once to rule out a stalled runner, and if it
      fails again, fix it before releasing.
 
-5. **Commit** `js/core/constants.js` and `js/data/manual-content.js` as
+5. **Commit** `js/core/constants.js`, `js/data/manual-content.js` and the
+   translated manuals in `js/data/manual/` as
    `chore: release <version>` (plus the session's attribution trailers), and
    push the branch.
 

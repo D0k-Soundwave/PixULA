@@ -33,4 +33,10 @@ sessions cannot push tags - never try; the merge is the trigger.
 - After changing tools, menus, shortcuts, screen modes or formats, run
   `node tools/build-manual.js` - the in-app manual is generated from the
   running app and must not go stale (`npm run check:manual`).
+- The manual is built in all 13 languages. English prose is
+  `manual/content/*.md`; each translation is `manual/content/<code>/` with the
+  same file names, headings translated, and the same `{{tables}}` and
+  pictures. Change an English chapter and change all 12 translations with it
+  - the build refuses a translation that places different tables or
+  pictures. Words the generator adds are `manual.*` keys in `js/i18n/`.
 - `.nojekyll` must stay at the repo root, or the GitHub Pages build breaks.
