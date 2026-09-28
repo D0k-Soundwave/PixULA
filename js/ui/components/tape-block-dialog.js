@@ -142,7 +142,8 @@ class TapeBlockDialogClass {
 
             const size = document.createElement('span');
             size.className = 'tape-block-size';
-            size.textContent = this._t('tape.bytesUnit', '{n} bytes', { n: block.raw.length });
+            size.textContent = Helpers.localizedPlural('plural.tapeBytes', block.raw.length,
+                'one: {n} byte | other: {n} bytes');
 
             const actions = document.createElement('span');
             actions.className = 'tape-block-actions';

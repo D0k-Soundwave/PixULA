@@ -175,4 +175,50 @@ select {
     }
 }
 
+/* ===== Windows High Contrast (forced colours) =====
+   The system replaces every background with its own colour, which erased two
+   things the artist cannot work without (found 2026-09-27): the palette
+   swatches and Ink/Paper wells all showed white, and every on/selected state
+   drawn as an accent background - the active tool, pressed toggles, the
+   current layer - looked the same as the rest. Swatches keep their real
+   colours; on states use the system's own highlight pair. */
+@media (forced-colors: active) {
+    .color-swatch,
+    #canvas-area.border-preview {
+        forced-color-adjust: none;
+    }
+
+    .color-swatch.active-ink {
+        outline: 3px solid Highlight;
+    }
+
+    .color-swatch.active-paper::after {
+        border-color: Highlight;
+        box-shadow: 0 0 0 1px HighlightText;
+    }
+
+    .menu-item.active,
+    .tool-btn.active,
+    .flash-btn:has(input:checked),
+    .panel-button.active,
+    .psb-tab.active,
+    .pc-size-tabs button.active,
+    .grid-toggle[aria-pressed="true"],
+    .layer-item.current,
+    .stamp-item.current {
+        forced-color-adjust: none;
+        background: Highlight;
+        border-color: Highlight;
+        color: HighlightText;
+    }
+
+    .stamp-xor.active,
+    .import-method.active,
+    .pattern-item.selected,
+    .layer-item.selected {
+        outline: 2px solid Highlight;
+        outline-offset: 1px;
+    }
+}
+
 } /* @layer utilities */

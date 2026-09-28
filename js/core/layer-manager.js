@@ -1063,15 +1063,10 @@ class LayerManagerClass {
       isBackground: layer.isBackground,
       isStamp: layer.isStamp || false,
       xorMode: layer.xorMode || false,
-      stamp: layer.stamp ? {
-        x: layer.stamp.x, y: layer.stamp.y,
-        w: layer.stamp.w, h: layer.stamp.h,
-        colorSelection: layer.stamp.colorSelection,
-        mask: layer.stamp.mask ? layer.stamp.mask.map(r => [...r]) : null
-      } : null,
+      stamp: this._plainStamp(layer.stamp),
       // PACKED: this feeds undo snapshots, which are held fifty deep in
-      // memory. getAllLayers() keeps the array form for autosave, which is
-      // JSON-persisted and must stay plain.
+      // memory. getAllLayers() packs only when asked (autosave, backups):
+      // an explicit .pixula keeps the array form older builds read.
       attributeData: layer.packAttributeData()
     };
   }
@@ -1190,12 +1185,7 @@ class LayerManagerClass {
     layer.locked = state.locked;
     layer.isStamp = state.isStamp || false;
     layer.xorMode = state.xorMode || false;
-    layer.stamp = state.stamp ? {
-      x: state.stamp.x, y: state.stamp.y,
-      w: state.stamp.w, h: state.stamp.h,
-      colorSelection: state.stamp.colorSelection,
-      mask: state.stamp.mask ? state.stamp.mask.map(r => [...r]) : null
-    } : null;
+    layer.stamp = this._plainStamp(state.stamp);
     return layer;
   }
 
@@ -1489,14 +1479,7 @@ class LayerManagerClass {
     newLayer.locked = source.locked;
     newLayer.isStamp = source.isStamp;
     newLayer.xorMode = source.xorMode;
-    if (source.stamp) {
-      newLayer.stamp = {
-        x: source.stamp.x, y: source.stamp.y,
-        w: source.stamp.w, h: source.stamp.h,
-        colorSelection: source.stamp.colorSelection,
-        mask: source.stamp.mask ? source.stamp.mask.map(r => [...r]) : null
-      };
-    }
+    newLayer.stamp = this._plainStamp(source.stamp);
     newLayer.restoreAttributeData(source.cloneAttributeData());
 
     return newLayer;
@@ -2659,17 +2642,81 @@ class LayerManagerClass {
 
   /**
    * Get all layers as an array (for serialization)
+   * @param {{packed?: boolean}} [opts] - grids in the compact undo form
+   *   (packAttributeData) rather than one object per cell; see
+   *   App._getProjectData
    * @returns {Array}
    */
-  getAllLayers() {
-    return this.layers.map(layer => ({
-      name: layer.name,
-      visible: layer.visible,
-      opacity: layer.opacity,
-      locked: layer.locked,
-      isBackground: layer.isBackground,
-      attributeData: layer.cloneAttributeData()
-    }));
+  getAllLayers({ packed = false } = {}) {
+    // The stamp being dragged keeps its live shape and position on the
+    // floating paste; layer.stamp is only written when it is parked.
+    const fp = window.SelectionService && SelectionService.floatingPaste;
+    return this.layers.map(layer => {
+      const out = {
+        name: layer.name,
+        visible: layer.visible,
+        opacity: layer.opacity,
+        locked: layer.locked,
+        isBackground: layer.isBackground,
+        attributeData: packed ? layer.packAttributeData() : layer.cloneAttributeData()
+      };
+      // Written only when set, so a document without stamps saves exactly
+      // as before. Until 2026-09-27 neither was written at all: every stamp
+      // reopened (and came back from autosave) as an empty plain layer.
+      if (layer.xorMode) out.xorMode = true;
+      if (layer.isStamp) {
+        const live = fp && fp.floatingLayer === layer;
+        const stamp = this._plainStamp(live ? {
+          mask: fp.pixels, indices: fp.indices, attrs: fp.attrs,
+          x: fp.x, y: fp.y, w: fp.width, h: fp.height,
+          colorSelection: fp.colorSelection
+        } : layer.stamp);
+        if (stamp) {
+          out.isStamp = true;
+          out.stamp = stamp;
+        }
+      }
+      return out;
+    });
+  }
+
+  /**
+   * A copy of a stamp's data in plain arrays and objects, safe for JSON and
+   * never sharing rows with the live stamp.
+   * @param {Object|null} s - {mask, indices, attrs, x, y, w, h, colorSelection}
+   * @returns {Object|null} null if there is no usable mask
+   * @private
+   */
+  _plainStamp(s) {
+    if (!s || !Array.isArray(s.mask) || s.mask.length === 0) return null;
+    return {
+      x: s.x, y: s.y, w: s.w, h: s.h,
+      colorSelection: s.colorSelection ? { ...s.colorSelection } : null,
+      mask: s.mask.map(row => Array.from(row, Boolean)),
+      indices: s.indices ? s.indices.map(row => Array.from(row)) : null,
+      attrs: s.attrs ? Array.from(s.attrs) : null
+    };
+  }
+
+  /**
+   * Stamp data read back from a file, or null if it does not hold together
+   * (an opened file is outside input; a bad stamp loads as a plain layer).
+   * @param {Object} s
+   * @returns {Object|null}
+   * @private
+   */
+  _readStamp(s) {
+    if (!s || typeof s !== 'object') return null;
+    const w = s.w, h = s.h;
+    if (!Number.isInteger(w) || !Number.isInteger(h) || w < 1 || h < 1) return null;
+    if (!Number.isFinite(s.x) || !Number.isFinite(s.y)) return null;
+    const rowsOk = (rows) => Array.isArray(rows) && rows.length === h &&
+      rows.every(row => Array.isArray(row) && row.length === w);
+    if (!rowsOk(s.mask)) return null;
+    const stamp = this._plainStamp(s);
+    if (!rowsOk(stamp.indices)) stamp.indices = null;
+    if (!Array.isArray(s.attrs)) stamp.attrs = null;
+    return stamp;
   }
 
   /**
@@ -2694,9 +2741,29 @@ class LayerManagerClass {
       if (layerData.attributeData) {
         layer.restoreAttributeData(layerData.attributeData);
       }
+      layer.xorMode = layerData.xorMode === true;
+      const stamp = !isBackground && layerData.isStamp ? this._readStamp(layerData.stamp) : null;
+      if (stamp) {
+        layer.isStamp = true;
+        layer.stamp = stamp;
+        // A parked stamp holds no pixels of its own - it is drawn from
+        // `stamp.mask` when picked up again.
+        layer.clear();
+      }
       this._layerIdMap.set(layerId, layer);
       this.layers.push(layer);
     });
+
+    // Stamps sit above every drawing layer, and at least one drawing layer
+    // must remain; a file that breaks either keeps its stamps as plain layers.
+    const firstStamp = this.layers.findIndex(layer => layer.isStamp);
+    if (firstStamp !== -1 && (firstStamp < 2 ||
+        this.layers.slice(firstStamp).some(layer => !layer.isStamp))) {
+      for (const layer of this.layers) {
+        layer.isStamp = false;
+        layer.stamp = null;
+      }
+    }
 
     // Every layer saved under the old tag model carried a `gigaScreen` field
     // (0 or 1) in every mode, and nothing writes one now, so the field's

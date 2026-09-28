@@ -419,17 +419,9 @@ class AppClass {
             }
 
             const ageMinutes = Math.floor(ageMs / 60000);
-            let ageText;
-            if (ageMinutes < 60) {
-                ageText = ageMinutes === 1
-                    ? I18n.t('msg.minuteAgo', { n: ageMinutes })
-                    : I18n.t('msg.minutesAgo', { n: ageMinutes });
-            } else {
-                const ageHours = Math.floor(ageMinutes / 60);
-                ageText = ageHours === 1
-                    ? I18n.t('msg.hourAgo', { n: ageHours })
-                    : I18n.t('msg.hoursAgo', { n: ageHours });
-            }
+            const ageText = ageMinutes < 60
+                ? I18n.plural('plural.minutesAgo', ageMinutes)
+                : I18n.plural('plural.hoursAgo', Math.floor(ageMinutes / 60));
 
             if (confirm(I18n.t('msg.autosaveFound', { age: ageText }))) {
                 await this._loadProjectData(autosaveData);
@@ -474,38 +466,46 @@ class AppClass {
         }
 
         const MS_PER_MINUTE = 60000;
-        this._autosaveInterval = setInterval(async () => {
-            if (!FileManager.hasChanges()) return;
-            // The callback is async and setInterval does not wait for it: a
-            // slow disk (a backup folder on a network share) must not let a
-            // second tick start writing the same versions over the first.
-            if (this._autosaveInFlight) return;
-            this._autosaveInFlight = true;
-            try {
-                const project = this._getProjectData();
-
-                // The database record FIRST and on its own try: it is the crash
-                // recovery, and it must not be lost to a folder that went away.
-                try {
-                    await Storage.set('autosave', project);
-                    Logger.debug('App', 'Autosaved');
-                } catch (error) {
-                    Logger.error('App', 'Autosave failed', error);
-                }
-
-                // Versioned copies on disk are additive - better artefacts, but
-                // allowed to fail. BackupService announces its own failures.
-                if (window.BackupService && BackupService.isActive) {
-                    await BackupService.writeVersion(project, this._backupBaseName());
-                }
-            } finally {
-                this._autosaveInFlight = false;
-            }
-        }, minutes * MS_PER_MINUTE);
+        this._autosaveInterval = setInterval(() => this._autosaveNow(), minutes * MS_PER_MINUTE);
         Logger.info('App', `Autosave every ${minutes} minute(s)`);
     }
 
-    /** Warn before leaving with unsaved changes. */
+    /**
+     * One autosave: the database record, then a backup version if a folder
+     * is chosen. Nothing to do when the document has not changed.
+     * @private
+     */
+    async _autosaveNow() {
+        if (!FileManager.hasChanges()) return;
+        // The callback is async and setInterval does not wait for it: a
+        // slow disk (a backup folder on a network share) must not let a
+        // second tick start writing the same versions over the first.
+        if (this._autosaveInFlight) return;
+        this._autosaveInFlight = true;
+        try {
+            // Compact grids - unless storage fell back to localStorage,
+            // whose JSON cannot hold the typed arrays they are made of.
+            const project = this._getProjectData({ packed: !Storage.useLocalStorage });
+
+            // The database record FIRST and on its own try: it is the crash
+            // recovery, and it must not be lost to a folder that went away.
+            try {
+                await Storage.set('autosave', project);
+                Logger.debug('App', 'Autosaved');
+            } catch (error) {
+                Logger.error('App', 'Autosave failed', error);
+            }
+
+            // Versioned copies on disk are additive - better artefacts, but
+            // allowed to fail. BackupService announces its own failures.
+            if (window.BackupService && BackupService.isActive) {
+                await BackupService.writeVersion(project, this._backupBaseName());
+            }
+        } finally {
+            this._autosaveInFlight = false;
+        }
+    }
+
     /**
      * Say once, at start-up, when the browser keeps nothing: IndexedDB and
      * localStorage both refused (site data blocked). Everything still works,
@@ -519,6 +519,7 @@ class AppClass {
             'This browser is blocking site storage, so PixULA cannot keep your settings or autosave after this tab closes. Save your work to a file before closing.'));
     }
 
+    /** Warn before leaving with unsaved changes. */
     _setupUnloadWarning() {
         window.addEventListener('beforeunload', (e) => {
             if (FileManager.hasChanges()) {
@@ -554,9 +555,17 @@ class AppClass {
      * FileSystemFileHandle is dropped unconditionally - it cannot survive
      * JSON regardless, the same reason PresetCodec.encodeFile drops it for a
      * shared `.zxpreset`.
+     *
+     * `packed` stores each layer's grid in the compact form undo uses (see
+     * LayerClass.packAttributeData), which every build since 2026-08-07
+     * reads back. Autosave and backups use it: the one-object-per-cell form
+     * made a 32-layer LAYER2_640 autosave build ~50 MB and freeze the app
+     * for about a second each time (found 2026-09-27). An explicit save
+     * keeps the plain form, for files handed to older builds.
+     * @param {{packed?: boolean}} [opts]
      * @private
      */
-    _getProjectData() {
+    _getProjectData({ packed = false } = {}) {
         // embedReferenceAsset keeps the image inline on slices.reference.
         // assetData rather than lifted into a separate returned `asset` -
         // there is no content-addressed store to lift it into here.
@@ -580,7 +589,7 @@ class AppClass {
                 ? Array.from(ColorManager.nextRegisters) : null,
             timexHiresInk: ColorManager.getTimexHiresInk(),
             timexHiresInkB: ColorManager.getTimexHiresInkB(),
-            layers: LayerManager.getAllLayers(),
+            layers: LayerManager.getAllLayers({ packed }),
             slices
         };
     }
