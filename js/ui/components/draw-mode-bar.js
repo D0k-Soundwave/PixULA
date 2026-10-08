@@ -88,12 +88,12 @@ const MODES = [
       dots: FX.dotsFlipPass, colours: FX.coloursAll, right: FX.rightSame },
     { value: 'ink', icon: 'icon-dm-ink',
       name: ['dm.ink', 'Ink Recolour'],
-      hint: ['dm.ink.hint', 'Gives every cell the tool touches your ink colour, bright and flash without touching a dot - following the brush size, the shape or the fill area. Both buttons do the same'],
+      hint: ['dm.ink.hint', 'Gives every cell the tool touches your ink colour, bright and flash without touching a dot - following the brush size, the shape or the fill area. Both buttons do the same. With Bright or Flash on "use existing", each cell keeps its own'],
       dots: FX.untouched, colours: FX.coloursInk, right: FX.rightSame,
       needsAttributes: true },
     { value: 'paper', icon: 'icon-dm-paper',
       name: ['dm.paper', 'Paper Recolour'],
-      hint: ['dm.paper.hint', 'Gives every cell the tool touches your paper colour, bright and flash without touching a dot - following the brush size, the shape or the fill area. Both buttons do the same'],
+      hint: ['dm.paper.hint', 'Gives every cell the tool touches your paper colour, bright and flash without touching a dot - following the brush size, the shape or the fill area. Both buttons do the same. With Bright or Flash on "use existing", each cell keeps its own'],
       dots: FX.untouched, colours: FX.coloursPaper, right: FX.rightSame,
       needsAttributes: true }
 ];

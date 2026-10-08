@@ -21,6 +21,15 @@ novo: tinta, papel, brilho e piscar voltam a preto sobre branco, e numa camada
 superior a célula volta a ser transparente. Uma célula que ainda tem pontos
 mantém as cores por mais vezes que passe a borracha.
 
+Cada um dos quatro também pode ser posto em **usar o existente**: a caixa
+axadrezada por baixo dele na barra de cores. Um traço deixa então essa parte de
+cada célula como já está, em vez de escrever a sua definição. Ponha TINTA, PAPEL
+e BRILHO em existente e ligue PISCAR, e a opção **Preencher apenas atributos**
+da ferramenta de preenchimento faz piscar uma área inteira sem mudar nenhuma
+cor. Shift+B e Shift+F alternam BRILHO e PISCAR, e Shift+T põe os quatro em
+existente. No ULAplus, BRILHO e PISCAR escolhem a CLUT, por isso o seletor de
+CLUT tem uma só caixa, que mantém a CLUT de cada célula.
+
 ### Modos de desenho
 
 O modo de desenho muda o que faz um traço. Mantém-se entre sessões, por isso a

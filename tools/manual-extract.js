@@ -428,6 +428,10 @@ function extractManualData() {
                 }
             }
         }
+        // Bright, Flash and "use existing" - the same list the key handler reads
+        for (const s of (window.COLOUR_SHORTCUTS || [])) {
+            rows.push({ keys: keyLabel(s.keys), what: t(s.i18n), from: t('manual.area.colourRail') });
+        }
         if (window.PresetCodec && PresetCodec.KEY_SLOTS) {
             rows.push({
                 keys: 'Alt+1 ... Alt+' + PresetCodec.KEY_SLOTS,

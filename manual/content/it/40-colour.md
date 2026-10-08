@@ -22,6 +22,16 @@ inchiostro, carta, luminoso e lampeggio tornano a nero su bianco, e su un
 livello superiore la cella torna trasparente. Una cella che contiene ancora dei
 punti mantiene i suoi colori per quante volte tu ci passi sopra.
 
+Ognuno dei quattro può anche essere impostato su **usa esistente**: la casella a
+scacchi sotto di esso nella barra dei colori. Un tratto lascia allora quella
+parte di ogni cella com'è, invece di scrivere la tua impostazione. Metti
+INCHIOSTRO, CARTA e LUMINOSO su esistente e attiva LAMPEGGIO, e l'opzione
+**Riempi solo attributi** dello strumento di riempimento farà lampeggiare
+un'intera area senza cambiare un colore. Maiusc+B e Maiusc+F attivano o
+disattivano LUMINOSO e LAMPEGGIO, e Maiusc+T mette tutti e quattro su esistente.
+In ULAplus, LUMINOSO e LAMPEGGIO scelgono la CLUT, quindi il selettore CLUT ha
+una sola casella, che mantiene la CLUT di ogni cella.
+
 ### Modalità di disegno
 
 La modalità di disegno cambia ciò che fa un tratto. Si conserva tra le sessioni,

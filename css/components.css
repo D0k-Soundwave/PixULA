@@ -767,6 +767,34 @@
     margin-top: 2px;
 }
 
+/* Bright and Flash each carry a "use existing" box under the toggle
+   (2026-10-08), stacked the way the Ink and Paper groups stack theirs: one
+   icon wide, so the row still fits the rail's two columns. */
+#color-rail .clut-bit-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    width: var(--rail-icon-size);
+}
+
+#color-rail .clut-bit-col > .btn-captioned {
+    width: var(--rail-icon-size);
+}
+
+/* ULAplus: the CLUT's own box sits centred under the picker. */
+#color-rail .clut-keep-clut {
+    align-self: center;
+}
+
+/* While a box is on, the control it overrides is still the artist's choice
+   but is not what a stroke writes, so it is drawn faded - the same idea as
+   the draw-mode button that loses its fill while Recolour is on. */
+.flash-btn.is-kept,
+.clut-picker.is-kept .clut-select-btn {
+    opacity: 0.45;
+}
+
 /* Bright / Flash: side by side, one icon-width column each - the rail
    widened to fit two columns (2026-08-26, for the CLUT/GigaScreen pickers)
    with plenty of room to spare, so there is no longer a reason to stack

@@ -22,6 +22,16 @@ cerneala, hârtia, luminozitatea și clipirea revin la negru pe alb, iar pe un
 strat superior celula devine din nou transparentă. O celulă care mai are puncte
 își păstrează culorile, oricât de des ați trece cu radiera peste ea.
 
+Fiecare dintre cele patru poate fi pusă și pe **folosește existentul**: căsuța
+în carouri de sub ea din bara de culori. O trăsătură lasă atunci acea parte a
+fiecărei celule așa cum este, în loc să scrie setarea dumneavoastră. Puneți
+CERNEALĂ, HÂRTIE și LUMINOS pe existent și porniți CLIPIRE, iar opțiunea **Umple
+doar atributele** a uneltei de umplere face să clipească o zonă întreagă fără a
+schimba vreo culoare. Shift+B și Shift+F comută LUMINOS și CLIPIRE, iar Shift+T
+le pune pe toate patru pe existent. În ULAplus, LUMINOS și CLIPIRE aleg CLUT-ul,
+așa că selectorul de CLUT are o singură căsuță, care păstrează CLUT-ul fiecărei
+celule.
+
 ### Moduri de desen
 
 Modul de desen schimbă ce face o trăsătură. Se păstrează între sesiuni, așa că

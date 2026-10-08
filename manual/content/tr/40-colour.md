@@ -22,6 +22,15 @@ parlaklık ve yanıp sönme beyaz üzerine siyaha döner ve üst bir katmanda h�
 yeniden saydam olur. İçinde hâlâ nokta bulunan bir hücre, üzerinden kaç kez
 silgiyle geçerseniz geçin renklerini korur.
 
+Dördünden her biri **mevcudu kullan** konumuna da alınabilir: renk çubuğunda
+altındaki damalı kutu. Bir vuruş o zaman her hücrenin o kısmını sizin ayarınızı
+yazmak yerine olduğu gibi bırakır. MÜREKKEP, KÂĞIT ve PARLAK'ı mevcuda alıp
+YANIP SÖNME'yi açın; doldurma aracının **Yalnızca öznitelikleri doldur**
+seçeneği bütün bir alanı hiçbir rengi değiştirmeden yanıp söndürür. Shift+B ve
+Shift+F, PARLAK ile YANIP SÖNME'yi değiştirir, Shift+T ise dördünü de mevcuda
+alır. ULAplus'ta PARLAK ve YANIP SÖNME CLUT'u seçer; bu yüzden CLUT seçicisinde
+her hücrenin kendi CLUT'unu koruyan tek bir kutu vardır.
+
 ### Çizim modları
 
 Çizim modu bir vuruşun ne yaptığını değiştirir. Oturumlar arasında korunur; bu

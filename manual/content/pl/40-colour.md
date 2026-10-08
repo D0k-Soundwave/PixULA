@@ -21,6 +21,15 @@ jasność i miganie wracają do czarnego na białym, a na wyższej warstwie kom�
 znów staje się przezroczysta. Komórka, w której są jeszcze punkty, zachowuje
 kolory, ile razy byś jej nie wymazywał.
 
+Każdy z czterech można też ustawić na **użyj istniejącego**: to kratkowane pole
+pod nim na pasku kolorów. Pociągnięcie zostawia wtedy tę część każdej komórki
+bez zmian, zamiast zapisywać twoje ustawienie. Ustaw TUSZ, PAPIER i JASNOŚĆ na
+istniejące i włącz MIGANIE, a opcja **Wypełnij tylko atrybuty** narzędzia
+wypełniania sprawi, że cały obszar będzie migał bez zmiany żadnego koloru.
+Shift+B i Shift+F przełączają JASNOŚĆ i MIGANIE, a Shift+T ustawia wszystkie
+cztery na istniejące. W ULAplus JASNOŚĆ i MIGANIE wybierają CLUT, więc wybór
+CLUT ma jedno pole, które zachowuje CLUT każdej komórki.
+
 ### Tryby rysowania
 
 Tryb rysowania zmienia to, co robi pociągnięcie. Jest zapamiętywany między

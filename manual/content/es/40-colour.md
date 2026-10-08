@@ -21,6 +21,15 @@ un trazo nuevo: tinta, papel, brillo y flash vuelven a negro sobre blanco, y en
 una capa superior la celda vuelve a ser transparente. Una celda que aún tiene
 puntos conserva sus colores por muchas veces que pases el borrador.
 
+Cada uno de los cuatro también puede ponerse en **usar el existente**: la
+casilla a cuadros que tiene debajo en la barra de color. Así un trazo deja esa
+parte de cada celda como ya está, en lugar de escribir tu ajuste. Pon TINTA,
+PAPEL y BRILLO en existente y activa FLASH, y la opción **Rellenar solo
+atributos** de la herramienta de relleno hará parpadear toda una zona sin
+cambiar ningún color. Mayús+B y Mayús+F cambian BRILLO y FLASH, y Mayús+T pone
+los cuatro en existente. En ULAplus, BRILLO y FLASH eligen la CLUT, así que el
+selector de CLUT tiene una sola casilla, que conserva la CLUT de cada celda.
+
 ### Modos de dibujo
 
 El modo de dibujo cambia lo que hace un trazo. Se conserva entre sesiones, así

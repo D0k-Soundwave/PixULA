@@ -1006,6 +1006,10 @@ class PixelDrawRoutineClass {
    * (LayerManager.attrsShowing). Hidden layers do not count. It is copied at
    * the moment of the write and does not keep following the page afterwards.
    *
+   * Bright and Flash have the same box (2026-10-08, ZX Paintbrush's BRIGHT 8 /
+   * FLASH 8) and follow the same definition. In ULAplus the two bits are the
+   * cell's CLUT and in ULANext its paper bank, so keeping them keeps those.
+   *
    * Only the modes that write colours need it; the rest never read these
    * fields. The resolved selection carries the flags as false, so the _apply*
    * functions below simply write what they are given.
@@ -1014,7 +1018,8 @@ class PixelDrawRoutineClass {
    */
   _resolveTransparent(layer, cellX, cellY, colorSelection, mode, shownStroke, inBatch) {
     if (!colorSelection) return colorSelection;
-    if (!colorSelection.inkTransparent && !colorSelection.paperTransparent) {
+    if (!colorSelection.inkTransparent && !colorSelection.paperTransparent &&
+        !colorSelection.brightTransparent && !colorSelection.flashTransparent) {
       return colorSelection;
     }
     if (mode !== DRAW_MODE.NORMAL && mode !== DRAW_MODE.NORMAL_ERASE &&
@@ -1028,14 +1033,21 @@ class PixelDrawRoutineClass {
       ...colorSelection,
       ink: colorSelection.inkTransparent ? shown.ink : colorSelection.ink,
       paper: colorSelection.paperTransparent ? shown.paper : colorSelection.paper,
+      bright: colorSelection.brightTransparent ? shown.bright : colorSelection.bright,
+      flash: colorSelection.flashTransparent ? shown.flash : colorSelection.flash,
       inkTransparent: false,
-      paperTransparent: false
+      paperTransparent: false,
+      brightTransparent: false,
+      flashTransparent: false
     };
-    // GigaScreen: "use existing" means each screen's own existing colour.
+    // GigaScreen: "use existing" means each screen's own existing colour -
+    // and its own bright and flash.
     if (ZX_SPECTRUM.SCREENS === 2) {
       const shownB = this._shownFor(layer, cellX, cellY, shownStroke, inBatch, 1);
       if (colorSelection.inkTransparent) resolved.inkB = shownB.ink;
       if (colorSelection.paperTransparent) resolved.paperB = shownB.paper;
+      if (colorSelection.brightTransparent) resolved.brightB = shownB.bright;
+      if (colorSelection.flashTransparent) resolved.flashB = shownB.flash;
     }
     return resolved;
   }
