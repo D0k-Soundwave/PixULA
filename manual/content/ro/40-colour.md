@@ -131,3 +131,16 @@ Același mod de lucru acoperă încă două moduri cu pâlpâire:
 
 Trecerea între oricare dintre modurile cu două ecrane păstrează ambele ecrane,
 după aceleași reguli după care se convertește un ecran simplu.
+
+### Atribute
+
+Elementele Atribute din meniul Imagine schimbă culorile celulelor și lasă
+punctele pe loc. Inversează schimbă cerneala cu hârtia în fiecare celulă și
+păstrează luminozitatea și clipirea. Șterge scrie cerneala, hârtia,
+luminozitatea și clipirea curente în fiecare celulă; casetele „folosește
+existentul” păstrează ce are deja fiecare celulă. Oglindește orizontal și
+Oglindește vertical oglindesc culorile celulelor. Fiecare comandă lucrează pe
+selecție (toate celulele atinse) sau pe toată imaginea când nu e nimic
+selectat, și se anulează dintr-un pas. Elementele sunt estompate în modurile
+fără culori de celulă (Timex Hi-res, Layer 2, LoRes), cât timp o ștampilă
+plutește și pe un strat blocat.

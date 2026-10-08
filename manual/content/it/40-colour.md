@@ -132,3 +132,16 @@ Lo stesso modo di lavorare vale per altre due modalità a sfarfallio:
 
 Passare da una modalità a due schermi all’altra mantiene entrambi gli schermi,
 con le stesse regole con cui si converte uno schermo singolo.
+
+### Attributi
+
+Le voci Attributi del menu Immagine cambiano i colori delle celle e lasciano
+i punti dove sono. Inverti scambia inchiostro e carta in ogni cella e
+mantiene luminosità e lampeggio. Cancella scrive inchiostro, carta,
+luminosità e lampeggio correnti in ogni cella; le caselle «usa esistente»
+conservano ciò che la cella ha già. Capovolgi orizzontalmente e Capovolgi
+verticalmente specchiano i colori delle celle. Ogni comando agisce sulla
+selezione (tutte le celle toccate) o sull'intera immagine se non c'è selezione,
+e si annulla con un solo passo. Le voci sono disattivate nelle modalità senza
+colori di cella (Timex Hi-res, Layer 2, LoRes), mentre un timbro è fluttuante e
+su un livello bloccato.

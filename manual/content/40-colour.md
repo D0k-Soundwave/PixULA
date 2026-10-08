@@ -120,3 +120,15 @@ The same way of working covers two more flicker modes:
 
 Switching between any of the two-screen modes keeps both screens, by the same
 rules that convert a single screen.
+
+### Attributes
+
+The Attributes items in the Image menu change the colours of cells and leave
+the dots where they are. Invert swaps ink and paper in each cell and keeps
+bright and flash. Erase writes the current ink, paper, bright and flash to
+each cell, and the "use existing" boxes keep what a cell already has. Flip
+Horizontal and Flip Vertical mirror the cell colours. Each command works on
+the selection (every cell it touches), or on the whole picture when nothing
+is selected, and undoes in one step. The items are greyed out in modes with
+no cell colours (Timex Hi-res, Layer 2, LoRes), while a stamp is floating,
+and on a locked layer.

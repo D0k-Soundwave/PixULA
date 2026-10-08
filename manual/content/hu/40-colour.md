@@ -130,3 +130,16 @@ Ugyanez a munkamódszer két további villódzó módra is érvényes:
 
 A kétképernyős módok közötti váltás mindkét képernyőt megtartja, ugyanazon
 szabályok szerint, ahogy egyetlen képernyő átalakul.
+
+### Attribútumok
+
+A Kép menü Attribútumok pontjai a cellák színeit változtatják, a pontok
+helyben maradnak. Az Invertálás minden cellában felcseréli a tintát és a
+papírt, és megtartja a fényerőt és a villogást. A Törlés az aktuális tintát,
+papírt, fényerőt és villogást írja minden cellába; a „meglévő használata”
+jelölőnégyzetek megtartják, ami a cellában már van. A Vízszintes tükrözés és a
+Függőleges tükrözés tükrözi a cellák színeit. Minden parancs a kijelölésen
+(minden érintett cellán) hajtódik végre, kijelölés nélkül az egész képen, és
+egy lépésben visszavonható. A pontok szürkék a cellaszíneket nem használó
+módokban (Timex Hi-res, Layer 2, LoRes), lebegő bélyegző közben és zárolt
+rétegen.

@@ -125,3 +125,15 @@ A mesma forma de trabalhar serve para mais dois modos de cintilação:
 
 Mudar entre quaisquer modos de dois ecrãs mantém ambos os ecrãs, pelas mesmas
 regras com que se converte um ecrã simples.
+
+### Atributos
+
+Os itens Atributos do menu Imagem mudam as cores das células e deixam os
+pontos onde estão. Inverter troca a tinta e o papel de cada célula e mantém o
+brilho e o pisca. Apagar escreve a tinta, o papel, o brilho e o pisca atuais
+em cada célula; as caixas «usar existente» mantêm o que cada célula já tem.
+Espelhar horizontalmente e Espelhar verticalmente espelham as cores das
+células. Cada comando atua sobre a seleção (todas as células que toca) ou sobre
+a imagem inteira quando nada está selecionado, e desfaz-se num único passo. Os
+itens ficam esmaecidos nos modos sem cores de célula (Timex Hi-res, Layer 2,
+LoRes), enquanto um carimbo está flutuante e numa camada bloqueada.

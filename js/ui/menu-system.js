@@ -179,6 +179,31 @@ class MenuSystemClass {
     }
 
     /**
+     * Grey out the Image > Attributes rows the current mode, stamp or locked
+     * layer blocks. The reason goes on the Attributes row tooltip: a disabled
+     * row takes no pointer events, so a tooltip on it would never show.
+     * @private
+     */
+    _updateAttributeMenuState() {
+        if (!window.TransformService) return;
+        const blocked = TransformService.attributeCommandsBlocked();
+        for (const id of ['attr-invert', 'attr-erase', 'attr-flip-h', 'attr-flip-v']) {
+            this.setItemEnabled(id, !blocked);
+        }
+        const parent = this.element.querySelector('[data-id="attributes"]');
+        if (parent) {
+            const reasons = {
+                noCellAttributes: ['menu.image.attrNoCells', 'This screen mode has no cell colours.'],
+                stamp: ['menu.image.attrStamp', 'Finish or cancel the stamp first.'],
+                locked: ['menu.image.attrLocked', 'This layer is locked.']
+            };
+            const r = reasons[blocked];
+            if (r) parent.title = this._t(r[0], r[1]);
+            else parent.removeAttribute('title');
+        }
+    }
+
+    /**
      * Disable each Save Image As leaf the active screen mode can't actually
      * export (e.g. nxi/sl2 need an indexed mode) — applied as
      * enabled/disabled rather than "listed at all", since a static menu tree
@@ -319,6 +344,17 @@ class MenuSystemClass {
                     { type: 'separator' },
                     { id: 'invert', label: 'Invert Colors', action: 'image:invert' },
                     { id: 'clear', label: 'Clear Canvas', action: 'image:clear' },
+                    { type: 'separator' },
+                    // Cell colours only (dots stay). Each row is greyed out where
+                    // the mode, a stamp or a locked layer blocks it; the reason
+                    // shows as the Attributes row tooltip (_updateAttributeMenuState).
+                    { id: 'attributes', label: 'Attributes', i18n: 'menu.image.attributes', items: [
+                        { id: 'attr-invert', label: 'Invert', action: 'image:attrInvert' },
+                        { id: 'attr-erase', label: 'Erase', action: 'image:attrErase' },
+                        { type: 'separator' },
+                        { id: 'attr-flip-h', label: 'Flip Horizontal', action: 'image:attrFlipH' },
+                        { id: 'attr-flip-v', label: 'Flip Vertical', action: 'image:attrFlipV' }
+                    ]},
                     { type: 'separator' },
                     // Screen modes (Phase 12a/13) live in their own flyout —
                     // 18 radio-style toggles is a wall in a flat dropdown.
@@ -548,6 +584,7 @@ class MenuSystemClass {
         EventBus.on(EVENTS.SCREEN_MODE_CHANGED, () => {
             this._updateModeToggles();
             this._updateExportAsMenuState();
+            this._updateAttributeMenuState();
         });
 
         // Keep the View-menu Mirror radios and Snap toggle in sync with their
@@ -614,6 +651,7 @@ class MenuSystemClass {
 
         if (menuId === 'edit') this._updateEditMenuState();
         if (menuId === 'view') this._updateViewMenuState();
+        if (menuId === 'image') this._updateAttributeMenuState();
 
         const menuItem = this.element.querySelector(`[data-menu="${menuId}"]`);
         const dropdown = this.element.querySelector(`#menu-${menuId}`);
@@ -920,6 +958,12 @@ class MenuSystemClass {
             case 'image:rotate180':   TransformService.rotate180();      break;
             case 'image:invert':      TransformService.invert();         break;
             case 'image:clear':       this._clearCanvas();               break;
+
+            // Image > Attributes (cell colours; dots untouched)
+            case 'image:attrInvert':   TransformService.invertAttributes();        break;
+            case 'image:attrErase':    TransformService.eraseAttributes();         break;
+            case 'image:attrFlipH':    TransformService.flipAttributesHorizontal(); break;
+            case 'image:attrFlipV':    TransformService.flipAttributesVertical();   break;
 
             // Screen modes (Phase 12a)
             case 'image:modeStandardUla':   this.requestScreenMode('standard_ula');   break;

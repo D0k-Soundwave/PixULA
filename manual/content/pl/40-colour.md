@@ -126,3 +126,15 @@ Tak samo pracuje się w dwóch innych trybach migotania:
 
 Przełączanie między dowolnymi trybami dwuekranowymi zachowuje oba ekrany, według
 tych samych reguł, według których konwertuje się pojedynczy ekran.
+
+### Atrybuty
+
+Pozycje Atrybuty w menu Obraz zmieniają kolory komórek, a kropki zostają
+na miejscu. Odwróć zamienia atrament z papierem w każdej komórce i zachowuje
+jasność oraz migotanie. Wyczyść zapisuje bieżący atrament, papier, jasność i
+migotanie w każdej komórce; pola „użyj istniejących” zachowują to, co komórka
+ma już teraz. Odbij poziomo i Odbij pionowo odbijają kolory komórek. Każde
+polecenie działa na zaznaczenie (wszystkie dotknięte komórki) albo na cały
+obraz, gdy nic nie jest zaznaczone, i cofa się jednym krokiem. Pozycje są
+wyszarzone w trybach bez kolorów komórek (Timex Hi-res, Layer 2, LoRes), gdy
+pieczątka jest w toku i na zablokowanej warstwie.

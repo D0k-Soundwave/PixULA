@@ -127,3 +127,14 @@ Aynı çalışma biçimi iki titreşimli mod daha için geçerlidir:
 
 İki ekranlı modlar arasında geçiş, tek bir ekranı dönüştüren kurallarla iki
 ekranı da korur.
+
+### Öznitelikler
+
+Görüntü menüsündeki Öznitelikler öğeleri hücre renklerini değiştirir, noktalar
+yerinde kalır. Ters çevir her hücrede mürekkep ile kağıdı değiştirir ve parlaklık
+ile yanıp sönmeyi korur. Sil, her hücreye geçerli mürekkep, kağıt, parlaklık ve
+yanıp sönmeyi yazar; "mevcut olanı kullan" kutuları her hücrede zaten olanı korur.
+Yatay çevir ve Dikey çevir hücre renklerini aynalar. Her komut seçimi (dokunduğu
+tüm hücreleri) ya da hiçbir şey seçili değilse tüm resmi etkiler ve tek adımda
+geri alınır. Öğeler, hücre renkleri olmayan kiplerde (Timex Hi-res, Layer 2,
+LoRes), bir damga yüzerken ve kilitli bir katmanda soluk görünür.

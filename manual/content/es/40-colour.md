@@ -129,3 +129,16 @@ La misma forma de trabajar sirve para otros dos modos de parpadeo:
 
 Cambiar entre cualquiera de los modos de dos pantallas conserva ambas
 pantallas, con las mismas reglas con que se convierte una pantalla sencilla.
+
+### Atributos
+
+Los elementos Atributos del menú Imagen cambian los colores de las celdas y
+dejan los puntos donde están. Invertir intercambia tinta y papel en cada
+celda y conserva brillo y parpadeo. Borrar escribe la tinta, el papel, el
+brillo y el parpadeo actuales en cada celda; las casillas «usar existente»
+conservan lo que ya tiene cada celda. Voltear horizontalmente y Voltear
+verticalmente reflejan los colores de las celdas. Cada orden actúa sobre la
+selección (todas las celdas que toca) o sobre toda la imagen si no hay
+selección, y se deshace en un solo paso. Los elementos aparecen atenuados en
+los modos sin colores de celda (Timex Hi-res, Layer 2, LoRes), mientras flota
+un sello y en una capa bloqueada.
