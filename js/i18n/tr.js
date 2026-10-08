@@ -1425,6 +1425,20 @@ const tr = {
     // Storage and Next export notices
     'msg.storageBlocked': 'Bu tarayıcı site depolamasını engelliyor; bu yüzden PixULA bu sekme kapandıktan sonra ayarlarınızı ve otomatik kaydı saklayamaz. Kapatmadan önce çalışmanızı bir dosyaya kaydedin.',
     'mode.dumpNeedsLayer': 'Bir .{ext} dosyası {family} ekranı içerir - önce bir {family} moduna geçin.',
+    'menu.image.attrChange': 'Değiştir...',
+    'attrChange.title': 'Öznitelikleri değiştir',
+    'attrChange.find': 'Bul',
+    'attrChange.replace': 'Şununla değiştir',
+    'attrChange.any': 'Herhangi',
+    'attrChange.keep': 'Koru',
+    'attrChange.on': 'Açık',
+    'attrChange.off': 'Kapalı',
+    'attrChange.clut': 'CLUT',
+    'attrChange.flashBoth': 'Yanıp sönme (iki ekran)',
+    'attrChange.scope': 'Uygulanan alan: {scope}',
+    'attrChange.scopeSelection': 'Seçim',
+    'attrChange.scopeWhole': 'Tüm resim',
+    'plural.changeAttrCells': 'one: {n} hücre değişecek | other: {n} hücre değişecek',
 };
 
 window.i18n_tr = tr;

@@ -138,6 +138,8 @@ a imagem inteira quando nada está selecionado, e desfaz-se num único passo. Os
 itens ficam esmaecidos nos modos sem cores de célula (Timex Hi-res, Layer 2,
 LoRes), enquanto um carimbo está flutuante e numa camada bloqueada.
 
+Alterar... encontra células pelas suas cores e substitui-as. Localizar indica quais células correspondem: cada campo é um valor ou Qualquer. Substituir por indica no que se tornam: cada campo é um valor ou Manter. A caixa mostra quantas células vão mudar antes de premir OK, e OK desfaz-se num único passo. O GigaScreen tem um grupo para o Ecrã A e outro para o Ecrã B; no ULAplus, o CLUT 0-3 ocupa o lugar de Brilho e Piscar. Cancelar não altera nada.
+
 ### Pontos
 
 Os itens Pontos do menu Imagem alteram os pontos e deixam as cores nas suas células. Espelhar horizontal e Espelhar vertical espelham os pontos. Inverter pontos e cores também troca a tinta e o papel de cada célula, por isso a imagem continua igual. Não são oferecidos em modos sem cores de célula (Layer 2, LoRes, Timex Hi-res) e ficam acinzentados enquanto um carimbo flutua.

@@ -88,7 +88,7 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | Erase attributes of selection | Sets every cell in the selection, or the whole screen, to the current colours. | Image > Attributes > Erase (2026-10-08): writes the rail colours, honouring the use-existing boxes; one undo step. Same stamp and mode limits as Invert. | Partial |
 | Flip attributes horizontally | Mirrors the colours; the dots stay where they are. | Image > Attributes > Flip Horizontal (2026-10-08): mirrors the cell colours, dots untouched. Same stamp and mode limits as Invert. | Partial |
 | Flip attributes vertically | As above, top to bottom. | Image > Attributes > Flip Vertical (2026-10-08): as above. Same stamp and mode limits as Invert. | Partial |
-| Change attributes dialog | Find and replace: choose source ink, paper, bright and flash (any can be "any") and what to change them to, over the picture, selection or overlay. | Fill attributes only replaces one connected area of cells that match exactly. | Partial |
+| Change attributes dialog | Find and replace: choose source ink, paper, bright and flash (any can be "any") and what to change them to, over the picture, selection or overlay. | Image > Attributes > Change... (2026-10-08): Find and Replace with each take a value or Any/Keep for ink, paper, bright and flash; GigaScreen has Screen A and Screen B groups; ULAplus shows CLUT 0-3; live count of cells that will change; OK is one undo step. Not yet over a floating stamp (the item is greyed out with the reason, as the other Attributes commands are). | Partial |
 
 ### Edit pixels bar and rolling
 

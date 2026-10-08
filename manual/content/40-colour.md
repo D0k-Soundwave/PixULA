@@ -133,6 +133,8 @@ is selected, and undoes in one step. The items are greyed out in modes with
 no cell colours (Timex Hi-res, Layer 2, LoRes), while a stamp is floating,
 and on a locked layer.
 
+Change... finds cells by their colours and replaces them. Find sets which cells to match: each field is a value or Any. Replace with sets what they become: each field is a value or Keep. The dialog shows how many cells will change before you press OK, and OK undoes in one step. GigaScreen has a Screen A and a Screen B group; in ULAplus, CLUT 0-3 takes the place of Bright and Flash. Cancel changes nothing.
+
 ### Dots
 
 The Dots items in the Image menu change the dots and leave the colours in their cells. Flip Horizontal and Flip Vertical mirror the dots. Invert Dots and Colours also swaps the ink and paper of each cell, so the picture looks the same. It is not offered in modes with no cell colours (Layer 2, LoRes, Timex Hi-res), and it is greyed out while a stamp is floating.

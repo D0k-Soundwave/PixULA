@@ -20,10 +20,10 @@ const itemState = (page, id) => page.evaluate((rowId) => {
     return el ? { present: true, disabled: el.classList.contains('disabled') } : { present: false };
 }, id);
 
-test('Image > Attributes lists the four commands, enabled in standard ULA', async ({ page }) => {
+test('Image > Attributes lists the five commands, enabled in standard ULA', async ({ page }) => {
     await boot(page);
     await openImageSubmenu(page);
-    for (const id of ['attr-invert', 'attr-erase', 'attr-flip-h', 'attr-flip-v']) {
+    for (const id of ['attr-invert', 'attr-erase', 'attr-flip-h', 'attr-flip-v', 'attr-change']) {
         expect(await itemState(page, id), id).toEqual({ present: true, disabled: false });
     }
 });
@@ -35,6 +35,7 @@ test('Timex Hi-res greys the commands out and says why on the Attributes row', a
     await openImageSubmenu(page);
     expect(await itemState(page, 'attr-invert')).toEqual({ present: true, disabled: true });
     expect(await itemState(page, 'attr-flip-v')).toEqual({ present: true, disabled: true });
+    expect(await itemState(page, 'attr-change')).toEqual({ present: true, disabled: true });
     const tip = await page.getAttribute('#menu-image [data-id="attributes"]', 'title');
     expect(tip, 'the reason is on the parent row').toMatch(/no cell colours/i);
 });

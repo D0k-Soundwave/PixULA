@@ -1425,6 +1425,20 @@ const ro = {
     // Storage and Next export notices
     'msg.storageBlocked': 'Acest browser blochează stocarea site-ului, așa că PixULA nu vă poate păstra setările sau salvarea automată după închiderea acestei file. Salvați lucrarea într-un fișier înainte de a închide.',
     'mode.dumpNeedsLayer': 'Un fișier .{ext} conține un ecran {family} - comutați mai întâi la un mod {family}.',
+    'menu.image.attrChange': 'Modifică...',
+    'attrChange.title': 'Modifică atributele',
+    'attrChange.find': 'Caută',
+    'attrChange.replace': 'Înlocuiește cu',
+    'attrChange.any': 'Oricare',
+    'attrChange.keep': 'Păstrează',
+    'attrChange.on': 'Pornit',
+    'attrChange.off': 'Oprit',
+    'attrChange.clut': 'CLUT',
+    'attrChange.flashBoth': 'Clipire (ambele ecrane)',
+    'attrChange.scope': 'Se aplică la: {scope}',
+    'attrChange.scopeSelection': 'Selecție',
+    'attrChange.scopeWhole': 'Imaginea întreagă',
+    'plural.changeAttrCells': 'one: {n} celulă se va modifica | few: {n} celule se vor modifica | other: {n} de celule se vor modifica',
 };
 
 window.i18n_ro = ro;

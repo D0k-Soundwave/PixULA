@@ -143,6 +143,8 @@ selección, y se deshace en un solo paso. Los elementos aparecen atenuados en
 los modos sin colores de celda (Timex Hi-res, Layer 2, LoRes), mientras flota
 un sello y en una capa bloqueada.
 
+Cambiar... busca celdas por sus colores y las reemplaza. Buscar indica qué celdas coinciden: cada campo es un valor o Cualquiera. Reemplazar por indica en qué se convierten: cada campo es un valor o Mantener. El cuadro muestra cuántas celdas cambiarán antes de pulsar Aceptar, y Aceptar se deshace en un solo paso. GigaScreen tiene un grupo para la Pantalla A y otro para la Pantalla B; en ULAplus, CLUT 0-3 ocupa el lugar de Brillo y Parpadeo. Cancelar no cambia nada.
+
 ### Puntos
 
 Los elementos Puntos del menú Imagen cambian los puntos y dejan los colores en sus celdas. Voltear horizontal y Voltear vertical reflejan los puntos. Invertir puntos y colores también intercambia la tinta y el papel de cada celda, así que la imagen se ve igual. No se ofrece en modos sin colores de celda (Layer 2, LoRes, Timex Hi-res), y aparece en gris mientras flota un sello.

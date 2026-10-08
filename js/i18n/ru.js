@@ -1425,6 +1425,20 @@ const ru = {
     // Storage and Next export notices
     'msg.storageBlocked': 'Этот браузер блокирует хранилище сайта, поэтому PixULA не сможет сохранить настройки и автосохранение после закрытия вкладки. Сохраните работу в файл перед закрытием.',
     'mode.dumpNeedsLayer': 'Файл .{ext} содержит экран {family} - сначала переключитесь в режим {family}.',
+    'menu.image.attrChange': 'Изменить...',
+    'attrChange.title': 'Изменить атрибуты',
+    'attrChange.find': 'Найти',
+    'attrChange.replace': 'Заменить на',
+    'attrChange.any': 'Любой',
+    'attrChange.keep': 'Оставить',
+    'attrChange.on': 'Вкл.',
+    'attrChange.off': 'Выкл.',
+    'attrChange.clut': 'CLUT',
+    'attrChange.flashBoth': 'Мерцание (оба экрана)',
+    'attrChange.scope': 'Применяется к: {scope}',
+    'attrChange.scopeSelection': 'Выделение',
+    'attrChange.scopeWhole': 'Всё изображение',
+    'plural.changeAttrCells': 'one: {n} ячейка изменится | few: {n} ячейки изменятся | many: {n} ячеек изменится | other: {n} ячейки изменятся',
 };
 
 window.i18n_ru = ru;

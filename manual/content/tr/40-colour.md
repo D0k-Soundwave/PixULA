@@ -139,6 +139,8 @@ tüm hücreleri) ya da hiçbir şey seçili değilse tüm resmi etkiler ve tek a
 geri alınır. Öğeler, hücre renkleri olmayan kiplerde (Timex Hi-res, Layer 2,
 LoRes), bir damga yüzerken ve kilitli bir katmanda soluk görünür.
 
+Değiştir... hücreleri renklerine göre bulur ve değiştirir. Bul, hangi hücrelerin eşleşeceğini belirler: her alan bir değer ya da Herhangi. Şununla değiştir, hücrelerin ne olacağını belirler: her alan bir değer ya da Koru. İletişim kutusu, Tamam'a basmadan önce kaç hücrenin değişeceğini gösterir ve Tamam tek adımda geri alınır. GigaScreen'de Ekran A ve Ekran B grupları vardır; ULAplus'ta CLUT 0-3, Parlaklık ve Yanıp sönme yerine geçer. İptal hiçbir şeyi değiştirmez.
+
 ### Noktalar
 
 Görüntü menüsündeki Noktalar öğeleri noktaları değiştirir, renkleri hücrelerinde bırakır. Yatay çevir ve Dikey çevir noktaları çevirir. Noktaları ve renkleri ters çevir, her hücrenin mürekkep ve kağıdını da değiştirir, böylece resim aynı görünür. Hücre renkleri olmayan kipte sunulmaz (Layer 2, LoRes, Timex Hi-res) ve bir damga yüzerken gri görünür.
