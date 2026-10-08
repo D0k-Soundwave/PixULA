@@ -923,6 +923,180 @@ class TransformServiceClass {
     Logger.debug('TransformService', 'Invert applied');
   }
 
+  // ── Attribute commands (Image > Attributes) ─────────────────────────────
+  // They change cell colours and leave every dot where it is. The work area
+  // is rounded out to whole cells, and each command is one undo step.
+
+  /**
+   * Why the attribute commands cannot run now, or null when they can.
+   * Checked in the service too, so a shortcut or a stale menu cannot bypass it.
+   * @returns {string|null} 'noCellAttributes' | 'stamp' | 'locked' | null
+   */
+  attributeCommandsBlocked() {
+    if (!ColorManager.hasCellAttributes()) return 'noCellAttributes';
+    const layer = LayerManager.getCurrentLayer();
+    if (!layer || layer.isStamp) return 'stamp';
+    if (layer.locked) return 'locked';
+    return null;
+  }
+
+  /**
+   * The cell rectangle the work area touches, clamped to the grid.
+   * @returns {{x0:number, y0:number, x1:number, y1:number}}
+   * @private
+   */
+  _attributeCellRect(area) {
+    const a = ZX_COORDS.pixelToCell(area.x, area.y);
+    const b = ZX_COORDS.pixelToCell(area.x + area.width - 1, area.y + area.height - 1);
+    return {
+      x0: Math.max(0, a.x),
+      y0: Math.max(0, a.y),
+      x1: Math.min(ZX_SPECTRUM.GRID_COLS - 1, b.x),
+      y1: Math.min(ZX_SPECTRUM.GRID_ROWS - 1, b.y)
+    };
+  }
+
+  /**
+   * The colours a cell shows: screen A, and screen B on GigaScreen.
+   * @private
+   */
+  _readCellAttrs(layer, cx, cy) {
+    const a = LayerManager.attrsAsSeen(layer, cx, cy);
+    const e = { ink: a.ink, paper: a.paper, bright: a.bright, flash: a.flash };
+    if (ZX_SPECTRUM.SCREENS === 2) {
+      const b = LayerManager.attrsAsSeen(layer, cx, cy, 1);
+      e.inkB = b.ink; e.paperB = b.paper; e.brightB = b.bright; e.flashB = b.flash;
+    }
+    return e;
+  }
+
+  /** Write one cell's colours with ATTRIBUTES_ONLY (dots are never touched). @private */
+  _writeCellAttrs(layer, cx, cy, e) {
+    const px = ZX_COORDS.cellToPixel(cx, cy);
+    const sel = { ink: e.ink, paper: e.paper, bright: e.bright, flash: e.flash };
+    if (ZX_SPECTRUM.SCREENS === 2) {
+      sel.inkB = e.inkB; sel.paperB = e.paperB; sel.brightB = e.brightB; sel.flashB = e.flashB;
+    }
+    PixelDrawRoutine.draw(px.x, px.y, sel, DRAW_MODE.ATTRIBUTES_ONLY, { layer });
+  }
+
+  /** True when two attribute sets agree on every field the target carries. @private */
+  _sameAttrs(next, cur) {
+    for (const k of Object.keys(next)) {
+      if (next[k] !== cur[k]) return false;
+    }
+    return true;
+  }
+
+  /**
+   * Rewrite the colours of a cell rectangle. Every source is read before the
+   * first write, so a flip never reads a cell it has already changed. Cells
+   * whose colours would not change are skipped, so no-op commands add no undo
+   * step and see-through upper-layer cells stay see-through.
+   * @param {{x0,y0,x1,y1}} rect - cell rectangle
+   * @param {Function} targetOf - (cx, cy, grid, rect) => attrs to write there
+   * @returns {number} cells changed
+   * @private
+   */
+  _rewriteCells(rect, targetOf) {
+    const layer = LayerManager.getCurrentLayer();
+    if (!layer) return 0;
+    const grid = [];
+    for (let cy = rect.y0; cy <= rect.y1; cy++) {
+      const row = [];
+      for (let cx = rect.x0; cx <= rect.x1; cx++) row.push(this._readCellAttrs(layer, cx, cy));
+      grid.push(row);
+    }
+    const writes = [];
+    for (let cy = rect.y0; cy <= rect.y1; cy++) {
+      for (let cx = rect.x0; cx <= rect.x1; cx++) {
+        const next = targetOf(cx, cy, grid, rect);
+        const cur = grid[cy - rect.y0][cx - rect.x0];
+        if (!this._sameAttrs(next, cur)) writes.push({ cx, cy, next });
+      }
+    }
+    if (writes.length === 0) return 0;
+
+    PixelDrawRoutine.beginBatch();
+    PixelDrawRoutine.suspendMirror(() => {
+      for (const w of writes) this._writeCellAttrs(layer, w.cx, w.cy, w.next);
+    });
+    PixelDrawRoutine.endBatch();
+    return writes.length;
+  }
+
+  /**
+   * Swap ink and paper of each cell; bright and flash stay. GigaScreen swaps
+   * each screen's own pair. Running it twice gives the picture back.
+   * @returns {number} cells changed
+   */
+  invertAttributes() {
+    if (this.attributeCommandsBlocked()) return 0;
+    const rect = this._attributeCellRect(this._getWorkArea());
+    return this._rewriteCells(rect, (cx, cy, grid) => {
+      const c = grid[cy - rect.y0][cx - rect.x0];
+      const next = { ink: c.paper, paper: c.ink, bright: c.bright, flash: c.flash };
+      if (ZX_SPECTRUM.SCREENS === 2) {
+        next.inkB = c.paperB; next.paperB = c.inkB;
+        next.brightB = c.brightB; next.flashB = c.flashB;
+      }
+      return next;
+    });
+  }
+
+  /**
+   * Write the current colours to each cell. "Use existing" boxes are honoured:
+   * a kept part keeps what each cell shows.
+   * @returns {number} cells changed
+   */
+  eraseAttributes() {
+    if (this.attributeCommandsBlocked()) return 0;
+    const rect = this._attributeCellRect(this._getWorkArea());
+    const rail = ColorManager.getCurrentSelection();
+    return this._rewriteCells(rect, (cx, cy, grid) => {
+      const c = grid[cy - rect.y0][cx - rect.x0];
+      const next = {
+        ink: rail.inkTransparent ? c.ink : rail.ink,
+        paper: rail.paperTransparent ? c.paper : rail.paper,
+        bright: rail.brightTransparent ? c.bright : rail.bright,
+        flash: rail.flashTransparent ? c.flash : rail.flash
+      };
+      if (ZX_SPECTRUM.SCREENS === 2) {
+        next.inkB = rail.inkTransparent ? c.inkB : (rail.inkB != null ? rail.inkB : rail.ink);
+        next.paperB = rail.paperTransparent ? c.paperB : (rail.paperB != null ? rail.paperB : rail.paper);
+        next.brightB = rail.brightTransparent ? c.brightB : (rail.brightB != null ? rail.brightB : rail.bright);
+        next.flashB = rail.flashTransparent ? c.flashB : (rail.flashB != null ? rail.flashB : rail.flash);
+      }
+      return next;
+    });
+  }
+
+  /**
+   * Mirror the cell colours left-right across the work area's cell rectangle.
+   * @returns {number} cells changed
+   */
+  flipAttributesHorizontal() {
+    if (this.attributeCommandsBlocked()) return 0;
+    const rect = this._attributeCellRect(this._getWorkArea());
+    return this._rewriteCells(rect, (cx, cy, grid) => {
+      const mx = rect.x0 + rect.x1 - cx;
+      return { ...grid[cy - rect.y0][mx - rect.x0] };
+    });
+  }
+
+  /**
+   * Mirror the cell colours top-bottom across the work area's cell rectangle.
+   * @returns {number} cells changed
+   */
+  flipAttributesVertical() {
+    if (this.attributeCommandsBlocked()) return 0;
+    const rect = this._attributeCellRect(this._getWorkArea());
+    return this._rewriteCells(rect, (cx, cy, grid) => {
+      const my = rect.y0 + rect.y1 - cy;
+      return { ...grid[my - rect.y0][cx - rect.x0] };
+    });
+  }
+
 }
 
 window.TransformService = new TransformServiceClass();
