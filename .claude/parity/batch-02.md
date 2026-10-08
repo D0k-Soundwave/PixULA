@@ -105,6 +105,25 @@ Decided during the 2A plan review (2026-10-08, Opus), no owner question needed:
   today, not the lasso or wand mask. Owner cost: a lasso over part of a cell
   still changes every cell it touches (the same as Flip today).
 
+Decided by the owner during 2B (2026-10-08):
+- Shift "Dots and colours" always moves whole cells (CELL_WIDTH / CELL_HEIGHT
+  steps) and carries each cell's paper with its dots. The one-pixel
+  "Dots and colours" shift is removed; the step select is locked to one cell
+  while that Move is chosen.
+- A one-pixel shift stays available as "Dots only" (dots move a pixel, colours
+  stay in their cells).
+- "Colours only" moves colours one cell at a time; dots stay.
+
+Plan review (2B, Opus, 2026-10-08) corrections accepted: _rewriteCells split so
+it never runs inside an open batch (PixelDrawRoutine.beginBatch does not nest);
+dot flips write through PIXEL_ONLY/ERASE, not _applyBufferWithAttrs; the
+inverter skips unaltered upper-layer cells; the 3x3 pad keeps the outline
+style; diagonals are one horizontal pass then one vertical pass.
+Logged for the check-off, not fixed in 2B: Image > Flip, Rotate and Invert
+write into the stamp's preview cells while a stamp floats (the Transform
+panel routes these through transformStamp). "Invert Colours" in Image menu
+inverts dots only; the name is misleading next to "Invert Dots and Colours".
+
 OWNER: none known.
 
 ## Part 2A - attribute commands
