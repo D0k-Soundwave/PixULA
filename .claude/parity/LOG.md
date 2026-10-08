@@ -57,3 +57,37 @@ Keyboard-only users do not hear the reason for a greyed-out Attributes item:
 the reason is a mouse tooltip on the parent row. A keyboard-reachable note
 row is not built.
 Next: Batch 2 part 2B - dot commands and the Shift pad.
+
+## 2026-10-08 - Batch 2 part 2B - dot commands and the Shift pad - partial (service half done; split as 2B2)
+Model: Haiku. Branch: parity-a.
+Commits: a3a794e feat: flip dots only, invert dots and colours, and shift with dots, colours or both
+2299dbd docs: record 2B owner decisions and review corrections
+Done: TransformService.flipDotsHorizontal/flipDotsVertical (dots only, colours stay in
+cells; indexed and Timex delegate to today's flips); invertDotsAndColours (whole cells,
+see-through upper-layer cells skipped, one batch, suspendClip); shift(direction, amount,
+wrap, content) with eight directions, content 'both' / 'dots' / 'colours', diagonals as
+two passes, returns whether anything changed. _rewriteCells split into _planCellWrites and
+_applyCellWrites (PixelDrawRoutine.beginBatch does not nest). Tests: tests/dot-commands.test.js
+(new, failed first, now passes); tests/transform-shift.test.js rewritten for the owner's
+paper rule, its ColorManager stub gained hasCellAttributes(). node tests/run-all.js: ALL TEST
+FILES PASSED.
+Left: panel, pad, Image > Dots menu, i18n (13 locales), manual, Playwright spec, speed timing
+of shift on Layer 2 640x256, comparison doc rows, FIGURES.md. All moved to Part 2B2 in
+batch-02.md.
+Plan corrections: batch-02.md 2B: owner decisions (whole-cell Dots and colours with paper,
+one-pixel shift kept as Dots only); Opus corrections list recorded; Part 2B2 added.
+Opus: plan review (Plan agent, opus) -> change. Accepted: _rewriteCells split (no nested
+batch); dot flips via PIXEL_ONLY/ERASE, never _applyBufferWithAttrs (colours and
+see-through cells); inverter skips unaltered upper-layer cells and suspends clip; shift
+amount in pixels, colours move cells; diagonals as two passes; 3x3 pad keeps outline style.
+Not accepted as stated: none. Stamp menu routing for Dots items deferred to 2B2 (Opus item 6
+left open for the panel build).
+Owner: "Dots and colours" on a cell step moves paper too (asked after a clarification
+round; answered: yes, and the one-pixel shift stays as "Dots only"). Asked and open: the
+keyboard arrow nudge's behaviour (in batch-02.md, OWNER).
+Logged, not fixed: Image > Flip, Rotate and Invert write into the stamp's preview cells
+while a stamp floats (Opus confirmed the code path: input the Transform panel avoids). Fix
+with a test in its own part. Image > "Invert Colours" inverts dots only: misleading name.
+Flaky tests: none seen in this part (the browser suite was not run: the pad and menu are not
+built yet).
+Next: Batch 2 part 2B2 - Shift pad, Image > Dots menu (same branch).
