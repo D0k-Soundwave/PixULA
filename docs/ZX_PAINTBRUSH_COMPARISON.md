@@ -21,16 +21,17 @@ listings and had gone stale (it described an "Attributes only" draw mode and a
 Paintbrush never had).
 
 **Totals** [M, counted from the tables below]: 114 functions; PixULA is below
-parity on 64 (28 missing, 36 partial), level on
+parity on 64 (24 missing, 40 partial), level on
 38, ahead on 10, and 2 do not apply to a browser app.
 Before Batch 1 (2026-10-08 morning) the count below parity was 69 (34 missing, 35
-partial).
+partial). Before Batch 2 part 2B2 (2026-10-08) it was 64 (28 missing, 36 partial):
+the Dots menu and the Move choice moved four Missing rows to Partial.
 
 ---
 
 ## Part 1 - Attributes, Bright and Flash
 
-50 functions: 19 same, 1 where PixULA goes further, 17 partial, 13 missing, 0 not applicable.
+50 functions: 19 same, 1 where PixULA goes further, 21 partial, 9 missing, 0 not applicable.
 
 ZX Paintbrush gives each part of the attribute byte (bit 7 FLASH, bit 6 BRIGHT,
 bits 5-3 PAPER, bits 2-0 INK) three states: a value, or "transparent" (BASIC's
@@ -77,7 +78,7 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 |---|---|---|---|
 | Attributes inverter tool | Swaps ink and paper of each cell clicked; snaps to cells. | Swap button. | Same |
 | Pixels inverter tool | Inverts the dots of each cell clicked. | Select the cell with Cell Grid, then Transform > Invert. Two steps. | Partial |
-| Pixels and attributes inverter | Inverts dots and swaps colours together, so the picture looks unchanged. Used to tidy imported pictures, where solid areas come in as inverted cells with holes. | No. | Missing |
+| Pixels and attributes inverter | Inverts dots and swaps colours together, so the picture looks unchanged. Used to tidy imported pictures, where solid areas come in as inverted cells with holes. | Image > Dots > Invert Dots and Colours (2026-10-08): inverts the dots and swaps ink and paper of each whole cell the selection touches, or the whole picture; one undo step. No click-a-cell tool yet (Batch 4). Greyed out in modes without cell colours and while a stamp floats. | Partial |
 
 ### Edit attributes bar - selection or whole screen
 
@@ -95,10 +96,10 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 |---|---|---|---|
 | Invert pixels of selection | Inverts the dots of the selection or screen; colours untouched. | Transform > Invert, and Image > Invert Colours, which does the same thing despite its name. | Same |
 | Erase pixels of selection | Clears the dots; colours kept. | Edit > Delete. | Same |
-| Flip pixels horizontally / vertically | Mirrors the dots; colours stay where they are. | No. Flip moves dots and colours together. | Missing |
-| Roll or scroll pixels only | Moves the dots one pixel at a time; colours stay. | No. Shift always carries the colours with the dots. | Missing |
-| Roll or scroll colours only | Moves the colours a cell at a time; dots stay. | No. | Missing |
-| Roll or scroll both | Dots and colours together, 8 pixels at a time; wrap round (roll) or lose the edge (scroll); 8 directions, repeats while held. | Transform Shift: 1 pixel or 1 cell, wrap on or off, repeats while held. Four directions, no diagonals. | Partial |
+| Flip pixels horizontally / vertically | Mirrors the dots; colours stay where they are. | Image > Dots > Flip Horizontal / Vertical (2026-10-08): mirrors the dots of the selection or whole picture, colours stay in their cells; one undo step. A floating stamp is flipped as a stamp, but a stamp with its own cell colours cannot be flipped here. | Partial |
+| Roll or scroll pixels only | Moves the dots one pixel at a time; colours stay. | Transform Shift, Move = Dots only (2026-10-08): dots move one pixel or one cell at a time, 8 directions, wrap on or off, repeats while held. Not for a floating stamp (a stamp moves whole), and the arrow keys follow Move too (owner decision, 2026-10-08). | Partial |
+| Roll or scroll colours only | Moves the colours a cell at a time; dots stay. | Transform Shift, Move = Colours only (2026-10-08): colour cells move one cell at a time, 8 directions, wrap on or off, repeats while held. Not for a floating stamp; arrow keys follow Move too. | Partial |
+| Roll or scroll both | Dots and colours together, 8 pixels at a time; wrap round (roll) or lose the edge (scroll); 8 directions, repeats while held. | Transform Shift, Move = Dots and colours (the default, 2026-10-08): whole cells with their paper, 8 directions including diagonals, wrap on or off, repeats while held, one undo step per hold. Cell steps only (8x8 in standard ULA). Not for a floating stamp; arrow keys follow Move too. | Partial |
 
 ### Seeing attributes
 
@@ -275,7 +276,10 @@ cost and the owner decides.
    every mode and tool; one CLUT box in ULAplus; Shift+B / Shift+F / Shift+T.
    Still open from this area: the ULAplus 0-3 CLUT keys (batch 6).
 2. **Attribute commands on a selection or the whole screen** (2A done 2026-10-08:
-   invert, erase and flip attributes; stamp support still open): invert attributes,
+   invert, erase and flip attributes; 2B2 done 2026-10-08: Image > Dots flips,
+   Invert Dots and Colours, the Move choice and the 3x3 shift pad with diagonals;
+   stamp support for the attribute commands and the arrow keys still open; the
+   Change Attributes dialog is 2C): invert attributes,
    erase attributes, flip attributes H/V; a Change Attributes dialog (find and
    replace, any part may be "any"); pixels-only flip; pixels-only and
    colours-only shift; diagonal shift; a Pixels+Attributes inverter (inverts dots

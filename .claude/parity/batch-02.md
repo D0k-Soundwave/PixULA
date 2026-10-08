@@ -238,10 +238,33 @@ Build (what remains):
    both), the Shift pad, and Pixels and attributes inverter go to Partial or
    Done as the build allows, with the date. Run node .claude/parity/count-verdicts.js.
 
-OWNER (new): the keyboard arrow nudge (InputHandler._handleArrowNudge) calls
-shift with 1 pixel, so it still moves ink and leaves paper, the old rule. With
-grid snap on it moves whole cells and now carries paper. Should the arrow keys
-follow the Transform panel's Move choice, or keep their own behaviour?
+Decided in 2B2 (2026-10-08, Opus plan review; no owner question needed):
+- Default Move is "Dots and colours". Its cost: in cell modes the first press
+  moves a whole cell (8 pixels across in standard ULA), not one pixel. The
+  one-pixel shift is "Dots only".
+- Whole-cell rounding for dots too: a Dots and colours shift rounds the work
+  area out to whole cells, so a marquee over part of a cell moves the whole
+  cell, its dots included (the test: tests/shift-cell-rounding.test.js). The
+  bug it fixes was in a3a794e: dots moved inside the marquee while colours moved
+  by cell, so a dot could leave its colours behind.
+- A floating stamp disables Move (a stamp shift moves the whole stamp) with a
+  visible hint. The step select stays usable and keeps the user's choice, so
+  the one-pixel stamp nudge survives. Diagonals on a stamp are a horizontal
+  then a vertical transformStamp call.
+- Image > Dots on a floating stamp: Flip goes to transformStamp, as the Transform
+  panel's Flip does. Its cost: the stamp is flipped whole, not dots only,
+  because a stamp carries one colour set. A stamp with its own cell colours
+  (map-editor stamps) cannot be flipped here: the item is greyed out with the
+  reason, because transformStamp refuses those silently.
+- Invert Dots and Colours is greyed out while a stamp floats, and in modes with
+  no cell colours (Layer 2, LoRes, Timex Hi-res), each with its reason on the
+  Dots row.
+
+OWNER (answered 2026-10-08, built in 2B2): the arrow keys follow the Transform
+panel's Move choice. Dots and colours and Colours only step one whole cell (with
+their paper for Dots and colours); Dots only steps a pixel, or a cell with grid
+snap, as before. Cost: a plain arrow press in a cell mode now moves a whole cell
+with its paper, not one pixel of ink. Use Dots only for a pixel nudge.
 
 Logged for the check-off (a real bug, Opus review): while a stamp floats,
 Image > Flip, Rotate and Invert write into the stamp's preview cells instead

@@ -91,3 +91,46 @@ with a test in its own part. Image > "Invert Colours" inverts dots only: mislead
 Flaky tests: none seen in this part (the browser suite was not run: the pad and menu are not
 built yet).
 Next: Batch 2 part 2B2 - Shift pad, Image > Dots menu (same branch).
+
+## 2026-10-08 - Batch 2 part 2B2 - Shift pad, Image > Dots menu - done
+Model: Haiku. Branch: parity-a.
+Commits: (see git log; the 2B2 commits follow 08f9570 on this branch)
+Done: Transform panel Move select (Dots and colours / Dots only / Colours only), hidden
+without cell colours, disabled with a visible hint while a stamp floats. Step locked to one
+cell while Move is Dots and colours or Colours only; the user's own step choice is remembered.
+3x3 shift pad with the four diagonals (Helpers.buildDirPad({nine: true}), eight new
+icon-dirpad9-* symbols in index.html, css .dir-pad--nine clips each zone to its ninth). Diagonals
+go through TransformService.shift; on a floating stamp they are two transformStamp calls.
+Image > Dots submenu (Flip Horizontal, Flip Vertical, Invert Dots and Colours) with
+TransformService.dotCommandsBlocked() and dotsFlip(): flips route to transformStamp on a
+floating stamp, grey out on a stamp with its own colours; Invert greys out on a floating stamp,
+in modes with no cell colours, and on locked layers, each reason on the Dots row.
+Service bug fixed (correction 1 of the Opus review): whole-cell shift with content both moved
+dots inside the exact selection but colours by cell; now both use the cells the selection touches.
+i18n: 17 keys in 13 locales. Manual: "Dots" section in 40-colour.md in 13 languages; check:manual passes.
+Tests: tests/shift-cell-rounding.test.js and tests/dots-menu-routing.test.js (Node, failed first);
+tests/browser/transform-shift-pad.spec.js (5 specs); tests/browser/image-dots-menu.spec.js (3 specs);
+tests/browser/dirpad-hold-repeat.spec.js: the one-pixel tap now selects Dots only first (the default
+now moves a cell, so the test keeps its meaning).
+Speed: [M] in docs/FIGURES.md. Layer 2 640x256 shift before 29.0-30.6 ms, after 29.6-31.0 ms per call
+(no measurable change); multigiga_8x1 diagonal cell step 12.2-13.3 ms per call.
+Comparison doc: rows Pixels and attributes inverter, Flip pixels, Roll or scroll pixels only, colours
+only, both moved from Missing or Partial to Partial (see the rows, dated 2026-10-08). Totals:
+64 below parity (24 missing, 40 partial). The Part 1 count line was stale (17 partial, 13 missing
+in the file; script says 21 and 9) and was copied from the script output.
+Arrow keys: built. They follow the Move choice (owner answered 2026-10-08: follow it). Tests:
+tests/browser/transform-shift-pad.spec.js, "the arrow keys follow the Move choice"; the 52 existing
+keyboard and nudge specs pass.
+Left: stamp support for the attribute commands (2A); the Change Attributes dialog (2C); the stamp-flip
+bug in Image > Flip, Rotate and Invert (logged in 2B, not fixed). The Image > Dots flip on a stamp
+is routed correctly; the older Image > Flip is not.
+Plan corrections: batch-02.md 2B2: decisions recorded with costs (default Move, whole-cell rounding,
+stamp disables Move, Dots flips on a stamp). The Opus review's correction 10 (the existing one-pixel
+tap test) was applied by selecting Dots only in that test.
+Opus: plan review (Plan agent, opus) -> change. Accepted: the service bug (1), the step rule (2), stamp amounts per axis (3), _sync placement (4), visible hints (5),
+Move tooltip attributes (6), nine-zone pad with its own symbols (7), Dots menu state with reasons (8),
+Node tests first (9), spec updates (10), speed on the multigiga path (11), manual regeneration (12).
+Owner: "Should the arrow keys follow the Move choice?" -> "Follow the Move choice (Recommended)".
+Flaky tests: none seen in this part. The full browser suite failed once on tooltip.spec.js
+"every two-stage control" (tp-shift-move missing from the tooltip selector); fixed, and the spec passes.
+Next: Batch 2 part 2C - Change Attributes dialog (same branch).
