@@ -136,3 +136,16 @@ La même façon de travailler couvre deux autres modes à scintillement :
 
 Passer d’un mode à deux écrans à un autre conserve les deux écrans, selon les
 mêmes règles que la conversion d’un écran simple.
+
+### Attributs
+
+Les éléments Attributs du menu Image modifient les couleurs des cellules et
+laissent les points en place. Inverser échange l'encre et le papier de chaque
+cellule et garde le brillant et le clignotement. Effacer écrit l'encre, le
+papier, le brillant et le clignotement actuels dans chaque cellule ; les cases
+« utiliser l'existant » conservent ce que la cellule possède déjà. Retourner
+horizontalement et Retourner verticalement retournent les couleurs des
+cellules. Chaque commande agit sur la sélection (toutes les cellules touchées)
+ou sur toute l'image sans sélection, et s'annule en une seule fois. Les
+éléments sont grisés dans les modes sans couleurs de cellule (Timex Hi-res,
+Layer 2, LoRes), pendant qu'un tampon flotte, et sur un calque verrouillé.

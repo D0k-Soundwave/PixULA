@@ -118,3 +118,14 @@ Stejný způsob práce platí pro další dva mihotavé režimy:
 
 Přepnutí mezi libovolnými dvouobrazovkovými režimy zachová obě obrazovky podle
 stejných pravidel, podle kterých se převádí jediná obrazovka.
+
+### Atributy
+
+Položky Atributy v nabídce Obrázek mění barvy buněk a tečky nechávají na
+místě. Invertovat prohodí inkoust a papír v každé buňce a zachová jas a
+blikání. Vymazat zapíše aktuální inkoust, papír, jas a blikání do každé buňky;
+zaškrtnutá pole „použít existující“ ponechají to, co buňka už má. Otočit
+vodorovně a Otočit svisle zrcadlí barvy buněk. Každý příkaz působí na výběr
+(všechny buňky, kterých se dotýká), nebo na celý obrázek, není-li nic vybráno,
+a vrací se jedním krokem zpět. Položky jsou šedé v režimech bez barev buněk
+(Timex Hi-res, Layer 2, LoRes), když plove razítko, a na zamčené vrstvě.

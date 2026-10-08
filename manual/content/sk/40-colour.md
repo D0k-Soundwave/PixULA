@@ -120,3 +120,15 @@ Rovnaký spôsob práce platí pre ďalšie dva mihotavé režimy:
 
 Prepnutie medzi ľubovoľnými dvojobrazovkovými režimami zachová obe obrazovky
 podľa tých istých pravidiel, podľa ktorých sa prevádza jediná obrazovka.
+
+### Atribúty
+
+Položky Atribúty v ponuke Obrázok menia farby buniek a bodky nechávajú na
+mieste. Invertovať prehodí atrament a papier v každej bunke a zachová jas a
+blikanie. Vymazať zapíše aktuálny atrament, papier, jas a blikanie do každej
+bunky; zaškrtnuté polia „použiť existujúce“ ponechajú to, čo bunka už má.
+Otočiť vodorovne a Otočiť zvisle zrkadlia farby buniek. Každý príkaz pôsobí na
+výber (všetky bunky, ktorých sa dotýka), alebo na celý obrázok, ak nič nie je
+vybraté, a vracia sa jedným krokom. Položky sú šedé v režimoch bez farieb
+buniek (Timex Hi-res, Layer 2, LoRes), keď pláva pečiatka, a na zamknutej
+vrstve.

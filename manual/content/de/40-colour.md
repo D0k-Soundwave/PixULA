@@ -133,3 +133,16 @@ Dieselbe Arbeitsweise gilt für zwei weitere Flimmermodi:
 
 Ein Wechsel zwischen den Zwei-Bildschirm-Modi behält beide Bildschirme, nach
 denselben Regeln, nach denen ein einzelner Bildschirm umgewandelt wird.
+
+### Attribute
+
+Die Einträge Attribute im Menü Bild ändern die Farben der Zellen; die Punkte
+bleiben, wo sie sind. Invertieren tauscht Tinte und Papier in jeder Zelle und
+behält Hell und Blinken. Löschen schreibt die aktuelle Tinte, das Papier, Hell
+und Blinken in jede Zelle; die Felder „vorhandene verwenden“ behalten, was eine
+Zelle schon hat. Horizontal spiegeln und Vertikal spiegeln spiegeln die
+Zellfarben. Jeder Befehl wirkt auf die Auswahl (alle berührten Zellen) oder auf
+das ganze Bild, wenn nichts ausgewählt ist, und ist mit einem Schritt
+rückgängig zu machen. Die Einträge sind in Modi ohne Zellfarben (Timex Hi-res,
+Layer 2, LoRes), bei schwebendem Stempel und auf einer gesperrten Ebene
+ausgegraut.
