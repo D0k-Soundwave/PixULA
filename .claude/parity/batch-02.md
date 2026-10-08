@@ -156,7 +156,7 @@ Done when: the four commands work from the menu in every mode with cell
 attributes, are unavailable with a reason elsewhere, and each undoes in one
 step.
 
-## Part 2B - dot commands and the Shift pad
+## Part 2B - dot commands and the Shift pad (service half done; rest in 2B2)
 
 Build:
 1. `TransformService.flipDotsHorizontal()` / `...Vertical()`: mirror the
@@ -193,6 +193,59 @@ screens; the held pad makes one undo entry.
 
 Done when: dots-only flips, the inverter and the three shift contents work in
 8 directions, from the panel and menu, in every mode the table allows.
+
+## Part 2B2 - Shift pad, Image > Dots menu (split from 2B, 2026-10-08)
+
+2B's service half is done and committed (a3a794e): flipDotsHorizontal /
+flipDotsVertical, invertDotsAndColours, and shift(direction, amount, wrap,
+content) with the eight directions and the 'both' / 'dots' / 'colours'
+content, tested in tests/dot-commands.test.js. The one existing test that
+asserted the old paper rule (tests/transform-shift.test.js) was rewritten to
+the owner's rule, and its ColorManager stub gained hasCellAttributes().
+
+Build (what remains):
+1. Transform panel: a Move select (Dots and colours / Dots only / Colours only)
+   beside the step select. "Dots and colours" locks the step to one cell
+   (CELL_WIDTH / CELL_HEIGHT). "Colours only" forces one cell and disables the
+   step select while chosen. Hide the whole Move control where
+   ColorManager.hasCellAttributes() is false. While a stamp floats or an
+   engaged stamp layer is current, disable Move with a visible hint (shifts
+   move the whole stamp).
+2. applyTransform: pass content and the per-axis amount to TransformService.shift.
+   Floating stamp + diagonal = two SelectionService.transformStamp calls
+   (horizontal then vertical), inside the same held gesture.
+3. 3x3 pad in the Transform panel only, with the four diagonals and an empty
+   centre. Keep the Reference panel's pad as it is. Build it as a variant of
+   Helpers.buildDirPad, keep the outline style of css/components.css (zones
+   clipped to ninths, not separate bordered squares), and add new glyph
+   symbols icon-dirpad-upleft etc. in index.html (no arrow characters).
+   Repeat-while-held and one undo per hold, as the existing pad does.
+4. Image > Dots submenu (new action ids image:dotsFlipH, image:dotsFlipV,
+   image:dotsInvert): on a floating stamp Flip goes to transformStamp; Invert
+   is disabled with "Finish or cancel the stamp first."; locked and no-cell
+   reasons as Attributes does. Invert row reason names Invert Dots and Colours.
+5. i18n keys in all 13 locales (dirpad diagonals, Move labels and hints, Dots
+   menu labels, the no-cells reason for Invert Dots and Colours).
+   tooltip-manager SELECTOR must include the new select.
+6. Manual paragraph in 40-colour.md and its 12 translations; node tools/build-manual.js;
+   npm run check:manual.
+7. Playwright spec tests/browser/transform-shift-pad.spec.js: pad zones,
+   Move visibility per mode, one undo per diagonal hold, Enter on a focused
+   zone moves one step.
+8. Speed: time TransformService.shift on Layer 2 640x256 before (commit
+   92fd7c2) and after, two runs back to back, and record [M] in docs/FIGURES.md.
+9. Comparison doc: rows Flip pixels H/V, Roll or scroll (pixels, colours,
+   both), the Shift pad, and Pixels and attributes inverter go to Partial or
+   Done as the build allows, with the date. Run node .claude/parity/count-verdicts.js.
+
+OWNER (new): the keyboard arrow nudge (InputHandler._handleArrowNudge) calls
+shift with 1 pixel, so it still moves ink and leaves paper, the old rule. With
+grid snap on it moves whole cells and now carries paper. Should the arrow keys
+follow the Transform panel's Move choice, or keep their own behaviour?
+
+Logged for the check-off (a real bug, Opus review): while a stamp floats,
+Image > Flip, Rotate and Invert write into the stamp's preview cells instead
+of going through SelectionService.transformStamp. Fix separately, with a test.
 
 ## Part 2C - Change Attributes dialog
 
