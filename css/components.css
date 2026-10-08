@@ -1368,6 +1368,23 @@
 .dir-pad-zone-down  { clip-path: polygon(50% 50%, 100% 100%, 0 100%); }
 .dir-pad-zone-left  { clip-path: polygon(50% 50%, 0 100%, 0 0); }
 
+/* Three-by-three variant (the Transform panel's shift pad). Each zone is
+   clipped to its own ninth, so the boundaries are straight lines between
+   ninths rather than wedges from the centre. The glyph fills the whole pad,
+   because each icon-dirpad9-* symbol is drawn inside its own ninth. The
+   centre ninth has no zone, so it stays empty. */
+.dir-pad--nine .dir-pad-zone { clip-path: none; }
+.dir-pad--nine .dir-pad-glyph { inset: 0; width: 100%; height: 100%; }
+.dir-pad--nine .dir-pad-zone-upLeft    { clip-path: inset(0 66.67% 66.67% 0); }
+.dir-pad--nine .dir-pad-zone-up        { clip-path: inset(0 33.33% 66.67% 33.33%); }
+.dir-pad--nine .dir-pad-zone-upRight   { clip-path: inset(0 0 66.67% 66.67%); }
+.dir-pad--nine .dir-pad-zone-left      { clip-path: inset(33.33% 66.67% 33.33% 0); }
+.dir-pad--nine .dir-pad-zone-right     { clip-path: inset(33.33% 0 33.33% 66.67%); }
+.dir-pad--nine .dir-pad-zone-downLeft  { clip-path: inset(66.67% 66.67% 0 0); }
+.dir-pad--nine .dir-pad-zone-down      { clip-path: inset(66.67% 33.33% 0 33.33%); }
+.dir-pad--nine .dir-pad-zone-downRight { clip-path: inset(66.67% 0 0 66.67%); }
+.tp-shift-move-row[hidden], .tp-shift-move-row span[hidden] { display: none; }
+
 /* Each zone owns its own quarter of icon-move (see the icon-dirpad-* symbols
    in index.html — the same path data icon-move uses, split so each quadrant
    is its own glyph) rather than sharing one always-filled background icon.

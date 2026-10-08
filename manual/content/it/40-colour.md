@@ -145,3 +145,11 @@ selezione (tutte le celle toccate) o sull'intera immagine se non c'è selezione,
 e si annulla con un solo passo. Le voci sono disattivate nelle modalità senza
 colori di cella (Timex Hi-res, Layer 2, LoRes), mentre un timbro è fluttuante e
 su un livello bloccato.
+
+### Punti
+
+Le voci Punti del menu Immagine modificano i punti e lasciano i colori nelle loro celle. Capovolgi orizzontale e Capovolgi verticale specchiano i punti. Inverti punti e colori scambia anche inchiostro e carta di ogni cella, così l'immagine resta uguale. Non è offerto nelle modalità senza colori di cella (Layer 2, LoRes, Timex Hi-res) ed è grigio mentre un timbro è in sospeso.
+
+La scelta Sposta nella sezione Sposta del pannello Trasforma stabilisce cosa si muove. Punti e colori (predefinito) sposta intere celle con la loro carta. Solo punti sposta i punti di un pixel o di una cella alla volta. Solo colori sposta i colori di cella una cella alla volta. Il pad ha anche le diagonali. Mentre un timbro è in sospeso, Sposta è grigio, perché uno spostamento muove l'intero timbro.
+
+Con una selezione attiva, le frecce seguono la stessa scelta Sposta.

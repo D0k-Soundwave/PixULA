@@ -149,3 +149,11 @@ cellules. Chaque commande agit sur la sélection (toutes les cellules touchées)
 ou sur toute l'image sans sélection, et s'annule en une seule fois. Les
 éléments sont grisés dans les modes sans couleurs de cellule (Timex Hi-res,
 Layer 2, LoRes), pendant qu'un tampon flotte, et sur un calque verrouillé.
+
+### Points
+
+Les éléments Points du menu Image modifient les points et laissent les couleurs dans leurs cellules. Miroir horizontal et Miroir vertical retournent les points. Inverser points et couleurs échange aussi l'encre et le papier de chaque cellule, de sorte que l'image reste identique. Ils ne sont pas proposés dans les modes sans couleurs de cellule (Layer 2, LoRes, Timex Hi-res) et sont grisés pendant qu'un tampon flotte.
+
+Le choix Déplacer de la section Décaler du panneau Transformation indique ce qui se déplace. Points et couleurs (par défaut) déplace des cellules entières avec leur papier. Points seuls déplace les points d'un pixel ou d'une cellule à la fois. Couleurs seules déplace les couleurs de cellule une cellule à la fois. La croix possède aussi les diagonales. Pendant qu'un tampon flotte, Déplacer est grisé, car un décalage déplace tout le tampon.
+
+Les touches fléchées suivent le même choix Déplacer lorsqu'une sélection existe.

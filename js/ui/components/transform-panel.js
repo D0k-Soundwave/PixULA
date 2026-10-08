@@ -1,6 +1,12 @@
 'use strict';
 (function() {
 
+/** Shift button type -> the TransformService direction it moves in. */
+const SHIFT_DIRECTION = {
+    shiftUp: 'up', shiftDown: 'down', shiftLeft: 'left', shiftRight: 'right',
+    shiftUpLeft: 'upLeft', shiftUpRight: 'upRight', shiftDownLeft: 'downLeft', shiftDownRight: 'downRight'
+};
+
 /**
  * TransformPanel — the permanent Transform sidebar section.
  *
@@ -18,6 +24,10 @@ class TransformPanelClass {
         this._outlineGap = 1;
         this._outlineSize = 1;
         this._shiftWrap = true;
+        // The step the user last chose. The step select is forced to one
+        // cell while Move is "Dots and colours" or "Colours only"; this value
+        // is what comes back when it is free again.
+        this._shiftStep = '1';
     }
 
     init() {
@@ -38,6 +48,7 @@ class TransformPanelClass {
 
         EventBus.on(EVENTS.CANVAS_RENDER,  () => this._sync());
         EventBus.on(EVENTS.LAYER_SELECTED, () => this._sync());
+        EventBus.on(EVENTS.SCREEN_MODE_CHANGED, () => this._syncShiftControls());
         this._sync();
 
         Logger.info('TransformPanel', 'Initialized');
@@ -114,6 +125,16 @@ class TransformPanelClass {
           <div class="tool-option tp-group tp-shift-group">
             <span class="tp-shift-heading" data-i18n="transform.shift">Shift</span>
             <div class="dir-pad-slot"></div>
+            <div class="tool-option tp-shift-move-row">
+              <label for="tp-shift-move" data-i18n="transform.shiftMove">Move</label>
+              <select class="tp-shift-move" id="tp-shift-move" name="tp-shift-move" data-i18n-title-name="transform.shiftMove" data-i18n-title="transform.shiftMove.hint">
+                <option value="both" data-i18n="transform.shiftMove.both">Dots and colours</option>
+                <option value="dots" data-i18n="transform.shiftMove.dots">Dots only</option>
+                <option value="colours" data-i18n="transform.shiftMove.colours">Colours only</option>
+              </select>
+              <span class="tool-option-hint tp-shift-move-stamp" data-i18n="transform.shiftMove.stampHint" hidden>Shifts move the whole stamp</span>
+              <span class="tool-option-hint tp-shift-move-cell" data-i18n="transform.shiftMove.cellHint" hidden>Dots and colours move a whole cell at a time</span>
+            </div>
             <div class="tp-shift-opts">
               <select class="tp-shift-step" id="tp-shift-step" name="tp-shift-step" data-i18n-aria-label="transform.shiftStep" aria-label="Shift step" data-i18n-title-name="transform.shiftStep" data-i18n-title="transform.shiftStep.hint">
                 <option value="1" data-i18n="transform.shiftStep.pixel">1 pixel</option>
@@ -124,11 +145,11 @@ class TransformPanelClass {
           </div>
         `;
 
-        const { element: pad, zones } = Helpers.buildDirPad();
-        zones.up.dataset.tpTransform = 'shiftUp';
-        zones.left.dataset.tpTransform = 'shiftLeft';
-        zones.right.dataset.tpTransform = 'shiftRight';
-        zones.down.dataset.tpTransform = 'shiftDown';
+        // Three by three: the four edges plus the four diagonals, centre empty.
+        const { element: pad, zones } = Helpers.buildDirPad({ nine: true });
+        for (const dir of Object.keys(zones)) {
+            zones[dir].dataset.tpTransform = 'shift' + dir[0].toUpperCase() + dir.slice(1);
+        }
         content.querySelector('.dir-pad-slot').replaceWith(pad);
 
         // Unlike every other task in this batch, this class has no _t()
@@ -224,16 +245,28 @@ class TransformPanelClass {
             this._shiftWrap = e.target.checked;
         });
 
-        // The shift amount, resolved at the moment of each step rather than
-        // once: 'cell' is per-axis because cells are not square in multicolor
-        // modes (CELL_HEIGHT is 8/4/2/1).
-        const shiftAmount = (type) => {
+        content.querySelector('.tp-shift-move').addEventListener('change', () => this._syncShiftControls());
+
+        // Only the user's own choice is remembered; a forced "1 cell" is not.
+        content.querySelector('.tp-shift-step').addEventListener('change', (e) => {
+            this._shiftStep = e.target.value;
+            this._syncShiftControls();
+        });
+
+        // The shift amount per axis, resolved at the moment of each step.
+        // 'cell' is per-axis because cells are not square in multicolor modes
+        // (CELL_HEIGHT is 8/4/2/1). The service ignores the axis a direction
+        // does not use, so both are always returned.
+        const shiftAmount = () => {
             const step = content.querySelector('.tp-shift-step').value;
             return step === 'cell'
-                ? ((type === 'shiftLeft' || type === 'shiftRight')
-                    ? ZX_SPECTRUM.CELL_WIDTH : ZX_SPECTRUM.CELL_HEIGHT)
-                : (parseInt(step, 10) || 1);
+                ? { x: ZX_SPECTRUM.CELL_WIDTH, y: ZX_SPECTRUM.CELL_HEIGHT }
+                : { x: 1, y: 1 };
         };
+        // What a shift moves: the Move choice on a picture with cell colours,
+        // everything in the other modes.
+        const shiftContent = () => (ColorManager.hasCellAttributes()
+            ? content.querySelector('.tp-shift-move').value : 'both');
 
         content.querySelectorAll('button[data-tp-transform]').forEach((btn) => {
             const type = btn.dataset.tpTransform;
@@ -257,7 +290,7 @@ class TransformPanelClass {
             // own inner actions join this one instead of committing.
             let applied = 0;
             Helpers.attachRepeatPress(btn,
-                () => { if (this.applyTransform(type, shiftAmount(type)) !== false) applied++; },
+                () => { if (this.applyTransform(type, shiftAmount(), shiftContent()) !== false) applied++; },
                 {
                     onStart: () => { applied = 0; UndoRedo.beginAction('Shift'); },
                     // A gesture that moved nothing - no work area - must not
@@ -430,18 +463,28 @@ class TransformPanelClass {
      *   shifts can answer false (no work area); see the held direction pad in
      *   _wire, which uses this to avoid leaving an empty undo entry.
      */
-    applyTransform(type, amountOverride) {
+    applyTransform(type, amountOverride, content = 'both') {
         // Clear the transient pattern-capture overlay only — an armed
         // Swap/Recolour operation is sticky and survives a transform.
         if (window.InputHandler && typeof InputHandler.exitPatternCaptureMode === 'function') {
             InputHandler.exitPatternCaptureMode();
         }
         const amount = amountOverride !== undefined ? amountOverride : 1;
+        const amt = typeof amount === 'object' ? amount : { x: amount, y: amount };
         const outlineGap  = this._outlineGap;
         const outlineSize = this._outlineSize;
 
         if (SelectionService.isFloating()) {
-            SelectionService.transformStamp(type, amount, outlineGap, outlineSize);
+            // A stamp has no diagonal step: a diagonal is its horizontal move
+            // then its vertical move, each with its own axis amount.
+            if (SHIFT_DIRECTION[type]) {
+                const h = /Left/.test(type) ? 'shiftLeft' : /Right/.test(type) ? 'shiftRight' : null;
+                const v = /Up/.test(type) ? 'shiftUp' : /Down/.test(type) ? 'shiftDown' : null;
+                if (h) SelectionService.transformStamp(h, amt.x, outlineGap, outlineSize);
+                if (v) SelectionService.transformStamp(v, amt.y, outlineGap, outlineSize);
+            } else {
+                SelectionService.transformStamp(type, amount, outlineGap, outlineSize);
+            }
             return true;
         }
 
@@ -451,16 +494,15 @@ class TransformPanelClass {
         // discards the undo action in the second case. Everything else always
         // acts, so it answers true.
         let applied = true;
-        switch (type) {
+        const shiftDir = SHIFT_DIRECTION[type];
+        if (shiftDir) {
+            applied = TransformService.shift(shiftDir, amt, this._shiftWrap, content);
+        } else switch (type) {
             case 'flipH':       TransformService.flipHorizontal();                 break;
             case 'flipV':       TransformService.flipVertical();                   break;
             case 'rotate90CW':  TransformService.rotate90CW();                     break;
             case 'rotate90CCW': TransformService.rotate90CCW();                    break;
             case 'rotate180':   TransformService.rotate180();                      break;
-            case 'shiftUp':     applied = TransformService.shiftUp(amount, this._shiftWrap);    break;
-            case 'shiftDown':   applied = TransformService.shiftDown(amount, this._shiftWrap); break;
-            case 'shiftLeft':   applied = TransformService.shiftLeft(amount, this._shiftWrap); break;
-            case 'shiftRight':  applied = TransformService.shiftRight(amount, this._shiftWrap);break;
             case 'invert':      TransformService.invert();                         break;
             case 'outline':     TransformService.outline(outlineGap, outlineSize); break;
         }
@@ -468,10 +510,52 @@ class TransformPanelClass {
         return applied;
     }
 
+    /**
+     * What a shift moves right now, for the arrow keys (InputHandler): the
+     * Move choice (both where the mode has no cell colours), and whether the
+     * step is locked to one whole cell.
+     * @returns {{content: string, locked: boolean}}
+     */
+    shiftMove() {
+        const cells = ColorManager.hasCellAttributes();
+        const move = (this._content && cells) ? this._content.querySelector('.tp-shift-move').value : 'both';
+        return { content: cells ? move : 'both', locked: cells && move !== 'dots' };
+    }
+
+    /**
+     * Enable, hide and force the Move and step controls to the current state.
+     * Move is hidden where the mode has no cell colours, and disabled while a
+     * stamp moves (a stamp shift moves the whole stamp). With Dots and colours
+     * or Colours only, the step is one whole cell and locked; otherwise the
+     * step is the user's own choice. Writes only what changed: it runs on
+     * every render.
+     * @private
+     */
+    _syncShiftControls() {
+        const c = this._content;
+        if (!c) return;
+        const set = (el, prop, val) => { if (el && el[prop] !== val) el[prop] = val; };
+        const cells = ColorManager.hasCellAttributes();
+        const layer = LayerManager.getCurrentLayer();
+        const stampActive = SelectionService.isFloating() || !!(layer && layer.isStamp);
+        const move = c.querySelector('.tp-shift-move');
+        const step = c.querySelector('.tp-shift-step');
+        const locked = cells && !stampActive && move.value !== 'dots';
+
+        set(c.querySelector('.tp-shift-move-row'), 'hidden', !cells);
+        set(move, 'disabled', stampActive);
+        set(c.querySelector('.tp-shift-move-stamp'), 'hidden', !(cells && stampActive));
+        set(c.querySelector('.tp-shift-move-cell'), 'hidden', !locked);
+        set(step, 'disabled', locked);
+        const want = locked ? 'cell' : this._shiftStep;
+        if (step.value !== want) step.value = want;
+    }
+
     /** Sync the panel's live values to the current floating stamp state. @private */
     _sync() {
         const content = this._content;
         if (!content) return;
+        this._syncShiftControls();
 
         const focusedLayer  = LayerManager.getCurrentLayer();
         const engagedStamp  = (focusedLayer && focusedLayer.isStamp) ? focusedLayer : null;

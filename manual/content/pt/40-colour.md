@@ -137,3 +137,11 @@ células. Cada comando atua sobre a seleção (todas as células que toca) ou so
 a imagem inteira quando nada está selecionado, e desfaz-se num único passo. Os
 itens ficam esmaecidos nos modos sem cores de célula (Timex Hi-res, Layer 2,
 LoRes), enquanto um carimbo está flutuante e numa camada bloqueada.
+
+### Pontos
+
+Os itens Pontos do menu Imagem alteram os pontos e deixam as cores nas suas células. Espelhar horizontal e Espelhar vertical espelham os pontos. Inverter pontos e cores também troca a tinta e o papel de cada célula, por isso a imagem continua igual. Não são oferecidos em modos sem cores de célula (Layer 2, LoRes, Timex Hi-res) e ficam acinzentados enquanto um carimbo flutua.
+
+A opção Mover na secção Deslocar do painel Transformar escolhe o que se move. Pontos e cores (predefinição) move células inteiras com o seu papel. Só pontos move os pontos um píxel ou uma célula de cada vez. Só cores move as cores das células uma célula de cada vez. O painel tem também as diagonais. Enquanto um carimbo flutua, Mover fica acinzentado, porque um deslocamento move o carimbo inteiro.
+
+Quando há uma seleção, as setas seguem a mesma opção Mover.

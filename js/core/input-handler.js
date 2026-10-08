@@ -1831,11 +1831,15 @@ class InputHandlerClass {
     if (!dir) return;
 
     const prefStep = clamp(parseInt(StateManager.get('nudgeStep'), 10) || 1, 1, 32);
-    // Snap-nudge steps one cell — per axis, since cells are not square in
-    // the multicolor modes (8 wide × 1/2/4 tall)
-    const snap = StateManager.getGridSnap();
-    const stepX = snap ? ZX_SPECTRUM.CELL_WIDTH : prefStep;
-    const stepY = snap ? ZX_SPECTRUM.CELL_HEIGHT : prefStep;
+    // The Transform panel's Move choice decides what a selection's arrow moves
+    // (owner decision, batch 2B2). Dots and colours and Colours only step one
+    // whole cell, as the pad does. Snap-nudge also steps one cell - per axis,
+    // since cells are not square in the multicolor modes (8 wide x 1/2/4 tall).
+    const move = (window.TransformPanel && TransformPanel.shiftMove)
+        ? TransformPanel.shiftMove() : { content: 'both', locked: false };
+    const cellStep = move.locked || StateManager.getGridSnap();
+    const stepX = cellStep ? ZX_SPECTRUM.CELL_WIDTH : prefStep;
+    const stepY = cellStep ? ZX_SPECTRUM.CELL_HEIGHT : prefStep;
     const step = dir.dx !== 0 ? stepX : stepY;
 
     // Gradient tool, phase 2 (axis drag locked in): arrows nudge the axis
@@ -1860,7 +1864,7 @@ class InputHandlerClass {
 
     if (SelectionService.hasSelection()) {
       e.preventDefault();
-      TransformService.shift(dir.name, step);
+      TransformService.shift(dir.name, { x: stepX, y: stepY }, true, move.content);
       CanvasSystem.requestRender();
     }
   }

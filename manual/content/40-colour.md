@@ -132,3 +132,11 @@ the selection (every cell it touches), or on the whole picture when nothing
 is selected, and undoes in one step. The items are greyed out in modes with
 no cell colours (Timex Hi-res, Layer 2, LoRes), while a stamp is floating,
 and on a locked layer.
+
+### Dots
+
+The Dots items in the Image menu change the dots and leave the colours in their cells. Flip Horizontal and Flip Vertical mirror the dots. Invert Dots and Colours also swaps the ink and paper of each cell, so the picture looks the same. It is not offered in modes with no cell colours (Layer 2, LoRes, Timex Hi-res), and it is greyed out while a stamp is floating.
+
+The Move choice in the Shift section of the Transform panel decides what moves. Dots and colours (the default) moves whole cells with their paper. Dots only moves the dots a pixel or a cell at a time. Colours only moves cell colours one cell at a time. The pad has the four diagonals as well as the four sides. While a stamp is floating, Move is greyed out, because a shift moves the whole stamp.
+
+The arrow keys follow the same Move choice when something is selected.

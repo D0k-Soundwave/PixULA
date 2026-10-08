@@ -143,3 +143,11 @@ Függőleges tükrözés tükrözi a cellák színeit. Minden parancs a kijelöl
 egy lépésben visszavonható. A pontok szürkék a cellaszíneket nem használó
 módokban (Timex Hi-res, Layer 2, LoRes), lebegő bélyegző közben és zárolt
 rétegen.
+
+### Pontok
+
+A Kép menü Pontok elemei a pontokat módosítják, a színeket pedig a cellákban hagyják. A Vízszintes tükrözés és a Függőleges tükrözés a pontokat tükrözi. A Pontok és színek invertálása a cellánként a tintát és a papírt is felcseréli, így a kép változatlan marad. Olyan módokban nem érhető el, ahol nincsenek cellaszínek (Layer 2, LoRes, Timex Hi-res), és szürke, amíg bélyeg lebeg.
+
+A Transform panel Eltolás szakaszában a Mozgatás választja ki, mi mozog. A Pontok és színek (alapérték) egész cellákat mozgat a papírjukkal együtt. A Csak pontok a pontokat pixelenként vagy cellánként mozgatja. A Csak színek a cellaszíneket cellánként mozgatja. Az irányítóelemen az átlós irányok is megvannak. Amíg bélyeg lebeg, a Mozgatás szürke, mert az eltolás a teljes bélyeget mozgatja.
+
+Kijelölés esetén a nyilak ugyanezt a Mozgatás-választást követik.

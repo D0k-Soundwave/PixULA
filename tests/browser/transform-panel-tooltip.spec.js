@@ -12,7 +12,7 @@ test('every Transform panel control has a real two-stage tooltip', async ({ page
     const selectors = [
         '.tp-reset', '[data-tp-transform="flipH"]', '[data-tp-transform="flipV"]',
         '[data-tp-transform="invert"]', '[data-tp-transform="outline"]',
-        '.tp-shift-step', '.tp-shift-wrap'
+        '.tp-shift-step', '.tp-shift-move', '.tp-shift-wrap'
     ];
     for (const sel of selectors) {
         const el = page.locator(sel).first();

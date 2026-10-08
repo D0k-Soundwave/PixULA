@@ -139,6 +139,12 @@ test('the timings are one definition, shared by every repeating control', async 
 test('a tap on the shift pad moves exactly one step', async ({ page }) => {
     await boot(page);
     await drawRow(page);
+    // The one-pixel step is "Dots only" now: the default Move moves whole cells.
+    await page.evaluate(() => {
+        const move = document.querySelector('.tp-shift-move');
+        move.value = 'dots';
+        move.dispatchEvent(new Event('change'));
+    });
 
     const before = await firstInkX(page);
     await tap(page, TRANSFORM_PAD, 'right');

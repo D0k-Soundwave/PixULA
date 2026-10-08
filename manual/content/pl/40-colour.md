@@ -138,3 +138,11 @@ polecenie działa na zaznaczenie (wszystkie dotknięte komórki) albo na cały
 obraz, gdy nic nie jest zaznaczone, i cofa się jednym krokiem. Pozycje są
 wyszarzone w trybach bez kolorów komórek (Timex Hi-res, Layer 2, LoRes), gdy
 pieczątka jest w toku i na zablokowanej warstwie.
+
+### Kropki
+
+Pozycje Kropki w menu Obraz zmieniają kropki i zostawiają kolory w ich komórkach. Odbij poziomo i Odbij pionowo odbijają kropki. Odwróć kropki i kolory dodatkowo zamienia tusz z papierem w każdej komórce, więc obraz wygląda tak samo. Nie jest oferowane w trybach bez kolorów komórek (Layer 2, LoRes, Timex Hi-res) i jest wyszarzone, gdy unosi się pieczątka.
+
+Wybór Przesuń w sekcji Przesunięcie panelu Transformacja określa, co się przesuwa. Kropki i kolory (domyślnie) przesuwa całe komórki razem z ich papierem. Tylko kropki przesuwa kropki o piksel lub o komórkę naraz. Tylko kolory przesuwa kolory komórek po jednej komórce. Krzyżak ma też przekątne. Gdy unosi się pieczątka, Przesuń jest wyszarzone, bo przesunięcie przenosi całą pieczątkę.
+
+Gdy coś jest zaznaczone, klawisze strzałek stosują ten sam wybór Przesuń.
