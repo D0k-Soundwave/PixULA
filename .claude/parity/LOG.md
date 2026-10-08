@@ -134,3 +134,35 @@ Owner: "Should the arrow keys follow the Move choice?" -> "Follow the Move choic
 Flaky tests: none seen in this part. The full browser suite failed once on tooltip.spec.js
 "every two-stage control" (tp-shift-move missing from the tooltip selector); fixed, and the spec passes.
 Next: Batch 2 part 2C - Change Attributes dialog (same branch).
+
+## 2026-10-08 - Batch 2 part 2C - Change Attributes dialog - done
+Model: Haiku. Branch: parity-a.
+Done: TransformService.previewChangeAttributes / changeAttributes (one shared plan: the
+count shown is the count written; cells matched on the non-Any fields; kept fields carried;
+GigaScreen B fields kept; input cleaned: colours 0-7, booleans). Dialog
+js/ui/components/change-attributes-dialog.js opened by Image > Attributes > Change...
+(row attr-change, action image:attrChange). Layout per mode: GigaScreen Screen A / Screen B
+groups and one Flash; ULAplus CLUT 0-3 in place of Bright and Flash; other cell modes Bright
+and Flash. Live count, OK = one undo step, Cancel / Escape / close write nothing. Swatches
+coloured via ColorManager.attrToIndices (ULANext paper bank follows the row's bright).
+i18n: 14 keys in 13 locales (plural.changeAttrCells in the tagged form). Manual: Change...
+paragraph in 40-colour.md and its 12 translations; build-manual and check:manual pass.
+Tests: tests/change-attributes.test.js (Node, failed first, now passes);
+tests/browser/change-attributes-dialog.spec.js (6 specs); tests/browser/attribute-commands.spec.js
+extended to the fifth row. Full suite: run-all ALL TEST FILES PASSED; npx playwright test 600 passed.
+Opus plan review (Plan agent, opus) -> change. Question: GigaScreen layout. Answer: two row
+groups (Screen A, Screen B) plus one Flash that sets both screens; not "both must agree",
+not "A writes both". All 13 corrections applied (shared plan, full-cell targets, input clean-up,
+fixture fix with PIXEL_ONLY, undo and Giga tests, CLUT booleans, swatch banks, tooltip
+SELECTOR not needed, Stamp scope label dropped).
+Changed from the batch file: no "Stamp" scope label (the dialog does not open while a stamp floats;
+recorded in batch-02.md).
+Comparison doc: row "Change attributes dialog" stays Partial, text updated. count-verdicts: 64 below
+parity (24 missing, 40 partial), unchanged.
+Owner decisions: none needed.
+Observed, not fixed: js/i18n/hu.js 'view.attributes' reads 'Attributumok mutatasa' (no accents,
+not a correct Hungarian phrase; from an earlier part). PixULA_Distilled/PixULA.html is an untracked
+release copy without the new script tag; it is generated, not edited.
+Still open (carried): stamp support for the attribute commands (2A); Image > Flip, Rotate and Invert
+writing into a floating stamp's cells (2B, logged, not fixed).
+Next: Batch 3 part 3A (same branch).

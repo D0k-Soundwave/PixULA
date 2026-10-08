@@ -1425,6 +1425,20 @@ const fr = {
     // Storage and Next export notices
     'msg.storageBlocked': 'Ce navigateur bloque le stockage du site : PixULA ne pourra pas conserver vos réglages ni la sauvegarde automatique après la fermeture de cet onglet. Enregistrez votre travail dans un fichier avant de fermer.',
     'mode.dumpNeedsLayer': 'Un fichier .{ext} contient un écran {family} : passez d\'abord en mode {family}.',
+    'menu.image.attrChange': 'Modifier...',
+    'attrChange.title': 'Modifier les attributs',
+    'attrChange.find': 'Rechercher',
+    'attrChange.replace': 'Remplacer par',
+    'attrChange.any': 'Tous',
+    'attrChange.keep': 'Conserver',
+    'attrChange.on': 'Activé',
+    'attrChange.off': 'Désactivé',
+    'attrChange.clut': 'CLUT',
+    'attrChange.flashBoth': 'Clignotement (les deux écrans)',
+    'attrChange.scope': 'S\'applique à : {scope}',
+    'attrChange.scopeSelection': 'Sélection',
+    'attrChange.scopeWhole': 'Image entière',
+    'plural.changeAttrCells': 'one: {n} cellule sera modifiée | other: {n} cellules seront modifiées',
 };
 
 window.i18n_fr = fr;

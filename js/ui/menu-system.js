@@ -187,7 +187,7 @@ class MenuSystemClass {
     _updateAttributeMenuState() {
         if (!window.TransformService) return;
         const blocked = TransformService.attributeCommandsBlocked();
-        for (const id of ['attr-invert', 'attr-erase', 'attr-flip-h', 'attr-flip-v']) {
+        for (const id of ['attr-invert', 'attr-erase', 'attr-flip-h', 'attr-flip-v', 'attr-change']) {
             this.setItemEnabled(id, !blocked);
         }
         const parent = this.element.querySelector('[data-id="attributes"]');
@@ -380,7 +380,9 @@ class MenuSystemClass {
                         { id: 'attr-erase', label: 'Erase', action: 'image:attrErase' },
                         { type: 'separator' },
                         { id: 'attr-flip-h', label: 'Flip Horizontal', action: 'image:attrFlipH' },
-                        { id: 'attr-flip-v', label: 'Flip Vertical', action: 'image:attrFlipV' }
+                        { id: 'attr-flip-v', label: 'Flip Vertical', action: 'image:attrFlipV' },
+                        { type: 'separator' },
+                        { id: 'attr-change', label: 'Change...', action: 'image:attrChange' }
                     ]},
                     // Dots only (the colours stay in their cells), except
                     // Invert Dots and Colours, which inverts both. Reasons on
@@ -1004,6 +1006,7 @@ class MenuSystemClass {
             case 'image:attrErase':    TransformService.eraseAttributes();         break;
             case 'image:attrFlipH':    TransformService.flipAttributesHorizontal(); break;
             case 'image:attrFlipV':    TransformService.flipAttributesVertical();   break;
+            case 'image:attrChange':   ChangeAttributesDialog.open();              break;
 
             // Image > Dots (dots only; Invert Dots and Colours inverts both)
             case 'image:dotsFlipH':    TransformService.dotsFlip('h');             break;

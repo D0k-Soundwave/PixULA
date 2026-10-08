@@ -1425,6 +1425,20 @@ const sk = {
     // Storage and Next export notices
     'msg.storageBlocked': 'Tento prehliadač blokuje úložisko stránok, takže PixULA po zatvorení karty neuchová vaše nastavenia ani automatické ukladanie. Pred zatvorením uložte prácu do súboru.',
     'mode.dumpNeedsLayer': 'Súbor .{ext} obsahuje obrazovku {family} - najprv prepnite do režimu {family}.',
+    'menu.image.attrChange': 'Zmeniť...',
+    'attrChange.title': 'Zmeniť atribúty',
+    'attrChange.find': 'Hľadať',
+    'attrChange.replace': 'Nahradiť za',
+    'attrChange.any': 'Ľubovoľné',
+    'attrChange.keep': 'Ponechať',
+    'attrChange.on': 'Zap.',
+    'attrChange.off': 'Vyp.',
+    'attrChange.clut': 'CLUT',
+    'attrChange.flashBoth': 'Blikanie (obe obrazovky)',
+    'attrChange.scope': 'Platí pre: {scope}',
+    'attrChange.scopeSelection': 'Výber',
+    'attrChange.scopeWhole': 'Celý obrázok',
+    'plural.changeAttrCells': 'one: {n} bunka sa zmení | few: {n} bunky sa zmenia | other: {n} buniek sa zmení',
 };
 
 window.i18n_sk = sk;

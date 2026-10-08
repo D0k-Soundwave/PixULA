@@ -1425,6 +1425,20 @@ const hu = {
     // Storage and Next export notices
     'msg.storageBlocked': 'Ez a böngésző letiltja a webhelytárolót, így a PixULA a lap bezárása után nem tudja megőrizni a beállításait és az automatikus mentést. Bezárás előtt mentse a munkáját fájlba.',
     'mode.dumpNeedsLayer': 'Egy .{ext} fájl {family} képernyőt tartalmaz - előbb váltson {family} módra.',
+    'menu.image.attrChange': 'Módosítás...',
+    'attrChange.title': 'Attribútumok módosítása',
+    'attrChange.find': 'Keresés',
+    'attrChange.replace': 'Csere erre',
+    'attrChange.any': 'Bármely',
+    'attrChange.keep': 'Megtartás',
+    'attrChange.on': 'Be',
+    'attrChange.off': 'Ki',
+    'attrChange.clut': 'CLUT',
+    'attrChange.flashBoth': 'Villogás (mindkét képernyő)',
+    'attrChange.scope': 'Érintett terület: {scope}',
+    'attrChange.scopeSelection': 'Kijelölés',
+    'attrChange.scopeWhole': 'Teljes kép',
+    'plural.changeAttrCells': 'one: {n} cella változik | other: {n} cella változik',
 };
 
 window.i18n_hu = hu;

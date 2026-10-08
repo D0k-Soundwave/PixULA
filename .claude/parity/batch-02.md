@@ -284,7 +284,8 @@ Build:
    row and a "Replace with" row, each with Ink and Paper swatch pickers
    (plus "any" / "keep"), Bright and Flash each on / off / any (keep).
    Shows "N cells will change" live; OK applies, Cancel closes. Scope line
-   says "Selection", "Whole picture" or "Stamp".
+   says "Selection" or "Whole picture". No "Stamp" label: the dialog does not
+   open while a stamp floats (the 2A decision), so the stamp scope is never reached.
 3. Mode handling: GigaScreen offers Screen A and Screen B rows (or one row
    that applies to both - consult Opus during plan review); ULAplus shows
    CLUT (any, 0-3) instead of Bright/Flash; ULANext limits ink and paper to
@@ -297,6 +298,19 @@ changes on Cancel; one undo restores; ULAplus CLUT matching.
 
 Done when: the dialog finds and replaces any combination over the selection,
 the whole picture or the stamp, in every mode with cell attributes.
+
+Decided in 2C (Opus plan review, 2026-10-08; no owner question needed):
+- GigaScreen: two row groups, Screen A (ink, paper, bright A) and Screen B (ink,
+  paper, bright B), plus one Flash that sets both screens. A cell matches on the
+  fields that are not Any, and a replace writes only the fields that are not
+  Keep, so the other screen's colours are kept. Cost: a taller dialog in the
+  gigascreen and multigiga modes.
+- The count and the apply share one plan (previewChangeAttributes and
+  changeAttributes), so the number shown is the number written.
+- ULAplus CLUT maps to bright (bit 0) and flash (bit 1), as ColorManager.setClut does.
+- Input is cleaned in the service: colours 0-7 only; bright and flash are
+  booleans; the B fields are ignored outside GigaScreen.
+- Cancel, Escape and the close button write nothing; the change happens only on OK.
 
 ## After 2C
 

@@ -1425,6 +1425,20 @@ const pl = {
     // Storage and Next export notices
     'msg.storageBlocked': 'Ta przeglądarka blokuje pamięć witryny, więc PixULA nie zachowa ustawień ani autozapisu po zamknięciu tej karty. Przed zamknięciem zapisz pracę w pliku.',
     'mode.dumpNeedsLayer': 'Plik .{ext} zawiera ekran {family} - najpierw przełącz na tryb {family}.',
+    'menu.image.attrChange': 'Zmień...',
+    'attrChange.title': 'Zmień atrybuty',
+    'attrChange.find': 'Znajdź',
+    'attrChange.replace': 'Zamień na',
+    'attrChange.any': 'Dowolny',
+    'attrChange.keep': 'Zachowaj',
+    'attrChange.on': 'Wł.',
+    'attrChange.off': 'Wył.',
+    'attrChange.clut': 'CLUT',
+    'attrChange.flashBoth': 'Migotanie (obydwa ekrany)',
+    'attrChange.scope': 'Dotyczy: {scope}',
+    'attrChange.scopeSelection': 'Zaznaczenie',
+    'attrChange.scopeWhole': 'Cały obraz',
+    'plural.changeAttrCells': 'one: {n} komórka zostanie zmieniona | few: {n} komórki zostaną zmienione | many: {n} komórek zostanie zmienionych | other: {n} komórki zostaną zmienione',
 };
 
 window.i18n_pl = pl;

@@ -133,6 +133,8 @@ vybraté, a vracia sa jedným krokom. Položky sú šedé v režimoch bez farieb
 buniek (Timex Hi-res, Layer 2, LoRes), keď pláva pečiatka, a na zamknutej
 vrstve.
 
+Zmeniť... nájde bunky podľa ich farieb a nahradí ich. Hľadať určuje, ktoré bunky sa majú nájsť: každé pole je hodnota alebo Ľubovoľné. Nahradiť za určuje, čím sa stanú: každé pole je hodnota alebo Ponechať. Dialóg ukáže, koľko buniek sa zmení, skôr než stlačíte OK, a OK sa vráti jedným krokom späť. Na GigaScreene sú skupiny Obrazovka A a Obrazovka B; v ULAplus CLUT 0-3 nahrádza voľby Jas a Blikanie. Zrušiť nič nemení.
+
 ### Bodky
 
 Položky Bodky v ponuke Obrázok menia bodky a farby nechávajú v ich bunkách. Otočiť vodorovne a Otočiť zvisle zrkadlia bodky. Invertovať bodky a farby navyše prehodí atrament a papier v každej bunke, takže obrázok vyzerá rovnako. Nedá sa použiť v režimoch bez farieb buniek (Layer 2, LoRes, Timex Hi-res) a keď pláva pečiatka, je sivá.

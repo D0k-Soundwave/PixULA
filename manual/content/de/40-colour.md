@@ -147,6 +147,8 @@ rückgängig zu machen. Die Einträge sind in Modi ohne Zellfarben (Timex Hi-res
 Layer 2, LoRes), bei schwebendem Stempel und auf einer gesperrten Ebene
 ausgegraut.
 
+Ändern... findet Zellen anhand ihrer Farben und ersetzt sie. Suchen legt fest, welche Zellen gelten: jedes Feld ist ein Wert oder Beliebig. Ersetzen durch legt fest, was daraus wird: jedes Feld ist ein Wert oder Beibehalten. Der Dialog zeigt, wie viele Zellen sich ändern, bevor Sie OK drücken, und OK wird mit einem Schritt rückgängig gemacht. GigaScreen hat eine Gruppe für Bildschirm A und eine für Bildschirm B; in ULAplus ersetzt CLUT 0-3 die Optionen Hell und Blinken. Abbrechen ändert nichts.
+
 ### Punkte
 
 Die Einträge Punkte im Menü Bild ändern die Punkte und lassen die Farben in ihren Zellen. Horizontal spiegeln und Vertikal spiegeln spiegeln die Punkte. Punkte und Farben invertieren tauscht außerdem Vordergrund und Hintergrund jeder Zelle, sodass das Bild gleich aussieht. Er wird in Modi ohne Zellenfarben nicht angeboten (Layer 2, LoRes, Timex Hi-res) und ist grau, solange ein Stempel schwebt.

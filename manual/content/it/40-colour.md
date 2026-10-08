@@ -146,6 +146,8 @@ e si annulla con un solo passo. Le voci sono disattivate nelle modalità senza
 colori di cella (Timex Hi-res, Layer 2, LoRes), mentre un timbro è fluttuante e
 su un livello bloccato.
 
+Cambia... trova le celle in base ai loro colori e le sostituisce. Trova indica quali celle selezionare: ogni campo è un valore o Qualsiasi. Sostituisci con indica come diventano: ogni campo è un valore o Mantieni. La finestra mostra quante celle cambieranno prima di premere OK, e OK si annulla con un solo passo. Su GigaScreen ci sono un gruppo per lo Schermo A e uno per lo Schermo B; in ULAplus, CLUT 0-3 prende il posto di Luminoso e Lampeggio. Annulla non cambia nulla.
+
 ### Punti
 
 Le voci Punti del menu Immagine modificano i punti e lasciano i colori nelle loro celle. Capovolgi orizzontale e Capovolgi verticale specchiano i punti. Inverti punti e colori scambia anche inchiostro e carta di ogni cella, così l'immagine resta uguale. Non è offerto nelle modalità senza colori di cella (Layer 2, LoRes, Timex Hi-res) ed è grigio mentre un timbro è in sospeso.

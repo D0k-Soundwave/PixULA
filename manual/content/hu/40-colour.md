@@ -144,6 +144,8 @@ egy lépésben visszavonható. A pontok szürkék a cellaszíneket nem használ�
 módokban (Timex Hi-res, Layer 2, LoRes), lebegő bélyegző közben és zárolt
 rétegen.
 
+A Módosítás... a cellákat a színeik alapján keresi meg és cseréli le. A Keresés adja meg, mely cellákat kell találni: minden mező érték vagy Bármely. A Csere erre adja meg, mivé válnak: minden mező érték vagy Megtartás. A párbeszédpanel az OK megnyomása előtt megmutatja, hány cella változik, az OK pedig egy lépésben visszavonható. A GigaScreen-en külön csoport van az A és a B képernyőnek; ULAplus módban a CLUT 0-3 a Fényerő és a Villogás helyét veszi át. A Mégse nem változtat semmit.
+
 ### Pontok
 
 A Kép menü Pontok elemei a pontokat módosítják, a színeket pedig a cellákban hagyják. A Vízszintes tükrözés és a Függőleges tükrözés a pontokat tükrözi. A Pontok és színek invertálása a cellánként a tintát és a papírt is felcseréli, így a kép változatlan marad. Olyan módokban nem érhető el, ahol nincsenek cellaszínek (Layer 2, LoRes, Timex Hi-res), és szürke, amíg bélyeg lebeg.

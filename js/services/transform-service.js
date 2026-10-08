@@ -1418,6 +1418,98 @@ class TransformServiceClass {
     });
   }
 
+  /**
+   * The attribute fields a cell carries in this mode: ink, paper, bright and
+   * flash, plus the screen B four on GigaScreen.
+   * @returns {string[]}
+   * @private
+   */
+  _attrKeys() {
+    const keys = ['ink', 'paper', 'bright', 'flash'];
+    return ZX_SPECTRUM.SCREENS === 2 ? keys.concat(['inkB', 'paperB', 'brightB', 'flashB']) : keys;
+  }
+
+  /**
+   * Check one find or replace set. Each field is null (any, or keep) or a
+   * value: ink and paper 0-7, bright and flash booleans. B fields are dropped
+   * outside GigaScreen. Returns null when a colour is out of range.
+   * @returns {Object|null}
+   * @private
+   */
+  _cleanAttrSet(set) {
+    const out = {};
+    for (const k of this._attrKeys()) {
+      const v = set ? set[k] : null;
+      if (v == null) { out[k] = null; continue; }
+      if (k.startsWith('ink') || k.startsWith('paper')) {
+        if (!Validators.isValidBaseColor(v)) return null;
+        out[k] = v;
+      } else {
+        out[k] = !!v;
+      }
+    }
+    return out;
+  }
+
+  /**
+   * The rectangle and the per-cell target that Change Attributes uses. Shared
+   * by the preview and the apply, so the count shown is the count written.
+   * A cell matches when every non-null find field equals its shown value; a
+   * matching cell takes the non-null replace fields and keeps its other
+   * fields, so GigaScreen screen B is carried. Other cells return themselves,
+   * so they are skipped.
+   * @returns {{rect:Object, targetOf:Function}|null} null when blocked or invalid
+   * @private
+   */
+  _changeAttributesPlan(find, replace) {
+    if (this.attributeCommandsBlocked()) return null;
+    const f = this._cleanAttrSet(find);
+    const r = this._cleanAttrSet(replace);
+    if (!f || !r) {
+      Logger.warn('TransformService', 'changeAttributes: colour out of range');
+      return null;
+    }
+    const keys = this._attrKeys();
+    const rect = this._attributeCellRect(this._getWorkArea());
+    const targetOf = (cx, cy, grid) => {
+      const cur = grid[cy - rect.y0][cx - rect.x0];
+      for (const k of keys) {
+        if (f[k] !== null && cur[k] !== f[k]) return cur;
+      }
+      const next = { ...cur };
+      for (const k of keys) {
+        if (r[k] !== null) next[k] = r[k];
+      }
+      return next;
+    };
+    return { rect, targetOf };
+  }
+
+  /**
+   * How many cells Change Attributes would change, with nothing written.
+   * @param {Object} find - { ink, paper, bright, flash, inkB, ... }, null = any
+   * @param {Object} replace - the same shape, null = keep
+   * @returns {number}
+   */
+  previewChangeAttributes(find, replace) {
+    const plan = this._changeAttributesPlan(find, replace);
+    if (!plan) return 0;
+    return this._planCellWrites(plan.rect, plan.targetOf).length;
+  }
+
+  /**
+   * Find and replace cell colours over the work area (selection or whole
+   * picture), cells rounded out. One undo step; dots never change.
+   * @param {Object} find - { ink, paper, bright, flash, inkB, ... }, null = any
+   * @param {Object} replace - the same shape, null = keep
+   * @returns {number} cells changed
+   */
+  changeAttributes(find, replace) {
+    const plan = this._changeAttributesPlan(find, replace);
+    if (!plan) return 0;
+    return this._rewriteCells(plan.rect, plan.targetOf);
+  }
+
 }
 
 window.TransformService = new TransformServiceClass();

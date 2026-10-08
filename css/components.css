@@ -3413,3 +3413,75 @@
     flex: 1;
     min-height: 0;
 }
+
+/* Image > Attributes > Change... (change-attributes-dialog.js) */
+.attr-change {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    min-width: min(90vw, 440px);
+}
+
+.attr-change-scope,
+.attr-change-count {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.attr-change-side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.attr-change-side-title {
+    margin: 0;
+    font-size: var(--font-size-md);
+}
+
+.attr-change-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+}
+
+.attr-change-caption {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.attr-change-field {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs);
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.attr-change-field legend {
+    width: 100%;
+    padding: 0;
+    font-size: var(--font-size-sm);
+}
+
+.attr-change-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: var(--font-size-sm);
+}
+
+.attr-change-swatch {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 1px solid var(--border-color);
+    border-radius: 2px;
+}

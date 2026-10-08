@@ -1448,6 +1448,20 @@ const en = {
     // Storage and Next export notices
     'msg.storageBlocked': 'This browser is blocking site storage, so PixULA cannot keep your settings or autosave after this tab closes. Save your work to a file before closing.',
     'mode.dumpNeedsLayer': 'A .{ext} file holds a {family} screen - switch to a {family} mode first.',
+    'menu.image.attrChange': 'Change...',
+    'attrChange.title': 'Change Attributes',
+    'attrChange.find': 'Find',
+    'attrChange.replace': 'Replace with',
+    'attrChange.any': 'Any',
+    'attrChange.keep': 'Keep',
+    'attrChange.on': 'On',
+    'attrChange.off': 'Off',
+    'attrChange.clut': 'CLUT',
+    'attrChange.flashBoth': 'Flash (both screens)',
+    'attrChange.scope': 'Applies to: {scope}',
+    'attrChange.scopeSelection': 'Selection',
+    'attrChange.scopeWhole': 'Whole picture',
+    'plural.changeAttrCells': 'one: {n} cell will change | other: {n} cells will change',
 };
 
 window.i18n_en = en;

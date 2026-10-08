@@ -145,6 +145,8 @@ selectat, și se anulează dintr-un pas. Elementele sunt estompate în modurile
 fără culori de celulă (Timex Hi-res, Layer 2, LoRes), cât timp o ștampilă
 plutește și pe un strat blocat.
 
+Modifică... găsește celulele după culorile lor și le înlocuiește. Caută indică ce celule se potrivesc: fiecare câmp este o valoare sau Oricare. Înlocuiește cu indică ce devin: fiecare câmp este o valoare sau Păstrează. Caseta arată câte celule se vor modifica înainte de a apăsa OK, iar OK se anulează dintr-un singur pas. GigaScreen are un grup pentru Ecranul A și unul pentru Ecranul B; în ULAplus, CLUT 0-3 ia locul opțiunilor Luminozitate și Clipire. Renunță nu schimbă nimic.
+
 ### Puncte
 
 Elementele Puncte din meniul Imagine modifică punctele și lasă culorile în celulele lor. Oglindire orizontală și Oglindire verticală oglindesc punctele. Inversează punctele și culorile schimbă și cerneala cu hârtia din fiecare celulă, astfel încât imaginea rămâne la fel. Nu este oferit în moduri fără culori de celulă (Layer 2, LoRes, Timex Hi-res) și apare cenușiu cât timp o ștampilă plutește.

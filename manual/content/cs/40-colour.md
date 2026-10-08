@@ -130,6 +130,8 @@ vodorovně a Otočit svisle zrcadlí barvy buněk. Každý příkaz působí na 
 a vrací se jedním krokem zpět. Položky jsou šedé v režimech bez barev buněk
 (Timex Hi-res, Layer 2, LoRes), když plove razítko, a na zamčené vrstvě.
 
+Změnit... najde buňky podle jejich barev a nahradí je. Hledat určuje, které buňky vybrat: každé pole je hodnota, nebo Libovolné. Nahradit za určuje, čím se stanou: každé pole je hodnota, nebo Ponechat. Dialog ukáže, kolik buněk se změní, dříve než stisknete OK, a OK se vrátí jedním krokem zpět. Na GigaScreenu jsou skupiny Obrazovka A a Obrazovka B; v ULAplus nahrazuje CLUT 0-3 volby Jas a Blikání. Zrušit nic nemění.
+
 ### Tečky
 
 Položky Tečky v nabídce Obrázek mění tečky a barvy nechávají v jejich buňkách. Otočit vodorovně a Otočit svisle zrcadlí tečky. Invertovat tečky a barvy navíc prohodí inkoust a papír v každé buňce, takže obrázek vypadá stejně. Nenabízí se v režimech bez barev buněk (Layer 2, LoRes, Timex Hi-res) a když plove razítko, je šedá.

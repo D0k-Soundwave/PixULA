@@ -150,6 +150,8 @@ ou sur toute l'image sans sélection, et s'annule en une seule fois. Les
 éléments sont grisés dans les modes sans couleurs de cellule (Timex Hi-res,
 Layer 2, LoRes), pendant qu'un tampon flotte, et sur un calque verrouillé.
 
+Modifier... trouve les cellules d'après leurs couleurs et les remplace. Rechercher indique les cellules visées : chaque champ est une valeur ou Tous. Remplacer par indique ce qu'elles deviennent : chaque champ est une valeur ou Conserver. La boîte de dialogue indique combien de cellules vont changer avant que vous ne cliquiez sur OK, et OK s'annule en une seule étape. GigaScreen a un groupe Écran A et un groupe Écran B ; en ULAplus, CLUT 0-3 remplace Brillant et Clignotement. Annuler ne modifie rien.
+
 ### Points
 
 Les éléments Points du menu Image modifient les points et laissent les couleurs dans leurs cellules. Miroir horizontal et Miroir vertical retournent les points. Inverser points et couleurs échange aussi l'encre et le papier de chaque cellule, de sorte que l'image reste identique. Ils ne sont pas proposés dans les modes sans couleurs de cellule (Layer 2, LoRes, Timex Hi-res) et sont grisés pendant qu'un tampon flotte.

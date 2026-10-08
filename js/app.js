@@ -110,6 +110,7 @@ const BOOT_MANIFEST = [
     ['ToolPresetBar',    'js/ui/components/tool-preset-bar.js'],
     ['ToolPresetPanel',  'js/ui/components/tool-preset-panel.js'],
     ['ToolPresetDialog', 'js/ui/components/tool-preset-dialog.js'],
+    ['ChangeAttributesDialog', 'js/ui/components/change-attributes-dialog.js'],
     ['ToolRail',         'js/ui/components/tool-rail.js'],
     ['ClutBar',          'js/ui/components/clut-bar.js'],
     ['DrawModeBar',      'js/ui/components/draw-mode-bar.js'],

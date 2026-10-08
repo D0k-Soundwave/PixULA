@@ -139,6 +139,8 @@ obraz, gdy nic nie jest zaznaczone, i cofa się jednym krokiem. Pozycje są
 wyszarzone w trybach bez kolorów komórek (Timex Hi-res, Layer 2, LoRes), gdy
 pieczątka jest w toku i na zablokowanej warstwie.
 
+Zmień... znajduje komórki po ich kolorach i zamienia je. Znajdź określa, które komórki dopasować: każde pole to wartość albo Dowolny. Zamień na określa, na co się zmienią: każde pole to wartość albo Zachowaj. Okno pokazuje, ile komórek się zmieni, zanim naciśniesz OK, a OK cofa się jednym krokiem. Tryb GigaScreen ma grupę Ekran A i grupę Ekran B; w ULAplus CLUT 0-3 zastępuje Jasny i Migotanie. Anuluj nic nie zmienia.
+
 ### Kropki
 
 Pozycje Kropki w menu Obraz zmieniają kropki i zostawiają kolory w ich komórkach. Odbij poziomo i Odbij pionowo odbijają kropki. Odwróć kropki i kolory dodatkowo zamienia tusz z papierem w każdej komórce, więc obraz wygląda tak samo. Nie jest oferowane w trybach bez kolorów komórek (Layer 2, LoRes, Timex Hi-res) i jest wyszarzone, gdy unosi się pieczątka.
