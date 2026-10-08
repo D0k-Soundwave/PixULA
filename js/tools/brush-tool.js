@@ -343,9 +343,6 @@ class BrushToolClass extends ToolBase {
     return BrushEngine.currentBrush;
   }
 
-  getDrawMode() { return BrushEngine.getDrawMode(); }
-  setDrawMode(v) { BrushEngine.setDrawMode(v); }
-
   /**
    * Set brush type. Remembers the last solid (round/square) so returning to
    * the base Brush button restores it rather than defaulting to round.

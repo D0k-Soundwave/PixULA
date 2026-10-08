@@ -531,6 +531,54 @@ previous step already cleared, and about 57 ms building the per-move hover
 footprint. Stamping only the leading edge of each step would take most of the
 first; it is a rewrite of the stroke, so it was not part of this pass.
 
+### XOR strokes and the drawing-modes strip - measured 2026-10-07 and 2026-10-08
+
+XOR / Over remembered which pixels a stroke had toggled in a Set of
+`"layer:pixel"` strings, built on every write; XOR / Pixel had no memory at all
+and toggled on every write. Both were replaced by one byte-per-pixel array per
+stroke plus, for the renamed XOR / Every Pass, a pass rule
+(`PixelDrawRoutine.nextPass`). Instrument: a Node probe that drives the real
+FillTool and BrushTool through the `tests/draw-mode-matrix.test.js` harness,
+median of 15 interleaved runs (9 for strokes), old and new code run back to
+back in one sitting (2026-10-08). Node, not the browser: read for the ratio.
+
+| Path | Before | After | Tag |
+|---|---|---|---|
+| Full-screen fill, STANDARD_ULA, Normal | 7.1 ms | 7.5 ms | M |
+| ...XOR / Over | 14.3 ms | 7.9 ms | M |
+| ...XOR / Pixel -> XOR / Every Pass | 7.3 ms | 7.9 ms | M |
+| Full-screen fill, LAYER2_640, Normal | 25.3 ms | 26.0 ms | M |
+| ...XOR / Over | 60.7 ms | 27.8 ms | M |
+| ...XOR / Every Pass | 25.4 ms | 27.3 ms | M |
+| 90-event wavy stroke, size 8, XOR / Every Pass | 0.6 ms | 1.1 ms | M |
+| ...size 32 | 8.7 ms | 7.8 ms | M |
+| ...size 32, Mirror H+V | 31.2 ms | 29.5 ms | M |
+
+Before the change, the LAYER2_640 XOR cost was ESTIMATED at about 18 ms over
+Normal (C: (12.0 - 6.6) ms on the standard screen x 3.33 for the larger one,
+assuming linear scaling). Measured, it was 35.4 ms over (C: 60.7 - 25.3) - the
+estimate was half the real cost, so linear scaling did not hold.
+
+What the pass rule fixed, in pixels kept (M, Node probe 2026-10-07; and M,
+real mouse drags at 400% zoom in Chrome through InputHandler, 2026-10-08):
+
+| Stroke | XOR / Over | XOR / Pixel (before) | XOR / Every Pass (after) |
+|---|---|---|---|
+| Size 5, 41 px, 1-px steps (Node) | 221 | 205 | 221 |
+| Size 5, 41 px, 4-px steps (Node) | 221 | 115 | 221 |
+| Thin ellipse / star / polygon (Node) | 166 / 346 / 194 | 164 / 340 / 191 | 166 / 346 / 194 |
+| Size 5 drag in Chrome, slow / fast | 296 / 296 | 280 / 157 | 296 / 296 |
+| Size 5 drag in Chrome with Mirror H, each side | 221 | 124 | 221 |
+
+The strip's three groups gained two dividers. ColorBarFit's settled scale and
+the icon width, before -> after (M, Chrome, 2026-10-08): 800 px window
+0.590 -> 0.570 (31.8 -> 30.8 px), 1024 px 0.928 -> 0.895 (50.1 -> 48.3 px),
+1366 and 1600 px unchanged at 1 (54 px), 1366 px at 200% 0.414 -> 0.401
+(44.7 -> 43.3 px). One row everywhere, as before. At 1024 px and 200% the
+strip was already at 0.154, a hair above ColorBarFit's 0.15 FLOOR, and now
+sits on it at both device pixel ratios; the test that checks the DPR margin
+grows moved to 1200 px (0.277 / 0.270), where the scale is not floored.
+
 ### What was measured and NOT acted on
 
 | Path | Figure | Tag | Why it was left |

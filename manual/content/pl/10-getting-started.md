@@ -24,7 +24,7 @@ następny rozdział.
 
 - **Pasek menu** na samej górze: pliki, edycja, widok, warstwy, sam obraz,
   ustawienia i pomoc.
-- **Pasek trybów** pod nim: tryby rysowania, lustro i ramka.
+- **Pasek trybów** pod nim: tryby rysowania, Zamień i Zmień kolor oraz lustro.
 - **Pasek narzędzi** po lewej, z cofaniem i ponawianiem na górze.
 - **Pasek kolorów** obok, z paletą bieżącego trybu ekranu.
 - **Płótno** pośrodku.
@@ -44,7 +44,7 @@ pogrupowane według tego, co robią z obrazem.*
 
 ![Pasek trybów](img/colour-bar.png)
 
-*Pasek trybów: tryby rysowania, lustro i kolor ramki.*
+*Pasek trybów: tryby rysowania, potem Zamień i Zmień kolor, potem lustro.*
 
 ![Panele boczne](img/panels.png)
 

@@ -87,7 +87,7 @@
             </div>
         </header>
 
-        <!-- Top strip: draw modes, Mirror and Swap/Recolour. Spans the canvas
+        <!-- Top strip: draw modes, Swap/Recolour and Mirror. Spans the canvas
              column only (between the colour rail and the right panels),
              directly under the header. ColorBarFit (js/ui/components/
              colorbar-fit.js) guarantees this always renders as exactly ONE
@@ -105,18 +105,26 @@
                      _captionGroup) — text above, the row of controls below,
                      both centred as one column. -->
                 <span id="marks-group-label" class="toolbar-group-label" data-i18n="dm.groupLabel">Drawing Modes</span>
+                <!-- Three kinds of control, one row, a divider between each
+                     (2026-10-07). They used to run as one undivided strip, so
+                     a pick-one mode, an on/off Mirror toggle and a Swap or
+                     Recolour that takes over every tool all looked alike. -->
                 <div id="marks-icons-row">
                     <!-- Global draw-mode selector (DrawModeBar): icon buttons in
                          the left-toolbar style; drives StateManager's
-                         document-wide mode. -->
+                         document-wide mode. The colour-only modes (Ink and
+                         Paper Recolour) come last, next to the cell operations
+                         they resemble. -->
                     <div id="draw-modes" class="toolbar-section"></div>
-                    <!-- Mirror (symmetry drawing) toggles (DrawModeBar) — filed
-                         next to the draw modes because it changes how every
-                         stroke lands, exactly like they do. -->
-                    <div id="mirror-modes" class="toolbar-section" role="group" aria-label="Mirror" data-i18n-aria-label="view.mirror"></div>
-                    <!-- Swap / Recolour (ClutBar) sit INLINE with the draw modes,
-                         after XOR: one run, one pitch, no group gap between them. -->
+                    <span class="marks-divider" aria-hidden="true"></span>
+                    <!-- Swap / Recolour (ClutBar): whole-cell colour operations
+                         that take over the canvas until a tool or draw mode is
+                         picked. -->
                     <div id="attr-tools" class="toolbar-section clut-attrs"></div>
+                    <span class="marks-divider" aria-hidden="true"></span>
+                    <!-- Mirror (symmetry drawing) toggles (DrawModeBar) - they
+                         change how every stroke lands, whatever the mode. -->
+                    <div id="mirror-modes" class="toolbar-section" role="group" aria-label="Mirror" data-i18n-aria-label="view.mirror"></div>
                 </div>
             </div>
         </div>
@@ -354,9 +362,10 @@
         <footer id="status-bar" role="status" aria-live="polite">
             <span id="status-message" data-i18n="status.ready">Ready</span>
             <!-- Shown by DrawModeBar ONLY while the global draw mode is not
-                 Normal: in Paper Recolour or Attributes Only a stroke can leave
-                 no visible mark, and the artist must be able to see why without
-                 hunting for the selector. -->
+                 Normal, or while Swap or Recolour is switched on: in Paper
+                 Recolour, or with Recolour on, a stroke can leave no visible
+                 mark, and the artist must be able to see why without hunting
+                 for the selector. -->
             <span id="draw-mode-status" hidden></span>
             <!-- The touch drawing switch (TouchModeStatus). A button, not a
                  readout: it is the one touch setting changed mid-drawing, and
@@ -471,10 +480,10 @@
              two squares' exclusive areas render - the actual boolean XOR
              of the two shapes, not a plain Venn outline. -->
         <symbol id="icon-dm-xor" viewBox="0 0 24 24"><path fill-rule="evenodd" fill="currentColor" d="M3 3H16V16H3Z M8 8H21V21H8Z"/></symbol>
-        <!-- XOR / Pixel: the same true-XOR squares as XOR / Over, with a
-             small checker pair dropped into the hollow overlap - the
-             per-pixel toggle, shown with the same checker motif the app
-             already uses for per-pixel transparency (--checker-* tokens). -->
+        <!-- XOR / Every Pass: the same true-XOR squares as XOR / Over, with
+             a small checker pair dropped into the hollow overlap - the
+             overlap toggling again, shown with the same checker motif the
+             app already uses for per-pixel transparency (--checker-* tokens). -->
         <symbol id="icon-dm-xor-pixel" viewBox="0 0 24 24"><path fill-rule="evenodd" fill="currentColor" d="M3 3H16V16H3Z M8 8H21V21H8Z"/><rect x="8" y="8" width="4" height="4" fill="currentColor"/><rect x="12" y="12" width="4" height="4" fill="currentColor"/></symbol>
         <!-- Mirror (symmetry drawing) toggles (top colour bar) — the dashed
              line is the axis reflected across; one asymmetric flag is drawn

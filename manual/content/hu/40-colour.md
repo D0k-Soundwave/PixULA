@@ -23,14 +23,51 @@ fehéren értékre, felsőbb rétegen pedig a cella ismét átlátszó lesz. Az 
 amelyben még vannak pontok, megtartja a színeit, akárhányszor radírozol át
 rajta.
 
+A négy rész mindegyike **meglévő használata** állásba is tehető: ez a színsávban
+alatta lévő kockás négyzet. Egy vonás ekkor minden cella adott részét úgy
+hagyja, ahogy van, a beállításod írása helyett. Tedd a TINTÁT, a PAPÍRT és a
+FÉNYESSÉGET meglévőre, kapcsold be a VILLOGÁST, és a kitöltés **Csak
+attribútumok kitöltése** beállítása egy egész területet villogóvá tesz egyetlen
+szín megváltoztatása nélkül. A Shift+B és a Shift+F a FÉNYESSÉGET és a VILLOGÁST
+kapcsolja, a Shift+T pedig mind a négyet meglévőre állítja. ULAplus módban a
+FÉNYESSÉG és a VILLOGÁS a CLUT-ot választja ki, ezért a CLUT-választónak
+egyetlen négyzete van, amely minden cella saját CLUT-ját megtartja.
+
 ### Rajzolási módok
 
-A rajzolási mód azt változtatja meg, mit tesz egy vonás, és minden eszközre
-érvényes. Munkamenetek között is megmarad, ezért az állapotsor mindig mutatja,
-ha nem Normál – egyes módokban a vonás semmi láthatót nem hagy, és különben nem
-tudnád, miért.
+A rajzolási mód azt változtatja meg, mit tesz egy vonás. Munkamenetek között is
+megmarad, ezért az állapotsor mindig mutatja, ha nem Normál – egyes módokban a
+vonás semmi láthatót nem hagy, és különben nem tudnád, miért.
 
 {{draw-modes}}
+
+Az ecset minden változata, a kitöltés, az alakzatok, a Bézier-görbe, a szöveg, a
+**Bélyegzők** panel bélyegzői és az átmenet bal gombja követik a rajzolási
+módot. A radír, a pipetta, a kijelölés mozgatása, beillesztése és törlése, az
+**Átalakítás** panel, a **Csak attribútumok kitöltése** beállítás, valamint a
+Felcserél és az Átszínezés gomb figyelmen kívül hagyja.
+
+**A Tinta átszínezése nem ugyanaz, mint az Átszínezés.** A Tinta átszínezése és
+a Papír átszínezése rajzolási módok: minden cellát átszíneznek, amelyet az
+aktuális eszköz érint (kis ecsettel néhányat, egy kitöltött téglalappal mindet,
+amelyet lefed), és a Tükrözés is érvényes rájuk. Az **Átszínezés** közvetlenül
+az elválasztó után a mutató alatti teljes cellát színezi át, bármelyik eszköz
+van kiválasztva, az ecsetmérettől és a Tükrözéstől függetlenül. A mellette lévő
+**Felcserél** ugyanígy működik, és minden cellában felcseréli a tintát és a
+papírt. Bármelyik bekapcsolva marad, amíg újra rá nem kattintasz, vagy eszközt
+vagy rajzolási módot nem választasz, és amíg be van kapcsolva, az állapotsor
+jelzi.
+
+**Az XOR / Fölé és az XOR / Minden áthaladás** megfordítja a pontokat ahelyett,
+hogy bekapcsolná őket, és mindkettő a választott színeket adja a cellának. Az
+XOR / Fölé vonásonként egyszer fordít meg minden pontot, így ha ugyanabban a
+vonásban visszamész a saját vonaladon, az már semmin sem változtat. Az XOR /
+Minden áthaladás minden alkalommal megfordít egy pontot, amikor a vonás áthalad
+rajta: az ecset egy húzása egy áthaladás, akármennyire fedi is önmagát útközben,
+de ha a vonás elhagy egy pontot, majd visszatér hozzá, újra megfordítja, így a
+nyolcas ott kioltja magát, ahol keresztezi önmagát. Az alakzatok, a görbék, a
+kitöltések és a szöveg mindig egyetlen áthaladás, így ezeknél a két mód ugyanazt
+adja.
 
 ### Paletták
 

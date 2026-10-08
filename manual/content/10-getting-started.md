@@ -23,7 +23,7 @@ fact shapes how every tool here behaves, and the next chapter is about it.
 
 - **The menu bar** across the top: files, editing, the view, layers, the
   picture itself, settings and help.
-- **The colour bar** under it: drawing modes, mirroring, and the border.
+- **The colour bar** under it: drawing modes, Swap and Recolour, and mirroring.
 - **The tool rail** down the left, with undo and redo at the top.
 - **The colour rail** beside it, holding the palette for the screen mode you
   are in.
@@ -45,7 +45,7 @@ above them.*
 
 ![The colour bar](img/colour-bar.png)
 
-*The colour bar: draw modes, mirroring, and the border colour.*
+*The colour bar: draw modes, then Swap and Recolour, then mirroring.*
 
 ![The side panels](img/panels.png)
 

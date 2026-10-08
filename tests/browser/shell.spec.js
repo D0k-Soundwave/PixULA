@@ -96,7 +96,7 @@ test('colour rail: flash, 2×8 CLUT; left rail = tool registry; top strip keeps 
 
 /*
  * The top strip (#color-bar) now carries only Border and the marks group
- * (draw modes, Mirror, Swap/Recolour) — the palette cluster moved to
+ * (draw modes, Swap/Recolour, Mirror) — the palette cluster moved to
  * #color-rail 2026-08-25 (see tests/browser/color-rail.spec.js). Every
  * control here is still the same size and sits on one baseline.
  */
@@ -118,9 +118,12 @@ test('every row of the top strip sits on one baseline and one pitch', async ({ p
     }));
     expect(split.swatchesInMarks).toBe(0);
     expect(split.swatchesInColorBar).toBe(0); // no swatches on the top strip at all now
-    expect(split.marks).toEqual(['normal', 'ink', 'paper', 'pixel_only', 'xor', 'xor_pixel',
-        'symmetry-h-toggle', 'symmetry-v-toggle', 'symmetry-quad-toggle',
-        'attr-transpose', 'attr-apply']);
+    // Grouped by kind since 2026-10-07: the draw modes (dots first, the two
+    // colour-only modes last), then the Swap/Recolour cell operations they
+    // get mistaken for, then Mirror.
+    expect(split.marks).toEqual(['normal', 'pixel_only', 'xor', 'xor_pixel', 'ink', 'paper',
+        'attr-transpose', 'attr-apply',
+        'symmetry-h-toggle', 'symmetry-v-toggle', 'symmetry-quad-toggle']);
     expect(split.colorBarHasNoSelect).toBe(true);
     expect(split.borderInHeader).toBe(true);
     expect(split.bitsMovedOut).toBe(0); // Bright/Flash live in #color-rail, Border in the header
@@ -379,13 +382,17 @@ test.describe('ColorBarFit keeps the top strip at one row across interface sizes
             expect(after.uiScale).toBe('2');
         });
 
+    // 1200px, not 1024: at 1024px and 200% the strip sits on ColorBarFit's
+    // FLOOR at both ratios (measured 2026-10-07: 0.150 for each once the group
+    // dividers went in, 0.154 / 0.150 before), and a floored scale cannot show
+    // a margin growing. At 1200px it measures 0.277 / 0.270.
     test('the safety margin actually grows at a fractional device pixel ratio',
         async ({ page }) => {
             const scaleAt = async (dpr) => {
-                await page.setViewportSize({ width: 1024, height: 900 });
+                await page.setViewportSize({ width: 1200, height: 900 });
                 const client = await page.context().newCDPSession(page);
                 await client.send('Emulation.setDeviceMetricsOverride', {
-                    width: 1024, height: 900, deviceScaleFactor: dpr, mobile: false
+                    width: 1200, height: 900, deviceScaleFactor: dpr, mobile: false
                 });
                 await boot(page);
                 await page.selectOption('#font-scale-selector', '2');
@@ -407,7 +414,7 @@ test('top bar: global draw-mode selector drives StateManager and persists', asyn
     // was retired with it. StateManager rejects the value, so a document saved
     // in that mode comes back Normal rather than in a mode with no way out.
     const modes = await page.$$eval('#draw-modes button[data-draw-mode]', b => b.map(x => x.dataset.drawMode));
-    expect(modes).toEqual(['normal', 'ink', 'paper', 'pixel_only', 'xor', 'xor_pixel']);
+    expect(modes).toEqual(['normal', 'pixel_only', 'xor', 'xor_pixel', 'ink', 'paper']);
     const retired = await page.evaluate(() => {
         StateManager.setDrawMode('attributes_only');
         return StateManager.getDrawMode();

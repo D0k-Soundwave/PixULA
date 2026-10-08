@@ -1091,6 +1091,8 @@ class MenuSystemClass {
             }
         }
         shortcuts.push(['+/-', this._t('view.zoomIn', 'Zoom in') + '/' + this._t('view.zoomOut', 'Zoom out')]);
+        // Bright, Flash and "use existing" - one list with the key handler
+        for (const s of COLOUR_SHORTCUTS) shortcuts.push([s.keys, this._t(s.i18n, s.en)]);
         // Preset recall — both the key range and the number in the description
         // are generated from the codec, so changing how many slots are keyed
         // cannot leave this row saying otherwise.

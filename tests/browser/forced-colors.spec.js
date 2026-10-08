@@ -20,7 +20,9 @@ test('forced colours: swatches keep their colours, the active tool stands out', 
 
     const r = await page.evaluate(() => {
         const bg = (el) => getComputedStyle(el).backgroundColor;
-        const swatches = [...document.querySelectorAll('#color-rail .color-swatch')].slice(0, 8).map(bg);
+        // The ink row by role: the rail also holds checkered "use existing"
+        // boxes, which are swatch-shaped but carry no colour of their own.
+        const swatches = [...document.querySelectorAll('#color-rail .color-swatch[data-role="ink"]')].slice(0, 8).map(bg);
         const tool = document.querySelector('.tool-btn.active');
         const other = document.querySelector('.tool-btn[data-tool]:not(.active)');
         return {

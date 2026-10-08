@@ -21,14 +21,49 @@ jasność i miganie wracają do czarnego na białym, a na wyższej warstwie kom�
 znów staje się przezroczysta. Komórka, w której są jeszcze punkty, zachowuje
 kolory, ile razy byś jej nie wymazywał.
 
+Każdy z czterech można też ustawić na **użyj istniejącego**: to kratkowane pole
+pod nim na pasku kolorów. Pociągnięcie zostawia wtedy tę część każdej komórki
+bez zmian, zamiast zapisywać twoje ustawienie. Ustaw TUSZ, PAPIER i JASNOŚĆ na
+istniejące i włącz MIGANIE, a opcja **Wypełnij tylko atrybuty** narzędzia
+wypełniania sprawi, że cały obszar będzie migał bez zmiany żadnego koloru.
+Shift+B i Shift+F przełączają JASNOŚĆ i MIGANIE, a Shift+T ustawia wszystkie
+cztery na istniejące. W ULAplus JASNOŚĆ i MIGANIE wybierają CLUT, więc wybór
+CLUT ma jedno pole, które zachowuje CLUT każdej komórki.
+
 ### Tryby rysowania
 
-Tryb rysowania zmienia to, co robi pociągnięcie, i dotyczy każdego narzędzia.
-Jest zapamiętywany między sesjami, więc pasek stanu pokazuje go zawsze, gdy
-jest inny niż Normalny – w niektórych z tych trybów pociągnięcie nie zostawia
-nic widocznego i inaczej nie wiedziałbyś dlaczego.
+Tryb rysowania zmienia to, co robi pociągnięcie. Jest zapamiętywany między
+sesjami, więc pasek stanu pokazuje go zawsze, gdy jest inny niż Normalny – w
+niektórych z tych trybów pociągnięcie nie zostawia nic widocznego i inaczej nie
+wiedziałbyś dlaczego.
 
 {{draw-modes}}
+
+Pędzel we wszystkich odmianach, wypełnianie, kształty, krzywa Béziera, tekst,
+stemple z panelu **Stemple** i lewy przycisk gradientu stosują się do trybu
+rysowania. Gumka, pipeta, przesuwanie, wklejanie i usuwanie zaznaczenia, panel
+**Transformacja**, opcja **Wypełnij tylko atrybuty** oraz przyciski Zamień i
+Zmień kolor go pomijają.
+
+**Zmień kolor atramentu to nie to samo co Zmień kolor.** Zmień kolor atramentu i
+Zmień kolor papieru to tryby rysowania: przemalowują każdą komórkę, której
+dotknie bieżące narzędzie (kilka przy małym pędzlu, wszystkie pod wypełnionym
+prostokątem), a Lustro też działa. **Zmień kolor** tuż za separatorem
+przemalowuje całą komórkę pod wskaźnikiem bez względu na wybrane narzędzie,
+rozmiar pędzla i Lustro. **Zamień** obok działa tak samo i zamienia atrament z
+papierem w każdej komórce. Każdy z nich pozostaje włączony, dopóki nie klikniesz
+go ponownie albo nie wybierzesz narzędzia lub trybu rysowania, a pasek stanu
+informuje o tym, póki jest włączony.
+
+**XOR / Na wierzchu i XOR / Każde przejście** odwracają punkty zamiast je
+zapalać i oba nadają komórce wybrane kolory. XOR / Na wierzchu odwraca każdy
+punkt raz na pociągnięcie, więc powrót po własnej linii w tym samym pociągnięciu
+niczego już nie zmienia. XOR / Każde przejście odwraca punkt za każdym razem,
+gdy pociągnięcie po nim przechodzi: jeden ruch pędzla to jedno przejście, choćby
+pędzel po drodze nakładał się sam na siebie, ale pociągnięcie, które opuści
+punkt i do niego wróci, odwraca go ponownie, więc ósemka znosi się tam, gdzie
+się krzyżuje. Kształty, krzywe, wypełnienia i tekst to zawsze jedno przejście,
+więc dla nich oba tryby dają ten sam wynik.
 
 ### Palety
 

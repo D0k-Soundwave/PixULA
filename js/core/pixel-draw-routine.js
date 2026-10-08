@@ -26,7 +26,10 @@ class PixelDrawRoutineClass {
     this._mirrorSuspend = 0;       // depth counter — see suspendMirror()
     this._clipSuspend = 0;         // depth counter — see suspendClip()
     this._ditherGate = null;       // active thinning predicate — see withDitherGate()
-    this._xorStroke = new Set();   // pixels already toggled in this batch — see draw()
+    this._xorStroke = new Map();   // layer id -> Uint8Array: pixels XOR has toggled in this batch - see _xorGate
+    this._passActive = null;       // layer id -> Map(pixel -> reach): the brush's current pass - see nextPass
+    this._passCentres = null;      // the current brush stamp's centre(s), mirrored ones included
+    this._passReach = 0;           // how far the current stamp can reach - see nextPass
     this._eraseStroke = new Map(); // cell -> "was empty when this batch reached it" - see _applyEraseAll
     this._shownStroke = new Map(); // cell -> what the page showed there when this batch reached it - see _shownFor
   }
@@ -429,7 +432,7 @@ class PixelDrawRoutineClass {
    * @param {number} pixelX - X coordinate (0-255)
    * @param {number} pixelY - Y coordinate (0-191)
    * @param {Object} colorSelection - { ink, paper, bright, flash }
-   * @param {string} mode - DRAW_MODE value (normal, erase, transparent, attributes_only)
+   * @param {string} mode - a DRAW_MODE value (constants.js lists them all)
    * @param {Object} options - Additional options { layer, skipUndo }
    * @returns {boolean} True if a pixel/attribute write actually happened -
    *   false for anything the gate rejected (bounds, clip, dither, locked/
@@ -479,21 +482,11 @@ class PixelDrawRoutineClass {
       return false;
     }
 
-    // XOR toggles once per STROKE, not once per call. A stroke writes the same
-    // pixel many times over — consecutive brush stamps overlap (spacing is half
-    // the brush size, and each segment restamps its start point), the pointer
-    // moves within one pixel, events arrive coalesced, a shape raster crosses
-    // itself — and a second toggle undoes the first. That is why an XOR brush
-    // painted a row of stamps instead of a stroke: the overlaps cancelled and
-    // only the non-overlapping fringes survived. The batch is the stroke, so
-    // each pixel flips on its first write and is inert for the rest of it.
-    // XOR_PIXEL is the other side of that trade: it deliberately skips this
-    // gate, so every write really does toggle — a stroke crossing itself
-    // cancels visibly, which is the literal bitwise XOR some artists want.
-    if (mode === DRAW_MODE.XOR && this.isInBatch) {
-      const xorKey = `${layer.id}:${pixelY * ZX_SPECTRUM.WIDTH + pixelX}`;
-      if (this._xorStroke.has(xorKey)) return false;
-      this._xorStroke.add(xorKey);
+    // The XOR modes toggle once per stroke (XOR / Over) or once per pass
+    // (XOR / Every Pass), never once per call - see _xorGate.
+    if ((mode === DRAW_MODE.XOR || mode === DRAW_MODE.XOR_PIXEL) && this.isInBatch &&
+        !this._xorGate(layer, pixelX, pixelY, mode)) {
+      return false;
     }
 
     // Calculate cell coordinates (cell geometry from the active screen mode)
@@ -561,7 +554,7 @@ class PixelDrawRoutineClass {
 
     this.isInBatch = true;
     this.pendingChanges.clear();
-    this._xorStroke.clear();
+    this._clearXorMemory();
     this._eraseStroke.clear();
     this._shownStroke.clear();
 
@@ -581,7 +574,7 @@ class PixelDrawRoutineClass {
     }
 
     this.isInBatch = false;
-    this._xorStroke.clear();
+    this._clearXorMemory();
     this._eraseStroke.clear();
     this._shownStroke.clear();
 
@@ -609,10 +602,140 @@ class PixelDrawRoutineClass {
     EventBus.emit(EVENTS.PIXEL_BATCH_END);
   }
 
+  // -- XOR strokes and passes -------------------------------------------------
+  //
+  // A stroke writes the same pixel many times over: consecutive brush stamps
+  // overlap (spacing is half the brush size), and a thin curved outline writes
+  // the joins between its segments twice. A second toggle undoes the first, so
+  // an XOR mode that toggled on every write painted holes wherever its own
+  // writes overlapped - more of them the faster the hand moved (measured
+  // 2026-10-07: a size-5 stroke kept 205 of 221 pixels at 1-pixel steps and
+  // 115 at 4-pixel steps).
+  //
+  //   XOR / Over        - each pixel toggles once per STROKE (the batch).
+  //   XOR / Every Pass  - each pixel toggles once per PASS: when a brush stroke
+  //                       arrives on it, and again each time the stroke comes
+  //                       back after leaving it, so a stroke cancels where it
+  //                       crosses itself. Anything that is not a brush stroke
+  //                       (shapes, curves, fills, text, stamps) is one pass,
+  //                       since its pixels come as a de-duplicated set with no
+  //                       path to cross.
+  //
+  // Outside a batch every call is its own stroke, and both modes toggle.
+
+  /**
+   * Start the next stamp of a brush stroke. BrushEngine.applyBrush calls this
+   * once per stamp; nothing else does, which is what makes every other tool's
+   * batch a single pass.
+   *
+   * A pixel stays in the current pass for as long as the brush is still over
+   * it, and leaves it once the brush has moved away. "Away" is measured from
+   * the stamp centre, not from which pixels this stamp happens to write: a
+   * footprint is a raster, so at a corner, under a scatter brush or with a
+   * wobbling pen a stamp can skip a pixel the brush is plainly still on, and
+   * leaving the pass on that would toggle it again and punch a hole.
+   *
+   * The reach is the farthest any brush can write from its centre plus a
+   * pixel of slack. Every footprint fits its size x size box centred on
+   * floor(size / 2) (BrushShapes.maskOffsets), the scatter envelope adds at
+   * most one pixel to that (BrushShapes.scatterEnvelope), and the diagonal
+   * of that box is the farthest point: (floor(size / 2) + 1) x sqrt(2). That
+   * margin also covers the half-pixel rounding of each interpolated stamp
+   * centre (BrushEngine.applyContinuousBrush). Erring wide is the safe side: a
+   * loop tighter than the brush is not counted as a crossing, which is far
+   * less surprising than a hole in a straight stroke.
+   *
+   * Mirror (symmetry) writes reach draw() at their own coordinates, so their
+   * centres are the stamp centre's mirror points.
+   * @param {number} x - stamp centre
+   * @param {number} y - stamp centre
+   * @param {number} size - the stamp's effective size (after pressure and jitter)
+   */
+  nextPass(x, y, size) {
+    if (!this.isInBatch) return;
+    const centres = [{ x, y }];
+    const sym = window.StateManager && StateManager.getSymmetryMode
+      ? StateManager.getSymmetryMode() : 'off';
+    if (sym !== 'off' && this._mirrorSuspend === 0) {
+      for (const p of this.getMirrorPoints(x, y, sym)) centres.push(p);
+    }
+    this._passCentres = centres;
+    this._passReach = (Math.floor(Math.max(1, size) / 2) + 1) * Math.SQRT2;
+
+    if (!this._passActive) {
+      this._passActive = new Map();
+      return;
+    }
+    // Close the pass for every pixel the brush is now clear of.
+    const W = ZX_SPECTRUM.WIDTH;
+    for (const active of this._passActive.values()) {
+      for (const [p, reach] of active) {
+        const px = p % W;
+        const py = (p - px) / W;
+        const rr = reach * reach;
+        let near = false;
+        for (let i = 0; i < centres.length; i++) {
+          const dx = px - centres[i].x;
+          const dy = py - centres[i].y;
+          if (dx * dx + dy * dy <= rr) { near = true; break; }
+        }
+        if (!near) active.delete(p);
+      }
+    }
+  }
+
+  /**
+   * Should this XOR write toggle the pixel? Called only inside a batch.
+   * @param {Layer} layer
+   * @param {number} x
+   * @param {number} y
+   * @param {string} mode - DRAW_MODE.XOR or DRAW_MODE.XOR_PIXEL
+   * @returns {boolean} false when this stroke or pass has already toggled it
+   * @private
+   */
+  _xorGate(layer, x, y, mode) {
+    const p = y * ZX_SPECTRUM.WIDTH + x;
+
+    if (mode === DRAW_MODE.XOR_PIXEL && this._passCentres) {
+      let active = this._passActive.get(layer.id);
+      if (!active) this._passActive.set(layer.id, (active = new Map()));
+      const held = active.get(p);
+      if (held !== undefined) {
+        // Still the same pass. Keep the widest reach that wrote it, so a
+        // stamp shrunk by pressure does not close a pass a wider one opened.
+        if (this._passReach > held) active.set(p, this._passReach);
+        return false;
+      }
+      active.set(p, this._passReach);
+      return true;
+    }
+
+    // XOR / Over, and Every Pass outside a brush stroke: once per batch. A
+    // byte per pixel, not a Set of "layer:pixel" strings - building a string
+    // for every write made an XOR fill nearly twice as slow as any other
+    // mode (measured 2026-10-07, Node: 12.0 ms against 6.6 ms full-screen).
+    let seen = this._xorStroke.get(layer.id);
+    if (!seen) {
+      seen = new Uint8Array(ZX_SPECTRUM.WIDTH * ZX_SPECTRUM.HEIGHT);
+      this._xorStroke.set(layer.id, seen);
+    }
+    if (seen[p]) return false;
+    seen[p] = 1;
+    return true;
+  }
+
+  /** Forget every stroke and pass - a new batch starts clean. @private */
+  _clearXorMemory() {
+    this._xorStroke.clear();
+    this._passActive = null;
+    this._passCentres = null;
+    this._passReach = 0;
+  }
+
   // ── The apply core ─────────────────────────────────────────────────────────
   //
   // Everything draw() does once the write has passed its gates (bounds,
-  // symmetry, clip, dither, layer, XOR stroke dedup), factored out so a
+  // symmetry, clip, dither, layer, XOR stroke and pass gate), factored out so a
   // PREVIEW can run exactly the same rules against a copy of the cell -
   // see simulateCell. draw() owns the gates; this owns the pixel and the
   // attributes.
@@ -705,16 +828,12 @@ class PixelDrawRoutineClass {
         this._applyErase(cell, localX, localY);
         return true;
 
-      case DRAW_MODE.TRANSPARENT:
-        this._applyTransparent(cell, localX, localY);
-        return true;
-
       case DRAW_MODE.ATTRIBUTES_ONLY:
         this._applyAttributesOnly(cell, sel);
         return true;
 
       case DRAW_MODE.PIXEL_ONLY:
-        this._applyPixelOnly(cell, localX, localY, true);
+        this._applyPixelOnly(cell, localX, localY);
         return true;
 
       case DRAW_MODE.INK:
@@ -780,7 +899,7 @@ class PixelDrawRoutineClass {
    * What each mode does with the slot:
    *   NORMAL                - each screen's bit set or cleared by the slot; both
    *                           colour sets stamped. Slot 0 paints the paper blend.
-   *   PIXEL_ONLY/TRANSPARENT - the same bits, no colours
+   *   PIXEL_ONLY            - the same bits, no colours
    *   NORMAL_ERASE, ERASE   - clear both screens (the right button's paper,
    *                           the primitive)
    *   XOR / XOR_PIXEL       - invert both screens: slot s becomes 3 - s
@@ -821,7 +940,7 @@ class PixelDrawRoutineClass {
   /**
    * Does this write only clear pixels and touch no colour - the primitive
    * ERASE, on every screen the cell has? In GigaScreen that is also Pixels
-   * Only and Transparent painting paper on both screens (slot 0), which
+   * Only painting paper on both screens (slot 0), which
    * _applyGiga turns into ERASE on each plane: on an empty upper-layer cell
    * it has nothing to clear, and must not make the cell opaque either.
    * @private
@@ -844,7 +963,6 @@ class PixelDrawRoutineClass {
     switch (mode) {
       case DRAW_MODE.NORMAL: return bit ? DRAW_MODE.NORMAL : DRAW_MODE.NORMAL_ERASE;
       case DRAW_MODE.PIXEL_ONLY: return bit ? DRAW_MODE.PIXEL_ONLY : DRAW_MODE.ERASE;
-      case DRAW_MODE.TRANSPARENT: return bit ? DRAW_MODE.TRANSPARENT : DRAW_MODE.ERASE;
       default: return mode;
     }
   }
@@ -888,6 +1006,10 @@ class PixelDrawRoutineClass {
    * (LayerManager.attrsShowing). Hidden layers do not count. It is copied at
    * the moment of the write and does not keep following the page afterwards.
    *
+   * Bright and Flash have the same box (2026-10-08, ZX Paintbrush's BRIGHT 8 /
+   * FLASH 8) and follow the same definition. In ULAplus the two bits are the
+   * cell's CLUT and in ULANext its paper bank, so keeping them keeps those.
+   *
    * Only the modes that write colours need it; the rest never read these
    * fields. The resolved selection carries the flags as false, so the _apply*
    * functions below simply write what they are given.
@@ -896,7 +1018,8 @@ class PixelDrawRoutineClass {
    */
   _resolveTransparent(layer, cellX, cellY, colorSelection, mode, shownStroke, inBatch) {
     if (!colorSelection) return colorSelection;
-    if (!colorSelection.inkTransparent && !colorSelection.paperTransparent) {
+    if (!colorSelection.inkTransparent && !colorSelection.paperTransparent &&
+        !colorSelection.brightTransparent && !colorSelection.flashTransparent) {
       return colorSelection;
     }
     if (mode !== DRAW_MODE.NORMAL && mode !== DRAW_MODE.NORMAL_ERASE &&
@@ -910,14 +1033,21 @@ class PixelDrawRoutineClass {
       ...colorSelection,
       ink: colorSelection.inkTransparent ? shown.ink : colorSelection.ink,
       paper: colorSelection.paperTransparent ? shown.paper : colorSelection.paper,
+      bright: colorSelection.brightTransparent ? shown.bright : colorSelection.bright,
+      flash: colorSelection.flashTransparent ? shown.flash : colorSelection.flash,
       inkTransparent: false,
-      paperTransparent: false
+      paperTransparent: false,
+      brightTransparent: false,
+      flashTransparent: false
     };
-    // GigaScreen: "use existing" means each screen's own existing colour.
+    // GigaScreen: "use existing" means each screen's own existing colour -
+    // and its own bright and flash.
     if (ZX_SPECTRUM.SCREENS === 2) {
       const shownB = this._shownFor(layer, cellX, cellY, shownStroke, inBatch, 1);
       if (colorSelection.inkTransparent) resolved.inkB = shownB.ink;
       if (colorSelection.paperTransparent) resolved.paperB = shownB.paper;
+      if (colorSelection.brightTransparent) resolved.brightB = shownB.bright;
+      if (colorSelection.flashTransparent) resolved.flashB = shownB.flash;
     }
     return resolved;
   }
@@ -973,7 +1103,7 @@ class PixelDrawRoutineClass {
   /**
    * Indexed-mode apply (Phase 13). Draw-mode semantics on per-pixel
    * palette indices:
-   *   NORMAL / TRANSPARENT / PIXEL_ONLY — write the drawing index (an
+   *   NORMAL / PIXEL_ONLY / INK - write the drawing index (an
    *     explicit `colorSelection.index` wins, else ColorManager's indexed
    *     ink; clipboard/stamp paths pass per-pixel indices through here)
    *   PAPER / NORMAL_ERASE — write the indexed paper index as a real value on
@@ -1007,7 +1137,6 @@ class PixelDrawRoutineClass {
 
     switch (mode) {
       case DRAW_MODE.NORMAL:
-      case DRAW_MODE.TRANSPARENT:
       case DRAW_MODE.PIXEL_ONLY:
       case DRAW_MODE.INK:
         cell.indices[pos] = inkIdx;
@@ -1045,8 +1174,7 @@ class PixelDrawRoutineClass {
    * standard "draw with the current attributes" mode. The ink-transparent /
    * paper-transparent boxes still suppress their respective colour write, so
    * Normal + paper-transparent gives an ink-only mark and Normal +
-   * ink-transparent a paper-only one. (The dedicated Paper Draw mode is the
-   * built-in ink-transparent variant.)
+   * ink-transparent a paper-only one.
    * @private
    */
   _applyNormalDraw(cell, localX, localY, colorSelection) {
@@ -1185,19 +1313,6 @@ class PixelDrawRoutineClass {
   }
 
   /**
-   * Apply transparent draw (set pixel, preserve existing attributes)
-   * @private
-   */
-  _applyTransparent(cell, localX, localY) {
-    // Set pixel as INK but don't change colors
-    const bitPosition = 7 - localX;
-    cell.pixels[localY] |= (1 << bitPosition);
-
-    // Mark cell as altered (for layer compositing)
-    cell.altered = true;
-  }
-
-  /**
    * Apply attributes only (change colors, don't modify pixels) - the Recolour
    * attribute op and the attribute flood fill.
    *
@@ -1213,16 +1328,12 @@ class PixelDrawRoutineClass {
   }
 
   /**
-   * Pixel-Only draw — set pixel bit, never touch cell attributes.
+   * Pixels Only draw - set the pixel bit, never touch cell attributes. Its
+   * right button is the ERASE primitive (resolveUserMode).
    * @private
    */
-  _applyPixelOnly(cell, localX, localY, isInk) {
-    const bitPosition = 7 - localX;
-    if (isInk) {
-      cell.pixels[localY] |= (1 << bitPosition);
-    } else {
-      cell.pixels[localY] &= ~(1 << bitPosition);
-    }
+  _applyPixelOnly(cell, localX, localY) {
+    cell.pixels[localY] |= (1 << (7 - localX));
     cell.altered = true;
   }
 

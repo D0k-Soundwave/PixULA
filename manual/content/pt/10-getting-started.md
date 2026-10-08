@@ -24,7 +24,7 @@ o tema do capítulo seguinte.
 
 - **A barra de menus** no topo: ficheiros, edição, a vista, camadas, a própria
   imagem, definições e ajuda.
-- **A barra de modos** por baixo: modos de desenho, espelho e a margem.
+- **A barra de modos** por baixo: modos de desenho, Trocar e Recolorir, e espelho.
 - **A barra de ferramentas** à esquerda, com anular e refazer no topo.
 - **A barra de cores** ao lado, com a paleta do modo de ecrã atual.
 - **A tela** ao centro.
@@ -45,7 +45,7 @@ cima.*
 
 ![A barra de modos](img/colour-bar.png)
 
-*A barra de modos: modos de desenho, espelho e a cor da margem.*
+*A barra de modos: modos de desenho, depois Trocar e Recolorir, depois espelho.*
 
 ![Os painéis laterais](img/panels.png)
 

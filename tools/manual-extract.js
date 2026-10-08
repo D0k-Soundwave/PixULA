@@ -276,7 +276,14 @@ function extractManualData() {
 
     // ---- drawing modes, pen, presets, patterns ---------------------------
 
+    // DrawModeBar describes each mode in full - what it does to the dots, to
+    // the colours and on the right button - from the same table its buttons
+    // are built from. The tooltip sweep below is the fallback for a build
+    // without it.
     const readDrawModes = () => {
+        if (window.DrawModeBar && typeof DrawModeBar.describeModes === 'function') {
+            return DrawModeBar.describeModes();
+        }
         const bar = document.getElementById('draw-modes');
         if (!bar) return [];
         const out = [];
@@ -420,6 +427,10 @@ function extractManualData() {
                     });
                 }
             }
+        }
+        // Bright, Flash and "use existing" - the same list the key handler reads
+        for (const s of (window.COLOUR_SHORTCUTS || [])) {
+            rows.push({ keys: keyLabel(s.keys), what: t(s.i18n), from: t('manual.area.colourRail') });
         }
         if (window.PresetCodec && PresetCodec.KEY_SLOTS) {
             rows.push({

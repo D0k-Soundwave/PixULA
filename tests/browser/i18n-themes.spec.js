@@ -27,8 +27,10 @@ test('locale switch re-translates live: menus, panels, status, tooltips, <html l
 
     // Cyrillic check — no romanization anywhere in the menu bar.
     await page.selectOption('#language-selector', 'ru');
-    const fileLabel = await page.textContent('.menu-item[data-menu="file"] .menu-label');
-    expect(fileLabel).toMatch(/[Ѐ-ӿ]/);
+    // Waits for the switch to land: a one-shot read straight after the
+    // selection raced the re-render and failed about two runs in three
+    // (measured 2026-10-08, 6 repeats, before and after the Bright/Flash work).
+    await expect(page.locator('.menu-item[data-menu="file"] .menu-label')).toHaveText(/[Ѐ-ӿ]/);
     expect(await page.getAttribute('html', 'lang')).toBe('ru');
 
     // Re-opened dialogs come up translated (About in ru).

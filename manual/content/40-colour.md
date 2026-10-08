@@ -20,14 +20,47 @@ paper, bright and flash go back to black on white, and on an upper layer the
 cell becomes see-through again. A cell that still has dots in it keeps its
 colours however many times you erase over it.
 
+Each of the four can also be set to **use existing** - the checkered box under
+it in the colour rail. A stroke then leaves that part of every cell as it
+already is, instead of writing your setting. Put Ink, Paper and Bright on use
+existing, switch Flash on, and the fill tool's **Fill attributes only** makes a
+whole area flash without changing a colour. Shift+B and Shift+F switch Bright
+and Flash, and Shift+T puts all four on use existing. In ULAplus, Bright and
+Flash choose the CLUT, so the CLUT picker has one box that keeps each cell's own
+CLUT.
+
 ### Draw modes
 
-The draw mode changes what a stroke does, and it applies to every tool. It
-persists between sessions, so the status bar shows it whenever it is set to
-anything other than Normal - in some of these modes a stroke leaves nothing
-visible, and you would otherwise have no way to tell why.
+The draw mode changes what a stroke does. It persists between sessions, so the
+status bar shows it whenever it is set to anything other than Normal - in some
+of these modes a stroke leaves nothing visible, and you would otherwise have no
+way to tell why.
 
 {{draw-modes}}
+
+The brush in all its forms, the fill, the shapes, the Bezier curve, text,
+stamps from the **Stamps** panel and the gradient's left button all follow the
+draw mode. The eraser, the eyedropper, moving, pasting and deleting a
+selection, the **Transform** panel, the fill's **Fill attributes only** option
+and the Swap and Recolour buttons all ignore it.
+
+**Ink Recolour is not the same as Recolour.** Ink Recolour and Paper
+Recolour are draw modes: they recolour every cell the current tool touches -
+a few cells for a small brush, every cell a filled rectangle covers - and
+Mirror applies. **Recolour**, just past the divider, recolours the whole
+cell under the pointer whichever tool is selected, ignoring brush size and
+Mirror. **Swap** beside it works the same way, exchanging each cell's ink
+and paper. Either one stays on until you click it again or pick a tool or a
+draw mode, and the status bar says so while it is on.
+
+**XOR / Over and XOR / Every Pass** both flip dots rather than set them, and
+both give the cell your colours. XOR / Over flips each dot once per stroke, so
+going back over your own line in the same stroke changes nothing more. XOR /
+Every Pass flips a dot each time the stroke passes over it: one sweep of the
+brush is one pass, however much the brush overlaps itself on the way, but a
+stroke that leaves a dot and comes back flips it again, so a figure of eight
+cancels where it crosses. Shapes, curves, fills and text are always a single
+pass, so with those the two modes give the same result.
 
 ### Palettes
 
