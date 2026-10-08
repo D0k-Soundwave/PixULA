@@ -24,7 +24,7 @@ herramienta, y de él trata el capítulo siguiente.
 
 - **La barra de menús** en la parte superior: archivos, edición, la vista,
   capas, la propia imagen, ajustes y ayuda.
-- **La barra de modos** debajo: modos de dibujo, espejo y el borde.
+- **La barra de modos** debajo: modos de dibujo, Intercambiar y Recolorear, y espejo.
 - **La barra de herramientas** a la izquierda, con deshacer y rehacer arriba.
 - **La barra de color** a su lado, con la paleta del modo de pantalla actual.
 - **El lienzo** en el centro.
@@ -45,7 +45,7 @@ FLASH encima.*
 
 ![La barra de modos](img/colour-bar.png)
 
-*La barra de modos: modos de dibujo, espejo y el color del borde.*
+*La barra de modos: modos de dibujo, luego Intercambiar y Recolorear, luego espejo.*
 
 ![Los paneles laterales](img/panels.png)
 

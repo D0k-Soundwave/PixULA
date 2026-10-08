@@ -24,12 +24,40 @@ strat superior celula devine din nou transparentă. O celulă care mai are punct
 
 ### Moduri de desen
 
-Modul de desen schimbă ce face o trăsătură și se aplică fiecărui instrument. Se
-păstrează între sesiuni, așa că bara de stare îl arată ori de câte ori este altul
-decât Normal – în unele dintre aceste moduri o trăsătură nu lasă nimic vizibil și
-altfel n-ați avea cum să aflați de ce.
+Modul de desen schimbă ce face o trăsătură. Se păstrează între sesiuni, așa că
+bara de stare îl arată ori de câte ori este altul decât Normal – în unele dintre
+aceste moduri o trăsătură nu lasă nimic vizibil și altfel n-ați avea cum să
+aflați de ce.
 
 {{draw-modes}}
+
+Pensula în toate formele ei, umplerea, formele, curba Bézier, textul, ștampilele
+din panoul **Ștampile** și butonul stâng al gradientului urmează modul de desen.
+Radiera, pipeta, mutarea, lipirea și ștergerea unei selecții, panoul
+**Transformare**, opțiunea **Umple doar atributele** și butoanele Schimbă și
+Recolorează îl ignoră.
+
+**Recolorează cerneala nu este același lucru cu Recolorează.** Recolorează
+cerneala și Recolorează hârtia sunt moduri de desen: recolorează fiecare celulă
+atinsă de unealta curentă (câteva cu o pensulă mică, toate cele acoperite de un
+dreptunghi plin), iar Oglinda se aplică. **Recolorează**, imediat după
+separator, recolorează întreaga celulă de sub cursor oricare ar fi unealta
+aleasă, indiferent de mărimea pensulei și de Oglindă. **Schimbă**, alături,
+funcționează la fel și schimbă între ele cerneala și hârtia fiecărei celule.
+Oricare dintre ele rămâne activ până când dați din nou clic pe el sau alegeți o
+unealtă ori un mod de desen, iar bara de stare arată acest lucru cât timp este
+activ.
+
+**XOR / Peste și XOR / Fiecare trecere** inversează punctele în loc să le
+aprindă și amândouă dau celulei culorile alese. XOR / Peste inversează fiecare
+punct o dată pe trăsătură, deci revenirea peste propria linie în aceeași
+trăsătură nu mai schimbă nimic. XOR / Fiecare trecere inversează un punct de
+fiecare dată când trăsătura trece peste el: o mișcare a pensulei este o trecere,
+oricât s-ar suprapune pensula cu ea însăși pe drum, dar o trăsătură care
+părăsește un punct și revine îl inversează din nou, așa că un opt se anulează
+acolo unde se intersectează. Formele, curbele, umplerile și textul sunt
+întotdeauna o singură trecere, deci la ele cele două moduri dau același
+rezultat.
 
 ### Palete
 

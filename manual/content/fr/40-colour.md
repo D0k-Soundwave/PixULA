@@ -26,12 +26,40 @@ nombre de passages de gomme.
 
 ### Modes de dessin
 
-Le mode de dessin change l’effet d’un trait, et s’applique à tous les outils.
-Il est conservé d’une session à l’autre ; la barre d’état l’affiche donc dès
-qu’il vaut autre chose que Normal – dans certains de ces modes un trait ne
-laisse rien de visible, et vous n’auriez sinon aucun moyen de savoir pourquoi.
+Le mode de dessin change l’effet d’un trait. Il est conservé d’une session à
+l’autre ; la barre d’état l’affiche donc dès qu’il vaut autre chose que Normal –
+dans certains de ces modes un trait ne laisse rien de visible, et vous n’auriez
+sinon aucun moyen de savoir pourquoi.
 
 {{draw-modes}}
+
+Le pinceau sous toutes ses formes, le remplissage, les formes, la courbe de
+Bézier, le texte, les tampons du panneau **Tampons** et le bouton gauche du
+dégradé suivent le mode de dessin. La gomme, la pipette, le déplacement, le
+collage et la suppression d’une sélection, le panneau **Transformation**,
+l’option **Remplir les attributs seulement** et les boutons Échanger et
+Recolorer l’ignorent.
+
+**Recolorer encre n’est pas Recolorer.** Recolorer encre et Recolorer papier
+sont des modes de dessin : ils recolorent chaque cellule que touche l’outil en
+cours – quelques cellules pour un petit pinceau, toutes celles que couvre un
+rectangle plein – et le Miroir s’applique. **Recolorer**, juste après le
+séparateur, recolore la cellule entière sous le pointeur quel que soit l’outil
+choisi, sans tenir compte de la taille du pinceau ni du Miroir. **Échanger**, à
+côté, fonctionne de la même façon en échangeant l’encre et le papier de chaque
+cellule. L’un comme l’autre reste actif jusqu’à ce que vous cliquiez de nouveau
+dessus ou choisissiez un outil ou un mode de dessin, et la barre d’état
+l’indique tant qu’il est actif.
+
+**XOR / Superposer et XOR / Chaque passage** inversent les points au lieu de les
+poser, et donnent tous deux à la cellule les couleurs choisies. XOR / Superposer
+inverse chaque point une fois par trait : repasser sur votre propre ligne dans
+le même trait ne change donc plus rien. XOR / Chaque passage inverse un point
+chaque fois que le trait passe dessus : un balayage du pinceau compte pour un
+passage, même si le pinceau se chevauche en chemin, mais un trait qui quitte un
+point puis y revient l’inverse de nouveau, si bien qu’un huit s’annule là où il
+se croise. Les formes, les courbes, les remplissages et le texte sont toujours
+un seul passage : avec eux, les deux modes donnent le même résultat.
 
 ### Palettes
 

@@ -25,7 +25,7 @@ handelt das nächste Kapitel.
 
 - **Die Menüleiste** ganz oben: Dateien, Bearbeiten, die Ansicht, Ebenen, das
   Bild selbst, Einstellungen und Hilfe.
-- **Die Modusleiste** darunter: Zeichenmodi, Spiegeln und der Rahmen.
+- **Die Modusleiste** darunter: Zeichenmodi, Tauschen und Umfärben sowie Spiegeln.
 - **Die Werkzeugleiste** links, mit Rückgängig und Wiederholen ganz oben.
 - **Die Farbleiste** daneben, mit der Palette des aktuellen Bildschirmmodus.
 - **Die Zeichenfläche** in der Mitte.
@@ -45,7 +45,7 @@ darunter sind danach gruppiert, was sie mit dem Bild tun.*
 
 ![Die Modusleiste](img/colour-bar.png)
 
-*Die Modusleiste: Zeichenmodi, Spiegeln und die Rahmenfarbe.*
+*Die Modusleiste: Zeichenmodi, dann Tauschen und Umfärben, dann Spiegeln.*
 
 ![Die Seitenbereiche](img/panels.png)
 

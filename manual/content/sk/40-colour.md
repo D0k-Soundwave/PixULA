@@ -22,12 +22,35 @@ sú ešte body, si farby ponechá, nech cez ňu gumou prejdete koľkokrát chcet
 
 ### Režimy kreslenia
 
-Režim kreslenia mení, čo ťah urobí, a platí pre každý nástroj. Pamätá sa medzi
-reláciami, takže ho stavový riadok zobrazuje vždy, keď je iný než Normálny – v
-niektorých z týchto režimov ťah nezanechá nič viditeľné a inak by ste nemali ako
-zistiť prečo.
+Režim kreslenia mení, čo ťah urobí. Pamätá sa medzi reláciami, takže ho stavový
+riadok zobrazuje vždy, keď je iný než Normálny – v niektorých z týchto režimov
+ťah nezanechá nič viditeľné a inak by ste nemali ako zistiť prečo.
 
 {{draw-modes}}
+
+Štetec vo všetkých podobách, vypĺňanie, tvary, Bézierova krivka, text, pečiatky
+z panela **Pečiatky** a ľavé tlačidlo prechodu sa riadia režimom kreslenia.
+Guma, kvapkadlo, presúvanie, vkladanie a mazanie výberu, panel
+**Transformácia**, voľba **Vyplniť iba atribúty** a tlačidlá Zameniť a Prefarbiť
+ho neberú do úvahy.
+
+**Prefarbiť atrament nie je to isté ako Prefarbiť.** Prefarbiť atrament a
+Prefarbiť papier sú režimy kreslenia: prefarbia každú bunku, ktorej sa dotkne
+aktuálny nástroj (pár buniek malým štetcom, všetky, ktoré pokryje vyplnený
+obdĺžnik), a platí pre ne aj Zrkadlo. **Prefarbiť** hneď za oddeľovačom prefarbí
+celú bunku pod ukazovateľom bez ohľadu na zvolený nástroj, veľkosť štetca aj
+Zrkadlo. **Zameniť** vedľa neho funguje rovnako a v každej bunke zamení atrament
+a papier. Ktorékoľvek z nich zostane zapnuté, kým naň znova nekliknete alebo
+nezvolíte nástroj či režim kreslenia, a stavový riadok to počas toho zobrazuje.
+
+**XOR / Cez a XOR / Každý prejazd** body prepínajú namiesto toho, aby ich
+rozsvecovali, a oba dajú bunke zvolené farby. XOR / Cez prepne každý bod raz za
+ťah, takže návrat po vlastnej čiare v tom istom ťahu už nič nezmení. XOR / Každý
+prejazd prepne bod zakaždým, keď cez neho ťah prejde: jeden ťah štetca je jeden
+prejazd, aj keď sa štetec cestou sám prekrýva, ale ťah, ktorý bod opustí a vráti
+sa k nemu, ho prepne znova, takže osmička sa zruší tam, kde sa kríži. Tvary,
+krivky, výplne a text sú vždy jediný prejazd, takže pri nich oba režimy dávajú
+rovnaký výsledok.
 
 ### Palety
 

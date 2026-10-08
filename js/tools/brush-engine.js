@@ -333,6 +333,11 @@ class BrushEngineClass {
             patternData = PatternService.getCurrentPatternData();
         }
 
+        // Every stamp is a step along the stroke's path, which is what lets
+        // XOR / Every Pass tell one sweep over a pixel from a stroke that
+        // comes back over it (PixelDrawRoutine.nextPass).
+        PixelDrawRoutine.nextPass(x, y, effectiveSize);
+
         const applied = brush.apply(x, y, effectiveSize, effectiveFlow, colorSelection, {
             // Pressure is only a fact when the preference is on — otherwise a
             // pen would still modulate the density-driven brushes behind the

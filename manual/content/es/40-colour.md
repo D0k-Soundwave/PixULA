@@ -23,12 +23,39 @@ puntos conserva sus colores por muchas veces que pases el borrador.
 
 ### Modos de dibujo
 
-El modo de dibujo cambia lo que hace un trazo, y se aplica a todas las
-herramientas. Se conserva entre sesiones, así que la barra de estado lo muestra
-siempre que no sea Normal: en algunos de estos modos un trazo no deja nada
-visible, y de otro modo no tendrías forma de saber por qué.
+El modo de dibujo cambia lo que hace un trazo. Se conserva entre sesiones, así
+que la barra de estado lo muestra siempre que no sea Normal: en algunos de estos
+modos un trazo no deja nada visible, y de otro modo no tendrías forma de saber
+por qué.
 
 {{draw-modes}}
+
+El pincel en todas sus formas, el relleno, las formas, la curva Bézier, el
+texto, los sellos del panel **Sellos** y el botón izquierdo del degradado siguen
+el modo de dibujo. El borrador, el cuentagotas, mover, pegar y borrar una
+selección, el panel **Transformar**, la opción **Rellenar solo atributos** y los
+botones Intercambiar y Recolorear lo ignoran.
+
+**Recolorear tinta no es lo mismo que Recolorear.** Recolorear tinta y
+Recolorear papel son modos de dibujo: recolorean cada celda que toca la
+herramienta actual (unas pocas con un pincel pequeño, todas las que cubre
+un rectángulo relleno) y el Espejo se aplica. **Recolorear**, justo
+después del separador, recolorea la celda entera bajo el puntero sea cual
+sea la herramienta elegida, sin tener en cuenta el tamaño del pincel ni el
+Espejo. **Intercambiar**, a su lado, funciona igual e intercambia la tinta
+y el papel de cada celda. Cualquiera de los dos sigue activo hasta que
+vuelvas a pulsarlo o elijas una herramienta o un modo de dibujo, y la
+barra de estado lo indica mientras está activo.
+
+**XOR / Encima y XOR / Cada pasada** invierten los puntos en lugar de
+encenderlos, y los dos dan a la celda los colores elegidos. XOR / Encima
+invierte cada punto una vez por trazo, así que volver sobre tu propia línea en
+el mismo trazo no cambia nada más. XOR / Cada pasada invierte un punto cada vez
+que el trazo pasa por él: una pasada del pincel cuenta como una, por mucho que
+el pincel se solape consigo mismo por el camino, pero un trazo que deja un punto
+y vuelve lo invierte otra vez, así que un ocho se anula donde se cruza. Las
+formas, las curvas, los rellenos y el texto son siempre una sola pasada, así que
+con ellos los dos modos dan el mismo resultado.
 
 ### Paletas
 

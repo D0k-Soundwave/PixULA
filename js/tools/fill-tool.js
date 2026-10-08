@@ -50,10 +50,6 @@ class FillToolClass extends ToolBase {
     this._attributesOnly = Boolean(value);
   }
 
-  // Draw mode is global; delegate for any external callers.
-  getDrawMode() { return StateManager.getDrawMode(); }
-  setDrawMode(v) { StateManager.setDrawMode(v); }
-
   /**
    * Get diagonal fill setting
    * @returns {boolean}
@@ -125,15 +121,6 @@ class FillToolClass extends ToolBase {
     const startState = PixelDrawRoutine.getPixelState(startX, startY);
     if (!startState) return;
 
-    // Indexed modes (Phase 13): fill matches the exact palette index at
-    // the start pixel (classic modes match the ink/paper state below).
-    const indexed = ZX_SPECTRUM.PIXEL_DEPTH > 1;
-    const targetIndex = indexed ? startState.index : 0;
-    if (indexed) {
-      const replacement = isErase ? -1 : ColorManager.getIndexedInk();
-      if (targetIndex === replacement) return; // nothing to do
-    }
-
     // The region is every connected pixel of the start pixel's colour: its
     // palette index, its GigaScreen blend, or ink/paper (regionKey). In
     // GigaScreen the three inked blends are three colours, so matching "any
@@ -161,17 +148,26 @@ class FillToolClass extends ToolBase {
     const mode = PixelDrawRoutine.resolveUserMode(!isErase);
     const color = ColorManager.getCurrentSelection();
 
-    // If trying to fill with the same state, nothing to do. Only meaningful for
-    // plain NORMAL/ERASE — the other modes (xor/pixel_only/paper) still change
-    // a same-state region, so the guard is skipped for them. In GigaScreen the
-    // state a fill writes is a blend - the Paint slot, or paper on both
-    // screens for the right button - so a region is "already filled" only when
-    // it shows that blend; filling one blend with another changes pixels.
-    if (!indexed && StateManager.getDrawMode() === 'normal') {
-      const written = startState.slot !== undefined
-        ? (isErase ? GIGA_SLOTS.PAPER_PAPER
-          : (color.gigaSlot != null ? color.gigaSlot : GIGA_SLOTS.INK_INK))
-        : !isErase;
+    // If trying to fill with the same state, nothing to do. Only meaningful in
+    // Normal - the other modes (xor/pixel_only/paper) still change a
+    // same-state region, so the guard is skipped for them. The state compared
+    // is the one the click WRITES: in indexed modes the ink index, or for the
+    // right button the paper index (it paints paper, as the brush's right
+    // button does - comparing against the transparency index instead made a
+    // right-click fill on an empty upper layer do nothing). In GigaScreen it
+    // is a blend - the Paint slot, or paper on both screens for the right
+    // button - so a region is "already filled" only when it shows that blend;
+    // filling one blend with another changes pixels.
+    if (StateManager.getDrawMode() === 'normal') {
+      let written;
+      if (ZX_SPECTRUM.PIXEL_DEPTH > 1) {
+        written = isErase ? ColorManager.getIndexedPaper() : ColorManager.getIndexedInk();
+      } else if (startState.slot !== undefined) {
+        written = isErase ? GIGA_SLOTS.PAPER_PAPER
+          : (color.gigaSlot != null ? color.gigaSlot : GIGA_SLOTS.INK_INK);
+      } else {
+        written = !isErase;
+      }
       if (targetKey === written) return;
     }
 

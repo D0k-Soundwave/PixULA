@@ -23,12 +23,37 @@ mantém as cores por mais vezes que passe a borracha.
 
 ### Modos de desenho
 
-O modo de desenho muda o que faz um traço, e aplica-se a todas as ferramentas.
-Mantém-se entre sessões, por isso a barra de estado mostra-o sempre que não é
-Normal – em alguns destes modos um traço não deixa nada visível, e de outro
-modo não teria forma de saber porquê.
+O modo de desenho muda o que faz um traço. Mantém-se entre sessões, por isso a
+barra de estado mostra-o sempre que não é Normal – em alguns destes modos um
+traço não deixa nada visível, e de outro modo não teria forma de saber porquê.
 
 {{draw-modes}}
+
+O pincel em todas as suas formas, o preenchimento, as formas, a curva de Bézier,
+o texto, os carimbos do painel **Carimbos** e o botão esquerdo do gradiente
+seguem o modo de desenho. A borracha, o conta-gotas, mover, colar e apagar uma
+seleção, o painel **Transformação**, a opção **Preencher apenas atributos** e os
+botões Trocar e Recolorir ignoram-no.
+
+**Recolorir tinta não é o mesmo que Recolorir.** Recolorir tinta e Recolorir
+papel são modos de desenho: recolorem cada célula em que a ferramenta atual toca
+(poucas com um pincel pequeno, todas as que um retângulo preenchido cobre) e o
+Espelho aplica-se. **Recolorir**, logo depois do separador, recolore a célula
+inteira sob o ponteiro seja qual for a ferramenta escolhida, ignorando o tamanho
+do pincel e o Espelho. **Trocar**, ao lado, funciona da mesma maneira e troca a
+tinta e o papel de cada célula. Qualquer um deles fica ligado até clicar nele de
+novo ou escolher uma ferramenta ou um modo de desenho, e a barra de estado
+indica-o enquanto está ligado.
+
+**XOR / Sobre e XOR / Cada passagem** invertem os pontos em vez de os acender, e
+ambos dão à célula as cores escolhidas. XOR / Sobre inverte cada ponto uma vez
+por traço, por isso voltar à sua própria linha no mesmo traço não muda mais
+nada. XOR / Cada passagem inverte um ponto sempre que o traço passa por ele: uma
+passagem do pincel conta como uma, por muito que o pincel se sobreponha a si
+próprio pelo caminho, mas um traço que sai de um ponto e volta inverte-o outra
+vez, por isso um oito anula-se onde se cruza. Formas, curvas, preenchimentos e
+texto são sempre uma única passagem, por isso com eles os dois modos dão o mesmo
+resultado.
 
 ### Paletas
 

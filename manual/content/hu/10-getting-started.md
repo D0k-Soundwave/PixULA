@@ -24,7 +24,7 @@ fejezet.
 
 - **A menüsor** legfelül: fájlok, szerkesztés, nézet, rétegek, maga a kép,
   beállítások és súgó.
-- **A módsáv** alatta: rajzolási módok, tükrözés és a keret.
+- **A módsáv** alatta: rajzolási módok, a Felcserél és az Átszínezés, valamint a tükrözés.
 - **Az eszközsáv** bal oldalt, tetején a visszavonással és az újra
   végrehajtással.
 - **A színsáv** mellette, az aktuális képernyőmód palettájával.
@@ -46,7 +46,7 @@ VILLOGÁS.*
 
 ![A módsáv](img/colour-bar.png)
 
-*A módsáv: rajzolási módok, tükrözés és a keret színe.*
+*A módsáv: rajzolási módok, aztán a Felcserél és az Átszínezés, aztán a tükrözés.*
 
 ![Az oldalpanelek](img/panels.png)
 

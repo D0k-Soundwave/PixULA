@@ -23,7 +23,7 @@ správanie každého nástroja a venuje sa jej ďalšia kapitola.
 
 - **Lišta ponúk** úplne hore: súbory, úpravy, zobrazenie, vrstvy, samotný
   obrázok, nastavenia a pomocník.
-- **Horná lišta režimov** pod ňou: režimy kreslenia, zrkadlo a okraj.
+- **Horná lišta režimov** pod ňou: režimy kreslenia, Zameniť a Prefarbiť a zrkadlo.
 - **Lišta nástrojov** vľavo, so späť a znova navrchu.
 - **Farebná lišta** vedľa nej, s paletou aktuálneho režimu obrazovky.
 - **Plátno** v strede.
@@ -43,7 +43,7 @@ toho, čo s obrázkom robia.*
 
 ![Horná lišta režimov](img/colour-bar.png)
 
-*Horná lišta režimov: režimy kreslenia, zrkadlo a farba okraja.*
+*Horná lišta režimov: režimy kreslenia, potom Zameniť a Prefarbiť, potom zrkadlo.*
 
 ![Bočné panely](img/panels.png)
 
