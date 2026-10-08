@@ -25,7 +25,8 @@ global.CanvasSystem = {
   getColorIndex(base, bright) { return base + (bright ? 8 : 0); }
 };
 global.ColorManager = {
-  getCurrentSelection() { return { ink: 0, paper: 7, bright: false, flash: false }; }
+  getCurrentSelection() { return { ink: 0, paper: 7, bright: false, flash: false }; },
+  hasCellAttributes() { return true; }
 };
 global.SelectionService = {
   hasSelection() { return false; },
@@ -93,15 +94,20 @@ TransformService.shiftUp(2, false);
 check('no-wrap up by 2: bottom pixel lands two rows higher', isInk(5, H - 3));
 check('no-wrap up by 2: bottom row vacated', !isInk(5, H - 1));
 
-// ── No-wrap preserves the vacated cell's paper attribute ──────────────────
+// ── A whole-cell step carries each cell's colours with its dots ─────────
+// The owner's rule: "Dots and colours" on a cell step moves paper too, so
+// the cell the dots left takes the colours of the cell it came from, and the
+// cell the dots land in takes its paper with them.
 const SEL_P6 = { ink: 2, paper: 6, bright: false, flash: false };
-draw(40, 40, SEL_P6); // normal draw sets cell (5,5) ink+paper; paper = 6
+draw(40, 40, SEL_P6); // cell (5,5): ink 2, paper 6
 const layer = LayerManager.getCurrentLayer();
 const before = layer.getCell(5, 5);
 check('setup: cell (5,5) has paper 6', before && before.paper === 6);
-TransformService.shiftRight(8, false); // ink moves into cell (6,5)
-const after = layer.getCell(5, 5);
-check('no-wrap: vacated cell keeps its paper', after && after.paper === 6);
+TransformService.shiftRight(8, false); // dots and colours move one cell right
+check('no-wrap: the paper moved with the dots into cell (6,5)',
+  LayerManager.attrsAsSeen(layer, 6, 5).paper === 6);
+check('no-wrap: the vacated cell (5,5) takes the paper of cell (4,5)',
+  LayerManager.attrsAsSeen(layer, 5, 5).paper === LayerManager.attrsAsSeen(layer, 4, 5).paper);
 check('no-wrap: vacated cell has no ink pixel', !isInk(40, 40));
 check('no-wrap: ink arrived one cell right', isInk(48, 40));
 
