@@ -162,10 +162,6 @@ class ShapeToolClass extends ToolBase {
     this._arcSpan = 180;      // degrees
   }
 
-  // Draw mode is global; delegate for any external callers.
-  getDrawMode() { return StateManager.getDrawMode(); }
-  setDrawMode(v) { StateManager.setDrawMode(v); }
-
   /**
    * Handle pointer down - set start point
    * @param {number} pixelX - X coordinate (0-255)

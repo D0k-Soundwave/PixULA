@@ -24,7 +24,7 @@ despre el.
 
 - **Bara de meniu** sus: fișiere, editare, vizualizare, straturi, imaginea
   însăși, setări și ajutor.
-- **Bara de moduri** dedesubt: moduri de desen, oglindă și bordura.
+- **Bara de moduri** dedesubt: moduri de desen, Schimbă și Recolorează, apoi oglindă.
 - **Bara de instrumente** în stânga, cu anulare și refacere sus.
 - **Bara de culori** alături, cu paleta modului de ecran curent.
 - **Pânza** la mijloc.
@@ -45,7 +45,7 @@ deasupra.*
 
 ![Bara de moduri](img/colour-bar.png)
 
-*Bara de moduri: moduri de desen, oglindă și culoarea bordurii.*
+*Bara de moduri: moduri de desen, apoi Schimbă și Recolorează, apoi oglindă.*
 
 ![Panourile laterale](img/panels.png)
 

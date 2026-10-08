@@ -24,12 +24,39 @@ silgiyle geçerseniz geçin renklerini korur.
 
 ### Çizim modları
 
-Çizim modu bir vuruşun ne yaptığını değiştirir ve her araca uygulanır.
-Oturumlar arasında korunur; bu yüzden Normal dışında bir şeye ayarlandığında
-durum çubuğu onu gösterir – bu modların bazılarında vuruş görünür hiçbir şey
-bırakmaz ve aksi halde nedenini anlamanın yolu olmazdı.
+Çizim modu bir vuruşun ne yaptığını değiştirir. Oturumlar arasında korunur; bu
+yüzden Normal dışında bir şeye ayarlandığında durum çubuğu onu gösterir – bu
+modların bazılarında vuruş görünür hiçbir şey bırakmaz ve aksi halde nedenini
+anlamanın yolu olmazdı.
 
 {{draw-modes}}
+
+Fırçanın tüm biçimleri, doldurma, şekiller, Bézier eğrisi, yazı, **Damgalar**
+panelindeki damgalar ve degradenin sol düğmesi çizim moduna uyar. Silgi,
+damlalık, bir seçimi taşıma, yapıştırma ve silme, **Dönüşüm** paneli, **Yalnızca
+öznitelikleri doldur** seçeneği ile Değiştir ve Yeniden renklendir düğmeleri onu
+dikkate almaz.
+
+**Mürekkebi yeniden renklendir, Yeniden renklendir ile aynı şey değildir.**
+Mürekkebi yeniden renklendir ve Kâğıdı yeniden renklendir çizim modlarıdır: o
+anki aracın dokunduğu her hücreyi yeniden renklendirirler (küçük bir fırçayla
+birkaç hücreyi, dolu bir dikdörtgenle kapladığı tüm hücreleri) ve Ayna da
+geçerlidir. Ayırıcının hemen ardındaki **Yeniden renklendir**, hangi araç seçili
+olursa olsun, fırça boyutundan ve Aynadan bağımsız olarak işaretçinin altındaki
+hücrenin tamamını yeniden renklendirir. Yanındaki **Değiştir** de aynı şekilde
+çalışır ve her hücrenin mürekkebiyle kâğıdını yer değiştirir. İkisi de yeniden
+tıklanana ya da bir araç veya çizim modu seçilene kadar açık kalır ve açık
+olduğu sürece durum çubuğu bunu gösterir.
+
+**XOR / Üzerine ve XOR / Her geçiş** noktaları açmak yerine tersine çevirir ve
+ikisi de hücreye seçilen renkleri verir. XOR / Üzerine her noktayı vuruş başına
+bir kez çevirir; bu yüzden aynı vuruşta kendi çizginin üzerinden geri geçmek
+başka bir şey değiştirmez. XOR / Her geçiş, vuruş bir noktanın üzerinden her
+geçtiğinde onu çevirir: fırçanın bir sürüşü, yol boyunca kendi üzerine ne kadar
+binerse binsin bir geçiştir; ama bir noktadan ayrılıp geri dönen vuruş onu
+yeniden çevirir, bu yüzden bir sekiz kesiştiği yerde iptal olur. Şekiller,
+eğriler, dolgular ve yazı her zaman tek bir geçiştir; bu yüzden bunlarda iki mod
+aynı sonucu verir.
 
 ### Paletler
 

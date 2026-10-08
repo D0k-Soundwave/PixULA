@@ -542,8 +542,8 @@
     --colorbar-scale: 1;
 }
 
-/* The draw modes, Mirror and Swap/Recolour are ONE run, in that DOM order
-   (the draw modes, then Mirror H/V/H+V, then Swap/Recolour). `display:
+/* The draw modes, Swap/Recolour and Mirror are ONE row, in that DOM order,
+   with a .marks-divider between each group (below). `display:
    contents` dissolves the three section boxes so every button is a direct
    sibling in #marks-icons-row (css/layout.css) — the inner row that #color-
    bar-controls's own "Drawing Modes" caption sits above. Kept as separate
@@ -558,6 +558,35 @@
 #marks-icons-row #draw-modes,
 #marks-icons-row #mirror-modes {
     display: contents;
+}
+
+/* The line between the three groups: pick-one draw modes | the Swap and
+   Recolour cell operations | the Mirror toggles. Three kinds of control
+   that used to read as one undivided run (2026-10-07). As tall as the
+   buttons beside it (the row aligns to flex-end) and a hair of space either
+   side, so it costs the strip as little width as a divider can. */
+.marks-divider {
+    align-self: stretch;
+    width: 1px;
+    margin: 4px 3px;
+    background: var(--border-color);
+}
+
+/* While Swap or Recolour is switched on, the draw mode is still the
+   artist's choice but is not what a stroke does: the chosen mode keeps its
+   outline and loses its fill, so the engaged operation is the one thing in
+   the strip that reads as in force. */
+#draw-modes.overridden .tool-btn.active {
+    background: var(--btn-bg);
+    color: var(--text-primary);
+}
+
+@media (forced-colors: active) {
+    #draw-modes.overridden .tool-btn.active {
+        background: Canvas;
+        border-color: Highlight;
+        color: CanvasText;
+    }
 }
 
 /* One caption for the whole run (2026-08-22) — replaced a caption under

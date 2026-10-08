@@ -590,7 +590,6 @@ const DRAW_MODE = Object.freeze({
     NORMAL: 'normal',
     NORMAL_ERASE: 'normal_erase',
     ERASE_ALL: 'erase_all',
-    TRANSPARENT: 'transparent',
     ERASE: 'erase',
     ATTRIBUTES_ONLY: 'attributes_only',
     PIXEL_ONLY: 'pixel_only',   // draw pixel bit, preserve all cell attributes

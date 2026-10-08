@@ -2,8 +2,8 @@
 (function() {
 
 /**
- * DrawModeBar — the GLOBAL draw-mode selector in the top colour bar, plus
- * the Mirror (symmetry-while-drawing) toggle group filed right beside it.
+ * DrawModeBar - the GLOBAL draw-mode selector in the top colour bar, plus
+ * the Mirror (symmetry-while-drawing) toggle group at the end of the same row.
  *
  * Replaces the per-tool "Draw Mode" dropdown that used to live in the Brush
  * (and Shape / Fill) options. Draw mode is now one document-wide setting
@@ -12,23 +12,56 @@
  * left-toolbar-style icon buttons; the active one renders from the
  * DRAW_MODE_CHANGED fact and the choice persists to Storage. Mirror is a
  * second, smaller icon-button group (own #mirror-modes host) that renders
- * from StateManager's symmetry mode the same way — see _buildMirrorControls.
+ * from StateManager's symmetry mode the same way - see _buildMirrorControls.
+ * The status bar readout (#draw-mode-status) is this component's too, and
+ * also names a Swap or Recolour left switched on (ClutBar's cell operations).
  */
-// value, icon, name key + English, hint key + English. The bar is a narrow
-// horizontal strip, so these are icon-only buttons (2026-08-22) — the name and
-// hint both ride in the tooltip (Helpers.composeTitle); the group as a whole
-// is captioned once, by the "Drawing Modes" label in index.html, rather than
-// each button separately.
+
+// What a mode does to the dots, to the cell's colours, and on the right
+// button - the three facts artists asked about and the tooltips used to leave
+// out. Shared phrases, so the manual's draw-mode table (describeModes) and the
+// translations say the same thing the same way. [i18n key, English].
+const FX = {
+    dotsSet:        ['dm.fx.dotsSet', 'Sets them'],
+    dotsFlipStroke: ['dm.fx.dotsFlipStroke', 'Flips each one once per stroke'],
+    dotsFlipPass:   ['dm.fx.dotsFlipPass', 'Flips each one once per pass'],
+    untouched:      ['dm.fx.untouched', 'Untouched'],
+    coloursAll:     ['dm.fx.coloursAll', 'Ink, paper, bright and flash'],
+    coloursInk:     ['dm.fx.coloursInk', 'Ink, bright and flash'],
+    coloursPaper:   ['dm.fx.coloursPaper', 'Paper, bright and flash'],
+    coloursNone:    ['dm.fx.coloursNone', 'None'],
+    rightNormal:    ['dm.fx.rightNormal', 'Clears dots, sets the same colours'],
+    rightPixels:    ['dm.fx.rightPixels', 'Clears dots, colours untouched'],
+    rightSame:      ['dm.fx.rightSame', 'Same as the left button']
+};
+
+// One entry per button, in strip order. The bar is a narrow horizontal strip,
+// so these are icon-only buttons (2026-08-22) - the name and hint both ride in
+// the tooltip (Helpers.composeTitle); the group as a whole is captioned once,
+// by the "Drawing Modes" label in index.html, rather than each button
+// separately.
+//
+//   value  - StateManager's id. It is stored in preferences and workspace
+//            presets, so it never changes: XOR / Every Pass is still
+//            'xor_pixel', the id it had as XOR / Pixel.
+//   icon   - the <symbol> in index.html
+//   name, hint - [i18n key, English]
+//   dots, colours, right - what it does, from FX above
+//   needsAttributes - see below
+//
+// The order follows what a stroke changes (2026-10-07): the modes that set
+// dots first, the two that only recolour last - next to the Swap and Recolour
+// cell operations after the divider, which are the ones they get mistaken for.
 //
 // There is no Attributes Only entry: it did the same job as the Recolour
-// attribute op two buttons to its left (both write the palette's ink, paper,
-// bright and flash onto the cell under the pointer and touch no pixel — one
-// as a global mode over every tool, one as its own paint mode), and two
-// buttons for one job is a choice the artist has to make and cannot get right.
-// Recolour is the one that names what it does. The DRAW_MODE.ATTRIBUTES_ONLY
-// primitive stays — Recolour, Swap and TransformService all write through it.
+// attribute op (both write the palette's ink, paper, bright and flash onto the
+// cell under the pointer and touch no pixel - one as a global mode over every
+// tool, one as its own paint mode), and two buttons for one job is a choice
+// the artist has to make and cannot get right. Recolour is the one that names
+// what it does. The DRAW_MODE.ATTRIBUTES_ONLY primitive stays - Recolour, Swap
+// and TransformService all write through it.
 //
-// A mode whose 7th field is true acts on CELL ATTRIBUTES, so it means nothing
+// A mode with `needsAttributes` acts on CELL ATTRIBUTES, so it means nothing
 // in a screen mode whose cells have none - the indexed Next modes give every
 // pixel its own palette index, and Timex hi-res shares one pair across the
 // screen and ignores cell attributes at render. Offered there, Ink Recolour
@@ -37,21 +70,42 @@
 // _syncAvailability hides them in those modes, exactly as ClutBar hides the
 // Swap/Recolour attribute ops in the same ones and for the same reason.
 const MODES = [
-    ['normal',          'icon-dm-normal',     'dm.normal',         'Normal',
-     'dm.normal.hint', 'Sets pixels and stamps the cell\'s ink, paper, bright and flash together'],
-    ['ink',             'icon-dm-ink',        'dm.ink',            'Ink Recolour',
-     'dm.ink.hint', 'Repaints the ink colour, bright and flash of the cell under the pointer, without touching any pixel',
-     true],
-    ['paper',           'icon-dm-paper',      'dm.paper',          'Paper Recolour',
-     'dm.paper.hint', 'Repaints the paper colour, bright and flash of the cell under the pointer, without touching any pixel',
-     true],
-    ['pixel_only',      'icon-dm-pixels',     'dm.pixelsOnly',     'Pixels Only',
-     'dm.pixelsOnly.hint', 'Sets or clears pixels without touching that cell\'s ink, paper, bright or flash'],
-    ['xor',             'icon-dm-xor',        'dm.xor',            'XOR / Over',
-     'dm.xor.hint', 'Toggles each pixel it touches, so overlapping strokes cancel each other out'],
-    ['xor_pixel',       'icon-dm-xor-pixel',  'dm.xorPixel',       'XOR / Pixel',
-     'dm.xorPixel.hint', 'Toggles every pixel on every pass, so a stroke crossing itself visibly cancels']
+    { value: 'normal', icon: 'icon-dm-normal',
+      name: ['dm.normal', 'Normal'],
+      hint: ['dm.normal.hint', 'Sets dots and gives the cell your ink, paper, bright and flash. The right button clears dots and gives the cell the same colours'],
+      dots: FX.dotsSet, colours: FX.coloursAll, right: FX.rightNormal },
+    { value: 'pixel_only', icon: 'icon-dm-pixels',
+      name: ['dm.pixelsOnly', 'Pixels Only'],
+      hint: ['dm.pixelsOnly.hint', 'Sets dots and leaves the cell\'s colours alone. The right button clears dots, also leaving the colours alone'],
+      dots: FX.dotsSet, colours: FX.coloursNone, right: FX.rightPixels },
+    { value: 'xor', icon: 'icon-dm-xor',
+      name: ['dm.xor', 'XOR / Over'],
+      hint: ['dm.xor.hint', 'Flips each dot it touches, once per stroke, and gives the cell your colours. Two strokes over the same dots cancel each other out. Both buttons do the same'],
+      dots: FX.dotsFlipStroke, colours: FX.coloursAll, right: FX.rightSame },
+    { value: 'xor_pixel', icon: 'icon-dm-xor-pixel',
+      name: ['dm.xorPixel', 'XOR / Every Pass'],
+      hint: ['dm.xorPixel.hint', 'Like XOR / Over, but a stroke that comes back over its own path flips those dots again, so it cancels where it crosses itself. Both buttons do the same'],
+      dots: FX.dotsFlipPass, colours: FX.coloursAll, right: FX.rightSame },
+    { value: 'ink', icon: 'icon-dm-ink',
+      name: ['dm.ink', 'Ink Recolour'],
+      hint: ['dm.ink.hint', 'Gives every cell the tool touches your ink colour, bright and flash without touching a dot - following the brush size, the shape or the fill area. Both buttons do the same'],
+      dots: FX.untouched, colours: FX.coloursInk, right: FX.rightSame,
+      needsAttributes: true },
+    { value: 'paper', icon: 'icon-dm-paper',
+      name: ['dm.paper', 'Paper Recolour'],
+      hint: ['dm.paper.hint', 'Gives every cell the tool touches your paper colour, bright and flash without touching a dot - following the brush size, the shape or the fill area. Both buttons do the same'],
+      dots: FX.untouched, colours: FX.coloursPaper, right: FX.rightSame,
+      needsAttributes: true }
 ];
+
+// The status readout for a switched-on Swap or Recolour (ClutBar's cell
+// operations, EVENTS.ATTR_PAINT_MODE). Carried in data-i18n-draw-mode with
+// this prefix, so I18n re-renders it through describeMode like a draw mode.
+const ATTR_OP_PREFIX = 'attr:';
+const ATTR_OPS = {
+    swap:  ['status.attrSwap', 'Swap is on'],
+    apply: ['status.attrRecolour', 'Recolour is on']
+};
 
 // Mirror (symmetry-while-drawing) toggle group: mode, icon, caption i18n key
 // + English fallback. Exclusive like the modes above but NOT a radiogroup —
@@ -70,6 +124,7 @@ class DrawModeBarClass {
         this._host = null;
         this._buttons = new Map();
         this._mirrorButtons = new Map();
+        this._attrOp = null;   // 'swap' | 'apply' | null - ClutBar's cell operation, if on
     }
 
     /** English fallback until i18n resolves. @private */
@@ -92,7 +147,7 @@ class DrawModeBarClass {
         this._host.dataset.i18nAriaLabel = 'opt.drawMode';
 
         for (const mode of MODES) {
-            this._host.appendChild(this._buildButton(...mode));
+            this._host.appendChild(this._buildButton(mode));
         }
 
         EventBus.on(EVENTS.DRAW_MODE_CHANGED, ({ mode }) => {
@@ -106,7 +161,7 @@ class DrawModeBarClass {
         });
 
         // Two ways to work, chosen in Preferences. Left alone, the draw mode is
-        // document-wide and survives a tool change, so an Attributes Only or XOR
+        // document-wide and survives a tool change, so a Pixels Only or XOR
         // pass can run across brush, fill and shapes. With
         // `resetDrawModeOnTool` on, picking a tool returns to Normal — the
         // safer setting for anyone who found a mode still in force hours later.
@@ -121,6 +176,16 @@ class DrawModeBarClass {
 
         // Which modes mean anything depends on the screen mode's cells.
         EventBus.on(EVENTS.SCREEN_MODE_CHANGED, () => this._syncAvailability());
+
+        // Swap or Recolour switched on takes over every tool, so for as long
+        // as it is on the draw mode is not what a stroke does: the status bar
+        // says which operation is on, and the chosen mode's button loses its
+        // fill (css/components.css, #draw-modes.overridden).
+        EventBus.on(EVENTS.ATTR_PAINT_MODE, ({ mode }) => {
+            this._attrOp = ATTR_OPS[mode] ? mode : null;
+            this._host.classList.toggle('overridden', !!this._attrOp);
+            this._syncStatus(StateManager.getDrawMode());
+        });
 
         this._syncAvailability();
         this._sync(StateManager.getDrawMode());
@@ -145,7 +210,7 @@ class DrawModeBarClass {
             typeof ColorManager.hasCellAttributes !== 'function' ||
             ColorManager.hasCellAttributes();
         let activeLost = false;
-        for (const [value, , , , , , needsAttributes] of MODES) {
+        for (const { value, needsAttributes } of MODES) {
             const btn = this._buttons.get(value);
             if (!btn) continue;
             const available = hasAttributes || !needsAttributes;
@@ -240,16 +305,16 @@ class DrawModeBarClass {
     }
 
     /** @private */
-    _buildButton(value, icon, i18n, fallback, hintKey, hintFallback) {
+    _buildButton({ value, icon, name: [nameKey, nameEn], hint: [hintKey, hintEn] }) {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'tool-btn';
         btn.dataset.drawMode = value;
-        const name = this._t(i18n, fallback);
-        btn.dataset.i18nTitleName = i18n;
+        const name = this._t(nameKey, nameEn);
+        btn.dataset.i18nTitleName = nameKey;
         btn.dataset.i18nTitle = hintKey;
-        btn.title = Helpers.composeTitle(name, this._t(hintKey, hintFallback));
-        btn.dataset.i18nAriaLabel = i18n;
+        btn.title = Helpers.composeTitle(name, this._t(hintKey, hintEn));
+        btn.dataset.i18nAriaLabel = nameKey;
         btn.setAttribute('aria-label', name);
         btn.setAttribute('role', 'radio');
         btn.setAttribute('aria-checked', 'false');
@@ -279,18 +344,21 @@ class DrawModeBarClass {
     }
 
     /**
-     * Say in the status bar which non-Normal mode is in force. Several modes
-     * (Paper Recolour, Attributes Only) can leave a stroke with NOTHING visible
-     * on the picture, and the mode persists across reloads — so without a
-     * permanent readout the app looks broken rather than configured. Normal is
-     * the quiet default and says nothing.
+     * Say in the status bar what a stroke will do, whenever that is not the
+     * quiet default. Several modes (Paper Recolour, Ink Recolour over cells
+     * already that colour) can leave a stroke with NOTHING visible on the
+     * picture, and the mode persists across reloads - so without a permanent
+     * readout the app looks broken rather than configured. A switched-on Swap
+     * or Recolour wins over the draw mode, because for as long as it is on it
+     * is what every stroke does. Normal, with neither on, says nothing.
      * @private
      */
     _syncStatus(mode) {
         const el = document.getElementById('draw-mode-status');
         if (!el) return;
-        const entry = MODES.find((m) => m[0] === mode);
-        if (!entry || mode === 'normal') {
+        const id = this._attrOp ? ATTR_OP_PREFIX + this._attrOp : mode;
+        const label = id === 'normal' ? '' : this.describeMode(id);
+        if (!label) {
             el.hidden = true;
             el.textContent = '';
             delete el.dataset.i18nDrawMode;
@@ -298,15 +366,42 @@ class DrawModeBarClass {
         }
         // The label is recomposed on a locale change from this attribute, the
         // same way the screen-mode tooltips are (I18n._updateDOM).
-        el.dataset.i18nDrawMode = mode;
-        el.textContent = `${this._t('opt.drawMode', 'Draw Mode')}: ${this._t(entry[2], entry[3])}`;
+        el.dataset.i18nDrawMode = id;
+        el.textContent = label;
         el.hidden = false;
     }
 
-    /** Label for a draw-mode id — I18n re-renders the status readout with it. */
-    describeMode(mode) {
-        const entry = MODES.find((m) => m[0] === mode);
-        return entry ? `${this._t('opt.drawMode', 'Draw Mode')}: ${this._t(entry[2], entry[3])}` : '';
+    /**
+     * Label for a draw-mode id, or for a switched-on cell operation
+     * ('attr:swap' / 'attr:apply') - I18n re-renders the status readout with it.
+     * @param {string} id
+     * @returns {string}
+     */
+    describeMode(id) {
+        if (typeof id === 'string' && id.startsWith(ATTR_OP_PREFIX)) {
+            const op = ATTR_OPS[id.slice(ATTR_OP_PREFIX.length)];
+            return op ? this._t(op[0], op[1]) : '';
+        }
+        const entry = MODES.find((m) => m.value === id);
+        return entry ? `${this._t('opt.drawMode', 'Draw Mode')}: ${this._t(...entry.name)}` : '';
+    }
+
+    /**
+     * Every draw mode in strip order, in the current language - what the
+     * manual's draw-mode table is built from (tools/manual-extract.js), so it
+     * says what the buttons say and cannot drift from them.
+     * @returns {Array<{id: string, name: string, desc: string, dots: string,
+     *   colours: string, right: string}>}
+     */
+    describeModes() {
+        return MODES.map((m) => ({
+            id: m.value,
+            name: this._t(...m.name),
+            desc: this._t(...m.hint),
+            dots: this._t(...m.dots),
+            colours: this._t(...m.colours),
+            right: this._t(...m.right)
+        }));
     }
 }
 

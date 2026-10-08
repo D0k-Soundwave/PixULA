@@ -107,3 +107,81 @@ test('a non-Normal draw mode says so in the status bar', async ({ page }) => {
     await page.click('#draw-modes [data-draw-mode="normal"]');
     await expect(page.locator('#draw-mode-status')).toBeHidden();
 });
+
+/*
+ * Three kinds of control share the strip - pick-one draw modes, the Swap and
+ * Recolour cell operations, the Mirror toggles - and used to run as one
+ * undivided row, so nothing said that Recolour (whole cell, ignores the tool)
+ * is not Ink Recolour (through the tool). A divider now sits between each
+ * group, with the colour-only draw modes last, beside the cell operations.
+ */
+test('the strip is three groups, divided, colour-only modes beside Swap and Recolour', async ({ page }) => {
+    await boot(page);
+    const layout = await page.evaluate(() => {
+        const box = (el) => el.getBoundingClientRect();
+        const modes = [...document.querySelectorAll('#draw-modes button')];
+        const ops = [...document.querySelectorAll('#attr-tools button')];
+        const mirror = [...document.querySelectorAll('#mirror-modes button')];
+        const dividers = [...document.querySelectorAll('#marks-icons-row .marks-divider')];
+        return {
+            order: modes.map((b) => b.dataset.drawMode),
+            dividers: dividers.length,
+            hidden: dividers.every((d) => d.getAttribute('aria-hidden') === 'true'),
+            firstBetween: dividers.length > 0 &&
+                box(dividers[0]).left >= box(modes[modes.length - 1]).right &&
+                box(dividers[0]).right <= box(ops[0]).left,
+            secondBetween: dividers.length > 1 &&
+                box(dividers[1]).left >= box(ops[ops.length - 1]).right &&
+                box(dividers[1]).right <= box(mirror[0]).left,
+            everyPass: document.querySelector('#draw-modes [data-draw-mode="xor_pixel"]')
+                .getAttribute('aria-label')
+        };
+    });
+    expect(layout.order).toEqual(['normal', 'pixel_only', 'xor', 'xor_pixel', 'ink', 'paper']);
+    expect(layout.dividers).toBe(2);
+    expect(layout.hidden, 'dividers are decoration, not controls').toBe(true);
+    expect(layout.firstBetween, 'a divider between the draw modes and Swap/Recolour').toBe(true);
+    expect(layout.secondBetween, 'a divider between Swap/Recolour and Mirror').toBe(true);
+    // The id stays xor_pixel (saved preferences and presets carry it); the
+    // name says what it now does.
+    expect(layout.everyPass).toBe('XOR / Every Pass');
+});
+
+/*
+ * Swap or Recolour, once switched on, takes over every tool until it is
+ * switched off - and with Recolour on, a stroke over cells already in the
+ * chosen colours changes nothing visible. So the status bar names it while it
+ * is on, ahead of the draw mode, and the chosen draw mode's button stops
+ * reading as the thing in force.
+ */
+test('a switched-on Swap or Recolour says so in the status bar', async ({ page }) => {
+    await boot(page);
+    const status = page.locator('#draw-mode-status');
+    const overridden = () => page.evaluate(() =>
+        document.getElementById('draw-modes').classList.contains('overridden'));
+
+    await expect(status).toBeHidden();
+    await page.click('#attr-apply');
+    await expect(status).toBeVisible();
+    await expect(status).toHaveText('Recolour is on');
+    expect(await overridden()).toBe(true);
+
+    await page.click('#attr-apply');
+    await expect(status).toBeHidden();
+    expect(await overridden()).toBe(false);
+
+    // Under a non-Normal draw mode the readout hands back to that mode. Arm
+    // directly: clicking a draw mode is itself a new draw method, which
+    // switches Swap/Recolour off.
+    await page.click('#draw-modes [data-draw-mode="paper"]');
+    await page.click('#attr-transpose');
+    await expect(status).toHaveText('Swap is on');
+    await page.click('#attr-transpose');
+    await expect(status).toContainText('Paper Recolour');
+
+    // ...and picking a draw mode switches the operation off, readout and all.
+    await page.click('#attr-transpose');
+    await page.click('#draw-modes [data-draw-mode="normal"]');
+    await expect(status).toBeHidden();
+    expect(await overridden()).toBe(false);
+});

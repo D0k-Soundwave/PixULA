@@ -24,12 +24,39 @@ punti mantiene i suoi colori per quante volte tu ci passi sopra.
 
 ### Modalità di disegno
 
-La modalità di disegno cambia ciò che fa un tratto, e vale per ogni strumento.
-Si conserva tra le sessioni, per cui la barra di stato la mostra ogni volta che
-è diversa da Normale: in alcune di queste modalità un tratto non lascia nulla
-di visibile, e altrimenti non avresti modo di capire perché.
+La modalità di disegno cambia ciò che fa un tratto. Si conserva tra le sessioni,
+per cui la barra di stato la mostra ogni volta che è diversa da Normale: in
+alcune di queste modalità un tratto non lascia nulla di visibile, e altrimenti
+non avresti modo di capire perché.
 
 {{draw-modes}}
+
+Il pennello in tutte le sue forme, il riempimento, le forme, la curva di Bézier,
+il testo, i timbri del pannello **Timbri** e il tasto sinistro del gradiente
+seguono la modalità di disegno. La gomma, il contagocce, spostare, incollare ed
+eliminare una selezione, il pannello **Trasformazione**, l’opzione **Riempi solo
+attributi** e i pulsanti Scambia e Ricolora la ignorano.
+
+**Ricolora inchiostro non è Ricolora.** Ricolora inchiostro e Ricolora carta
+sono modalità di disegno: ricolorano ogni cella toccata dallo strumento attuale
+(poche celle con un pennello piccolo, tutte quelle coperte da un rettangolo
+pieno) e lo Specchio vale anche per loro. **Ricolora**, subito dopo il
+separatore, ricolora l’intera cella sotto il puntatore qualunque sia lo
+strumento scelto, ignorando la dimensione del pennello e lo Specchio.
+**Scambia**, accanto, funziona allo stesso modo e scambia inchiostro e carta di
+ogni cella. Entrambi restano attivi finché non ci clicchi di nuovo o scegli uno
+strumento o una modalità di disegno, e la barra di stato lo segnala finché sono
+attivi.
+
+**XOR / Sopra e XOR / Ogni passaggio** invertono i punti invece di accenderli,
+ed entrambi danno alla cella i colori scelti. XOR / Sopra inverte ogni punto una
+volta per tratto, quindi ripassare sulla tua linea nello stesso tratto non
+cambia altro. XOR / Ogni passaggio inverte un punto ogni volta che il tratto ci
+passa sopra: una passata del pennello è un passaggio, per quanto il pennello si
+sovrapponga a se stesso lungo la strada, ma un tratto che lascia un punto e poi
+ci torna lo inverte di nuovo, così un otto si annulla dove si incrocia. Forme,
+curve, riempimenti e testo sono sempre un solo passaggio, quindi con questi le
+due modalità danno lo stesso risultato.
 
 ### Tavolozze
 

@@ -1022,14 +1022,17 @@ class ClutBarClass {
             return btn;
         };
 
+        // Both act on the WHOLE cell under the pointer, not through the tool -
+        // which is what tells Recolour apart from the Ink and Paper Recolour
+        // draw modes, and the hints say so (2026-10-07).
         const transposeBtn = mkToolBtn('attr-transpose', 'icon-attr-swap',
             'attr.transpose', 'Swap',
             'attr.transpose.hint',
-            'Switch between Ink and Paper colour');
+            'Swaps the ink and paper colours of each whole cell you click or drag over, ignoring brush size and Mirror. Click it again, or pick a tool or a draw mode, to stop');
         const applyBtn = mkToolBtn('attr-apply', 'icon-attr-apply',
             'attr.apply', 'Recolour',
             'attr.apply.hint',
-            'Change attributes to colours selected in palette');
+            'Gives each whole cell you click or drag over your ink, paper, bright and flash, without touching a dot and ignoring brush size and Mirror. Click it again, or pick a tool or a draw mode, to stop');
 
         host.appendChild(transposeBtn);
         host.appendChild(applyBtn);

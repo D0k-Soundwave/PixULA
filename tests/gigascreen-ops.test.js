@@ -308,7 +308,7 @@ function seedFourSlots(layer) {
 {
   const layer = gigaDoc();
   const sel = { ...ColorManager.getCurrentSelection(), gigaSlot: GIGA_SLOTS.PAPER_PAPER };
-  for (const mode of [DRAW_MODE.PIXEL_ONLY, DRAW_MODE.TRANSPARENT]) {
+  for (const mode of [DRAW_MODE.PIXEL_ONLY]) {
     const wrote = PixelDrawRoutine.draw(40, 40, sel, mode, { mirror: false });
     check(`${mode} painting Paper/Paper on an empty cell writes nothing`, wrote === false);
     check(`${mode} painting Paper/Paper leaves the empty cell see-through`,

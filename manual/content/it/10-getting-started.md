@@ -24,7 +24,7 @@ l’argomento del capitolo successivo.
 
 - **La barra dei menu** in alto: file, modifica, visualizzazione, livelli,
   l’immagine stessa, impostazioni e aiuto.
-- **La barra delle modalità** sotto: modalità di disegno, specchio e bordo.
+- **La barra delle modalità** sotto: modalità di disegno, Scambia e Ricolora, e specchio.
 - **La barra degli strumenti** a sinistra, con Annulla e Ripeti in cima.
 - **La barra dei colori** accanto, con la tavolozza della modalità schermo in
   uso.
@@ -46,7 +46,7 @@ LAMPEGGIO sopra.*
 
 ![La barra delle modalità](img/colour-bar.png)
 
-*La barra delle modalità: modalità di disegno, specchio e colore del bordo.*
+*La barra delle modalità: modalità di disegno, poi Scambia e Ricolora, poi specchio.*
 
 ![I pannelli laterali](img/panels.png)
 

@@ -288,4 +288,55 @@ check('resolvePatternGapMode: XOR / Pixel too',
   PixelDrawRoutine.resolvePatternGapMode() === null);
 StateManager.setDrawMode('normal');
 
+// -- Fill in an indexed (Next) mode does what the brush does ----------------
+//
+// The fill skips a region that is "already filled", and in indexed modes it
+// judged that against the old right-button rule (the transparency index) and
+// in every draw mode. Two clicks did nothing that the brush does (2026-10-07):
+// a right-click fill on an empty part of an upper layer, where the brush
+// paints the paper index, and an XOR fill over pixels already in the ink
+// index, which the brush toggles off.
+{
+  __setActiveScreenMode('layer2_256');
+  AttributeSystem.clearAll();
+  ColorManager.applyScreenMode();
+  LayerManager.initialize();
+  ColorManager.setNextInk(5);
+  ColorManager.nextPaper = 9;
+  const index = (x, y) => layer().getCell(Math.floor(x / 8), Math.floor(y / 8))
+    .indices[(y % 8) * 8 + (x % 8)];
+  const right = ev({ button: 2, buttons: 2 });
+  const click = (tool, x, y, e) => {
+    ToolManager.selectTool(tool);
+    const t = ToolManager.getCurrentTool();
+    t.onPointerDown(x, y, e);
+    t.onPointerUp(x, y, e);
+  };
+
+  StateManager.setDrawMode('normal');
+  BrushEngine.setBrush('round'); BrushEngine.setSize(1);
+  click(TOOLS.BRUSH, 20, 20, right);
+  check('indexed / brush right-click on an empty upper-layer pixel paints the paper index',
+    index(20, 20) === 9);
+  click(TOOLS.FILL, 60, 60, right);
+  check('indexed / fill right-click on an empty upper-layer area paints the paper index too',
+    index(60, 60) === 9);
+
+  LayerManager.initialize();
+  click(TOOLS.FILL, 100, 100, ev());
+  check('indexed / Normal fill paints the ink index', index(100, 100) === 5);
+  click(TOOLS.FILL, 100, 100, ev());
+  check('indexed / Normal fill over the ink index is still a no-op', index(100, 100) === 5);
+  StateManager.setDrawMode('xor');
+  click(TOOLS.FILL, 100, 100, ev());
+  check('indexed / XOR fill over the ink index toggles it off, as the brush does',
+    index(100, 100) === -1);
+
+  StateManager.setDrawMode('normal');
+  __setActiveScreenMode('standard_ula');
+  AttributeSystem.clearAll();
+  ColorManager.applyScreenMode();
+  LayerManager.initialize();
+}
+
 summary('draw-mode-matrix');
