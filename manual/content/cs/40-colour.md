@@ -20,14 +20,45 @@ prázdnou buňku znovu novým tahem: inkoust, papír, jas a blikání se vrátí
 černou na bílé a na horní vrstvě bude buňka opět průhledná. Buňka, ve které jsou
 ještě body, si barvy ponechá, ať přes ni gumou přejedete kolikrát chcete.
 
+Každou ze čtyř částí lze také nastavit na **použít stávající**: kostkované
+políčko pod ní na barevné liště. Tah pak tuto část každé buňky ponechá, jak je,
+místo aby zapsal vaše nastavení. Nastavte INKOUST, PAPÍR a JASNÝ na stávající a
+zapněte BLIKÁNÍ, a volba **Vyplnit pouze atributy** nástroje výplně rozbliká
+celou plochu, aniž by změnila jedinou barvu. Shift+B a Shift+F přepínají JASNÝ a
+BLIKÁNÍ a Shift+T nastaví všechny čtyři na stávající. V ULAplus volí JASNÝ a
+BLIKÁNÍ tabulku CLUT, proto má výběr CLUT jediné políčko, které ponechá CLUT
+každé buňky.
+
 ### Režimy kreslení
 
-Režim kreslení mění, co tah udělá, a platí pro každý nástroj. Pamatuje se mezi
-relacemi, takže ho stavový řádek zobrazuje, kdykoli je jiný než Normální – v
-některých z těchto režimů tah nezanechá nic viditelného a jinak byste neměli jak
-poznat proč.
+Režim kreslení mění, co tah udělá. Pamatuje se mezi relacemi, takže ho stavový
+řádek zobrazuje, kdykoli je jiný než Normální – v některých z těchto režimů tah
+nezanechá nic viditelného a jinak byste neměli jak poznat proč.
 
 {{draw-modes}}
+
+Štětec ve všech podobách, vyplňování, tvary, Bézierova křivka, text, razítka z
+panelu **Razítka** a levé tlačítko přechodu se řídí režimem kreslení. Guma,
+kapátko, přesouvání, vkládání a mazání výběru, panel **Transformace**, volba
+**Vyplnit pouze atributy** a tlačítka Zaměnit a Přebarvit ho neberou v úvahu.
+
+**Přebarvit inkoust není totéž co Přebarvit.** Přebarvit inkoust a Přebarvit
+papír jsou režimy kreslení: přebarví každou buňku, které se dotkne aktuální
+nástroj (pár buněk malým štětcem, všechny, které pokryje vyplněný obdélník), a
+platí pro ně i Zrcadlo. **Přebarvit** hned za oddělovačem přebarví celou buňku
+pod ukazatelem, ať je vybrán jakýkoli nástroj, bez ohledu na velikost štětce a
+Zrcadlo. **Zaměnit** vedle něj funguje stejně a v každé buňce zamění inkoust a
+papír. Kterékoli z nich zůstane zapnuté, dokud na ně znovu nekliknete nebo
+nezvolíte nástroj či režim kreslení, a stavový řádek to po tu dobu ukazuje.
+
+**XOR / Přes a XOR / Každý přejezd** body přepínají, místo aby je rozsvěcovaly,
+a oba dají buňce zvolené barvy. XOR / Přes přepne každý bod jednou za tah, takže
+návrat po vlastní čáře ve stejném tahu už nic nezmění. XOR / Každý přejezd
+přepne bod pokaždé, když přes něj tah přejede: jeden tah štětce je jeden
+přejezd, i když se štětec cestou sám překrývá, ale tah, který bod opustí a vrátí
+se k němu, ho přepne znovu, takže osmička se zruší tam, kde se kříží. Tvary,
+křivky, výplně a text jsou vždy jediný přejezd, takže u nich oba režimy dávají
+stejný výsledek.
 
 ### Palety
 

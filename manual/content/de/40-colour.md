@@ -23,15 +23,50 @@ Schwarz auf Weiß zurück, und auf einer oberen Ebene wird die Zelle wieder
 durchsichtig. Eine Zelle, die noch Punkte enthält, behält ihre Farben, egal wie
 oft Sie darüber radieren.
 
+Jeder der vier Teile lässt sich auch auf **vorhanden verwenden** stellen - das
+karierte Kästchen darunter in der Farbleiste. Ein Strich lässt diesen Teil jeder
+Zelle dann, wie er ist, statt Ihre Einstellung zu schreiben. Stellen Sie TINTE,
+PAPIER und HELL auf vorhanden und schalten Sie BLINKEN ein, dann lässt **Nur
+Attribute füllen** des Füllwerkzeugs eine ganze Fläche blinken, ohne eine Farbe
+zu ändern. Umschalt+B und Umschalt+F schalten HELL und BLINKEN um, Umschalt+T
+stellt alle vier auf vorhanden. In ULAplus wählen HELL und BLINKEN die CLUT,
+daher hat die CLUT-Auswahl ein einziges Kästchen, das die CLUT jeder Zelle
+behält.
+
 ### Zeichenmodi
 
-Der Zeichenmodus ändert, was ein Strich bewirkt, und gilt für jedes Werkzeug.
-Er bleibt über Sitzungen hinweg erhalten, daher zeigt die Statusleiste ihn an,
-sobald er etwas anderes als Normal ist – in manchen dieser Modi hinterlässt ein
-Strich nichts Sichtbares, und sonst hätten Sie keine Möglichkeit zu erkennen,
-warum.
+Der Zeichenmodus ändert, was ein Strich bewirkt. Er bleibt über Sitzungen hinweg
+erhalten, daher zeigt die Statusleiste ihn an, sobald er etwas anderes als
+Normal ist – in manchen dieser Modi hinterlässt ein Strich nichts Sichtbares,
+und sonst hätten Sie keine Möglichkeit zu erkennen, warum.
 
 {{draw-modes}}
+
+Der Pinsel in all seinen Formen, Füllen, die Formen, die Bézierkurve, Text,
+Stempel aus dem Bereich **Stempel** und die linke Taste des Verlaufs folgen dem
+Zeichenmodus. Der Radierer, die Pipette, das Verschieben, Einfügen und Löschen
+einer Auswahl, der Bereich **Transformieren**, die Option **Nur Attribute
+füllen** und die Tasten Tauschen und Umfärben beachten ihn nicht.
+
+**Tinte umfärben ist nicht dasselbe wie Umfärben.** Tinte umfärben und Papier
+umfärben sind Zeichenmodi und färben jede Zelle um, die das aktuelle Werkzeug
+berührt – bei einem kleinen Pinsel wenige Zellen, bei einem gefüllten Rechteck
+jede Zelle, die es bedeckt –, und Spiegeln gilt mit. **Umfärben** gleich hinter
+dem Trennstrich färbt die ganze Zelle unter dem Zeiger um, egal welches Werkzeug
+gewählt ist, ohne Rücksicht auf Pinselgröße und Spiegeln. **Tauschen** daneben
+arbeitet genauso und vertauscht Tinte und Papier jeder Zelle. Beide bleiben an,
+bis Sie erneut darauf klicken oder ein Werkzeug oder einen Zeichenmodus wählen,
+und solange eines an ist, zeigt die Statusleiste es an.
+
+**XOR / Über und XOR / Jeder Durchgang** kehren Punkte um, statt sie zu setzen,
+und geben der Zelle beide die gewählten Farben. XOR / Über kehrt jeden Punkt
+einmal pro Strich um; wer im selben Strich über die eigene Linie zurückfährt,
+ändert also nichts weiter. XOR / Jeder Durchgang kehrt einen Punkt jedes Mal um,
+wenn der Strich über ihn hinweggeht: Ein Zug des Pinsels ist ein Durchgang, wie
+sehr sich der Pinsel unterwegs auch selbst überlappt, aber ein Strich, der einen
+Punkt verlässt und zurückkommt, kehrt ihn erneut um – eine Acht hebt sich also
+dort auf, wo sie sich kreuzt. Formen, Kurven, Füllungen und Text sind immer ein
+einziger Durchgang, damit liefern beide Modi dort dasselbe Ergebnis.
 
 ### Paletten
 

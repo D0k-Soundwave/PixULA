@@ -35,9 +35,10 @@ class A11yAnnouncerClass {
         });
 
         EventBus.on(EVENTS.ATTR_PAINT_MODE, ({ mode }) => {
-            if (mode === 'swap')       this.announce(this._t('a11y.attrModeSwap', 'Swap ink/paper mode on'));
-            else if (mode === 'apply') this.announce(this._t('a11y.attrModeApply', 'Apply attributes mode on'));
-            else                       this.announce(this._t('a11y.attrModeOff', 'Attribute mode off'));
+            // Named as the buttons are, so what is heard matches what is seen.
+            if (mode === 'swap')       this.announce(this._t('a11y.attrModeSwap', 'Swap on'));
+            else if (mode === 'apply') this.announce(this._t('a11y.attrModeApply', 'Recolour on'));
+            else                       this.announce(this._t('a11y.attrModeOff', 'Swap and Recolour off'));
         });
 
         Logger.debug('A11yAnnouncer', 'Initialized');

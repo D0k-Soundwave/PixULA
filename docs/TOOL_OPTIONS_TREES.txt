@@ -12,7 +12,7 @@ Source of truth:
   - Rail order + tool metadata : js/core/constants.js  (TOOLS, TOOL_GROUPS)
   - Rail groups not in TOOL_GROUPS : js/ui/components/tool-rail.js
   - Per-tool options            : static optionsSchema on each js/tools/*.js
-  - Shared draw-mode list       : js/tools/tool-base.js  (DRAW_MODE_OPTS)
+  - Draw modes (global)         : js/ui/components/draw-mode-bar.js  (MODES)
   - Renderer / showIf / dynamic : js/ui/components/option-controls.js
   - Shape raster                : js/tools/shape-generator.js
 
@@ -55,14 +55,18 @@ NOT PER-TOOL: THE TWO ROWS THAT SIT AROUND EVERY OPTIONS PANEL
 ===============================================================================
 DRAW MODE is GLOBAL. It lives in the top bar (DrawModeBar -> StateManager),
 not in any tool's schema, and applies to every tool that lays ink:
-  <Normal | Attributes only | Pixels only | Paper | XOR>   =Normal
-  (ToolBase.DRAW_MODE_OPTS - 5 entries. DRAW_MODE in constants.js also carries
-   'transparent', 'erase' and 'ink', which the engine uses internally but the
-   selector does not offer.)
+  <Normal | Pixels Only | XOR / Over | XOR / Every Pass | Ink Recolour |
+   Paper Recolour>   =Normal
+  (DrawModeBar's MODES table - 6 entries, updated 2026-10-07. DRAW_MODE in
+   constants.js also carries 'normal_erase', 'erase', 'erase_all' and
+   'attributes_only', which the right button, the eraser, the selection
+   services and the Swap/Recolour cell ops use but the selector does not
+   offer.)
   It persists across reloads, and Preferences > "Reset draw mode on tool change"
   turns it back to Normal on every tool switch (off by default). The status bar
-  names the mode while it is anything but Normal, because Paper and Attributes
-  only can leave a stroke with nothing visible.
+  names the mode while it is anything but Normal, and names a switched-on Swap
+  or Recolour, because Paper Recolour and Recolour can leave a stroke with
+  nothing visible.
 
 TOOL PRESETS sit at the FOOT of the options panel (ToolPresetBar): "Load
 preset..." lists the presets of the tool in your hand and nothing else, and

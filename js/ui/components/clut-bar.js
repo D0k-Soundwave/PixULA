@@ -451,6 +451,18 @@ class ClutBarClass {
     _buildBitToggles({ bright = true, flash = true, giga = false } = {}) {
         const wrap = document.createElement('div');
         wrap.className = 'clut-bits';
+        const brightKept = ColorManager.isBrightTransparent();
+        const flashKept = ColorManager.isFlashTransparent();
+
+        // A toggle with its "use existing" box under it, one icon wide - the
+        // same stack the Ink and Paper groups use (swatches, then the box).
+        const column = (toggleWrap, box) => {
+            const col = document.createElement('div');
+            col.className = 'clut-bit-col';
+            col.appendChild(toggleWrap);
+            col.appendChild(box);
+            return col;
+        };
 
         // Full-size icon toggles that sit inline with the swatch row. The native
         // checkbox stays for state + keyboard/AT (visually hidden); the icon
@@ -483,7 +495,7 @@ class ClutBarClass {
             label.appendChild(svg);
             label.appendChild(sr);
             input.addEventListener('change', () => onChange(input.checked));
-            return { wrap: Helpers.captionWrap(label, i18n, fallback), input };
+            return { wrap: Helpers.captionWrap(label, i18n, fallback), input, label };
         };
 
         if (bright) {
@@ -493,11 +505,15 @@ class ClutBarClass {
                 : makeToggle('bright-toggle', 'icon-bright', 'color.bright',
                     'Bright', ColorManager.getBright(), (v) => ColorManager.setBright(v));
             this._brightToggle = brightToggle.input;
-            wrap.appendChild(brightToggle.wrap);
+            brightToggle.label.classList.toggle('is-kept', brightKept);
+            wrap.appendChild(column(brightToggle.wrap, this._buildKeepBox('bright')));
         }
         if (giga) {
+            // One Bright box covers both screens (under Bright A), as the Ink
+            // and Paper boxes under Screen A do.
             const brightB = makeToggle('bright-b-toggle', 'icon-bright', 'giga.brightB',
                 'Bright B', ColorManager.getScreenB().bright, (v) => ColorManager.setBrightB(v));
+            brightB.label.classList.toggle('is-kept', brightKept);
             wrap.appendChild(brightB.wrap);
         }
 
@@ -505,10 +521,75 @@ class ClutBarClass {
             const flashToggle = makeToggle('flash-toggle', 'icon-flash', 'color.flash', 'Flash',
                 ColorManager.getFlash(), (v) => ColorManager.setFlash(v));
             this._flashToggle = flashToggle.input;
-            wrap.appendChild(flashToggle.wrap);
+            flashToggle.label.classList.toggle('is-kept', flashKept);
+            wrap.appendChild(column(flashToggle.wrap, this._buildKeepBox('flash')));
         }
 
         return wrap;
+    }
+
+    /**
+     * "Use existing" box for Bright, Flash or - in ULAplus, where the two bits
+     * ARE the CLUT - the CLUT: the same checkered box Ink and Paper carry
+     * (_buildTransparentBox), meaning ZX Paintbrush's BRIGHT 8 / FLASH 8. A
+     * stroke then keeps each cell's own value. Unlike the Ink and Paper boxes
+     * it is a checkbox: a second click turns it off again, because picking a
+     * value is not the only way back - a toggle has no "same value" to pick.
+     * Picking a value (Bright, Flash, a CLUT) turns it off too, in
+     * ColorManager, exactly as picking a swatch turns Ink's off.
+     * @param {'bright'|'flash'|'clut'} part
+     * @returns {HTMLElement}
+     * @private
+     */
+    _buildKeepBox(part) {
+        const SPECS = {
+            bright: ['clut.brightTransparent', 'Use existing Bright',
+                'clut.brightTransparent.hint',
+                'Keep each cell\'s own bright instead of writing the Bright setting. Click Bright to write a value again'],
+            flash: ['clut.flashTransparent', 'Use existing Flash',
+                'clut.flashTransparent.hint',
+                'Keep each cell\'s own flash instead of writing the Flash setting. Click Flash to write a value again'],
+            clut: ['clut.clutTransparent', 'Use existing CLUT',
+                'clut.clutTransparent.hint',
+                'Keep each cell\'s own CLUT instead of writing the selected one. Pick a CLUT to write it again']
+        };
+        const [nameKey, nameEn, hintKey, hintEn] = SPECS[part];
+        const isOn = () => (part === 'bright' ? ColorManager.isBrightTransparent()
+            : part === 'flash' ? ColorManager.isFlashTransparent()
+                : ColorManager.isBrightTransparent() && ColorManager.isFlashTransparent());
+        const toggle = () => {
+            if (part === 'bright') ColorManager.toggleBrightTransparent();
+            else if (part === 'flash') ColorManager.toggleFlashTransparent();
+            else {
+                const on = !isOn();
+                ColorManager.setBrightTransparent(on);
+                ColorManager.setFlashTransparent(on);
+            }
+        };
+
+        const box = document.createElement('div');
+        box.className = 'color-swatch clut-transparent-box clut-keep-box transparent';
+        box.dataset.role = `keep-${part}`;
+        box.tabIndex = 0;
+        box.setAttribute('role', 'checkbox');
+        const on = isOn();
+        box.setAttribute('aria-checked', String(on));
+        box.classList.toggle('active-ink', on);
+        const name = this._t(nameKey, nameEn);
+        box.setAttribute('aria-label', name);
+        box.dataset.i18nAriaLabel = nameKey;
+        box.dataset.i18nTitleName = nameKey;
+        box.dataset.i18nTitle = hintKey;
+        box.title = Helpers.composeTitle(name, this._t(hintKey, hintEn));
+        box.addEventListener('click', toggle);
+        box.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            e.preventDefault();
+            // The cluster's own keydown would click it a second time.
+            e.stopPropagation();
+            toggle();
+        });
+        return box;
     }
 
     /**
@@ -529,6 +610,8 @@ class ClutBarClass {
         selector.setAttribute('aria-label', this._t('clut.selector', 'ULAplus CLUT'));
         selector.dataset.i18nAriaLabel = 'clut.selector';
         const activeClut = ColorManager.getClut();
+        selector.classList.toggle('is-kept',
+            ColorManager.isBrightTransparent() && ColorManager.isFlashTransparent());
         for (let c = 0; c < 4; c++) {
             const btn = document.createElement('button');
             btn.type = 'button';
@@ -544,6 +627,11 @@ class ClutBarClass {
             selector.appendChild(btn);
         }
         host.appendChild(selector);
+        // Bright and Flash are the CLUT here, so their "use existing" is one
+        // box: keep each cell's CLUT.
+        const keep = this._buildKeepBox('clut');
+        keep.classList.add('clut-keep-clut');
+        host.appendChild(keep);
 
         // Each half carries its own "use existing" box, exactly as the classic
         // ink/paper groups do: ULAplus cells have ink and paper attributes, so
@@ -768,6 +856,8 @@ class ClutBarClass {
             const sw = swatchOf(e);
             if (!sw) return;
             const role = sw.dataset.role;
+            // The keep boxes (_buildKeepBox) carry their own listeners.
+            if (role && role.startsWith('keep-')) return;
             if (role === 'transparent-ink') {
                 ColorManager.setInkTransparent(true);
                 this._updateColorDisplays();
@@ -812,6 +902,7 @@ class ClutBarClass {
             if (!sw) return;
             e.preventDefault();
             const role = sw.dataset.role;
+            if (role && role.startsWith('keep-')) return;
             if (role === 'indexed') {
                 ColorManager.setNextPaper(parseInt(sw.dataset.index, 10));
                 this._updateColorDisplays();
@@ -1022,14 +1113,17 @@ class ClutBarClass {
             return btn;
         };
 
+        // Both act on the WHOLE cell under the pointer, not through the tool -
+        // which is what tells Recolour apart from the Ink and Paper Recolour
+        // draw modes, and the hints say so (2026-10-07).
         const transposeBtn = mkToolBtn('attr-transpose', 'icon-attr-swap',
             'attr.transpose', 'Swap',
             'attr.transpose.hint',
-            'Switch between Ink and Paper colour');
+            'Swaps the ink and paper colours of each whole cell you click or drag over, ignoring brush size and Mirror. Click it again, or pick a tool or a draw mode, to stop');
         const applyBtn = mkToolBtn('attr-apply', 'icon-attr-apply',
             'attr.apply', 'Recolour',
             'attr.apply.hint',
-            'Change attributes to colours selected in palette');
+            'Gives each whole cell you click or drag over your ink, paper, bright and flash, without touching a dot and ignoring brush size and Mirror. Click it again, or pick a tool or a draw mode, to stop. With Bright or Flash on "use existing", each cell keeps its own');
 
         host.appendChild(transposeBtn);
         host.appendChild(applyBtn);

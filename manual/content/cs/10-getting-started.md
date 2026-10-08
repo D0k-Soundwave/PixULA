@@ -23,7 +23,7 @@ určuje chování každého nástroje a je jí věnována další kapitola.
 
 - **Nabídková lišta** úplně nahoře: soubory, úpravy, zobrazení, vrstvy, samotný
   obrázek, nastavení a nápověda.
-- **Horní lišta režimů** pod ní: režimy kreslení, zrcadlo a okraj.
+- **Horní lišta režimů** pod ní: režimy kreslení, Zaměnit a Přebarvit a zrcadlo.
 - **Lišta nástrojů** vlevo, se zpět a znovu nahoře.
 - **Barevná lišta** vedle ní, s paletou aktuálního režimu obrazovky.
 - **Plátno** uprostřed.
@@ -43,7 +43,7 @@ podle toho, co s obrázkem dělají.*
 
 ![Horní lišta režimů](img/colour-bar.png)
 
-*Horní lišta režimů: režimy kreslení, zrcadlo a barva okraje.*
+*Horní lišta režimů: režimy kreslení, pak Zaměnit a Přebarvit, pak zrcadlo.*
 
 ![Postranní panely](img/panels.png)
 

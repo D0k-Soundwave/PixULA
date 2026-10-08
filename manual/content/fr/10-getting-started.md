@@ -24,7 +24,7 @@ comportement de chaque outil ici, et c’est le sujet du chapitre suivant.
 
 - **La barre de menus** tout en haut : les fichiers, l’édition, l’affichage,
   les calques, l’image elle-même, les paramètres et l’aide.
-- **La barre des modes** juste dessous : modes de dessin, miroir et bordure.
+- **La barre des modes** juste dessous : modes de dessin, Échanger et Recolorer, et miroir.
 - **La barre d’outils** à gauche, avec Annuler et Rétablir en haut.
 - **La barre de couleurs** à côté, avec la palette du mode d’écran en cours.
 - **La zone de dessin** au milieu.
@@ -45,7 +45,7 @@ CLIGNOTANT au-dessus.*
 
 ![La barre des modes](img/colour-bar.png)
 
-*La barre des modes : modes de dessin, miroir et couleur de bordure.*
+*La barre des modes : modes de dessin, puis Échanger et Recolorer, puis miroir.*
 
 ![Les panneaux latéraux](img/panels.png)
 

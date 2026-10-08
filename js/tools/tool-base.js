@@ -262,15 +262,6 @@ class ToolBaseClass {
  *   placeholderI18n / rows     textarea controls
  */
 
-/** Shared draw-mode select options (brush, shape; fill filters to its subset). */
-ToolBaseClass.DRAW_MODE_OPTS = Object.freeze([
-  { value: 'normal',          i18n: 'dm.normal' },
-  { value: 'attributes_only', i18n: 'dm.attributesOnly' },
-  { value: 'pixel_only',      i18n: 'dm.pixelsOnly' },
-  { value: 'paper',           i18n: 'dm.paper' },
-  { value: 'xor',             i18n: 'dm.xor' }
-]);
-
 // Expose to global scope
 window.ToolBase = ToolBaseClass;
 

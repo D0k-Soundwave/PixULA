@@ -1,15 +1,16 @@
 'use strict';
 /**
- * Brush XOR / Pixel = toggle on every WRITE, no once-per-stroke memory.
+ * Brush XOR / Every Pass (DRAW_MODE.XOR_PIXEL): one sweep is one pass.
  *
- * This is the counterpart to brush-xor.test.js: DRAW_MODE.XOR gates each pixel to
- * flip at most once per batch (see the guard in PixelDrawRoutine.draw()) so an
- * overlapping stroke stays solid. DRAW_MODE.XOR_PIXEL deliberately skips that
- * guard, so the SAME overlapping stamps that stay solid under 'xor' visibly
- * cancel under 'xor_pixel' — a straight drag toggles a pixel once for every
- * stamp that lands on it, and applyContinuousBrush spaces stamps at half the
- * brush size, so most interior pixels are covered by an even number of stamps
- * and end up erased, leaving only the odd-covered fringe lit.
+ * This file used to pin the opposite. XOR / Pixel toggled on every WRITE, and
+ * because applyContinuousBrush spaces stamps at half the brush size, a straight
+ * drag covered most interior pixels an even number of times and erased them,
+ * leaving only the odd-covered fringe lit - and how much survived depended on
+ * how fast the hand moved. That was a defect, not a look anyone could aim for,
+ * and it was replaced on 2026-10-07 by the pass rule (PixelDrawRoutine.nextPass):
+ * a pixel toggles when the stroke arrives on it and again only when the stroke
+ * comes back after leaving it. The same overlapping drag is now as solid as
+ * brush-xor.test.js's XOR / Over; tests/xor-pass.test.js pins the crossings.
  */
 const { loadModule, check, summary } = require('./helpers/zx-stubs');
 
@@ -74,7 +75,8 @@ BrushEngine.setBrush('round');
 BrushEngine.setSize(8);
 BrushEngine.setDrawMode('xor_pixel');
 
-// The same straight horizontal drag brush-xor.test.js uses — solid under 'xor'.
+// The same straight horizontal drag brush-xor.test.js uses - solid under 'xor',
+// and now solid here too.
 const stroke = () => {
   tool.onPointerDown(40, 40, ev);
   tool.onPointerMove(60, 40, ev);
@@ -86,7 +88,13 @@ const stroke = () => {
 stroke();
 let holes = 0;
 for (let x = 44; x <= 96; x++) if (!isInk(x, 40)) holes++;   // clear of the endpoints' fringe
-check('brush/xor_pixel: an overlapping stroke visibly cancels itself, unlike xor', holes > 0);
+check(`brush/xor_pixel: one straight sweep is one pass, so it has no holes (${holes})`, holes === 0);
+
+// Drawing the same stroke again is a second pass: it erases the first, as XOR does.
+stroke();
+let left = 0;
+for (let x = 44; x <= 96; x++) if (isInk(x, 40)) left++;
+check(`brush/xor_pixel: a second stroke over the first cancels it (${left} left)`, left === 0);
 
 // A single tap (no overlap at all) still toggles exactly like 'xor' would.
 LayerManager.getCurrentLayer().clear();

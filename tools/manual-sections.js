@@ -182,10 +182,17 @@ function screenModesSection(data) {
 
 /** The global draw modes, which change what every tool's stroke does. */
 function drawModesSection(data, t) {
-    return table([t('manual.col.mode'), t('manual.col.strokeDoes')].map(escapeHTML),
+    // Dots / colours / right button are the three things the tooltips used
+    // to leave out; a mode extracted without them still gets its row.
+    const cell = (v) => escapeHTML(v || '');
+    return table([t('manual.col.mode'), t('manual.col.strokeDoes'), t('manual.col.dots'),
+        t('manual.col.colours'), t('manual.col.rightButton')].map(escapeHTML),
         data.drawModes.map((m) => [
             '<strong>' + escapeHTML(m.name) + '</strong>',
-            escapeHTML(m.desc)
+            escapeHTML(m.desc),
+            cell(m.dots),
+            cell(m.colours),
+            cell(m.right)
         ]));
 }
 

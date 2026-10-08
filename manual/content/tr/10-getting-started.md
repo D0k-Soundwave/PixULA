@@ -23,7 +23,7 @@ aracın davranışını bu tek gerçek belirler ve sonraki bölüm bunu anlatır
 
 - **Menü çubuğu** en üstte: dosyalar, düzenleme, görünüm, katmanlar, resmin
   kendisi, ayarlar ve yardım.
-- **Mod çubuğu** hemen altında: çizim modları, ayna ve kenarlık.
+- **Mod çubuğu** hemen altında: çizim modları, Değiştir ve Yeniden renklendir, ardından ayna.
 - **Araç çubuğu** solda; en üstte geri al ve yinele.
 - **Renk çubuğu** onun yanında; geçerli ekran modunun paletiyle.
 - **Tuval** ortada.
@@ -43,7 +43,7 @@ yaptıklarına göre gruplanmıştır.*
 
 ![Mod çubuğu](img/colour-bar.png)
 
-*Mod çubuğu: çizim modları, ayna ve kenarlık rengi.*
+*Mod çubuğu: çizim modları, sonra Değiştir ve Yeniden renklendir, sonra ayna.*
 
 ![Yan paneller](img/panels.png)
 

@@ -18,6 +18,12 @@ class ColorManagerClass {
         // Transparent mode: when true, that color passes through to layer below
         this.inkTransparent = false;
         this.paperTransparent = false;
+        // The same "use existing" for the other two parts of the attribute
+        // byte (ZX Paintbrush's BRIGHT 8 / FLASH 8): a stroke keeps each
+        // cell's own bright or flash instead of writing the toggle's value.
+        // Off by default - the toggles are written unless the artist asks.
+        this.brightTransparent = false;
+        this.flashTransparent = false;
         // Active palette — ZX_PALETTE in fixed16 modes; the 64 editable
         // ULAplus registers derive it in ulaplus64 mode. Everything that
         // needs a palette colour reads it from here, never from a second copy.
@@ -590,22 +596,27 @@ class ColorManagerClass {
     }
 
     /**
-     * Set BRIGHT flag
+     * Set BRIGHT flag. Clears Bright's "use existing", as picking a colour
+     * clears Ink's: choosing a value is choosing to write it.
      * @param {boolean} bright
      */
     setBright(bright) {
         this.bright = Boolean(bright);
+        this.brightTransparent = false;
         StateManager.set('color.bright', this.bright);
+        StateManager.set('color.brightTransparent', false);
         EventBus.emit(EVENTS.COLOR_BRIGHT, this.getCurrentSelection());
     }
 
     /**
-     * Set FLASH flag
+     * Set FLASH flag. Clears Flash's "use existing".
      * @param {boolean} flash
      */
     setFlash(flash) {
         this.flash = Boolean(flash);
+        this.flashTransparent = false;
         StateManager.set('color.flash', this.flash);
+        StateManager.set('color.flashTransparent', false);
         EventBus.emit(EVENTS.COLOR_FLASH, this.getCurrentSelection());
     }
 
@@ -641,7 +652,11 @@ class ColorManagerClass {
      */
     setBrightB(bright) {
         this.brightB = Boolean(bright);
+        // One Bright "use existing" covers both screens, as the Ink and Paper
+        // boxes do, so a definite value on either screen clears it.
+        this.brightTransparent = false;
         StateManager.set('color.brightB', this.brightB);
+        StateManager.set('color.brightTransparent', false);
         EventBus.emit(EVENTS.COLOR_BRIGHT, this.getCurrentSelection());
     }
 
@@ -750,6 +765,22 @@ class ColorManagerClass {
     }
 
     /**
+     * Get BRIGHT "use existing" (always false where cells have no attributes)
+     * @returns {boolean}
+     */
+    isBrightTransparent() {
+        return this.brightTransparent && this.hasCellAttributes();
+    }
+
+    /**
+     * Get FLASH "use existing" (always false where cells have no attributes)
+     * @returns {boolean}
+     */
+    isFlashTransparent() {
+        return this.flashTransparent && this.hasCellAttributes();
+    }
+
+    /**
      * Set INK transparent mode
      * @param {boolean} transparent
      */
@@ -767,6 +798,50 @@ class ColorManagerClass {
         this.paperTransparent = Boolean(transparent);
         StateManager.set('color.paperTransparent', this.paperTransparent);
         EventBus.emit(EVENTS.COLOR_PAPER, this.getCurrentSelection());
+    }
+
+    /**
+     * Set BRIGHT "use existing": a stroke keeps each cell's own bright. In
+     * ULAplus the bright bit is half the CLUT number, and in ULANext it picks
+     * the paper bank, so keeping it keeps those.
+     * @param {boolean} transparent
+     */
+    setBrightTransparent(transparent) {
+        this.brightTransparent = Boolean(transparent);
+        StateManager.set('color.brightTransparent', this.brightTransparent);
+        EventBus.emit(EVENTS.COLOR_BRIGHT, this.getCurrentSelection());
+    }
+
+    /**
+     * Set FLASH "use existing": a stroke keeps each cell's own flash.
+     * @param {boolean} transparent
+     */
+    setFlashTransparent(transparent) {
+        this.flashTransparent = Boolean(transparent);
+        StateManager.set('color.flashTransparent', this.flashTransparent);
+        EventBus.emit(EVENTS.COLOR_FLASH, this.getCurrentSelection());
+    }
+
+    /** Toggle BRIGHT "use existing". */
+    toggleBrightTransparent() {
+        this.setBrightTransparent(!this.brightTransparent);
+    }
+
+    /** Toggle FLASH "use existing". */
+    toggleFlashTransparent() {
+        this.setFlashTransparent(!this.flashTransparent);
+    }
+
+    /**
+     * Put all four parts of the attribute on "use existing" at once (Shift+T,
+     * ZX Paintbrush's T key): a stroke then changes no colour at all until a
+     * value is picked again.
+     */
+    keepAllAttributes() {
+        this.setInkTransparent(true);
+        this.setPaperTransparent(true);
+        this.setBrightTransparent(true);
+        this.setFlashTransparent(true);
     }
 
     /**
@@ -834,7 +909,9 @@ class ColorManagerClass {
             // The EFFECTIVE flags: off in modes whose cells have no
             // attributes, so no drawing path has to know about the exception.
             inkTransparent: this.isInkTransparent(),
-            paperTransparent: this.isPaperTransparent()
+            paperTransparent: this.isPaperTransparent(),
+            brightTransparent: this.isBrightTransparent(),
+            flashTransparent: this.isFlashTransparent()
         };
         // GigaScreen: screen B's colours and the blend a stroke paints. The
         // draw gate falls back to screen A's colours and a solid ink where
@@ -914,7 +991,9 @@ class ColorManagerClass {
 
         const before = {
             paper: this.paper, bright: this.bright, flash: this.flash,
-            paperTransparent: this.paperTransparent
+            paperTransparent: this.paperTransparent,
+            brightTransparent: this.brightTransparent,
+            flashTransparent: this.flashTransparent
         };
 
         if (Validators.isValidBaseColor(selection.ink)) {
@@ -935,6 +1014,12 @@ class ColorManagerClass {
         if (typeof selection.paperTransparent === 'boolean') {
             this.paperTransparent = selection.paperTransparent;
         }
+        if (typeof selection.brightTransparent === 'boolean') {
+            this.brightTransparent = selection.brightTransparent;
+        }
+        if (typeof selection.flashTransparent === 'boolean') {
+            this.flashTransparent = selection.flashTransparent;
+        }
         const brightBBefore = this.brightB;
         if (Validators.isValidBaseColor(selection.inkB)) this.inkB = selection.inkB;
         if (Validators.isValidBaseColor(selection.paperB)) this.paperB = selection.paperB;
@@ -951,6 +1036,8 @@ class ColorManagerClass {
             flash: this.flash,
             inkTransparent: this.inkTransparent,
             paperTransparent: this.paperTransparent,
+            brightTransparent: this.brightTransparent,
+            flashTransparent: this.flashTransparent,
             inkB: this.inkB,
             paperB: this.paperB,
             brightB: this.brightB,
@@ -962,10 +1049,11 @@ class ColorManagerClass {
             this.paperTransparent !== before.paperTransparent) {
             EventBus.emit(EVENTS.COLOR_PAPER, this.getCurrentSelection());
         }
-        if (this.bright !== before.bright || this.brightB !== brightBBefore) {
+        if (this.bright !== before.bright || this.brightB !== brightBBefore ||
+            this.brightTransparent !== before.brightTransparent) {
             EventBus.emit(EVENTS.COLOR_BRIGHT, this.getCurrentSelection());
         }
-        if (this.flash !== before.flash) {
+        if (this.flash !== before.flash || this.flashTransparent !== before.flashTransparent) {
             EventBus.emit(EVENTS.COLOR_FLASH, this.getCurrentSelection());
         }
     }
