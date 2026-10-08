@@ -380,6 +380,48 @@ class TransformServiceClass {
   }
 
   /**
+   * Why each Image > Dots command is unavailable right now, or null.
+   * `flip` is a stamp with its own cell colours or a locked/absent layer;
+   * `invert` is every reason the attribute commands are blocked, plus a
+   * floating stamp (its dots live on the stamp, not the picture).
+   * @returns {{flip: (string|null), invert: (string|null)}}
+   */
+  dotCommandsBlocked() {
+    const layer = LayerManager.getCurrentLayer();
+    const fp = this._floatingPaste();
+    let flip = null;
+    if (!layer || layer.locked) flip = 'locked';
+    else if (fp) flip = fp.attrs ? 'stampAttrs' : null;
+    else if (layer.isStamp) flip = 'stamp';
+    let invert = this.attributeCommandsBlocked();
+    if (!invert && fp) invert = 'stamp';
+    return { flip, invert };
+  }
+
+  /**
+   * Mirror the dots of the picture, or of a floating stamp. A stamp is flipped
+   * by SelectionService.transformStamp so the stamp is never written through
+   * the picture's cells (the Image menu's own Flip does that; see the batch
+   * 2 log). Blocked cases are reported by dotCommandsBlocked and do nothing.
+   * @param {'h'|'v'} axis
+   */
+  dotsFlip(axis) {
+    if (this.dotCommandsBlocked().flip) return;
+    const fp = this._floatingPaste();
+    if (fp) {
+      SelectionService.transformStamp(axis === 'h' ? 'flipH' : 'flipV');
+      return;
+    }
+    this._flipDots(axis);
+  }
+
+  /** The floating stamp, or null. @private */
+  _floatingPaste() {
+    if (!window.SelectionService || !SelectionService.isFloating()) return null;
+    return SelectionService.floatingPaste || null;
+  }
+
+  /**
    * Invert the dots and swap ink and paper of each whole cell the work area
    * touches, so the picture looks the same. Cells that are see-through on an
    * upper layer are left alone: inverting them would fill them. Blocked on a
@@ -387,7 +429,7 @@ class TransformServiceClass {
    * @returns {number} cells changed
    */
   invertDotsAndColours() {
-    if (this.attributeCommandsBlocked()) return 0;
+    if (this.dotCommandsBlocked().invert) return 0;
     const layer = LayerManager.getCurrentLayer();
     const rect = this._attributeCellRect(this._getWorkArea());
     const pixels = {
@@ -800,8 +842,12 @@ class TransformServiceClass {
     // finer is today's pixel shift, where the paper stays in its cell.
     const aligned = vx % ZX_SPECTRUM.CELL_WIDTH === 0 && vy % ZX_SPECTRUM.CELL_HEIGHT === 0;
     if (!ColorManager.hasCellAttributes() || !aligned) return this._shiftBuffer(area, vx, vy, wrap);
-    const dots = this._shiftDots(area, vx, vy, wrap);
-    const cells = this._shiftColours(area, vx / ZX_SPECTRUM.CELL_WIDTH, vy / ZX_SPECTRUM.CELL_HEIGHT, wrap);
+    // Dots and colours must share one rectangle, or a dot wraps into a cell
+    // whose colours did not travel with it. Round the selection out to whole
+    // cells: a whole cell moves, its dots included, even outside the marquee.
+    const whole = this._cellPixelRect(area);
+    const dots = this._shiftDots(whole, vx, vy, wrap);
+    const cells = this._shiftColours(whole, vx / ZX_SPECTRUM.CELL_WIDTH, vy / ZX_SPECTRUM.CELL_HEIGHT, wrap);
     return dots || cells;
   }
 
@@ -1172,6 +1218,21 @@ class TransformServiceClass {
     if (!layer || layer.isStamp) return 'stamp';
     if (layer.locked) return 'locked';
     return null;
+  }
+
+  /**
+   * The pixel rectangle of the whole cells the area touches.
+   * @returns {{x:number, y:number, width:number, height:number}}
+   * @private
+   */
+  _cellPixelRect(area) {
+    const r = this._attributeCellRect(area);
+    return {
+      x: r.x0 * ZX_SPECTRUM.CELL_WIDTH,
+      y: r.y0 * ZX_SPECTRUM.CELL_HEIGHT,
+      width: (r.x1 - r.x0 + 1) * ZX_SPECTRUM.CELL_WIDTH,
+      height: (r.y1 - r.y0 + 1) * ZX_SPECTRUM.CELL_HEIGHT
+    };
   }
 
   /**

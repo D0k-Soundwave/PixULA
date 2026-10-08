@@ -129,3 +129,11 @@ vodorovně a Otočit svisle zrcadlí barvy buněk. Každý příkaz působí na 
 (všechny buňky, kterých se dotýká), nebo na celý obrázek, není-li nic vybráno,
 a vrací se jedním krokem zpět. Položky jsou šedé v režimech bez barev buněk
 (Timex Hi-res, Layer 2, LoRes), když plove razítko, a na zamčené vrstvě.
+
+### Tečky
+
+Položky Tečky v nabídce Obrázek mění tečky a barvy nechávají v jejich buňkách. Otočit vodorovně a Otočit svisle zrcadlí tečky. Invertovat tečky a barvy navíc prohodí inkoust a papír v každé buňce, takže obrázek vypadá stejně. Nenabízí se v režimech bez barev buněk (Layer 2, LoRes, Timex Hi-res) a když plove razítko, je šedá.
+
+Volba Posun v sekci Posunout panelu Transformace určuje, co se pohybuje. Tečky a barvy (výchozí) posouvá celé buňky i s jejich papírem. Jen tečky posouvá tečky po pixelu nebo po buňce. Jen barvy posouvá barvy buněk po buňce. Ovladač má i úhlopříčné směry. Když plove razítko, je volba Posun šedá, protože posun přesouvá celé razítko.
+
+Šipky se řídí stejnou volbou Posun, když je něco vybráno.

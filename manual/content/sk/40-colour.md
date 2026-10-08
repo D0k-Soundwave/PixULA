@@ -132,3 +132,11 @@ výber (všetky bunky, ktorých sa dotýka), alebo na celý obrázok, ak nič ni
 vybraté, a vracia sa jedným krokom. Položky sú šedé v režimoch bez farieb
 buniek (Timex Hi-res, Layer 2, LoRes), keď pláva pečiatka, a na zamknutej
 vrstve.
+
+### Bodky
+
+Položky Bodky v ponuke Obrázok menia bodky a farby nechávajú v ich bunkách. Otočiť vodorovne a Otočiť zvisle zrkadlia bodky. Invertovať bodky a farby navyše prehodí atrament a papier v každej bunke, takže obrázok vyzerá rovnako. Nedá sa použiť v režimoch bez farieb buniek (Layer 2, LoRes, Timex Hi-res) a keď pláva pečiatka, je sivá.
+
+Voľba Posun v sekcii Posun panela Transformácia určuje, čo sa hýbe. Bodky a farby (predvolené) posúva celé bunky aj s ich papierom. Iba bodky posúva bodky o pixel alebo o bunku naraz. Iba farby posúva farby buniek po jednej bunke. Ovládací kríž má aj uhlopriečky. Keď pláva pečiatka, Posun je sivý, pretože posun presúva celú pečiatku.
+
+Šípky pri výbere sledujú rovnakú voľbu Posun.

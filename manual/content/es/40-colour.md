@@ -142,3 +142,11 @@ selección (todas las celdas que toca) o sobre toda la imagen si no hay
 selección, y se deshace en un solo paso. Los elementos aparecen atenuados en
 los modos sin colores de celda (Timex Hi-res, Layer 2, LoRes), mientras flota
 un sello y en una capa bloqueada.
+
+### Puntos
+
+Los elementos Puntos del menú Imagen cambian los puntos y dejan los colores en sus celdas. Voltear horizontal y Voltear vertical reflejan los puntos. Invertir puntos y colores también intercambia la tinta y el papel de cada celda, así que la imagen se ve igual. No se ofrece en modos sin colores de celda (Layer 2, LoRes, Timex Hi-res), y aparece en gris mientras flota un sello.
+
+La opción Mover de la sección Desplazar del panel de Transformar decide qué se mueve. Puntos y colores (por defecto) mueve celdas completas con su papel. Solo puntos mueve los puntos un píxel o una celda cada vez. Solo colores mueve los colores de celda una celda cada vez. La cruceta tiene también las diagonales. Mientras flota un sello, Mover aparece en gris, porque un desplazamiento mueve todo el sello.
+
+Las flechas siguen la misma opción Mover cuando hay una selección.

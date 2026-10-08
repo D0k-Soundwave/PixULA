@@ -146,3 +146,11 @@ das ganze Bild, wenn nichts ausgewählt ist, und ist mit einem Schritt
 rückgängig zu machen. Die Einträge sind in Modi ohne Zellfarben (Timex Hi-res,
 Layer 2, LoRes), bei schwebendem Stempel und auf einer gesperrten Ebene
 ausgegraut.
+
+### Punkte
+
+Die Einträge Punkte im Menü Bild ändern die Punkte und lassen die Farben in ihren Zellen. Horizontal spiegeln und Vertikal spiegeln spiegeln die Punkte. Punkte und Farben invertieren tauscht außerdem Vordergrund und Hintergrund jeder Zelle, sodass das Bild gleich aussieht. Er wird in Modi ohne Zellenfarben nicht angeboten (Layer 2, LoRes, Timex Hi-res) und ist grau, solange ein Stempel schwebt.
+
+Die Option Verschieben im Abschnitt Verschieben des Transform-Panels legt fest, was sich bewegt. Punkte und Farben (Vorgabe) verschiebt ganze Zellen mit ihrem Papier. Nur Punkte verschiebt die Punkte um einen Pixel oder eine Zelle. Nur Farben verschiebt die Zellenfarben Zelle für Zelle. Das Feld hat auch die vier Diagonalen. Solange ein Stempel schwebt, ist Verschieben grau, weil eine Verschiebung den ganzen Stempel bewegt.
+
+Die Pfeiltasten folgen bei einer Auswahl derselben Option Verschieben.

@@ -204,6 +204,33 @@ class MenuSystemClass {
     }
 
     /**
+     * Grey out the Image > Dots rows the current state blocks (TransformService
+     * dotCommandsBlocked). The reasons go on the Dots row tooltip; a disabled
+     * row takes no pointer events, so the tooltip would never show on a row.
+     * @private
+     */
+    _updateDotMenuState() {
+        if (!window.TransformService) return;
+        const b = TransformService.dotCommandsBlocked();
+        this.setItemEnabled('dots-flip-h', !b.flip);
+        this.setItemEnabled('dots-flip-v', !b.flip);
+        this.setItemEnabled('dots-invert', !b.invert);
+        const parent = this.element.querySelector('[data-id="dots"]');
+        if (!parent) return;
+        const reasons = {
+            locked: ['menu.image.attrLocked', 'This layer is locked.'],
+            stamp: ['menu.image.attrStamp', 'Finish or cancel the stamp first.'],
+            stampAttrs: ['menu.image.dotsStampAttrs', 'This stamp keeps its own colours, so it cannot be flipped here.'],
+            noCellAttributes: ['menu.image.dotsNoCells', 'Invert Dots and Colours needs cell colours, which this screen mode does not have.']
+        };
+        const texts = [b.flip, b.invert]
+            .filter((r, i, all) => r && all.indexOf(r) === i)
+            .map((r) => this._t(reasons[r][0], reasons[r][1]));
+        if (texts.length) parent.title = texts.join(' ');
+        else parent.removeAttribute('title');
+    }
+
+    /**
      * Disable each Save Image As leaf the active screen mode can't actually
      * export (e.g. nxi/sl2 need an indexed mode) — applied as
      * enabled/disabled rather than "listed at all", since a static menu tree
@@ -354,6 +381,15 @@ class MenuSystemClass {
                         { type: 'separator' },
                         { id: 'attr-flip-h', label: 'Flip Horizontal', action: 'image:attrFlipH' },
                         { id: 'attr-flip-v', label: 'Flip Vertical', action: 'image:attrFlipV' }
+                    ]},
+                    // Dots only (the colours stay in their cells), except
+                    // Invert Dots and Colours, which inverts both. Reasons on
+                    // the Dots row as for Attributes (_updateDotMenuState).
+                    { id: 'dots', label: 'Dots', i18n: 'menu.image.dots', items: [
+                        { id: 'dots-flip-h', label: 'Flip Horizontal', action: 'image:dotsFlipH' },
+                        { id: 'dots-flip-v', label: 'Flip Vertical', action: 'image:dotsFlipV' },
+                        { type: 'separator' },
+                        { id: 'dots-invert', label: 'Invert Dots and Colours', action: 'image:dotsInvert' }
                     ]},
                     { type: 'separator' },
                     // Screen modes (Phase 12a/13) live in their own flyout —
@@ -585,6 +621,7 @@ class MenuSystemClass {
             this._updateModeToggles();
             this._updateExportAsMenuState();
             this._updateAttributeMenuState();
+            this._updateDotMenuState();
         });
 
         // Keep the View-menu Mirror radios and Snap toggle in sync with their
@@ -651,7 +688,10 @@ class MenuSystemClass {
 
         if (menuId === 'edit') this._updateEditMenuState();
         if (menuId === 'view') this._updateViewMenuState();
-        if (menuId === 'image') this._updateAttributeMenuState();
+        if (menuId === 'image') {
+            this._updateAttributeMenuState();
+            this._updateDotMenuState();
+        }
 
         const menuItem = this.element.querySelector(`[data-menu="${menuId}"]`);
         const dropdown = this.element.querySelector(`#menu-${menuId}`);
@@ -964,6 +1004,11 @@ class MenuSystemClass {
             case 'image:attrErase':    TransformService.eraseAttributes();         break;
             case 'image:attrFlipH':    TransformService.flipAttributesHorizontal(); break;
             case 'image:attrFlipV':    TransformService.flipAttributesVertical();   break;
+
+            // Image > Dots (dots only; Invert Dots and Colours inverts both)
+            case 'image:dotsFlipH':    TransformService.dotsFlip('h');             break;
+            case 'image:dotsFlipV':    TransformService.dotsFlip('v');             break;
+            case 'image:dotsInvert':   TransformService.invertDotsAndColours();    break;
 
             // Screen modes (Phase 12a)
             case 'image:modeStandardUla':   this.requestScreenMode('standard_ula');   break;

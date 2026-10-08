@@ -138,3 +138,11 @@ Yatay çevir ve Dikey çevir hücre renklerini aynalar. Her komut seçimi (dokun
 tüm hücreleri) ya da hiçbir şey seçili değilse tüm resmi etkiler ve tek adımda
 geri alınır. Öğeler, hücre renkleri olmayan kiplerde (Timex Hi-res, Layer 2,
 LoRes), bir damga yüzerken ve kilitli bir katmanda soluk görünür.
+
+### Noktalar
+
+Görüntü menüsündeki Noktalar öğeleri noktaları değiştirir, renkleri hücrelerinde bırakır. Yatay çevir ve Dikey çevir noktaları çevirir. Noktaları ve renkleri ters çevir, her hücrenin mürekkep ve kağıdını da değiştirir, böylece resim aynı görünür. Hücre renkleri olmayan kipte sunulmaz (Layer 2, LoRes, Timex Hi-res) ve bir damga yüzerken gri görünür.
+
+Dönüşüm panelindeki Kaydırma bölümünde Taşıma seçeneği neyin taşınacağını belirler. Noktalar ve renkler (varsayılan) tam hücreleri kağıtlarıyla birlikte taşır. Yalnızca noktalar noktaları seferinde bir piksel ya da bir hücre taşır. Yalnızca renkler hücre renklerini bir hücre kadar taşır. Yön tuşları çapraz yönleri de içerir. Bir damga yüzerken Taşıma gri görünür, çünkü kaydırma tüm damgayı taşır.
+
+Bir seçim varken ok tuşları aynı Taşıma seçeneğini izler.

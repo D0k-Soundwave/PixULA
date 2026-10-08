@@ -838,11 +838,28 @@ const Helpers = {
         });
     },
 
-    buildDirPad() {
+    /**
+     * A four-way direction pad, or with `nine: true` a three-by-three one with
+     * the four diagonals and an empty centre. The nine variant clips each zone
+     * to its ninth (css .dir-pad--nine) and uses icon-dirpad9-* glyphs drawn
+     * inside their own ninth. Zones come back in reading order.
+     * @param {{nine?: boolean}} [options]
+     * @returns {{element: HTMLElement, zones: Object<string, HTMLButtonElement>}}
+     */
+    buildDirPad(options = {}) {
         const pad = document.createElement('div');
-        pad.className = 'dir-pad';
+        pad.className = options.nine ? 'dir-pad dir-pad--nine' : 'dir-pad';
 
-        const ZONES = [
+        const ZONES = options.nine ? [
+            { dir: 'upLeft',    icon: 'icon-dirpad9-upleft',    i18n: 'dirpad.upLeft',    fallback: 'Shift up left' },
+            { dir: 'up',        icon: 'icon-dirpad9-up',        i18n: 'dirpad.up',        fallback: 'Shift up' },
+            { dir: 'upRight',   icon: 'icon-dirpad9-upright',   i18n: 'dirpad.upRight',   fallback: 'Shift up right' },
+            { dir: 'left',      icon: 'icon-dirpad9-left',      i18n: 'dirpad.left',      fallback: 'Shift left' },
+            { dir: 'right',     icon: 'icon-dirpad9-right',     i18n: 'dirpad.right',     fallback: 'Shift right' },
+            { dir: 'downLeft',  icon: 'icon-dirpad9-downleft',  i18n: 'dirpad.downLeft',  fallback: 'Shift down left' },
+            { dir: 'down',      icon: 'icon-dirpad9-down',      i18n: 'dirpad.down',      fallback: 'Shift down' },
+            { dir: 'downRight', icon: 'icon-dirpad9-downright', i18n: 'dirpad.downRight', fallback: 'Shift down right' }
+        ] : [
             { dir: 'up',    icon: 'icon-dirpad-up',    i18n: 'dirpad.up',    fallback: 'Shift up' },
             { dir: 'left',  icon: 'icon-dirpad-left',  i18n: 'dirpad.left',  fallback: 'Shift left' },
             { dir: 'right', icon: 'icon-dirpad-right', i18n: 'dirpad.right', fallback: 'Shift right' },

@@ -144,3 +144,11 @@ selecție (toate celulele atinse) sau pe toată imaginea când nu e nimic
 selectat, și se anulează dintr-un pas. Elementele sunt estompate în modurile
 fără culori de celulă (Timex Hi-res, Layer 2, LoRes), cât timp o ștampilă
 plutește și pe un strat blocat.
+
+### Puncte
+
+Elementele Puncte din meniul Imagine modifică punctele și lasă culorile în celulele lor. Oglindire orizontală și Oglindire verticală oglindesc punctele. Inversează punctele și culorile schimbă și cerneala cu hârtia din fiecare celulă, astfel încât imaginea rămâne la fel. Nu este oferit în moduri fără culori de celulă (Layer 2, LoRes, Timex Hi-res) și apare cenușiu cât timp o ștampilă plutește.
+
+Alegerea Deplasare din secțiunea Deplasare a panoului Transformare stabilește ce se mută. Puncte și culori (implicit) mută celule întregi cu hârtia lor. Doar puncte mută punctele cu un pixel sau o celulă pe rând. Doar culori mută culorile celulelor câte o celulă. Panoul are și diagonale. Cât timp o ștampilă plutește, Deplasare este cenușie, pentru că o deplasare mută întreaga ștampilă.
+
+Când există o selecție, săgețile urmează aceeași alegere Deplasare.
