@@ -2051,6 +2051,20 @@ class InputHandlerClass {
       return;
     }
 
+    // Bright, Flash and "use existing" (COLOUR_SHORTCUTS). Toggling a value
+    // also turns its "use existing" off, in ColorManager - the key means "set
+    // it", exactly as clicking the rail's toggle does.
+    if (!ctrl && e.shiftKey && !e.altKey) {
+      const shortcut = COLOUR_SHORTCUTS.find((s) => s.key === key);
+      if (shortcut) {
+        e.preventDefault();
+        if (shortcut.id === 'toggleBright') ColorManager.setBright(!ColorManager.getBright());
+        else if (shortcut.id === 'toggleFlash') ColorManager.setFlash(!ColorManager.getFlash());
+        else ColorManager.keepAllAttributes();
+        return;
+      }
+    }
+
     // ── Tool shortcuts — generated from TOOL_GROUPS ──
     if (!ctrl && !e.shiftKey && !e.altKey) {
       const toolId = this._toolShortcuts.get(key);

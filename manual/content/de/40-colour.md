@@ -23,6 +23,16 @@ Schwarz auf Weiß zurück, und auf einer oberen Ebene wird die Zelle wieder
 durchsichtig. Eine Zelle, die noch Punkte enthält, behält ihre Farben, egal wie
 oft Sie darüber radieren.
 
+Jeder der vier Teile lässt sich auch auf **vorhanden verwenden** stellen - das
+karierte Kästchen darunter in der Farbleiste. Ein Strich lässt diesen Teil jeder
+Zelle dann, wie er ist, statt Ihre Einstellung zu schreiben. Stellen Sie TINTE,
+PAPIER und HELL auf vorhanden und schalten Sie BLINKEN ein, dann lässt **Nur
+Attribute füllen** des Füllwerkzeugs eine ganze Fläche blinken, ohne eine Farbe
+zu ändern. Umschalt+B und Umschalt+F schalten HELL und BLINKEN um, Umschalt+T
+stellt alle vier auf vorhanden. In ULAplus wählen HELL und BLINKEN die CLUT,
+daher hat die CLUT-Auswahl ein einziges Kästchen, das die CLUT jeder Zelle
+behält.
+
 ### Zeichenmodi
 
 Der Zeichenmodus ändert, was ein Strich bewirkt. Er bleibt über Sitzungen hinweg

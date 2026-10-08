@@ -24,6 +24,16 @@ sur blanc, et sur un calque supérieur la cellule redevient transparente. Une
 cellule qui contient encore des points garde ses couleurs, quel que soit le
 nombre de passages de gomme.
 
+Chacun des quatre peut aussi être réglé sur **utiliser l'existant** - la case à
+damier sous lui dans la barre de couleurs. Un trait laisse alors cette partie de
+chaque cellule telle quelle, au lieu d'écrire votre réglage. Mettez ENCRE,
+PAPIER et LUMINEUX sur existant et activez CLIGNOTANT : l'option **Remplir les
+attributs seulement** de l'outil de remplissage fait alors clignoter toute une
+zone sans changer une couleur. Maj+B et Maj+F basculent LUMINEUX et CLIGNOTANT,
+et Maj+T met les quatre sur existant. En ULAplus, LUMINEUX et CLIGNOTANT
+choisissent la CLUT : le sélecteur de CLUT a donc une seule case, qui garde la
+CLUT de chaque cellule.
+
 ### Modes de dessin
 
 Le mode de dessin change l’effet d’un trait. Il est conservé d’une session à

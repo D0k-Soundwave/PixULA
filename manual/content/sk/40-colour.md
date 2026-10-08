@@ -20,6 +20,15 @@ prázdnu bunku znova novým ťahom: atrament, papier, jas a blikanie sa vrátia 
 čiernu na bielej a na hornej vrstve bude bunka opäť priehľadná. Bunka, v ktorej
 sú ešte body, si farby ponechá, nech cez ňu gumou prejdete koľkokrát chcete.
 
+Každú zo štyroch častí možno nastaviť aj na **použiť existujúce**: kockované
+políčko pod ňou na farebnej lište. Ťah potom túto časť každej bunky ponechá tak,
+ako je, namiesto toho, aby zapísal vaše nastavenie. Nastavte ATRAMENT, PAPIER a
+JASNÝ na existujúce a zapnite BLIKANIE a voľba **Vyplniť iba atribúty** nástroja
+výplne rozbliká celú plochu bez zmeny jedinej farby. Shift+B a Shift+F prepínajú
+JASNÝ a BLIKANIE a Shift+T nastaví všetky štyri na existujúce. V ULAplus volia
+JASNÝ a BLIKANIE tabuľku CLUT, preto má výber CLUT jediné políčko, ktoré ponechá
+CLUT každej bunky.
+
 ### Režimy kreslenia
 
 Režim kreslenia mení, čo ťah urobí. Pamätá sa medzi reláciami, takže ho stavový

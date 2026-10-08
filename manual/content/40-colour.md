@@ -20,6 +20,15 @@ paper, bright and flash go back to black on white, and on an upper layer the
 cell becomes see-through again. A cell that still has dots in it keeps its
 colours however many times you erase over it.
 
+Each of the four can also be set to **use existing** - the checkered box under
+it in the colour rail. A stroke then leaves that part of every cell as it
+already is, instead of writing your setting. Put Ink, Paper and Bright on use
+existing, switch Flash on, and the fill tool's **Fill attributes only** makes a
+whole area flash without changing a colour. Shift+B and Shift+F switch Bright
+and Flash, and Shift+T puts all four on use existing. In ULAplus, Bright and
+Flash choose the CLUT, so the CLUT picker has one box that keeps each cell's own
+CLUT.
+
 ### Draw modes
 
 The draw mode changes what a stroke does. It persists between sessions, so the

@@ -1163,7 +1163,9 @@ PresetServiceClass.SLICES = Object.freeze([
                 flash: ColorManager.getFlash(),
                 border: ColorManager.getBorder(),
                 inkTransparent: !!ColorManager.inkTransparent,
-                paperTransparent: !!ColorManager.paperTransparent
+                paperTransparent: !!ColorManager.paperTransparent,
+                brightTransparent: !!ColorManager.brightTransparent,
+                flashTransparent: !!ColorManager.flashTransparent
             };
             // Indexed (Next) and ULAplus modes carry their own selections
             if (typeof ColorManager.getIndexedInk === 'function') {
@@ -1228,6 +1230,19 @@ PresetServiceClass.SLICES = Object.freeze([
             }
             if (Number.isFinite(value.clut) && typeof ColorManager.setClut === 'function') {
                 ColorManager.setClut(value.clut);
+            }
+            // Bright and Flash "use existing" (2026-10-08) come LAST: every
+            // value above that touches the two bits - bright, flash, screen B's
+            // bright and the ULAplus CLUT, which IS the two bits - clears the
+            // keeps, as picking a swatch clears Ink's. A preset saved before
+            // the keeps existed carries neither key, so they stay cleared.
+            if (typeof value.brightTransparent === 'boolean' &&
+                typeof ColorManager.setBrightTransparent === 'function') {
+                ColorManager.setBrightTransparent(value.brightTransparent);
+            }
+            if (typeof value.flashTransparent === 'boolean' &&
+                typeof ColorManager.setFlashTransparent === 'function') {
+                ColorManager.setFlashTransparent(value.flashTransparent);
             }
             // A preset saved before 2026-09-25 may still hold timexHiresInk /
             // timexHiresInkB. They are ignored: see capture().

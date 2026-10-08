@@ -39,8 +39,16 @@ global.ColorManager = {
   getCurrentSelection() { return { ink: 0, paper: 7, bright: false, flash: false }; },
   getInk() { return 1; }, getPaper() { return 6; },
   getBright() { return true; }, getFlash() { return false; }, getBorder() { return 2; },
-  setInk() {}, setPaper() {}, setBright() {}, setFlash() {}, setBorder() {},
+  setInk() {}, setPaper() {}, setBorder() {},
   setInkTransparent() {}, setPaperTransparent() {},
+  // Bright and Flash "use existing" (2026-10-08): recorded in call order, so
+  // the slice can be shown to set the keep AFTER the value (setting a value
+  // clears its keep, as picking a swatch clears Ink's).
+  brightTransparent: true, flashTransparent: false, calls: [],
+  setBright() { this.calls.push('bright'); }, setFlash() { this.calls.push('flash'); },
+  setClut() { this.calls.push('clut'); }, getClut() { return 1; },
+  setBrightTransparent(v) { this.calls.push('brightKeep:' + v); },
+  setFlashTransparent(v) { this.calls.push('flashKeep:' + v); },
   // The Timex hi-res schemes, so the colour slice can be shown to leave them alone
   schemeWrites: 0,
   getTimexHiresInk() { return 3; }, getTimexHiresInkB() { return 5; },
@@ -270,6 +278,23 @@ check('every slice has a label key for the dialogs',
   color.apply({ ink: 1, timexHiresInk: 6, timexHiresInkB: 4 });
   check('an old preset still holding the schemes does not apply them',
     global.ColorManager.schemeWrites === 0, `${global.ColorManager.schemeWrites} scheme writes`);
+}
+
+// Bright and Flash "use existing" travel with the colour slice - and so with
+// .pixula projects, which carry the same slice.
+{
+  const color = global.PresetService.getSlice('color');
+  const captured = color.capture();
+  check('the colour slice captures Bright and Flash "use existing"',
+    captured.brightTransparent === true && captured.flashTransparent === false, JSON.stringify(captured));
+  global.ColorManager.calls = [];
+  color.apply({ bright: true, flash: false, clut: 1, brightTransparent: true, flashTransparent: false });
+  const c = global.ColorManager.calls;
+  const last = (k) => c.lastIndexOf(k);
+  check('...and applies them after every value that touches the two bits (CLUT included)',
+    c.indexOf('brightKeep:true') > Math.max(last('bright'), last('clut')) &&
+    c.indexOf('flashKeep:false') > Math.max(last('flash'), last('clut')),
+    c.join(','));
 }
 
 summary();

@@ -1058,6 +1058,22 @@ const TOOL_GROUPS = Object.freeze([
 ]);
 
 /**
+ * The colour keys that are not tools: ZX Paintbrush's B, F and T (Bright,
+ * Flash, everything transparent), on Shift here because bare B, F and T pick
+ * Brush, Fade and Text. One list, read by InputHandler (what the key does),
+ * the Keyboard Shortcuts dialog and the generated manual (what it says), so
+ * the three cannot disagree.
+ *   key  - the lower-case `KeyboardEvent.key` pressed with Shift
+ *   keys - how the shortcut is written for the reader
+ * @const {Array<{id: string, key: string, keys: string, i18n: string, en: string}>}
+ */
+const COLOUR_SHORTCUTS = Object.freeze([
+    Object.freeze({ id: 'toggleBright', key: 'b', keys: 'Shift+B', i18n: 'help.toggleBright', en: 'Bright on or off' }),
+    Object.freeze({ id: 'toggleFlash', key: 'f', keys: 'Shift+F', i18n: 'help.toggleFlash', en: 'Flash on or off' }),
+    Object.freeze({ id: 'keepAll', key: 't', keys: 'Shift+T', i18n: 'help.keepAll', en: 'Use existing Ink, Paper, Bright and Flash' })
+]);
+
+/**
  * Canvas zoom configuration — the single source for the zoom dropdown options,
  * the +/- step buttons, wheel zoom, and the Fit computation.
  * @const {Object}
@@ -1502,6 +1518,7 @@ window.DEFAULT_CELL_ATTRS = DEFAULT_CELL_ATTRS;
 window.GIGA_SLOTS = GIGA_SLOTS;
 window.TOOLS = TOOLS;
 window.TOOL_GROUPS = TOOL_GROUPS;
+window.COLOUR_SHORTCUTS = COLOUR_SHORTCUTS;
 window.PEN_CONTROLS = PEN_CONTROLS;
 window.PEN_ACTIONS = PEN_ACTIONS;
 window.PEN_PROFILES = PEN_PROFILES;

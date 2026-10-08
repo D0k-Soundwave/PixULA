@@ -23,6 +23,16 @@ fehéren értékre, felsőbb rétegen pedig a cella ismét átlátszó lesz. Az 
 amelyben még vannak pontok, megtartja a színeit, akárhányszor radírozol át
 rajta.
 
+A négy rész mindegyike **meglévő használata** állásba is tehető: ez a színsávban
+alatta lévő kockás négyzet. Egy vonás ekkor minden cella adott részét úgy
+hagyja, ahogy van, a beállításod írása helyett. Tedd a TINTÁT, a PAPÍRT és a
+FÉNYESSÉGET meglévőre, kapcsold be a VILLOGÁST, és a kitöltés **Csak
+attribútumok kitöltése** beállítása egy egész területet villogóvá tesz egyetlen
+szín megváltoztatása nélkül. A Shift+B és a Shift+F a FÉNYESSÉGET és a VILLOGÁST
+kapcsolja, a Shift+T pedig mind a négyet meglévőre állítja. ULAplus módban a
+FÉNYESSÉG és a VILLOGÁS a CLUT-ot választja ki, ezért a CLUT-választónak
+egyetlen négyzete van, amely minden cella saját CLUT-ját megtartja.
+
 ### Rajzolási módok
 
 A rajzolási mód azt változtatja meg, mit tesz egy vonás. Munkamenetek között is

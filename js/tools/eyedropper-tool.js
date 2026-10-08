@@ -163,7 +163,9 @@ class EyedropperToolClass extends ToolBase {
       inkB: b.ink, paperB: b.paper, brightB: b.bright,
       gigaSlot: bitA * 2 + bitB,
       inkTransparent: false,
-      paperTransparent: false
+      paperTransparent: false,
+      brightTransparent: false,
+      flashTransparent: false
     });
   }
 
@@ -173,16 +175,19 @@ class EyedropperToolClass extends ToolBase {
    * @private
    */
   _pickCellAttributes(cell) {
-    // Picking is choosing colours, so it clears "use existing" on both
-    // channels - exactly as clicking a swatch does. Leaving the boxes on
-    // handed back a colour the next stroke would then ignore.
+    // Picking is choosing colours, so it clears "use existing" on all four
+    // parts - exactly as clicking a swatch or a toggle does, and as ZX
+    // Paintbrush's pipette sets every control to a definite value. Leaving a
+    // box on handed back a value the next stroke would then ignore.
     ColorManager.setSelection({
       ink: cell.ink,
       paper: cell.paper,
       bright: cell.bright,
       flash: cell.flash,
       inkTransparent: false,
-      paperTransparent: false
+      paperTransparent: false,
+      brightTransparent: false,
+      flashTransparent: false
     });
     Logger.debug('EyedropperTool', `Picked cell attributes: ink=${cell.ink}, paper=${cell.paper}, bright=${cell.bright}, flash=${cell.flash}`);
   }

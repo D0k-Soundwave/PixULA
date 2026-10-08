@@ -20,6 +20,15 @@ prázdnou buňku znovu novým tahem: inkoust, papír, jas a blikání se vrátí
 černou na bílé a na horní vrstvě bude buňka opět průhledná. Buňka, ve které jsou
 ještě body, si barvy ponechá, ať přes ni gumou přejedete kolikrát chcete.
 
+Každou ze čtyř částí lze také nastavit na **použít stávající**: kostkované
+políčko pod ní na barevné liště. Tah pak tuto část každé buňky ponechá, jak je,
+místo aby zapsal vaše nastavení. Nastavte INKOUST, PAPÍR a JASNÝ na stávající a
+zapněte BLIKÁNÍ, a volba **Vyplnit pouze atributy** nástroje výplně rozbliká
+celou plochu, aniž by změnila jedinou barvu. Shift+B a Shift+F přepínají JASNÝ a
+BLIKÁNÍ a Shift+T nastaví všechny čtyři na stávající. V ULAplus volí JASNÝ a
+BLIKÁNÍ tabulku CLUT, proto má výběr CLUT jediné políčko, které ponechá CLUT
+každé buňky.
+
 ### Režimy kreslení
 
 Režim kreslení mění, co tah udělá. Pamatuje se mezi relacemi, takže ho stavový
