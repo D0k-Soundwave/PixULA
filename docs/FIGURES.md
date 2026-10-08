@@ -531,6 +531,30 @@ previous step already cleared, and about 57 ms building the per-move hover
 footprint. Stamping only the leading edge of each step would take most of the
 first; it is a rewrite of the stroke, so it was not part of this pass.
 
+### Shift and the Move choice - measured 2026-10-08
+
+Batch 2 part 2B2 changed `TransformService.shift` (diagonals, a per-axis
+amount, and the Move content choice). Instrument: a Node harness that runs
+`shift` 40 times per run on a picture with dots on every third row and fifth
+column, two runs back to back in one sitting. Before = commit 92fd7c2 (the
+single-direction shift, 1 pixel); after = the working tree (2B2). Node, not
+the browser: read for the ratio and the order of magnitude.
+
+| Path | Before | After | Tag |
+|---|---|---|---|
+| Layer 2 640x256, shift 1 pixel left/right | 29.0 to 30.6 ms per call | 29.6 to 31.0 ms per call | M, 2026-10-08, 2 runs each |
+| multigiga_8x1 256x192 (two screens), diagonal whole-cell step, content both | not measured (the diagonal did not exist) | 12.2 to 13.3 ms per call | M, 2026-10-08, 2 runs each |
+
+Reading: the Layer 2 path is unchanged within the run-to-run spread (about
+2 ms here), so the rounding fix and the new diagonals add no measurable cost
+there. The multigiga figure is the worst case the pad can ask for: one
+diagonal press is two passes over the whole screen. [C] mid-point of the two
+multigiga runs: (12.2 + 13.3) / 2 = 12.7 ms per call. A held diagonal keeps
+up with its repeat only while the repeat interval is longer than that. The
+repeat interval in Helpers.REPEAT_INTERVAL is 60 ms ([A]: a guess, never
+measured), so the check passes with the 60 ms guess. Measure the real hand
+cadence before relying on it.
+
 ### XOR strokes and the drawing-modes strip - measured 2026-10-07 and 2026-10-08
 
 XOR / Over remembered which pixels a stroke had toggled in a Set of
