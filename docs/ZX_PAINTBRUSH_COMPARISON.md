@@ -264,9 +264,12 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 ## Part 3 - Parity backlog
 
 Every Missing or Partial row above, grouped into batches in working order. Each
-batch gets its own plan when it is reached. Nothing here is rejected: where
-something may not suit a browser app (print, disk images, archives), its batch
-plan says what it would cost and the owner decides.
+batch has its working instructions in `.claude/parity/batch-NN.md`, and progress
+is recorded in `.claude/parity/LOG.md`. Batches run in groups of three, each
+group on its own branch and checked as a whole before it is merged: A = 2-4,
+B = 5-7, C = 8-10, D = 11-12. Nothing here is rejected: where something may not
+suit a browser app (print, disk images, archives), its batch says what it would
+cost and the owner decides.
 
 1. **Bright and Flash - DONE 2026-10-08.** "Use existing" for Bright and Flash in
    every mode and tool; one CLUT box in ULAplus; Shift+B / Shift+F / Shift+T.
@@ -278,7 +281,9 @@ plan says what it would cost and the owner decides.
    and swaps colours, so the picture looks unchanged - tidies imports).
 3. **Seeing attributes**: colours-off (black-and-white dots) view; flashing
    on/off; chessboard cell grid; pointer readout of the attribute value and the
-   pixel/attribute screen addresses; user-defined grid.
+   pixel/attribute screen addresses; user-defined grid; PLOT coordinates and grid
+   colours (moved here from batch 12 on 2026-10-08, as they belong with the
+   readout and the grids).
 4. **Painting options**: attribute line thickness (colour only a 1- or 4-pixel
    core of thick lines); copy-attribute tool in one step; Inverse mode switch;
    wiping-tool behaviour (erase dots and set colours, honouring use-existing);
@@ -287,8 +292,9 @@ plan says what it would cost and the owner decides.
    show-through stored with the stamp; overlapping vs transparent clear dots;
    convert a coloured stamp to pixels only.
 6. **Palettes**: palette slots (P0-P3 / U0-U3) with quick switch; ink/paper CLUT
-   inverter; editable standard Spectrum colours; ULAplus palette as a 151-byte
-   TAP; 0-3 CLUT keys.
+   inverter; editable standard Spectrum colours; ULAplus palette as a TAP (a
+   151-byte program [P, help]; the sample files are 176 bytes in all [M,
+   2026-10-08]); CLUT keys.
 7. **Drawing tools**: polyline (freehand and line), rays, orthogonal and parallel
    lines, free 3-point triangle, free-point polygon, rotatable shapes, adjustable
    rounding, line styles (dashed/dotted), spray pattern tool, point mode (edit,
@@ -307,5 +313,5 @@ plan says what it would cost and the owner decides.
 12. **Files**: PZX and turbo loaders; disk images (DSK, TRD/SCL, MGT/IMG);
     Nirvana .btile; archives and Warajevo TAP; data block composer, memory and
     pulse editors, header changer; ASM/BIN export settings; change picture size;
-    print; PLOT coordinates and grid colours in Options; picture converter
-    extras (black-and-white mode, GIF frame picker).
+    print; the rest of Options; picture converter extras (black-and-white mode,
+    GIF frame picker).
