@@ -8,6 +8,12 @@
  * All operations work on the current selection or entire canvas.
  */
 
+// Dot movement per shift direction, as [dx, dy] steps.
+const SHIFT_VECTORS = {
+  up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0],
+  upLeft: [-1, -1], upRight: [1, -1], downLeft: [-1, 1], downRight: [1, 1]
+};
+
 class TransformServiceClass {
   constructor() {
     this.tempBuffer = null;
@@ -339,6 +345,84 @@ class TransformServiceClass {
     Logger.debug('TransformService', 'Flip vertical applied');
   }
 
+  /**
+   * Mirror the dots left-right; each cell keeps its colours (the Image >
+   * Dots > Flip Horizontal command). Indexed and Timex modes have no cell
+   * colours and flip as Flip Horizontal does.
+   */
+  flipDotsHorizontal() {
+    this._flipDots('h');
+  }
+
+  /** Mirror the dots top-bottom; colours stay in their cells. */
+  flipDotsVertical() {
+    this._flipDots('v');
+  }
+
+  /** @private */
+  _flipDots(axis) {
+    const layer = LayerManager.getCurrentLayer();
+    if (!layer || layer.locked) return;
+    if (!ColorManager.hasCellAttributes()) {
+      if (axis === 'h') this.flipHorizontal(); else this.flipVertical();
+      return;
+    }
+    const area = this._getWorkArea();
+    const before = this._dotGrid(area);
+    if (!before) return;
+    const after = axis === 'h'
+      ? before.map(row => row.slice().reverse())
+      : before.slice().reverse();
+
+    PixelDrawRoutine.beginBatch();
+    this._writeDots(area, before, after);
+    PixelDrawRoutine.endBatch();
+  }
+
+  /**
+   * Invert the dots and swap ink and paper of each whole cell the work area
+   * touches, so the picture looks the same. Cells that are see-through on an
+   * upper layer are left alone: inverting them would fill them. Blocked on a
+   * stamp, a locked layer and modes without cell colours.
+   * @returns {number} cells changed
+   */
+  invertDotsAndColours() {
+    if (this.attributeCommandsBlocked()) return 0;
+    const layer = LayerManager.getCurrentLayer();
+    const rect = this._attributeCellRect(this._getWorkArea());
+    const pixels = {
+      x: rect.x0 * ZX_SPECTRUM.CELL_WIDTH,
+      y: rect.y0 * ZX_SPECTRUM.CELL_HEIGHT,
+      width: (rect.x1 - rect.x0 + 1) * ZX_SPECTRUM.CELL_WIDTH,
+      height: (rect.y1 - rect.y0 + 1) * ZX_SPECTRUM.CELL_HEIGHT
+    };
+    const skip = (cx, cy) => !layer.isBackground && !layer.isCellAltered(cx, cy);
+    const before = this._dotGrid(pixels);
+    if (!before) return 0;
+    const giga = ZX_SPECTRUM.SCREENS === 2;
+    const after = before.map((row, py) => row.map((v, px) => {
+      const cx = Math.floor(px / ZX_SPECTRUM.CELL_WIDTH) + rect.x0;
+      const cy = Math.floor(py / ZX_SPECTRUM.CELL_HEIGHT) + rect.y0;
+      if (skip(cx, cy)) return v;
+      return giga ? GIGA_SLOTS.INK_INK - v : !v;
+    }));
+
+    let cells = 0;
+    PixelDrawRoutine.beginBatch();
+    PixelDrawRoutine.suspendClip(() => {
+      const writes = this._planCellWrites(rect, (cx, cy, grid) => {
+        const c = grid[cy - rect.y0][cx - rect.x0];
+        return skip(cx, cy) ? { ...c } : this._swapInkPaper(c);
+      });
+      this._applyCellWrites(writes);
+      cells = writes.length;
+      this._writeDots(pixels, before, after);
+    });
+    PixelDrawRoutine.endBatch();
+    Logger.debug('TransformService', `Invert dots and colours: ${cells} cells`);
+    return cells;
+  }
+
   /** Is this buffer entry a marked pixel? Indexed entries carry `idx`. */
   _entryIsInk(p) { return p.idx !== undefined ? p.idx >= 0 : !!p.isInk; }
 
@@ -655,20 +739,184 @@ class TransformServiceClass {
   }
 
   /**
-   * Shift pixels in a direction (preserves cell colour attributes).
-   * wrap=true rolls pixels around the edge (ZX-PB "rolling"); wrap=false
-   * scrolls them out and feeds in background (paper) rows/columns.
-   * @param {string} direction - 'up', 'down', 'left', 'right'
-   * @param {number} amount - Pixels to shift (default 1)
-   * @param {boolean} wrap - Roll around the edge (default true)
-   * @returns {boolean} whether a shift was actually applied - false when
-   *   there is no work area to shift. The Transform panel brackets a held
-   *   direction pad in ONE undo action and needs to tell a gesture that did
-   *   nothing from one that did, so it can discard the action rather than
-   *   leave a dead entry that Ctrl+Z steps over without visible effect.
+   * Shift the work area. Dots move; what travels with them depends on content:
+   *   'both'    - dots move. On a whole-cell step each cell's colours move too
+   *               (paper included); otherwise only the ink follows the dots.
+   *   'dots'    - dots move one step; every cell keeps its colours.
+   *   'colours' - cell colours move one cell per step; dots stay put.
+   * Modes without cell colours always act as 'both'.
+   * Diagonals are one horizontal pass then one vertical pass.
+   * @param {string} direction - up, down, left, right, upLeft, upRight, downLeft, downRight
+   * @param {number|{x:number,y:number}} amount - pixels (a number applies to both axes)
+   * @param {boolean} wrap - roll around the edge (default true)
+   * @param {string} content - 'both' (default), 'dots' or 'colours'
+   * @returns {boolean} whether anything changed. False when there is no
+   *   layer, the layer is locked, or the step moved nothing; the Transform
+   *   panel uses it to drop an undo entry that did nothing.
    */
-  shift(direction, amount = 1, wrap = true) {
+  shift(direction, amount = 1, wrap = true, content = 'both') {
+    const vec = SHIFT_VECTORS[direction];
+    const layer = LayerManager.getCurrentLayer();
+    if (!vec || !layer || layer.locked) return false;
+
     const area = this._getWorkArea();
+    const stepX = typeof amount === 'object' ? amount.x : amount;
+    const stepY = typeof amount === 'object' ? amount.y : amount;
+    const useContent = ColorManager.hasCellAttributes() ? content : 'both';
+
+    const passes = [];
+    if (vec[0]) passes.push([vec[0] * stepX, 0]);
+    if (vec[1]) passes.push([0, vec[1] * stepY]);
+
+    let changed = false;
+    PixelDrawRoutine.beginBatch();
+    for (const [vx, vy] of passes) {
+      if (this._shiftPass(area, vx, vy, wrap, useContent)) changed = true;
+    }
+    PixelDrawRoutine.endBatch();
+
+    Logger.debug('TransformService', `Shift ${direction} (${useContent}, ${wrap ? 'wrap' : 'no-wrap'}) ${changed ? 'applied' : 'no change'}`);
+    return changed;
+  }
+
+  /**
+   * One axis-aligned pass of a shift. Caller holds the batch.
+   * @param {Object} area - { x, y, width, height }
+   * @param {number} vx - dot movement in pixels (horizontal)
+   * @param {number} vy - dot movement in pixels (vertical)
+   * @returns {boolean} whether anything changed
+   * @private
+   */
+  _shiftPass(area, vx, vy, wrap, content) {
+    if (content === 'dots') return this._shiftDots(area, vx, vy, wrap);
+    if (content === 'colours') {
+      // Colours move whole cells: a pixel step becomes at least one cell.
+      const cells = (v, size) => Math.sign(v) * Math.max(1, Math.round(Math.abs(v) / size));
+      return this._shiftColours(area,
+        vx ? cells(vx, ZX_SPECTRUM.CELL_WIDTH) : 0,
+        vy ? cells(vy, ZX_SPECTRUM.CELL_HEIGHT) : 0, wrap);
+    }
+    // 'both': a whole-cell step moves dots and colours together; anything
+    // finer is today's pixel shift, where the paper stays in its cell.
+    const aligned = vx % ZX_SPECTRUM.CELL_WIDTH === 0 && vy % ZX_SPECTRUM.CELL_HEIGHT === 0;
+    if (!ColorManager.hasCellAttributes() || !aligned) return this._shiftBuffer(area, vx, vy, wrap);
+    const dots = this._shiftDots(area, vx, vy, wrap);
+    const cells = this._shiftColours(area, vx / ZX_SPECTRUM.CELL_WIDTH, vy / ZX_SPECTRUM.CELL_HEIGHT, wrap);
+    return dots || cells;
+  }
+
+  /**
+   * The dots of an area: pixel states (bool), or GigaScreen blend slots.
+   * @returns {Array[][]|null}
+   * @private
+   */
+  _dotGrid(area) {
+    return ZX_SPECTRUM.SCREENS === 2 ? this._copySlots(area) : this._copyToBuffer(area);
+  }
+
+  /** The value meaning "no dot" in a dot grid. @private */
+  _offDot() {
+    return ZX_SPECTRUM.SCREENS === 2 ? GIGA_SLOTS.PAPER_PAPER : false;
+  }
+
+  /**
+   * Write a dot grid over an area, touching only pixels whose value changed.
+   * Colours are never written (PIXEL_ONLY and ERASE leave them), so every cell
+   * keeps its colours and a see-through cell stays see-through. Caller holds
+   * the batch.
+   * @param {Object} area
+   * @param {Array[][]} before - grid as read
+   * @param {Array[][]} after - grid to write
+   * @returns {boolean} whether any pixel changed
+   * @private
+   */
+  _writeDots(area, before, after) {
+    const sel = ColorManager.getCurrentSelection();
+    const giga = ZX_SPECTRUM.SCREENS === 2;
+    let changed = false;
+    PixelDrawRoutine.suspendMirror(() => {
+      for (let py = 0; py < after.length; py++) {
+        for (let px = 0; px < after[py].length; px++) {
+          const pixelX = area.x + px, pixelY = area.y + py;
+          if (!Validators.isValidPixelCoord(pixelX, pixelY)) continue;
+          const v = after[py][px];
+          if (v === before[py][px]) continue;
+          changed = true;
+          if (giga) {
+            if (v === GIGA_SLOTS.PAPER_PAPER) {
+              PixelDrawRoutine.draw(pixelX, pixelY, sel, DRAW_MODE.ERASE);
+            } else {
+              PixelDrawRoutine.draw(pixelX, pixelY, { ...sel, gigaSlot: v }, DRAW_MODE.PIXEL_ONLY);
+            }
+          } else {
+            PixelDrawRoutine.draw(pixelX, pixelY, sel, v ? DRAW_MODE.PIXEL_ONLY : DRAW_MODE.ERASE);
+          }
+        }
+      }
+    });
+    return changed;
+  }
+
+  /**
+   * Move the dots of an area by (vx, vy) pixels; colours stay in their cells.
+   * @returns {boolean} whether anything changed
+   * @private
+   */
+  _shiftDots(area, vx, vy, wrap) {
+    const before = this._dotGrid(area);
+    if (!before) return false;
+    const h = before.length, w = before[0].length;
+    const off = this._offDot();
+    const after = [];
+    for (let py = 0; py < h; py++) {
+      const row = [];
+      for (let px = 0; px < w; px++) {
+        const srcX = px - vx, srcY = py - vy;
+        if (wrap) {
+          row.push(before[((srcY % h) + h) % h][((srcX % w) + w) % w]);
+        } else {
+          row.push((srcX >= 0 && srcX < w && srcY >= 0 && srcY < h) ? before[srcY][srcX] : off);
+        }
+      }
+      after.push(row);
+    }
+    return this._writeDots(area, before, after);
+  }
+
+  /**
+   * Move cell colours by (cvx, cvy) whole cells within the cell rectangle the
+   * area touches. A no-wrap cell with no source keeps its own colours.
+   * Caller holds the batch.
+   * @returns {boolean} whether any cell changed
+   * @private
+   */
+  _shiftColours(area, cvx, cvy, wrap) {
+    if (this.attributeCommandsBlocked()) return false;
+    const rect = this._attributeCellRect(area);
+    const w = rect.x1 - rect.x0 + 1, h = rect.y1 - rect.y0 + 1;
+    const writes = this._planCellWrites(rect, (cx, cy, grid) => {
+      const ox = cx - rect.x0, oy = cy - rect.y0;
+      let sx = ox - cvx, sy = oy - cvy;
+      if (wrap) {
+        sx = ((sx % w) + w) % w;
+        sy = ((sy % h) + h) % h;
+      } else if (sx < 0 || sx >= w || sy < 0 || sy >= h) {
+        return { ...grid[oy][ox] };
+      }
+      return { ...grid[sy][sx] };
+    });
+    if (writes.length === 0) return false;
+    this._applyCellWrites(writes);
+    return true;
+  }
+
+  /**
+   * The legacy whole-pixel shift: dots and their cell colours (ink) move
+   * together; paper stays in its cell. Caller holds the batch.
+   * @returns {boolean} true (the area was shifted)
+   * @private
+   */
+  _shiftBuffer(area, vx, vy, wrap) {
     const buffer = this._copyToBufferWithAttrs(area);
     if (!buffer) return false;
 
@@ -682,32 +930,18 @@ class TransformServiceClass {
     for (let py = 0; py < h; py++) {
       const row = [];
       for (let px = 0; px < w; px++) {
-        let srcX = px, srcY = py;
-        switch (direction) {
-          case 'up':    srcY = py + amount; break;
-          case 'down':  srcY = py - amount; break;
-          case 'left':  srcX = px + amount; break;
-          case 'right': srcX = px - amount; break;
-        }
+        const srcX = px - vx, srcY = py - vy;
         if (wrap) {
-          srcX = ((srcX % w) + w) % w;
-          srcY = ((srcY % h) + h) % h;
-          row.push(buffer[srcY][srcX]);
+          row.push(buffer[((srcY % h) + h) % h][((srcX % w) + w) % w]);
         } else {
-          row.push(
-            (srcX >= 0 && srcX < w && srcY >= 0 && srcY < h)
-              ? buffer[srcY][srcX] : background
-          );
+          row.push((srcX >= 0 && srcX < w && srcY >= 0 && srcY < h)
+            ? buffer[srcY][srcX] : background);
         }
       }
       shifted.push(row);
     }
 
-    PixelDrawRoutine.beginBatch();
     this._applyBufferWithAttrs(shifted, area);
-    PixelDrawRoutine.endBatch();
-
-    Logger.debug('TransformService', `Shift ${direction} by ${amount} (${wrap ? 'wrap' : 'no-wrap'}) applied`);
     return true;
   }
 
@@ -999,8 +1233,26 @@ class TransformServiceClass {
    * @private
    */
   _rewriteCells(rect, targetOf) {
+    const writes = this._planCellWrites(rect, targetOf);
+    if (writes.length === 0) return 0;
+
+    PixelDrawRoutine.beginBatch();
+    this._applyCellWrites(writes);
+    PixelDrawRoutine.endBatch();
+    return writes.length;
+  }
+
+  /**
+   * Read the cell rectangle and say what each cell should become. Reads
+   * everything before returning, so no write can change a source. Makes no
+   * writes and opens no batch, so a caller may use it inside its own batch
+   * (PixelDrawRoutine.beginBatch does not nest).
+   * @returns {Array<{cx:number, cy:number, next:Object}>} cells that change
+   * @private
+   */
+  _planCellWrites(rect, targetOf) {
     const layer = LayerManager.getCurrentLayer();
-    if (!layer) return 0;
+    if (!layer) return [];
     const grid = [];
     for (let cy = rect.y0; cy <= rect.y1; cy++) {
       const row = [];
@@ -1015,14 +1267,29 @@ class TransformServiceClass {
         if (!this._sameAttrs(next, cur)) writes.push({ cx, cy, next });
       }
     }
-    if (writes.length === 0) return 0;
+    return writes;
+  }
 
-    PixelDrawRoutine.beginBatch();
+  /**
+   * Write planned cell colours. Caller holds the batch.
+   * @private
+   */
+  _applyCellWrites(writes) {
+    const layer = LayerManager.getCurrentLayer();
+    if (!layer) return;
     PixelDrawRoutine.suspendMirror(() => {
       for (const w of writes) this._writeCellAttrs(layer, w.cx, w.cy, w.next);
     });
-    PixelDrawRoutine.endBatch();
-    return writes.length;
+  }
+
+  /** Swap ink and paper of one cell's colours; bright and flash stay. @private */
+  _swapInkPaper(c) {
+    const next = { ink: c.paper, paper: c.ink, bright: c.bright, flash: c.flash };
+    if (ZX_SPECTRUM.SCREENS === 2) {
+      next.inkB = c.paperB; next.paperB = c.inkB;
+      next.brightB = c.brightB; next.flashB = c.flashB;
+    }
+    return next;
   }
 
   /**
@@ -1033,15 +1300,8 @@ class TransformServiceClass {
   invertAttributes() {
     if (this.attributeCommandsBlocked()) return 0;
     const rect = this._attributeCellRect(this._getWorkArea());
-    return this._rewriteCells(rect, (cx, cy, grid) => {
-      const c = grid[cy - rect.y0][cx - rect.x0];
-      const next = { ink: c.paper, paper: c.ink, bright: c.bright, flash: c.flash };
-      if (ZX_SPECTRUM.SCREENS === 2) {
-        next.inkB = c.paperB; next.paperB = c.inkB;
-        next.brightB = c.brightB; next.flashB = c.flashB;
-      }
-      return next;
-    });
+    return this._rewriteCells(rect, (cx, cy, grid) =>
+      this._swapInkPaper(grid[cy - rect.y0][cx - rect.x0]));
   }
 
   /**
