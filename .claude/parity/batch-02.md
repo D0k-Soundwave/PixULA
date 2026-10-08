@@ -92,6 +92,19 @@ Defaults (change only if the owner or Opus says otherwise):
   colours and honours the four "use existing" boxes (a kept part is left as
   each cell has it).
 
+Decided during the 2A plan review (2026-10-08, Opus), no owner question needed:
+- ULAnext Invert: swap ink and paper (0-7) and keep bright and flash, which
+  pick the paper bank. Same code as standard and ULAplus; running it twice
+  gives the picture back. Rejected: skipping cells with bright or flash set.
+- Floating stamp (2A): the four attribute commands are greyed out with the
+  reason "Finish or cancel the stamp first." instead of acting on the stamp.
+  Acting on the stamp needs new transformStamp code plus undo work (its own
+  part). Owner cost: one extra step while a stamp is out. Revisit in 2B or
+  later if the owner wants it sooner.
+- Selections: attribute commands use the bounding rectangle, as Flip does
+  today, not the lasso or wand mask. Owner cost: a lasso over part of a cell
+  still changes every cell it touches (the same as Flip today).
+
 OWNER: none known.
 
 ## Part 2A - attribute commands

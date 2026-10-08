@@ -21,7 +21,7 @@ listings and had gone stale (it described an "Attributes only" draw mode and a
 Paintbrush never had).
 
 **Totals** [M, counted from the tables below]: 114 functions; PixULA is below
-parity on 64 (32 missing, 32 partial), level on
+parity on 64 (28 missing, 36 partial), level on
 38, ahead on 10, and 2 do not apply to a browser app.
 Before Batch 1 (2026-10-08 morning) the count below parity was 69 (34 missing, 35
 partial).
@@ -30,7 +30,7 @@ partial).
 
 ## Part 1 - Attributes, Bright and Flash
 
-50 functions: 19 same, 1 where PixULA goes further, 13 partial, 17 missing, 0 not applicable.
+50 functions: 19 same, 1 where PixULA goes further, 17 partial, 13 missing, 0 not applicable.
 
 ZX Paintbrush gives each part of the attribute byte (bit 7 FLASH, bit 6 BRIGHT,
 bits 5-3 PAPER, bits 2-0 INK) three states: a value, or "transparent" (BASIC's
@@ -83,10 +83,10 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 
 | ZX Paintbrush | What it does | PixULA | Verdict |
 |---|---|---|---|
-| Invert attributes of selection | Swaps ink and paper of every cell in the selection, or the whole screen. | No one-step command. Swap has to be dragged over each cell. | Missing |
-| Erase attributes of selection | Sets every cell in the selection, or the whole screen, to the current colours. | No one-step command. | Missing |
-| Flip attributes horizontally | Mirrors the colours; the dots stay where they are. | No. Flip moves dots and colours together. | Missing |
-| Flip attributes vertically | As above, top to bottom. | No. | Missing |
+| Invert attributes of selection | Swaps ink and paper of every cell in the selection, or the whole screen. | Image > Attributes > Invert (2026-10-08): whole cells touched by the selection, or the whole picture; one undo step. Greyed out in modes without cell colours, and while a stamp floats (ZX Paintbrush acts on the stamp; PixULA does not yet). | Partial |
+| Erase attributes of selection | Sets every cell in the selection, or the whole screen, to the current colours. | Image > Attributes > Erase (2026-10-08): writes the rail colours, honouring the use-existing boxes; one undo step. Same stamp and mode limits as Invert. | Partial |
+| Flip attributes horizontally | Mirrors the colours; the dots stay where they are. | Image > Attributes > Flip Horizontal (2026-10-08): mirrors the cell colours, dots untouched. Same stamp and mode limits as Invert. | Partial |
+| Flip attributes vertically | As above, top to bottom. | Image > Attributes > Flip Vertical (2026-10-08): as above. Same stamp and mode limits as Invert. | Partial |
 | Change attributes dialog | Find and replace: choose source ink, paper, bright and flash (any can be "any") and what to change them to, over the picture, selection or overlay. | Fill attributes only replaces one connected area of cells that match exactly. | Partial |
 
 ### Edit pixels bar and rolling
@@ -274,7 +274,8 @@ cost and the owner decides.
 1. **Bright and Flash - DONE 2026-10-08.** "Use existing" for Bright and Flash in
    every mode and tool; one CLUT box in ULAplus; Shift+B / Shift+F / Shift+T.
    Still open from this area: the ULAplus 0-3 CLUT keys (batch 6).
-2. **Attribute commands on a selection or the whole screen**: invert attributes,
+2. **Attribute commands on a selection or the whole screen** (2A done 2026-10-08:
+   invert, erase and flip attributes; stamp support still open): invert attributes,
    erase attributes, flip attributes H/V; a Change Attributes dialog (find and
    replace, any part may be "any"); pixels-only flip; pixels-only and
    colours-only shift; diagonal shift; a Pixels+Attributes inverter (inverts dots
