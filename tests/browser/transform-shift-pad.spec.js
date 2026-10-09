@@ -150,3 +150,26 @@ test('the arrow keys follow the Move choice: a cell by default, a pixel for Dots
     await page.waitForTimeout(50);
     expect((await inkBox(page)).minX).toBe(start.minX + 9);
 });
+
+// The Move choice is for content moves. A floating stamp keeps the one-pixel nudge (the 2B2 decision that
+// "the one-pixel stamp nudge survives"): Move is greyed out then, so there is no way back to it otherwise.
+test('the arrow keys nudge a floating stamp by one pixel, whatever the Move choice', async ({ page }) => {
+    await boot(page);
+    await page.evaluate(() => {
+        StateManager.setGridSnap(false);
+        const mask = [[true, true], [true, true]];
+        SelectionService.startFloatingPasteFromMask(mask, 2, 2, 40, 40, 'test', null, 'none');
+    });
+    const x = () => page.evaluate(() => SelectionService.floatingPaste.x);
+    const y = () => page.evaluate(() => SelectionService.floatingPaste.y);
+    expect(await x()).toBe(40);
+    await page.keyboard.press('ArrowRight');
+    expect(await x(), 'one pixel, not a cell').toBe(41);
+    await page.keyboard.press('ArrowDown');
+    expect(await y()).toBe(41);
+    await page.keyboard.press('ArrowLeft');
+    expect(await x()).toBe(40);
+    await page.evaluate(() => StateManager.setGridSnap(true));
+    await page.keyboard.press('ArrowRight');
+    expect(await x(), 'with Snap on a nudge is one cell').toBe(48);
+});
