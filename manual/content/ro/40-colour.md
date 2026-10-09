@@ -90,8 +90,7 @@ acolo unde se intersectează. Formele, curbele, umplerile și textul sunt
 rezultat.
 
 **Invers** schimbă ce fac cele două butoane ale mouse-ului: cel stâng șterge
-punctele, cel drept le aprinde, ca INVERSE 1 din BASIC. Este butonul de după
-modurile de desen, sau Shift+I, iar bara de stare spune „Inversul este pornit”
+punctele, cel drept le aprinde, ca INVERSE 1 din BASIC. Se pornește în Preferințe, sau cu Shift+I, iar bara de stare spune „Inversul este pornit”
 cât timp este. Nu schimbă nimic în Recolorează cerneala, Recolorează hârtia și
 în cele două moduri XOR, unde ambele butoane fac același lucru, iar bara de
 stare o spune. Textul și ștampilele își șterg literele și formele în loc să le

@@ -84,8 +84,7 @@ texto são sempre uma única passagem, por isso com eles os dois modos dão o me
 resultado.
 
 **Inverso** troca o que fazem os dois botões do rato: o esquerdo apaga pontos e
-o direito acende-os, como o INVERSE 1 do BASIC. É o botão logo a seguir aos
-modos de desenho, ou Shift+I, e a barra de estado diz «Inverso ligado» enquanto
+o direito acende-os, como o INVERSE 1 do BASIC. Liga-se nas Preferências, ou com Shift+I, e a barra de estado diz «Inverso ligado» enquanto
 estiver. Não muda nada em Recolorir tinta, Recolorir papel e nos dois modos XOR,
 onde os dois botões fazem o mesmo, e a barra de estado di-lo. O texto e os
 carimbos apagam as suas letras e formas em vez de as acenderem, um padrão põe os

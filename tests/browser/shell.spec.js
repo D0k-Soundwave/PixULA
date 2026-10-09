@@ -122,7 +122,6 @@ test('every row of the top strip sits on one baseline and one pitch', async ({ p
     // colour-only modes last), then the Swap/Recolour cell operations they
     // get mistaken for, then Mirror.
     expect(split.marks).toEqual(['normal', 'pixel_only', 'xor', 'xor_pixel', 'ink', 'paper',
-        'inverse-toggle',
         'attr-transpose', 'attr-apply', 'attr-copy', 'attr-invert-dots', 'attr-invert-both',
         'symmetry-h-toggle', 'symmetry-v-toggle', 'symmetry-quad-toggle']);
     expect(split.colorBarHasNoSelect).toBe(true);
@@ -141,7 +140,7 @@ test('every row of the top strip sits on one baseline and one pitch', async ({ p
             labelAboveIcons: label ? rect(label).bottom <= rect(cells[0]).top + 1 : false
         };
     });
-    expect(pitch.n).toBe(15);        // Inverse, the 5 cell tools + 6 draw modes + 3 mirror toggles
+    expect(pitch.n).toBe(14);        // the 5 cell tools + 6 draw modes + 3 mirror toggles
     expect(pitch.widths).toHaveLength(1);
     expect(pitch.labelText).toBeTruthy();
     expect(pitch.labelAboveIcons).toBe(true);
@@ -356,12 +355,11 @@ test.describe('ColorBarFit keeps the top strip at one row across interface sizes
                         // One corner is the exception: a 1024px window at the 200% interface
                         // size. There the middle column is about 210 CSS px wide, the strip is
                         // already at ColorBarFit's floor (16px icons) and no further shrinking
-                        // exists. With 11 buttons it just fitted; the Inverse switch (batch 4A,
-                        // the owner's choice of a strip button) made it 12, which does not, so
-                        // the last button wraps. Batch 4B's three cell tools make it 15 and it is
-                        // still two rows there, and one row at every other width and size tested
-                        // (1024/1280/1366/1600 px x 100/125/150/200%). It still must not overflow
-                        // sideways.
+                        // exists. With 11 buttons it just fitted; Batch 4B's three cell tools make
+                        // it 14 and it is two rows there (Inverse left the strip for Preferences,
+                        // but 12 or more buttons wrap in this corner anyway), and one row at every
+                        // other width and size tested (1024/1280/1366/1600 px x 100/125/150/200%).
+                        // It still must not overflow sideways.
                         const floorCorner = width === 1024 && scale === '2';
                         expect(result.rows).toBeLessThanOrEqual(floorCorner ? 2 : 1);
                         expect(result.hasHorizontalOverflow).toBe(false);

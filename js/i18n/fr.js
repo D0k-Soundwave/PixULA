@@ -728,6 +728,8 @@ const fr = {
     'view.display.noDots': 'Dans ce mode d\'écran, chaque pixel a sa propre couleur : il n\'y a donc pas de points à afficher.',
     'view.display.noCells': 'Ce mode d\'écran n\'a pas de cellules de couleur.',
     'view.display.noFlash': 'Dans ce mode d\'écran, rien ne clignote.',
+    'pref.inverse': 'Inverse : échanger les boutons de la souris',
+    'pref.inverseHint': 'Le bouton gauche efface les points et le droit les allume, comme INVERSE 1 en BASIC. Maj+I le bascule au clavier, et la barre d\'état indique quand il est activé. Il ne change rien dans les modes de dessin Recolorer l\'encre, Recolorer le papier et XOR.',
     'attr.copy': 'Copier les couleurs',
     'attr.copy.hint': 'Cliquez sur une cellule pour prendre les couleurs qu\'elle montre, puis faites glisser sur d\'autres cellules pour les leur donner. Les points restent tels quels et la barre de couleurs ne change pas. Cliquez à nouveau, ou choisissez un outil ou un mode de dessin, pour arrêter',
     'attr.invertDots': 'Inverser les points',

@@ -90,8 +90,7 @@ kitöltések és a szöveg mindig egyetlen áthaladás, így ezeknél a két mó
 adja.
 
 Az **Fordított** felcseréli, mit csinál a két egérgomb: a bal gomb törli a
-pontokat, a jobb beállítja őket, mint a BASIC INVERSE 1 utasítása. Ez a
-rajzmódok utáni gomb, vagy a Shift+I, és az állapotsor kiírja, hogy „A fordított
+pontokat, a jobb beállítja őket, mint a BASIC INVERSE 1 utasítása. A Beállításokban kapcsolható be, vagy a Shift+I-vel, és az állapotsor kiírja, hogy „A fordított
 mód be van kapcsolva”, amíg be van. A Tinta átszínezése, a Papír átszínezése és
 a két XOR mód esetében nem változtat semmit, mert ott a két gomb ugyanazt teszi;
 az állapotsor ezt is kiírja. A szöveg és a bélyegek a betűiket és alakzataikat

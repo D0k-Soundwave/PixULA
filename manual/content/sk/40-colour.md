@@ -80,8 +80,7 @@ krivky, výplne a text sú vždy jediný prejazd, takže pri nich oba režimy d�
 rovnaký výsledok.
 
 **Inverzia** vymení, čo robia obe tlačidlá myši: ľavé tlačidlo maže body a pravé
-ich nastavuje, ako INVERSE 1 v BASICu. Je to tlačidlo hneď za režimami
-kreslenia, alebo Shift+I, a stavový riadok hlási „Inverzia je zapnutá“, kým
+ich nastavuje, ako INVERSE 1 v BASICu. Zapína sa v Nastaveniach, alebo klávesom Shift+I, a stavový riadok hlási „Inverzia je zapnutá“, kým
 trvá. V režimoch Prefarbiť atrament, Prefarbiť papier a v dvoch režimoch XOR nič
 nemení, lebo obe tlačidlá tam robia to isté; stavový riadok to hovorí. Text a
 pečiatky mažú svoje písmená a tvary namiesto ich nastavenia, vzor kladie svoje

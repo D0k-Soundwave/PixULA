@@ -87,8 +87,7 @@ formas, las curvas, los rellenos y el texto son siempre una sola pasada, así qu
 con ellos los dos modos dan el mismo resultado.
 
 **Inverso** intercambia lo que hacen los dos botones del ratón: el izquierdo
-borra puntos y el derecho los pone, como INVERSE 1 en BASIC. Es el botón justo
-después de los modos de dibujo, o Mayús+I, y la barra de estado dice «Inverso
+borra puntos y el derecho los pone, como INVERSE 1 en BASIC. Se activa en Preferencias, o con Mayús+I, y la barra de estado dice «Inverso
 activado» mientras lo está. No cambia nada en Recolorear tinta, Recolorear papel
 ni en los dos modos XOR, que dan el mismo trabajo a ambos botones, y la barra de
 estado lo dice. El texto y los sellos borran sus letras y formas en lugar de

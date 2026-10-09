@@ -728,6 +728,8 @@ const sk = {
     'view.display.noDots': 'V tomto režime obrazovky má každý pixel vlastnú farbu, takže nie sú žiadne body na zobrazenie.',
     'view.display.noCells': 'Tento režim obrazovky nemá farebné bunky.',
     'view.display.noFlash': 'V tomto režime obrazovky nič nebliká.',
+    'pref.inverse': 'Inverzia: vymeniť tlačidlá myši',
+    'pref.inverseHint': 'Ľavé tlačidlo maže body a pravé ich nastavuje, ako INVERSE 1 v BASICu. Shift+I ju prepína z klávesnice a stavový riadok hlási, keď je zapnutá. V režimoch kreslenia Prefarbiť atrament, Prefarbiť papier a XOR nič nemení.',
     'attr.copy': 'Kopírovať farby',
     'attr.copy.hint': 'Kliknite na bunku, aby ste prevzali farby, ktoré ukazuje, a potom pretiahnutím cez ďalšie bunky im ich dajte. Body zostanú, ako sú, a paleta farieb sa nezmení. Ďalším kliknutím, alebo výberom nástroja či režimu kreslenia, to ukončíte',
     'attr.invertDots': 'Invertovať body',

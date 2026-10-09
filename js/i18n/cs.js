@@ -728,6 +728,8 @@ const cs = {
     'view.display.noDots': 'V tomto režimu obrazovky má každý pixel vlastní barvu, takže nejsou žádné body k zobrazení.',
     'view.display.noCells': 'Tento režim obrazovky nemá barevné buňky.',
     'view.display.noFlash': 'V tomto režimu obrazovky nic nebliká.',
+    'pref.inverse': 'Inverze: prohodit tlačítka myši',
+    'pref.inverseHint': 'Levé tlačítko maže body a pravé je nastavuje, jako INVERSE 1 v BASICu. Klávesa Shift+I ji přepíná z klávesnice a stavový řádek hlásí, když je zapnutá. V režimech kreslení Inkoust přebarvit, Papír přebarvit a XOR nic nemění.',
     'attr.copy': 'Kopírovat barvy',
     'attr.copy.hint': 'Klikněte na buňku, abyste převzali barvy, které ukazuje, a pak přetažením přes další buňky jim je dejte. Body zůstanou, jak jsou, a paleta barev se nezmění. Dalším kliknutím, nebo výběrem nástroje či režimu kreslení, to ukončíte',
     'attr.invertDots': 'Invertovat body',

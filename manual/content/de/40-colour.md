@@ -90,8 +90,7 @@ dort auf, wo sie sich kreuzt. Formen, Kurven, Füllungen und Text sind immer ein
 einziger Durchgang, damit liefern beide Modi dort dasselbe Ergebnis.
 
 **Invers** vertauscht, was die beiden Maustasten tun: Die linke Taste löscht
-Punkte, die rechte setzt sie, wie INVERSE 1 in BASIC. Es ist die Schaltfläche
-direkt hinter den Zeichenmodi, oder Shift+I, und die Statusleiste sagt „Invers
+Punkte, die rechte setzt sie, wie INVERSE 1 in BASIC. Sie wird in den Einstellungen eingeschaltet, oder mit Shift+I, und die Statusleiste sagt „Invers
 ist an“, solange es an ist. In Tinte umfärben, Papier umfärben und den beiden
 XOR-Modi ändert es nichts, weil beide Tasten dort dasselbe tun; die Statusleiste
 sagt das. Text und Stempel löschen ihre Buchstaben und Formen, statt sie zu

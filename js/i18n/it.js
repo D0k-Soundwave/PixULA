@@ -728,6 +728,8 @@ const it = {
     'view.display.noDots': 'In questa modalità schermo ogni pixel ha il proprio colore, quindi non ci sono punti da mostrare.',
     'view.display.noCells': 'Questa modalità schermo non ha celle di colore.',
     'view.display.noFlash': 'In questa modalità schermo nulla lampeggia.',
+    'pref.inverse': 'Inverso: scambia i pulsanti del mouse',
+    'pref.inverseHint': 'Il pulsante sinistro cancella i punti e il destro li accende, come INVERSE 1 del BASIC. Maiusc+I lo attiva dalla tastiera, e la barra di stato avvisa quando è attivo. Non cambia nulla nelle modalità di disegno Ricolora inchiostro, Ricolora carta e XOR.',
     'attr.copy': 'Copia colori',
     'attr.copy.hint': 'Fai clic su una cella per prendere i colori che mostra, poi trascina su altre celle per dar loro quei colori. I punti restano come sono e la barra dei colori non cambia. Fai di nuovo clic, o scegli uno strumento o una modalità di disegno, per fermarti',
     'attr.invertDots': 'Inverti punti',

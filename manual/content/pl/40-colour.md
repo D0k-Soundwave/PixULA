@@ -86,8 +86,7 @@ się krzyżuje. Kształty, krzywe, wypełnienia i tekst to zawsze jedno przejśc
 więc dla nich oba tryby dają ten sam wynik.
 
 **Odwróć** zamienia to, co robią dwa przyciski myszy: lewy czyści punkty, a
-prawy je ustawia, jak INVERSE 1 w BASIC-u. To przycisk zaraz za trybami
-rysowania, albo Shift+I, a pasek stanu mówi „Odwrócenie jest włączone”, dopóki
+prawy je ustawia, jak INVERSE 1 w BASIC-u. Włącza się go w Preferencjach albo klawiszami Shift+I, a pasek stanu mówi „Odwrócenie jest włączone”, dopóki
 trwa. Nie zmienia niczego w trybach Przekoloruj tusz, Przekoloruj papier i w
 dwóch trybach XOR, gdzie oba przyciski robią to samo, i pasek stanu to mówi.
 Tekst i pieczątki czyszczą swoje litery i kształty zamiast je ustawiać, wzór

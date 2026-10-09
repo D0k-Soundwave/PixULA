@@ -196,7 +196,7 @@ class DrawModeBarClass {
 
         this._syncAvailability();
         this._sync(StateManager.getDrawMode());
-        this._buildInverseControl();
+        this._watchInverse();
         this._buildMirrorControls();
         Logger.info('DrawModeBar', 'Initialized');
     }
@@ -231,55 +231,18 @@ class DrawModeBarClass {
     }
 
     /**
-     * The Inverse switch: an on/off toggle beside the pick-one draw modes. It
-     * swaps what the two mouse buttons do (left clears dots, right sets them),
-     * so the status line names it while it is on and the draw-mode status
-     * says when it changes nothing (Ink, Paper and XOR modes).
+     * Inverse (swap the mouse buttons) is switched in Preferences or with Shift+I, so
+     * the strip has no button for it: this keeps what it changes - the choice is
+     * remembered, and the status line names it while it is on, and says when it
+     * changes nothing in the draw mode in force (Ink, Paper and XOR modes).
      * @private
      */
-    _buildInverseControl() {
-        const host = document.getElementById('inverse-mode');
-        if (!host) return;
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'tool-btn';
-        btn.id = 'inverse-toggle';
-        const pressed = StateManager.getInverse();
-        btn.setAttribute('aria-pressed', String(pressed));
-        btn.classList.toggle('active', pressed);
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.classList.add('tool-icon');
-        svg.setAttribute('aria-hidden', 'true');
-        const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-        use.setAttribute('href', '#icon-inverse');
-        svg.appendChild(use);
-        btn.appendChild(svg);
-        btn.addEventListener('click', () => StateManager.setInverse(!StateManager.getInverse()));
-        host.appendChild(btn);
-        this._inverseButton = btn;
-
-        this._refreshInverseLabel();
-        EventBus.on(EVENTS.UI_LANGUAGE_CHANGE, () => this._refreshInverseLabel());
+    _watchInverse() {
         EventBus.on(EVENTS.INVERSE_CHANGED, ({ inverse }) => {
-            btn.setAttribute('aria-pressed', String(inverse));
-            btn.classList.toggle('active', inverse);
             Storage.set('inverse', inverse, Storage.STORES.PREFERENCES).catch(() => {});
             this._syncStatus(StateManager.getDrawMode());
         });
         this._syncStatus(StateManager.getDrawMode());
-    }
-
-    /** @private */
-    _refreshInverseLabel() {
-        const btn = this._inverseButton;
-        if (!btn) return;
-        const name = this._t('dm.inverse', 'Inverse');
-        const hint = this._t('dm.inverse.hint',
-            'Swaps the mouse buttons: the left button clears dots and the right button sets them');
-        btn.title = Helpers.composeTitle(name, `${hint} (Shift+I)`);
-        btn.setAttribute('aria-label', name);
-        const host = document.getElementById('inverse-mode');
-        if (host) host.setAttribute('aria-label', name);
     }
 
     /**

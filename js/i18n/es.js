@@ -728,6 +728,8 @@ const es = {
     'view.display.noDots': 'En este modo de pantalla cada píxel tiene su propio color, así que no hay puntos que mostrar.',
     'view.display.noCells': 'Este modo de pantalla no tiene celdas de color.',
     'view.display.noFlash': 'En este modo de pantalla nada parpadea.',
+    'pref.inverse': 'Inverso: intercambiar los botones del ratón',
+    'pref.inverseHint': 'El botón izquierdo borra puntos y el derecho los pone, como INVERSE 1 en BASIC. Mayús+I lo cambia desde el teclado, y la barra de estado avisa cuando está activado. No cambia nada en los modos de dibujo Recolorear tinta, Recolorear papel y XOR.',
     'attr.copy': 'Copiar colores',
     'attr.copy.hint': 'Haz clic en una celda para recoger los colores que muestra y arrastra sobre otras celdas para darles esos colores. Los puntos quedan como están y la barra de colores no cambia. Haz clic de nuevo, o elige una herramienta o un modo de dibujo, para parar',
     'attr.invertDots': 'Invertir puntos',
