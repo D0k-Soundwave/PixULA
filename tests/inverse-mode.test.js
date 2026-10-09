@@ -208,4 +208,38 @@ enter('layer2_256');
   StateManager.setInverse(false);
 }
 
+// -- 6. Shapes: outline and filled, both buttons ------------------------------------------------------------------
+
+enter('standard_ula');
+resetColours();
+ToolManager.selectTool(TOOLS.RECTANGLE);
+{
+  const t = ToolManager.getCurrentTool();
+  const drawRect = (button) => {
+    const e = ev({ button, buttons: button === 2 ? 2 : 1 });
+    t.onPointerDown(20, 20, e);
+    t.onPointerUp(60, 60, e);
+  };
+  t.setFilled(false);
+  StateManager.setInverse(false);
+  drawRect(0);
+  check('Inverse off: a left-button outline sets its dots', dot(20, 20) && dot(40, 20) && !dot(40, 40));
+  drawRect(2);
+  check('...and the right button clears them again', !dot(20, 20) && !dot(40, 20));
+
+  StateManager.setInverse(true);
+  drawRect(2);
+  check('Inverse on: a right-button outline SETS its dots', dot(20, 20) && dot(40, 20));
+  drawRect(0);
+  check('...and the left button clears them', !dot(20, 20) && !dot(40, 20));
+
+  t.setFilled(true);
+  drawRect(2);
+  check('Inverse on: a right-button FILLED shape sets the whole area', dot(40, 40) && dot(21, 21));
+  drawRect(0);
+  check('...and the left button clears the whole area', !dot(40, 40) && !dot(21, 21));
+  StateManager.setInverse(false);
+  t.setFilled(false);
+}
+
 summary();
