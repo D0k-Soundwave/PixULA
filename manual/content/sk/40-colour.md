@@ -19,6 +19,10 @@ zmaže posledný bod v bunke. Ak chcete zmazať aj farby, prejdite gumou cez
 prázdnu bunku znova novým ťahom: atrament, papier, jas a blikanie sa vrátia na
 čiernu na bielej a na hornej vrstve bude bunka opäť priehľadná. Bunka, v ktorej
 sú ešte body, si farby ponechá, nech cez ňu gumou prejdete koľkokrát chcete.
+Voľba **Farby** pri gume, zobrazená v režimoch obrazovky s farebnými bunkami, to
+mení: Nastaviť na aktuálne zmaže body a dá bunke farby z palety, ako stierací
+nástroj ZX Paintbrush, a Ponechať, predvolená voľba, je správanie opísané
+vyššie.
 
 Každú zo štyroch častí možno nastaviť aj na **použiť existujúce**: kockované
 políčko pod ňou na farebnej lište. Ťah potom túto časť každej bunky ponechá tak,
@@ -51,6 +55,20 @@ celú bunku pod ukazovateľom bez ohľadu na zvolený nástroj, veľkosť štetc
 Zrkadlo. **Zameniť** vedľa neho funguje rovnako a v každej bunke zamení atrament
 a papier. Ktorékoľvek z nich zostane zapnuté, kým naň znova nekliknete alebo
 nezvolíte nástroj či režim kreslenia, a stavový riadok to počas toho zobrazuje.
+
+**Kopírovať farby, Invertovať body a Invertovať body a farby** sú ďalšie tri
+operácie s bunkami vedľa Vymeniť a Prefarbiť a fungujú rovnako: kliknite na
+tlačidlo, potom klikajte alebo ťahajte cez bunky. Každé ťahanie sa vracia jedným
+krokom a zostávajú zapnuté, kým znova nekliknete na tlačidlo alebo nevyberiete
+nástroj či režim kreslenia. **Kopírovať farby** prevezme farby, ktoré ukazuje
+bunka pod prvým kliknutím, a dá ich každej bunke, cez ktorú ťaháte; paleta
+farieb sa nemení. **Invertovať body** zmaže nastavené body každej celej bunky a
+nastaví zmazané, farby ponechá (prázdnu bunku vyplní). **Invertovať body a
+farby** navyše vymení atrament s papierom, takže každá bunka vyzerá rovnako;
+slúži na upratanie importovaného obrázka, preskakuje bunky, do ktorých kreslí aj
+iná vrstva, a v ULAplus a ULANext sa neponúka. Nástroj pre bunky existuje len v
+režimoch obrazovky, kde môže fungovať: inde je jeho tlačidlo skryté, a
+Invertovať body funguje aj v Timex Hi-res, kde sú body v bunkách 8 × 8.
 
 **XOR / Cez a XOR / Každý prejazd** body prepínajú namiesto toho, aby ich
 rozsvecovali, a oba dajú bunke zvolené farby. XOR / Cez prepne každý bod raz za
@@ -157,7 +175,7 @@ Zmeniť... nájde bunky podľa ich farieb a nahradí ich. Hľadať určuje, ktor
 
 ### Bodky
 
-Položky Bodky v ponuke Obrázok menia bodky a farby nechávajú v ich bunkách. Otočiť vodorovne a Otočiť zvisle zrkadlia bodky. Invertovať bodky a farby navyše prehodí atrament a papier v každej bunke, takže obrázok vyzerá rovnako. Nedá sa použiť v režimoch bez farieb buniek (Layer 2, LoRes, Timex Hi-res) a keď pláva pečiatka, je sivá.
+Položky Bodky v ponuke Obrázok menia bodky a farby nechávajú v ich bunkách. Otočiť vodorovne a Otočiť zvisle zrkadlia bodky. Invertovať bodky a farby navyše prehodí atrament a papier v každej bunke, takže obrázok vyzerá rovnako. Nedá sa použiť v režimoch bez farieb buniek (Layer 2, LoRes, Timex Hi-res) a keď pláva pečiatka, je sivá. V ULAplus a ULANext sa tiež neponúka, lebo výmena atramentu a papiera by zmenila vzhľad obrázka.
 
 Voľba Posun v sekcii Posun panela Transformácia určuje, čo sa hýbe. Bodky a farby (predvolené) posúva celé bunky aj s ich papierom. Iba bodky posúva bodky o pixel alebo o bunku naraz. Iba farby posúva farby buniek po jednej bunke. Ovládací kríž má aj uhlopriečky. Keď pláva pečiatka, Posun je sivý, pretože posun presúva celú pečiatku.
 

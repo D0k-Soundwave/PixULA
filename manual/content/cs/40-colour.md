@@ -19,6 +19,9 @@ když smaže poslední bod v buňce. Chcete-li smazat i barvy, přejeďte gumou 
 prázdnou buňku znovu novým tahem: inkoust, papír, jas a blikání se vrátí na
 černou na bílé a na horní vrstvě bude buňka opět průhledná. Buňka, ve které jsou
 ještě body, si barvy ponechá, ať přes ni gumou přejedete kolikrát chcete.
+Volba **Barvy** u gumy, zobrazená v režimech obrazovky s barevnými buňkami, to
+mění: Nastavit na aktuální smaže body a dá buňce barvy z palety, jako stírací
+nástroj ZX Paintbrush, a Ponechat, výchozí volba, je chování popsané výše.
 
 Každou ze čtyř částí lze také nastavit na **použít stávající**: kostkované
 políčko pod ní na barevné liště. Tah pak tuto část každé buňky ponechá, jak je,
@@ -50,6 +53,20 @@ pod ukazatelem, ať je vybrán jakýkoli nástroj, bez ohledu na velikost štět
 Zrcadlo. **Zaměnit** vedle něj funguje stejně a v každé buňce zamění inkoust a
 papír. Kterékoli z nich zůstane zapnuté, dokud na ně znovu nekliknete nebo
 nezvolíte nástroj či režim kreslení, a stavový řádek to po tu dobu ukazuje.
+
+**Kopírovat barvy, Invertovat body a Invertovat body a barvy** jsou další tři
+operace s buňkami vedle Prohodit a Přebarvit a fungují stejně: klikněte na
+tlačítko, pak klikejte nebo táhněte přes buňky. Každé tažení se vrací jedním
+krokem a zůstávají zapnuté, dokud znovu neklikněte na tlačítko nebo nevyberete
+nástroj či režim kreslení. **Kopírovat barvy** převezme barvy, které ukazuje
+buňka pod prvním kliknutím, a dá je každé buňce, přes kterou táhnete; paleta
+barev se nemění. **Invertovat body** smaže nastavené body každé celé buňky a
+nastaví smazané, barvy ponechá (prázdnou buňku vyplní). **Invertovat body a
+barvy** navíc prohodí inkoust s papírem, takže každá buňka vypadá stejně; slouží
+k úklidu importovaného obrázku, přeskakuje buňky, do nichž kreslí i jiná vrstva,
+a v ULAplus a ULANext se nenabízí. Nástroj pro buňky existuje jen v režimech
+obrazovky, kde může fungovat: jinde je jeho tlačítko skryté, a Invertovat body
+funguje i v Timex Hi-res, kde jsou body v buňkách 8 × 8.
 
 **XOR / Přes a XOR / Každý přejezd** body přepínají, místo aby je rozsvěcovaly,
 a oba dají buňce zvolené barvy. XOR / Přes přepne každý bod jednou za tah, takže
@@ -154,7 +171,7 @@ Změnit... najde buňky podle jejich barev a nahradí je. Hledat určuje, které
 
 ### Tečky
 
-Položky Tečky v nabídce Obrázek mění tečky a barvy nechávají v jejich buňkách. Otočit vodorovně a Otočit svisle zrcadlí tečky. Invertovat tečky a barvy navíc prohodí inkoust a papír v každé buňce, takže obrázek vypadá stejně. Nenabízí se v režimech bez barev buněk (Layer 2, LoRes, Timex Hi-res) a když plove razítko, je šedá.
+Položky Tečky v nabídce Obrázek mění tečky a barvy nechávají v jejich buňkách. Otočit vodorovně a Otočit svisle zrcadlí tečky. Invertovat tečky a barvy navíc prohodí inkoust a papír v každé buňce, takže obrázek vypadá stejně. Nenabízí se v režimech bez barev buněk (Layer 2, LoRes, Timex Hi-res) a když plove razítko, je šedá. V ULAplus a ULANext se také nenabízí, protože by prohození inkoustu a papíru změnilo vzhled obrázku.
 
 Volba Posun v sekci Posunout panelu Transformace určuje, co se pohybuje. Tečky a barvy (výchozí) posouvá celé buňky i s jejich papírem. Jen tečky posouvá tečky po pixelu nebo po buňce. Jen barvy posouvá barvy buněk po buňce. Ovladač má i úhlopříčné směry. Když plove razítko, je volba Posun šedá, protože posun přesouvá celé razítko.
 

@@ -22,6 +22,10 @@ vonással: a tinta, a papír, a fényesség és a villogás visszaáll fekete a
 fehéren értékre, felsőbb rétegen pedig a cella ismét átlátszó lesz. Az a cella,
 amelyben még vannak pontok, megtartja a színeit, akárhányszor radírozol át
 rajta.
+A radír **Színek** beállítása, amely a cellaszíneket használó képernyőmódokban
+látszik, ezt változtatja meg: A jelenlegire állítás törli a pontokat, és a
+színsáv színeit adja a cellának, mint a ZX Paintbrush törlőeszköze, a Megtartás,
+az alapértelmezés, pedig a fent leírt viselkedés.
 
 A négy rész mindegyike **meglévő használata** állásba is tehető: ez a színsávban
 alatta lévő kockás négyzet. Egy vonás ekkor minden cella adott részét úgy
@@ -57,6 +61,22 @@ van kiválasztva, az ecsetmérettől és a Tükrözéstől függetlenül. A mell
 papírt. Bármelyik bekapcsolva marad, amíg újra rá nem kattintasz, vagy eszközt
 vagy rajzolási módot nem választasz, és amíg be van kapcsolva, az állapotsor
 jelzi.
+
+A **Színek másolása, a Pontok megfordítása és a Pontok és színek megfordítása**
+három további cellaművelet a Csere és az Átszínezés mellett, és ugyanúgy
+működnek: kattints a gombra, majd kattints vagy húzz cellákon. Minden húzás egy
+lépésben visszavonható, és addig maradnak bekapcsolva, amíg újra rá nem
+kattintasz a gombra, vagy nem választasz eszközt vagy rajzmódot. A **Színek
+másolása** felveszi az első kattintás alatti cella színeit, és megadja őket
+minden cellának, amelyen végighúzol; a színsáv nem változik. A **Pontok
+megfordítása** minden egész cella beállított pontjait törli, a töröltöket
+beállítja, a színeket meghagyja (az üres cellát kitölti). A **Pontok és színek
+megfordítása** ezen felül felcseréli a tintát és a papírt, így minden cella
+ugyanúgy néz ki; importált kép rendbetételére való, kihagyja azokat a cellákat,
+amelyekbe másik réteg is rajzol, és ULAplusban és ULANextben nem érhető el. A
+celláeszköz csak azokban a képernyőmódokban létezik, ahol működhet: máshol a
+gombja rejtett, a Pontok megfordítása pedig a Timex Hi-resben is működik, ahol a
+pontok 8 × 8-as cellákban vannak.
 
 **Az XOR / Fölé és az XOR / Minden áthaladás** megfordítja a pontokat ahelyett,
 hogy bekapcsolná őket, és mindkettő a választott színeket adja a cellának. Az
@@ -171,7 +191,7 @@ A Módosítás... a cellákat a színeik alapján keresi meg és cseréli le. A 
 
 ### Pontok
 
-A Kép menü Pontok elemei a pontokat módosítják, a színeket pedig a cellákban hagyják. A Vízszintes tükrözés és a Függőleges tükrözés a pontokat tükrözi. A Pontok és színek invertálása a cellánként a tintát és a papírt is felcseréli, így a kép változatlan marad. Olyan módokban nem érhető el, ahol nincsenek cellaszínek (Layer 2, LoRes, Timex Hi-res), és szürke, amíg bélyeg lebeg.
+A Kép menü Pontok elemei a pontokat módosítják, a színeket pedig a cellákban hagyják. A Vízszintes tükrözés és a Függőleges tükrözés a pontokat tükrözi. A Pontok és színek invertálása a cellánként a tintát és a papírt is felcseréli, így a kép változatlan marad. Olyan módokban nem érhető el, ahol nincsenek cellaszínek (Layer 2, LoRes, Timex Hi-res), és szürke, amíg bélyeg lebeg. ULAplusban és ULANextben ez sem érhető el, mert a tinta és a papír felcserélése megváltoztatná a kép kinézetét.
 
 A Transform panel Eltolás szakaszában a Mozgatás választja ki, mi mozog. A Pontok és színek (alapérték) egész cellákat mozgat a papírjukkal együtt. A Csak pontok a pontokat pixelenként vagy cellánként mozgatja. A Csak színek a cellaszíneket cellánként mozgatja. Az irányítóelemen az átlós irányok is megvannak. Amíg bélyeg lebeg, a Mozgatás szürke, mert az eltolás a teljes bélyeget mozgatja.
 

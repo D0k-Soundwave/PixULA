@@ -21,6 +21,10 @@ Per cancellare anche i colori, ripassa sulla cella vuota con un nuovo tratto:
 inchiostro, carta, luminoso e lampeggio tornano a nero su bianco, e su un
 livello superiore la cella torna trasparente. Una cella che contiene ancora dei
 punti mantiene i suoi colori per quante volte tu ci passi sopra.
+L'opzione **Colori** della gomma, visibile nelle modalità schermo con colori di
+cella, cambia questo: Imposta i correnti cancella i punti e dà alla cella i
+colori della barra, come lo strumento di pulizia di ZX Paintbrush, e Mantieni,
+l'impostazione predefinita, è il comportamento descritto sopra.
 
 Ognuno dei quattro può anche essere impostato su **usa esistente**: la casella a
 scacchi sotto di esso nella barra dei colori. Un tratto lascia allora quella
@@ -57,6 +61,22 @@ strumento scelto, ignorando la dimensione del pennello e lo Specchio.
 ogni cella. Entrambi restano attivi finché non ci clicchi di nuovo o scegli uno
 strumento o una modalità di disegno, e la barra di stato lo segnala finché sono
 attivi.
+
+**Copia colori, Inverti punti e Inverti punti e colori** sono altre tre
+operazioni di cella accanto a Scambia e Ricolora, e funzionano allo stesso modo:
+fai clic sul pulsante, poi fai clic o trascina sulle celle. Ogni trascinamento
+si annulla in un solo passo, e restano attivi finché non fai di nuovo clic sul
+pulsante o scegli uno strumento o una modalità di disegno. **Copia colori**
+prende i colori che mostra la cella sotto il tuo primo clic e li dà a ogni cella
+su cui trascini; la barra dei colori non cambia. **Inverti punti** cancella i
+punti accesi di ogni cella intera e accende quelli cancellati, e lascia i colori
+(una cella vuota viene riempita). **Inverti punti e colori** scambia anche
+inchiostro e carta, così ogni cella ha lo stesso aspetto; serve a riordinare
+un'immagine importata, salta le celle in cui disegna anche un altro livello e
+non è offerto in ULAplus né ULANext. Uno strumento di cella esiste solo nelle
+modalità schermo in cui può funzionare: altrove il suo pulsante è nascosto, e
+Inverti punti funziona anche in Timex Hi-res, dove i punti sono in celle da 8
+per 8.
 
 **XOR / Sopra e XOR / Ogni passaggio** invertono i punti invece di accenderli,
 ed entrambi danno alla cella i colori scelti. XOR / Sopra inverte ogni punto una
@@ -172,7 +192,7 @@ Cambia... trova le celle in base ai loro colori e le sostituisce. Trova indica q
 
 ### Punti
 
-Le voci Punti del menu Immagine modificano i punti e lasciano i colori nelle loro celle. Capovolgi orizzontale e Capovolgi verticale specchiano i punti. Inverti punti e colori scambia anche inchiostro e carta di ogni cella, così l'immagine resta uguale. Non è offerto nelle modalità senza colori di cella (Layer 2, LoRes, Timex Hi-res) ed è grigio mentre un timbro è in sospeso.
+Le voci Punti del menu Immagine modificano i punti e lasciano i colori nelle loro celle. Capovolgi orizzontale e Capovolgi verticale specchiano i punti. Inverti punti e colori scambia anche inchiostro e carta di ogni cella, così l'immagine resta uguale. Non è offerto nelle modalità senza colori di cella (Layer 2, LoRes, Timex Hi-res) ed è grigio mentre un timbro è in sospeso. In ULAplus e ULANext non è offerto nemmeno, perché scambiare inchiostro e carta cambierebbe l'aspetto dell'immagine.
 
 La scelta Sposta nella sezione Sposta del pannello Trasforma stabilisce cosa si muove. Punti e colori (predefinito) sposta intere celle con la loro carta. Solo punti sposta i punti di un pixel o di una cella alla volta. Solo colori sposta i colori di cella una cella alla volta. Il pad ha anche le diagonali. Mentre un timbro è in sospeso, Sposta è grigio, perché uno spostamento muove l'intero timbro.
 

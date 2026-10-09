@@ -21,8 +21,8 @@ listings and had gone stale (it described an "Attributes only" draw mode and a
 Paintbrush never had).
 
 **Totals** [M, counted from the tables below]: 114 functions; PixULA is below
-parity on 57 (20 missing, 37 partial), level on
-45, ahead on 10, and 2 do not apply to a browser app.
+parity on 53 (20 missing, 33 partial), level on
+49, ahead on 10, and 2 do not apply to a browser app.
 Before Batch 1 (2026-10-08 morning) the count below parity was 69 (34 missing, 35
 partial). Before Batch 2 part 2B2 (2026-10-08) it was 64 (28 missing, 36 partial):
 the Dots menu and the Move choice moved four Missing rows to Partial.
@@ -32,12 +32,14 @@ Batch 3 part 3B (2026-10-09) took Custom info bar and User-defined grid to Same 
 Options row from Missing-in-part to a smaller Partial: 59 below parity.
 Batch 4 part 4A (2026-10-09) took Inverse mode and the Colour attribute line thickness
 to Same: 57 below parity.
+Batch 4 part 4B (2026-10-09) took the four inverter, copy-attribute and wiping rows to Same:
+53 below parity.
 
 ---
 
 ## Part 1 - Attributes, Bright and Flash
 
-50 functions: 26 same, 1 where PixULA goes further, 18 partial, 5 missing, 0 not applicable.
+50 functions: 30 same, 1 where PixULA goes further, 14 partial, 5 missing, 0 not applicable.
 
 ZX Paintbrush gives each part of the attribute byte (bit 7 FLASH, bit 6 BRIGHT,
 bits 5-3 PAPER, bits 2-0 INK) three states: a value, or "transparent" (BASIC's
@@ -71,9 +73,9 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | ZX Paintbrush | What it does | PixULA | Verdict |
 |---|---|---|---|
 | Free attributes tool | Paints the current colours onto every cell a freehand line touches, no dots. | Recolour button: click or drag over cells; each of the four parts follows its "use existing" box. | Same |
-| Copy attribute tool | Pick up one cell's attribute with the first click, then paint it onto other cells. | Eyedropper, then Recolour: the same result in two steps. | Partial |
+| Copy attribute tool | Pick up one cell's attribute with the first click, then paint it onto other cells. | Copy colours button in the top strip (2026-10-09): the first click picks what the page shows there (both screens on GigaScreen), dragging paints it onto every cell passed over, the rail is untouched, one undo step per drag. Fast drags skip no cell. Cells already showing the colours are left alone. | Same |
 | Fill tool with pixels off | Floods a region of dots but writes colours only. | Fill tool in Ink Recolour or Paper Recolour mode. | Same |
-| Wiping tool | Wipes dots away and sets the cells to the current colours; transparent channels are kept. Editable as a polygon afterwards. | Eraser clears dots and keeps colours; a second pass resets them. The right button in Normal clears dots and sets colours. | Partial |
+| Wiping tool | Wipes dots away and sets the cells to the current colours; transparent channels are kept. Editable as a polygon afterwards. | Eraser option Colours: Set to current (2026-10-09) clears the dots and gives the cell the rail's colours, with Bright and Flash "use existing" honoured; Keep (the default) is the eraser as before. Shown only where cells have colours. Not editable as a polygon afterwards. | Same |
 | Colour attribute line thickness (option) | Thick lines colour only the cells under a 1-pixel or 4-pixel core, so less clash. | Colour core option (2026-10-09) on the round and square brush, shape outlines and the Bezier curve: Whole line (default) / 1 pixel / 4 pixels. Every dot is set; only the core's cells take the colours; Mirror and XOR respected; previews match the commit; hidden where cells have no colours. | Same |
 | Attribute changes visible while drawing | Figures show their colours before they are finished. | Shapes, curves, gradients and stamps preview with the real colours. | Same |
 | Re-colour the last figure (point mode) | Click a control point to give the last drawn figure the current colours, line and fill style. | No. Undo and draw it again. | Missing |
@@ -83,8 +85,8 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | ZX Paintbrush | What it does | PixULA | Verdict |
 |---|---|---|---|
 | Attributes inverter tool | Swaps ink and paper of each cell clicked; snaps to cells. | Swap button. | Same |
-| Pixels inverter tool | Inverts the dots of each cell clicked. | Select the cell with Cell Grid, then Transform > Invert. Two steps. | Partial |
-| Pixels and attributes inverter | Inverts dots and swaps colours together, so the picture looks unchanged. Used to tidy imported pictures, where solid areas come in as inverted cells with holes. | Image > Dots > Invert Dots and Colours (2026-10-08): inverts the dots and swaps ink and paper of each whole cell the selection touches, or the whole picture; one undo step. No click-a-cell tool yet (Batch 4). Greyed out in modes without cell colours and while a stamp floats. | Partial |
+| Pixels inverter tool | Inverts the dots of each cell clicked. | Invert dots button in the top strip (2026-10-09): click or drag over whole cells; GigaScreen slot s becomes 3 - s; works in Timex Hi-res (8x8 cells) too; a blank cell fills; one undo step per drag. | Same |
+| Pixels and attributes inverter | Inverts dots and swaps colours together, so the picture looks unchanged. Used to tidy imported pictures, where solid areas come in as inverted cells with holes. | Invert dots and colours button in the top strip, and Image > Dots > Invert Dots and Colours (2026-10-08, tool 2026-10-09): inverts the dots and swaps ink and paper of each whole cell; one undo step. Skips cells another visible layer also draws in. Not offered in ULAplus and ULANext (swapping would change the look), modes without cell colours, or while a stamp floats. | Same |
 
 ### Edit attributes bar - selection or whole screen
 

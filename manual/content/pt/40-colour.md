@@ -20,6 +20,10 @@ também as cores, passe de novo a borracha sobre a célula vazia com um traço
 novo: tinta, papel, brilho e piscar voltam a preto sobre branco, e numa camada
 superior a célula volta a ser transparente. Uma célula que ainda tem pontos
 mantém as cores por mais vezes que passe a borracha.
+A opção **Cores** da borracha, visível nos modos de ecrã com cores de célula,
+muda isto: Pôr as atuais apaga os pontos e dá à célula as cores da barra, como a
+ferramenta de limpeza do ZX Paintbrush, e Manter, a predefinição, é o
+comportamento descrito acima.
 
 Cada um dos quatro também pode ser posto em **usar o existente**: a caixa
 axadrezada por baixo dele na barra de cores. Um traço deixa então essa parte de
@@ -53,6 +57,21 @@ do pincel e o Espelho. **Trocar**, ao lado, funciona da mesma maneira e troca a
 tinta e o papel de cada célula. Qualquer um deles fica ligado até clicar nele de
 novo ou escolher uma ferramenta ou um modo de desenho, e a barra de estado
 indica-o enquanto está ligado.
+
+**Copiar cores, Inverter pontos e Inverter pontos e cores** são mais três
+operações de célula ao lado de Trocar e Recolorir, e funcionam da mesma forma:
+clica no botão e depois clica ou arrasta sobre células. Cada arrastamento
+desfaz-se num só passo, e ficam ligadas até voltares a clicar no botão ou
+escolheres uma ferramenta ou um modo de desenho. **Copiar cores** apanha as
+cores que a célula sob o teu primeiro clique mostra e dá-as a cada célula sobre
+a qual arrastas; a barra de cores não muda. **Inverter pontos** apaga os pontos
+acesos de cada célula inteira e acende os apagados, e deixa as cores (numa
+célula em branco preenche-a). **Inverter pontos e cores** troca também tinta e
+papel, para cada célula ficar com o mesmo aspeto; serve para arrumar uma imagem
+importada, salta as células em que outra camada também desenha e não é oferecido
+em ULAplus nem ULANext. Uma ferramenta de célula só existe nos modos de ecrã em
+que pode funcionar: noutros o seu botão fica escondido, e Inverter pontos também
+funciona em Timex Hi-res, onde os pontos estão em células de 8 por 8.
 
 **XOR / Sobre e XOR / Cada passagem** invertem os pontos em vez de os acender, e
 ambos dão à célula as cores escolhidas. XOR / Sobre inverte cada ponto uma vez
@@ -163,7 +182,7 @@ Alterar... encontra células pelas suas cores e substitui-as. Localizar indica q
 
 ### Pontos
 
-Os itens Pontos do menu Imagem alteram os pontos e deixam as cores nas suas células. Espelhar horizontal e Espelhar vertical espelham os pontos. Inverter pontos e cores também troca a tinta e o papel de cada célula, por isso a imagem continua igual. Não são oferecidos em modos sem cores de célula (Layer 2, LoRes, Timex Hi-res) e ficam acinzentados enquanto um carimbo flutua.
+Os itens Pontos do menu Imagem alteram os pontos e deixam as cores nas suas células. Espelhar horizontal e Espelhar vertical espelham os pontos. Inverter pontos e cores também troca a tinta e o papel de cada célula, por isso a imagem continua igual. Não são oferecidos em modos sem cores de célula (Layer 2, LoRes, Timex Hi-res) e ficam acinzentados enquanto um carimbo flutua. Em ULAplus e ULANext também não é oferecido, porque trocar tinta e papel mudaria o aspeto da imagem.
 
 A opção Mover na secção Deslocar do painel Transformar escolhe o que se move. Pontos e cores (predefinição) move células inteiras com o seu papel. Só pontos move os pontos um píxel ou uma célula de cada vez. Só cores move as cores das células uma célula de cada vez. O painel tem também as diagonais. Enquanto um carimbo flutua, Mover fica acinzentado, porque um deslocamento move o carimbo inteiro.
 

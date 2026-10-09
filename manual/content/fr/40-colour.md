@@ -23,6 +23,11 @@ avec un nouveau trait : encre, papier, lumineux et clignotant reviennent à noir
 sur blanc, et sur un calque supérieur la cellule redevient transparente. Une
 cellule qui contient encore des points garde ses couleurs, quel que soit le
 nombre de passages de gomme.
+L'option **Couleurs** de la gomme, visible dans les modes d'écran avec des
+couleurs de cellule, change cela : Mettre les actuelles efface les points et
+donne à la cellule les couleurs de la barre, comme l'outil d'essuyage de ZX
+Paintbrush, et Garder, le réglage par défaut, est le comportement décrit plus
+haut.
 
 Chacun des quatre peut aussi être réglé sur **utiliser l'existant** - la case à
 damier sous lui dans la barre de couleurs. Un trait laisse alors cette partie de
@@ -60,6 +65,23 @@ côté, fonctionne de la même façon en échangeant l’encre et le papier de c
 cellule. L’un comme l’autre reste actif jusqu’à ce que vous cliquiez de nouveau
 dessus ou choisissiez un outil ou un mode de dessin, et la barre d’état
 l’indique tant qu’il est actif.
+
+**Copier les couleurs, Inverser les points et Inverser points et couleurs** sont
+trois opérations de cellule de plus à côté d'Échanger et Recolorer, et
+fonctionnent de la même façon : cliquez sur le bouton, puis cliquez ou glissez
+sur des cellules. Chaque glissement s'annule en une étape, et ils restent actifs
+jusqu'à ce que vous recliquiez sur le bouton ou choisissiez un outil ou un mode
+de dessin. **Copier les couleurs** prend les couleurs que montre la cellule sous
+votre premier clic et les donne à chaque cellule sur laquelle vous glissez ; la
+barre de couleurs ne change pas. **Inverser les points** efface les points
+allumés de chaque cellule entière et allume les effacés, et laisse les couleurs
+(une cellule vide est remplie). **Inverser points et couleurs** échange en plus
+l'encre et le papier, de sorte que chaque cellule a le même aspect ; il sert à
+nettoyer une image importée, saute les cellules où une autre couche dessine
+aussi, et n'est pas proposé en ULAplus ni ULANext. Un outil de cellule n'existe
+que dans les modes d'écran où il peut fonctionner : son bouton est masqué
+ailleurs, et Inverser les points fonctionne aussi en Timex Hi-res, où les points
+sont dans des cellules de 8 par 8.
 
 **XOR / Superposer et XOR / Chaque passage** inversent les points au lieu de les
 poser, et donnent tous deux à la cellule les couleurs choisies. XOR / Superposer
@@ -178,7 +200,7 @@ Modifier... trouve les cellules d'après leurs couleurs et les remplace. Recherc
 
 ### Points
 
-Les éléments Points du menu Image modifient les points et laissent les couleurs dans leurs cellules. Miroir horizontal et Miroir vertical retournent les points. Inverser points et couleurs échange aussi l'encre et le papier de chaque cellule, de sorte que l'image reste identique. Ils ne sont pas proposés dans les modes sans couleurs de cellule (Layer 2, LoRes, Timex Hi-res) et sont grisés pendant qu'un tampon flotte.
+Les éléments Points du menu Image modifient les points et laissent les couleurs dans leurs cellules. Miroir horizontal et Miroir vertical retournent les points. Inverser points et couleurs échange aussi l'encre et le papier de chaque cellule, de sorte que l'image reste identique. Ils ne sont pas proposés dans les modes sans couleurs de cellule (Layer 2, LoRes, Timex Hi-res) et sont grisés pendant qu'un tampon flotte. En ULAplus et ULANext il n'est pas proposé non plus, car échanger l'encre et le papier changerait l'aspect de l'image.
 
 Le choix Déplacer de la section Décaler du panneau Transformation indique ce qui se déplace. Points et couleurs (par défaut) déplace des cellules entières avec leur papier. Points seuls déplace les points d'un pixel ou d'une cellule à la fois. Couleurs seules déplace les couleurs de cellule une cellule à la fois. La croix possède aussi les diagonales. Pendant qu'un tampon flotte, Déplacer est grisé, car un décalage déplace tout le tampon.
 

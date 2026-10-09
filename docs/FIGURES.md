@@ -640,6 +640,14 @@ run noise, so no optimisation was needed.
 | Strip icon width, 800 / 1024 / 1200 px window, default interface size | 30.8 / 48.3 / 54 px | with the Inverse button 28.3 / 44.5 / 54 px | M, 2026-10-09, Playwright |
 | Strip rows at 1024 px window, 200% interface size | 1 row (16 px icons, the floor) | 2 rows | M, 2026-10-09, Playwright; see batch-04.md |
 
+### The 15-button strip - 2026-10-09 (batch 4 part 4B)
+
+| Figure | Value | Tag |
+|---|---|---|
+| Strip icon width, 800 / 1024 / 1200 px window, default interface size, 15 buttons | 22.7 / 36.0 / 46.2 px (12 buttons: 28.3 / 44.5 / 54) | M, 2026-10-09, Playwright; matched the 2026-10-09 prediction made with clones of a button |
+| Strip rows with 15 buttons, 1024/1280/1366/1600 px x interface 100/125/150/200% | 1 row everywhere except 1024 px at 200% (2 rows) | M, 2026-10-09, Playwright |
+| Interface fit floor (ColorBarFit), icon width at the floor | 16 px at scale 0.15 | M, 2026-10-09 |
+
 ### What was measured and NOT acted on
 
 | Path | Figure | Tag | Why it was left |

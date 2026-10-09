@@ -20,6 +20,10 @@ borrar también los colores, vuelve a pasar el borrador sobre la celda vacía co
 un trazo nuevo: tinta, papel, brillo y flash vuelven a negro sobre blanco, y en
 una capa superior la celda vuelve a ser transparente. Una celda que aún tiene
 puntos conserva sus colores por muchas veces que pases el borrador.
+La opción **Colores** de la goma, visible en los modos de pantalla con colores
+de celda, cambia esto: Poner los actuales borra los puntos y da a la celda los
+colores de la barra, como la herramienta de borrado de ZX Paintbrush, y
+Conservar, la opción por defecto, es el comportamiento descrito arriba.
 
 Cada uno de los cuatro también puede ponerse en **usar el existente**: la
 casilla a cuadros que tiene debajo en la barra de color. Así un trazo deja esa
@@ -55,6 +59,22 @@ Espejo. **Intercambiar**, a su lado, funciona igual e intercambia la tinta
 y el papel de cada celda. Cualquiera de los dos sigue activo hasta que
 vuelvas a pulsarlo o elijas una herramienta o un modo de dibujo, y la
 barra de estado lo indica mientras está activo.
+
+**Copiar colores, Invertir puntos e Invertir puntos y colores** son tres
+operaciones de celda más junto a Intercambiar y Recolorear, y funcionan igual:
+haz clic en el botón y luego haz clic o arrastra sobre celdas. Cada arrastre se
+deshace en un paso, y siguen activas hasta que vuelvas a hacer clic en el botón
+o elijas una herramienta o un modo de dibujo. **Copiar colores** recoge los
+colores que muestra la celda bajo tu primer clic y los da a cada celda sobre la
+que arrastras; la barra de colores no cambia. **Invertir puntos** borra los
+puntos puestos de cada celda entera y pone los borrados, y deja los colores (una
+celda en blanco se llena). **Invertir puntos y colores** además intercambia
+tinta y papel, de modo que cada celda se ve igual; sirve para ordenar una imagen
+importada, se salta las celdas en las que dibuja también otra capa y no se
+ofrece en ULAplus ni ULANext. Una herramienta de celda solo existe en los modos
+de pantalla donde puede funcionar: su botón se oculta en los demás, e Invertir
+puntos también funciona en Timex Hi-res, donde los puntos están en celdas de 8
+por 8.
 
 **XOR / Encima y XOR / Cada pasada** invierten los puntos en lugar de
 encenderlos, y los dos dan a la celda los colores elegidos. XOR / Encima
@@ -169,7 +189,7 @@ Cambiar... busca celdas por sus colores y las reemplaza. Buscar indica qué celd
 
 ### Puntos
 
-Los elementos Puntos del menú Imagen cambian los puntos y dejan los colores en sus celdas. Voltear horizontal y Voltear vertical reflejan los puntos. Invertir puntos y colores también intercambia la tinta y el papel de cada celda, así que la imagen se ve igual. No se ofrece en modos sin colores de celda (Layer 2, LoRes, Timex Hi-res), y aparece en gris mientras flota un sello.
+Los elementos Puntos del menú Imagen cambian los puntos y dejan los colores en sus celdas. Voltear horizontal y Voltear vertical reflejan los puntos. Invertir puntos y colores también intercambia la tinta y el papel de cada celda, así que la imagen se ve igual. No se ofrece en modos sin colores de celda (Layer 2, LoRes, Timex Hi-res), y aparece en gris mientras flota un sello. En ULAplus y ULANext tampoco se ofrece, porque intercambiar tinta y papel cambiaría el aspecto de la imagen.
 
 La opción Mover de la sección Desplazar del panel de Transformar decide qué se mueve. Puntos y colores (por defecto) mueve celdas completas con su papel. Solo puntos mueve los puntos un píxel o una celda cada vez. Solo colores mueve los colores de celda una celda cada vez. La cruceta tiene también las diagonales. Mientras flota un sello, Mover aparece en gris, porque un desplazamiento mueve todo el sello.
 

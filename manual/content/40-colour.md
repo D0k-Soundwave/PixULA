@@ -19,6 +19,10 @@ the colours as well, erase over the empty cell again with a new stroke: ink,
 paper, bright and flash go back to black on white, and on an upper layer the
 cell becomes see-through again. A cell that still has dots in it keeps its
 colours however many times you erase over it.
+The eraser's **Colours** option, shown in screen modes with cell colours,
+changes this: Set to current clears the dots and gives the cell the colours in
+the rail, as the wiping tool of ZX Paintbrush does, and Keep, the default, is
+the behaviour above.
 
 Each of the four can also be set to **use existing** - the checkered box under
 it in the colour rail. A stroke then leaves that part of every cell as it
@@ -52,6 +56,20 @@ cell under the pointer whichever tool is selected, ignoring brush size and
 Mirror. **Swap** beside it works the same way, exchanging each cell's ink
 and paper. Either one stays on until you click it again or pick a tool or a
 draw mode, and the status bar says so while it is on.
+
+**Copy colours, Invert dots and Invert dots and colours** are three more cell
+operations beside Swap and Recolour, and work the same way: click the button,
+then click or drag over cells. Each drag undoes in one step, and they stay on
+until you click the button again or pick a tool or a draw mode. **Copy colours**
+picks up the colours the cell under your first click shows and gives them to
+every cell you drag over; the colour rail is not changed. **Invert dots** turns
+the set dots of each whole cell clear and the clear ones set, and leaves the
+colours (on a blank cell it fills it). **Invert dots and colours** also swaps
+ink and paper, so each cell looks the same; it is for tidying an imported
+picture, it skips cells that another layer also draws in, and it is not offered
+in ULAplus and ULANext. A cell tool exists only in the screen modes it can work
+in: its button is hidden elsewhere, and Invert dots also works in Timex Hi-res,
+where the dots are in 8 by 8 cells.
 
 **XOR / Over and XOR / Every Pass** both flip dots rather than set them, and
 both give the cell your colours. XOR / Over flips each dot once per stroke, so
@@ -157,7 +175,7 @@ Change... finds cells by their colours and replaces them. Find sets which cells 
 
 ### Dots
 
-The Dots items in the Image menu change the dots and leave the colours in their cells. Flip Horizontal and Flip Vertical mirror the dots. Invert Dots and Colours also swaps the ink and paper of each cell, so the picture looks the same. It is not offered in modes with no cell colours (Layer 2, LoRes, Timex Hi-res), and it is greyed out while a stamp is floating.
+The Dots items in the Image menu change the dots and leave the colours in their cells. Flip Horizontal and Flip Vertical mirror the dots. Invert Dots and Colours also swaps the ink and paper of each cell, so the picture looks the same. It is not offered in modes with no cell colours (Layer 2, LoRes, Timex Hi-res), and it is greyed out while a stamp is floating. In ULAplus and ULANext it is not offered either, because swapping ink and paper would change how the picture looks.
 
 The Move choice in the Shift section of the Transform panel decides what moves. Dots and colours (the default) moves whole cells with their paper. Dots only moves the dots a pixel or a cell at a time. Colours only moves cell colours one cell at a time. The pad has the four diagonals as well as the four sides. While a stamp is floating, Move is greyed out, because a shift moves the whole stamp.
 

@@ -21,6 +21,10 @@ culorile, treceți din nou cu radiera peste celula goală cu o trăsătură nou�
 cerneala, hârtia, luminozitatea și clipirea revin la negru pe alb, iar pe un
 strat superior celula devine din nou transparentă. O celulă care mai are puncte
 își păstrează culorile, oricât de des ați trece cu radiera peste ea.
+Opțiunea **Culori** a radierei, vizibilă în modurile de ecran cu culori de
+celulă, schimbă asta: Setează pe cele curente șterge punctele și dă celulei
+culorile din bară, ca unealta de ștergere din ZX Paintbrush, iar Păstrează,
+implicit, este comportamentul descris mai sus.
 
 Fiecare dintre cele patru poate fi pusă și pe **folosește existentul**: căsuța
 în carouri de sub ea din bara de culori. O trăsătură lasă atunci acea parte a
@@ -57,6 +61,22 @@ funcționează la fel și schimbă între ele cerneala și hârtia fiecărei cel
 Oricare dintre ele rămâne activ până când dați din nou clic pe el sau alegeți o
 unealtă ori un mod de desen, iar bara de stare arată acest lucru cât timp este
 activ.
+
+**Copiază culorile, Inversează punctele și Inversează punctele și culorile**
+sunt încă trei operații de celulă lângă Schimbă și Recolorează și funcționează
+la fel: fă clic pe buton, apoi fă clic sau trage peste celule. Fiecare tragere
+se anulează dintr-un pas, iar ele rămân pornite până faci din nou clic pe buton
+sau alegi o unealtă ori un mod de desen. **Copiază culorile** ia culorile pe
+care le arată celula de sub primul tău clic și le dă fiecărei celule peste care
+tragi; bara de culori nu se schimbă. **Inversează punctele** șterge punctele
+aprinse ale fiecărei celule întregi și le aprinde pe cele șterse, lăsând
+culorile (o celulă goală o umple). **Inversează punctele și culorile** schimbă
+în plus cerneala cu hârtia, astfel încât fiecare celulă arată la fel; servește
+la ordonarea unei imagini importate, sare peste celulele în care desenează și
+alt strat și nu este oferit în ULAplus și ULANext. O unealtă de celulă există
+doar în modurile de ecran în care poate funcționa: în altele butonul ei este
+ascuns, iar Inversează punctele funcționează și în Timex Hi-res, unde punctele
+sunt în celule de 8 pe 8.
 
 **XOR / Peste și XOR / Fiecare trecere** inversează punctele în loc să le
 aprindă și amândouă dau celulei culorile alese. XOR / Peste inversează fiecare
@@ -171,7 +191,7 @@ Modifică... găsește celulele după culorile lor și le înlocuiește. Caută 
 
 ### Puncte
 
-Elementele Puncte din meniul Imagine modifică punctele și lasă culorile în celulele lor. Oglindire orizontală și Oglindire verticală oglindesc punctele. Inversează punctele și culorile schimbă și cerneala cu hârtia din fiecare celulă, astfel încât imaginea rămâne la fel. Nu este oferit în moduri fără culori de celulă (Layer 2, LoRes, Timex Hi-res) și apare cenușiu cât timp o ștampilă plutește.
+Elementele Puncte din meniul Imagine modifică punctele și lasă culorile în celulele lor. Oglindire orizontală și Oglindire verticală oglindesc punctele. Inversează punctele și culorile schimbă și cerneala cu hârtia din fiecare celulă, astfel încât imaginea rămâne la fel. Nu este oferit în moduri fără culori de celulă (Layer 2, LoRes, Timex Hi-res) și apare cenușiu cât timp o ștampilă plutește. În ULAplus și ULANext nu este oferit nici el, pentru că schimbarea cernelii cu hârtia ar schimba aspectul imaginii.
 
 Alegerea Deplasare din secțiunea Deplasare a panoului Transformare stabilește ce se mută. Puncte și culori (implicit) mută celule întregi cu hârtia lor. Doar puncte mută punctele cu un pixel sau o celulă pe rând. Doar culori mută culorile celulelor câte o celulă. Panoul are și diagonale. Cât timp o ștampilă plutește, Deplasare este cenușie, pentru că o deplasare mută întreaga ștampilă.
 

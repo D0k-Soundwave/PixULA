@@ -22,6 +22,10 @@ noch einmal über die leere Zelle: Tinte, Papier, Hell und Blinken kehren zu
 Schwarz auf Weiß zurück, und auf einer oberen Ebene wird die Zelle wieder
 durchsichtig. Eine Zelle, die noch Punkte enthält, behält ihre Farben, egal wie
 oft Sie darüber radieren.
+Die Option **Farben** des Radierers, in Bildschirmmodi mit Zellfarben sichtbar,
+ändert das: Auf aktuelle setzen löscht die Punkte und gibt der Zelle die Farben
+der Farbleiste, wie das Wischwerkzeug von ZX Paintbrush, und Behalten, die
+Vorgabe, ist das Verhalten von oben.
 
 Jeder der vier Teile lässt sich auch auf **vorhanden verwenden** stellen - das
 karierte Kästchen darunter in der Farbleiste. Ein Strich lässt diesen Teil jeder
@@ -57,6 +61,23 @@ gewählt ist, ohne Rücksicht auf Pinselgröße und Spiegeln. **Tauschen** daneb
 arbeitet genauso und vertauscht Tinte und Papier jeder Zelle. Beide bleiben an,
 bis Sie erneut darauf klicken oder ein Werkzeug oder einen Zeichenmodus wählen,
 und solange eines an ist, zeigt die Statusleiste es an.
+
+**Farben kopieren, Punkte invertieren und Punkte und Farben invertieren** sind
+drei weitere Zelloperationen neben Tauschen und Umfärben und funktionieren
+genauso: Schaltfläche anklicken, dann über Zellen klicken oder ziehen. Jedes
+Ziehen wird in einem Schritt rückgängig gemacht, und sie bleiben an, bis Sie die
+Schaltfläche erneut anklicken oder ein Werkzeug oder einen Zeichenmodus wählen.
+**Farben kopieren** nimmt die Farben auf, die die Zelle unter Ihrem ersten Klick
+zeigt, und gibt sie jeder Zelle, über die Sie ziehen; die Farbleiste ändert sich
+nicht. **Punkte invertieren** löscht die gesetzten Punkte jeder ganzen Zelle und
+setzt die gelöschten und lässt die Farben (eine leere Zelle wird gefüllt).
+**Punkte und Farben invertieren** tauscht zusätzlich Tinte und Papier, sodass
+jede Zelle gleich aussieht; es dient zum Aufräumen eines importierten Bildes,
+überspringt Zellen, in denen auch eine andere Ebene zeichnet, und wird in
+ULAplus und ULANext nicht angeboten. Ein Zellwerkzeug gibt es nur in den
+Bildschirmmodi, in denen es funktionieren kann: Seine Schaltfläche ist sonst
+ausgeblendet, und Punkte invertieren funktioniert auch in Timex Hi-Res, wo die
+Punkte in 8-mal-8-Zellen liegen.
 
 **XOR / Über und XOR / Jeder Durchgang** kehren Punkte um, statt sie zu setzen,
 und geben der Zelle beide die gewählten Farben. XOR / Über kehrt jeden Punkt
@@ -173,7 +194,7 @@ ausgegraut.
 
 ### Punkte
 
-Die Einträge Punkte im Menü Bild ändern die Punkte und lassen die Farben in ihren Zellen. Horizontal spiegeln und Vertikal spiegeln spiegeln die Punkte. Punkte und Farben invertieren tauscht außerdem Vordergrund und Hintergrund jeder Zelle, sodass das Bild gleich aussieht. Er wird in Modi ohne Zellenfarben nicht angeboten (Layer 2, LoRes, Timex Hi-res) und ist grau, solange ein Stempel schwebt.
+Die Einträge Punkte im Menü Bild ändern die Punkte und lassen die Farben in ihren Zellen. Horizontal spiegeln und Vertikal spiegeln spiegeln die Punkte. Punkte und Farben invertieren tauscht außerdem Vordergrund und Hintergrund jeder Zelle, sodass das Bild gleich aussieht. Er wird in Modi ohne Zellenfarben nicht angeboten (Layer 2, LoRes, Timex Hi-res) und ist grau, solange ein Stempel schwebt. In ULAplus und ULANext wird er ebenfalls nicht angeboten, weil das Tauschen von Tinte und Papier das Aussehen des Bildes ändern würde.
 
 Die Option Verschieben im Abschnitt Verschieben des Transform-Panels legt fest, was sich bewegt. Punkte und Farben (Vorgabe) verschiebt ganze Zellen mit ihrem Papier. Nur Punkte verschiebt die Punkte um einen Pixel oder eine Zelle. Nur Farben verschiebt die Zellenfarben Zelle für Zelle. Das Feld hat auch die vier Diagonalen. Solange ein Stempel schwebt, ist Verschieben grau, weil eine Verschiebung den ganzen Stempel bewegt.
 
