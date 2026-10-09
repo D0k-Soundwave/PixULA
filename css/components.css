@@ -359,6 +359,9 @@
 .tool-btn[data-draw-mode="xor"]:not(.active)        { color: var(--tool-color-dm-xor); }
 #attr-transpose:not(.active)                        { color: var(--tool-color-attr-swap); }
 #attr-apply:not(.active)                            { color: var(--tool-color-attr-recolour); }
+#attr-copy:not(.active)                             { color: var(--tool-color-attr-recolour); }
+#attr-invert-dots:not(.active),
+#attr-invert-both:not(.active)                      { color: var(--tool-color-attr-swap); }
 
 /* Bright/Flash toggles (clut-bar.js) are <label class="flash-btn"> wrapping
    a checkbox, not .tool-btn, and already switch to accent bg + on-accent

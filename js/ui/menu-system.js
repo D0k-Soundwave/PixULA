@@ -253,7 +253,8 @@ class MenuSystemClass {
             locked: ['menu.image.attrLocked', 'This layer is locked.'],
             stamp: ['menu.image.attrStamp', 'Finish or cancel the stamp first.'],
             stampAttrs: ['menu.image.dotsStampAttrs', 'This stamp keeps its own colours, so it cannot be flipped here.'],
-            noCellAttributes: ['menu.image.dotsNoCells', 'Invert Dots and Colours needs cell colours, which this screen mode does not have.']
+            noCellAttributes: ['menu.image.dotsNoCells', 'Invert Dots and Colours needs cell colours, which this screen mode does not have.'],
+            palette: ['menu.image.dotsPalette', 'Invert Dots and Colours needs the fixed 16 colours: in ULAplus and ULANext, swapping ink and paper would change how the picture looks.']
         };
         const texts = [b.flip, b.invert]
             .filter((r, i, all) => r && all.indexOf(r) === i)
