@@ -20,6 +20,7 @@
 
 class PixelDrawRoutineClass {
   constructor() {
+    this._colourCore = null; // see withColourCore
     this.pendingChanges = new Map(); // key: cellY*GRID_COLS+cellX -> {cellX,cellY}
     this.isInBatch = false;
     this._inMirror = false;        // reentrancy guard for symmetry expansion
@@ -62,6 +63,72 @@ class PixelDrawRoutineClass {
       return fn();
     } finally {
       this._ditherGate = previous;
+    }
+  }
+
+  // ── Colour core (batch 4 part 4A) ──────────────────────────────────────────
+  //
+  // ZX Paintbrush's "colour attribute line thickness": a thick line sets ALL
+  // its dots, but only the cells under its 1- or 4-pixel-wide core take the
+  // colours, so thick lines clash less. Like the dither gate, the rule sits
+  // where every write already passes; the TOOL says which pixels are the core
+  // (a predicate over canvas coordinates) and the gate says what a pixel
+  // outside it may write.
+
+  /**
+   * Run fn with a colour-core predicate installed. A write whose pixel the
+   * predicate rejects keeps its dot but loses its colours (see classifyCore).
+   * Installed only where cells have colours; anywhere else, or with no
+   * predicate, fn runs unchanged. Nested calls restore the outer one.
+   * @param {Function|null} isCore - (x, y) => boolean, true if (x, y) is core
+   * @param {Function} fn
+   */
+  withColourCore(isCore, fn) {
+    const previous = this._colourCore;
+    const usable = typeof isCore === 'function' && window.ColorManager &&
+      ColorManager.hasCellAttributes();
+    this._colourCore = usable ? isCore : null;
+    try {
+      return fn();
+    } finally {
+      this._colourCore = previous;
+    }
+  }
+
+  /**
+   * What a write at (x, y) becomes under a colour core. THE one rule, used by
+   * draw() and by every preview, so a preview cannot disagree with its commit.
+   *   in the core, or no core ... unchanged
+   *   Normal, left button ...... Pixels Only (the dot, no colours)
+   *   Normal, right button ..... Erase (the dot cleared, colours kept)
+   *   Ink / Paper / Attributes . dropped (they write no dots, only colours)
+   *   XOR modes ................ the same mode, writing no colours (keepColours):
+   *                              XOR does stamp the cell's colours, and its
+   *                              once-per-stroke gate needs the mode unchanged
+   * @param {number} x
+   * @param {number} y
+   * @param {string} mode - DRAW_MODE value
+   * @param {Object} sel - colour selection
+   * @param {Function|null} [isCore] - defaults to the installed predicate
+   * @returns {{mode: string, sel: Object}|null} null = write nothing
+   */
+  classifyCore(x, y, mode, sel, isCore = this._colourCore) {
+    if (!isCore || isCore(x, y)) return { mode, sel };
+    switch (mode) {
+      case DRAW_MODE.NORMAL:       return { mode: DRAW_MODE.PIXEL_ONLY, sel };
+      case DRAW_MODE.NORMAL_ERASE: return { mode: DRAW_MODE.ERASE, sel };
+      case DRAW_MODE.INK:
+      case DRAW_MODE.PAPER:
+      case DRAW_MODE.ATTRIBUTES_ONLY:
+        return null;
+      case DRAW_MODE.XOR:
+      case DRAW_MODE.XOR_PIXEL:
+        // keepColours: _applyXOR leaves the cell's colours exactly as they are. (Marking
+        // every part "use existing" is not the same: that resolves against what the
+        // page showed when the stroke began, and would undo colours the core just set.)
+        return { mode, sel: { ...sel, keepColours: true } };
+      default:
+        return { mode, sel };
     }
   }
 
@@ -296,7 +363,7 @@ class PixelDrawRoutineClass {
    * @param {boolean} [opts.live] - a stroke is in progress
    * @returns {function(number, number): (string|null)} CSS colour, or null
    */
-  markColours(tool, pixels, { live = false } = {}) {
+  markColours(tool, pixels, { live = false, centre = null } = {}) {
     const kind = (tool && tool.markColour) || 'paint';
     if (kind === 'none' || !window.LayerManager || !window.ColorManager) return () => null;
 
@@ -305,6 +372,12 @@ class PixelDrawRoutineClass {
     const simulate = kind === 'paint' && !live && !!layer &&
       typeof tool.markWrite === 'function';
 
+    const selection = simulate ? ColorManager.getCurrentSelection() : null;
+    // A tool with a colour core says which pixels of this mark are the core;
+    // the rest lose their colours here exactly as they will in the stroke.
+    const core = simulate && centre && typeof tool.markCore === 'function'
+      ? tool.markCore(centre) : null;
+
     // Every footprint write, grouped by the cell it lands in.
     let byCell = null;
     if (simulate) {
@@ -312,15 +385,21 @@ class PixelDrawRoutineClass {
       for (let i = 0; i < pixels.length; i++) {
         const p = pixels[i];
         if (!Validators.isValidPixelCoord(p.x, p.y)) continue;
-        const mode = tool.markWrite(p.x, p.y);
+        let mode = tool.markWrite(p.x, p.y);
         if (!mode) continue;
+        let sel;
+        if (core) {
+          const kept = this.classifyCore(p.x, p.y, mode, selection, core);
+          if (kept === null) continue;
+          mode = kept.mode;
+          if (kept.sel !== selection) sel = kept.sel;
+        }
         const key = Math.floor(p.y / ch) * cols + Math.floor(p.x / cw);
         let list = byCell.get(key);
         if (!list) byCell.set(key, (list = []));
-        list.push({ localX: p.x % cw, localY: p.y % ch, mode });
+        list.push({ localX: p.x % cw, localY: p.y % ch, mode, sel });
       }
     }
-    const selection = simulate ? ColorManager.getCurrentSelection() : null;
     const cells = new Map();
     const css = (rgb) => `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
 
@@ -448,6 +527,16 @@ class PixelDrawRoutineClass {
     // Validate coordinates - silently ignore out-of-bounds
     if (!Validators.isValidPixelCoord(pixelX, pixelY)) {
       return false;
+    }
+
+    // Colour core: classify the ORIGINAL pixel before it is mirrored, so each
+    // mirrored copy takes its original's treatment (the core is the stroke's
+    // own line, mirrored, not a second thing to measure).
+    if (this._colourCore && !this._inMirror) {
+      const kept = this.classifyCore(pixelX, pixelY, mode, colorSelection);
+      if (kept === null) return false;
+      mode = kept.mode;
+      colorSelection = kept.sel;
     }
 
     // Symmetry: expand this write into its mirrored counterparts. The
@@ -1386,7 +1475,7 @@ class PixelDrawRoutineClass {
   _applyXOR(cell, localX, localY, colorSelection) {
     const bitPosition = 7 - localX;
     cell.pixels[localY] ^= (1 << bitPosition);
-    this._stampAttributes(cell, colorSelection);
+    if (!(colorSelection && colorSelection.keepColours)) this._stampAttributes(cell, colorSelection);
     cell.altered = true;
   }
 

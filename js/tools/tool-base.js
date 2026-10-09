@@ -217,6 +217,24 @@ class ToolBaseClass {
 }
 
 /**
+ * The "Colour core" option shared by Brush, Shape outlines and Bezier: a thick
+ * line sets all its dots, but only the cells under its core take the colours.
+ * Values are strings so the select carries them; colourCoreSize turns one into
+ * the core's width in pixels (0 = the whole line, as before).
+ */
+ToolBaseClass.COLOUR_CORE_OPTS = Object.freeze([
+  { value: 'whole', i18n: 'cc.whole' },
+  { value: '1',     i18n: 'cc.one' },
+  { value: '4',     i18n: 'cc.four' }
+]);
+
+/** @param {*} value - a COLOUR_CORE_OPTS value @returns {number} 0, 1 or 4 */
+ToolBaseClass.colourCoreSize = (value) => (value === '1' ? 1 : value === '4' ? 4 : 0);
+
+/** Same value, or 'whole' for anything else. */
+ToolBaseClass.cleanColourCore = (value) => (value === '1' || value === '4' ? value : 'whole');
+
+/**
  * Declarative tool-options contract (docs/REFACTOR_PLAN.md §2, UNIFICATION_AUDIT §2.3A).
  *
  * Every tool declares `static optionsSchema = [...]`; the OptionControls
@@ -233,7 +251,8 @@ class ToolBaseClass {
  *            { i18n, options: [...] }
  *   showIf   { key, equals } | { key, in: [...] } | { key, notIn: [...] }
  *            | { key, gt: n } — row visibility follows another option's
- *            current value. Compound: { any: [cond…] } (OR) /
+ *            current value. { cells: true } follows the SCREEN MODE instead:
+ *            shown only where cells have colours (re-evaluated on a mode switch). Compound: { any: [cond…] } (OR) /
  *            { all: [cond…] } (AND), nestable.
  *   dynamic  name of an async tool method the renderer awaits to extend or
  *            replace `options` at render time (e.g. system font enumeration).

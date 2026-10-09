@@ -139,6 +139,14 @@ class ShapeToolClass extends ToolBase {
       // outline line/arc/spiral/x (whose 'filled' is hidden); hidden when filled.
       showIf: { any: [ { key: 'filled', equals: false },
                        { key: 'shapeType', in: ['line', 'arc', 'spiral', 'x'] } ] } },
+    // Colour core: only the cells under the outline's centre line take the colours.
+    // Beside Thickness (it is about thick outlines), and only where cells have colours.
+    { type: 'select', key: 'colourCore', i18n: 'opt.colourCore', value: 'whole',
+      options: ToolBase.COLOUR_CORE_OPTS,
+      showIf: { all: [
+        { any: [ { key: 'filled', equals: false },
+                 { key: 'shapeType', in: ['line', 'arc', 'spiral', 'x'] } ] },
+        { cells: true } ] } },
     ...SHAPE_PARAM_ROWS
   ];
 
@@ -150,6 +158,7 @@ class ShapeToolClass extends ToolBase {
     this.previewActive = false;
     this.isEraseMode = false;
     this._thickness = 1;
+    this._colourCore = 'whole';
 
     // Per-shape parameters (SHAPE_PARAM_ROWS). Kept in the units the sliders
     // show; _shapeOptions converts them for the generator.
@@ -196,11 +205,14 @@ class ShapeToolClass extends ToolBase {
         pixelX, pixelY
       );
 
-      if (this.isEraseMode) {
-        GridOverlay.drawCompositorPreview([], pixels);
-      } else {
-        GridOverlay.drawCompositorPreview(pixels, []);
-      }
+      const core = this._coreFor(this.startPoint.x, this.startPoint.y, pixelX, pixelY);
+      PixelDrawRoutine.withColourCore(core, () => {
+        if (this.isEraseMode) {
+          GridOverlay.drawCompositorPreview([], pixels);
+        } else {
+          GridOverlay.drawCompositorPreview(pixels, []);
+        }
+      });
     }
   }
 
@@ -229,13 +241,17 @@ class ShapeToolClass extends ToolBase {
       pixelX, pixelY
     );
 
+    const core = this._coreFor(this.startPoint.x, this.startPoint.y, pixelX, pixelY);
+
     PixelDrawRoutine.beginBatch();
 
-    for (let i = 0; i < pixels.length; i++) {
-      const p = pixels[i];
-      // PixelDrawRoutine.draw handles bounds checking
-      PixelDrawRoutine.draw(p.x, p.y, color, mode);
-    }
+    PixelDrawRoutine.withColourCore(core, () => {
+      for (let i = 0; i < pixels.length; i++) {
+        const p = pixels[i];
+        // PixelDrawRoutine.draw handles bounds checking
+        PixelDrawRoutine.draw(p.x, p.y, color, mode);
+      }
+    });
 
     PixelDrawRoutine.endBatch();
 
@@ -264,7 +280,7 @@ class ShapeToolClass extends ToolBase {
    * @returns {Array<{x: number, y: number}>} Array of pixels
    * @private
    */
-  _getShapePixels(x1, y1, x2, y2) {
+  _getShapePixels(x1, y1, x2, y2, override = null) {
     // Check if this is a center-anchored shape
     const isCenterAnchored = this._isCenterAnchoredShape(this.shapeType);
 
@@ -277,12 +293,33 @@ class ShapeToolClass extends ToolBase {
       } else {
         bounds = { x1, y1, x2, y2 };
       }
-      return window.ShapeGenerator.generateShape(this.shapeType, bounds, this._shapeOptions());
+      const options = override ? { ...this._shapeOptions(), ...override } : this._shapeOptions();
+      return window.ShapeGenerator.generateShape(this.shapeType, bounds, options);
     }
 
     Logger.warn('ShapeTool', `Shape not found in ShapeGenerator: ${this.shapeType}`);
     return [];
   }
+
+  /**
+   * The colour core of the outline being drawn, as a predicate for
+   * PixelDrawRoutine.withColourCore, or null when the whole outline takes
+   * colours: option off, a filled shape (never thickened), an outline no
+   * thicker than the core, or a screen mode with no cell colours.
+   * The core is the thickness-1 raster of the same shape, widened by the core.
+   * @private
+   */
+  _coreFor(x1, y1, x2, y2) {
+    const size = ToolBase.colourCoreSize(this._colourCore);
+    if (!size || this.filled || this._thickness <= size) return null;
+    if (!window.ColorManager || !ColorManager.hasCellAttributes()) return null;
+    const centre = this._getShapePixels(x1, y1, x2, y2, { thickness: 1 });
+    return ShapeGenerator.corePredicate(centre, size);
+  }
+
+  getColourCore() { return this._colourCore; }
+
+  setColourCore(value) { this._colourCore = ToolBase.cleanColourCore(value); }
 
   /**
    * Everything the generator may want, in ITS units. Handing over the whole
