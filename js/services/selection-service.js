@@ -53,6 +53,7 @@ class SelectionServiceClass {
     // both redraw it too - otherwise the stamp went on showing the picture a
     // different mode would have left.
     EventBus.on(EVENTS.DRAW_MODE_CHANGED, () => this.refreshStampColor());
+    EventBus.on(EVENTS.INVERSE_CHANGED,   () => this.refreshStampColor());
     EventBus.on(EVENTS.LAYER_SELECTED,    () => this.refreshStampColor());
   }
 
@@ -2013,7 +2014,8 @@ class SelectionServiceClass {
     const mode = PixelDrawRoutine.resolveUserMode(true);
 
     let paperIdx = 0, targetLayer = null;
-    if (mode === DRAW_MODE.PAPER || mode === DRAW_MODE.XOR || mode === DRAW_MODE.XOR_PIXEL) {
+    if (mode === DRAW_MODE.PAPER || mode === DRAW_MODE.XOR || mode === DRAW_MODE.XOR_PIXEL ||
+        mode === DRAW_MODE.NORMAL_ERASE || mode === DRAW_MODE.ERASE) {
       paperIdx = ColorManager.getIndexedPaper();
       targetLayer = this._findTargetBelow(floatingLayer);
     }
@@ -2032,8 +2034,12 @@ class SelectionServiceClass {
 
         const carried = (idxRow && idxRow[px] != null && idxRow[px] >= 0) ? idxRow[px] : null;
         let value;
-        if (mode === DRAW_MODE.PAPER) {
+        if (mode === DRAW_MODE.PAPER || mode === DRAW_MODE.NORMAL_ERASE) {
           value = paperIdx;
+        } else if (mode === DRAW_MODE.ERASE) {
+          // Inverse in Pixels Only: the commit clears to the transparency
+          // index on an upper layer, to paper on the background.
+          value = (targetLayer && targetLayer.isBackground) ? paperIdx : -1;
         } else if (mode === DRAW_MODE.XOR || mode === DRAW_MODE.XOR_PIXEL) {
           const cand = carried != null ? carried : inkIdx;
           const eraseIdx = (targetLayer && targetLayer.isBackground) ? paperIdx : -1;

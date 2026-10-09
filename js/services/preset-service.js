@@ -1260,6 +1260,7 @@ PresetServiceClass.SLICES = Object.freeze([
         capture() {
             return {
                 drawMode: StateManager.getDrawMode(),
+                inverse: StateManager.getInverse(),
                 symmetry: StateManager.getSymmetryMode(),
                 clip: StateManager.getClipMode(),
                 snap: StateManager.getGridSnap(),
@@ -1270,6 +1271,7 @@ PresetServiceClass.SLICES = Object.freeze([
         apply(value) {
             if (!value) return;
             if (typeof value.drawMode === 'string') StateManager.setDrawMode(value.drawMode);
+            if (typeof value.inverse === 'boolean') StateManager.setInverse(value.inverse);
             if (typeof value.symmetry === 'string') StateManager.setSymmetryMode(value.symmetry);
             if (typeof value.clip === 'string') StateManager.setClipMode(value.clip);
             if (typeof value.snap === 'boolean') StateManager.setGridSnap(value.snap);

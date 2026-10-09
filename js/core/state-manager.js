@@ -675,6 +675,24 @@ class StateManagerClass {
   }
 
   /**
+   * Inverse (ZX Paintbrush's INVERSE 1): the two mouse buttons swap what they
+   * do. Left clears dots and right sets them, in every tool that asks
+   * PixelDrawRoutine.resolveUserMode. Independent of the draw mode, and
+   * remembered per browser like it.
+   * @returns {boolean}
+   */
+  getInverse() {
+    return this.get('draw.inverse') === true;
+  }
+
+  /** @param {boolean} on */
+  setInverse(on) {
+    const next = on === true;
+    this.set('draw.inverse', next);
+    EventBus.emit(EVENTS.INVERSE_CHANGED, { inverse: next });
+  }
+
+  /**
    * Anything not on the list becomes 'normal'. That is what retires a mode
    * safely: 'attributes_only' was dropped in favour of the Recolour attribute
    * op, and because the mode PERSISTS, a document left in it would otherwise

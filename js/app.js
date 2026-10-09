@@ -269,6 +269,9 @@ class AppClass {
             // Global draw mode (top-bar selector)
             const dm = await Storage.get('drawMode', Storage.STORES.PREFERENCES);
             if (typeof dm === 'string') StateManager.setDrawMode(dm);
+            // Inverse (the top strip's button), same store as the draw mode
+            const inv = await Storage.get('inverse', Storage.STORES.PREFERENCES);
+            if (inv === true) StateManager.setInverse(true);
             // The touch drawing switch, its own key for the same reason as grid
             // snap: the status-bar toggle writes it outside the dialog, which
             // saves `preferences` as one whole object. Last, so an explicit

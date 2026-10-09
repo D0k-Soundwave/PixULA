@@ -837,6 +837,7 @@ class PreferencesDialogClass {
                 Storage.delete('theme'),
                 Storage.delete('gridSnap'),
                 Storage.delete('gridState'),
+                Storage.delete('inverse', Storage.STORES.PREFERENCES),
                 Storage.delete('viewColoursOff'),
                 Storage.delete('viewStopFlashing'),
                 Storage.delete('viewColourGrid'),

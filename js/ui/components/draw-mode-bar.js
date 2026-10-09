@@ -102,6 +102,10 @@ const MODES = [
 // operations, EVENTS.ATTR_PAINT_MODE). Carried in data-i18n-draw-mode with
 // this prefix, so I18n re-renders it through describeMode like a draw mode.
 const ATTR_OP_PREFIX = 'attr:';
+// Appended to a draw-mode id while Inverse is on ('pixel_only+inverse').
+const INVERSE_SUFFIX = '+inverse';
+// The draw modes that give both mouse buttons the same job: Inverse has nothing to swap in them.
+const INVERSE_NO_EFFECT = ['ink', 'paper', 'xor', 'xor_pixel'];
 const ATTR_OPS = {
     swap:  ['status.attrSwap', 'Swap is on'],
     apply: ['status.attrRecolour', 'Recolour is on']
@@ -189,6 +193,7 @@ class DrawModeBarClass {
 
         this._syncAvailability();
         this._sync(StateManager.getDrawMode());
+        this._buildInverseControl();
         this._buildMirrorControls();
         Logger.info('DrawModeBar', 'Initialized');
     }
@@ -220,6 +225,58 @@ class DrawModeBarClass {
             if (!available && StateManager.getDrawMode() === value) activeLost = true;
         }
         if (activeLost) StateManager.setDrawMode('normal');
+    }
+
+    /**
+     * The Inverse switch: an on/off toggle beside the pick-one draw modes. It
+     * swaps what the two mouse buttons do (left clears dots, right sets them),
+     * so the status line names it while it is on and the draw-mode status
+     * says when it changes nothing (Ink, Paper and XOR modes).
+     * @private
+     */
+    _buildInverseControl() {
+        const host = document.getElementById('inverse-mode');
+        if (!host) return;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'tool-btn';
+        btn.id = 'inverse-toggle';
+        const pressed = StateManager.getInverse();
+        btn.setAttribute('aria-pressed', String(pressed));
+        btn.classList.toggle('active', pressed);
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.classList.add('tool-icon');
+        svg.setAttribute('aria-hidden', 'true');
+        const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+        use.setAttribute('href', '#icon-inverse');
+        svg.appendChild(use);
+        btn.appendChild(svg);
+        btn.addEventListener('click', () => StateManager.setInverse(!StateManager.getInverse()));
+        host.appendChild(btn);
+        this._inverseButton = btn;
+
+        this._refreshInverseLabel();
+        EventBus.on(EVENTS.UI_LANGUAGE_CHANGE, () => this._refreshInverseLabel());
+        EventBus.on(EVENTS.INVERSE_CHANGED, ({ inverse }) => {
+            btn.setAttribute('aria-pressed', String(inverse));
+            btn.classList.toggle('active', inverse);
+            Storage.set('inverse', inverse, Storage.STORES.PREFERENCES).catch(() => {});
+            this._syncStatus(StateManager.getDrawMode());
+        });
+        this._syncStatus(StateManager.getDrawMode());
+    }
+
+    /** @private */
+    _refreshInverseLabel() {
+        const btn = this._inverseButton;
+        if (!btn) return;
+        const name = this._t('dm.inverse', 'Inverse');
+        const hint = this._t('dm.inverse.hint',
+            'Swaps the mouse buttons: the left button clears dots and the right button sets them');
+        btn.title = Helpers.composeTitle(name, `${hint} (Shift+I)`);
+        btn.setAttribute('aria-label', name);
+        const host = document.getElementById('inverse-mode');
+        if (host) host.setAttribute('aria-label', name);
     }
 
     /**
@@ -356,7 +413,9 @@ class DrawModeBarClass {
     _syncStatus(mode) {
         const el = document.getElementById('draw-mode-status');
         if (!el) return;
-        const id = this._attrOp ? ATTR_OP_PREFIX + this._attrOp : mode;
+        // A switched-on Swap or Recolour ignores the buttons' meaning, so Inverse is not named then.
+        const inverse = StateManager.getInverse() && !this._attrOp;
+        const id = (this._attrOp ? ATTR_OP_PREFIX + this._attrOp : mode) + (inverse ? INVERSE_SUFFIX : '');
         const label = id === 'normal' ? '' : this.describeMode(id);
         if (!label) {
             el.hidden = true;
@@ -378,6 +437,14 @@ class DrawModeBarClass {
      * @returns {string}
      */
     describeMode(id) {
+        if (typeof id === 'string' && id.endsWith(INVERSE_SUFFIX)) {
+            const base = id.slice(0, -INVERSE_SUFFIX.length);
+            const baseLabel = base === 'normal' ? '' : this.describeMode(base);
+            const inv = INVERSE_NO_EFFECT.includes(base)
+                ? this._t('status.inverseNoEffect', 'Inverse is on (it changes nothing in this draw mode)')
+                : this._t('status.inverseOn', 'Inverse is on');
+            return baseLabel ? `${baseLabel}, ${inv}` : inv;
+        }
         if (typeof id === 'string' && id.startsWith(ATTR_OP_PREFIX)) {
             const op = ATTR_OPS[id.slice(ATTR_OP_PREFIX.length)];
             return op ? this._t(op[0], op[1]) : '';
