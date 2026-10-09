@@ -106,6 +106,16 @@ test('ULAplus: CLUT selector replaces Flash/Bright in the rail', async ({ page }
     expect(clutButtons).toBe(4);
 });
 
+/** What the cell-tool selector shows: hidden, or the tools its pop-up offers (opened, read, closed). */
+async function cellTools(page) {
+    const visible = await page.evaluate(() => getComputedStyle(document.getElementById('cell-tool-select')).visibility !== 'hidden');
+    if (!visible) return { visible, ids: [] };
+    await page.click('#cell-tool-select');
+    const ids = await page.$$eval('.strip-popup .tool-btn', (els) => els.map((e) => e.id));
+    await page.keyboard.press('Escape');
+    return { visible, ids };
+}
+
 test('Timex hi-res: 512-wide geometry + scheme selector; attr ops hidden', async ({ page }) => {
     await boot(page);
     page.on('dialog', (d) => d.accept()); // mono conversion warns
@@ -119,15 +129,12 @@ test('Timex hi-res: 512-wide geometry + scheme selector; attr ops hidden', async
         // buttons keep their layout space reserved so the top strip's width
         // never depends on the active mode), so offsetParent alone would
         // still be truthy - check the computed style instead.
-        // One entry per cell tool (batch 4B): each has its own set of modes.
-        attrOps: Object.fromEntries([...document.querySelectorAll('#attr-tools button')]
-            .map((b) => [b.id, getComputedStyle(b).visibility !== 'hidden'])),
+
         schemeSelector: [...document.querySelectorAll('#toolbar-color select, #toolbar-color [role="radiogroup"], #toolbar-color button')].length
     }));
     expect(state.w).toBe(512);
     // Timex hi-res has dots in 8x8 cells but no cell colours: only Invert dots exists there.
-    expect(state.attrOps).toEqual({ 'attr-transpose': false, 'attr-apply': false, 'attr-copy': false,
-        'attr-invert-dots': true, 'attr-invert-both': false });
+    expect(await cellTools(page)).toEqual({ visible: true, ids: ['attr-invert-dots'] });
     expect(state.schemeSelector).toBeGreaterThanOrEqual(1);
 });
 
@@ -165,13 +172,10 @@ test('indexed modes: attr ops hidden, index grid in the rail, classic exports ga
         // buttons keep their layout space reserved so the top strip's width
         // never depends on the active mode), so offsetParent alone would
         // still be truthy - check the computed style instead.
-        // One entry per cell tool (batch 4B): each has its own set of modes.
-        attrOps: Object.fromEntries([...document.querySelectorAll('#attr-tools button')]
-            .map((b) => [b.id, getComputedStyle(b).visibility !== 'hidden'])),
+
         swatchCount: document.querySelectorAll('#toolbar-color .color-swatch, #toolbar-color [data-index]').length
     }));
-    expect(Object.values(rail.attrOps).length).toBe(5);
-    expect(Object.values(rail.attrOps).every((v) => v === false)).toBe(true);
+    expect(await cellTools(page), 'Layer 2: no cell tool exists, the selector is hidden').toEqual({ visible: false, ids: [] });
     expect(rail.swatchCount).toBeGreaterThan(16); // 256-entry index grid
 
     // SCR export must gate with the localized classic-model message

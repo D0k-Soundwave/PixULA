@@ -217,20 +217,23 @@ test('shape tool shows a rubber-band preview mid-drag; selection shows a border 
 // Attribute paint mode is STICKY — Escape leaves it armed and only a new
 // draw method or the button itself disarms it. Full matrix in
 // tests/browser/attr-paint-mode.spec.js.
-test('Swap/Recolour engage attribute-paint mode; Esc leaves it armed, the button disarms', async ({ page }) => {
+test('Swap/Recolour engage attribute-paint mode; Esc leaves it armed, picking it again disarms', async ({ page }) => {
     await boot(page);
-    const swapBtn = page.locator('#attr-transpose');
-    const isEngaged = () => swapBtn.evaluate(el =>
-        el.classList.contains('active') || el.getAttribute('aria-pressed') === 'true');
+    const armed = () => page.evaluate(() => InputHandler._attrPaintMode);
+    const pick = async () => {
+        await page.click('#cell-tool-select');
+        await page.click('.strip-popup #attr-transpose');
+    };
 
-    await swapBtn.click();
-    expect(await isEngaged(), 'engages on click').toBe(true);
+    await pick();
+    expect(await armed(), 'engages when picked').toBe('swap');
+    await expect(page.locator('#cell-tool-select')).toHaveClass(/active/);
 
     await page.keyboard.press('Escape');
-    expect(await isEngaged(), 'survives Escape').toBe(true);
+    expect(await armed(), 'survives Escape').toBe('swap');
 
-    await swapBtn.click();
-    expect(await isEngaged(), 'clicking the button off disarms').toBe(false);
+    await pick();
+    expect(await armed(), 'picking it again disarms').toBeNull();
 });
 
 test('a floating stamp keeps the context menu shut - the right button erases',

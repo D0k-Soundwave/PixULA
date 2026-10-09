@@ -6,7 +6,7 @@
  * all leave it armed. Pattern capture stays transient and exits on all three.
  */
 const { test, expect } = require('@playwright/test');
-const { boot } = require('./helpers');
+const { boot, pickCellTool } = require('./helpers');
 
 const mode = (page) => page.evaluate(() => InputHandler._attrPaintMode);
 const arm = (page, m) => page.evaluate((x) => InputHandler.enterAttrPaintMode(x), m);
@@ -43,14 +43,14 @@ test('attr mode EXITS on a new draw method or clicking the button off', async ({
     expect(await mode(page), 'exits on tool change').toBe(null);
 
     // Button toggles off
-    await page.click('#attr-apply');
+    await pickCellTool(page, 'apply');
     expect(await mode(page), 'button arms').toBe('apply');
-    await page.click('#attr-apply');
+    await pickCellTool(page, 'apply');
     expect(await mode(page), 'button disarms').toBe(null);
 
     // Other button switches mode
-    await page.click('#attr-apply');
-    await page.click('#attr-transpose');
+    await pickCellTool(page, 'apply');
+    await pickCellTool(page, 'swap');
     expect(await mode(page), 'other button switches').toBe('swap');
 });
 
@@ -87,7 +87,7 @@ test('Recolour sets Bright and Flash alone when Ink and Paper are transparent', 
     await page.click('#color-rail [data-role="transparent-ink"]');
     await page.click('#color-rail [data-role="transparent-paper"]');
     await page.evaluate(() => { ColorManager.setBright(true); ColorManager.setFlash(false); });
-    await page.click('#attr-apply');
+    await pickCellTool(page, 'apply');
 
     await clickPixel(5 * 8 + 3, 5 * 8 + 3);
     expect(await cell(5, 5), 'Bright on, Flash off: only bright changes')
@@ -126,7 +126,7 @@ test('after Recolour, the brush still applies Bright and Flash with both colours
     await page.click('#color-rail [data-role="transparent-ink"]');
     await page.click('#color-rail [data-role="transparent-paper"]');
     await page.evaluate(() => { ColorManager.setBright(true); ColorManager.setFlash(true); });
-    await page.click('#attr-apply');
+    await pickCellTool(page, 'apply');
     const r = at(60, 60);
     await page.mouse.click(r.x, r.y);
 

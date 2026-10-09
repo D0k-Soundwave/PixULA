@@ -8,12 +8,13 @@
 const { test, expect } = require('@playwright/test');
 const { boot } = require('./helpers');
 
-test('grid, snap and mirror toggle buttons have real two-stage tooltips', async ({ page }) => {
+test('grid, snap and mirror buttons have real two-stage tooltips', async ({ page }) => {
     await boot(page);
     const ids = [
         'grid-1x1-toggle', 'grid-8x8-toggle', 'grid-16x16-toggle',
         'grid-snap-toggle',
-        'symmetry-h-toggle', 'symmetry-v-toggle', 'symmetry-quad-toggle'
+        // Mirror is one selector in the top strip now; its icons are tested in draw-mode-tooltip.spec.js
+        'mirror-select'
     ];
     for (const id of ids) {
         const btn = page.locator(`#${id}`);
