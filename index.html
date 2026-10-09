@@ -263,6 +263,7 @@
                                  200: grid-1x1-canvas
                                  250: grid-8x8-canvas
                                  300: grid-16x16-canvas
+                                 275: grid-custom-canvas (user-defined X and Y step)
                             */
                             /* main-canvas paper colour is set by CanvasSystem from the
                                active palette at init — never hardcoded here. */
@@ -275,6 +276,7 @@
                             #grid-1x1-canvas { z-index: 200; pointer-events: none; }
                             #grid-8x8-canvas { z-index: 250; pointer-events: none; }
                             #grid-16x16-canvas { z-index: 300; pointer-events: none; }
+                            #grid-custom-canvas { z-index: 275; pointer-events: none; }
                             #selection-canvas { z-index: 350; pointer-events: none; }
                             #cursor-canvas { z-index: 400; pointer-events: none; }
                             #pointer-canvas { z-index: 500; pointer-events: none; }
@@ -296,6 +298,7 @@
                                 <canvas id='grid-1x1-canvas'></canvas>
                                 <canvas id='grid-8x8-canvas'></canvas>
                                 <canvas id='grid-16x16-canvas'></canvas>
+                                <canvas id='grid-custom-canvas'></canvas>
                             </div>
                         </div>
                         <script>
@@ -308,6 +311,7 @@
                                     grid1x1: document.getElementById('grid-1x1-canvas'),
                                     grid8x8: document.getElementById('grid-8x8-canvas'),
                                     grid16x16: document.getElementById('grid-16x16-canvas'),
+                                    gridCustom: document.getElementById('grid-custom-canvas'),
                                     selection: document.getElementById('selection-canvas'),
                                     cursor: document.getElementById('cursor-canvas'),
                                     pointer: document.getElementById('pointer-canvas'),
@@ -372,6 +376,11 @@
                  it always says which state it is in rather than only the
                  unusual one. Hidden on hardware that cannot be touched. -->
             <button type="button" id="touch-mode-status" class="status-toggle" hidden></button>
+            <!-- The pointer readout's second and third lines (CanvasControls):
+                 the attribute under the pointer and the Spectrum memory
+                 addresses. aria-live off: they change ~30 times a second. -->
+            <span id="attr-readout" class="status-readout" aria-live="off" hidden></span>
+            <span id="addr-readout" class="status-readout" aria-live="off" hidden></span>
             <span id="canvas-size"></span>
         </footer>
 
@@ -514,6 +523,8 @@
     <script defer src="js/utils/logger.js"></script>
     <script defer src="js/utils/helpers.js"></script>
     <script defer src="js/utils/validators.js"></script>
+    <script defer src="js/utils/pointer-info.js"></script>
+    <script defer src="js/utils/grid-lines.js"></script>
     <script defer src="js/utils/mask-ops.js"></script>
     <script defer src="js/utils/cursor-image.js"></script>
     <script defer src="js/utils/coverage-ops.js"></script>
@@ -611,6 +622,7 @@
     <script defer src="js/ui/components/import-dialog.js"></script>
     <script defer src="js/ui/components/tape-block-dialog.js"></script>
     <script defer src="js/ui/components/change-attributes-dialog.js"></script>
+    <script defer src="js/ui/components/custom-grid-dialog.js"></script>
     <script defer src="js/ui/components/map-editor-dialog.js"></script>
     <script defer src="js/ui/components/font-editor-dialog.js"></script>
     <script defer src="js/ui/components/sprite-editor-dialog.js"></script>

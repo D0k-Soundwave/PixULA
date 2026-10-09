@@ -56,6 +56,31 @@ it to see why. On GigaScreen and MultiGiga, Colours Off shows four grey levels:
 white where neither screen has a dot, light grey for a dot on screen A only, a
 darker grey for screen B only, and black for both.
 
+### Reading the pointer
+
+The strip under the picture and the status bar say where the pointer is. In
+**Preferences**, *Pointer readout shows* adds the attribute under the pointer
+(its number in decimal and in hex, then ink, paper, bright and flash; the CLUT
+in ULAplus; both screens in GigaScreen) and the Spectrum memory address of the
+pixel's byte and of its attribute byte. Addresses exist where the real machine
+has a fixed layout: Standard ULA and ULAplus (the display file from $4000,
+attributes from $5800), Timex hi-colour (attributes in the second display file
+at $6000), Timex hi-res (even byte columns at $4000, odd ones at $6000) and
+GigaScreen (screen A as standard, screen B in bank 7 at $C000; which screen
+belongs to which bank is a convention). Other modes say they have no address.
+
+*Y counts from* can be set to the bottom, so the readout reads like BASIC PLOT,
+where 0,0 is the bottom left corner and Y runs from 0 to 175. That exists only
+over the top 176 rows of a 256 by 192 picture; below that, and in other screens,
+the readout shows a dash. It changes the readout only.
+
+**Custom Grid...** in the View menu draws a grid at any X step and Y step, set
+separately, and **Show Custom Grid** turns it on and off. Lines closer than four
+screen pixels are left out until you zoom in. The grids you have switched on
+come back the next time you open the program. In Preferences, *Grid colours*
+sets the colour of each grid; leave *Theme colour* ticked and the grid follows
+the theme.
+
 ### Where the rules are different
 
 Later hardware relaxed the constraint in various ways, and PixULA can work in

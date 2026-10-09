@@ -61,6 +61,33 @@ Colores desactivados muestra cuatro niveles de gris: blanco donde ninguna
 pantalla tiene punto, gris claro para un punto solo en la pantalla A, un gris
 más oscuro solo en la pantalla B y negro en ambas.
 
+### Leer el puntero
+
+La franja bajo la imagen y la barra de estado dicen dónde está el puntero. En
+**Preferencias**, *La lectura del puntero muestra* añade el atributo bajo el
+puntero (su número en decimal y en hexadecimal, luego tinta, papel, brillo y
+parpadeo; la CLUT en ULAplus; ambas pantallas en GigaScreen) y la dirección de
+memoria del byte del píxel y de su byte de atributo. Hay direcciones donde la
+máquina real tiene una disposición fija: ULA estándar y ULAplus (fichero de
+pantalla desde $4000, atributos desde $5800), Timex de color alto (atributos en
+el segundo fichero de pantalla, en $6000), Timex de alta resolución (columnas de
+bytes pares en $4000, impares en $6000) y GigaScreen (pantalla A como la
+estándar, pantalla B en el banco 7 en $C000; qué pantalla va en qué banco es una
+convención). Los demás modos indican que no tienen dirección.
+
+*Y se cuenta desde* puede ponerse abajo, de modo que la lectura se lea como
+BASIC PLOT, donde 0,0 es la esquina inferior izquierda y Y va de 0 a 175. Eso
+existe solo sobre las 176 filas superiores de una imagen de 256 por 192; debajo,
+y en otras pantallas, la lectura muestra un guion. Solo cambia la lectura.
+
+**Cuadrícula personalizada...** en el menú Ver dibuja una cuadrícula con
+cualquier paso X e Y, ajustados por separado, y **Mostrar cuadrícula
+personalizada** la activa y desactiva. Las líneas a menos de cuatro píxeles de
+pantalla entre sí se omiten hasta que acerques el zoom. Las cuadrículas
+activadas vuelven la próxima vez que abras el programa. En Preferencias,
+*Colores de las cuadrículas* fija el color de cada una; si dejas marcado *Color
+del tema*, la cuadrícula sigue el tema.
+
 ### Donde las reglas cambian
 
 El hardware posterior relajó la restricción de varias formas, y PixULA puede

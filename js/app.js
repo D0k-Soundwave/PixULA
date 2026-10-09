@@ -26,6 +26,8 @@ const BOOT_MANIFEST = [
     ['Helpers',          'js/utils/helpers.js'],
     ['clamp',            'js/utils/helpers.js'],
     ['Validators',       'js/utils/validators.js'],
+    ['PointerInfo',      'js/utils/pointer-info.js'],
+    ['GridLines',        'js/utils/grid-lines.js'],
     ['MaskOps',          'js/utils/mask-ops.js'],
     ['CursorImage',      'js/utils/cursor-image.js'],
     ['BrushShapes',      'js/utils/brush-shapes.js'],
@@ -111,6 +113,7 @@ const BOOT_MANIFEST = [
     ['ToolPresetPanel',  'js/ui/components/tool-preset-panel.js'],
     ['ToolPresetDialog', 'js/ui/components/tool-preset-dialog.js'],
     ['ChangeAttributesDialog', 'js/ui/components/change-attributes-dialog.js'],
+    ['CustomGridDialog', 'js/ui/components/custom-grid-dialog.js'],
     ['ToolRail',         'js/ui/components/tool-rail.js'],
     ['ClutBar',          'js/ui/components/clut-bar.js'],
     ['DrawModeBar',      'js/ui/components/draw-mode-bar.js'],
@@ -197,6 +200,16 @@ class AppClass {
                 if (typeof prefs.confirmClear === 'boolean') StateManager.set('confirmClear', prefs.confirmClear);
                 if (typeof prefs.resetDrawModeOnTool === 'boolean') StateManager.set('resetDrawModeOnTool', prefs.resetDrawModeOnTool);
                 if (typeof prefs.nudgeStep === 'number') StateManager.set('nudgeStep', prefs.nudgeStep);
+                // Pointer readout (what it shows, which way Y counts) and the owner's grid colours
+                StateManager.set('readout.detail', prefs.readoutDetail);
+                StateManager.set('readout.yDirection', prefs.yDirection);
+                if (prefs.gridColors && typeof prefs.gridColors === 'object') {
+                    const colours = {};
+                    for (const key of ['pixel', 'cell', 'block', 'custom']) {
+                        colours[key] = Validators.normaliseHexColour(prefs.gridColors[key]);
+                    }
+                    StateManager.set('gridColors', colours);
+                }
                 if (typeof prefs.showPresetsPanel === 'boolean') StateManager.set('showPresetsPanel', prefs.showPresetsPanel);
                 // Touch admission, layers 1 and 2 (js/utils/touch-policy.js).
                 // Layer 3, the drawing switch, has its own key below — it is
@@ -243,6 +256,10 @@ class AppClass {
             if (StateManager.get('view.coloursOff') && StateManager.get('view.colourGrid')) {
                 StateManager.set('view.colourGrid', false);
             }
+            // The four grids as the last session left them (pixel, cell, block, custom
+            // and the custom steps). GridOverlay applies it when its canvases exist.
+            const gridState = await Storage.get('gridState');
+            if (gridState && typeof gridState === 'object') StateManager.set('grid.state', gridState);
             // Symmetry mode too (Phase 8 mirror-while-drawing)
             const sym = await Storage.get('symmetryMode');
             if (typeof sym === 'string') StateManager.setSymmetryMode(sym);
@@ -272,6 +289,12 @@ class AppClass {
         LayerManager.initialize();
         // The View menu's display-only switches: show them, and remember them
         // per browser (a view setting, like grid snap - never in a project).
+        EventBus.on(EVENTS.GRID_VISIBILITY, (g) => {
+            Storage.set('gridState', {
+                pixel: !!g.pixel, cell: !!g.cell, block: !!g.block, custom: !!g.custom,
+                customX: g.customX, customY: g.customY
+            }).catch(() => {});
+        });
         EventBus.on(EVENTS.DISPLAY_VIEW_CHANGED, (v) => {
             LayerManager.setDisplayView(v);
             Storage.set('viewColoursOff', !!v.coloursOff).catch(() => {});

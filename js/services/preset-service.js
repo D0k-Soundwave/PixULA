@@ -1477,6 +1477,9 @@ PresetServiceClass.SLICES = Object.freeze([
                 value.gridPixel = !!GridOverlay.pixelGridVisible;
                 value.gridCell  = !!GridOverlay.cellGridVisible;
                 value.gridBlock = !!GridOverlay.blockGridVisible;
+                value.gridCustom = !!GridOverlay.customGridVisible;
+                value.gridCustomX = GridOverlay.customStepX;
+                value.gridCustomY = GridOverlay.customStepY;
             }
             return value;
         },
@@ -1488,6 +1491,10 @@ PresetServiceClass.SLICES = Object.freeze([
                 if (typeof value.gridPixel === 'boolean') GridOverlay.setPixelGridVisible(value.gridPixel);
                 if (typeof value.gridCell === 'boolean') GridOverlay.setCellGridVisible(value.gridCell);
                 if (typeof value.gridBlock === 'boolean') GridOverlay.setBlockGridVisible(value.gridBlock);
+                if (Number.isFinite(value.gridCustomX) && Number.isFinite(value.gridCustomY)) {
+                    GridOverlay.setCustomGridSteps(value.gridCustomX, value.gridCustomY);
+                }
+                if (typeof value.gridCustom === 'boolean') GridOverlay.setCustomGridVisible(value.gridCustom);
             }
 
             if (Number.isFinite(value.zoom)) CanvasSystem.setZoom(value.zoom);

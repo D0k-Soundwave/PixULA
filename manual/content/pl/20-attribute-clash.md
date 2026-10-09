@@ -59,6 +59,31 @@ GigaScreen i MultiGiga Wyłącz kolory pokazuje cztery poziomy szarości: biel t
 gdzie żaden ekran nie ma punktu, jasnoszary dla punktu tylko na ekranie A,
 ciemniejszy szary tylko na ekranie B i czerń dla obu.
 
+### Odczyt wskaźnika
+
+Pasek pod obrazem i pasek stanu mówią, gdzie jest wskaźnik. W **Preferencjach**
+opcja *Odczyt wskaźnika pokazuje* dodaje atrybut pod wskaźnikiem (jego numer
+dziesiętnie i szesnastkowo, potem tusz, papier, jasny i miganie; CLUT w ULAplus;
+oba ekrany w GigaScreen) oraz adres pamięci bajtu piksela i jego bajtu atrybutu.
+Adresy istnieją tam, gdzie prawdziwa maszyna ma stały układ: Standard ULA i
+ULAplus (plik ekranu od $4000, atrybuty od $5800), Timex hi-colour (atrybuty w
+drugim pliku ekranu, od $6000), Timex hi-res (parzyste kolumny bajtów od $4000,
+nieparzyste od $6000) i GigaScreen (ekran A jak standardowy, ekran B w banku 7
+od $C000; to, który ekran należy do którego banku, jest konwencją). Inne tryby
+podają, że nie mają adresu.
+
+*Y liczy się od* można ustawić na dół, aby odczyt wyglądał jak w BASIC PLOT,
+gdzie 0,0 to lewy dolny róg, a Y biegnie od 0 do 175. Istnieje to tylko w
+górnych 176 wierszach obrazu 256 na 192; poniżej i na innych ekranach odczyt
+pokazuje kreskę. Zmienia tylko odczyt.
+
+**Siatka własna...** w menu Widok rysuje siatkę o dowolnym kroku X i Y,
+ustawianych osobno, a **Pokaż siatkę własną** włącza ją i wyłącza. Linie bliższe
+niż cztery piksele na ekranie są pomijane, dopóki nie powiększysz widoku.
+Włączone siatki wracają przy następnym uruchomieniu programu. W Preferencjach
+*Kolory siatek* ustawiają kolor każdej siatki; jeśli zostawisz zaznaczone *Kolor
+motywu*, siatka podąża za motywem.
+
 ### Gdzie reguły są inne
 
 Późniejszy sprzęt na różne sposoby złagodził to ograniczenie, a PixULA potrafi
