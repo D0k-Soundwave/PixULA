@@ -194,12 +194,12 @@ test('Gradient tool phase 2: arrow keys nudge the axis endpoint, Shift+drag snap
 
     await page.keyboard.press('ArrowRight');
     const afterRight = await endPoint();
-    expect(afterRight.x).toBeGreaterThan(before.x);
+    expect(afterRight.x).toBe(before.x + 1);   // one pixel (the nudge distance), not a cell
     expect(afterRight.y).toBe(before.y);
 
     await page.keyboard.press('ArrowDown');
     const afterDown = await endPoint();
-    expect(afterDown.y).toBeGreaterThan(afterRight.y);
+    expect(afterDown.y).toBe(afterRight.y + 1);
     expect(afterDown.x).toBe(afterRight.x);
 
     // Shift-held drag snaps the axis to a 15deg step instead of following

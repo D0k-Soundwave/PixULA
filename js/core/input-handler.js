@@ -1913,10 +1913,16 @@ class InputHandlerClass {
     // since cells are not square in the multicolor modes (8 wide x 1/2/4 tall).
     const move = (window.TransformPanel && TransformPanel.shiftMove)
         ? TransformPanel.shiftMove() : { content: 'both', locked: false };
-    const cellStep = move.locked || StateManager.getGridSnap();
+    const snap = StateManager.getGridSnap();
+    const cellStep = move.locked || snap;
+    // A selection's content moves by what the Move choice says (stepX/stepY). A floating stamp and
+    // the gradient's endpoint are not content moves: the Move choice does not apply to them (it is
+    // greyed out while a stamp floats), so they keep the nudge distance, one cell only under snap.
     const stepX = cellStep ? ZX_SPECTRUM.CELL_WIDTH : prefStep;
     const stepY = cellStep ? ZX_SPECTRUM.CELL_HEIGHT : prefStep;
-    const step = dir.dx !== 0 ? stepX : stepY;
+    const fineX = snap ? ZX_SPECTRUM.CELL_WIDTH : prefStep;
+    const fineY = snap ? ZX_SPECTRUM.CELL_HEIGHT : prefStep;
+    const step = dir.dx !== 0 ? fineX : fineY;
 
     // Gradient tool, phase 2 (axis drag locked in): arrows nudge the axis
     // endpoint at the same step used everywhere else, rather than moving a
