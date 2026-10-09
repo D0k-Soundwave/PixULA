@@ -562,6 +562,24 @@ const GIGA_SLOTS = Object.freeze({
 });
 
 /**
+ * The colours of the display-only view switches (View > Colours Off, Colour
+ * Grid). They are screen output, never stored in a document or an export.
+ * Colours off shows set dots BLACK on WHITE. Colour grid shows set dots black
+ * and clear dots in alternating WHITE / CELL_ALT, cell by cell, like a
+ * chessboard. On a two-screen mode a dot set on one screen only is a grey,
+ * and a dot set on both is black. The greys are a design choice [A, 2026-10-09]:
+ * three distinct levels, each readable against the others.
+ * @const {Object}
+ */
+const DISPLAY_VIEW_COLOURS = Object.freeze({
+    BLACK: new Uint8Array([0, 0, 0]),
+    WHITE: new Uint8Array([255, 255, 255]),
+    CELL_ALT: new Uint8Array([224, 224, 224]),
+    SCREEN_A_ONLY: new Uint8Array([170, 170, 170]),
+    SCREEN_B_ONLY: new Uint8Array([102, 102, 102])
+});
+
+/**
  * Drawing modes for PixelDrawRoutine
  * @const {Object}
  */
@@ -1152,6 +1170,7 @@ const EVENTS = Object.freeze({
     CANVAS_SCALE_CHANGED: 'canvas:scaleChanged',
     GRID_SNAP_CHANGED: 'grid:snapChanged',
     GRID_VISIBILITY: 'grid:visibility',
+    DISPLAY_VIEW_CHANGED: 'view:displayChanged',
     SYMMETRY_CHANGED: 'symmetry:changed',
     CLIP_CHANGED: 'clip:changed',
     DRAW_MODE_CHANGED: 'draw:modeChanged',
@@ -1516,6 +1535,7 @@ window.DEFAULT_ZOOM = DEFAULT_ZOOM;
 window.DRAW_MODE = DRAW_MODE;
 window.DEFAULT_CELL_ATTRS = DEFAULT_CELL_ATTRS;
 window.GIGA_SLOTS = GIGA_SLOTS;
+window.DISPLAY_VIEW_COLOURS = DISPLAY_VIEW_COLOURS;
 window.TOOLS = TOOLS;
 window.TOOL_GROUPS = TOOL_GROUPS;
 window.COLOUR_SHORTCUTS = COLOUR_SHORTCUTS;
