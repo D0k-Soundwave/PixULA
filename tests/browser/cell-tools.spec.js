@@ -6,7 +6,7 @@
  * screen modes show them, the status line, real drags (one undo step each), and how they are left.
  */
 const { test, expect } = require('@playwright/test');
-const { boot, selectMode } = require('./helpers');
+const { boot, selectMode, pickCellTool, pickDrawMode } = require('./helpers');
 
 /** Page coordinates of the centre of app pixel (px, py). */
 async function pixelPoint(page, px, py) {
@@ -43,68 +43,92 @@ const cellState = (page, cx, cy) => page.evaluate(([x, y]) => {
     return { ink: c.ink, paper: c.paper, bright: c.bright, dots: Array.from(c.pixels).join(',') };
 }, [cx, cy]);
 
-const BUTTONS = ['attr-transpose', 'attr-apply', 'attr-copy', 'attr-invert-dots', 'attr-invert-both'];
+const SEL = '#cell-tool-select';
+const armed = (page) => page.locator(SEL).getAttribute('data-value');
+/** The tools the pop-up offers right now, in grid order (it is opened, read and closed again). */
+async function offered(page) {
+    await page.click(SEL);
+    const ids = await page.$$eval('.strip-popup .tool-btn', (els) => els.map((e) => e.id));
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.strip-popup')).toHaveCount(0);
+    return ids;
+}
+const selectorVisible = (page) => page.evaluate(() => document.getElementById('cell-tool-select').style.visibility !== 'hidden');
 
-const state = (page) => page.evaluate((ids) => Object.fromEntries(ids.map((id) => {
-    const b = document.getElementById(id);
-    return [id, { visible: b.style.visibility !== 'hidden', disabled: b.disabled }];
-})), BUTTONS);
-
-test('five cell tools sit in the strip; each is a switch and only one is armed at a time', async ({ page }) => {
+test('the cell tools are ONE selector: pick one to arm it, pick it again or None to switch it off', async ({ page }) => {
     await boot(page);
-    for (const id of BUTTONS) await expect(page.locator('#' + id)).toBeVisible();
-    await page.click('#attr-copy');
-    await expect(page.locator('#attr-copy')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator(SEL)).toBeVisible();
+    expect(await armed(page)).toBe('none');
+    expect(await offered(page), 'five tools, and no None while nothing is armed').toEqual(
+        ['attr-transpose', 'attr-apply', 'attr-copy', 'attr-invert-dots', 'attr-invert-both']);
+
+    // The pop-up is a floating grid two icons wide, and takes no room in the strip.
+    const before = await page.locator('#color-bar').boundingBox();
+    await page.click(SEL);
+    const cols = await page.evaluate(() => getComputedStyle(document.querySelector('.strip-popup')).gridTemplateColumns.split(' ').length);
+    expect(cols).toBe(2);
+    expect(await page.locator('#color-bar').boundingBox(), 'opening it moves nothing').toEqual(before);
+    await page.keyboard.press('Escape');
+
+    await pickCellTool(page, 'copy');
+    expect(await armed(page)).toBe('copy');
+    await expect(page.locator('.strip-popup'), 'the grid is gone once a choice is made').toHaveCount(0);
     await expect(page.locator('#draw-mode-status')).toHaveText('Copy colours is on');
-    await page.click('#attr-invert-dots');
-    await expect(page.locator('#attr-copy')).toHaveAttribute('aria-pressed', 'false');
-    await expect(page.locator('#attr-invert-dots')).toHaveAttribute('aria-pressed', 'true');
+    await pickCellTool(page, 'invertDots');
+    expect(await armed(page)).toBe('invertDots');
     await expect(page.locator('#draw-mode-status')).toHaveText('Invert dots is on');
-    await page.click('#attr-invert-both');
+    await pickCellTool(page, 'invertBoth');
     await expect(page.locator('#draw-mode-status')).toHaveText('Invert dots and colours is on');
-    await page.click('#attr-invert-both');
+    expect((await offered(page)).includes('attr-none'), 'None is offered while one is armed').toBe(true);
+
+    await pickCellTool(page, 'invertBoth');   // picking the armed one again switches it off
+    expect(await armed(page)).toBe('none');
     await expect(page.locator('#draw-mode-status')).toBeHidden();
-    // from the keyboard
-    await page.locator('#attr-copy').focus();
+    await pickCellTool(page, 'swap');
+    await pickCellTool(page, 'none');
+    expect(await armed(page)).toBe('none');
+
+    // From the keyboard: Arrow Down opens it, arrows move around the grid, Enter picks.
+    await page.locator(SEL).focus();
+    await page.keyboard.press('ArrowDown');
+    await expect(page.locator('.strip-popup')).toHaveCount(1);
+    await page.keyboard.press('ArrowRight');     // Swap -> Recolour
+    await page.keyboard.press('ArrowDown');      // down a row: Recolour -> Invert dots
     await page.keyboard.press('Enter');
-    await expect(page.locator('#attr-copy')).toHaveAttribute('aria-pressed', 'true');
+    expect(await armed(page)).toBe('invertDots');
+    await expect(page.locator('.strip-popup')).toHaveCount(0);
 });
 
-test('each tool shows only in the screen modes it exists in, and a mode switch drops one that is gone', async ({ page }) => {
+test('each tool is offered only in the screen modes it exists in, and a mode switch drops one that is gone', async ({ page }) => {
     await boot(page);
     page.on('dialog', (d) => d.accept());
-    let s = await state(page);
-    for (const id of BUTTONS) expect(s[id], `standard ${id}`).toEqual({ visible: true, disabled: false });
+    const ALL = ['attr-transpose', 'attr-apply', 'attr-copy', 'attr-invert-dots', 'attr-invert-both'];
+    expect(await offered(page)).toEqual(ALL);
 
     await selectMode(page, 'ula_plus');
-    s = await state(page);
-    expect(s['attr-invert-both'], 'ULAplus: swapping ink and paper changes the look').toEqual({ visible: false, disabled: true });
-    expect(s['attr-invert-dots']).toEqual({ visible: true, disabled: false });
-    expect(s['attr-copy']).toEqual({ visible: true, disabled: false });
+    expect(await offered(page), 'ULAplus: swapping ink and paper would change the look').toEqual(
+        ['attr-transpose', 'attr-apply', 'attr-copy', 'attr-invert-dots']);
 
     await selectMode(page, 'standard_ula');
-    await page.click('#attr-copy');
+    await pickCellTool(page, 'copy');
     await selectMode(page, 'timex_hires');
-    s = await state(page);
-    expect(s['attr-invert-dots'], 'Timex hi-res has dots in 8x8 cells').toEqual({ visible: true, disabled: false });
-    for (const id of ['attr-transpose', 'attr-apply', 'attr-copy', 'attr-invert-both']) {
-        expect(s[id], `timex ${id}`).toEqual({ visible: false, disabled: true });
-    }
+    expect(await offered(page), 'Timex hi-res has dots in 8x8 cells and nothing else').toEqual(['attr-invert-dots']);
     await expect(page.locator('#draw-mode-status')).toBeHidden();   // Copy was armed in standard: gone
     expect(await page.evaluate(() => InputHandler._attrPaintMode)).toBeNull();
 
-    await page.click('#attr-invert-dots');
+    await pickCellTool(page, 'invertDots');
     await selectMode(page, 'layer2_256');
-    s = await state(page);
-    for (const id of BUTTONS) expect(s[id], `layer2 ${id}`).toEqual({ visible: false, disabled: true });
+    expect(await selectorVisible(page), 'Layer 2: no cell tool exists, the selector is hidden').toBe(false);
     expect(await page.evaluate(() => InputHandler._attrPaintMode)).toBeNull();
+    await selectMode(page, 'standard_ula');
+    expect(await selectorVisible(page)).toBe(true);
 });
 
 test('Invert dots: a drag over three cells is one undo step, and a fast jump skips none', async ({ page }) => {
     await boot(page);
     await prepare(page, 2, 5, { ink: 1, paper: 6, bright: false, flash: false });
     const before = await undoCount(page);
-    await page.click('#attr-invert-dots');
+    await pickCellTool(page, 'invertDots');
     // a single jump from cell (2,5) to cell (6,5): the cells between must be inverted too
     await drag(page, cellCentre(2, 5), cellCentre(6, 5), 1);
     for (const cx of [2, 3, 4, 5, 6]) {
@@ -142,7 +166,7 @@ test('Invert dots and colours leaves the cell looking the same, and undo is one 
     const same = await look();
     const dotsBefore = (await cellState(page, 4, 4)).dots;
     const before = await undoCount(page);
-    await page.click('#attr-invert-both');
+    await pickCellTool(page, 'invertBoth');
     await drag(page, cellCentre(4, 4), cellCentre(4, 4), 1);
     expect(await look(), 'looks the same').toBe(same);
     const after = await cellState(page, 4, 4);
@@ -162,7 +186,7 @@ test('Copy colours picks on the press, paints the cells dragged over, and leaves
     const railBefore = await rail();
     const dots = (await cellState(page, 4, 3)).dots;
     const before = await undoCount(page);
-    await page.click('#attr-copy');
+    await pickCellTool(page, 'copy');
     await drag(page, cellCentre(3, 3), cellCentre(5, 3), 4);
     for (const cx of [4, 5]) {
         const c = await cellState(page, cx, 3);
@@ -175,23 +199,23 @@ test('Copy colours picks on the press, paints the cells dragged over, and leaves
 
 test('how a cell tool is left: right-click and a new tool end it; Escape does not', async ({ page }) => {
     await boot(page);
-    await page.click('#attr-invert-dots');
+    await pickCellTool(page, 'invertDots');
     await page.keyboard.press('Escape');
-    await expect(page.locator('#attr-invert-dots')).toHaveAttribute('aria-pressed', 'true');
+    expect(await armed(page)).toBe('invertDots');
     const p = await pixelPoint(page, 60, 60);
     await page.mouse.move(p.x, p.y);
     await page.mouse.down({ button: 'right' });
     await page.mouse.up({ button: 'right' });
-    await expect(page.locator('#attr-invert-dots')).toHaveAttribute('aria-pressed', 'false');
+    expect(await armed(page)).toBe('none');
 
-    await page.click('#attr-copy');
+    await pickCellTool(page, 'copy');
     await page.keyboard.press('b');
-    await expect(page.locator('#attr-copy')).toHaveAttribute('aria-pressed', 'false');
+    expect(await armed(page)).toBe('none');
 
-    await page.click('#attr-invert-both');
-    await page.click('#draw-modes [data-draw-mode="xor"]');
-    await expect(page.locator('#attr-invert-both')).toHaveAttribute('aria-pressed', 'false');
-    await page.click('#draw-modes [data-draw-mode="normal"]');
+    await pickCellTool(page, 'invertBoth');
+    await pickDrawMode(page, 'xor');
+    expect(await armed(page), 'choosing a draw mode switches the cell tool off').toBe('none');
+    await pickDrawMode(page, 'normal');
 });
 
 test('the Eraser\'s Colours option: shown where cells have colours, and Set wipes with the rail colours', async ({ page }) => {

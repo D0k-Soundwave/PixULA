@@ -5,7 +5,7 @@
  * against the booted DOM; visual look stays a manual concern.
  */
 const { test, expect } = require('@playwright/test');
-const { boot, reload } = require('./helpers');
+const { boot, reload, pickDrawMode } = require('./helpers');
 
 test('header: menu bar, language/size selectors, Border', async ({ page }) => {
     await boot(page);
@@ -73,12 +73,12 @@ test('colour rail: flash, 2×8 CLUT; left rail = tool registry; top strip keeps 
         colorBarHasNoSelect: document.querySelectorAll('#color-bar select').length === 0,
         borderSelectInHeader: [...document.querySelectorAll('#header-controls select')]
             .some((s) => s.id === 'border-select'),
-        attrOps: [...document.querySelectorAll('#attr-tools button')].length
+        attrOps: [...document.querySelectorAll('#attr-tools button')].length   // the one cell-tool selector
     }));
     expect(rail.wells).toBeGreaterThanOrEqual(2);
     expect(rail.colorBarHasNoSelect).toBe(true);
     expect(rail.borderSelectInHeader).toBe(true);
-    expect(rail.attrOps).toBeGreaterThanOrEqual(2); // Swap + Apply (cycle buttons removed 2026-07-08)
+    expect(rail.attrOps).toBe(1); // the cell-tool selector (Swap, Recolour and the rest open from it)
 
     // Tool rail is generated from the TOOLS registry — assert it matches.
     // `variantOf` entries are reached from another tool's options (the bezier
@@ -121,9 +121,7 @@ test('every row of the top strip sits on one baseline and one pitch', async ({ p
     // Grouped by kind since 2026-10-07: the draw modes (dots first, the two
     // colour-only modes last), then the Swap/Recolour cell operations they
     // get mistaken for, then Mirror.
-    expect(split.marks).toEqual(['normal', 'pixel_only', 'xor', 'xor_pixel', 'ink', 'paper',
-        'attr-transpose', 'attr-apply', 'attr-copy', 'attr-invert-dots', 'attr-invert-both',
-        'symmetry-h-toggle', 'symmetry-v-toggle', 'symmetry-quad-toggle']);
+    expect(split.marks).toEqual(['draw-mode-select', 'cell-tool-select', 'mirror-select']);
     expect(split.colorBarHasNoSelect).toBe(true);
     expect(split.borderInHeader).toBe(true);
     expect(split.bitsMovedOut).toBe(0); // Bright/Flash live in #color-rail, Border in the header
@@ -140,7 +138,7 @@ test('every row of the top strip sits on one baseline and one pitch', async ({ p
             labelAboveIcons: label ? rect(label).bottom <= rect(cells[0]).top + 1 : false
         };
     });
-    expect(pitch.n).toBe(14);        // the 5 cell tools + 6 draw modes + 3 mirror toggles
+    expect(pitch.n).toBe(3);         // the draw mode, cell tool and Mirror selectors; their choices open in a pop-up
     expect(pitch.widths).toHaveLength(1);
     expect(pitch.labelText).toBeTruthy();
     expect(pitch.labelAboveIcons).toBe(true);
@@ -235,9 +233,9 @@ test('top strip icons match the Ink/Paper preview size', async ({ page }) => {
 
     const info = await page.evaluate(() => {
         const preview = document.getElementById('ink-color').getBoundingClientRect();
-        const drawModeBtn = document.querySelector('#draw-modes button').getBoundingClientRect();
-        const mirrorBtn = document.querySelector('#mirror-modes button').getBoundingClientRect();
-        const attrBtn = document.querySelector('#attr-tools button').getBoundingClientRect();
+        const drawModeBtn = document.querySelector('#draw-mode-select').getBoundingClientRect();
+        const mirrorBtn = document.querySelector('#mirror-select').getBoundingClientRect();
+        const attrBtn = document.querySelector('#cell-tool-select').getBoundingClientRect();
         return {
             previewSize: preview.height,
             drawModeHeight: drawModeBtn.height,
@@ -352,16 +350,10 @@ test.describe('ColorBarFit keeps the top strip at one row across interface sizes
                                 hasHorizontalOverflow: bar.scrollWidth > bar.clientWidth + 1
                             };
                         });
-                        // One corner is the exception: a 1024px window at the 200% interface
-                        // size. There the middle column is about 210 CSS px wide, the strip is
-                        // already at ColorBarFit's floor (16px icons) and no further shrinking
-                        // exists. With 11 buttons it just fitted; Batch 4B's three cell tools make
-                        // it 14 and it is two rows there (Inverse left the strip for Preferences,
-                        // but 12 or more buttons wrap in this corner anyway), and one row at every
-                        // other width and size tested (1024/1280/1366/1600 px x 100/125/150/200%).
-                        // It still must not overflow sideways.
-                        const floorCorner = width === 1024 && scale === '2';
-                        expect(result.rows).toBeLessThanOrEqual(floorCorner ? 2 : 1);
+                        // Three selector buttons since the strip was folded into pop-up
+                        // grids (the earlier 12-15 button strip wrapped to two rows at 1024px
+                        // and the 200% interface size): one row everywhere, again.
+                        expect(result.rows).toBe(1);
                         expect(result.hasHorizontalOverflow).toBe(false);
                     });
             }
@@ -422,7 +414,9 @@ test('top bar: global draw-mode selector drives StateManager and persists', asyn
     // No attributes_only: it did the same job as the Recolour attribute op and
     // was retired with it. StateManager rejects the value, so a document saved
     // in that mode comes back Normal rather than in a mode with no way out.
-    const modes = await page.$$eval('#draw-modes button[data-draw-mode]', b => b.map(x => x.dataset.drawMode));
+    await page.click('#draw-mode-select');
+    const modes = await page.$$eval('.strip-popup .tool-btn', b => b.map(x => x.dataset.drawMode));
+    await page.keyboard.press('Escape');
     expect(modes).toEqual(['normal', 'pixel_only', 'xor', 'xor_pixel', 'ink', 'paper']);
     const retired = await page.evaluate(() => {
         StateManager.setDrawMode('attributes_only');
@@ -435,13 +429,13 @@ test('top bar: global draw-mode selector drives StateManager and persists', asyn
         .filter(n => window[n] && (window[n].optionsSchema || []).some(o => o.key === 'drawMode')));
     expect(perTool).toEqual([]);
 
-    await page.click('#draw-modes button[data-draw-mode="xor"]');
+    await pickDrawMode(page, 'xor');
     const st = await page.evaluate(() => ({
         dm: StateManager.getDrawMode(),
-        active: document.querySelector('#draw-modes button.active')?.dataset.drawMode
+        shown: document.getElementById('draw-mode-select').dataset.value
     }));
     expect(st.dm).toBe('xor');
-    expect(st.active).toBe('xor');
+    expect(st.shown, 'the selector shows the mode in force').toBe('xor');
 
     await page.waitForTimeout(300); // persistence debounce (fire-and-forget Storage.set)
     await reload(page);
@@ -462,16 +456,16 @@ test.describe('the global draw mode can never hide', () => {
         // Every mode button is inside the viewport — the bar wraps, not scrolls.
         const offscreen = await page.evaluate(() => {
             const vw = document.documentElement.clientWidth;
-            return [...document.querySelectorAll('#draw-modes button[data-draw-mode]')]
+            return [...document.querySelectorAll('#color-bar-controls button')]
                 .filter(b => { const r = b.getBoundingClientRect(); return r.right > vw || r.left < 0; })
-                .map(b => b.dataset.drawMode);
+                .map(b => b.id);
         });
         expect(offscreen).toEqual([]);
 
         // Normal is the quiet default: no readout.
         await expect(page.locator('#draw-mode-status')).toBeHidden();
 
-        await page.click('#draw-modes button[data-draw-mode="paper"]');
+        await pickDrawMode(page, 'paper');
         await expect(page.locator('#draw-mode-status')).toBeVisible();
         await expect(page.locator('#draw-mode-status')).toContainText('Paper Recolour');
 

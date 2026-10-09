@@ -6,7 +6,7 @@
  * by tests/inverse-mode.test.js.
  */
 const { test, expect } = require('@playwright/test');
-const { boot, reload, selectMode } = require('./helpers');
+const { boot, reload, selectMode, pickDrawMode } = require('./helpers');
 
 /** Page coordinates of the centre of app pixel (px, py). */
 async function pixelPoint(page, px, py) {
@@ -68,12 +68,12 @@ test('the status line says Inverse is on, and says when it changes nothing', asy
     await expect(status).toBeHidden();
     await page.keyboard.press('Shift+I');
     await expect(status).toHaveText('Inverse is on');
-    await page.click('#draw-modes [data-draw-mode="pixel_only"]');
+    await pickDrawMode(page, 'pixel_only');
     await expect(status).toContainText('Inverse is on');
     await expect(status).toContainText('Pixels Only');
-    await page.click('#draw-modes [data-draw-mode="xor"]');
+    await pickDrawMode(page, 'xor');
     await expect(status).toContainText('changes nothing');
-    await page.click('#draw-modes [data-draw-mode="normal"]');
+    await pickDrawMode(page, 'normal');
     await page.keyboard.press('Shift+I');
     await expect(status).toBeHidden();
 });

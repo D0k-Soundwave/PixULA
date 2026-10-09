@@ -6,7 +6,7 @@
  * restore confirm() that App.init shows.
  */
 const { test, expect } = require('@playwright/test');
-const { boot, reload } = require('./helpers');
+const { boot, reload, pickMirror } = require('./helpers');
 
 const drawSeed = (page) => page.evaluate(() => {
     UndoRedo.beginAction('seed');
@@ -193,7 +193,7 @@ test('internal clipboard persists across F5: paste enabled at boot, same pixels'
 test('grid snap and symmetry mode persist across F5', async ({ page }) => {
     await boot(page);
     await page.keyboard.press('Shift+s');
-    await page.click('#symmetry-h-toggle');
+    await pickMirror(page, 'h');
     await page.waitForTimeout(400);
 
     page.on('dialog', (d) => d.accept());

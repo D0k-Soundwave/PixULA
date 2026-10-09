@@ -6,7 +6,7 @@
  * Node by tests/colour-core.test.js.
  */
 const { test, expect } = require('@playwright/test');
-const { boot, selectMode } = require('./helpers');
+const { boot, selectMode, pickMirror } = require('./helpers');
 
 /** Page coordinates of the centre of app pixel (px, py). */
 async function pixelPoint(page, px, py) {
@@ -124,7 +124,7 @@ test('the live preview of a thick outline is the picture the commit leaves', asy
 test('Colour core also works with Mirror and XOR from the real controls', async ({ page }) => {
     await boot(page);
     await page.keyboard.press('b');
-    await page.click('#symmetry-h-toggle');
+    await pickMirror(page, 'h');
     await page.evaluate(() => {
         const t = ToolManager.getCurrentTool();
         t.setSize(8);
