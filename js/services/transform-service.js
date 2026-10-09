@@ -315,6 +315,7 @@ class TransformServiceClass {
    * Flip horizontally (mirror left-right)
    */
   flipHorizontal() {
+    if (this._onStampLayer()) return;
     const area = this._getWorkArea();
     const buffer = this._copyToBufferWithAttrs(area);
     if (!buffer) return;
@@ -332,6 +333,7 @@ class TransformServiceClass {
    * Flip vertically (mirror top-bottom)
    */
   flipVertical() {
+    if (this._onStampLayer()) return;
     const area = this._getWorkArea();
     const buffer = this._copyToBufferWithAttrs(area);
     if (!buffer) return;
@@ -416,6 +418,18 @@ class TransformServiceClass {
       return;
     }
     this._flipDots(axis);
+  }
+
+  /**
+   * Is the current layer a stamp layer (the one a floating stamp draws its
+   * preview into)? Picture-wide transforms must never write into it: the stamp
+   * is moved and transformed by SelectionService.transformStamp, which the
+   * Transform panel and the Image menu route to while a stamp floats.
+   * @private
+   */
+  _onStampLayer() {
+    const layer = LayerManager.getCurrentLayer();
+    return !!(layer && layer.isStamp);
   }
 
   /** The floating stamp, or null. @private */
@@ -531,6 +545,35 @@ class TransformServiceClass {
   _cellClipped(cx, cy) {
     const px = ZX_COORDS.cellToPixel(cx, cy);
     return PixelDrawRoutine.isClipped(px.x, px.y);
+  }
+
+  /**
+   * Swap the ink and paper of one whole cell (the Swap button). The same plan and write
+   * as Image > Attributes > Invert, so the two cannot drift apart. Caller holds the batch.
+   * @returns {boolean} whether the cell changed
+   */
+  swapCellColours(cx, cy) {
+    if (this.cellToolBlocked('swap') || !Validators.isValidCellCoord(cx, cy) ||
+        this._cellClipped(cx, cy)) return false;
+    const writes = this._planCellWrites({ x0: cx, y0: cy, x1: cx, y1: cy },
+      (x, y, grid) => this._swapInkPaper(grid[0][0]));
+    if (writes.length === 0) return false;
+    this._applyCellWrites(writes);
+    return true;
+  }
+
+  /**
+   * Give one whole cell the current colours, dots untouched (the Recolour button). "Use
+   * existing" boxes are honoured by the gate. Caller holds the batch.
+   * @returns {boolean} whether a write was made
+   */
+  recolourCell(cx, cy) {
+    if (this.cellToolBlocked('apply') || !Validators.isValidCellCoord(cx, cy)) return false;
+    const layer = LayerManager.getCurrentLayer();
+    const px = ZX_COORDS.cellToPixel(cx, cy);
+    // The drawing guide is judged inside draw() for this one (as it always was); no symmetry.
+    return !!PixelDrawRoutine.draw(px.x, px.y, ColorManager.getCurrentSelection(),
+      DRAW_MODE.ATTRIBUTES_ONLY, { layer, mirror: false });
   }
 
   /**
@@ -742,6 +785,7 @@ class TransformServiceClass {
    * shifts or, as a last resort, shrinks rather than clipping.
    */
   rotate90CW() {
+    if (this._onStampLayer()) return;
     const area = this._getWorkArea();
     const src = this._copyToBufferWithAttrs(area);
     if (!src) return;
@@ -770,6 +814,7 @@ class TransformServiceClass {
    * Rotate 90 degrees counter-clockwise
    */
   rotate90CCW() {
+    if (this._onStampLayer()) return;
     const area = this._getWorkArea();
     const src = this._copyToBufferWithAttrs(area);
     if (!src) return;
@@ -798,6 +843,7 @@ class TransformServiceClass {
    * Rotate 180 degrees
    */
   rotate180() {
+    if (this._onStampLayer()) return;
     const area = this._getWorkArea();
     const buffer = this._copyToBufferWithAttrs(area);
     if (!buffer) return;
@@ -927,7 +973,7 @@ class TransformServiceClass {
   shift(direction, amount = 1, wrap = true, content = 'both') {
     const vec = SHIFT_VECTORS[direction];
     const layer = LayerManager.getCurrentLayer();
-    if (!vec || !layer || layer.locked) return false;
+    if (!vec || !layer || layer.locked || layer.isStamp) return false;
 
     const area = this._getWorkArea();
     const stepX = typeof amount === 'object' ? amount.x : amount;
@@ -1281,6 +1327,7 @@ class TransformServiceClass {
    * @param {number} [outlineSize=1] - Thickness of the ink outline ring
    */
   outline(gap = 1, outlineSize = 1) {
+    if (this._onStampLayer()) return;
     const area = this._getWorkArea();
     const buffer = this._copyToBuffer(area);
     if (!buffer) return;
@@ -1316,6 +1363,7 @@ class TransformServiceClass {
    * slot s becomes 3 - s, so inverting twice gives the picture back.
    */
   invert() {
+    if (this._onStampLayer()) return;
     const area = this._getWorkArea();
     const buffer = ZX_SPECTRUM.SCREENS === 2 ? this._copySlots(area) : this._copyToBuffer(area);
     if (!buffer) return;

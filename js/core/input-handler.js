@@ -389,29 +389,8 @@ class InputHandlerClass {
     if (mode === 'invertDots') { TransformService.invertCellDots(cell.x, cell.y); return; }
     if (mode === 'invertBoth') { TransformService.invertCellDotsAndColours(cell.x, cell.y); return; }
 
-    const px = ZX_COORDS.cellToPixel(cell.x, cell.y);
-    // Attr paint targets exactly the cell under the pointer — no symmetry
-    if (mode === 'apply') {
-      PixelDrawRoutine.draw(px.x, px.y,
-        ColorManager.getCurrentSelection(), DRAW_MODE.ATTRIBUTES_ONLY, { layer, mirror: false });
-    } else if (mode === 'swap') {
-      // What the cell SHOWS, not the placeholder black-on-white an empty
-      // upper-layer cell stores - swapping that produced white ink on black
-      // out of nowhere (2026-09-16).
-      const attrs = LayerManager.attrsAsSeen(layer, cell.x, cell.y);
-      const swapped = { ink: attrs.paper, paper: attrs.ink, bright: attrs.bright, flash: attrs.flash };
-      // GigaScreen: each screen swaps its OWN pair. Without these the gate
-      // falls back to screen A's values and gives screen B screen A's colours.
-      if (ZX_SPECTRUM.SCREENS === 2) {
-        const b = LayerManager.attrsAsSeen(layer, cell.x, cell.y, 1);
-        swapped.inkB = b.paper;
-        swapped.paperB = b.ink;
-        swapped.brightB = b.bright;
-        swapped.flashB = b.flash;
-      }
-      PixelDrawRoutine.draw(px.x, px.y, swapped,
-        DRAW_MODE.ATTRIBUTES_ONLY, { layer, mirror: false });
-    }
+    if (mode === 'swap') { TransformService.swapCellColours(cell.x, cell.y); return; }
+    if (mode === 'apply') TransformService.recolourCell(cell.x, cell.y);
   }
 
   /** @private */
@@ -614,6 +593,16 @@ class InputHandlerClass {
     if (this._attrPaintMode) {
       if (e.button === 2) {
         this.exitAttrPaintMode();
+        return;
+      }
+      // A stamp floating, or a locked layer: say so instead of doing nothing (or, as
+      // Swap and Recolour once did, writing into the stamp's preview cells).
+      const blocked = TransformService.cellToolBlocked(this._attrPaintMode);
+      if (blocked === 'stamp' || blocked === 'locked') {
+        const text = blocked === 'stamp'
+          ? Helpers.localizedMessage('menu.image.attrStamp', 'Finish or cancel the stamp first.')
+          : Helpers.localizedMessage('menu.image.attrLocked', 'This layer is locked.');
+        EventBus.emit(EVENTS.STATUS_NOTICE, { text });
         return;
       }
       this._capturePointer(e);
