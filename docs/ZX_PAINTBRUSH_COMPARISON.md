@@ -21,19 +21,21 @@ listings and had gone stale (it described an "Attributes only" draw mode and a
 Paintbrush never had).
 
 **Totals** [M, counted from the tables below]: 114 functions; PixULA is below
-parity on 61 (22 missing, 39 partial), level on
-41, ahead on 10, and 2 do not apply to a browser app.
+parity on 59 (21 missing, 38 partial), level on
+43, ahead on 10, and 2 do not apply to a browser app.
 Before Batch 1 (2026-10-08 morning) the count below parity was 69 (34 missing, 35
 partial). Before Batch 2 part 2B2 (2026-10-08) it was 64 (28 missing, 36 partial):
 the Dots menu and the Move choice moved four Missing rows to Partial.
 Batch 3 part 3A (2026-10-09) took three rows to Same (Colour grid, Colour display
 switch, Flashing mode switch): 61 below parity.
+Batch 3 part 3B (2026-10-09) took Custom info bar and User-defined grid to Same and the
+Options row from Missing-in-part to a smaller Partial: 59 below parity.
 
 ---
 
 ## Part 1 - Attributes, Bright and Flash
 
-50 functions: 22 same, 1 where PixULA goes further, 20 partial, 7 missing, 0 not applicable.
+50 functions: 24 same, 1 where PixULA goes further, 19 partial, 6 missing, 0 not applicable.
 
 ZX Paintbrush gives each part of the attribute byte (bit 7 FLASH, bit 6 BRIGHT,
 bits 5-3 PAPER, bits 2-0 INK) three states: a value, or "transparent" (BASIC's
@@ -110,10 +112,10 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | Colour grid | Shows attribute cells as a chessboard. | View > Colour Grid (2026-10-09), display only: set dots black, clear dots alternate white and light grey cell by cell; excludes Colours Off. GigaScreen and MultiGiga keep four grey levels on the chessboard. Disabled with a reason in Timex hi-res and the indexed modes. The cell grid with lines is still there. | Same |
 | Character grid | Lines between 8x8 cells. | Cell grid. | Same |
 | Pixels grid | Lines between pixels at high zoom. | Pixel grid. | Same |
-| User-defined grid | Grid at any X and Y step. | 16x16 block grid only. | Partial |
+| User-defined grid | Grid at any X and Y step. | View > Custom Grid... and Show Custom Grid (2026-10-09): X step and Y step set independently, 1 pixel up to the screen size, drawn as a fourth grid in every mode; lines closer than 4 screen pixels are left out until you zoom in. Remembered with the other three grids. | Same |
 | Colour display switch | Hides colours and shows the dots in black and white. | View > Colours Off (2026-10-09), display only: set dots black, clear dots white. GigaScreen and MultiGiga show four grey levels (neither screen white, screen A only light grey, screen B only darker grey, both black). Timex hi-res too. Disabled with a reason in the indexed modes. Remembered per browser. | Same |
 | Flashing mode switch | Stops or starts flashing on screen. | View > Stop Flashing (2026-10-09): every flashing cell shows its normal colours and the flash clock stops; turning it off resumes. Disabled with a reason where nothing flashes (ULAplus, ULANext, Timex hi-res, indexed modes). Remembered per browser. | Same |
-| Custom info bar | Shows the attribute value under the pointer, and the screen addresses of the pixel and of the attribute. | Shows X/Y and cell position only. | Missing |
+| Custom info bar | Shows the attribute value under the pointer, and the screen addresses of the pixel and of the attribute. | Preferences > Pointer readout shows (2026-10-09): position only, plus the attribute (decimal, hex, and its parts; CLUT in ULAplus; both screens in GigaScreen), plus the memory addresses of the pixel byte and the attribute byte in Standard ULA, ULAplus, ULANext, Timex hi-colour, Timex hi-res and GigaScreen. Other modes say they have no address. ZX Paintbrush lets you choose the number formats; PixULA shows decimal and hex together. | Same |
 
 ### Overlays (pasted graphics) and attributes
 
@@ -240,7 +242,7 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | Internal clipboard | Text-based ZXP format, shared between program windows. | Internal clipboard that survives a reload. | Same |
 | Paste Windows graphic | Through the import converter. | System clipboard paste through the converter. | Same |
 | Undo and redo | Configurable depth. | 500 steps with a memory cap. | Same |
-| Options | Grid colours, three display sizes, info bar formats, PLOT coordinate range. | Interface size, themes, languages. No PLOT coordinates or grid colours. | Partial |
+| Options | Grid colours, three display sizes, info bar formats, PLOT coordinate range. | Interface size, themes, languages. Grid colours (Preferences, per grid, with Reset to the theme) and PLOT coordinates (Preferences > Y counts from; the readout only) added 2026-10-09. The rest of this row stays with Batch 12. | Partial |
 | Context help and hotkey list | Click-for-help and a shortcuts page. | Two-stage tooltips, a built-in manual in 13 languages, a shortcuts dialog. | PixULA further |
 
 ## PixULA functions with no ZX Paintbrush counterpart
@@ -286,8 +288,9 @@ cost and the owner decides.
    replace, any part may be "any"); pixels-only flip; pixels-only and
    colours-only shift; diagonal shift; a Pixels+Attributes inverter (inverts dots
    and swaps colours, so the picture looks unchanged - tidies imports).
-3. **Seeing attributes** (3A done 2026-10-09: View > Colours Off, Stop Flashing and
-   Colour Grid, display only; 3B open): colours-off (black-and-white dots) view; flashing
+3. **Seeing attributes** (DONE 2026-10-09: 3A View > Colours Off, Stop Flashing and
+   Colour Grid, display only; 3B pointer readout with attribute and addresses, PLOT
+   coordinates, custom grid and grid colours, done here and not in batch 12): colours-off (black-and-white dots) view; flashing
    on/off; chessboard cell grid; pointer readout of the attribute value and the
    pixel/attribute screen addresses; user-defined grid; PLOT coordinates and grid
    colours (moved here from batch 12 on 2026-10-08, as they belong with the

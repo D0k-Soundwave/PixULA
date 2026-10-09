@@ -82,6 +82,24 @@ Decided during part 3A (2026-10-09):
 - The reasons for a greyed-out View row are its tooltip; arrow keys skip greyed
   rows, as with the Image > Attributes rows. Noted for an accessibility pass.
 
+Decided during part 3B (2026-10-09):
+- OWNER answered (Opus plan review raised it): remember ALL FOUR grids across a reload
+  (pixel, cell, block, custom, plus the custom steps), under one Storage key `gridState`.
+- Address table corrected against the sources (batch file's list was incomplete):
+  standard ULA, ULAplus and ULANext: $4000 / $5800. Timex hi-colour (multicolor_8x1) and
+  ula_plus_8x1: bitmap $4000, attribute at the same offset in the second display file
+  ($6000 + offset). Timex hi-res: even byte columns $4000, odd $6000, no attribute.
+  GigaScreen: A as standard, B in bank 7 at $C000 (attribute $D800 +). multicolor_8x4,
+  8x2, multigiga, timex_hires_giga, Layer 2, LoRes: no address. [A] which Giga screen is
+  which bank is a convention, labelled "bank 5" / "bank 7" in the readout.
+- PLOT only in 1-bit 256x192 modes, y 0..175 (176 rows). No source for NextBASIC Layer 2.
+- The readout's attribute and address lines are in the status bar, not the zoom strip
+  (the strip is full at 1024 wide); aria-live off.
+- Grid colours: a "Theme colour" box per grid; a ticked box follows the theme, so a theme
+  change still recolours that grid. Applied on OK; Cancel stores nothing.
+- Custom grid lines closer than 4 screen pixels are left out [C from the pixel grid's 400%
+  rule]. Default step 4 [A]; default colour green [A] (theme variable --grid-custom-color).
+
 OWNER: none known.
 
 ## Part 3A - Colours off, Stop flashing, Colour grid
