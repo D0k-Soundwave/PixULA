@@ -300,3 +300,37 @@ Observed, not fixed: hu.js 'view.attributes' (carried).
 Still open (carried): stamp support for the attribute commands (2A); Image > Flip, Rotate and Invert writing into a
 floating stamp's cells (2B).
 Next: Batch 4 part 4B.
+
+## 2026-10-09 - Batch 4 part 4B - Cell tools and the wiping eraser - done
+Model: Sonnet (one-run series). Branch: parity-a.
+Commits: fae43e2 feat: Copy colours, Invert dots and Invert dots and colours cell tools; wiping eraser option
+(+ eraser test, cell tools manual/specs/docs commit e8d39d3, and the docs and log commit)
+Done: three whole-cell paint tools beside Swap and Recolour (owner's choice: three buttons). ColorManager.cellToolAvailable
+(the one table: which tool exists in which mode); TransformService.cellToolBlocked / pickCellColours / paintCellColours /
+invertCellDots / invertCellDotsAndColours (public, open no batch; the drag holds the only one); invertDotsAndColours
+refactored to share the core (Batch 2 tests unchanged and green); InputHandler: five modes, a pick on the press for Copy, a
+cell walk between pointer events, a once-per-drag set, undo labels by table, an armed tool dropped when a screen-mode switch
+makes it unavailable; ClutBar per-button visibility; DrawModeBar status entries; A11yAnnouncer; three icons. Eraser option
+Colours: Keep / Set to current (NORMAL_ERASE only where cells have colours; hover mark follows). 16 i18n keys (+ a11y.attrModeOff
+reworded) in 13 locales; manual (eraser sentence, cell tools paragraph, Dots sentence) in 13 languages.
+Tests: tests/cell-tools.test.js (Node, failed first), tests/eraser-wiping.test.js (fails on the old eraser), tests/browser/
+cell-tools.spec.js (7), shell.spec.js and modes.spec.js updated (15 buttons; each button's mode availability).
+Full run: run-all ALL TEST FILES PASSED; npx playwright test 638 passed.
+Left: none in 4B.
+Plan corrections: batch-04.md (nine decisions, see Decided and corrected during part 4B): Invert dots and colours gated to fixed-16
+palettes (this also corrects Batch 2's menu item, which offered it in ULAplus and ULANext where it changed the look); Invert dots
+is allowed in Timex hi-res; eraser rationale; per-drag rules.
+Opus: plan review (Plan agent, opus) -> change. Fifteen corrections, all applied: batches do not nest (the shared core opens
+none); invert dots must not use _applyBuffer (it stamps the rail's colours); Timex hi-res would have been refused by
+attributeCommandsBlocked; one availability table; a see-through cell rule per tool; Copy picks what the page shows; one
+drawing-guide rule; once per drag; fast drags; testability through public service methods; InputHandler/label/Escape details;
+eraser gate at write time and markWrite; a11y announcer; manual edits; the specs that list strip buttons.
+Owner: none asked (the re-measure showed no new wrapping beyond the 1024 px / 200% corner already recorded).
+Flaky tests: none this time.
+Comparison doc: Copy attribute tool, Wiping tool, Pixels inverter tool, Pixels and attributes inverter are Same. count-verdicts:
+53 below parity (20 missing, 33 partial), was 57.
+Observed, not fixed: Swap used to swap a cell back if the drag crossed it twice; it now acts once per drag (a behaviour change).
+hu.js 'view.attributes' (carried).
+Still open (carried): stamp support for the attribute commands (2A); Image > Flip, Rotate and Invert writing into a floating
+stamp's cells (2B).
+Next: the group A end-of-build Opus review (RUN-ALL.md step 3), then Batch 5 part 5A on branch parity-b.
