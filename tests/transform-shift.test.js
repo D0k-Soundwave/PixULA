@@ -94,7 +94,7 @@ TransformService.shiftUp(2, false);
 check('no-wrap up by 2: bottom pixel lands two rows higher', isInk(5, H - 3));
 check('no-wrap up by 2: bottom row vacated', !isInk(5, H - 1));
 
-// ── A whole-cell step carries each cell's colours with its dots ─────────
+// -- A whole-cell step carries each cell's colours with its dots ---------
 // The owner's rule: "Dots and colours" on a cell step moves paper too, so
 // the cell the dots left takes the colours of the cell it came from, and the
 // cell the dots land in takes its paper with them.

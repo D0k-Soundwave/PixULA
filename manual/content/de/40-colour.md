@@ -44,6 +44,14 @@ erhalten, daher zeigt die Statusleiste ihn an, sobald er etwas anderes als
 Normal ist – in manchen dieser Modi hinterlässt ein Strich nichts Sichtbares,
 und sonst hätten Sie keine Möglichkeit zu erkennen, warum.
 
+Die obere Leiste hat drei Schaltflächen: **Zeichenmodus**, **Zellwerkzeug** und
+**Spiegeln**. Jede zeigt die gerade gültige Wahl. Ein Klick darauf öffnet
+darunter ein kleines Raster der anderen Möglichkeiten; ein Klick auf eine
+schließt es. Mit Escape oder einem Klick woanders schließen Sie es, ohne etwas
+zu ändern. Zeichenmodus und Spiegeln wirken zusammen: Stellen Sie XOR und
+Horizontal ein, ist ein Strich ein gespiegelter XOR-Strich. Das Zellwerkzeug
+übernimmt, wenn eines an ist, jeden Strich.
+
 {{draw-modes}}
 
 Der Pinsel in all seinen Formen, Füllen, die Formen, die Bézierkurve, Text,
@@ -53,30 +61,32 @@ einer Auswahl, der Bereich **Transformieren**, die Option **Nur Attribute
 füllen** und die Tasten Tauschen und Umfärben beachten ihn nicht.
 
 **Tinte umfärben ist nicht dasselbe wie Umfärben.** Tinte umfärben und Papier
-umfärben sind Zeichenmodi und färben jede Zelle um, die das aktuelle Werkzeug
-berührt – bei einem kleinen Pinsel wenige Zellen, bei einem gefüllten Rechteck
-jede Zelle, die es bedeckt –, und Spiegeln gilt mit. **Umfärben** gleich hinter
-dem Trennstrich färbt die ganze Zelle unter dem Zeiger um, egal welches Werkzeug
-gewählt ist, ohne Rücksicht auf Pinselgröße und Spiegeln. **Tauschen** daneben
-arbeitet genauso und vertauscht Tinte und Papier jeder Zelle. Beide bleiben an,
-bis Sie erneut darauf klicken oder ein Werkzeug oder einen Zeichenmodus wählen,
-und solange eines an ist, zeigt die Statusleiste es an.
+umfärben sind Zeichenmodi: Sie färben jede Zelle um, die das aktuelle Werkzeug
+berührt - einige Zellen bei einem kleinen Pinsel, jede Zelle, die ein gefülltes
+Rechteck bedeckt - und Spiegeln gilt. **Umfärben** in der Schaltfläche
+Zellwerkzeug färbt die ganze Zelle unter dem Zeiger um, welches Werkzeug auch
+gewählt ist, unabhängig von Pinselgröße und Spiegeln. **Tauschen** aus derselben
+Schaltfläche funktioniert genauso und vertauscht Tinte und Papier jeder Zelle.
+Beides bleibt an, bis Sie es ausschalten - wählen Sie Keines, wählen Sie es
+erneut, klicken Sie mit rechts auf die Zeichenfläche oder wählen Sie ein
+Werkzeug oder einen Zeichenmodus - und die Statusleiste sagt es, solange es an
+ist.
 
 **Farben kopieren, Punkte invertieren und Punkte und Farben invertieren** sind
-drei weitere Zelloperationen neben Tauschen und Umfärben und funktionieren
-genauso: Schaltfläche anklicken, dann über Zellen klicken oder ziehen. Jedes
-Ziehen wird in einem Schritt rückgängig gemacht, und sie bleiben an, bis Sie die
-Schaltfläche erneut anklicken oder ein Werkzeug oder einen Zeichenmodus wählen.
-**Farben kopieren** nimmt die Farben auf, die die Zelle unter Ihrem ersten Klick
-zeigt, und gibt sie jeder Zelle, über die Sie ziehen; die Farbleiste ändert sich
-nicht. **Punkte invertieren** löscht die gesetzten Punkte jeder ganzen Zelle und
-setzt die gelöschten und lässt die Farben (eine leere Zelle wird gefüllt).
-**Punkte und Farben invertieren** tauscht zusätzlich Tinte und Papier, sodass
-jede Zelle gleich aussieht; es dient zum Aufräumen eines importierten Bildes,
-überspringt Zellen, in denen auch eine andere Ebene zeichnet, und wird in
-ULAplus und ULANext nicht angeboten. Ein Zellwerkzeug gibt es nur in den
-Bildschirmmodi, in denen es funktionieren kann: Seine Schaltfläche ist sonst
-ausgeblendet, und Punkte invertieren funktioniert auch in Timex Hi-Res, wo die
+drei weitere Zellwerkzeuge in derselben Schaltfläche Zellwerkzeug und
+funktionieren genauso: eines wählen, dann über Zellen klicken oder ziehen. Jedes
+Ziehen wird in einem Schritt rückgängig gemacht, und das Werkzeug bleibt an, bis
+Sie es ausschalten. **Farben kopieren** nimmt die Farben auf, die die Zelle
+unter Ihrem ersten Klick zeigt, und gibt sie jeder Zelle, über die Sie ziehen;
+die Farbleiste ändert sich nicht. **Punkte invertieren** löscht die gesetzten
+Punkte jeder ganzen Zelle und setzt die gelöschten und lässt die Farben (eine
+leere Zelle wird gefüllt). **Punkte und Farben invertieren** tauscht zusätzlich
+Tinte und Papier, sodass jede Zelle gleich aussieht; es dient zum Aufräumen
+eines importierten Bildes, überspringt Zellen, in denen auch eine andere Ebene
+zeichnet, und wird in ULAplus und ULANext nicht angeboten. Ein Zellwerkzeug wird
+nur in den Bildschirmmodi angeboten, in denen es funktionieren kann: Die
+Schaltfläche Zellwerkzeug listet nur die passenden auf (und ist ausgeblendet, wo
+keines passt), und Punkte invertieren funktioniert auch in Timex Hi-Res, wo die
 Punkte in 8-mal-8-Zellen liegen.
 
 **XOR / Über und XOR / Jeder Durchgang** kehren Punkte um, statt sie zu setzen,

@@ -66,7 +66,7 @@ class PixelDrawRoutineClass {
     }
   }
 
-  // ── Colour core (batch 4 part 4A) ──────────────────────────────────────────
+  // -- Colour core (batch 4 part 4A) ------------------------------------------
   //
   // ZX Paintbrush's "colour attribute line thickness": a thick line sets ALL
   // its dots, but only the cells under its 1- or 4-pixel-wide core take the

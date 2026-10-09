@@ -795,7 +795,7 @@ const pl = {
     'grid.custom.stepX': 'Krok X (piksele)',
     'grid.custom.stepY': 'Krok Y (piksele)',
     'grid.custom.hint': 'Linie są rysowane co podaną liczbę pikseli, X i Y osobno. Linie bliższe niż 4 piksele na ekranie są pomijane, dopóki nie powiększysz widoku.',
-    'view.attributes': 'Pokaz atrybuty',
+    'view.attributes': 'Pokaż atrybuty',
     'view.zoomIn': 'Przybliz',
     'view.zoomOut': 'Oddal',
     'view.fitToWindow': 'Dopasuj do okna',

@@ -43,6 +43,14 @@ bara de stare îl arată ori de câte ori este altul decât Normal – în unele
 aceste moduri o trăsătură nu lasă nimic vizibil și altfel n-ați avea cum să
 aflați de ce.
 
+Bara de sus are trei butoane: **Mod de desen**, **Unealtă de celulă** și
+**Oglindă**. Fiecare arată alegerea în vigoare. Fă clic pe el și dedesubt se
+deschide o grilă mică cu celelalte alegeri; fă clic pe una și grila se închide.
+Apasă Escape, sau fă clic în altă parte, ca s-o închizi fără nicio schimbare.
+Modul de desen și Oglinda lucrează împreună: cu XOR și Orizontal, o trăsătură
+este o trăsătură XOR oglindită. Unealta de celulă, când una este pornită, preia
+fiecare trăsătură.
+
 {{draw-modes}}
 
 Pensula în toate formele ei, umplerea, formele, curba Bézier, textul, ștampilele
@@ -53,30 +61,30 @@ Recolorează îl ignoră.
 
 **Recolorează cerneala nu este același lucru cu Recolorează.** Recolorează
 cerneala și Recolorează hârtia sunt moduri de desen: recolorează fiecare celulă
-atinsă de unealta curentă (câteva cu o pensulă mică, toate cele acoperite de un
-dreptunghi plin), iar Oglinda se aplică. **Recolorează**, imediat după
-separator, recolorează întreaga celulă de sub cursor oricare ar fi unealta
-aleasă, indiferent de mărimea pensulei și de Oglindă. **Schimbă**, alături,
-funcționează la fel și schimbă între ele cerneala și hârtia fiecărei celule.
-Oricare dintre ele rămâne activ până când dați din nou clic pe el sau alegeți o
-unealtă ori un mod de desen, iar bara de stare arată acest lucru cât timp este
-activ.
+atinsă de unealta curentă - câteva cu o pensulă mică, fiecare celulă acoperită
+de un dreptunghi plin - și Oglinda se aplică. **Recolorează**, din butonul
+Unealtă de celulă, recolorează întreaga celulă de sub cursor, orice unealtă ar
+fi aleasă, ignorând mărimea pensulei și Oglinda. **Schimbă**, din același buton,
+funcționează la fel și schimbă cerneala cu hârtia fiecărei celule. Oricare
+rămâne pornit până îl oprești - alege Niciuna, alege-l din nou, fă clic dreapta
+pe pânză sau alege o unealtă ori un mod de desen - iar bara de stare spune asta
+cât timp este pornit.
 
 **Copiază culorile, Inversează punctele și Inversează punctele și culorile**
-sunt încă trei operații de celulă lângă Schimbă și Recolorează și funcționează
-la fel: fă clic pe buton, apoi fă clic sau trage peste celule. Fiecare tragere
-se anulează dintr-un pas, iar ele rămân pornite până faci din nou clic pe buton
-sau alegi o unealtă ori un mod de desen. **Copiază culorile** ia culorile pe
-care le arată celula de sub primul tău clic și le dă fiecărei celule peste care
-tragi; bara de culori nu se schimbă. **Inversează punctele** șterge punctele
-aprinse ale fiecărei celule întregi și le aprinde pe cele șterse, lăsând
-culorile (o celulă goală o umple). **Inversează punctele și culorile** schimbă
-în plus cerneala cu hârtia, astfel încât fiecare celulă arată la fel; servește
-la ordonarea unei imagini importate, sare peste celulele în care desenează și
-alt strat și nu este oferit în ULAplus și ULANext. O unealtă de celulă există
-doar în modurile de ecran în care poate funcționa: în altele butonul ei este
-ascuns, iar Inversează punctele funcționează și în Timex Hi-res, unde punctele
-sunt în celule de 8 pe 8.
+sunt încă trei unelte de celulă în același buton Unealtă de celulă și
+funcționează la fel: alege una, apoi fă clic sau trage peste celule. Fiecare
+tragere se anulează dintr-un pas, iar unealta rămâne pornită până o oprești.
+**Copiază culorile** ia culorile pe care le arată celula de sub primul tău clic
+și le dă fiecărei celule peste care tragi; bara de culori nu se schimbă.
+**Inversează punctele** șterge punctele aprinse ale fiecărei celule întregi și
+le aprinde pe cele șterse, lăsând culorile (o celulă goală o umple).
+**Inversează punctele și culorile** schimbă în plus cerneala cu hârtia, astfel
+încât fiecare celulă arată la fel; servește la ordonarea unei imagini importate,
+sare peste celulele în care desenează și alt strat și nu este oferit în ULAplus
+și ULANext. O unealtă de celulă este oferită doar în modurile de ecran în care
+poate funcționa: butonul Unealtă de celulă listează doar pe cele potrivite (și
+este ascuns acolo unde niciuna nu se potrivește), iar Inversează punctele
+funcționează și în Timex Hi-res, unde punctele sunt în celule de 8 pe 8.
 
 **XOR / Peste și XOR / Fiecare trecere** inversează punctele în loc să le
 aprindă și amândouă dau celulei culorile alese. XOR / Peste inversează fiecare

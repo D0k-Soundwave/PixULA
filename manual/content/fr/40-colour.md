@@ -46,6 +46,14 @@ l’autre ; la barre d’état l’affiche donc dès qu’il vaut autre chose qu
 dans certains de ces modes un trait ne laisse rien de visible, et vous n’auriez
 sinon aucun moyen de savoir pourquoi.
 
+La barre du haut a trois boutons : **Mode de dessin**, **Outil de cellule** et
+**Miroir**. Chacun montre le choix en vigueur. Cliquez dessus et une petite
+grille des autres choix s'ouvre dessous ; cliquez sur l'un d'eux et la grille se
+ferme. Appuyez sur Échap, ou cliquez ailleurs, pour la fermer sans rien changer.
+Le mode de dessin et le miroir fonctionnent ensemble : avec XOR et Horizontal,
+un trait est un trait XOR reflété. L'outil de cellule, quand il est actif, prend
+en charge tous les traits.
+
 {{draw-modes}}
 
 Le pinceau sous toutes ses formes, le remplissage, les formes, la courbe de
@@ -55,33 +63,34 @@ collage et la suppression d’une sélection, le panneau **Transformation**,
 l’option **Remplir les attributs seulement** et les boutons Échanger et
 Recolorer l’ignorent.
 
-**Recolorer encre n’est pas Recolorer.** Recolorer encre et Recolorer papier
-sont des modes de dessin : ils recolorent chaque cellule que touche l’outil en
-cours – quelques cellules pour un petit pinceau, toutes celles que couvre un
-rectangle plein – et le Miroir s’applique. **Recolorer**, juste après le
-séparateur, recolore la cellule entière sous le pointeur quel que soit l’outil
-choisi, sans tenir compte de la taille du pinceau ni du Miroir. **Échanger**, à
-côté, fonctionne de la même façon en échangeant l’encre et le papier de chaque
-cellule. L’un comme l’autre reste actif jusqu’à ce que vous cliquiez de nouveau
-dessus ou choisissiez un outil ou un mode de dessin, et la barre d’état
-l’indique tant qu’il est actif.
+**Recolorer l'encre n'est pas la même chose que Recolorer.** Recolorer l'encre
+et Recolorer le papier sont des modes de dessin : ils recolorent chaque cellule
+que touche l'outil actuel - quelques cellules avec un petit pinceau, toutes
+celles que couvre un rectangle plein - et le miroir s'applique. **Recolorer**,
+dans le bouton Outil de cellule, recolore la cellule entière sous le pointeur
+quel que soit l'outil, sans tenir compte de la taille du pinceau ni du miroir.
+**Échanger**, du même bouton, fonctionne de même et échange l'encre et le papier
+de chaque cellule. L'un comme l'autre reste actif jusqu'à ce que vous le coupiez
+- choisissez Aucun, choisissez-le à nouveau, faites un clic droit sur la zone de
+dessin ou choisissez un outil ou un mode de dessin - et la barre d'état
+l'indique tant qu'il est actif.
 
 **Copier les couleurs, Inverser les points et Inverser points et couleurs** sont
-trois opérations de cellule de plus à côté d'Échanger et Recolorer, et
-fonctionnent de la même façon : cliquez sur le bouton, puis cliquez ou glissez
-sur des cellules. Chaque glissement s'annule en une étape, et ils restent actifs
-jusqu'à ce que vous recliquiez sur le bouton ou choisissiez un outil ou un mode
-de dessin. **Copier les couleurs** prend les couleurs que montre la cellule sous
-votre premier clic et les donne à chaque cellule sur laquelle vous glissez ; la
-barre de couleurs ne change pas. **Inverser les points** efface les points
-allumés de chaque cellule entière et allume les effacés, et laisse les couleurs
-(une cellule vide est remplie). **Inverser points et couleurs** échange en plus
-l'encre et le papier, de sorte que chaque cellule a le même aspect ; il sert à
-nettoyer une image importée, saute les cellules où une autre couche dessine
-aussi, et n'est pas proposé en ULAplus ni ULANext. Un outil de cellule n'existe
-que dans les modes d'écran où il peut fonctionner : son bouton est masqué
-ailleurs, et Inverser les points fonctionne aussi en Timex Hi-res, où les points
-sont dans des cellules de 8 par 8.
+trois outils de cellule de plus dans le même bouton Outil de cellule, et
+fonctionnent de la même façon : choisissez-en un, puis cliquez ou glissez sur
+des cellules. Chaque glissement s'annule en une étape, et l'outil reste actif
+jusqu'à ce que vous le coupiez. **Copier les couleurs** prend les couleurs que
+montre la cellule sous votre premier clic et les donne à chaque cellule sur
+laquelle vous glissez ; la barre de couleurs ne change pas. **Inverser les
+points** efface les points allumés de chaque cellule entière et allume les
+effacés, et laisse les couleurs (une cellule vide est remplie). **Inverser
+points et couleurs** échange en plus l'encre et le papier, de sorte que chaque
+cellule a le même aspect ; il sert à nettoyer une image importée, saute les
+cellules où une autre couche dessine aussi, et n'est pas proposé en ULAplus ni
+ULANext. Un outil de cellule n'est proposé que dans les modes d'écran où il peut
+fonctionner : le bouton Outil de cellule ne liste que ceux qui conviennent (et
+est masqué là où aucun ne convient), et Inverser les points fonctionne aussi en
+Timex Hi-res, où les points sont dans des cellules de 8 par 8.
 
 **XOR / Superposer et XOR / Chaque passage** inversent les points au lieu de les
 poser, et donnent tous deux à la cellule les couleurs choisies. XOR / Superposer

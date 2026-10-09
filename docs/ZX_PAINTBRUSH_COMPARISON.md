@@ -73,7 +73,7 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | ZX Paintbrush | What it does | PixULA | Verdict |
 |---|---|---|---|
 | Free attributes tool | Paints the current colours onto every cell a freehand line touches, no dots. | Recolour button: click or drag over cells; each of the four parts follows its "use existing" box. | Same |
-| Copy attribute tool | Pick up one cell's attribute with the first click, then paint it onto other cells. | Copy colours button in the top strip (2026-10-09): the first click picks what the page shows there (both screens on GigaScreen), dragging paints it onto every cell passed over, the rail is untouched, one undo step per drag. Fast drags skip no cell. Cells already showing the colours are left alone. | Same |
+| Copy attribute tool | Pick up one cell's attribute with the first click, then paint it onto other cells. | Copy colours in the Cell tool selector of the top strip (2026-10-09): the first click picks what the page shows there (both screens on GigaScreen), dragging paints it onto every cell passed over, the rail is untouched, one undo step per drag. Fast drags skip no cell. Cells already showing the colours are left alone. | Same |
 | Fill tool with pixels off | Floods a region of dots but writes colours only. | Fill tool in Ink Recolour or Paper Recolour mode. | Same |
 | Wiping tool | Wipes dots away and sets the cells to the current colours; transparent channels are kept. Editable as a polygon afterwards. | Eraser option Colours: Set to current (2026-10-09) clears the dots and gives the cell the rail's colours, with Bright and Flash "use existing" honoured; Keep (the default) is the eraser as before. Shown only where cells have colours. Not editable as a polygon afterwards. | Same |
 | Colour attribute line thickness (option) | Thick lines colour only the cells under a 1-pixel or 4-pixel core, so less clash. | Colour core option (2026-10-09) on the round and square brush, shape outlines and the Bezier curve: Whole line (default) / 1 pixel / 4 pixels. Every dot is set; only the core's cells take the colours; Mirror and XOR respected; previews match the commit; hidden where cells have no colours. | Same |
@@ -85,8 +85,8 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | ZX Paintbrush | What it does | PixULA | Verdict |
 |---|---|---|---|
 | Attributes inverter tool | Swaps ink and paper of each cell clicked; snaps to cells. | Swap button. | Same |
-| Pixels inverter tool | Inverts the dots of each cell clicked. | Invert dots button in the top strip (2026-10-09): click or drag over whole cells; GigaScreen slot s becomes 3 - s; works in Timex Hi-res (8x8 cells) too; a blank cell fills; one undo step per drag. | Same |
-| Pixels and attributes inverter | Inverts dots and swaps colours together, so the picture looks unchanged. Used to tidy imported pictures, where solid areas come in as inverted cells with holes. | Invert dots and colours button in the top strip, and Image > Dots > Invert Dots and Colours (2026-10-08, tool 2026-10-09): inverts the dots and swaps ink and paper of each whole cell; one undo step. Skips cells another visible layer also draws in. Not offered in ULAplus and ULANext (swapping would change the look), modes without cell colours, or while a stamp floats. | Same |
+| Pixels inverter tool | Inverts the dots of each cell clicked. | Invert dots in the Cell tool selector of the top strip (2026-10-09): click or drag over whole cells; GigaScreen slot s becomes 3 - s; works in Timex Hi-res (8x8 cells) too; a blank cell fills; one undo step per drag. | Same |
+| Pixels and attributes inverter | Inverts dots and swaps colours together, so the picture looks unchanged. Used to tidy imported pictures, where solid areas come in as inverted cells with holes. | Invert dots and colours in the Cell tool selector of the top strip, and Image > Dots > Invert Dots and Colours (2026-10-08, tool 2026-10-09): inverts the dots and swaps ink and paper of each whole cell; one undo step. Skips cells another visible layer also draws in. Not offered in ULAplus and ULANext (swapping would change the look), modes without cell colours, or while a stamp floats. | Same |
 
 ### Edit attributes bar - selection or whole screen
 
@@ -273,8 +273,7 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 ## Part 3 - Parity backlog
 
 Every Missing or Partial row above, grouped into batches in working order. Each
-batch has its working instructions in `.claude/parity/batch-NN.md`, and progress
-is recorded in `.claude/parity/LOG.md`. Batches run in groups of three, each
+batch has its own working notes, and progress is logged part by part. Batches run in groups of three, each
 group on its own branch and checked as a whole before it is merged: A = 2-4,
 B = 5-7, C = 8-10, D = 11-12. Nothing here is rejected: where something may not
 suit a browser app (print, disk images, archives), its batch says what it would
@@ -286,8 +285,9 @@ cost and the owner decides.
 2. **Attribute commands on a selection or the whole screen** (2A done 2026-10-08:
    invert, erase and flip attributes; 2B2 done 2026-10-08: Image > Dots flips,
    Invert Dots and Colours, the Move choice and the 3x3 shift pad with diagonals;
-   stamp support for the attribute commands and the arrow keys still open; the
-   Change Attributes dialog is 2C): invert attributes,
+   2C done 2026-10-08: the Change Attributes dialog; the arrow keys follow Move
+   (a floating stamp keeps its one-pixel nudge); only stamp support for the
+   attribute commands is still open - Batch 5): invert attributes,
    erase attributes, flip attributes H/V; a Change Attributes dialog (find and
    replace, any part may be "any"); pixels-only flip; pixels-only and
    colours-only shift; diagonal shift; a Pixels+Attributes inverter (inverts dots
@@ -299,7 +299,8 @@ cost and the owner decides.
    pixel/attribute screen addresses; user-defined grid; PLOT coordinates and grid
    colours (moved here from batch 12 on 2026-10-08, as they belong with the
    readout and the grids).
-4. **Painting options**: attribute line thickness (colour only a 1- or 4-pixel
+4. **Painting options** (DONE 2026-10-09: Inverse, Colour core, the three cell tools,
+   the wiping eraser, and the top strip folded into three selectors): attribute line thickness (colour only a 1- or 4-pixel
    core of thick lines); copy-attribute tool in one step; Inverse mode switch;
    wiping-tool behaviour (erase dots and set colours, honouring use-existing);
    a per-cell pixel inverter tool.

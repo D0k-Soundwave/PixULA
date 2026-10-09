@@ -40,6 +40,13 @@ status bar shows it whenever it is set to anything other than Normal - in some
 of these modes a stroke leaves nothing visible, and you would otherwise have no
 way to tell why.
 
+The top strip has three buttons: **Draw mode**, **Cell tool** and **Mirror**.
+Each one shows the choice in force. Click it and a small grid of the other
+choices opens under it; click one and the grid closes. Press Escape, or click
+anywhere else, to close it without changing anything. Draw mode and Mirror work
+together: set XOR and Horizontal and a stroke is an XOR stroke, mirrored. The
+cell tool, when one is on, takes over every stroke.
+
 {{draw-modes}}
 
 The brush in all its forms, the fill, the shapes, the Bezier curve, text,
@@ -48,27 +55,28 @@ draw mode. The eraser, the eyedropper, moving, pasting and deleting a
 selection, the **Transform** panel, the fill's **Fill attributes only** option
 and the Swap and Recolour buttons all ignore it.
 
-**Ink Recolour is not the same as Recolour.** Ink Recolour and Paper
-Recolour are draw modes: they recolour every cell the current tool touches -
-a few cells for a small brush, every cell a filled rectangle covers - and
-Mirror applies. **Recolour**, just past the divider, recolours the whole
-cell under the pointer whichever tool is selected, ignoring brush size and
-Mirror. **Swap** beside it works the same way, exchanging each cell's ink
-and paper. Either one stays on until you click it again or pick a tool or a
-draw mode, and the status bar says so while it is on.
+**Ink Recolour is not the same as Recolour.** Ink Recolour and Paper Recolour
+are draw modes: they recolour every cell the current tool touches - a few cells
+for a small brush, every cell a filled rectangle covers - and Mirror applies.
+**Recolour**, in the Cell tool button, recolours the whole cell under the
+pointer whichever tool is selected, ignoring brush size and Mirror. **Swap**,
+from the same button, works the same way, exchanging each cell's ink and paper.
+Either one stays on until you switch it off - pick None, pick it again,
+right-click the canvas, or choose a tool or a draw mode - and the status bar
+says so while it is on.
 
 **Copy colours, Invert dots and Invert dots and colours** are three more cell
-operations beside Swap and Recolour, and work the same way: click the button,
-then click or drag over cells. Each drag undoes in one step, and they stay on
-until you click the button again or pick a tool or a draw mode. **Copy colours**
-picks up the colours the cell under your first click shows and gives them to
-every cell you drag over; the colour rail is not changed. **Invert dots** turns
-the set dots of each whole cell clear and the clear ones set, and leaves the
-colours (on a blank cell it fills it). **Invert dots and colours** also swaps
-ink and paper, so each cell looks the same; it is for tidying an imported
-picture, it skips cells that another layer also draws in, and it is not offered
-in ULAplus and ULANext. A cell tool exists only in the screen modes it can work
-in: its button is hidden elsewhere, and Invert dots also works in Timex Hi-res,
+tools in the same Cell tool button, and work the same way: pick one, then click
+or drag over cells. Each drag undoes in one step, and the tool stays on until
+you switch it off. **Copy colours** picks up the colours the cell under your
+first click shows and gives them to every cell you drag over; the colour rail is
+not changed. **Invert dots** turns the set dots of each whole cell clear and the
+clear ones set, and leaves the colours (on a blank cell it fills it). **Invert
+dots and colours** also swaps ink and paper, so each cell looks the same; it is
+for tidying an imported picture, it skips cells that another layer also draws
+in, and it is not offered in ULAplus and ULANext. A cell tool is offered only in
+the screen modes it can work in: the Cell tool button lists just the ones that
+apply (and is hidden where none do), and Invert dots also works in Timex Hi-res,
 where the dots are in 8 by 8 cells.
 
 **XOR / Over and XOR / Every Pass** both flip dots rather than set them, and

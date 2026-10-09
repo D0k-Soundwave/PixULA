@@ -38,6 +38,13 @@ Režim kreslení mění, co tah udělá. Pamatuje se mezi relacemi, takže ho st
 řádek zobrazuje, kdykoli je jiný než Normální – v některých z těchto režimů tah
 nezanechá nic viditelného a jinak byste neměli jak poznat proč.
 
+Horní pruh má tři tlačítka: **Režim kreslení**, **Nástroj buněk** a
+**Zrcadlení**. Každé ukazuje volbu, která platí. Kliknutím pod ním otevřete
+malou mřížku dalších voleb; kliknutím na jednu se mřížka zavře. Klávesou Escape
+nebo kliknutím jinam ji zavřete beze změny. Režim kreslení a Zrcadlení fungují
+společně: nastavíte-li XOR a Vodorovně, je tah tahem XOR, zrcadleným. Nástroj
+buněk, když je zapnutý, přebírá každý tah.
+
 {{draw-modes}}
 
 Štětec ve všech podobách, vyplňování, tvary, Bézierova křivka, text, razítka z
@@ -45,27 +52,28 @@ panelu **Razítka** a levé tlačítko přechodu se řídí režimem kreslení. 
 kapátko, přesouvání, vkládání a mazání výběru, panel **Transformace**, volba
 **Vyplnit pouze atributy** a tlačítka Zaměnit a Přebarvit ho neberou v úvahu.
 
-**Přebarvit inkoust není totéž co Přebarvit.** Přebarvit inkoust a Přebarvit
-papír jsou režimy kreslení: přebarví každou buňku, které se dotkne aktuální
-nástroj (pár buněk malým štětcem, všechny, které pokryje vyplněný obdélník), a
-platí pro ně i Zrcadlo. **Přebarvit** hned za oddělovačem přebarví celou buňku
-pod ukazatelem, ať je vybrán jakýkoli nástroj, bez ohledu na velikost štětce a
-Zrcadlo. **Zaměnit** vedle něj funguje stejně a v každé buňce zamění inkoust a
-papír. Kterékoli z nich zůstane zapnuté, dokud na ně znovu nekliknete nebo
-nezvolíte nástroj či režim kreslení, a stavový řádek to po tu dobu ukazuje.
+**Inkoust přebarvit není totéž co Přebarvit.** Inkoust přebarvit a Papír
+přebarvit jsou režimy kreslení: přebarvují každou buňku, které se nástroj dotkne
+- několik buněk u malého štětce, každou buňku, kterou pokrývá vyplněný obdélník
+- a platí Zrcadlení. **Přebarvit** v tlačítku Nástroj buněk přebarvuje celou
+buňku pod ukazatelem bez ohledu na zvolený nástroj, nehledě na velikost štětce a
+Zrcadlení. **Prohodit** ze stejného tlačítka funguje stejně a vymění inkoust s
+papírem každé buňky. Obojí zůstává zapnuté, dokud je nevypnete - zvolte Žádný,
+zvolte je znovu, klikněte pravým tlačítkem na plátno nebo vyberte nástroj či
+režim kreslení - a stavový řádek to hlásí, dokud je zapnuté.
 
 **Kopírovat barvy, Invertovat body a Invertovat body a barvy** jsou další tři
-operace s buňkami vedle Prohodit a Přebarvit a fungují stejně: klikněte na
-tlačítko, pak klikejte nebo táhněte přes buňky. Každé tažení se vrací jedním
-krokem a zůstávají zapnuté, dokud znovu neklikněte na tlačítko nebo nevyberete
-nástroj či režim kreslení. **Kopírovat barvy** převezme barvy, které ukazuje
-buňka pod prvním kliknutím, a dá je každé buňce, přes kterou táhnete; paleta
-barev se nemění. **Invertovat body** smaže nastavené body každé celé buňky a
-nastaví smazané, barvy ponechá (prázdnou buňku vyplní). **Invertovat body a
-barvy** navíc prohodí inkoust s papírem, takže každá buňka vypadá stejně; slouží
-k úklidu importovaného obrázku, přeskakuje buňky, do nichž kreslí i jiná vrstva,
-a v ULAplus a ULANext se nenabízí. Nástroj pro buňky existuje jen v režimech
-obrazovky, kde může fungovat: jinde je jeho tlačítko skryté, a Invertovat body
+nástroje pro buňky ve stejném tlačítku Nástroj buněk a fungují stejně: vyberte
+jeden a klikejte nebo táhněte přes buňky. Každé tažení se vrací jedním krokem a
+nástroj zůstává zapnutý, dokud ho nevypnete. **Kopírovat barvy** převezme barvy,
+které ukazuje buňka pod prvním kliknutím, a dá je každé buňce, přes kterou
+táhnete; paleta barev se nemění. **Invertovat body** smaže nastavené body každé
+celé buňky a nastaví smazané, barvy ponechá (prázdnou buňku vyplní).
+**Invertovat body a barvy** navíc prohodí inkoust s papírem, takže každá buňka
+vypadá stejně; slouží k úklidu importovaného obrázku, přeskakuje buňky, do nichž
+kreslí i jiná vrstva, a v ULAplus a ULANext se nenabízí. Nástroj pro buňky se
+nabízí jen v režimech obrazovky, kde může fungovat: tlačítko Nástroj buněk uvádí
+jen ty, které platí (a je skryté tam, kde žádný neplatí), a Invertovat body
 funguje i v Timex Hi-res, kde jsou body v buňkách 8 × 8.
 
 **XOR / Přes a XOR / Každý přejezd** body přepínají, místo aby je rozsvěcovaly,

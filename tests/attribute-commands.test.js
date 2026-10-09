@@ -100,7 +100,7 @@ function fresh() {
     DRAW_MODE.NORMAL, { mirror: false });
 }
 
-// ── Invert attributes ─────────────────────────────────────────────────────
+// -- Invert attributes -----------------------------------------------------
 fresh();
 let before = dotSignature();
 TransformService.invertAttributes();
@@ -134,7 +134,7 @@ const b1 = countBatches(() => TransformService.invertAttributes());
 check('invert is one undo step (one begin, one end)', b1.opens === 1 && b1.closes === 1,
   `opens ${b1.opens} closes ${b1.closes}`);
 
-// ── Erase attributes ──────────────────────────────────────────────────────
+// -- Erase attributes ------------------------------------------------------
 fresh();
 before = dotSignature();
 const rail = ColorManager.getCurrentSelection();
@@ -150,7 +150,7 @@ TransformService.eraseAttributes();
 check('erase selection: the cell inside is erased', shown(0, 0).ink === rail.ink);
 check('erase selection: a cell outside keeps its colours', shown(1, 0).ink === ((1 + 0) % 8));
 
-// ── Flip attributes ───────────────────────────────────────────────────────
+// -- Flip attributes -------------------------------------------------------
 fresh();
 setCell(0, 0, { ink: 1, paper: 0, bright: false, flash: false });
 setCell(COLS - 1, 0, { ink: 5, paper: 2, bright: true, flash: true });
@@ -185,7 +185,7 @@ const noop = countBatches(() => TransformService.flipAttributesVertical());
 check('flip of a symmetric picture adds no undo step when it changes nothing',
   noop.opens === 0 && noop.closes === 0, `opens ${noop.opens}`);
 
-// ── Modes without cell attributes do nothing ──────────────────────────────
+// -- Modes without cell attributes do nothing ------------------------------
 fresh();
 __setActiveScreenMode('timex_hires');
 before = dotSignature();
@@ -198,7 +198,7 @@ check('timex hi-res: attribute commands leave the cell colours alone',
   shown(0, 0).ink === timexCell.ink && shown(0, 0).paper === timexCell.paper);
 check('timex hi-res: dots unchanged', dotSignature() === before);
 
-// ── ULAplus: ink and paper swap, the CLUT bits (bright/flash) stay ────────
+// -- ULAplus: ink and paper swap, the CLUT bits (bright/flash) stay --------
 fresh();
 __setActiveScreenMode('ula_plus');
 setCell(2, 3, { ink: 3, paper: 1, bright: true, flash: true });
@@ -207,7 +207,7 @@ c = shown(2, 3);
 check('ULAplus invert: ink and paper swap', c.ink === 1 && c.paper === 3, `ink ${c.ink} paper ${c.paper}`);
 check('ULAplus invert: bright and flash bits untouched', c.bright === true && c.flash === true);
 
-// ── Multicolor 8x1: cells are one pixel row high ──────────────────────────
+// -- Multicolor 8x1: cells are one pixel row high --------------------------
 __setActiveScreenMode("multicolor_8x1");
 LayerManager.initialize();
 selectionArea = null;
@@ -220,7 +220,7 @@ check("multicolor 8x1: the cell in row 40 is inverted", shown(2, 40).ink === 4 &
 check("multicolor 8x1: the next cell row is untouched",
   shown(2, 41).ink === untouched.ink && shown(2, 41).paper === untouched.paper);
 
-// ── Stamp and locked layers block the commands ────────────────────────────
+// -- Stamp and locked layers block the commands ----------------------------
 fresh();
 const stampLayer = LayerManager.getCurrentLayer();
 const realStamp = stampLayer.isStamp;
@@ -234,7 +234,7 @@ check('locked layer: flip does nothing', TransformService.flipAttributesHorizont
 stampLayer.locked = false;
 check('unlocked layer: commands are available again', TransformService.attributeCommandsBlocked() === null);
 
-// ── Erase with Bright on "use existing" keeps each cell's bright ──────────
+// -- Erase with Bright on "use existing" keeps each cell's bright ----------
 fresh();
 setCell(2, 3, { ink: 2, paper: 6, bright: true, flash: false });
 setCell(4, 3, { ink: 2, paper: 6, bright: false, flash: false });
@@ -247,7 +247,7 @@ check('erase with Bright "use existing": a plain cell keeps its plain bright', s
 check('erase with Bright "use existing": ink still takes the rail ink', shown(4, 3).ink === railNow.ink);
 ColorManager.setBrightTransparent(false);
 
-// ── GigaScreen: each screen inverts its own pair ──────────────────────────
+// -- GigaScreen: each screen inverts its own pair --------------------------
 __setActiveScreenMode('gigascreen');
 LayerManager.initialize();
 selectionArea = null;
@@ -260,7 +260,7 @@ check('gigascreen: screen B ink and paper swap',
   LayerManager.attrsAsSeen(LayerManager.getCurrentLayer(), 5, 5, 1).ink === 5 &&
   LayerManager.attrsAsSeen(LayerManager.getCurrentLayer(), 5, 5, 1).paper === 2);
 
-// ── Undo fixture: a mode switch back leaves the picture for later tests ───
+// -- Undo fixture: a mode switch back leaves the picture for later tests ---
 fresh();
 __setActiveScreenMode('standard_ula');
 

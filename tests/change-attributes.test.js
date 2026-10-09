@@ -121,7 +121,7 @@ function fresh(mode = 'standard_ula') {
     DRAW_MODE.PIXEL_ONLY, { mirror: false });
 }
 
-// ── any and keep combinations ─────────────────────────────────────────────
+// -- any and keep combinations ---------------------------------------------
 fresh();
 let before = dotSignature();
 let n = TransformService.changeAttributes({ ...ANY, ink: 2 }, { ...KEEP, paper: 0 });
@@ -156,7 +156,7 @@ n = TransformService.changeAttributes(ANY, { ...KEEP });
 check('replace with everything kept: count 0', n === 0, `n ${n}`);
 check('replace with everything kept: nothing changes', cellSignature() === all);
 
-// ── preview writes nothing and agrees with the apply count ────────────────
+// -- preview writes nothing and agrees with the apply count ----------------
 fresh();
 const snap = cellSignature();
 const preview = TransformService.previewChangeAttributes({ ...ANY, ink: 4 }, { ...KEEP, flash: true });
@@ -165,7 +165,7 @@ const applied = TransformService.changeAttributes({ ...ANY, ink: 4 }, { ...KEEP,
 check('preview count equals the count the apply returns', preview === applied, `preview ${preview} applied ${applied}`);
 check('flash replaced on the matching cells', shown(4, 0).flash === true && shown(4, 0).ink === 4);
 
-// ── selection rounds out to whole cells ───────────────────────────────────
+// -- selection rounds out to whole cells -----------------------------------
 fresh();
 selectionArea = { x: 2 * CW + 1, y: 3 * CH + 1, width: CW, height: 2 }; // touches cells (2,3) and (3,3)
 const outside = shown(4, 3);
@@ -176,14 +176,14 @@ check('selection: the two cells the selection touches change', n === 2 && shown(
 check('selection: the cell beside it is unchanged', shown(4, 3).paper === outside.paper);
 check('selection: the first cell keeps its ink', shown(2, 3).ink === inOne.ink);
 
-// ── one undo step ─────────────────────────────────────────────────────────
+// -- one undo step ---------------------------------------------------------
 fresh();
 const b1 = countBatches(() => TransformService.changeAttributes({ ...ANY, ink: 3 }, { ...KEEP, paper: 1 }));
 check('change attributes is one undo step', b1.opens === 1 && b1.closes === 1, `opens ${b1.opens} closes ${b1.closes}`);
 const b2 = countBatches(() => TransformService.changeAttributes(ANY, { ...KEEP }));
 check('a change that alters nothing opens no batch', b2.opens === 0 && b2.closes === 0, `opens ${b2.opens}`);
 
-// ── ULAplus: bright and flash are the CLUT bits, matched the same way ─────
+// -- ULAplus: bright and flash are the CLUT bits, matched the same way -----
 fresh('ula_plus');
 setCell(5, 5, { ink: 3, paper: 2, bright: true, flash: true });
 n = TransformService.changeAttributes({ ...ANY, flash: true, bright: true }, { ...KEEP, bright: false });
@@ -191,7 +191,7 @@ check('ULAplus: the one CLUT 3 cell matches and gets CLUT 2 (bright off, flash o
   n === 1 && shown(5, 5).bright === false && shown(5, 5).flash === true && shown(5, 5).ink === 3,
   `n ${n} bright ${shown(5, 5).bright} flash ${shown(5, 5).flash}`);
 
-// ── Modes and layers that block the command ───────────────────────────────
+// -- Modes and layers that block the command -------------------------------
 fresh('timex_hires');
 let snap2 = cellSignature();
 check('timex hi-res: preview is 0', TransformService.previewChangeAttributes(ANY, { ...KEEP, paper: 0 }) === 0);
@@ -205,7 +205,7 @@ check('locked layer: preview is 0', TransformService.previewChangeAttributes(ANY
 check('locked layer: change is 0', TransformService.changeAttributes(ANY, { ...KEEP, paper: 0 }) === 0);
 layer.locked = false;
 
-// ── One real undo step restores the picture ────────────────────────────────
+// -- One real undo step restores the picture --------------------------------
 fresh();
 const undoSnap = cellSignature();
 UndoRedo.clear();
@@ -217,7 +217,7 @@ check('undo: the change is in place before undo', cellSignature() !== undoSnap);
 UndoRedo.undo();
 check('undo: one undo restores every cell', cellSignature() === undoSnap);
 
-// ── Input clean-up: out-of-range colours write nothing; 1 means true ─────
+// -- Input clean-up: out-of-range colours write nothing; 1 means true -----
 fresh();
 const badSnap = cellSignature();
 check('ink 8 is refused: count 0', TransformService.changeAttributes({ ...ANY, ink: 8 }, { ...KEEP, paper: 0 }) === 0);
@@ -226,7 +226,7 @@ const brightN = TransformService.previewChangeAttributes({ ...ANY, bright: true 
 check('bright 1 acts as bright true',
   TransformService.previewChangeAttributes({ ...ANY, bright: 1 }, { ...KEEP, paper: 0 }) === brightN);
 
-// ── Stamp block (same as 2A) ───────────────────────────────────────────────
+// -- Stamp block (same as 2A) -----------------------------------------------
 fresh();
 const stampLayer2 = LayerManager.getCurrentLayer();
 const realStamp2 = stampLayer2.isStamp;
@@ -235,7 +235,7 @@ check('stamp: preview is 0', TransformService.previewChangeAttributes(ANY, { ...
 check('stamp: change is 0', TransformService.changeAttributes(ANY, { ...KEEP, paper: 0 }) === 0);
 stampLayer2.isStamp = realStamp2;
 
-// ── multicolor 8x1: the plan reaches every cell row ──────────────────────
+// -- multicolor 8x1: the plan reaches every cell row ----------------------
 fresh('multicolor_8x1');
 let expect8 = 0;
 for (let cy = 0; cy < ZX_SPECTRUM.GRID_ROWS; cy++) {
@@ -246,7 +246,7 @@ check('8x1: count covers every cell row', n === expect8, `n ${n} expected ${expe
 check('8x1: row 1 cell with ink 0 is changed', shown(7, 1).ink === 0 && shown(7, 1).paper === 3,
   `paper ${shown(7, 1).paper}`);
 
-// ── ULAplus CLUT bits: bright is bit 0, flash is bit 1 ───────────────────
+// -- ULAplus CLUT bits: bright is bit 0, flash is bit 1 -------------------
 fresh('ula_plus');
 setCell(5, 5, { ink: 3, paper: 2, bright: true, flash: false });  // CLUT 1
 setCell(7, 5, { ink: 3, paper: 2, bright: false, flash: true });  // CLUT 2
@@ -260,7 +260,7 @@ check('ULAplus: the CLUT 2 cell is not found', shown(7, 5).flash === true && sho
 check('ULAplus: the CLUT 1 cell becomes CLUT 2',
   shown(5, 5).flash === true && shown(5, 5).bright === false && shown(5, 5).ink === 3);
 
-// ── GigaScreen: each screen's fields match and replace on their own ──────
+// -- GigaScreen: each screen's fields match and replace on their own ------
 __setActiveScreenMode('gigascreen');
 LayerManager.initialize();
 selectionArea = null;
