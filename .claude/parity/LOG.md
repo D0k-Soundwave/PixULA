@@ -166,3 +166,53 @@ release copy without the new script tag; it is generated, not edited.
 Still open (carried): stamp support for the attribute commands (2A); Image > Flip, Rotate and Invert
 writing into a floating stamp's cells (2B, logged, not fixed).
 Next: Batch 3 part 3A (same branch).
+
+## 2026-10-09 - Batch 3 part 3A - Colours off, Stop flashing, Colour grid - done
+Model: Sonnet (the owner switched the model for this part; the plan and the build ran on it). Branch: parity-a.
+Commits: 4009df4 feat: display-only Colours off, Colour grid and Stop flashing in the compositor
+d7cfd38 feat: View menu Colours Off, Stop Flashing and Colour Grid switches in 13 languages
+6ec6161 test: browser spec for the Colours Off, Stop Flashing and Colour Grid switches
+2b37c59 docs: batch 3 part 3A comparison rows
+0b47d61 fix: view switches follow the review - flicker greys, safe export render, boot order, greyed ticked rows
+(the log and docs commit follows)
+Done: three display-only switches. StateManager.getDisplayView / setColoursOff / setStopFlashing /
+setColourGrid with one EVENTS.DISPLAY_VIEW_CHANGED carrying all three (Colours off and Colour grid
+exclude each other in the setters). LayerManager.setDisplayView, _refreshDisplayFlags,
+displayViewAvailability (the one place that decides which switch a mode can show), _cellInk and
+_cellPaper (the one colour rule, replacing the five inline FLASH swaps), _syncFlashClock /
+_stopFlashClock (the clock stops while Stop flashing, Colours off or Colour grid applies), the
+GigaScreen grey levels, and stillImageData now renders the real picture with the normal flash phase
+for exports (try/finally, flushes queued cells first). View menu rows with checked state, greyed out
+with a tooltip reason per mode, tooltips follow a language change. Remembered per browser (Storage keys
+viewColoursOff, viewStopFlashing, viewColourGrid, cleared by Reset all); applied in _initManagers before
+anything is drawn. 6 i18n keys in 13 locales. Manual: "Seeing the dots" section in
+20-attribute-clash.md in 13 languages; build-manual and check:manual pass.
+Tests: tests/display-view.test.js (Node, failed first on setDisplayView); tests/browser/display-view.spec.js
+(10 specs, including a real PNG and animated GIF compared byte for byte, keyboard, reload). Full run:
+run-all ALL TEST FILES PASSED; npx playwright test 610 passed.
+Speed: [M] in docs/FIGURES.md; compose cost unchanged within noise (standard_ula 0.34 -> 0.33 ms).
+Left: none in 3A. Part 3B is next.
+Plan corrections: batch-03.md Decisions list extended. Grid visibility is not persisted today (only grid
+snap is), so the batch file's "like grid visibility" was wrong; the switches follow the grid-snap pattern.
+Stop flashing is disabled in more modes than the batch file listed (only fixed-16 palettes flash). Also
+removed the unused CanvasSystem.renderCell and fixed js/i18n/fr.js, which this part had committed with CRLF
+line endings (the review caught it; it is LF again).
+Opus: plan review SKIPPED by the owner's choice (the plan ran once on Sonnet); the owner asked for an Opus
+review of the finished build instead (Plan agent, opus) -> change. Seven corrections, all applied: fr.js line
+endings; greyed-out ticked rows looked active (css); Flicker under Colours off now shows the grey levels and
+pauses its frame loop; stillImageData flushes queued cells, restores in finally, no clock churn; boot applies
+the switches before anything is drawn; tests for timex_hires_giga, Giga odd cell, Flicker, a real PNG and GIF
+export, and the reload pixel; tooltips follow a language change. Owner decisions it raised: reasons on
+greyed rows for keyboard and touch users (left as the Image > Attributes rows do it, noted for an accessibility
+pass), border and reference photo under Colours off (left as they are), Flicker under Colours off (shows greys).
+Owner: none asked (the grey levels were chosen as [A] values and recorded).
+Flaky tests: tests/browser/fill-speed.spec.js "a whole-canvas fill costs little more than drawing the same
+pixels" failed once in the first full run (the Opus review was running at the same time), passed alone and
+in the final full run.
+Comparison doc: Colour grid, Colour display switch and Flashing mode switch rows are Same (2026-10-09).
+count-verdicts: 61 below parity (22 missing, 39 partial), was 64.
+Observed, not fixed: js/i18n/hu.js 'view.attributes' reads 'Attributumok mutatasa' (carried). The disabled
+View rows' reasons are not reachable by keyboard or touch, as with the Image > Attributes and Dots rows.
+Still open (carried): stamp support for the attribute commands (2A); Image > Flip, Rotate and Invert writing
+into a floating stamp's cells (2B, logged, not fixed).
+Next: Batch 3 part 3B (same branch).
