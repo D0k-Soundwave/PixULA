@@ -721,7 +721,7 @@ const fr = {
     'grid.blockGrid': 'Grille de blocs',
     'grid.blockGrid.hint': 'Affiche une ligne autour de chaque bloc de 16x16 pixels',
     'view.snap': 'Magnétisme',
-    'view.snap.hint': 'Aligner la sélection, les formes et le collage sur la grille d’attributs (Shift+S)',
+    'view.snap.hint': 'Aligner la sélection, les formes et le collage sur la grille d’attributs (Shift+S)',
     'view.coloursOff': 'Couleurs désactivées',
     'view.stopFlashing': 'Arrêter le clignotement',
     'view.colourGrid': 'Grille de couleurs',

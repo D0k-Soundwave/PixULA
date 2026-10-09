@@ -603,6 +603,21 @@ strip was already at 0.154, a hair above ColorBarFit's 0.15 FLOOR, and now
 sits on it at both device pixel ratios; the test that checks the DPR margin
 grows moved to 1200 px (0.277 / 0.270), where the scale is not floored.
 
+### View switches (Colours Off, Colour Grid, Stop Flashing) - 2026-10-09
+
+| Figure | Before | After | Tag |
+|---|---|---|---|
+| `composeToCanvas`, standard_ula, 768 cells, 8 layers, mean of 40 | 0.41 / 0.34 ms | 0.35 / 0.33 ms | M, 2026-10-09, Node with blits stubbed, 2 runs each. The "before" runs had the old inline FLASH swap put back in, not a checkout |
+| multicolor_8x1, 6,144 cells | 3.52 / 3.58 ms | 3.39 / 3.67 ms | M, same method |
+| multigiga_8x1 Average, 6,144 cells | 14.04 / 13.76 ms | 13.66 / 14.34 ms | M, same method |
+| timex_hires, 1,536 cells | 0.87 / 0.79 ms | 0.78 / 0.76 ms | M, same method |
+| layer2_640, 2,560 cells (not touched by the rule) | 0.650 / 0.649 / 0.698 ms | 0.634 / 0.638 / 0.639 ms | M, same method, three alternating runs |
+| The two calls added to `composeToCanvas` (`_refreshDisplayFlags`, `_syncFlashClock`) | - | about 8.5 ns per compose | M, same method |
+| Display greys in `DISPLAY_VIEW_COLOURS`: chessboard 224, screen A only 170, screen B only 102 (of 255) | - | - | A, 2026-10-09: three levels chosen to be told apart from each other and from white and black. Nothing depends on the exact values; change them freely |
+
+No decision rests on the grey levels. The compose cost did not move beyond run to
+run noise, so no optimisation was needed.
+
 ### What was measured and NOT acted on
 
 | Path | Figure | Tag | Why it was left |
