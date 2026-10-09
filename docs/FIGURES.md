@@ -631,6 +631,15 @@ run noise, so no optimisation was needed.
 | Custom grid default colour | #00aa00 (light), #008800 / #3f7f3a (themes) | A: chosen to differ from the pixel, cell and block grids |
 | Readout refresh | 32 ms throttle, unchanged | C, as before |
 
+### Inverse and Colour core - 2026-10-09 (batch 4 part 4A)
+
+| Figure | Before | After | Tag |
+|---|---|---|---|
+| Layer 2 640x256 whole-screen fill, 163,840 `draw()` calls with `resolveUserMode`, steady state of 5 runs | 20.9 to 21.8 ms | 20.5 to 22.3 ms | M, 2026-10-09, Node with blits stubbed, 2 runs each back to back; "before" is `pixel-draw-routine.js` from commit c6d7a13. A first version read Inverse with a keyed lookup (`get('draw.inverse')`): 24.0 to 25.4 ms (+15%). Made a plain field; recorded so the keyed read is not tried again |
+| standard_ula, one 32 px brush stroke over 250 px, steady state | 1.7 to 2.2 ms | 1.8 to 2.3 ms | M, same method (core off) |
+| Strip icon width, 800 / 1024 / 1200 px window, default interface size | 30.8 / 48.3 / 54 px | with the Inverse button 28.3 / 44.5 / 54 px | M, 2026-10-09, Playwright |
+| Strip rows at 1024 px window, 200% interface size | 1 row (16 px icons, the floor) | 2 rows | M, 2026-10-09, Playwright; see batch-04.md |
+
 ### What was measured and NOT acted on
 
 | Path | Figure | Tag | Why it was left |

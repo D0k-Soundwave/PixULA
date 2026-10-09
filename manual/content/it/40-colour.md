@@ -68,6 +68,28 @@ ci torna lo inverte di nuovo, così un otto si annulla dove si incrocia. Forme,
 curve, riempimenti e testo sono sempre un solo passaggio, quindi con questi le
 due modalità danno lo stesso risultato.
 
+**Inverso** scambia ciò che fanno i due pulsanti del mouse: il sinistro cancella
+i punti e il destro li accende, come INVERSE 1 del BASIC. È il pulsante subito
+dopo le modalità di disegno, oppure Maiusc+I, e la barra di stato dice “Inverso
+attivo” finché lo è. Non cambia nulla in Ricolora inchiostro, Ricolora carta e
+nelle due modalità XOR, dove i due pulsanti fanno la stessa cosa, e la barra di
+stato lo dice. Il testo e i timbri cancellano le loro lettere e forme invece di
+accenderle, un motivo posa i suoi punti come cancellazioni e i suoi vuoti come
+punti, e il riempimento riempie con la carta col sinistro e con l'inchiostro col
+destro. La gomma, Scambia e Ricolora lo ignorano. Viene ricordato tra le
+sessioni e salvato nei preset insieme alla modalità di disegno.
+
+**Nucleo di colore.** Per il pennello tondo e quadrato, i contorni delle forme e
+la curva di Bézier, Nucleo di colore dice quanta parte di una linea spessa
+prende i colori della cella. Una linea accende sempre tutti i punti. Con Nucleo
+di colore su 1 pixel o 4 pixel, solo le celle sotto il centro della linea, una
+linea di quella larghezza che ne segue il centro, prendono i tuoi colori; le
+altre celle sotto di essa ricevono i punti con i colori che avevano già, così
+una linea spessa si scontra con meno celle. Tutta la linea, l'impostazione
+predefinita, colora ogni cella toccata dalla linea. L'opzione compare solo nelle
+modalità schermo con colori di cella. Con Specchio la linea riflessa ha un
+nucleo proprio, e con XOR le celle fuori dal nucleo mantengono i loro colori.
+
 ### Tavolozze
 
 Due famiglie di modalità permettono di cambiare i colori stessi. ULAplus offre

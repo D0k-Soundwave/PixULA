@@ -69,6 +69,29 @@ nyolcas ott kioltja magát, ahol keresztezi önmagát. Az alakzatok, a görbék,
 kitöltések és a szöveg mindig egyetlen áthaladás, így ezeknél a két mód ugyanazt
 adja.
 
+Az **Fordított** felcseréli, mit csinál a két egérgomb: a bal gomb törli a
+pontokat, a jobb beállítja őket, mint a BASIC INVERSE 1 utasítása. Ez a
+rajzmódok utáni gomb, vagy a Shift+I, és az állapotsor kiírja, hogy „A fordított
+mód be van kapcsolva”, amíg be van. A Tinta átszínezése, a Papír átszínezése és
+a két XOR mód esetében nem változtat semmit, mert ott a két gomb ugyanazt teszi;
+az állapotsor ezt is kiírja. A szöveg és a bélyegek a betűiket és alakzataikat
+törlik beállítás helyett, a minta a pontjait törlésként, a réseit pontként rakja
+le, a kitöltés pedig a bal gombbal papírral, a jobbal tintával tölt. A radír, a
+Csere és az Átszínezés figyelmen kívül hagyja. A program megjegyzi a
+munkamenetek között, és a rajzmóddal együtt a beállításkészletekben is
+tárolódik.
+
+A **Színmag** a kerek és négyzetes ecsetnél, az alakzatok körvonalainál és a
+Bézier-görbénél megadja, hogy egy vastag vonal mekkora része veszi át a cellák
+színeit. A vonal mindig minden pontot beállít. Ha a Színmag 1 pixel vagy 4
+pixel, csak a vonal közepe alatti cellák veszik át a színeidet, egy olyan széles
+vonal, amely a középvonalat követi; az alatta lévő többi cella a pontokat a már
+meglévő színeivel kapja, így a vastag vonal kevesebb cellával ütközik. A teljes
+vonal, az alapértelmezés, minden cellát színez, amelyet a vonal érint. A
+beállítás csak cellaszíneket használó képernyőmódokban jelenik meg. Tükrözésnél
+a tükrözött vonalnak saját magja van, XOR esetén pedig a magon kívüli cellák
+megtartják a színeiket.
+
 ### Paletták
 
 Két módcsalád engedi magukat a színeket is megváltoztatni. Az ULAplus 64

@@ -60,6 +60,26 @@ se k němu, ho přepne znovu, takže osmička se zruší tam, kde se kříží. 
 křivky, výplně a text jsou vždy jediný přejezd, takže u nich oba režimy dávají
 stejný výsledek.
 
+**Inverze** prohodí, co dělají obě tlačítka myši: levé tlačítko maže body a
+pravé je nastavuje, jako INVERSE 1 v BASICu. Je to tlačítko hned za režimy
+kreslení, nebo Shift+I, a stavový řádek hlásí „Inverze je zapnutá“, dokud trvá.
+V režimech Inkoust přebarvit, Papír přebarvit a ve dvou režimech XOR nic nemění,
+protože obě tlačítka tam dělají totéž; stavový řádek to říká. Text a razítka
+mažou svá písmena a tvary místo jejich nastavení, vzorek klade své body jako
+mazání a mezery jako body, a výplň vyplňuje levým tlačítkem papírem a pravým
+inkoustem. Guma, Prohodit a Přebarvit ji ignorují. Pamatuje se mezi relacemi a
+ukládá se v předvolbách spolu s režimem kreslení.
+
+**Barevné jádro.** U kulatého a čtvercového štětce, obrysů tvarů a Bézierovy
+křivky říká Barevné jádro, jak velká část tlusté čáry přebírá barvy buněk. Čára
+vždy nastaví všechny body. S Barevným jádrem na 1 pixel nebo 4 pixely přebírají
+vaše barvy jen buňky pod středem čáry, čárou tak široké, která sleduje její
+střed; ostatní buňky pod ní dostanou body v barvách, které už měly, takže tlustá
+čára koliduje s méně buňkami. Celá čára, výchozí volba, obarví každou buňku,
+které se čára dotkne. Volba se zobrazuje jen v režimech obrazovky s barevnými
+buňkami. U Zrcadlení má zrcadlená čára vlastní jádro a u XOR si buňky mimo jádro
+ponechají své barvy.
+
 ### Palety
 
 Dvě rodiny režimů umožňují měnit samotné barvy. ULAplus nabízí 64 barevných

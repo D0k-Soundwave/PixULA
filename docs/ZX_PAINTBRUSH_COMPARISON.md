@@ -21,8 +21,8 @@ listings and had gone stale (it described an "Attributes only" draw mode and a
 Paintbrush never had).
 
 **Totals** [M, counted from the tables below]: 114 functions; PixULA is below
-parity on 59 (21 missing, 38 partial), level on
-43, ahead on 10, and 2 do not apply to a browser app.
+parity on 57 (20 missing, 37 partial), level on
+45, ahead on 10, and 2 do not apply to a browser app.
 Before Batch 1 (2026-10-08 morning) the count below parity was 69 (34 missing, 35
 partial). Before Batch 2 part 2B2 (2026-10-08) it was 64 (28 missing, 36 partial):
 the Dots menu and the Move choice moved four Missing rows to Partial.
@@ -30,12 +30,14 @@ Batch 3 part 3A (2026-10-09) took three rows to Same (Colour grid, Colour displa
 switch, Flashing mode switch): 61 below parity.
 Batch 3 part 3B (2026-10-09) took Custom info bar and User-defined grid to Same and the
 Options row from Missing-in-part to a smaller Partial: 59 below parity.
+Batch 4 part 4A (2026-10-09) took Inverse mode and the Colour attribute line thickness
+to Same: 57 below parity.
 
 ---
 
 ## Part 1 - Attributes, Bright and Flash
 
-50 functions: 24 same, 1 where PixULA goes further, 19 partial, 6 missing, 0 not applicable.
+50 functions: 26 same, 1 where PixULA goes further, 18 partial, 5 missing, 0 not applicable.
 
 ZX Paintbrush gives each part of the attribute byte (bit 7 FLASH, bit 6 BRIGHT,
 bits 5-3 PAPER, bits 2-0 INK) three states: a value, or "transparent" (BASIC's
@@ -61,7 +63,7 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 |---|---|---|---|
 | Drawing (pixels) switch | Turn pixel drawing off so any tool writes colours only. Combined with the per-colour transparency above, any mix is possible, e.g. paper and flash only. | Pixels Only, Ink Recolour and Paper Recolour, combined with the four "use existing" boxes, give any mix, e.g. paper and flash only (2026-10-08). | Same |
 | Filling switch | Shapes and the fill tool use the chosen fill style instead of solid. | Filled and Use pattern options on each tool. | Same |
-| Inverse mode | Like BASIC INVERSE: tools reset dots instead of setting them; text and solid fills are reversed. | The right button draws paper (clears dots). No global switch, so text and fills can't be reversed in one go. | Partial |
+| Inverse mode | Like BASIC INVERSE: tools reset dots instead of setting them; text and solid fills are reversed. | Inverse button in the top strip, or Shift+I (2026-10-09): swaps the two mouse buttons for the brush, fill, shapes, curves, gradient, patterns, text and stamps (left clears dots, right sets them). Ink and Paper Recolour and the XOR modes give both buttons one job, so Inverse changes nothing there and the status line says so. Remembered, saved in presets. | Same |
 | Over mode | Like BASIC OVER: dots are toggled. | XOR / Over, plus XOR / Every Pass. | PixULA further |
 
 ### Painting attributes
@@ -72,7 +74,7 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | Copy attribute tool | Pick up one cell's attribute with the first click, then paint it onto other cells. | Eyedropper, then Recolour: the same result in two steps. | Partial |
 | Fill tool with pixels off | Floods a region of dots but writes colours only. | Fill tool in Ink Recolour or Paper Recolour mode. | Same |
 | Wiping tool | Wipes dots away and sets the cells to the current colours; transparent channels are kept. Editable as a polygon afterwards. | Eraser clears dots and keeps colours; a second pass resets them. The right button in Normal clears dots and sets colours. | Partial |
-| Colour attribute line thickness (option) | Thick lines colour only the cells under a 1-pixel or 4-pixel core, so less clash. | A thick stroke colours every cell it touches. | Missing |
+| Colour attribute line thickness (option) | Thick lines colour only the cells under a 1-pixel or 4-pixel core, so less clash. | Colour core option (2026-10-09) on the round and square brush, shape outlines and the Bezier curve: Whole line (default) / 1 pixel / 4 pixels. Every dot is set; only the core's cells take the colours; Mirror and XOR respected; previews match the commit; hidden where cells have no colours. | Same |
 | Attribute changes visible while drawing | Figures show their colours before they are finished. | Shapes, curves, gradients and stamps preview with the real colours. | Same |
 | Re-colour the last figure (point mode) | Click a control point to give the last drawn figure the current colours, line and fill style. | No. Undo and draw it again. | Missing |
 

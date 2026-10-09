@@ -682,12 +682,15 @@ class StateManagerClass {
    * @returns {boolean}
    */
   getInverse() {
-    return this.get('draw.inverse') === true;
+    // A plain field, not get('draw.inverse'): resolveUserMode asks once per pixel
+    // (the gradient, a Layer 2 640x256 fill) and the keyed lookup showed in the timing.
+    return this._inverse === true;
   }
 
   /** @param {boolean} on */
   setInverse(on) {
     const next = on === true;
+    this._inverse = next;
     this.set('draw.inverse', next);
     EventBus.emit(EVENTS.INVERSE_CHANGED, { inverse: next });
   }
