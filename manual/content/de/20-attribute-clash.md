@@ -60,6 +60,32 @@ vier Graustufen: weiß, wo keiner der beiden Bildschirme einen Punkt hat,
 hellgrau bei einem Punkt nur auf Bildschirm A, dunkleres Grau nur auf Bildschirm
 B und schwarz bei beiden.
 
+### Die Zeigeranzeige lesen
+
+Der Streifen unter dem Bild und die Statusleiste sagen, wo der Zeiger ist. In
+den **Einstellungen** ergänzt *Die Zeigeranzeige zeigt* das Attribut unter dem
+Zeiger (seine Zahl dezimal und hexadezimal, dann Tinte, Papier, hell und
+blinken; in ULAplus die CLUT; in GigaScreen beide Bildschirme) und die
+Speicheradresse des Pixel-Bytes und seines Attribut-Bytes. Adressen gibt es
+dort, wo die echte Maschine ein festes Layout hat: Standard-ULA und ULAplus
+(Bilddatei ab $4000, Attribute ab $5800), Timex-Hi-Colour (Attribute in der
+zweiten Bilddatei ab $6000), Timex-Hi-Res (gerade Byte-Spalten ab $4000,
+ungerade ab $6000) und GigaScreen (Bildschirm A wie üblich, Bildschirm B in Bank
+7 ab $C000; welcher Bildschirm zu welcher Bank gehört, ist eine Konvention).
+Andere Modi sagen, dass sie keine Adresse haben.
+
+*Y wird gezählt von* lässt sich auf unten stellen, sodass die Anzeige wie BASIC
+PLOT liest: 0,0 ist die linke untere Ecke, Y läuft von 0 bis 175. Das gibt es
+nur über den oberen 176 Zeilen eines 256-mal-192-Bildes; darunter und auf
+anderen Bildschirmen zeigt die Anzeige einen Strich. Es ändert nur die Anzeige.
+
+**Eigenes Raster...** im Menü Ansicht zeichnet ein Raster mit beliebigem X- und
+Y-Schritt, getrennt einstellbar, und **Eigenes Raster anzeigen** schaltet es ein
+und aus. Linien, die auf dem Bildschirm näher als vier Pixel beieinander liegen,
+entfallen, bis Sie hineinzoomen. Die eingeschalteten Raster kommen beim nächsten
+Start wieder. In den Einstellungen legt *Rasterfarben* die Farbe jedes Rasters
+fest; bleibt *Farbe des Designs* angehakt, folgt das Raster dem Design.
+
 ### Wo andere Regeln gelten
 
 Spätere Hardware hat die Beschränkung auf verschiedene Weise gelockert, und

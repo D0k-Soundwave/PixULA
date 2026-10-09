@@ -60,6 +60,32 @@ quatro níveis de cinzento: branco onde nenhum ecrã tem ponto, cinzento claro
 para um ponto só no ecrã A, um cinzento mais escuro só no ecrã B e preto para
 ambos.
 
+### Ler o ponteiro
+
+A faixa sob a imagem e a barra de estado dizem onde está o ponteiro. Nas
+**Preferências**, *A leitura do ponteiro mostra* acrescenta o atributo sob o
+ponteiro (o seu número em decimal e em hexadecimal, depois tinta, papel, brilho
+e intermitente; a CLUT em ULAplus; os dois ecrãs em GigaScreen) e o endereço de
+memória do byte do píxel e do seu byte de atributo. Há endereços onde a máquina
+real tem uma disposição fixa: ULA padrão e ULAplus (ficheiro de ecrã desde
+$4000, atributos desde $5800), Timex de cor alta (atributos no segundo ficheiro
+de ecrã, em $6000), Timex de alta resolução (colunas de bytes pares em $4000,
+ímpares em $6000) e GigaScreen (ecrã A como o padrão, ecrã B no banco 7 em
+$C000; que ecrã pertence a que banco é uma convenção). Os outros modos dizem que
+não têm endereço.
+
+*O Y conta-se a partir de* pode ficar em baixo, para a leitura ser como no BASIC
+PLOT, onde 0,0 é o canto inferior esquerdo e o Y vai de 0 a 175. Isso só existe
+nas 176 linhas de cima de uma imagem de 256 por 192; abaixo, e noutros ecrãs, a
+leitura mostra um traço. Altera só a leitura.
+
+**Grelha personalizada...** no menu Ver desenha uma grelha com qualquer passo X
+e Y, definidos em separado, e **Mostrar grelha personalizada** liga-a e
+desliga-a. As linhas a menos de quatro píxeis de ecrã umas das outras são
+omitidas até ampliares. As grelhas ligadas voltam da próxima vez que abrires o
+programa. Nas Preferências, *Cores das grelhas* define a cor de cada grelha; se
+deixares *Cor do tema* marcada, a grelha segue o tema.
+
 ### Onde as regras mudam
 
 O hardware posterior aliviou a restrição de várias formas, e o PixULA consegue

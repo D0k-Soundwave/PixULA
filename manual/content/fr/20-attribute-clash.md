@@ -64,6 +64,34 @@ MultiGiga, Couleurs désactivées montre quatre niveaux de gris : blanc là où
 aucun écran n'a de point, gris clair pour un point sur l'écran A seul, un gris
 plus foncé sur l'écran B seul, et noir pour les deux.
 
+### Lire le pointeur
+
+La bande sous l'image et la barre d'état disent où se trouve le pointeur. Dans
+les **Préférences**, *La lecture du pointeur affiche* ajoute l'attribut sous le
+pointeur (son numéro en décimal et en hexadécimal, puis encre, papier, brillant
+et clignotant ; la CLUT en ULAplus ; les deux écrans en GigaScreen) et l'adresse
+mémoire de l'octet du pixel et de son octet d'attribut. Il y a des adresses là
+où la vraie machine a une disposition fixe : ULA standard et ULAplus (fichier
+d'affichage dès $4000, attributs dès $5800), Timex haute couleur (attributs dans
+le second fichier d'affichage, à $6000), Timex haute résolution (colonnes
+d'octets paires à $4000, impaires à $6000) et GigaScreen (écran A comme le
+standard, écran B dans la banque 7 à $C000 ; l'attribution des écrans aux
+banques est une convention). Les autres modes indiquent qu'ils n'ont pas
+d'adresse.
+
+*Y se compte depuis* peut être réglé sur le bas, pour que la lecture se lise
+comme BASIC PLOT, où 0,0 est le coin inférieur gauche et Y va de 0 à 175. Cela
+n'existe que sur les 176 lignes du haut d'une image de 256 sur 192 ; en dessous,
+et sur les autres écrans, la lecture affiche un tiret. Seule la lecture change.
+
+**Grille personnalisée...** dans le menu Affichage trace une grille avec un pas
+X et un pas Y quelconques, réglés séparément, et **Afficher la grille
+personnalisée** l'active ou la désactive. Les lignes distantes de moins de
+quatre pixels d'écran sont omises jusqu'à ce que vous zoomiez. Les grilles
+activées reviennent à la prochaine ouverture du programme. Dans les Préférences,
+*Couleurs des grilles* règle la couleur de chaque grille ; si *Couleur du thème*
+reste cochée, la grille suit le thème.
+
 ### Là où les règles changent
 
 Le matériel ultérieur a assoupli la contrainte de diverses façons, et PixULA

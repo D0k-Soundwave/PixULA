@@ -58,6 +58,32 @@ GigaScreen ve MultiGiga'da Renkler kapalı dört gri düzey gösterir: iki ekran
 da nokta olmayan yerde beyaz, yalnızca A ekranında nokta için açık gri, yalnızca
 B ekranı için daha koyu gri ve ikisi için siyah.
 
+### İşaretçiyi okumak
+
+Resmin altındaki şerit ve durum çubuğu işaretçinin nerede olduğunu söyler.
+**Tercihler**'de *İşaretçi göstergesi şunu gösterir* seçeneği işaretçinin
+altındaki özniteliği ekler (onluk ve onaltılık sayısı, sonra mürekkep, kâğıt,
+parlak ve yanıp sönme; ULAplus'ta CLUT; GigaScreen'de iki ekran) ve pikselin
+baytının ve öznitelik baytının bellek adresini. Adresler gerçek makinenin sabit
+düzeni olduğu yerde vardır: Standart ULA ve ULAplus (ekran dosyası $4000'den,
+öznitelikler $5800'den), Timex hi-colour (öznitelikler $6000'deki ikinci ekran
+dosyasında), Timex hi-res (çift bayt sütunları $4000'de, tek olanlar $6000'de)
+ve GigaScreen (A ekranı standart gibi, B ekranı $C000'deki 7. bankta; hangi
+ekranın hangi bankaya ait olduğu bir uzlaşmadır). Diğer modlar adresleri
+olmadığını söyler.
+
+*Y şuradan sayılır* alta ayarlanabilir; böylece gösterge BASIC PLOT gibi okunur:
+0,0 sol alt köşedir ve Y 0'dan 175'e gider. Bu yalnızca 256'ya 192'lik resmin
+üst 176 satırında vardır; altında ve diğer ekranlarda gösterge tire gösterir.
+Yalnızca göstergeyi değiştirir.
+
+Görünüm menüsündeki **Özel ızgara...** istenen X ve Y adımıyla, ayrı ayrı
+ayarlanarak bir ızgara çizer; **Özel ızgarayı göster** onu açıp kapatır. Ekranda
+dört pikselden yakın çizgiler, yakınlaştırana kadar çizilmez. Açtığınız
+ızgaralar programı bir sonraki açışınızda geri gelir. Tercihler'de *Izgara
+renkleri* her ızgaranın rengini belirler; *Tema rengi* işaretli kalırsa ızgara
+temayı izler.
+
 ### Kuralların farklı olduğu yerler
 
 Sonraki donanımlar bu kısıtı çeşitli şekillerde gevşetti ve PixULA hepsiyle

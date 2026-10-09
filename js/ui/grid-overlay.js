@@ -24,6 +24,8 @@ class GridOverlayClass {
         this.grid8x8Ctx = null;
         this.grid16x16Canvas = null;
         this.grid16x16Ctx = null;
+        this.gridCustomCanvas = null;
+        this.gridCustomCtx = null;
 
         // Preview canvases
         this.functionPreviewCanvas = null;
@@ -67,6 +69,12 @@ class GridOverlayClass {
         this.pixelGridVisible = false;   // 1x1 grid
         this.cellGridVisible = false;    // 8x8 grid (attribute cells)
         this.blockGridVisible = false;   // 16x16 grid
+        // The user-defined grid: any X step and Y step, set independently.
+        // Stored as typed (1 and up) and clamped when drawn, so a trip through
+        // a smaller screen mode and back keeps the user's numbers.
+        this.customGridVisible = false;
+        this.customStepX = GridLines.DEFAULT_STEP;
+        this.customStepY = GridLines.DEFAULT_STEP;
         this.zoom = DEFAULT_ZOOM || 100; // percent
         this._initialized = false;
 
@@ -74,6 +82,7 @@ class GridOverlayClass {
         this.pixelGridColor = '#000000';
         this.cellGridColor  = '#FF0000';
         this.blockGridColor = '#0000FF';
+        this.customGridColor = '#00AA00';
 
         // Overlay chrome colours (selection border, handles, footprint/stamp
         // outlines, selection fill/dim) — resolved once here and on
@@ -90,7 +99,7 @@ class GridOverlayClass {
         };
 
         // What each grid canvas was last drawn for (_renderGrid); null = not drawn
-        this._gridSigs = { '1x1': null, '8x8': null, '16x16': null };
+        this._gridSigs = { '1x1': null, '8x8': null, '16x16': null, 'custom': null };
 
         // Grid wrapper div (sub-pixel grid rendering lives outside CSS-scaled canvas-container)
         this._gridWrapper = null;
@@ -122,6 +131,7 @@ class GridOverlayClass {
         this.grid1x1Canvas   = CanvasSystem.getCanvasElement('grid-1x1-canvas');
         this.grid8x8Canvas   = CanvasSystem.getCanvasElement('grid-8x8-canvas');
         this.grid16x16Canvas = CanvasSystem.getCanvasElement('grid-16x16-canvas');
+        this.gridCustomCanvas = CanvasSystem.getCanvasElement('grid-custom-canvas');
 
         const iDoc = CanvasSystem.getIframeDocument();
         this._gridWrapper = iDoc ? iDoc.getElementById('grid-wrapper') : null;
@@ -148,6 +158,7 @@ class GridOverlayClass {
         if (this.grid1x1Canvas)   this.grid1x1Ctx   = this.grid1x1Canvas.getContext('2d');
         if (this.grid8x8Canvas)   this.grid8x8Ctx   = this.grid8x8Canvas.getContext('2d');
         if (this.grid16x16Canvas) this.grid16x16Ctx = this.grid16x16Canvas.getContext('2d');
+        if (this.gridCustomCanvas) this.gridCustomCtx = this.gridCustomCanvas.getContext('2d');
         if (this.functionPreviewCanvas)  this.functionPreviewCtx  = this.functionPreviewCanvas.getContext('2d');
         if (this.compositePreviewCanvas) this.compositePreviewCtx = this.compositePreviewCanvas.getContext('2d');
         if (this.selectionCanvas)        this.selectionCtx        = this.selectionCanvas.getContext('2d');
@@ -156,6 +167,7 @@ class GridOverlayClass {
 
         this._attachEvents();
         this._refreshGridColors();
+        this._restoreSavedGrids();
         this._initialized = true;
 
         // Sync zoom from the authoritative source in case setZoom() fired before we initialised
@@ -166,8 +178,29 @@ class GridOverlayClass {
         this._updateGridLayout(this._scale());
         this._updateCanvasVisibility();
         this.render();
+        // The remembered grids may have switched some on: tell the buttons and
+        // the menu, which subscribed before this ran.
+        this._emitVisibility();
 
         Logger.info('GridOverlay', 'Initialized with separate grid canvases');
+    }
+
+    /**
+     * Put the four grids back as the last session left them (App restores the
+     * stored record into StateManager 'grid.state' before the UI starts).
+     * Values are checked, not trusted: the record is a stored file.
+     * @private
+     */
+    _restoreSavedGrids() {
+        const saved = window.StateManager ? StateManager.get('grid.state') : null;
+        if (!saved || typeof saved !== 'object') return;
+        this.pixelGridVisible = saved.pixel === true;
+        this.cellGridVisible = saved.cell === true;
+        this.blockGridVisible = saved.block === true;
+        this.customGridVisible = saved.custom === true;
+        const x = Number(saved.customX), y = Number(saved.customY);
+        if (Number.isFinite(x) && x >= 1) this.customStepX = Math.round(x);
+        if (Number.isFinite(y) && y >= 1) this.customStepY = Math.round(y);
     }
 
     /**
@@ -190,6 +223,15 @@ class GridOverlayClass {
         this.pixelGridColor = this._cssVar('--grid-pixel-color', '#000000');
         this.cellGridColor  = this._cssVar('--grid-cell-color',  '#FF0000');
         this.blockGridColor = this._cssVar('--grid-block-color', '#0000FF');
+        this.customGridColor = this._cssVar('--grid-custom-color', '#00AA00');
+        // The owner's own colours (Preferences) replace the theme's, per grid.
+        // null = follow the theme, so a theme change still recolours that grid.
+        const own = (window.StateManager && StateManager.get('gridColors')) || {};
+        const pick = (key, themed) => Validators.normaliseHexColour(own[key]) || themed;
+        this.pixelGridColor = pick('pixel', this.pixelGridColor);
+        this.cellGridColor = pick('cell', this.cellGridColor);
+        this.blockGridColor = pick('block', this.blockGridColor);
+        this.customGridColor = pick('custom', this.customGridColor);
 
         this._overlayColors = {
             outline:         this._cssVar('--overlay-outline',          'rgba(255,255,255,0.85)'),
@@ -269,6 +311,26 @@ class GridOverlayClass {
             this.cellGridVisible, this.cellGridColor, 0.1, this._path8x8);
         this._renderGrid('16x16', this.grid16x16Canvas, this.grid16x16Ctx,
             this.blockGridVisible, this.blockGridColor, 0.1, this._path16x16);
+        const customLines = (ctx, scale, half, dW, dH) => this._pathCustom(ctx, scale, half, dW, dH);
+        this._renderGrid('custom', this.gridCustomCanvas, this.gridCustomCtx,
+            this.customGridVisible, this.customGridColor, 0.1, customLines,
+            `${this.customStepX}x${this.customStepY}`);
+    }
+
+    /** The custom grid's lines: GridLines decides which, this strokes them. @private */
+    _pathCustom(ctx, scale, half, dW, dH) {
+        const { xs, ys } = GridLines.lines(ZX_SPECTRUM.WIDTH, ZX_SPECTRUM.HEIGHT,
+            this.customStepX, this.customStepY, scale);
+        for (const col of xs) {
+            const x = col * scale;
+            ctx.moveTo(x - half, 0);  ctx.lineTo(x - half, dH);
+            ctx.moveTo(x + half, 0);  ctx.lineTo(x + half, dH);
+        }
+        for (const row of ys) {
+            const y = row * scale;
+            ctx.moveTo(0, y - half);  ctx.lineTo(dW, y - half);
+            ctx.moveTo(0, y + half);  ctx.lineTo(dW, y + half);
+        }
     }
 
     /**
@@ -296,7 +358,7 @@ class GridOverlayClass {
      * when nothing the lines depend on has changed since they were drawn.
      * @private
      */
-    _renderGrid(key, canvas, ctx, visible, strokeStyle, lineWidthZx, pathFn) {
+    _renderGrid(key, canvas, ctx, visible, strokeStyle, lineWidthZx, pathFn, extra = '') {
         if (!canvas || !ctx) return;
         if (!visible) {
             if (canvas.width || canvas.height) {
@@ -310,7 +372,7 @@ class GridOverlayClass {
         const scale = this._scale();
         const DPR   = window.devicePixelRatio || 1;
         const sig = [scale, DPR, strokeStyle, lineWidthZx, ZX_SPECTRUM.WIDTH, ZX_SPECTRUM.HEIGHT,
-            ZX_SPECTRUM.CELL_WIDTH, ZX_SPECTRUM.CELL_HEIGHT, ZX_SPECTRUM.CELL_SIZE].join('|');
+            ZX_SPECTRUM.CELL_WIDTH, ZX_SPECTRUM.CELL_HEIGHT, ZX_SPECTRUM.CELL_SIZE, extra].join('|');
         if (this._gridSigs[key] === sig) return;
         this._gridSigs[key] = sig;
 
@@ -401,6 +463,9 @@ class GridOverlayClass {
         if (this.grid16x16Canvas) {
             this.grid16x16Canvas.style.display = this.blockGridVisible ? '' : 'none';
         }
+        if (this.gridCustomCanvas) {
+            this.gridCustomCanvas.style.display = this.customGridVisible ? '' : 'none';
+        }
     }
 
     /**
@@ -412,8 +477,62 @@ class GridOverlayClass {
         EventBus.emit(EVENTS.GRID_VISIBILITY, {
             pixel: this.pixelGridVisible,
             cell:  this.cellGridVisible,
-            block: this.blockGridVisible
+            block: this.blockGridVisible,
+            custom: this.customGridVisible,
+            customX: this.customStepX,
+            customY: this.customStepY
         });
+    }
+
+    /**
+     * The THEME's colour for a grid ("#rrggbb"), ignoring the owner's own
+     * override: what the Preferences picker starts from and what Reset returns to.
+     * @param {'pixel'|'cell'|'block'|'custom'} key
+     * @returns {string}
+     */
+    themeGridColour(key) {
+        const vars = { pixel: '--grid-pixel-color', cell: '--grid-cell-color',
+            block: '--grid-block-color', custom: '--grid-custom-color' };
+        return Validators.normaliseHexColour(this._cssVar(vars[key], '')) || '#808080';
+    }
+
+    /** Set the user-defined grid's visibility. */
+    setCustomGridVisible(visible) {
+        this.customGridVisible = !!visible;
+        this._updateCanvasVisibility();
+        this.render();
+        this._emitVisibility();
+    }
+
+    toggleCustomGrid() { this.setCustomGridVisible(!this.customGridVisible); }
+
+    /**
+     * Set the user-defined grid's steps (whole pixels, 1 and up, X and Y set
+     * independently). Larger than the picture is allowed and simply draws no
+     * lines until the picture is big enough.
+     * @param {number} x
+     * @param {number} y
+     */
+    setCustomGridSteps(x, y) {
+        const clean = (v, old) => {
+            const n = Math.round(Number(v));
+            return Number.isFinite(n) && n >= 1 ? n : old;
+        };
+        this.customStepX = clean(x, this.customStepX);
+        this.customStepY = clean(y, this.customStepY);
+        this.render();
+        this._emitVisibility();
+    }
+
+    /**
+     * Use the owner's grid colours in place of the theme's.
+     * @param {{pixel: ?string, cell: ?string, block: ?string, custom: ?string}} colours
+     *   "#rrggbb" per grid, or null to follow the theme
+     */
+    setGridColorOverrides(colours) {
+        StateManager.set('gridColors', colours || {});
+        this._refreshGridColors();
+        this.render();
     }
 
     /** Set 1x1 pixel grid visibility. */

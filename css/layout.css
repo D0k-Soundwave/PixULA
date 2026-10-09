@@ -497,6 +497,16 @@ body {
     text-align: right;
 }
 
+/* The readout's attribute and address lines live in the status bar, which has
+   the room; the zoom strip is already full at 1024 wide. */
+.status-readout {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    font-variant-numeric: tabular-nums;
+}
+
 /* ONE layout at every size (2026-09-15). There are no width breakpoints:
    the two that stood here from the initial commit turned #panels into a
    drawer at <=1024px that nothing could open, which cost a 1024x768 tablet

@@ -55,6 +55,31 @@ je pamatuje a přepínač, který v aktuálním režimu obrazovky nemůže fungo
 čtyři úrovně šedi: bílou tam, kde nemá bod žádná obrazovka, světle šedou pro bod
 jen na obrazovce A, tmavší šedou jen pro obrazovku B a černou pro obě.
 
+### Údaje u ukazatele
+
+Pás pod obrázkem a stavový řádek říkají, kde je ukazatel. V **Předvolbách**
+volba *Údaje u ukazatele ukazují* přidá atribut pod ukazatelem (jeho číslo
+desítkově i šestnáctkově, pak inkoust, papír, jas a blikání; v ULAplus CLUT; v
+GigaScreen obě obrazovky) a paměťovou adresu bajtu pixelu a jeho atributového
+bajtu. Adresy existují tam, kde má skutečný stroj pevné rozložení: Standard ULA
+a ULAplus (zobrazovací soubor od $4000, atributy od $5800), Timex hi-colour
+(atributy ve druhém zobrazovacím souboru na $6000), Timex hi-res (sudé bajtové
+sloupce na $4000, liché na $6000) a GigaScreen (obrazovka A jako standardní,
+obrazovka B v bance 7 na $C000; přiřazení obrazovek bankám je konvence). Ostatní
+režimy hlásí, že adresu nemají.
+
+*Y se počítá od* lze nastavit na spodek, takže údaj čte jako BASIC PLOT, kde 0,0
+je levý dolní roh a Y jde od 0 do 175. To existuje jen na horních 176 řádcích
+obrázku 256 na 192; pod nimi a na jiných obrazovkách se zobrazí pomlčka. Mění se
+jen údaj.
+
+**Vlastní mřížka...** v nabídce Zobrazit nakreslí mřížku s libovolným krokem X a
+Y, nastavovaným zvlášť, a **Zobrazit vlastní mřížku** ji zapíná a vypíná. Čáry
+bližší než čtyři pixely na obrazovce se vynechají, dokud nepřiblížíte. Zapnuté
+mřížky se při dalším spuštění vrátí. V Předvolbách *Barvy mřížek* nastavují
+barvu každé mřížky; ponecháte-li zaškrtnuto *Barva motivu*, mřížka sleduje
+motiv.
+
 ### Kde platí jiná pravidla
 
 Pozdější hardware omezení různě uvolnil a PixULA umí pracovat se všemi

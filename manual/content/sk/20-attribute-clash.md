@@ -55,6 +55,31 @@ po prejdení myšou uvidíte prečo. V GigaScreen a MultiGiga ukazuje Farby vypn
 štyri úrovne sivej: bielu tam, kde nemá bod žiadna obrazovka, svetlosivú pre bod
 len na obrazovke A, tmavšiu sivú len pre obrazovku B a čierňu pre obe.
 
+### Údaje o ukazovateli
+
+Pás pod obrázkom a stavový riadok hovoria, kde je ukazovateľ. V **Nastaveniach**
+voľba *Údaje o ukazovateli zobrazujú* pridá atribút pod ukazovateľom (jeho číslo
+desiatkovo aj šestnástkovo, potom atrament, papier, jas a blikanie; v ULAplus
+CLUT; v GigaScreen obe obrazovky) a pamäťovú adresu bajtu pixelu a jeho
+atribútového bajtu. Adresy existujú tam, kde má skutočný stroj pevné rozloženie:
+Standard ULA a ULAplus (zobrazovací súbor od $4000, atribúty od $5800), Timex
+hi-colour (atribúty v druhom zobrazovacom súbore na $6000), Timex hi-res (párne
+bajtové stĺpce na $4000, nepárne na $6000) a GigaScreen (obrazovka A ako
+štandardná, obrazovka B v banke 7 na $C000; priradenie obrazoviek bankám je
+konvencia). Ostatné režimy hlásia, že adresu nemajú.
+
+*Y sa počíta od* možno nastaviť na spodok, takže údaj číta ako BASIC PLOT, kde
+0,0 je ľavý dolný roh a Y ide od 0 do 175. To existuje len na horných 176
+riadkoch obrázka 256 na 192; pod nimi a na iných obrazovkách sa zobrazí pomlčka.
+Mení sa len údaj.
+
+**Vlastná mriežka...** v ponuke Zobraziť nakreslí mriežku s ľubovoľným krokom X
+a Y, nastavovaným osobitne, a **Zobraziť vlastnú mriežku** ju zapína a vypína.
+Čiary bližšie než štyri pixely na obrazovke sa vynechajú, kým nepriblížite.
+Zapnuté mriežky sa pri ďalšom spustení vrátia. V Nastaveniach *Farby mriežok*
+určujú farbu každej mriežky; ak necháte zaškrtnuté *Farba motívu*, mriežka
+sleduje motív.
+
 ### Kde platia iné pravidlá
 
 Neskorší hardvér obmedzenie rôzne uvoľnil a PixULA vie pracovať so všetkými

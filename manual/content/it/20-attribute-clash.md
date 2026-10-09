@@ -60,6 +60,33 @@ Con GigaScreen e MultiGiga, Colori disattivati mostra quattro livelli di grigio:
 bianco dove nessuno schermo ha un punto, grigio chiaro per un punto solo sullo
 schermo A, un grigio più scuro solo sullo schermo B e nero per entrambi.
 
+### Leggere il puntatore
+
+La striscia sotto l'immagine e la barra di stato dicono dov'è il puntatore.
+Nelle **Preferenze**, *La lettura del puntatore mostra* aggiunge l'attributo
+sotto il puntatore (il suo numero in decimale e in esadecimale, poi inchiostro,
+carta, luminoso e lampeggio; la CLUT in ULAplus; entrambi gli schermi in
+GigaScreen) e l'indirizzo di memoria del byte del pixel e del suo byte di
+attributo. Gli indirizzi esistono dove la macchina reale ha una disposizione
+fissa: ULA standard e ULAplus (file di schermo da $4000, attributi da $5800),
+Timex hi-colour (attributi nel secondo file di schermo, a $6000), Timex hi-res
+(colonne di byte pari a $4000, dispari a $6000) e GigaScreen (schermo A come lo
+standard, schermo B nel banco 7 a $C000; quale schermo vada in quale banco è una
+convenzione). Le altre modalità dicono di non avere indirizzo.
+
+*La Y si conta da* si può impostare sul basso, così la lettura si legge come
+BASIC PLOT, dove 0,0 è l'angolo in basso a sinistra e Y va da 0 a 175. Esiste
+solo sulle 176 righe superiori di un'immagine 256 per 192; sotto, e sugli altri
+schermi, la lettura mostra un trattino. Cambia solo la lettura.
+
+**Griglia personalizzata...** nel menu Visualizza traccia una griglia con
+qualsiasi passo X e Y, impostati separatamente, e **Mostra griglia
+personalizzata** la attiva e disattiva. Le linee più vicine di quattro pixel
+sullo schermo vengono omesse finché non ingrandisci. Le griglie attivate tornano
+alla prossima apertura del programma. Nelle Preferenze, *Colori delle griglie*
+imposta il colore di ogni griglia; lasciando spuntato *Colore del tema*, la
+griglia segue il tema.
+
 ### Dove le regole cambiano
 
 L’hardware successivo ha allentato il vincolo in vari modi, e PixULA sa

@@ -181,8 +181,10 @@ class I18nClass {
             || this.translations[this.fallbackLocale]?.[key]
             || key;
 
+        // A function replacer: a value such as "$4000" or "$&" is text, never a
+        // replacement pattern.
         Object.entries(params).forEach(([param, value]) => {
-            text = text.replace(new RegExp(`\\{${param}\\}`, 'g'), value);
+            text = text.replace(new RegExp(`\\{${param}\\}`, 'g'), () => String(value));
         });
 
         return text;
@@ -212,7 +214,7 @@ class I18nClass {
         };
         let text = pick(this.currentLocale) || pick(this.fallbackLocale) || key;
         Object.entries({ n, ...params }).forEach(([param, value]) => {
-            text = text.replace(new RegExp(`\\{${param}\\}`, 'g'), value);
+            text = text.replace(new RegExp(`\\{${param}\\}`, 'g'), () => String(value));
         });
         return text;
     }

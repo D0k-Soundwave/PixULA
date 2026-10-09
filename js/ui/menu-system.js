@@ -349,6 +349,8 @@ class MenuSystemClass {
                     { type: 'separator' },
                     { id: 'grid', label: 'Show Grid', shortcut: 'Shift+G', action: 'view:toggleGrid', toggle: true },
                     { id: 'pixel-grid', label: 'Show Pixel Grid', action: 'view:togglePixelGrid', toggle: true },
+                    { id: 'custom-grid', label: 'Show Custom Grid', action: 'view:toggleCustomGrid', toggle: true, i18n: 'view.customGrid' },
+                    { id: 'custom-grid-settings', label: 'Custom Grid...', action: 'view:customGridSettings', i18n: 'view.customGridSettings' },
                     { id: 'grid-snap', label: 'Snap', shortcut: 'Shift+S', action: 'view:toggleSnap', toggle: true, i18n: 'view.snap' },
                     { type: 'separator' },
                     // Display-only: they change what the screen shows, never the picture.
@@ -653,6 +655,7 @@ class MenuSystemClass {
         EventBus.on(EVENTS.GRID_VISIBILITY, (state) => {
             this._updateToggleState('grid', !!state.cell);
             this._updateToggleState('pixel-grid', !!state.pixel);
+            this._updateToggleState('custom-grid', !!state.custom);
         });
 
         EventBus.on(EVENTS.THEME_CHANGED, ({ theme }) => this._updateThemeToggles(theme));
@@ -1003,6 +1006,12 @@ class MenuSystemClass {
                 break;
             case 'view:togglePixelGrid':
                 GridOverlay.togglePixelGrid();
+                break;
+            case 'view:toggleCustomGrid':
+                GridOverlay.toggleCustomGrid();
+                break;
+            case 'view:customGridSettings':
+                CustomGridDialog.open();
                 break;
             case 'view:toggleSnap':
                 StateManager.setGridSnap(!StateManager.getGridSnap());

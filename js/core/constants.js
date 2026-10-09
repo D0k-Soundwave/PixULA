@@ -580,6 +580,33 @@ const DISPLAY_VIEW_COLOURS = Object.freeze({
 });
 
 /**
+ * Where the Spectrum keeps its screen, for the pointer readout (addresses are
+ * shown only in the modes with a fixed layout; see utils/pointer-info.js).
+ * [P] 16384 (4000h) display file and 22528 (5800h) attributes: ZX Spectrum BASIC
+ *     Programming manual, ch. 24 (worldofspectrum.org/ZXBasicManual), read 2026-10-09.
+ * [P] Timex second display file at 6000h (DFILE2), the hi-colour attribute byte
+ *     being the pixel byte + 2000h, and hi-res taking even byte columns from the
+ *     first file and odd from the second: TS2068 port map (port FFh), read 2026-10-09.
+ * [P] 128K shadow screen in bank 7, paged in at C000h by port 7FFDh: World of
+ *     Spectrum 128K reference, read 2026-10-09.
+ * [P] PLOT's picture is the top 22 of 24 text lines, 176 rows, with (0,0) at the
+ *     bottom left: ZX BASIC manual ch. 17, read 2026-10-09.
+ * [A] That GigaScreen's screen A is bank 5 and screen B bank 7: a convention.
+ *     The .img file does not say which frame goes in which bank. Labelled in the
+ *     readout; nothing else depends on it.
+ * @const {Object}
+ */
+const SPECTRUM_MEMORY = Object.freeze({
+    DISPLAY_FILE: 0x4000,
+    ATTRIBUTES: 0x5800,
+    ATTRIBUTES_OFFSET: 0x1800,
+    DFILE2: 0x6000,
+    DFILE2_OFFSET: 0x2000,
+    BANK7: 0xC000,
+    PLOT_ROWS: 176
+});
+
+/**
  * Drawing modes for PixelDrawRoutine
  * @const {Object}
  */
@@ -1171,6 +1198,7 @@ const EVENTS = Object.freeze({
     GRID_SNAP_CHANGED: 'grid:snapChanged',
     GRID_VISIBILITY: 'grid:visibility',
     DISPLAY_VIEW_CHANGED: 'view:displayChanged',
+    READOUT_CHANGED: 'readout:changed',
     SYMMETRY_CHANGED: 'symmetry:changed',
     CLIP_CHANGED: 'clip:changed',
     DRAW_MODE_CHANGED: 'draw:modeChanged',
@@ -1536,6 +1564,7 @@ window.DRAW_MODE = DRAW_MODE;
 window.DEFAULT_CELL_ATTRS = DEFAULT_CELL_ATTRS;
 window.GIGA_SLOTS = GIGA_SLOTS;
 window.DISPLAY_VIEW_COLOURS = DISPLAY_VIEW_COLOURS;
+window.SPECTRUM_MEMORY = SPECTRUM_MEMORY;
 window.TOOLS = TOOLS;
 window.TOOL_GROUPS = TOOL_GROUPS;
 window.COLOUR_SHORTCUTS = COLOUR_SHORTCUTS;

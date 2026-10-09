@@ -58,6 +58,32 @@ négy szürke szintet mutat: fehér, ahol egyik képernyőn sincs pont,
 világosszürke, ha csak az A képernyőn van pont, sötétebb szürke, ha csak a B
 képernyőn, és fekete, ha mindkettőn.
 
+### A mutató olvasása
+
+A kép alatti sáv és az állapotsor megmondja, hol van a mutató. A
+**Beállításokban** a *A mutatókijelzés mutatja* a mutató alatti attribútumot
+egészíti ki (a számát tízes és tizenhatos számrendszerben, majd tinta, papír,
+fényes és villogó; ULAplusban a CLUT; GigaScreenben mindkét képernyő), valamint
+a képpont bájtjának és attribútumbájtjának memóriacímét. Cím ott van, ahol a
+valódi gépnek rögzített elrendezése van: Standard ULA és ULAplus (a képfájl
+$4000-től, az attribútumok $5800-tól), Timex hi-colour (az attribútumok a
+második képfájlban, $6000-nál), Timex hi-res (a páros bájtoszlopok $4000-nél, a
+páratlanok $6000-nél) és GigaScreen (az A képernyő a szokásos, a B képernyő a 7.
+bankban, $C000-nél; hogy melyik képernyő melyik bank, az megegyezés kérdése). A
+többi mód jelzi, hogy nincs címe.
+
+Az *Az Y számolása innen indul* beállítható alulra, így a kijelzés úgy
+olvasható, mint a BASIC PLOT, ahol a 0,0 a bal alsó sarok, az Y pedig 0-tól
+175-ig megy. Ez csak egy 256 × 192-es kép felső 176 során létezik; alatta és más
+képernyőkön a kijelzés kötőjelet mutat. Csak a kijelzést változtatja.
+
+A Nézet menü **Egyéni rács...** parancsa tetszőleges X és Y lépésű rácsot
+rajzol, a két lépés külön állítható, a **Egyéni rács megjelenítése** pedig be-
+és kikapcsolja. A képernyőn négy pixelnél közelebbi vonalak kimaradnak, amíg nem
+nagyítasz. A bekapcsolt rácsok a program következő megnyitásakor visszatérnek. A
+Beállításokban a *Rácsszínek* az egyes rácsok színét adja meg; ha a *Téma színe*
+be van jelölve, a rács a témát követi.
+
 ### Ahol mások a szabályok
 
 A későbbi hardverek többféleképpen lazítottak a korláton, és a PixULA mindegyikkel

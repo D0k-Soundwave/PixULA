@@ -60,6 +60,32 @@ GigaScreen și MultiGiga, Culori oprite arată patru niveluri de gri: alb unde
 niciun ecran nu are punct, gri deschis pentru un punct doar pe ecranul A, un gri
 mai închis doar pe ecranul B și negru pentru ambele.
 
+### Citirea cursorului
+
+Banda de sub imagine și bara de stare spun unde este cursorul. În
+**Preferințe**, *Citirea cursorului arată* adaugă atributul de sub cursor
+(numărul lui în zecimal și în hexazecimal, apoi cerneală, hârtie, luminos și
+clipire; CLUT în ULAplus; ambele ecrane în GigaScreen) și adresa de memorie a
+octetului pixelului și a octetului lui de atribut. Adresele există acolo unde
+mașina reală are o dispunere fixă: ULA standard și ULAplus (fișierul de afișare
+de la $4000, atributele de la $5800), Timex hi-colour (atributele în al doilea
+fișier de afișare, la $6000), Timex hi-res (coloanele de octeți pare la $4000,
+cele impare la $6000) și GigaScreen (ecranul A ca cel standard, ecranul B în
+banca 7 la $C000; care ecran aparține cărei bănci este o convenție). Celelalte
+moduri spun că nu au adresă.
+
+*Y se numără de la* poate fi pus pe jos, ca citirea să arate ca în BASIC PLOT,
+unde 0,0 este colțul din stânga jos, iar Y merge de la 0 la 175. Aceasta există
+doar pe cele 176 de rânduri de sus ale unei imagini de 256 pe 192; dedesubt și
+pe alte ecrane citirea arată o liniuță. Schimbă doar citirea.
+
+**Grilă personalizată...** din meniul Vizualizare desenează o grilă cu orice pas
+X și Y, setate separat, iar **Arată grila personalizată** o pornește și o
+oprește. Liniile mai apropiate de patru pixeli pe ecran sunt omise până faci
+zoom. Grilele pornite revin la următoarea deschidere a programului. În
+Preferințe, *Culorile grilelor* stabilește culoarea fiecărei grile; dacă lași
+bifat *Culoarea temei*, grila urmează tema.
+
 ### Unde regulile sunt altele
 
 Hardware-ul de mai târziu a relaxat constrângerea în diverse feluri, iar PixULA

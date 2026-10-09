@@ -161,6 +161,39 @@ class PreferencesDialogClass {
                 </div>
                 <div class="pref-block__hint" data-i18n="pref.privacyClearHint">${this._t('pref.privacyClearHint', 'Empties everything listed above and reloads. Files you saved yourself, including backup versions, are left alone.')}</div>
             </div>
+            <h3 data-i18n="pref.pointerAndGrids">${this._t('pref.pointerAndGrids', 'Pointer readout and grids')}</h3>
+            <label class="pref-row">
+                <span data-i18n="pref.readoutDetail">${this._t('pref.readoutDetail', 'Pointer readout shows')}</span>
+                <select id="pref-readout-detail" name="pref-readout-detail">
+                    <option value="position" data-i18n="pref.readoutDetail.position">${this._t('pref.readoutDetail.position', 'Position only')}</option>
+                    <option value="attribute" data-i18n="pref.readoutDetail.attribute">${this._t('pref.readoutDetail.attribute', 'Position and attribute')}</option>
+                    <option value="addresses" data-i18n="pref.readoutDetail.addresses">${this._t('pref.readoutDetail.addresses', 'Position, attribute and memory addresses')}</option>
+                </select>
+            </label>
+            <label class="pref-row">
+                <span data-i18n="pref.yDirection">${this._t('pref.yDirection', 'Y counts from')}</span>
+                <select id="pref-y-direction" name="pref-y-direction">
+                    <option value="screen" data-i18n="pref.yDirection.screen">${this._t('pref.yDirection.screen', 'The top (screen)')}</option>
+                    <option value="plot" data-i18n="pref.yDirection.plot">${this._t('pref.yDirection.plot', 'The bottom (BASIC PLOT)')}</option>
+                </select>
+            </label>
+            <div class="pref-block__hint" data-i18n="pref.yDirectionHint">${this._t('pref.yDirectionHint', 'Changes the readout only. PLOT numbers (0 to 175, 0 at the bottom) exist over the top 176 rows of a 256x192 screen; elsewhere the readout shows a dash.')}</div>
+            <div class="pref-block" id="pref-grid-colours">
+                <div class="pref-block__label" data-i18n="pref.gridColours">${this._t('pref.gridColours', 'Grid colours')}</div>
+                ${['pixel', 'cell', 'block', 'custom'].map((k) => `
+                <div class="pref-row">
+                    <span data-i18n="pref.gridColour.${k}">${this._t('pref.gridColour.' + k, { pixel: 'Pixel grid', cell: 'Cell grid', block: 'Block grid', custom: 'Custom grid' }[k])}</span>
+                    <input type="color" id="pref-gridcolour-${k}" name="pref-gridcolour-${k}" value="#808080">
+                    <label class="pref-inline">
+                        <input type="checkbox" id="pref-gridcolour-${k}-theme" name="pref-gridcolour-${k}-theme">
+                        <span data-i18n="pref.gridColour.theme">${this._t('pref.gridColour.theme', 'Theme colour')}</span>
+                    </label>
+                </div>`).join('')}
+                <div class="pref-row">
+                    <button type="button" id="pref-gridcolours-reset"
+                            data-i18n="pref.gridColour.reset">${this._t('pref.gridColour.reset', 'Reset to theme colours')}</button>
+                </div>
+            </div>
             <h3 data-i18n="pref.accessibility">${this._t('pref.accessibility', 'Accessibility')}</h3>
             <label class="pref-row">
                 <input type="checkbox" id="tts-toggle" name="tts-toggle">
@@ -212,6 +245,7 @@ class PreferencesDialogClass {
             touchLockout.value = String(TouchPolicy.normalizeLockout(StateManager.get('touchLockoutMs')));
         }
         this._initPressurePreferences(content);
+        this._initReadoutAndGridPreferences(content);
 
         Dialog.open({
             id: 'preferences-dialog',
@@ -230,6 +264,61 @@ class PreferencesDialogClass {
                 this._releaseOnClose = [];
             }
         });
+    }
+
+    /**
+     * The pointer-readout selects and the grid-colour pickers. A grid's colour
+     * is the owner's only while its "Theme colour" box is off: with it on the
+     * grid follows the theme (so changing theme still recolours it) and the
+     * picker is just showing what the theme gives. OK stores the choices;
+     * Cancel stores nothing.
+     * @private
+     */
+    _initReadoutAndGridPreferences(root) {
+        const readout = StateManager.getReadout();
+        const detail = root.querySelector('#pref-readout-detail');
+        const yDir = root.querySelector('#pref-y-direction');
+        if (detail) detail.value = readout.detail;
+        if (yDir) yDir.value = readout.yDirection;
+
+        const own = StateManager.get('gridColors') || {};
+        for (const key of ['pixel', 'cell', 'block', 'custom']) {
+            const picker = root.querySelector(`#pref-gridcolour-${key}`);
+            const theme = root.querySelector(`#pref-gridcolour-${key}-theme`);
+            if (!picker || !theme) continue;
+            const mine = Validators.normaliseHexColour(own[key]);
+            const themed = window.GridOverlay ? GridOverlay.themeGridColour(key) : '#808080';
+            picker.value = mine || themed;
+            theme.checked = !mine;
+            theme.addEventListener('change', () => {
+                if (theme.checked) picker.value = themed;
+            });
+            // Choosing a colour is choosing not to follow the theme.
+            picker.addEventListener('input', () => { theme.checked = false; });
+        }
+        const reset = root.querySelector('#pref-gridcolours-reset');
+        if (reset) {
+            reset.addEventListener('click', () => {
+                for (const key of ['pixel', 'cell', 'block', 'custom']) {
+                    const theme = root.querySelector(`#pref-gridcolour-${key}-theme`);
+                    if (theme) {
+                        theme.checked = true;
+                        theme.dispatchEvent(new Event('change'));
+                    }
+                }
+            });
+        }
+    }
+
+    /** The grid colours the dialog shows, as stored: "#rrggbb", or null for the theme. @private */
+    _readGridColours(dialog) {
+        const out = {};
+        for (const key of ['pixel', 'cell', 'block', 'custom']) {
+            const picker = dialog.querySelector(`#pref-gridcolour-${key}`);
+            const theme = dialog.querySelector(`#pref-gridcolour-${key}-theme`);
+            out[key] = (picker && theme && !theme.checked) ? Validators.normaliseHexColour(picker.value) : null;
+        }
+        return out;
     }
 
     /**
@@ -677,6 +766,14 @@ class PreferencesDialogClass {
         }
         if (pressureStrengthEl) StateManager.set('pressureStrength', pressureStrength);
 
+        // Pointer readout and grid colours. The select values are checked by
+        // getReadout, which falls back to the defaults on anything else.
+        const readoutDetailEl = dialog.querySelector('#pref-readout-detail');
+        const yDirectionEl = dialog.querySelector('#pref-y-direction');
+        if (readoutDetailEl && yDirectionEl) StateManager.setReadout(readoutDetailEl.value, yDirectionEl.value);
+        const gridColours = dialog.querySelector('#pref-grid-colours') ? this._readGridColours(dialog) : null;
+        if (gridColours && window.GridOverlay) GridOverlay.setGridColorOverrides(gridColours);
+
         // The folder itself was set by its own button (it needs the click as a
         // gesture); only the count is an ordinary field. BackupService owns
         // this one - it is not a StateManager preference.
@@ -708,6 +805,9 @@ class PreferencesDialogClass {
             touchLockoutMs: touchLockout,
             pressureSensitivity: pressureEnabled?.checked,
             pressureStrength,
+            readoutDetail: StateManager.getReadout().detail,
+            yDirection: StateManager.getReadout().yDirection,
+            gridColors: gridColours || undefined,
             penProfile: pen?.profile,
             penCustom: pen?.custom,
             penActions: pen?.actions
@@ -736,6 +836,7 @@ class PreferencesDialogClass {
                 Storage.delete('preferences'),
                 Storage.delete('theme'),
                 Storage.delete('gridSnap'),
+                Storage.delete('gridState'),
                 Storage.delete('viewColoursOff'),
                 Storage.delete('viewStopFlashing'),
                 Storage.delete('viewColourGrid'),

@@ -34,6 +34,28 @@ const Validators = {
     },
 
     /**
+     * Is this a colour a colour picker writes: "#" and six hex digits?
+     * @param {*} value
+     * @returns {boolean}
+     */
+    isHexColour(value) {
+        return typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value);
+    },
+
+    /**
+     * A stored colour as "#rrggbb" in lower case, expanding "#rgb"; null for
+     * anything else. For preference values read back from storage.
+     * @param {*} value
+     * @returns {string|null}
+     */
+    normaliseHexColour(value) {
+        if (typeof value !== 'string') return null;
+        const short = /^#([0-9a-fA-F])([0-9a-fA-F])([0-9a-fA-F])$/.exec(value);
+        const full = short ? '#' + short[1] + short[1] + short[2] + short[2] + short[3] + short[3] : value;
+        return this.isHexColour(full) ? full.toLowerCase() : null;
+    },
+
+    /**
      * Validate pixel coordinates
      * @param {number} x - X coordinate
      * @param {number} y - Y coordinate

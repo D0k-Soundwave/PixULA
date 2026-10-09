@@ -569,6 +569,29 @@ class StateManagerClass {
     this._emitDisplayView();
   }
 
+  /**
+   * The pointer readout's two preferences (Preferences > Pointer readout).
+   *   detail      'position' | 'attribute' | 'addresses' (each shows the previous too)
+   *   yDirection  'screen' (0 at the top) | 'plot' (BASIC PLOT, 0 at the bottom)
+   * Display only: tools and coordinates elsewhere stay in screen terms.
+   * @returns {{detail: string, yDirection: string}}
+   */
+  getReadout() {
+    const d = this.get('readout.detail');
+    const y = this.get('readout.yDirection');
+    return {
+      detail: (d === 'attribute' || d === 'addresses') ? d : 'position',
+      yDirection: y === 'plot' ? 'plot' : 'screen'
+    };
+  }
+
+  /** @param {string} detail @param {string} yDirection */
+  setReadout(detail, yDirection) {
+    this.set('readout.detail', detail);
+    this.set('readout.yDirection', yDirection);
+    EventBus.emit(EVENTS.READOUT_CHANGED, this.getReadout());
+  }
+
   /** One event per change, carrying all three so no listener sees half a pair. @private */
   _emitDisplayView() {
     EventBus.emit(EVENTS.DISPLAY_VIEW_CHANGED, this.getDisplayView());
