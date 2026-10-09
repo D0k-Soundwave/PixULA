@@ -587,6 +587,62 @@
    that used to read as one undivided run (2026-10-07). As tall as the
    buttons beside it (the row aligns to flex-end) and a hair of space either
    side, so it costs the strip as little width as a divider can. */
+/* The top strip's group selectors (js/ui/components/strip-selector.js): one button per group
+   showing the choice in force, with a small corner marker saying "opens a list". */
+.strip-selector {
+    position: relative;
+}
+
+.strip-selector::after {
+    content: '';
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-top: 4px solid currentColor;
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* The pop-up grid: floats over the page on <body>, two icons wide, so opening it moves nothing.
+   Item size comes from the strip button it opened from (--strip-item-w/h, set in JS), because
+   the strip is zoomed and this layer is not. Below the shared tooltip (--z-tooltip) so the
+   hover tag can show over it. */
+.strip-popup {
+    position: fixed;
+    z-index: var(--z-dropdown);
+    display: grid;
+    grid-template-columns: repeat(2, var(--strip-item-w, 44px));
+    gap: 4px;
+    padding: 4px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.strip-popup-item {
+    width: var(--strip-item-w, 44px);
+    height: var(--strip-item-h, 44px);
+    min-height: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.strip-popup-item .tool-icon {
+    width: 60%;
+    height: 60%;
+}
+
+@media (forced-colors: active) {
+    .strip-popup {
+        background: Canvas;
+        border-color: CanvasText;
+    }
+}
+
 .marks-divider {
     align-self: stretch;
     width: 1px;

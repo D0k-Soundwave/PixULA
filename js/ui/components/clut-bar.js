@@ -1085,108 +1085,63 @@ class ClutBarClass {
     // ── Attribute operations ─────────────────────────────────────────────────
 
     /**
-     * Show each whole-cell tool's button only in the screen modes it exists in.
-     * Hidden with `visibility`, never removed, so the strip's width (and the
-     * scale ColorBarFit settles on) does not depend on the mode.
+     * Show the cell-tool selector only in screen modes where at least one whole-cell tool
+     * exists. Hidden with `visibility`, never removed, so the strip does not jump on a mode switch.
      * @private
      */
     _syncAttrToolAvailability() {
-        for (const [id, op] of Object.entries(ATTR_PAINT_BUTTONS)) {
-            const btn = document.getElementById(id);
-            if (!btn) continue;
-            const available = ColorManager.cellToolAvailable(op);
-            btn.style.visibility = available ? '' : 'hidden';
-            btn.disabled = !available;
-            btn.setAttribute('aria-hidden', String(!available));
-        }
+        if (!this._cellSelector) return;
+        const any = Object.values(ATTR_PAINT_BUTTONS).some((op) => ColorManager.cellToolAvailable(op));
+        this._cellSelector.setAvailable(any);
     }
 
-    /** @private */
+    /**
+     * The whole-cell tools (Swap, Recolour, Copy colours, Invert dots, Invert dots and colours)
+     * as ONE button that shows the tool armed (or a neutral icon) and opens a small grid of the
+     * others (StripSelector). An armed tool takes over every stroke until it is switched off by
+     * picking None, picking it again, right-clicking the canvas, or choosing a tool or a draw
+     * mode - InputHandler owns the mode and announces it as EVENTS.ATTR_PAINT_MODE.
+     * @private
+     */
     _buildAttrOps(host) {
-        // Swap/Apply styled as left-toolbar tool buttons: icon-only, like the
-        // draw modes and Mirror toggles they sit inline with (2026-08-22) —
-        // the name and hint ride the tooltip; the whole run is captioned once
-        // by the "Drawing Modes" label in index.html.
-        const mkToolBtn = (id, icon, i18n, fallback, hintI18n, hint) => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.id = id;
-            btn.className = 'tool-btn';
-            const name = this._t(i18n, fallback);
-            btn.dataset.i18nTitle = hintI18n;
-            btn.dataset.i18nTitleName = i18n;
-            btn.title = Helpers.composeTitle(name, this._t(hintI18n, hint));
-            btn.dataset.i18nAriaLabel = i18n;
-            btn.setAttribute('aria-label', name);
-            btn.setAttribute('aria-pressed', 'false');
-
-            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            svg.classList.add('tool-icon');
-            svg.setAttribute('aria-hidden', 'true');
-            const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-            use.setAttribute('href', `#${icon}`);
-            svg.appendChild(use);
-
-            btn.appendChild(svg);
-            return btn;
-        };
-
-        // Both act on the WHOLE cell under the pointer, not through the tool -
-        // which is what tells Recolour apart from the Ink and Paper Recolour
-        // draw modes, and the hints say so (2026-10-07).
-        const transposeBtn = mkToolBtn('attr-transpose', 'icon-attr-swap',
-            'attr.transpose', 'Swap',
-            'attr.transpose.hint',
-            'Swaps the ink and paper colours of each whole cell you click or drag over, ignoring brush size and Mirror. Click it again, or pick a tool or a draw mode, to stop');
-        const applyBtn = mkToolBtn('attr-apply', 'icon-attr-apply',
-            'attr.apply', 'Recolour',
-            'attr.apply.hint',
-            'Gives each whole cell you click or drag over your ink, paper, bright and flash, without touching a dot and ignoring brush size and Mirror. Click it again, or pick a tool or a draw mode, to stop. With Bright or Flash on "use existing", each cell keeps its own');
-
-        const copyBtn = mkToolBtn('attr-copy', 'icon-attr-copy',
-            'attr.copy', 'Copy colours',
-            'attr.copy.hint',
-            'Click a cell to pick up the colours it shows, then drag over other cells to give them those colours. Dots stay as they are and the colour rail is not changed. Click it again, or pick a tool or a draw mode, to stop');
-        const invertDotsBtn = mkToolBtn('attr-invert-dots', 'icon-attr-invert-dots',
-            'attr.invertDots', 'Invert dots',
-            'attr.invertDots.hint',
-            'Inverts the dots of each whole cell you click or drag over - set dots clear, clear dots set - and leaves the colours. Click it again, or pick a tool or a draw mode, to stop');
-        const invertBothBtn = mkToolBtn('attr-invert-both', 'icon-attr-invert-both',
-            'attr.invertBoth', 'Invert dots and colours',
-            'attr.invertBoth.hint',
-            'Inverts the dots and swaps ink and paper in each whole cell you click or drag over, so the cell looks the same - for tidying an import. Not in ULAplus or ULANext. Click it again, or pick a tool or a draw mode, to stop');
-
-        host.appendChild(transposeBtn);
-        host.appendChild(applyBtn);
-        host.appendChild(copyBtn);
-        host.appendChild(invertDotsBtn);
-        host.appendChild(invertBothBtn);
-
-        // Swap/Apply are interactive paint modes owned by the input handler.
-        const toggleAttrMode = (mode) => {
-            if (!window.InputHandler) return;
-            if (InputHandler._attrPaintMode === mode) {
-                InputHandler.exitAttrPaintMode();
-            } else {
-                InputHandler.enterAttrPaintMode(mode);
-            }
-        };
-        const buttons = { swap: transposeBtn, apply: applyBtn, copy: copyBtn,
-            invertDots: invertDotsBtn, invertBoth: invertBothBtn };
-        for (const [mode, btn] of Object.entries(buttons)) {
-            btn.addEventListener('click', () => toggleAttrMode(mode));
-        }
-
-        this._syncAttrToolAvailability();
-
-        // Render engaged state from the mode fact
-        EventBus.on(EVENTS.ATTR_PAINT_MODE, ({ mode }) => {
-            for (const [name, btn] of Object.entries(buttons)) {
-                btn.classList.toggle('active', mode === name);
-                btn.setAttribute('aria-pressed', String(mode === name));
-            }
-            host.classList.toggle('attr-mode-active', !!mode);
+        const T = (id, icon, key, en, hintKey, hintEn, op) => ({
+            value: op, icon, domId: id, name: [key, en], hint: [hintKey, hintEn]
         });
+        const defs = [
+            T('attr-none', 'icon-attr-tools', 'attr.none', 'None', 'attr.none.hint',
+              'Switches the cell tool off, so strokes go back to the tool and draw mode you chose', 'none'),
+            T('attr-transpose', 'icon-attr-swap', 'attr.transpose', 'Swap', 'attr.transpose.hint',
+              'Swaps the ink and paper colours of each whole cell you click or drag over, ignoring brush size and Mirror. Click it again, or pick a tool or a draw mode, to stop', 'swap'),
+            T('attr-apply', 'icon-attr-apply', 'attr.apply', 'Recolour', 'attr.apply.hint',
+              'Gives each whole cell you click or drag over your ink, paper, bright and flash, without touching a dot and ignoring brush size and Mirror. Click it again, or pick a tool or a draw mode, to stop. With Bright or Flash on "use existing", each cell keeps its own', 'apply'),
+            T('attr-copy', 'icon-attr-copy', 'attr.copy', 'Copy colours', 'attr.copy.hint',
+              'Click a cell to pick up the colours it shows, then drag over other cells to give them those colours. Dots stay as they are and the colour rail is not changed. Click it again, or pick a tool or a draw mode, to stop', 'copy'),
+            T('attr-invert-dots', 'icon-attr-invert-dots', 'attr.invertDots', 'Invert dots', 'attr.invertDots.hint',
+              'Inverts the dots of each whole cell you click or drag over - set dots clear, clear dots set - and leaves the colours. Click it again, or pick a tool or a draw mode, to stop', 'invertDots'),
+            T('attr-invert-both', 'icon-attr-invert-both', 'attr.invertBoth', 'Invert dots and colours', 'attr.invertBoth.hint',
+              'Inverts the dots and swaps ink and paper in each whole cell you click or drag over, so the cell looks the same - for tidying an import. Not in ULAplus or ULANext. Click it again, or pick a tool or a draw mode, to stop', 'invertBoth')
+        ];
+        const armed = () => (window.InputHandler && InputHandler._attrPaintMode) || 'none';
+        this._cellSelector = new StripSelector({
+            host,
+            id: 'cell-tool-select',
+            group: ['attr.group', 'Cell tool'],
+            options: () => defs.map((d) => ({
+                ...d,
+                available: d.value === 'none' ? armed() !== 'none' : ColorManager.cellToolAvailable(d.value)
+            })),
+            current: armed,
+            isActive: (v) => v !== 'none',
+            select: (v) => {
+                if (!window.InputHandler) return;
+                // None, or the armed tool picked again, switches it off
+                if (v === 'none' || v === InputHandler._attrPaintMode) InputHandler.exitAttrPaintMode();
+                else InputHandler.enterAttrPaintMode(v);
+            },
+            events: [EVENTS.ATTR_PAINT_MODE]
+        });
+        this._syncAttrToolAvailability();
+        EventBus.on(EVENTS.ATTR_PAINT_MODE, ({ mode }) => host.classList.toggle('attr-mode-active', !!mode));
     }
 }
 
