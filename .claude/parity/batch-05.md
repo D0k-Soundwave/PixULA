@@ -62,6 +62,15 @@ Defaults:
   `coloured`; the Transform panel can switch it. (ZX Paintbrush asks every
   time; asking on every paste would slow PixULA's existing flows.)
 
+Carried from group A (the end-of-build review, 2026-10-09) - stamps must be fixed properly here:
+- The attribute commands (Image > Attributes: Invert, Erase, Flip H/V, Change...) do nothing on a floating stamp. They are
+  blocked with a reason today; they should work on the stamp's own cells.
+- A stamp that carries its own colours (attrs) cannot be flipped, rotated or inverted at all (SelectionService.transformStamp
+  returns early). The menu rows are greyed out with a reason; decide whether that stays.
+- Three helpers define "stamp" three ways: TransformService.attributeCommandsBlocked, dotCommandsBlocked and cellToolBlocked.
+  Merge them into one when this batch touches stamps.
+- Edit > Fill Selection ignores Inverse and the draw mode; Map Editor stamps that carry their own colours ignore Inverse.
+
 OWNER: none known.
 
 ## Part 5A - the model and placing rules

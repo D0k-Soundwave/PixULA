@@ -39,6 +39,13 @@ Režim kreslenia mení, čo ťah urobí. Pamätá sa medzi reláciami, takže ho
 riadok zobrazuje vždy, keď je iný než Normálny – v niektorých z týchto režimov
 ťah nezanechá nič viditeľné a inak by ste nemali ako zistiť prečo.
 
+Horný pás má tri tlačidlá: **Režim kreslenia**, **Nástroj buniek** a
+**Zrkadlenie**. Každé ukazuje platnú voľbu. Kliknutím pod ním otvoríte malú
+mriežku ďalších volieb; kliknutím na jednu sa mriežka zatvorí. Klávesom Escape
+alebo kliknutím inam ju zatvoríte bez zmeny. Režim kreslenia a Zrkadlenie
+fungujú spoločne: ak nastavíte XOR a Vodorovne, ťah je zrkadlený ťah XOR.
+Nástroj buniek, keď je zapnutý, preberá každý ťah.
+
 {{draw-modes}}
 
 Štetec vo všetkých podobách, vypĺňanie, tvary, Bézierova krivka, text, pečiatky
@@ -48,26 +55,27 @@ Guma, kvapkadlo, presúvanie, vkladanie a mazanie výberu, panel
 ho neberú do úvahy.
 
 **Prefarbiť atrament nie je to isté ako Prefarbiť.** Prefarbiť atrament a
-Prefarbiť papier sú režimy kreslenia: prefarbia každú bunku, ktorej sa dotkne
-aktuálny nástroj (pár buniek malým štetcom, všetky, ktoré pokryje vyplnený
-obdĺžnik), a platí pre ne aj Zrkadlo. **Prefarbiť** hneď za oddeľovačom prefarbí
-celú bunku pod ukazovateľom bez ohľadu na zvolený nástroj, veľkosť štetca aj
-Zrkadlo. **Zameniť** vedľa neho funguje rovnako a v každej bunke zamení atrament
-a papier. Ktorékoľvek z nich zostane zapnuté, kým naň znova nekliknete alebo
-nezvolíte nástroj či režim kreslenia, a stavový riadok to počas toho zobrazuje.
+Prefarbiť papier sú režimy kreslenia: prefarbujú každú bunku, ktorej sa nástroj
+dotkne - niekoľko pri malom štetci, každú, ktorú pokrýva vyplnený obdĺžnik - a
+platí Zrkadlenie. **Prefarbiť** v tlačidle Nástroj buniek prefarbuje celú bunku
+pod ukazovateľom bez ohľadu na zvolený nástroj, bez ohľadu na veľkosť štetca a
+Zrkadlenie. **Vymeniť** z toho istého tlačidla funguje rovnako a vymení atrament
+s papierom každej bunky. Oboje zostáva zapnuté, kým ho nevypnete - zvoľte
+Žiadny, zvoľte ho znova, kliknite pravým tlačidlom na plátno alebo vyberte
+nástroj či režim kreslenia - a stavový riadok to hlási, kým je zapnuté.
 
 **Kopírovať farby, Invertovať body a Invertovať body a farby** sú ďalšie tri
-operácie s bunkami vedľa Vymeniť a Prefarbiť a fungujú rovnako: kliknite na
-tlačidlo, potom klikajte alebo ťahajte cez bunky. Každé ťahanie sa vracia jedným
-krokom a zostávajú zapnuté, kým znova nekliknete na tlačidlo alebo nevyberiete
-nástroj či režim kreslenia. **Kopírovať farby** prevezme farby, ktoré ukazuje
-bunka pod prvým kliknutím, a dá ich každej bunke, cez ktorú ťaháte; paleta
-farieb sa nemení. **Invertovať body** zmaže nastavené body každej celej bunky a
-nastaví zmazané, farby ponechá (prázdnu bunku vyplní). **Invertovať body a
-farby** navyše vymení atrament s papierom, takže každá bunka vyzerá rovnako;
-slúži na upratanie importovaného obrázka, preskakuje bunky, do ktorých kreslí aj
-iná vrstva, a v ULAplus a ULANext sa neponúka. Nástroj pre bunky existuje len v
-režimoch obrazovky, kde môže fungovať: inde je jeho tlačidlo skryté, a
+nástroje pre bunky v tom istom tlačidle Nástroj buniek a fungujú rovnako:
+vyberte jeden a klikajte alebo ťahajte cez bunky. Každé ťahanie sa vracia jedným
+krokom a nástroj zostáva zapnutý, kým ho nevypnete. **Kopírovať farby** prevezme
+farby, ktoré ukazuje bunka pod prvým kliknutím, a dá ich každej bunke, cez ktorú
+ťaháte; paleta farieb sa nemení. **Invertovať body** zmaže nastavené body každej
+celej bunky a nastaví zmazané, farby ponechá (prázdnu bunku vyplní).
+**Invertovať body a farby** navyše vymení atrament s papierom, takže každá bunka
+vyzerá rovnako; slúži na upratanie importovaného obrázka, preskakuje bunky, do
+ktorých kreslí aj iná vrstva, a v ULAplus a ULANext sa neponúka. Nástroj pre
+bunky sa ponúka len v režimoch obrazovky, kde môže fungovať: tlačidlo Nástroj
+buniek uvádza len tie, ktoré platia (a je skryté tam, kde žiadny neplatí), a
 Invertovať body funguje aj v Timex Hi-res, kde sú body v bunkách 8 × 8.
 
 **XOR / Cez a XOR / Každý prejazd** body prepínajú namiesto toho, aby ich

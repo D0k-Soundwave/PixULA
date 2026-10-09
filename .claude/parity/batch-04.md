@@ -148,6 +148,15 @@ OWNER CHANGED (2026-10-09, after the group A review): Inverse is NOT a strip but
 (plus Shift+I and the status line). The strip has 14 buttons (6 modes + 5 cell tools + 3 mirror). The first answer
 above (a strip button) is superseded. 1024 px at 200% still wraps to two rows with 14 buttons (it wrapped at 12).
 
+OWNER CHANGED AGAIN (2026-10-09, after the group A review): the top strip is THREE SELECTOR BUTTONS - Draw mode, Cell tool,
+Mirror - each showing the choice in force and opening a small two-column pop-up grid of the others (js/ui/components/
+strip-selector.js). The grid floats over the page (position: fixed), closes at once on a pick, Escape or an outside click,
+and takes no room in the strip. Draw mode and Mirror are independent and both in force; the cell tool, while armed, takes
+over every stroke, and choosing a draw mode or a tool switches it off. The strip is 3 buttons and never wraps (the 1024 px /
+200% corner is one row again). Supersedes both strip answers above. Hover text uses the app's own two-stage tooltip.
+Cell-tool hints still end "Click it again, or pick a tool or a draw mode, to stop": picking the armed tool again in the grid
+does switch it off, but the wording should be updated in all 13 locales (carried).
+
 Decided and corrected during part 4B (2026-10-09, from the Opus plan review):
 - Invert dots and colours exists only with the FIXED 16 colours: in ULAplus ink reads CLUT entries 0-7 and paper 8-15,
   in ULANext paper is 128 + paper + 8*bright + 16*flash, so swapping the two numbers recolours the cell. The Image >

@@ -42,6 +42,13 @@ yüzden Normal dışında bir şeye ayarlandığında durum çubuğu onu göster
 modların bazılarında vuruş görünür hiçbir şey bırakmaz ve aksi halde nedenini
 anlamanın yolu olmazdı.
 
+Üst şeritte üç düğme vardır: **Çizim modu**, **Hücre aracı** ve **Yansıtma**.
+Her biri geçerli seçimi gösterir. Üzerine tıklayın, altında diğer seçeneklerin
+küçük bir ızgarası açılır; birine tıklayın, ızgara kapanır. Hiçbir şeyi
+değiştirmeden kapatmak için Escape'e basın ya da başka bir yere tıklayın. Çizim
+modu ve Yansıtma birlikte çalışır: XOR ve Yatay ayarlıyken bir darbe,
+yansıtılmış bir XOR darbesidir. Hücre aracı, biri açıkken, her darbeyi devralır.
+
 {{draw-modes}}
 
 Fırçanın tüm biçimleri, doldurma, şekiller, Bézier eğrisi, yazı, **Damgalar**
@@ -50,31 +57,31 @@ damlalık, bir seçimi taşıma, yapıştırma ve silme, **Dönüşüm** paneli,
 öznitelikleri doldur** seçeneği ile Değiştir ve Yeniden renklendir düğmeleri onu
 dikkate almaz.
 
-**Mürekkebi yeniden renklendir, Yeniden renklendir ile aynı şey değildir.**
-Mürekkebi yeniden renklendir ve Kâğıdı yeniden renklendir çizim modlarıdır: o
-anki aracın dokunduğu her hücreyi yeniden renklendirirler (küçük bir fırçayla
-birkaç hücreyi, dolu bir dikdörtgenle kapladığı tüm hücreleri) ve Ayna da
-geçerlidir. Ayırıcının hemen ardındaki **Yeniden renklendir**, hangi araç seçili
-olursa olsun, fırça boyutundan ve Aynadan bağımsız olarak işaretçinin altındaki
-hücrenin tamamını yeniden renklendirir. Yanındaki **Değiştir** de aynı şekilde
-çalışır ve her hücrenin mürekkebiyle kâğıdını yer değiştirir. İkisi de yeniden
-tıklanana ya da bir araç veya çizim modu seçilene kadar açık kalır ve açık
-olduğu sürece durum çubuğu bunu gösterir.
+**Mürekkebi Yeniden Renklendir, Yeniden Renklendir ile aynı şey değildir.**
+Mürekkebi Yeniden Renklendir ve Kâğıdı Yeniden Renklendir çizim modlarıdır:
+geçerli aracın dokunduğu her hücreyi yeniden renklendirirler - küçük bir
+fırçayla birkaç hücre, dolu bir dikdörtgenin kapladığı her hücre - ve Yansıtma
+uygulanır. Hücre aracı düğmesindeki **Yeniden Renklendir**, hangi araç seçili
+olursa olsun imlecin altındaki tüm hücreyi yeniden renklendirir, fırça boyutunu
+ve Yansıtmayı yok sayar. Aynı düğmedeki **Değiştir** de aynı şekilde çalışır ve
+her hücrenin mürekkebiyle kâğıdını değiştirir. İkisi de siz kapatana kadar açık
+kalır - Yok'u seçin, onu yeniden seçin, tuvale sağ tıklayın ya da bir araç veya
+çizim modu seçin - ve açıkken durum çubuğu bunu söyler.
 
-**Renkleri kopyala, Noktaları ters çevir ve Noktaları ve renkleri ters çevir**,
-Değiştir ve Yeniden Renklendir'in yanındaki üç hücre işlemidir ve aynı şekilde
-çalışır: düğmeye tıklayın, sonra hücrelerin üzerine tıklayın veya sürükleyin.
-Her sürükleme tek adımda geri alınır ve düğmeye yeniden tıklayana ya da bir araç
-veya çizim modu seçene kadar açık kalırlar. **Renkleri kopyala**, ilk
-tıklamanızın altındaki hücrenin gösterdiği renkleri alır ve üzerinden
+**Renkleri kopyala, Noktaları ters çevir ve Noktaları ve renkleri ters çevir**
+aynı Hücre aracı düğmesindeki üç hücre aracıdır ve aynı şekilde çalışır: birini
+seçin, sonra hücrelerin üzerine tıklayın veya sürükleyin. Her sürükleme tek
+adımda geri alınır ve siz kapatana kadar araç açık kalır. **Renkleri kopyala**,
+ilk tıklamanızın altındaki hücrenin gösterdiği renkleri alır ve üzerinden
 sürüklediğiniz her hücreye verir; renk çubuğu değişmez. **Noktaları ters
 çevir**, her tam hücrenin konmuş noktalarını siler, silinmişleri koyar ve
 renkleri bırakır (boş bir hücreyi doldurur). **Noktaları ve renkleri ters
 çevir** ayrıca mürekkep ile kâğıdı değiştirir, böylece her hücre aynı görünür;
 içe aktarılmış bir resmi düzeltmek içindir, başka bir katmanın da çizdiği
 hücreleri atlar ve ULAplus ile ULANext'te sunulmaz. Bir hücre aracı yalnızca
-çalışabildiği ekran modlarında vardır: başka yerde düğmesi gizlidir ve Noktaları
-ters çevir, noktaların 8'e 8 hücrelerde olduğu Timex Hi-res'te de çalışır.
+çalışabildiği ekran modlarında sunulur: Hücre aracı düğmesi yalnızca uygun
+olanları listeler (hiçbiri uygun değilse gizlenir) ve Noktaları ters çevir,
+noktaların 8'e 8 hücrelerde olduğu Timex Hi-res'te de çalışır.
 
 **XOR / Üzerine ve XOR / Her geçiş** noktaları açmak yerine tersine çevirir ve
 ikisi de hücreye seçilen renkleri verir. XOR / Üzerine her noktayı vuruş başına

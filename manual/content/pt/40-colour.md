@@ -40,6 +40,14 @@ O modo de desenho muda o que faz um traço. Mantém-se entre sessões, por isso 
 barra de estado mostra-o sempre que não é Normal – em alguns destes modos um
 traço não deixa nada visível, e de outro modo não teria forma de saber porquê.
 
+A faixa de cima tem três botões: **Modo de desenho**, **Ferramenta de célula** e
+**Espelho**. Cada um mostra a escolha em vigor. Clica e por baixo abre-se uma
+pequena grelha com as outras escolhas; clica numa e a grelha fecha-se. Carrega
+em Escape, ou clica noutro sítio, para a fechar sem mudar nada. O modo de
+desenho e o espelho funcionam juntos: com XOR e Horizontal, um traço é um traço
+XOR refletido. A ferramenta de célula, quando há uma ligada, assume todos os
+traços.
+
 {{draw-modes}}
 
 O pincel em todas as suas formas, o preenchimento, as formas, a curva de Bézier,
@@ -49,29 +57,30 @@ seleção, o painel **Transformação**, a opção **Preencher apenas atributos*
 botões Trocar e Recolorir ignoram-no.
 
 **Recolorir tinta não é o mesmo que Recolorir.** Recolorir tinta e Recolorir
-papel são modos de desenho: recolorem cada célula em que a ferramenta atual toca
-(poucas com um pincel pequeno, todas as que um retângulo preenchido cobre) e o
-Espelho aplica-se. **Recolorir**, logo depois do separador, recolore a célula
-inteira sob o ponteiro seja qual for a ferramenta escolhida, ignorando o tamanho
-do pincel e o Espelho. **Trocar**, ao lado, funciona da mesma maneira e troca a
-tinta e o papel de cada célula. Qualquer um deles fica ligado até clicar nele de
-novo ou escolher uma ferramenta ou um modo de desenho, e a barra de estado
-indica-o enquanto está ligado.
+papel são modos de desenho: recoloram todas as células que a ferramenta atual
+toca - umas poucas com um pincel pequeno, todas as que um retângulo preenchido
+cobre - e o espelho aplica-se. **Recolorir**, no botão Ferramenta de célula,
+recolora a célula inteira sob o ponteiro seja qual for a ferramenta, ignorando o
+tamanho do pincel e o espelho. **Trocar**, do mesmo botão, funciona igual e
+troca tinta e papel de cada célula. Qualquer um continua ligado até o desligares
+- escolhe Nenhuma, escolhe-o de novo, clica com o botão direito na tela ou
+escolhe uma ferramenta ou um modo de desenho - e a barra de estado di-lo
+enquanto está ligado.
 
 **Copiar cores, Inverter pontos e Inverter pontos e cores** são mais três
-operações de célula ao lado de Trocar e Recolorir, e funcionam da mesma forma:
-clica no botão e depois clica ou arrasta sobre células. Cada arrastamento
-desfaz-se num só passo, e ficam ligadas até voltares a clicar no botão ou
-escolheres uma ferramenta ou um modo de desenho. **Copiar cores** apanha as
-cores que a célula sob o teu primeiro clique mostra e dá-as a cada célula sobre
-a qual arrastas; a barra de cores não muda. **Inverter pontos** apaga os pontos
-acesos de cada célula inteira e acende os apagados, e deixa as cores (numa
-célula em branco preenche-a). **Inverter pontos e cores** troca também tinta e
-papel, para cada célula ficar com o mesmo aspeto; serve para arrumar uma imagem
-importada, salta as células em que outra camada também desenha e não é oferecido
-em ULAplus nem ULANext. Uma ferramenta de célula só existe nos modos de ecrã em
-que pode funcionar: noutros o seu botão fica escondido, e Inverter pontos também
-funciona em Timex Hi-res, onde os pontos estão em células de 8 por 8.
+ferramentas de célula no mesmo botão Ferramenta de célula, e funcionam da mesma
+forma: escolhe uma e depois clica ou arrasta sobre células. Cada arrastamento
+desfaz-se num só passo e a ferramenta fica ligada até a desligares. **Copiar
+cores** apanha as cores que a célula sob o teu primeiro clique mostra e dá-as a
+cada célula sobre a qual arrastas; a barra de cores não muda. **Inverter
+pontos** apaga os pontos acesos de cada célula inteira e acende os apagados, e
+deixa as cores (numa célula em branco preenche-a). **Inverter pontos e cores**
+troca também tinta e papel, para cada célula ficar com o mesmo aspeto; serve
+para arrumar uma imagem importada, salta as células em que outra camada também
+desenha e não é oferecido em ULAplus nem ULANext. Uma ferramenta de célula só é
+oferecida nos modos de ecrã em que pode funcionar: o botão Ferramenta de célula
+lista só as que servem (e fica escondido onde nenhuma serve), e Inverter pontos
+também funciona em Timex Hi-res, onde os pontos estão em células de 8 por 8.
 
 **XOR / Sobre e XOR / Cada passagem** invertem os pontos em vez de os acender, e
 ambos dão à célula as cores escolhidas. XOR / Sobre inverte cada ponto uma vez

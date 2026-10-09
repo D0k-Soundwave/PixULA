@@ -795,7 +795,7 @@ const hu = {
     'grid.custom.stepX': 'X lépés (pixel)',
     'grid.custom.stepY': 'Y lépés (pixel)',
     'grid.custom.hint': 'A vonalak minden megadott számú pixelnél jelennek meg, X és Y külön. A képernyőn 4 pixelnél közelebbi vonalak kimaradnak, amíg nem nagyítasz.',
-    'view.attributes': 'Attributumok mutatasa',
+    'view.attributes': 'Attribútumok mutatása',
     'view.zoomIn': 'Nagyitas',
     'view.zoomOut': 'Kicsinyites',
     'view.fitToWindow': 'Ablakhoz igazitas',

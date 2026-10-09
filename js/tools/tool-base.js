@@ -252,7 +252,7 @@ ToolBaseClass.cleanColourCore = (value) => (value === '1' || value === '4' ? val
  *   showIf   { key, equals } | { key, in: [...] } | { key, notIn: [...] }
  *            | { key, gt: n } — row visibility follows another option's
  *            current value. { cells: true } follows the SCREEN MODE instead:
- *            shown only where cells have colours (re-evaluated on a mode switch). Compound: { any: [cond…] } (OR) /
+ *            shown only where cells have colours (re-evaluated on a mode switch). Compound: { any: [cond...] } (OR) /
  *            { all: [cond…] } (AND), nestable.
  *   dynamic  name of an async tool method the renderer awaits to extend or
  *            replace `options` at render time (e.g. system font enumeration).

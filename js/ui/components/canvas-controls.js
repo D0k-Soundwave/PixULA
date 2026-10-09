@@ -262,7 +262,7 @@ class CanvasControlsClass {
         });
     }
 
-    // ── Status notice ────────────────────────────────────────────────────────
+    // -- Status notice --------------------------------------------------------
 
     /**
      * EVENTS.STATUS_NOTICE shows a short reason in the status bar for a moment (a tool that

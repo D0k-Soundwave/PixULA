@@ -117,7 +117,7 @@ function fresh() {
   setDot(2 * CW + 1, 3 * CH + 1, true);
 }
 
-// ── Flip dots: dots mirror, colours stay in their cells ──────────────────
+// -- Flip dots: dots mirror, colours stay in their cells ------------------
 fresh();
 setDot(10, 5, true);
 let colsBefore = cellSignature();
@@ -136,7 +136,7 @@ fresh();
 const flipBatches = countBatches(() => TransformService.flipDotsHorizontal());
 check('flip dots H: one batch (one undo step)', flipBatches === 1, `batches ${flipBatches}`);
 
-// ── Invert dots and colours: the picture looks the same; twice restores ──
+// -- Invert dots and colours: the picture looks the same; twice restores --
 fresh();
 setDot(12, 9, true);
 setDot(13, 9, true);
@@ -160,7 +160,7 @@ const seenSel = displayed();
 TransformService.invertDotsAndColours();
 check('invert dots+colours on a selection: picture looks identical', displayed() === seenSel);
 
-// ── Shift content: 'dots' ────────────────────────────────────────────────
+// -- Shift content: 'dots' ------------------------------------------------
 fresh();
 setDot(10, 5, true);
 colsBefore = cellSignature();
@@ -168,7 +168,7 @@ TransformService.shift('left', 1, true, 'dots');
 check("shift 'dots' left 1: dot moves one pixel", isInk(9, 5) && !isInk(10, 5));
 check("shift 'dots': cell colours stay", cellSignature() === colsBefore);
 
-// ── Shift content: 'colours' (amount is pixels, moves whole cells) ──────
+// -- Shift content: 'colours' (amount is pixels, moves whole cells) ------
 fresh();
 const dotX = 2 * CW + 1;
 const oldCell = shown(2, 3);
@@ -180,7 +180,7 @@ check("shift 'colours': the dot stays where it was", isInk(dotX, 3 * CH + 1));
 check("shift 'colours': this cell's colours came from the right, not untouched",
   cellLeft.paper !== oldCell.paper || cellLeft.ink !== oldCell.ink);
 
-// ── Shift 'both' on a whole-cell step: dots and paper move together ─────
+// -- Shift 'both' on a whole-cell step: dots and paper move together -----
 fresh();
 const pBefore = shown(2, 3);
 TransformService.shift('left', CW, true, 'both');
@@ -194,14 +194,14 @@ TransformService.shift('left', 1, true, 'both');
 check("shift 'both' by one pixel: the dot moves one pixel", isInk(dotX - 1, 3 * CH + 1));
 check("shift 'both' by one pixel: paper stays in the cell", shown(2, 3).paper === pBefore.paper);
 
-// ── Colours with no wrap: a cell with no source keeps its own colours ───
+// -- Colours with no wrap: a cell with no source keeps its own colours ---
 fresh();
 const edge = shown(COLS - 1, 0);
 TransformService.shift('left', CW, false, 'colours');
 check('colours no-wrap: the last column keeps its colours', shown(COLS - 1, 0).ink === edge.ink && shown(COLS - 1, 0).paper === edge.paper);
 check('colours no-wrap: column 0 takes column 1', shown(0, 0).ink === ((1 + 0) % 8));
 
-// ── Diagonals: one horizontal pass then one vertical pass ───────────────
+// -- Diagonals: one horizontal pass then one vertical pass ---------------
 fresh();
 setDot(50, 50, true);
 TransformService.shift('upLeft', 1, true, 'dots');
@@ -222,12 +222,12 @@ setDot(50, 50, true);
 TransformService.shift('upLeft', 1, true, 'dots');
 check('diagonal upLeft equals a left step then an up step', dotSignature() === twoStep);
 
-// ── Undo: each call is one batch ──────────────────────────────────────────
+// -- Undo: each call is one batch ------------------------------------------
 fresh();
 const shiftBatches = countBatches(() => TransformService.shift('upRight', 1, true, 'both'));
 check('a diagonal shift is one batch', shiftBatches === 1, `batches ${shiftBatches}`);
 
-// ── Return value: a blocked layer reports that nothing moved ─────────────
+// -- Return value: a blocked layer reports that nothing moved -------------
 fresh();
 const layer = LayerManager.getCurrentLayer();
 layer.locked = true;
@@ -235,7 +235,7 @@ check('shift on a locked layer returns false', TransformService.shift('left', 1,
 layer.locked = false;
 check('shift on an unlocked layer returns true', TransformService.shift('left', 1, true, 'dots') === true);
 
-// ── GigaScreen: the blend slot of each dot mirrors with the dot ──────────
+// -- GigaScreen: the blend slot of each dot mirrors with the dot ----------
 __setActiveScreenMode('gigascreen');
 LayerManager.initialize();
 selectionArea = null;
@@ -248,7 +248,7 @@ check('giga flip dots H: the slot-1 dot moves to the mirrored x',
 check('giga flip dots H: the original position is now paper on both screens',
   LayerManager.getCurrentLayer().getPixelSlot(3, 0) === 0);
 
-// ── Modes without cell colours: content is forced to 'both' (no crash) ───
+// -- Modes without cell colours: content is forced to 'both' (no crash) ---
 __setActiveScreenMode('timex_hires');
 LayerManager.initialize();
 selectionArea = null;

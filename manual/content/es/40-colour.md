@@ -41,6 +41,14 @@ que la barra de estado lo muestra siempre que no sea Normal: en algunos de estos
 modos un trazo no deja nada visible, y de otro modo no tendrías forma de saber
 por qué.
 
+La franja superior tiene tres botones: **Modo de dibujo**, **Herramienta de
+celda** y **Espejo**. Cada uno muestra la opción en vigor. Haz clic y debajo se
+abre una pequeña cuadrícula con las demás opciones; haz clic en una y la
+cuadrícula se cierra. Pulsa Escape, o haz clic en cualquier otro sitio, para
+cerrarla sin cambiar nada. El modo de dibujo y el espejo funcionan juntos: con
+XOR y Horizontal, un trazo es un trazo XOR reflejado. La herramienta de celda,
+cuando hay una activa, se encarga de todos los trazos.
+
 {{draw-modes}}
 
 El pincel en todas sus formas, el relleno, las formas, la curva Bézier, el
@@ -51,28 +59,28 @@ botones Intercambiar y Recolorear lo ignoran.
 
 **Recolorear tinta no es lo mismo que Recolorear.** Recolorear tinta y
 Recolorear papel son modos de dibujo: recolorean cada celda que toca la
-herramienta actual (unas pocas con un pincel pequeño, todas las que cubre
-un rectángulo relleno) y el Espejo se aplica. **Recolorear**, justo
-después del separador, recolorea la celda entera bajo el puntero sea cual
-sea la herramienta elegida, sin tener en cuenta el tamaño del pincel ni el
-Espejo. **Intercambiar**, a su lado, funciona igual e intercambia la tinta
-y el papel de cada celda. Cualquiera de los dos sigue activo hasta que
-vuelvas a pulsarlo o elijas una herramienta o un modo de dibujo, y la
-barra de estado lo indica mientras está activo.
+herramienta actual - unas pocas con un pincel pequeño, todas las que cubre un
+rectángulo relleno - y el espejo se aplica. **Recolorear**, en el botón
+Herramienta de celda, recolorea la celda entera bajo el puntero sea cual sea la
+herramienta, ignorando el tamaño del pincel y el espejo. **Intercambiar**, del
+mismo botón, funciona igual e intercambia tinta y papel de cada celda.
+Cualquiera de los dos sigue activo hasta que lo apagues - elige Ninguna, elígelo
+de nuevo, haz clic derecho en el lienzo o elige una herramienta o un modo de
+dibujo - y la barra de estado lo dice mientras está activo.
 
 **Copiar colores, Invertir puntos e Invertir puntos y colores** son tres
-operaciones de celda más junto a Intercambiar y Recolorear, y funcionan igual:
-haz clic en el botón y luego haz clic o arrastra sobre celdas. Cada arrastre se
-deshace en un paso, y siguen activas hasta que vuelvas a hacer clic en el botón
-o elijas una herramienta o un modo de dibujo. **Copiar colores** recoge los
-colores que muestra la celda bajo tu primer clic y los da a cada celda sobre la
-que arrastras; la barra de colores no cambia. **Invertir puntos** borra los
-puntos puestos de cada celda entera y pone los borrados, y deja los colores (una
-celda en blanco se llena). **Invertir puntos y colores** además intercambia
-tinta y papel, de modo que cada celda se ve igual; sirve para ordenar una imagen
-importada, se salta las celdas en las que dibuja también otra capa y no se
-ofrece en ULAplus ni ULANext. Una herramienta de celda solo existe en los modos
-de pantalla donde puede funcionar: su botón se oculta en los demás, e Invertir
+herramientas de celda más en el mismo botón Herramienta de celda, y funcionan
+igual: elige una y luego haz clic o arrastra sobre celdas. Cada arrastre se
+deshace en un paso y la herramienta sigue activa hasta que la apagues. **Copiar
+colores** recoge los colores que muestra la celda bajo tu primer clic y los da a
+cada celda sobre la que arrastras; la barra de colores no cambia. **Invertir
+puntos** borra los puntos puestos de cada celda entera y pone los borrados, y
+deja los colores (una celda en blanco se llena). **Invertir puntos y colores**
+además intercambia tinta y papel, de modo que cada celda se ve igual; sirve para
+ordenar una imagen importada, se salta las celdas en las que dibuja también otra
+capa y no se ofrece en ULAplus ni ULANext. Una herramienta de celda solo se
+ofrece en los modos de pantalla donde puede funcionar: el botón Herramienta de
+celda lista solo las que valen (y se oculta donde ninguna vale), e Invertir
 puntos también funciona en Timex Hi-res, donde los puntos están en celdas de 8
 por 8.
 

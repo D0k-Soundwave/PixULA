@@ -43,6 +43,14 @@ per cui la barra di stato la mostra ogni volta che è diversa da Normale: in
 alcune di queste modalità un tratto non lascia nulla di visibile, e altrimenti
 non avresti modo di capire perché.
 
+La barra in alto ha tre pulsanti: **Modalità di disegno**, **Strumento cella** e
+**Specchio**. Ognuno mostra la scelta in vigore. Fai clic e sotto si apre una
+piccola griglia delle altre scelte; fai clic su una e la griglia si chiude.
+Premi Esc, o fai clic altrove, per chiuderla senza cambiare nulla. Modalità di
+disegno e specchio lavorano insieme: con XOR e Orizzontale, un tratto è un
+tratto XOR riflesso. Lo strumento cella, quando ce n'è uno attivo, prende in
+carico ogni tratto.
+
 {{draw-modes}}
 
 Il pennello in tutte le sue forme, il riempimento, le forme, la curva di Bézier,
@@ -51,32 +59,31 @@ seguono la modalità di disegno. La gomma, il contagocce, spostare, incollare ed
 eliminare una selezione, il pannello **Trasformazione**, l’opzione **Riempi solo
 attributi** e i pulsanti Scambia e Ricolora la ignorano.
 
-**Ricolora inchiostro non è Ricolora.** Ricolora inchiostro e Ricolora carta
-sono modalità di disegno: ricolorano ogni cella toccata dallo strumento attuale
-(poche celle con un pennello piccolo, tutte quelle coperte da un rettangolo
-pieno) e lo Specchio vale anche per loro. **Ricolora**, subito dopo il
-separatore, ricolora l’intera cella sotto il puntatore qualunque sia lo
-strumento scelto, ignorando la dimensione del pennello e lo Specchio.
-**Scambia**, accanto, funziona allo stesso modo e scambia inchiostro e carta di
-ogni cella. Entrambi restano attivi finché non ci clicchi di nuovo o scegli uno
-strumento o una modalità di disegno, e la barra di stato lo segnala finché sono
-attivi.
+**Ricolora inchiostro non è la stessa cosa di Ricolora.** Ricolora inchiostro e
+Ricolora carta sono modalità di disegno: ricolorano ogni cella toccata dallo
+strumento attuale - poche con un pennello piccolo, tutte quelle coperte da un
+rettangolo pieno - e lo specchio si applica. **Ricolora**, nel pulsante
+Strumento cella, ricolora l'intera cella sotto il puntatore qualunque sia lo
+strumento, ignorando dimensione del pennello e specchio. **Scambia**, dallo
+stesso pulsante, funziona allo stesso modo e scambia inchiostro e carta di ogni
+cella. Entrambi restano attivi finché non li spegni - scegli Nessuno, sceglilo
+di nuovo, fai clic destro sull'area di disegno o scegli uno strumento o una
+modalità di disegno - e la barra di stato lo dice finché è attivo.
 
-**Copia colori, Inverti punti e Inverti punti e colori** sono altre tre
-operazioni di cella accanto a Scambia e Ricolora, e funzionano allo stesso modo:
-fai clic sul pulsante, poi fai clic o trascina sulle celle. Ogni trascinamento
-si annulla in un solo passo, e restano attivi finché non fai di nuovo clic sul
-pulsante o scegli uno strumento o una modalità di disegno. **Copia colori**
-prende i colori che mostra la cella sotto il tuo primo clic e li dà a ogni cella
-su cui trascini; la barra dei colori non cambia. **Inverti punti** cancella i
-punti accesi di ogni cella intera e accende quelli cancellati, e lascia i colori
-(una cella vuota viene riempita). **Inverti punti e colori** scambia anche
-inchiostro e carta, così ogni cella ha lo stesso aspetto; serve a riordinare
-un'immagine importata, salta le celle in cui disegna anche un altro livello e
-non è offerto in ULAplus né ULANext. Uno strumento di cella esiste solo nelle
-modalità schermo in cui può funzionare: altrove il suo pulsante è nascosto, e
-Inverti punti funziona anche in Timex Hi-res, dove i punti sono in celle da 8
-per 8.
+**Copia colori, Inverti punti e Inverti punti e colori** sono altri tre
+strumenti cella nello stesso pulsante Strumento cella e funzionano allo stesso
+modo: scegline uno, poi fai clic o trascina sulle celle. Ogni trascinamento si
+annulla in un passo e lo strumento resta attivo finché non lo spegni. **Copia
+colori** prende i colori che mostra la cella sotto il tuo primo clic e li dà a
+ogni cella su cui trascini; la barra dei colori non cambia. **Inverti punti**
+cancella i punti accesi di ogni cella intera e accende quelli cancellati, e
+lascia i colori (una cella vuota viene riempita). **Inverti punti e colori**
+scambia anche inchiostro e carta, così ogni cella ha lo stesso aspetto; serve a
+riordinare un'immagine importata, salta le celle in cui disegna anche un altro
+livello e non è offerto in ULAplus né ULANext. Uno strumento cella è offerto
+solo nelle modalità schermo in cui può funzionare: il pulsante Strumento cella
+elenca solo quelli validi (ed è nascosto dove nessuno lo è), e Inverti punti
+funziona anche in Timex Hi-res, dove i punti sono in celle da 8 per 8.
 
 **XOR / Sopra e XOR / Ogni passaggio** invertono i punti invece di accenderli,
 ed entrambi danno alla cella i colori scelti. XOR / Sopra inverte ogni punto una

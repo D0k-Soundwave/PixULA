@@ -41,6 +41,14 @@ sesjami, więc pasek stanu pokazuje go zawsze, gdy jest inny niż Normalny – w
 niektórych z tych trybów pociągnięcie nie zostawia nic widocznego i inaczej nie
 wiedziałbyś dlaczego.
 
+Górny pasek ma trzy przyciski: **Tryb rysowania**, **Narzędzie komórki** i
+**Lustro**. Każdy pokazuje obowiązujący wybór. Kliknij go, a pod nim otworzy się
+mała siatka pozostałych wyborów; kliknij jeden, a siatka się zamknie. Naciśnij
+Escape albo kliknij gdzie indziej, aby zamknąć ją bez zmian. Tryb rysowania i
+Lustro działają razem: przy ustawieniu XOR i Poziomo pociągnięcie jest odbitym
+pociągnięciem XOR. Narzędzie komórki, gdy jest włączone, przejmuje każde
+pociągnięcie.
+
 {{draw-modes}}
 
 Pędzel we wszystkich odmianach, wypełnianie, kształty, krzywa Béziera, tekst,
@@ -49,31 +57,32 @@ rysowania. Gumka, pipeta, przesuwanie, wklejanie i usuwanie zaznaczenia, panel
 **Transformacja**, opcja **Wypełnij tylko atrybuty** oraz przyciski Zamień i
 Zmień kolor go pomijają.
 
-**Zmień kolor atramentu to nie to samo co Zmień kolor.** Zmień kolor atramentu i
-Zmień kolor papieru to tryby rysowania: przemalowują każdą komórkę, której
-dotknie bieżące narzędzie (kilka przy małym pędzlu, wszystkie pod wypełnionym
-prostokątem), a Lustro też działa. **Zmień kolor** tuż za separatorem
-przemalowuje całą komórkę pod wskaźnikiem bez względu na wybrane narzędzie,
-rozmiar pędzla i Lustro. **Zamień** obok działa tak samo i zamienia atrament z
-papierem w każdej komórce. Każdy z nich pozostaje włączony, dopóki nie klikniesz
-go ponownie albo nie wybierzesz narzędzia lub trybu rysowania, a pasek stanu
-informuje o tym, póki jest włączony.
+**Przekoloruj tusz to nie to samo co Przekoloruj.** Przekoloruj tusz i
+Przekoloruj papier to tryby rysowania: przekolorowują każdą komórkę, której
+dotyka bieżące narzędzie - kilka przy małym pędzlu, każdą, którą pokrywa
+wypełniony prostokąt - i obowiązuje Lustro. **Przekoloruj**, w przycisku
+Narzędzie komórki, przekolorowuje całą komórkę pod wskaźnikiem, jakiekolwiek
+narzędzie jest wybrane, bez względu na rozmiar pędzla i Lustro. **Zamień**, z
+tego samego przycisku, działa tak samo i zamienia tusz z papierem w każdej
+komórce. Oba zostają włączone, dopóki ich nie wyłączysz - wybierz Brak, wybierz
+je ponownie, kliknij prawym przyciskiem płótno albo wybierz narzędzie lub tryb
+rysowania - a pasek stanu mówi o tym, dopóki są włączone.
 
 **Kopiuj kolory, Odwróć punkty i Odwróć punkty i kolory** to trzy kolejne
-operacje na komórkach obok Zamień i Przekoloruj i działają tak samo: kliknij
-przycisk, potem klikaj lub przeciągaj po komórkach. Każde przeciągnięcie cofa
-się jednym krokiem, a narzędzia pozostają włączone, dopóki znów nie klikniesz
-przycisku albo nie wybierzesz narzędzia lub trybu rysowania. **Kopiuj kolory**
-pobiera kolory, które pokazuje komórka pod pierwszym kliknięciem, i nadaje je
-każdej komórce, po której przeciągasz; pasek kolorów się nie zmienia. **Odwróć
-punkty** czyści ustawione punkty każdej całej komórki i ustawia wyczyszczone, a
-kolory zostawia (pustą komórkę wypełnia). **Odwróć punkty i kolory** dodatkowo
-zamienia tusz z papierem, więc każda komórka wygląda tak samo; służy do
-porządkowania zaimportowanego obrazu, pomija komórki, w których rysuje też inna
-warstwa, i nie jest dostępne w ULAplus i ULANext. Narzędzie komórki istnieje
-tylko w trybach ekranu, w których może działać: gdzie indziej jego przycisk jest
-ukryty, a Odwróć punkty działa też w Timex Hi-res, gdzie punkty leżą w komórkach
-8 na 8.
+narzędzia komórki w tym samym przycisku Narzędzie komórki i działają tak samo:
+wybierz jedno, potem klikaj lub przeciągaj po komórkach. Każde przeciągnięcie
+cofa się jednym krokiem, a narzędzie zostaje włączone, dopóki go nie wyłączysz.
+**Kopiuj kolory** pobiera kolory, które pokazuje komórka pod pierwszym
+kliknięciem, i nadaje je każdej komórce, po której przeciągasz; pasek kolorów
+się nie zmienia. **Odwróć punkty** czyści ustawione punkty każdej całej komórki
+i ustawia wyczyszczone, a kolory zostawia (pustą komórkę wypełnia). **Odwróć
+punkty i kolory** dodatkowo zamienia tusz z papierem, więc każda komórka wygląda
+tak samo; służy do porządkowania zaimportowanego obrazu, pomija komórki, w
+których rysuje też inna warstwa, i nie jest dostępne w ULAplus i ULANext.
+Narzędzie komórki jest oferowane tylko w trybach ekranu, w których może działać:
+przycisk Narzędzie komórki wymienia tylko pasujące (i jest ukryty tam, gdzie
+żadne nie pasuje), a Odwróć punkty działa też w Timex Hi-res, gdzie punkty leżą
+w komórkach 8 na 8.
 
 **XOR / Na wierzchu i XOR / Każde przejście** odwracają punkty zamiast je
 zapalać i oba nadają komórce wybrane kolory. XOR / Na wierzchu odwraca każdy

@@ -43,6 +43,13 @@ A rajzolási mód azt változtatja meg, mit tesz egy vonás. Munkamenetek közö
 megmarad, ezért az állapotsor mindig mutatja, ha nem Normál – egyes módokban a
 vonás semmi láthatót nem hagy, és különben nem tudnád, miért.
 
+A felső sávnak három gombja van: **Rajzmód**, **Celláeszköz** és **Tükrözés**.
+Mindegyik az éppen érvényes választást mutatja. Kattints rá, és alatta megnyílik
+a többi választás kis rácsa; kattints az egyikre, és a rács bezárul. Az Esc
+billentyűvel vagy máshová kattintással változtatás nélkül bezárhatod. A rajzmód
+és a tükrözés együtt működik: XOR és Vízszintes beállítással egy vonás tükrözött
+XOR-vonás. A celláeszköz, ha be van kapcsolva, átveszi az összes vonást.
+
 {{draw-modes}}
 
 Az ecset minden változata, a kitöltés, az alakzatok, a Bézier-görbe, a szöveg, a
@@ -52,21 +59,23 @@ módot. A radír, a pipetta, a kijelölés mozgatása, beillesztése és törlé
 Felcserél és az Átszínezés gomb figyelmen kívül hagyja.
 
 **A Tinta átszínezése nem ugyanaz, mint az Átszínezés.** A Tinta átszínezése és
-a Papír átszínezése rajzolási módok: minden cellát átszíneznek, amelyet az
-aktuális eszköz érint (kis ecsettel néhányat, egy kitöltött téglalappal mindet,
-amelyet lefed), és a Tükrözés is érvényes rájuk. Az **Átszínezés** közvetlenül
-az elválasztó után a mutató alatti teljes cellát színezi át, bármelyik eszköz
-van kiválasztva, az ecsetmérettől és a Tükrözéstől függetlenül. A mellette lévő
-**Felcserél** ugyanígy működik, és minden cellában felcseréli a tintát és a
-papírt. Bármelyik bekapcsolva marad, amíg újra rá nem kattintasz, vagy eszközt
-vagy rajzolási módot nem választasz, és amíg be van kapcsolva, az állapotsor
-jelzi.
+a Papír átszínezése rajzmódok: minden cellát átszíneznek, amelyet az aktuális
+eszköz érint - kis ecsetnél néhányat, kitöltött téglalapnál mindet, amelyet
+lefed - és a tükrözés érvényes. Az **Átszínezés** a Celláeszköz gombban a mutató
+alatti teljes cellát színezi át, bármelyik eszköz van kiválasztva, az
+ecsetmérettől és a tükrözéstől függetlenül. A **Csere** ugyanabból a gombból
+ugyanígy működik, és felcseréli minden cella tintáját és papírját. Mindkettő
+addig marad bekapcsolva, amíg ki nem kapcsolod - válaszd a Nincs lehetőséget,
+válaszd újra, kattints jobb gombbal a vászonra, vagy válassz eszközt vagy
+rajzmódot - és az állapotsor kiírja, amíg be van kapcsolva.
 
-A **Színek másolása, a Pontok megfordítása és a Pontok és színek megfordítása**
-három további cellaművelet a Csere és az Átszínezés mellett, és ugyanúgy
-működnek: kattints a gombra, majd kattints vagy húzz cellákon. Minden húzás egy
-lépésben visszavonható, és addig maradnak bekapcsolva, amíg újra rá nem
-kattintasz a gombra, vagy nem választasz eszközt vagy rajzmódot. A **Színek
+A ** három további celláeszköz ugyanabban a Celláeszköz gombban, és ugyanúgy
+működnek: válassz egyet, majd kattints vagy húzz cellákon. Minden húzás egy
+lépésben visszavonható, és az eszköz addig marad bekapcsolva, amíg ki nem
+kapcsolod. ** három további cellaművelet a Csere és az Átszínezés mellett, és
+ugyanúgy működnek: kattints a gombra, majd kattints vagy húzz cellákon. Minden
+húzás egy lépésben visszavonható, és addig maradnak bekapcsolva, amíg újra rá
+nem kattintasz a gombra, vagy nem választasz eszközt vagy rajzmódot. A **Színek
 másolása** felveszi az első kattintás alatti cella színeit, és megadja őket
 minden cellának, amelyen végighúzol; a színsáv nem változik. A **Pontok
 megfordítása** minden egész cella beállított pontjait törli, a töröltöket
@@ -74,9 +83,10 @@ beállítja, a színeket meghagyja (az üres cellát kitölti). A **Pontok és s
 megfordítása** ezen felül felcseréli a tintát és a papírt, így minden cella
 ugyanúgy néz ki; importált kép rendbetételére való, kihagyja azokat a cellákat,
 amelyekbe másik réteg is rajzol, és ULAplusban és ULANextben nem érhető el. A
-celláeszköz csak azokban a képernyőmódokban létezik, ahol működhet: máshol a
-gombja rejtett, a Pontok megfordítása pedig a Timex Hi-resben is működik, ahol a
-pontok 8 × 8-as cellákban vannak.
+celláeszközök csak azokban a képernyőmódokban érhetők el, ahol működhetnek: a
+Celláeszköz gomb csak az érvényeseket sorolja fel (és el van rejtve ott, ahol
+egy sem érvényes), a Pontok megfordítása pedig a Timex Hi-resben is működik,
+ahol a pontok 8 × 8-as cellákban vannak.
 
 **Az XOR / Fölé és az XOR / Minden áthaladás** megfordítja a pontokat ahelyett,
 hogy bekapcsolná őket, és mindkettő a választott színeket adja a cellának. Az

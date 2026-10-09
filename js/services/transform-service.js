@@ -520,7 +520,7 @@ class TransformServiceClass {
     return { writes: writes.length, processed };
   }
 
-  // ── The whole-cell paint tools (Copy colours, Invert dots, Invert dots and colours) ──
+  // -- The whole-cell paint tools (Copy colours, Invert dots, Invert dots and colours) --
   //
   // InputHandler owns the drag: it picks on the press, walks the cells under the
   // pointer, and holds the ONE batch. Everything below is work on one cell and
@@ -1379,7 +1379,7 @@ class TransformServiceClass {
     Logger.debug('TransformService', 'Invert applied');
   }
 
-  // ── Attribute commands (Image > Attributes) ─────────────────────────────
+  // -- Attribute commands (Image > Attributes) -----------------------------
   // They change cell colours and leave every dot where it is. The work area
   // is rounded out to whole cells, and each command is one undo step.
 
