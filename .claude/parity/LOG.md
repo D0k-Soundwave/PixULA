@@ -254,3 +254,49 @@ times a second by a screen reader (the new lines are aria-live off). js/i18n/hu.
 Still open (carried): stamp support for the attribute commands (2A); Image > Flip, Rotate and Invert writing into a
 floating stamp's cells (2B, logged, not fixed).
 Next: Batch 4 part 4A (same branch). It stops to ask the owner two questions (RUN-ALL.md).
+
+## 2026-10-09 - Batch 4 part 4A - Inverse switch and Colour core - done
+Model: Sonnet (one-run series, RUN-ALL.md). Branch: parity-a.
+Commits: 0b44436 feat: Inverse switch swaps the mouse buttons (strip button, Shift+I, status line)
+a365767 feat: Colour core option for thick brush, shape and curve strokes
+a21e0f1 feat: colour core previews, manual, comparison rows, figures for Inverse and Colour core
+(+ a test commit for the preset slice, and the docs and log commit)
+Done: Inverse. StateManager.getInverse/setInverse (a plain field: a keyed lookup cost +15% on a Layer 2 640x256
+fill), EVENTS.INVERSE_CHANGED, PixelDrawRoutine.resolveUserMode flips the buttons, fill tool "already filled"
+check now asks the resolved mode (it silently did nothing on one button with Inverse), indexed stamp preview
+handles the swapped modes, strip button (own host #inverse-mode, not in the draw-mode radio group), status line
+"Inverse is on" / "(it changes nothing in this draw mode)", Shift+I (MODE_SHORTCUTS, in the shortcut dialog and the
+manual), remembered per browser, saved in presets and .pixula projects, cleared by Reset All.
+Colour core. PixelDrawRoutine.withColourCore / classifyCore (one rule for draw(), the compositor preview and the
+brush hover mark): outside the core NORMAL -> PIXEL_ONLY, NORMAL_ERASE -> ERASE, Ink/Paper recolour dropped, XOR keeps
+its mode and writes no colours (keepColours). BrushEngine marks the stroke's whole PATH widened by the core (stamps are
+size/2 apart); ShapeGenerator.corePredicate for shape outlines and Bezier (thickness-1 raster widened by the core);
+option "Colour core: Whole line / 1 pixel / 4 pixels" on the round/square brush, shape outlines and Bezier, shown only
+where cells have colours (new showIf { cells: true }, re-evaluated on a screen mode change); presets carry it.
+10 i18n keys in 13 locales; manual paragraphs (Inverse, Colour core) in 40-colour.md in 13 languages.
+Tests: tests/inverse-mode.test.js, tests/colour-core.test.js (Node, failed first; the fill test proved to fail on the
+old fill code), tests/preset-slices.test.js extended, tests/browser/inverse-mode.spec.js (5), tests/browser/
+colour-core.spec.js (4, incl. live preview equals commit), tests/browser/shell.spec.js updated (strip list and count).
+Full run: run-all ALL TEST FILES PASSED; npx playwright test 630 passed.
+Speed: [M] in docs/FIGURES.md. Layer 2 640x256 fill 20.9-21.8 ms before, 20.5-22.3 ms after; thick stroke unchanged.
+Left: none in 4A.
+Plan corrections: batch-04.md ("XOR writes no colours anyway" was wrong; the gradient only adds marks; shapes' even
+thickness is one wider). The owner was asked the two strip questions with measured icon sizes at 800/1024/1200 px.
+NEW COST NOT SHOWN TO THE OWNER (measured at the default interface size only): at a 1024 px window with the 200%
+interface size the strip was already at ColorBarFit's floor (16 px icons) with 11 buttons and now wraps to two rows
+with 12. Every other combination measured (1024/1280/1366/1600 px x 100-200%) stays one row. tests/browser/
+shell.spec.js allows two rows in exactly that corner, with the reason in a comment. 4B adds three more buttons.
+Opus: plan review (Plan agent, opus) -> change. Corrections applied: colour core from the whole path not the stamps
+(W1); XOR does write colours so keepColours (W2); gradient claim (W3); previews must match (W4); Inverse in the drawing
+preset slice and projects; own host for the button; Shift+I; fill-tool bug; indexed stamp preview; MODE_SHORTCUTS list;
+status via an id suffix; shell.spec lists; timing. Owner decisions it raised: none needed.
+Owner: "Where should the Inverse switch go?" -> "A button in the top strip (Recommended)"; "Where should the three new
+whole-cell tools go?" -> "Three more buttons beside Swap and Recolour (Recommended)" (asked with measurements).
+Flaky tests: tests/browser/undo-partial-capture.spec.js "undo and redo in a 32-layer LAYER2_640 document..." failed once in
+the full run (a timing ratio, other work was running); passed alone 3 of 3.
+Comparison doc: Inverse mode and Colour attribute line thickness are Same. count-verdicts: 57 below parity (20 missing,
+37 partial), was 59.
+Observed, not fixed: hu.js 'view.attributes' (carried).
+Still open (carried): stamp support for the attribute commands (2A); Image > Flip, Rotate and Invert writing into a
+floating stamp's cells (2B).
+Next: Batch 4 part 4B.
