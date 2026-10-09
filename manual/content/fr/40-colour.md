@@ -71,6 +71,30 @@ point puis y revient l’inverse de nouveau, si bien qu’un huit s’annule là
 se croise. Les formes, les courbes, les remplissages et le texte sont toujours
 un seul passage : avec eux, les deux modes donnent le même résultat.
 
+**Inverse** échange ce que font les deux boutons de la souris : le bouton gauche
+efface les points et le droit les allume, comme INVERSE 1 en BASIC. C'est le
+bouton juste après les modes de dessin, ou Maj+I, et la barre d'état indique «
+Inverse activé » tant qu'il l'est. Il ne change rien dans Recolorer l'encre,
+Recolorer le papier et les deux modes XOR, où les deux boutons font la même
+chose, et la barre d'état le dit. Le texte et les tampons effacent leurs lettres
+et formes au lieu de les allumer, un motif pose ses points comme des effacements
+et ses trous comme des points, et le remplissage remplit avec le papier au
+bouton gauche et avec l'encre au bouton droit. La gomme, Échanger et Recolorer
+l'ignorent. Il est mémorisé entre les sessions et enregistré dans les
+préréglages avec le mode de dessin.
+
+**Cœur de couleur.** Pour le pinceau rond et carré, les contours de formes et la
+courbe de Bézier, Cœur de couleur dit quelle part d'une ligne épaisse prend les
+couleurs de la cellule. Une ligne allume toujours tous ses points. Avec Cœur de
+couleur sur 1 pixel ou 4 pixels, seules les cellules sous le milieu de la ligne,
+une ligne de cette largeur qui suit son centre, prennent vos couleurs ; les
+autres cellules dessous reçoivent les points dans les couleurs qu'elles avaient
+déjà, si bien qu'une ligne épaisse heurte moins de cellules. Toute la ligne, le
+réglage par défaut, colore chaque cellule que touche la ligne. L'option
+n'apparaît que dans les modes d'écran avec des couleurs de cellule. Avec Miroir,
+la ligne reflétée a son propre cœur, et avec XOR les cellules hors du cœur
+gardent leurs couleurs.
+
 ### Palettes
 
 Deux familles de modes permettent de changer les couleurs elles-mêmes. ULAplus

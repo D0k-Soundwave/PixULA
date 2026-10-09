@@ -62,6 +62,26 @@ stroke that leaves a dot and comes back flips it again, so a figure of eight
 cancels where it crosses. Shapes, curves, fills and text are always a single
 pass, so with those the two modes give the same result.
 
+**Inverse** swaps what the two mouse buttons do: the left button clears dots and
+the right button sets them, like BASIC's INVERSE 1. It is the button just after
+the draw modes, or Shift+I, and the status bar says "Inverse is on" while it is.
+It changes nothing in Ink Recolour, Paper Recolour and the two XOR modes, which
+give both buttons the same job, and the status bar says so. Text and stamps
+clear their letters and shapes instead of setting them, a pattern lays its dots
+as clears and its gaps as dots, and the fill tool fills with paper on the left
+button and with ink on the right. The eraser, Swap and Recolour ignore it. It is
+remembered between sessions and is saved in presets with the draw mode.
+
+**Colour core.** For the round and square brush, shape outlines and the Bezier
+curve, Colour core says how much of a thick line takes the cell colours. A line
+always sets every dot. With Colour core on 1 pixel or 4 pixels, only the cells
+under the middle of the line, a line that wide following its centre, take your
+colours; the other cells under it get the dots in the colours they already had,
+so a thick line clashes with fewer cells. Whole line, the default, colours every
+cell the line touches. The option appears only in screen modes with cell
+colours. With Mirror the mirrored line has a core of its own, and with XOR the
+cells outside the core keep their colours.
+
 ### Palettes
 
 Two mode families let you change the colours themselves. ULAplus gives you 64

@@ -65,6 +65,27 @@ punkt i do niego wróci, odwraca go ponownie, więc ósemka znosi się tam, gdzi
 się krzyżuje. Kształty, krzywe, wypełnienia i tekst to zawsze jedno przejście,
 więc dla nich oba tryby dają ten sam wynik.
 
+**Odwróć** zamienia to, co robią dwa przyciski myszy: lewy czyści punkty, a
+prawy je ustawia, jak INVERSE 1 w BASIC-u. To przycisk zaraz za trybami
+rysowania, albo Shift+I, a pasek stanu mówi „Odwrócenie jest włączone”, dopóki
+trwa. Nie zmienia niczego w trybach Przekoloruj tusz, Przekoloruj papier i w
+dwóch trybach XOR, gdzie oba przyciski robią to samo, i pasek stanu to mówi.
+Tekst i pieczątki czyszczą swoje litery i kształty zamiast je ustawiać, wzór
+kładzie swoje punkty jako czyszczenie, a przerwy jako punkty, a wypełnienie
+wypełnia papierem lewym przyciskiem i tuszem prawym. Gumka, Zamień i Przekoloruj
+go ignorują. Jest zapamiętywane między sesjami i zapisywane w ustawieniach
+wstępnych razem z trybem rysowania.
+
+**Rdzeń koloru.** Dla okrągłego i kwadratowego pędzla, konturów kształtów i
+krzywej Béziera Rdzeń koloru mówi, jaka część grubej linii przejmuje kolory
+komórek. Linia zawsze ustawia wszystkie punkty. Przy Rdzeniu koloru 1 piksel lub
+4 piksele tylko komórki pod środkiem linii, linią tak szeroką, która podąża za
+jej środkiem, przejmują twoje kolory; pozostałe komórki pod nią dostają punkty w
+kolorach, które już miały, więc gruba linia koliduje z mniejszą liczbą komórek.
+Cała linia, ustawienie domyślne, koloruje każdą komórkę, której linia dotyka.
+Opcja pojawia się tylko w trybach ekranu z kolorami komórek. Przy Lustrze odbita
+linia ma własny rdzeń, a przy XOR komórki poza rdzeniem zachowują swoje kolory.
+
 ### Palety
 
 Dwie rodziny trybów pozwalają zmieniać same kolory. ULAplus daje 64 rejestry

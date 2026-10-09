@@ -89,6 +89,24 @@ OWNER answers (asked in the one-run series, 2026-10-09, measurements [M, 2026-10
    icons go 28.3 / 44.5 / 54 -> 22.7 / 36.0 / 46.2 px (5.6 / 8.5 / 7.8 px smaller). The owner chose this
    knowing the cost; the alternative was one "More cell tools" menu button.
 
+Decided and corrected during part 4A (2026-10-09, from the Opus plan review):
+- "XOR writes no colours anyway" in 4A item 4 was WRONG: XOR stamps the cell's colours. Under a core, XOR
+  outside the core keeps its mode (its once-per-stroke gate needs it) and writes no colours (keepColours).
+- The gradient only ADDS marks; with Inverse its ink positions CLEAR dots. It does not set its paper positions.
+- Core is not built from stamps (they sit size / 2 apart): BrushEngine marks the whole path, widened by the core.
+  Shapes and Bezier use the thickness-1 raster widened by the core (same disc as the line itself).
+  On straight shape lines an even thickness is one pixel wider than its number (the generator's disc), so a
+  "4 pixels" core is 5 pixels wide there; consistent with the tool's own thickness, not fixed in 4A.
+- Previews follow the commit: PixelDrawRoutine.classifyCore is the one rule (draw, GridOverlay compositor
+  preview, the brush hover mark via markColours + tool.markCore).
+- Inverse key: Shift+I (bare I is the Eyedropper), in MODE_SHORTCUTS beside COLOUR_SHORTCUTS.
+- Inverse is NOT turned off by "picking a tool returns the draw mode to Normal"; the status line names it.
+- Reset All now clears Inverse; it still leaves drawMode, symmetryMode and clipMode alone (as before).
+- Inverse is saved inside .pixula projects with the drawing-settings preset slice.
+- Strip cost seen only at the extreme: a 1024 px window at the 200% interface size already had the strip at
+  its floor (16 px icons); 12 buttons no longer fit in one row there (two rows). shell.spec.js says so. The
+  three Batch 4B buttons will add to this: measure again in 4B.
+
 ## Part 4A - Inverse switch and Colour core
 
 Build:

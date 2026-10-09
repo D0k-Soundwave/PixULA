@@ -66,6 +66,28 @@ y vuelve lo invierte otra vez, así que un ocho se anula donde se cruza. Las
 formas, las curvas, los rellenos y el texto son siempre una sola pasada, así que
 con ellos los dos modos dan el mismo resultado.
 
+**Inverso** intercambia lo que hacen los dos botones del ratón: el izquierdo
+borra puntos y el derecho los pone, como INVERSE 1 en BASIC. Es el botón justo
+después de los modos de dibujo, o Mayús+I, y la barra de estado dice «Inverso
+activado» mientras lo está. No cambia nada en Recolorear tinta, Recolorear papel
+ni en los dos modos XOR, que dan el mismo trabajo a ambos botones, y la barra de
+estado lo dice. El texto y los sellos borran sus letras y formas en lugar de
+ponerlas, un patrón pone sus puntos como borrados y sus huecos como puntos, y el
+relleno rellena con papel con el botón izquierdo y con tinta con el derecho. La
+goma, Intercambiar y Recolorear lo ignoran. Se recuerda entre sesiones y se
+guarda en los preajustes junto con el modo de dibujo.
+
+**Núcleo de color.** Para el pincel redondo y cuadrado, los contornos de formas
+y la curva de Bézier, Núcleo de color dice cuánto de una línea gruesa toma los
+colores de la celda. Una línea siempre pone todos los puntos. Con Núcleo de
+color en 1 píxel o 4 píxeles, solo las celdas bajo el centro de la línea, una
+línea de ese ancho que sigue su centro, toman tus colores; las demás celdas bajo
+ella reciben los puntos con los colores que ya tenían, así que una línea gruesa
+choca con menos celdas. Toda la línea, la opción por defecto, colorea cada celda
+que toca la línea. La opción solo aparece en modos de pantalla con colores de
+celda. Con Espejo la línea reflejada tiene su propio núcleo, y con XOR las
+celdas fuera del núcleo conservan sus colores.
+
 ### Paletas
 
 Dos familias de modos te permiten cambiar los propios colores. ULAplus te da 64

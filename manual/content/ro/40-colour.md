@@ -69,6 +69,28 @@ acolo unde se intersectează. Formele, curbele, umplerile și textul sunt
 întotdeauna o singură trecere, deci la ele cele două moduri dau același
 rezultat.
 
+**Invers** schimbă ce fac cele două butoane ale mouse-ului: cel stâng șterge
+punctele, cel drept le aprinde, ca INVERSE 1 din BASIC. Este butonul de după
+modurile de desen, sau Shift+I, iar bara de stare spune „Inversul este pornit”
+cât timp este. Nu schimbă nimic în Recolorează cerneala, Recolorează hârtia și
+în cele două moduri XOR, unde ambele butoane fac același lucru, iar bara de
+stare o spune. Textul și ștampilele își șterg literele și formele în loc să le
+aprindă, un model își pune punctele ca ștergeri și golurile ca puncte, iar
+umplerea umple cu hârtie cu butonul stâng și cu cerneală cu cel drept. Radiera,
+Schimbă și Recolorează îl ignoră. Este reținut între sesiuni și salvat în
+presetări împreună cu modul de desen.
+
+**Nucleu de culoare.** Pentru pensula rotundă și pătrată, contururile formelor
+și curba Bézier, Nucleu de culoare spune cât dintr-o linie groasă preia culorile
+celulei. O linie aprinde întotdeauna toate punctele. Cu Nucleu de culoare pe 1
+pixel sau 4 pixeli, doar celulele de sub mijlocul liniei, o linie atât de lată
+care urmează centrul ei, preiau culorile tale; celelalte celule de dedesubt
+primesc punctele în culorile pe care le aveau deja, așa că o linie groasă se
+ciocnește cu mai puține celule. Toată linia, implicit, colorează fiecare celulă
+atinsă de linie. Opțiunea apare doar în modurile de ecran cu culori de celulă.
+Cu Oglindă, linia oglindită are un nucleu propriu, iar cu XOR celulele din afara
+nucleului își păstrează culorile.
+
 ### Palete
 
 Două familii de moduri vă permit să schimbați culorile însele. ULAplus vă oferă

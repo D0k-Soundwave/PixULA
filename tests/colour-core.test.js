@@ -314,6 +314,30 @@ for (const mode of ['layer2_256', 'timex_hires']) {
   check(`${mode}: a stored 1-pixel core changes nothing`, run('whole') === run('1'));
 }
 
+// -- 9b. The hover mark shows the colours the click will leave --------------------------------------------------------
+
+{
+  enter('standard_ula'); resetColours();
+  ToolManager.selectTool(TOOLS.BRUSH);
+  const t = ToolManager.getCurrentTool();
+  t.setSize(8);
+  const around = (cx, cy) => BrushEngine.brushes.get('round').getFootprintOffsets(8).map((o) => ({ x: cx + o.dx, y: cy + o.dy }));
+  // Centre (20,22): the footprint reaches y 18..25, so it spans cell rows 2 and 3.
+  const mark = (core) => {
+    t.setColourCore(core);
+    return PixelDrawRoutine.markColours(t, around(20, 22), { live: false, centre: { x: 20, y: 22 } });
+  };
+  const whole = mark('whole');
+  check('(setup) with the whole line, the hover mark colours both cell rows', whole(20, 22) !== null && whole(20, 25) !== null);
+  const one = mark('1');
+  check('with a 1-pixel core the cell under the centre is coloured', one(20, 22) !== null);
+  const css = (rgb) => `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+  check('...and the cell the core does not reach shows the dot in the cell own ink, not the rail ink',
+    one(20, 25) === css(ColorManager.getRGB(0)) && whole(20, 25) === css(ColorManager.getRGB(2)),
+    `${one(20, 25)} / ${whole(20, 25)}`);
+  t.setColourCore('whole');
+}
+
 // -- 10. Nothing leaks out of the stroke -----------------------------------------------------------------------------
 
 {

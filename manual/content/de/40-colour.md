@@ -68,6 +68,28 @@ Punkt verlässt und zurückkommt, kehrt ihn erneut um – eine Acht hebt sich al
 dort auf, wo sie sich kreuzt. Formen, Kurven, Füllungen und Text sind immer ein
 einziger Durchgang, damit liefern beide Modi dort dasselbe Ergebnis.
 
+**Invers** vertauscht, was die beiden Maustasten tun: Die linke Taste löscht
+Punkte, die rechte setzt sie, wie INVERSE 1 in BASIC. Es ist die Schaltfläche
+direkt hinter den Zeichenmodi, oder Shift+I, und die Statusleiste sagt „Invers
+ist an“, solange es an ist. In Tinte umfärben, Papier umfärben und den beiden
+XOR-Modi ändert es nichts, weil beide Tasten dort dasselbe tun; die Statusleiste
+sagt das. Text und Stempel löschen ihre Buchstaben und Formen, statt sie zu
+setzen, ein Muster legt seine Punkte als Löschen und seine Lücken als Punkte,
+und die Füllung füllt mit der linken Taste mit Papier und mit der rechten mit
+Tinte. Radierer, Tauschen und Umfärben ignorieren es. Es wird zwischen den
+Sitzungen gemerkt und mit dem Zeichenmodus in Vorgaben gespeichert.
+
+**Farbkern.** Für den runden und den quadratischen Pinsel, Formumrisse und die
+Bézierkurve legt Farbkern fest, wie viel einer dicken Linie die Zellfarben
+übernimmt. Eine Linie setzt immer jeden Punkt. Steht Farbkern auf 1 Pixel oder 4
+Pixel, übernehmen nur die Zellen unter der Mitte der Linie Ihre Farben, eine so
+breite Linie, die ihrer Mitte folgt; die übrigen Zellen darunter bekommen die
+Punkte in den Farben, die sie schon hatten, sodass eine dicke Linie mit weniger
+Zellen kollidiert. Ganze Linie, die Vorgabe, färbt jede Zelle, die die Linie
+berührt. Die Option erscheint nur in Bildschirmmodi mit Zellfarben. Bei Spiegeln
+hat die gespiegelte Linie einen eigenen Kern, und bei XOR behalten die Zellen
+außerhalb des Kerns ihre Farben.
+
 ### Paletten
 
 Zwei Modusfamilien erlauben es, die Farben selbst zu ändern. ULAplus bietet 64

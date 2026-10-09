@@ -64,6 +64,27 @@ vez, por isso um oito anula-se onde se cruza. Formas, curvas, preenchimentos e
 texto são sempre uma única passagem, por isso com eles os dois modos dão o mesmo
 resultado.
 
+**Inverso** troca o que fazem os dois botões do rato: o esquerdo apaga pontos e
+o direito acende-os, como o INVERSE 1 do BASIC. É o botão logo a seguir aos
+modos de desenho, ou Shift+I, e a barra de estado diz «Inverso ligado» enquanto
+estiver. Não muda nada em Recolorir tinta, Recolorir papel e nos dois modos XOR,
+onde os dois botões fazem o mesmo, e a barra de estado di-lo. O texto e os
+carimbos apagam as suas letras e formas em vez de as acenderem, um padrão põe os
+seus pontos como apagados e os seus intervalos como pontos, e o preenchimento
+preenche com papel no botão esquerdo e com tinta no direito. A borracha, Trocar
+e Recolorir ignoram-no. É lembrado entre sessões e guardado nas predefinições
+com o modo de desenho.
+
+**Núcleo de cor.** Para o pincel redondo e quadrado, os contornos de formas e a
+curva de Bézier, Núcleo de cor diz quanto de uma linha grossa toma as cores da
+célula. Uma linha acende sempre todos os pontos. Com Núcleo de cor em 1 píxel ou
+4 píxeis, só as células sob o meio da linha, uma linha dessa largura que segue o
+seu centro, tomam as tuas cores; as outras células por baixo recebem os pontos
+com as cores que já tinham, e assim uma linha grossa colide com menos células.
+Toda a linha, a predefinição, colore cada célula que a linha toca. A opção só
+aparece em modos de ecrã com cores de célula. Com Espelho a linha refletida tem
+um núcleo próprio, e com XOR as células fora do núcleo mantêm as suas cores.
+
 ### Paletas
 
 Duas famílias de modos permitem mudar as próprias cores. O ULAplus dá-lhe 64

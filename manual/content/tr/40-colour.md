@@ -67,6 +67,28 @@ yeniden çevirir, bu yüzden bir sekiz kesiştiği yerde iptal olur. Şekiller,
 eğriler, dolgular ve yazı her zaman tek bir geçiştir; bu yüzden bunlarda iki mod
 aynı sonucu verir.
 
+**Ters**, iki fare düğmesinin yaptığını değiştirir: sol düğme noktaları siler,
+sağ düğme koyar, BASIC'in INVERSE 1'i gibi. Çizim modlarından hemen sonraki
+düğmedir, ya da Shift+I; durum çubuğu açıkken „Ters mod açık“ der. Mürekkebi
+Yeniden Renklendir, Kâğıdı Yeniden Renklendir ve iki XOR modunda hiçbir şeyi
+değiştirmez, çünkü orada iki düğme aynı işi yapar; durum çubuğu bunu söyler.
+Metin ve damgalar harflerini ve şekillerini koymak yerine silerler, bir desen
+noktalarını silme, boşluklarını nokta olarak koyar, dolgu da sol düğmeyle
+kâğıtla, sağ düğmeyle mürekkeple doldurur. Silgi, Değiştir ve Yeniden Renklendir
+bunu yok sayar. Oturumlar arasında hatırlanır ve çizim moduyla birlikte ön
+ayarlarda saklanır.
+
+**Renk çekirdeği.** Yuvarlak ve kare fırça, şekil dış çizgileri ve Bézier eğrisi
+için Renk çekirdeği, kalın bir çizginin ne kadarının hücre renklerini aldığını
+belirler. Bir çizgi her zaman tüm noktaları koyar. Renk çekirdeği 1 piksel ya da
+4 piksel iken, yalnızca çizginin ortasının altındaki hücreler, ortasını izleyen
+o genişlikte bir çizgi, renklerinizi alır; altındaki diğer hücreler noktaları
+zaten sahip oldukları renklerle alır, böylece kalın bir çizgi daha az hücreyle
+çakışır. Tüm çizgi, varsayılan, çizginin dokunduğu her hücreyi renklendirir.
+Seçenek yalnızca hücre renkleri olan ekran modlarında görünür. Yansıtmada
+yansıyan çizginin kendi çekirdeği vardır, XOR'da ise çekirdeğin dışındaki
+hücreler renklerini korur.
+
 ### Paletler
 
 İki mod ailesi renklerin kendisini değiştirmenize izin verir. ULAplus, on

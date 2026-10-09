@@ -61,6 +61,26 @@ sa k nemu, ho prepne znova, takže osmička sa zruší tam, kde sa kríži. Tvar
 krivky, výplne a text sú vždy jediný prejazd, takže pri nich oba režimy dávajú
 rovnaký výsledok.
 
+**Inverzia** vymení, čo robia obe tlačidlá myši: ľavé tlačidlo maže body a pravé
+ich nastavuje, ako INVERSE 1 v BASICu. Je to tlačidlo hneď za režimami
+kreslenia, alebo Shift+I, a stavový riadok hlási „Inverzia je zapnutá“, kým
+trvá. V režimoch Prefarbiť atrament, Prefarbiť papier a v dvoch režimoch XOR nič
+nemení, lebo obe tlačidlá tam robia to isté; stavový riadok to hovorí. Text a
+pečiatky mažú svoje písmená a tvary namiesto ich nastavenia, vzor kladie svoje
+body ako mazanie a medzery ako body, a výplň vypĺňa ľavým tlačidlom papierom a
+pravým atramentom. Guma, Vymeniť a Prefarbiť ju ignorujú. Pamätá sa medzi
+reláciami a ukladá sa v predvoľbách spolu s režimom kreslenia.
+
+**Farebné jadro.** Pri okrúhlom a štvorcovom štetci, obrysoch tvarov a
+Bézierovej krivke hovorí Farebné jadro, aká veľká časť hrubej čiary preberá
+farby buniek. Čiara vždy nastaví všetky body. S Farebným jadrom na 1 pixel alebo
+4 pixely preberajú vaše farby len bunky pod stredom čiary, čiarou takej šírky,
+ktorá sleduje jej stred; ostatné bunky pod ňou dostanú body vo farbách, ktoré už
+mali, takže hrubá čiara koliduje s menej bunkami. Celá čiara, predvolená voľba,
+zafarbí každú bunku, ktorej sa čiara dotkne. Voľba sa zobrazuje len v režimoch
+obrazovky s farebnými bunkami. Pri Zrkadlení má zrkadlená čiara vlastné jadro a
+pri XOR si bunky mimo jadra ponechajú svoje farby.
+
 ### Palety
 
 Dve rodiny režimov umožňujú meniť samotné farby. ULAplus ponúka 64 farebných
