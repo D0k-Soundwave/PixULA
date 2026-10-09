@@ -129,8 +129,8 @@ class DrawModeBarClass {
     constructor() {
         this.STORAGE_KEY = 'drawMode';
         this._host = null;
-        this._buttons = new Map();
-        this._mirrorButtons = new Map();
+        this._drawSelector = null;
+        this._mirrorSelector = null;
         this._attrOp = null;   // 'swap' | 'apply' | null - ClutBar's cell operation, if on
     }
 
@@ -149,13 +149,25 @@ class DrawModeBarClass {
             Logger.error('DrawModeBar', '#draw-modes host not found');
             return;
         }
-        this._host.setAttribute('role', 'radiogroup');
-        this._host.setAttribute('aria-label', this._t('opt.drawMode', 'Draw Mode'));
-        this._host.dataset.i18nAriaLabel = 'opt.drawMode';
-
-        for (const mode of MODES) {
-            this._host.appendChild(this._buildButton(mode));
-        }
+        // One button for the whole group: it shows the mode in force and opens a small grid of
+        // the others (StripSelector). Strokes use this mode together with Mirror, whatever it is.
+        this._drawSelector = new StripSelector({
+            host: this._host,
+            id: 'draw-mode-select',
+            group: ['dm.group', 'Draw mode'],
+            options: () => {
+                const hasAttributes = !window.ColorManager || ColorManager.hasCellAttributes();
+                return MODES.map((m) => ({
+                    value: m.value, icon: m.icon, name: m.name, hint: m.hint,
+                    available: hasAttributes || !m.needsAttributes,
+                    domId: `draw-mode-${m.value}`, data: { drawMode: m.value }
+                }));
+            },
+            current: () => StateManager.getDrawMode(),
+            isActive: (v) => v !== 'normal',
+            select: (v) => StateManager.setDrawMode(v),
+            events: [EVENTS.DRAW_MODE_CHANGED]
+        });
 
         EventBus.on(EVENTS.DRAW_MODE_CHANGED, ({ mode }) => {
             this._sync(mode);
@@ -191,6 +203,7 @@ class DrawModeBarClass {
         EventBus.on(EVENTS.ATTR_PAINT_MODE, ({ mode }) => {
             this._attrOp = ATTR_OPS[mode] ? mode : null;
             this._host.classList.toggle('overridden', !!this._attrOp);
+            if (this._drawSelector) this._drawSelector.refresh();
             this._syncStatus(StateManager.getDrawMode());
         });
 
@@ -202,32 +215,17 @@ class DrawModeBarClass {
     }
 
     /**
-     * Offer only the modes the active screen mode can actually carry out, and
-     * leave Normal in force if the artist was standing in one that just became
-     * meaningless (see the MODES table).
-     *
-     * Hidden with `visibility`, not `display`, and never removed: #color-bar's
-     * width would otherwise depend on the screen mode, and ColorBarFit would
-     * settle on a different scale for one mode than for another, visibly
-     * resizing every icon in the strip on a mode switch. The same reason
-     * ClutBar hides the attribute ops that way.
+     * Leave Normal in force if the artist was standing in a mode the active screen mode makes
+     * meaningless (see the MODES table). Which modes the pop-up OFFERS is decided when it opens
+     * (the selector's options()), so there is nothing to hide here.
      * @private
      */
     _syncAvailability() {
         const hasAttributes = !window.ColorManager ||
             typeof ColorManager.hasCellAttributes !== 'function' ||
             ColorManager.hasCellAttributes();
-        let activeLost = false;
-        for (const { value, needsAttributes } of MODES) {
-            const btn = this._buttons.get(value);
-            if (!btn) continue;
-            const available = hasAttributes || !needsAttributes;
-            btn.style.visibility = available ? '' : 'hidden';
-            btn.disabled = !available;
-            btn.setAttribute('aria-hidden', String(!available));
-            if (!available && StateManager.getDrawMode() === value) activeLost = true;
-        }
-        if (activeLost) StateManager.setDrawMode('normal');
+        const entry = MODES.find((m) => m.value === StateManager.getDrawMode());
+        if (entry && entry.needsAttributes && !hasAttributes) StateManager.setDrawMode('normal');
     }
 
     /**
@@ -246,123 +244,43 @@ class DrawModeBarClass {
     }
 
     /**
-     * A bare "H" or "V" caption means nothing without the "Mirror" group it
-     * belongs to — the bottom-bar strip this replaced said so with an
-     * adjacent "Mirror:" label (canvas-controls.js, pre-2026-08-22), a
-     * convention the top bar's one-keyword-per-icon captions don't otherwise
-     * use. Composing the name INTO the tooltip/aria-label carries that
-     * context with the button instead of depending on a neighbour, e.g.
-     * "Mirror H".
-     * @private
-     */
-    _mirrorName(mode) {
-        const axis = MIRROR_MODES.find((m) => m[0] === mode);
-        return `${this._t('view.mirror', 'Mirror')} ${this._t(axis[2], axis[3])}`;
-    }
-
-    /**
-     * Mirror (symmetry drawing) toggles, filed next to the draw modes
-     * (formerly beside the grid controls under the canvas — moved here
-     * 2026-08-22 because it changes how every stroke lands, same as the
-     * modes above, and belongs where the artist already looks for that).
-     * Icon-only, like the draw modes beside them (2026-08-22) — the name and
-     * hint (composed from view.mirror + the per-axis key) ride the tooltip,
-     * re-rendered on a locale switch through their own UI_LANGUAGE_CHANGE
-     * listener rather than the generic data-i18n walk, which only knows how
-     * to look up ONE key per element.
+     * Mirror (symmetry-while-drawing): one button showing Off / Horizontal / Vertical / Both,
+     * opening a small grid of the four. Independent of the draw mode: a stroke uses both.
+     * The names read "Mirror H" and so on, so each icon says which group it belongs to wherever
+     * its tooltip is seen.
      * @private
      */
     _buildMirrorControls() {
         const host = document.getElementById('mirror-modes');
         if (!host) return;
-
-        for (const [mode, icon] of MIRROR_MODES) {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'tool-btn';
-            btn.id = `symmetry-${mode}-toggle`;
-            const pressed = StateManager.getSymmetryMode() === mode;
-            btn.setAttribute('aria-pressed', String(pressed));
-            btn.classList.toggle('active', pressed);
-
-            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            svg.classList.add('tool-icon');
-            svg.setAttribute('aria-hidden', 'true');
-            const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-            use.setAttribute('href', `#${icon}`);
-            svg.appendChild(use);
-            btn.appendChild(svg);
-
-            btn.addEventListener('click', () => {
-                const next = StateManager.getSymmetryMode() === mode ? 'off' : mode;
-                StateManager.setSymmetryMode(next);
-            });
-
-            host.appendChild(btn);
-
-            this._mirrorButtons.set(mode, { btn });
-        }
-
-        this._refreshMirrorLabels();
-        EventBus.on(EVENTS.UI_LANGUAGE_CHANGE, () => this._refreshMirrorLabels());
-
+        const mirror = () => this._t('view.mirror', 'Mirror');
+        const hint = ['view.mirror.hint', 'Mirror drawing across the canvas centre - every tool draws on both sides'];
+        this._mirrorSelector = new StripSelector({
+            host,
+            id: 'mirror-select',
+            group: ['view.mirror', 'Mirror'],
+            options: () => [
+                { value: 'off', icon: 'icon-mirror-off', domId: 'symmetry-off-toggle',
+                  name: () => `${mirror()} ${this._t('common.off', 'Off')}`,
+                  hint: ['view.mirrorOff.hint', 'Mirror drawing is off - strokes draw only where you draw'] },
+                ...MIRROR_MODES.map(([mode, icon, key, en]) => ({
+                    value: mode, icon, domId: `symmetry-${mode}-toggle`,
+                    name: () => `${mirror()} ${this._t(key, en)}`, hint
+                }))
+            ],
+            current: () => StateManager.getSymmetryMode(),
+            isActive: (v) => v !== 'off',
+            select: (v) => StateManager.setSymmetryMode(v),
+            events: [EVENTS.SYMMETRY_CHANGED]
+        });
         EventBus.on(EVENTS.SYMMETRY_CHANGED, (data) => {
-            for (const [mode, { btn }] of this._mirrorButtons) {
-                const on = data.mode === mode;
-                btn.setAttribute('aria-pressed', String(on));
-                btn.classList.toggle('active', on);
-            }
             Storage.set('symmetryMode', data.mode).catch(() => {});
         });
     }
 
     /** @private */
-    _refreshMirrorLabels() {
-        const hint = this._t('view.mirror.hint',
-            'Mirror drawing across the canvas centre - every tool draws on both sides');
-        for (const [mode, { btn }] of this._mirrorButtons) {
-            const name = this._mirrorName(mode);
-            btn.title = Helpers.composeTitle(name, hint);
-            btn.setAttribute('aria-label', name);
-        }
-    }
-
-    /** @private */
-    _buildButton({ value, icon, name: [nameKey, nameEn], hint: [hintKey, hintEn] }) {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'tool-btn';
-        btn.dataset.drawMode = value;
-        const name = this._t(nameKey, nameEn);
-        btn.dataset.i18nTitleName = nameKey;
-        btn.dataset.i18nTitle = hintKey;
-        btn.title = Helpers.composeTitle(name, this._t(hintKey, hintEn));
-        btn.dataset.i18nAriaLabel = nameKey;
-        btn.setAttribute('aria-label', name);
-        btn.setAttribute('role', 'radio');
-        btn.setAttribute('aria-checked', 'false');
-
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.classList.add('tool-icon');
-        svg.setAttribute('aria-hidden', 'true');
-        const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-        use.setAttribute('href', `#${icon}`);
-        svg.appendChild(use);
-
-        btn.appendChild(svg);
-        btn.addEventListener('click', () => StateManager.setDrawMode(value));
-
-        this._buttons.set(value, btn);
-        return btn;
-    }
-
-    /** @private */
     _sync(mode) {
-        this._buttons.forEach((btn, value) => {
-            const on = value === mode;
-            btn.classList.toggle('active', on);
-            btn.setAttribute('aria-checked', String(on));
-        });
+        if (this._drawSelector) this._drawSelector.refresh();
         this._syncStatus(mode);
     }
 

@@ -116,6 +116,7 @@ const BOOT_MANIFEST = [
     ['CustomGridDialog', 'js/ui/components/custom-grid-dialog.js'],
     ['ToolRail',         'js/ui/components/tool-rail.js'],
     ['ClutBar',          'js/ui/components/clut-bar.js'],
+    ['StripSelector', 'js/ui/components/strip-selector.js'],
     ['DrawModeBar',      'js/ui/components/draw-mode-bar.js'],
     ['ColorBarFit',      'js/ui/components/colorbar-fit.js'],
     ['ColorRailToggle',  'js/ui/components/colorrail-toggle.js'],
