@@ -45,6 +45,22 @@ celda sin tocar un punto. El capítulo sobre el color los enumera.
 densidades de tinta medidas, que es lo que usarás cuando una celda necesite un
 gris que no puede contener.
 
+### Ver los puntos
+
+Tres interruptores del menú Ver cambian lo que muestra la pantalla sin cambiar
+la imagen. **Colores desactivados** muestra los puntos en negro sobre blanco,
+para que veas qué puntos están realmente activos. **Cuadrícula de color** hace
+lo mismo y además tiñe las celdas como un tablero de ajedrez, para distinguir
+fácilmente los límites de celda; ella y Colores desactivados se desactivan
+mutuamente. **Detener parpadeo** mantiene cada celda parpadeante en sus colores
+normales. Ninguno toca la imagen, el deshacer ni una exportación: una imagen
+guardada se ve igual con ellos activados o no. El navegador los recuerda, y un
+interruptor que no puede funcionar en el modo de pantalla actual aparece en
+gris: pasa el ratón por encima para ver por qué. En GigaScreen y MultiGiga,
+Colores desactivados muestra cuatro niveles de gris: blanco donde ninguna
+pantalla tiene punto, gris claro para un punto solo en la pantalla A, un gris
+más oscuro solo en la pantalla B y negro en ambas.
+
 ### Donde las reglas cambian
 
 El hardware posterior relajó la restricción de varias formas, y PixULA puede

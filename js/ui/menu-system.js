@@ -139,6 +139,7 @@ class MenuSystemClass {
         this._updateExportAsMenuState();
         this._updateMirrorToggles();
         if (window.StateManager) this._updateToggleState('grid-snap', StateManager.getGridSnap());
+        this._updateDisplayViewMenuState();
 
         Logger.info('MenuSystem', 'Initialized');
     }
@@ -175,6 +176,39 @@ class MenuSystemClass {
         const active = ScreenModeService.getModeId();
         for (const mode of ScreenModeService.getModes()) {
             this._updateToggleState(`mode-${mode.id}`, mode.id === active);
+        }
+    }
+
+    /**
+     * The View > Colours Off / Stop Flashing / Colour Grid rows: checked from
+     * the stored choice, and greyed out (with the reason as a tooltip) in the
+     * screen modes where the switch cannot apply. A choice stays stored while
+     * its row is greyed out; it applies again in a mode that supports it.
+     * @private
+     */
+    _updateDisplayViewMenuState() {
+        if (!window.StateManager || !window.ZX_SPECTRUM || !this.element) return;
+        const v = StateManager.getDisplayView();
+        this._updateToggleState('colours-off', v.coloursOff);
+        this._updateToggleState('stop-flashing', v.stopFlashing);
+        this._updateToggleState('colour-grid', v.colourGrid);
+        const indexed = ZX_SPECTRUM.PIXEL_DEPTH > 1;
+        const hasCells = window.ColorManager ? ColorManager.hasCellAttributes() : !indexed;
+        const flashes = ACTIVE_SCREEN_MODE.paletteModel === 'fixed16';
+        const noDots = ['view.display.noDots', 'Every pixel has its own colour in this screen mode, so there are no dots to show.'];
+        const noCells = ['view.display.noCells', 'This screen mode has no colour cells.'];
+        const noFlash = ['view.display.noFlash', 'Nothing flashes in this screen mode.'];
+        const rows = [
+            ['colours-off', !indexed, noDots],
+            ['colour-grid', hasCells, indexed ? noDots : noCells],
+            ['stop-flashing', flashes, noFlash]
+        ];
+        for (const [id, enabled, reason] of rows) {
+            this.setItemEnabled(id, enabled);
+            const item = this.element.querySelector(`[data-id="${id}"]`);
+            if (!item) continue;
+            if (enabled) item.removeAttribute('title');
+            else item.title = this._t(reason[0], reason[1]);
         }
     }
 
@@ -318,6 +352,11 @@ class MenuSystemClass {
                     { id: 'grid', label: 'Show Grid', shortcut: 'Shift+G', action: 'view:toggleGrid', toggle: true },
                     { id: 'pixel-grid', label: 'Show Pixel Grid', action: 'view:togglePixelGrid', toggle: true },
                     { id: 'grid-snap', label: 'Snap', shortcut: 'Shift+S', action: 'view:toggleSnap', toggle: true, i18n: 'view.snap' },
+                    { type: 'separator' },
+                    // Display-only: they change what the screen shows, never the picture.
+                    { id: 'colours-off', label: 'Colours Off', action: 'view:toggleColoursOff', toggle: true, i18n: 'view.coloursOff' },
+                    { id: 'stop-flashing', label: 'Stop Flashing', action: 'view:toggleStopFlashing', toggle: true, i18n: 'view.stopFlashing' },
+                    { id: 'colour-grid', label: 'Colour Grid', action: 'view:toggleColourGrid', toggle: true, i18n: 'view.colourGrid' },
                     { type: 'separator' },
                     // The tool-stroke mirror modifier (rail: canvas-controls.js)
                     // as a radio group — bare "H"/"V" labels only make sense
@@ -562,6 +601,9 @@ class MenuSystemClass {
         this.element.querySelectorAll('.menu-action:not(.menu-action--parent)').forEach(action => {
             action.addEventListener('click', (e) => {
                 e.stopPropagation();
+                // A greyed-out row that carries a reason (its tooltip) still
+                // receives the pointer so the reason can show; it does nothing.
+                if (action.classList.contains('disabled')) return;
                 this._executeAction(action.dataset.action);
                 this._closeAllMenus();
             });
@@ -624,12 +666,14 @@ class MenuSystemClass {
             this._updateExportAsMenuState();
             this._updateAttributeMenuState();
             this._updateDotMenuState();
+            this._updateDisplayViewMenuState();
         });
 
         // Keep the View-menu Mirror radios and Snap toggle in sync with their
         // facts (both can also change from the canvas-controls rail).
         EventBus.on(EVENTS.SYMMETRY_CHANGED, ({ mode }) => this._updateMirrorToggles(mode));
         EventBus.on(EVENTS.GRID_SNAP_CHANGED, ({ snap }) => this._updateToggleState('grid-snap', !!snap));
+        EventBus.on(EVENTS.DISPLAY_VIEW_CHANGED, () => this._updateDisplayViewMenuState());
 
         // Keep each View-menu panel checkbox in sync with PanelSection's own
         // visibility fact — fired on creation, on restore() resolving
@@ -958,6 +1002,15 @@ class MenuSystemClass {
                 break;
             case 'view:toggleSnap':
                 StateManager.setGridSnap(!StateManager.getGridSnap());
+                break;
+            case 'view:toggleColoursOff':
+                StateManager.setColoursOff(!StateManager.getDisplayView().coloursOff);
+                break;
+            case 'view:toggleStopFlashing':
+                StateManager.setStopFlashing(!StateManager.getDisplayView().stopFlashing);
+                break;
+            case 'view:toggleColourGrid':
+                StateManager.setColourGrid(!StateManager.getDisplayView().colourGrid);
                 break;
             case 'view:mirrorOff':  StateManager.setSymmetryMode('off');  break;
             case 'view:mirrorH':    StateManager.setSymmetryMode('h');    break;

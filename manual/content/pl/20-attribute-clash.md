@@ -44,6 +44,21 @@ nie dotykając żadnego punktu. Wymienia je rozdział o kolorze.
 tuszu – po nie sięgasz, gdy komórka potrzebuje szarości, której nie może
 pomieścić.
 
+### Podgląd punktów
+
+Trzy przełączniki w menu Widok zmieniają to, co pokazuje ekran, nie zmieniając
+obrazu. **Wyłącz kolory** pokazuje punkty na czarno na białym, żebyś widział,
+które punkty są naprawdę ustawione. **Siatka kolorów** robi to samo i dodatkowo
+barwi komórki jak szachownicę, żeby dobrze było widać granice komórek; ona i
+Wyłącz kolory wzajemnie się wyłączają. **Zatrzymaj miganie** trzyma każdą
+migającą komórkę w jej zwykłych kolorach. Żaden z nich nie dotyka obrazu,
+cofania ani eksportu: zapisany obraz wygląda tak samo, czy są włączone, czy nie.
+Przeglądarka je zapamiętuje, a przełącznik, który nie może działać w bieżącym
+trybie ekranu, jest wyszarzony – najedź na niego, żeby zobaczyć dlaczego. W
+GigaScreen i MultiGiga Wyłącz kolory pokazuje cztery poziomy szarości: biel tam,
+gdzie żaden ekran nie ma punktu, jasnoszary dla punktu tylko na ekranie A,
+ciemniejszy szary tylko na ekranie B i czerń dla obu.
+
 ### Gdzie reguły są inne
 
 Późniejszy sprzęt na różne sposoby złagodził to ograniczenie, a PixULA potrafi

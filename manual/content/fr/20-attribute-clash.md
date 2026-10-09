@@ -48,6 +48,22 @@ la couleur les énumère.
 d’encre mesurées – ce qu’il vous faut quand une cellule a besoin d’un gris
 qu’elle ne peut pas contenir.
 
+### Voir les points
+
+Trois commutateurs du menu Affichage changent ce que l'écran montre, sans
+changer l'image. **Couleurs désactivées** montre les points en noir sur blanc,
+pour voir quels points sont vraiment allumés. **Grille de couleurs** fait de
+même et teinte en plus les cellules comme un échiquier, pour bien voir les
+limites des cellules ; elle et Couleurs désactivées s'excluent l'une l'autre.
+**Arrêter le clignotement** garde chaque cellule clignotante dans ses couleurs
+normales. Aucun ne touche à l'image, à l'annulation ni à une exportation : une
+image enregistrée est identique, qu'ils soient activés ou non. Le navigateur
+s'en souvient, et un commutateur qui ne peut pas fonctionner dans le mode
+d'écran actuel est grisé : survolez-le pour voir pourquoi. Avec GigaScreen et
+MultiGiga, Couleurs désactivées montre quatre niveaux de gris : blanc là où
+aucun écran n'a de point, gris clair pour un point sur l'écran A seul, un gris
+plus foncé sur l'écran B seul, et noir pour les deux.
+
 ### Là où les règles changent
 
 Le matériel ultérieur a assoupli la contrainte de diverses façons, et PixULA

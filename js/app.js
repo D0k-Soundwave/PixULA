@@ -233,6 +233,16 @@ class AppClass {
             // Grid snap persists under its own key (toggled outside the dialog)
             const snap = await Storage.get('gridSnap');
             if (typeof snap === 'boolean') StateManager.setGridSnap(snap);
+            // The display-only view switches (View menu). Raw state only here:
+            // the compositor is not up yet, so _initManagers applies them.
+            for (const [key, field] of [['viewColoursOff', 'coloursOff'], ['viewStopFlashing', 'stopFlashing'],
+                ['viewColourGrid', 'colourGrid']]) {
+                const v = await Storage.get(key);
+                if (v === true) StateManager.set('view.' + field, true);
+            }
+            if (StateManager.get('view.coloursOff') && StateManager.get('view.colourGrid')) {
+                StateManager.set('view.colourGrid', false);
+            }
             // Symmetry mode too (Phase 8 mirror-while-drawing)
             const sym = await Storage.get('symmetryMode');
             if (typeof sym === 'string') StateManager.setSymmetryMode(sym);
@@ -260,6 +270,14 @@ class AppClass {
         // starting layer is named in it ('Ebene 1', not 'Layer 1').
         await I18n.init();
         LayerManager.initialize();
+        // The View menu's display-only switches: show them, and remember them
+        // per browser (a view setting, like grid snap - never in a project).
+        EventBus.on(EVENTS.DISPLAY_VIEW_CHANGED, (v) => {
+            LayerManager.setDisplayView(v);
+            Storage.set('viewColoursOff', !!v.coloursOff).catch(() => {});
+            Storage.set('viewStopFlashing', !!v.stopFlashing).catch(() => {});
+            Storage.set('viewColourGrid', !!v.colourGrid).catch(() => {});
+        });
         ColorManager.initialize();
         UndoRedo.initialize();
         ReferenceLayerService.initialize(); // defers its work to CanvasSystem.onReady
@@ -388,6 +406,7 @@ class AppClass {
         this._setupAutosave();
         this._setupUnloadWarning();
 
+        LayerManager.setDisplayView(StateManager.getDisplayView());
         LayerManager.composeToCanvas();
         CanvasSystem.requestRender();
     }

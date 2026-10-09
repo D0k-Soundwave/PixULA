@@ -43,6 +43,21 @@ bir hücreyi yeniden renklendirebilirsiniz. Renk bölümü bunları listeler.
 setidir; bir hücre tutamayacağı bir griye ihtiyaç duyduğunda başvurduğunuz şey
 budur.
 
+### Noktaları görmek
+
+Görünüm menüsündeki üç anahtar, resmi değiştirmeden ekranın gösterdiğini
+değiştirir. **Renkler kapalı** noktaları beyaz üzerine siyah gösterir; böylece
+hangi noktaların gerçekten ayarlı olduğunu görebilirsiniz. **Renk ızgarası**
+aynısını yapar ve ayrıca hücreleri satranç tahtası gibi boyar; hücre sınırları
+kolayca görülür; o ve Renkler kapalı birbirini kapatır. **Yanıp sönmeyi durdur**
+yanıp sönen her hücreyi normal renklerinde tutar. Hiçbiri resme, geri almaya ya
+da dışa aktarmaya dokunmaz: kaydedilmiş bir resim, açık da olsalar kapalı da
+olsalar aynı görünür. Tarayıcı bunları hatırlar ve geçerli ekran modunda
+çalışamayan bir anahtar gri görünür – nedenini görmek için üzerine gelin.
+GigaScreen ve MultiGiga'da Renkler kapalı dört gri düzey gösterir: iki ekranda
+da nokta olmayan yerde beyaz, yalnızca A ekranında nokta için açık gri, yalnızca
+B ekranı için daha koyu gri ve ikisi için siyah.
+
 ### Kuralların farklı olduğu yerler
 
 Sonraki donanımlar bu kısıtı çeşitli şekillerde gevşetti ve PixULA hepsiyle

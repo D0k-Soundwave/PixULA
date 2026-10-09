@@ -42,6 +42,22 @@ felsorolja őket.
 **A mintakönyvtár.** Magja egy sor mért tintasűrűségű csempe – ehhez nyúlsz,
 amikor egy cellának olyan szürke kell, amelyet nem tud befogadni.
 
+### A pontok megjelenítése
+
+A Nézet menü három kapcsolója azt változtatja meg, amit a képernyő mutat, a
+képet nem. A **Színek kikapcsolva** fehér alapon feketen mutatja a pontokat,
+hogy lásd, mely pontok vannak ténylegesen beállítva. A **Színrács** ugyanezt
+teszi, és a cellákat sakktáblaszerűen meg is színezi, hogy a cellahatárok jól
+látsszanak; ez és a Színek kikapcsolva kikapcsolják egymást. A **Villogás
+leállítása** minden villogó cellát a normál színeiben tart. Egyik sem érinti a
+képet, a visszavonást vagy az exportálást: a mentett kép ugyanúgy néz ki, akár
+be vannak kapcsolva, akár nem. A böngésző megjegyzi őket, és az a kapcsoló,
+amely az aktuális képernyőmódban nem működhet, szürkén látszik – vidd fölé az
+egeret, hogy lásd, miért. GigaScreen és MultiGiga módban a Színek kikapcsolva
+négy szürke szintet mutat: fehér, ahol egyik képernyőn sincs pont,
+világosszürke, ha csak az A képernyőn van pont, sötétebb szürke, ha csak a B
+képernyőn, és fekete, ha mindkettőn.
+
 ### Ahol mások a szabályok
 
 A későbbi hardverek többféleképpen lazítottak a korláton, és a PixULA mindegyikkel

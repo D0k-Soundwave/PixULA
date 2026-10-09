@@ -41,6 +41,20 @@ bodu. Kapitola o farbe ich vymenúva.
 **Knižnica vzorov.** Jej jadrom je sada dlaždíc s nameranou hustotou atramentu –
 po nej siahnete, keď bunka potrebuje sivú, ktorú nepojme.
 
+### Vidieť body
+
+Tri prepínače v ponuke Zobraziť menía to, čo obrazovka ukazuje, bez zmeny
+obrázka. **Farby vypnuté** zobrazí body čiernou na bielom, takže vidíte, ktoré
+body sú naozaj nastavené. **Farebná mriežka** urobí to isté a navyše zafarbí
+bunky ako šachovnicu, takže sú hranice buniek dobre vidieť; ona a Farby vypnuté
+sa navzájom vypínajú. **Zastaviť blikanie** nechá každú blikajúcu bunku v jej
+normálnych farbách. Žiadny z nich sa nedotýka obrázka, kroku späť ani exportu:
+uložený obrázok vyzerá rovnako, či sú zapnuté, alebo nie. Prehliadač si ich
+pamätá a prepínač, ktorý v aktuálnom režime obrazovky nemôže fungovať, je sivý –
+po prejdení myšou uvidíte prečo. V GigaScreen a MultiGiga ukazuje Farby vypnuté
+štyri úrovne sivej: bielu tam, kde nemá bod žiadna obrazovka, svetlosivú pre bod
+len na obrazovke A, tmavšiu sivú len pre obrazovku B a čierňu pre obe.
+
 ### Kde platia iné pravidlá
 
 Neskorší hardvér obmedzenie rôzne uvoľnil a PixULA vie pracovať so všetkými
