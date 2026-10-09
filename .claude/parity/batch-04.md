@@ -144,6 +144,27 @@ the cells under its centre line and still sets every dot; 4-pixel core;
 Done when: Inverse reverses every tool in every mode, and thick lines can
 colour only their core, with nothing changed when the options are off.
 
+Decided and corrected during part 4B (2026-10-09, from the Opus plan review):
+- Invert dots and colours exists only with the FIXED 16 colours: in ULAplus ink reads CLUT entries 0-7 and paper 8-15,
+  in ULANext paper is 128 + paper + 8*bright + 16*flash, so swapping the two numbers recolours the cell. The Image >
+  Dots command is gated the same way (reason 'palette'); this corrects Batch 2, which offered it there.
+- Invert dots exists in every mode with dots (Timex hi-res included: its cells are already 8x8); the batch file's
+  "disabled with a hint" for indexed modes became "button hidden", as Swap and Recolour hide.
+- Invert dots does NOT skip a see-through upper-layer cell (it fills it, as Transform > Invert does); Invert dots
+  and colours does skip it, and any cell another visible layer also owns.
+- Copy picks what the PAGE shows (LayerManager.attrsShowing), not the current layer's own cell; it leaves a cell that
+  already shows the colours alone. Copy picks on the press only; later cells are painted.
+- Per drag: every cell passed over is visited (fast drags walk the cells in between) and a cell is inverted or swapped
+  once (Swap changed: A, B, A used to swap A back). One drag = one undo step: the cell methods open no batch.
+- The drawing guide is judged at the cell's top-left pixel for all five cell tools (as Swap and Recolour already were).
+- An armed cell tool the new screen mode does not have is disarmed (it used to stay armed, hidden, for Swap/Recolour).
+- Eraser "Colours: Set to current" writes NORMAL_ERASE only where cells have colours; a stored 'set' acts as 'keep' in
+  indexed and Timex hi-res modes. The batch file's reason ("indexed modes already write the paper index") was wrong:
+  NORMAL_ERASE would write the paper index where the eraser writes the see-through index on upper layers.
+- Strip with 15 buttons: icons 22.7 / 36.0 / 46.2 px at 800 / 1024 / 1200 px (default interface size); one row at every
+  window width and interface size tested except 1024 px at 200% (two rows, as since 4A). No new wrapping, so the owner
+  was not asked again.
+
 ## Part 4B - Cell tools and the wiping eraser
 
 Build:

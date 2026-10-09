@@ -20,6 +20,10 @@ przejdź gumką po pustej komórce jeszcze raz nowym pociągnięciem: tusz, papi
 jasność i miganie wracają do czarnego na białym, a na wyższej warstwie komórka
 znów staje się przezroczysta. Komórka, w której są jeszcze punkty, zachowuje
 kolory, ile razy byś jej nie wymazywał.
+Opcja **Kolory** gumki, widoczna w trybach ekranu z kolorami komórek, to
+zmienia: Ustaw bieżące czyści punkty i nadaje komórce kolory z paska, jak
+narzędzie wycierania w ZX Paintbrush, a Zachowaj, domyślne, to zachowanie
+opisane wyżej.
 
 Każdy z czterech można też ustawić na **użyj istniejącego**: to kratkowane pole
 pod nim na pasku kolorów. Pociągnięcie zostawia wtedy tę część każdej komórki
@@ -54,6 +58,22 @@ rozmiar pędzla i Lustro. **Zamień** obok działa tak samo i zamienia atrament 
 papierem w każdej komórce. Każdy z nich pozostaje włączony, dopóki nie klikniesz
 go ponownie albo nie wybierzesz narzędzia lub trybu rysowania, a pasek stanu
 informuje o tym, póki jest włączony.
+
+**Kopiuj kolory, Odwróć punkty i Odwróć punkty i kolory** to trzy kolejne
+operacje na komórkach obok Zamień i Przekoloruj i działają tak samo: kliknij
+przycisk, potem klikaj lub przeciągaj po komórkach. Każde przeciągnięcie cofa
+się jednym krokiem, a narzędzia pozostają włączone, dopóki znów nie klikniesz
+przycisku albo nie wybierzesz narzędzia lub trybu rysowania. **Kopiuj kolory**
+pobiera kolory, które pokazuje komórka pod pierwszym kliknięciem, i nadaje je
+każdej komórce, po której przeciągasz; pasek kolorów się nie zmienia. **Odwróć
+punkty** czyści ustawione punkty każdej całej komórki i ustawia wyczyszczone, a
+kolory zostawia (pustą komórkę wypełnia). **Odwróć punkty i kolory** dodatkowo
+zamienia tusz z papierem, więc każda komórka wygląda tak samo; służy do
+porządkowania zaimportowanego obrazu, pomija komórki, w których rysuje też inna
+warstwa, i nie jest dostępne w ULAplus i ULANext. Narzędzie komórki istnieje
+tylko w trybach ekranu, w których może działać: gdzie indziej jego przycisk jest
+ukryty, a Odwróć punkty działa też w Timex Hi-res, gdzie punkty leżą w komórkach
+8 na 8.
 
 **XOR / Na wierzchu i XOR / Każde przejście** odwracają punkty zamiast je
 zapalać i oba nadają komórce wybrane kolory. XOR / Na wierzchu odwraca każdy
@@ -164,7 +184,7 @@ Zmień... znajduje komórki po ich kolorach i zamienia je. Znajdź określa, kt�
 
 ### Kropki
 
-Pozycje Kropki w menu Obraz zmieniają kropki i zostawiają kolory w ich komórkach. Odbij poziomo i Odbij pionowo odbijają kropki. Odwróć kropki i kolory dodatkowo zamienia tusz z papierem w każdej komórce, więc obraz wygląda tak samo. Nie jest oferowane w trybach bez kolorów komórek (Layer 2, LoRes, Timex Hi-res) i jest wyszarzone, gdy unosi się pieczątka.
+Pozycje Kropki w menu Obraz zmieniają kropki i zostawiają kolory w ich komórkach. Odbij poziomo i Odbij pionowo odbijają kropki. Odwróć kropki i kolory dodatkowo zamienia tusz z papierem w każdej komórce, więc obraz wygląda tak samo. Nie jest oferowane w trybach bez kolorów komórek (Layer 2, LoRes, Timex Hi-res) i jest wyszarzone, gdy unosi się pieczątka. W ULAplus i ULANext też nie jest dostępne, bo zamiana tuszu z papierem zmieniłaby wygląd obrazu.
 
 Wybór Przesuń w sekcji Przesunięcie panelu Transformacja określa, co się przesuwa. Kropki i kolory (domyślnie) przesuwa całe komórki razem z ich papierem. Tylko kropki przesuwa kropki o piksel lub o komórkę naraz. Tylko kolory przesuwa kolory komórek po jednej komórce. Krzyżak ma też przekątne. Gdy unosi się pieczątka, Przesuń jest wyszarzone, bo przesunięcie przenosi całą pieczątkę.
 

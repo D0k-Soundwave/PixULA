@@ -119,14 +119,15 @@ test('Timex hi-res: 512-wide geometry + scheme selector; attr ops hidden', async
         // buttons keep their layout space reserved so the top strip's width
         // never depends on the active mode), so offsetParent alone would
         // still be truthy - check the computed style instead.
-        attrOpsVisible: (() => {
-            const btn = document.querySelector('#attr-tools button');
-            return !!btn && getComputedStyle(btn).visibility !== 'hidden';
-        })(),
+        // One entry per cell tool (batch 4B): each has its own set of modes.
+        attrOps: Object.fromEntries([...document.querySelectorAll('#attr-tools button')]
+            .map((b) => [b.id, getComputedStyle(b).visibility !== 'hidden'])),
         schemeSelector: [...document.querySelectorAll('#toolbar-color select, #toolbar-color [role="radiogroup"], #toolbar-color button')].length
     }));
     expect(state.w).toBe(512);
-    expect(state.attrOpsVisible).toBe(false);
+    // Timex hi-res has dots in 8x8 cells but no cell colours: only Invert dots exists there.
+    expect(state.attrOps).toEqual({ 'attr-transpose': false, 'attr-apply': false, 'attr-copy': false,
+        'attr-invert-dots': true, 'attr-invert-both': false });
     expect(state.schemeSelector).toBeGreaterThanOrEqual(1);
 });
 
@@ -164,13 +165,13 @@ test('indexed modes: attr ops hidden, index grid in the rail, classic exports ga
         // buttons keep their layout space reserved so the top strip's width
         // never depends on the active mode), so offsetParent alone would
         // still be truthy - check the computed style instead.
-        attrOpsVisible: (() => {
-            const btn = document.querySelector('#attr-tools button');
-            return !!btn && getComputedStyle(btn).visibility !== 'hidden';
-        })(),
+        // One entry per cell tool (batch 4B): each has its own set of modes.
+        attrOps: Object.fromEntries([...document.querySelectorAll('#attr-tools button')]
+            .map((b) => [b.id, getComputedStyle(b).visibility !== 'hidden'])),
         swatchCount: document.querySelectorAll('#toolbar-color .color-swatch, #toolbar-color [data-index]').length
     }));
-    expect(rail.attrOpsVisible).toBe(false);
+    expect(Object.values(rail.attrOps).length).toBe(5);
+    expect(Object.values(rail.attrOps).every((v) => v === false)).toBe(true);
     expect(rail.swatchCount).toBeGreaterThan(16); // 256-entry index grid
 
     // SCR export must gate with the localized classic-model message

@@ -21,6 +21,10 @@ için boş hücrenin üzerinden yeni bir vuruşla bir kez daha geçin: mürekkep
 parlaklık ve yanıp sönme beyaz üzerine siyaha döner ve üst bir katmanda hücre
 yeniden saydam olur. İçinde hâlâ nokta bulunan bir hücre, üzerinden kaç kez
 silgiyle geçerseniz geçin renklerini korur.
+Silginin **Renkler** seçeneği, hücre renkleri olan ekran modlarında görünür,
+bunu değiştirir: Geçerli olanı ayarla noktaları siler ve hücreye çubuktaki
+renkleri verir, ZX Paintbrush'ın silme aracı gibi; Koru, varsayılan, yukarıda
+anlatılan davranıştır.
 
 Dördünden her biri **mevcudu kullan** konumuna da alınabilir: renk çubuğunda
 altındaki damalı kutu. Bir vuruş o zaman her hücrenin o kısmını sizin ayarınızı
@@ -56,6 +60,21 @@ hücrenin tamamını yeniden renklendirir. Yanındaki **Değiştir** de aynı ş
 çalışır ve her hücrenin mürekkebiyle kâğıdını yer değiştirir. İkisi de yeniden
 tıklanana ya da bir araç veya çizim modu seçilene kadar açık kalır ve açık
 olduğu sürece durum çubuğu bunu gösterir.
+
+**Renkleri kopyala, Noktaları ters çevir ve Noktaları ve renkleri ters çevir**,
+Değiştir ve Yeniden Renklendir'in yanındaki üç hücre işlemidir ve aynı şekilde
+çalışır: düğmeye tıklayın, sonra hücrelerin üzerine tıklayın veya sürükleyin.
+Her sürükleme tek adımda geri alınır ve düğmeye yeniden tıklayana ya da bir araç
+veya çizim modu seçene kadar açık kalırlar. **Renkleri kopyala**, ilk
+tıklamanızın altındaki hücrenin gösterdiği renkleri alır ve üzerinden
+sürüklediğiniz her hücreye verir; renk çubuğu değişmez. **Noktaları ters
+çevir**, her tam hücrenin konmuş noktalarını siler, silinmişleri koyar ve
+renkleri bırakır (boş bir hücreyi doldurur). **Noktaları ve renkleri ters
+çevir** ayrıca mürekkep ile kâğıdı değiştirir, böylece her hücre aynı görünür;
+içe aktarılmış bir resmi düzeltmek içindir, başka bir katmanın da çizdiği
+hücreleri atlar ve ULAplus ile ULANext'te sunulmaz. Bir hücre aracı yalnızca
+çalışabildiği ekran modlarında vardır: başka yerde düğmesi gizlidir ve Noktaları
+ters çevir, noktaların 8'e 8 hücrelerde olduğu Timex Hi-res'te de çalışır.
 
 **XOR / Üzerine ve XOR / Her geçiş** noktaları açmak yerine tersine çevirir ve
 ikisi de hücreye seçilen renkleri verir. XOR / Üzerine her noktayı vuruş başına
@@ -165,7 +184,7 @@ Değiştir... hücreleri renklerine göre bulur ve değiştirir. Bul, hangi hüc
 
 ### Noktalar
 
-Görüntü menüsündeki Noktalar öğeleri noktaları değiştirir, renkleri hücrelerinde bırakır. Yatay çevir ve Dikey çevir noktaları çevirir. Noktaları ve renkleri ters çevir, her hücrenin mürekkep ve kağıdını da değiştirir, böylece resim aynı görünür. Hücre renkleri olmayan kipte sunulmaz (Layer 2, LoRes, Timex Hi-res) ve bir damga yüzerken gri görünür.
+Görüntü menüsündeki Noktalar öğeleri noktaları değiştirir, renkleri hücrelerinde bırakır. Yatay çevir ve Dikey çevir noktaları çevirir. Noktaları ve renkleri ters çevir, her hücrenin mürekkep ve kağıdını da değiştirir, böylece resim aynı görünür. Hücre renkleri olmayan kipte sunulmaz (Layer 2, LoRes, Timex Hi-res) ve bir damga yüzerken gri görünür. ULAplus ve ULANext'te de sunulmaz, çünkü mürekkep ile kâğıdı değiştirmek resmin görünümünü değiştirirdi.
 
 Dönüşüm panelindeki Kaydırma bölümünde Taşıma seçeneği neyin taşınacağını belirler. Noktalar ve renkler (varsayılan) tam hücreleri kağıtlarıyla birlikte taşır. Yalnızca noktalar noktaları seferinde bir piksel ya da bir hücre taşır. Yalnızca renkler hücre renklerini bir hücre kadar taşır. Yön tuşları çapraz yönleri de içerir. Bir damga yüzerken Taşıma gri görünür, çünkü kaydırma tüm damgayı taşır.
 
