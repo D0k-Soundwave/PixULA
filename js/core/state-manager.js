@@ -534,6 +534,46 @@ class StateManagerClass {
     EventBus.emit(EVENTS.GRID_SNAP_CHANGED, { snap: !!enabled });
   }
 
+  /**
+   * The three display-only view switches (View menu): Colours off, Stop
+   * flashing, Colour grid. They change what the screen SHOWS and nothing in
+   * the document, so they live in view state, never in a project. Colours off
+   * and Colour grid exclude each other; turning one on turns the other off.
+   * @returns {{coloursOff: boolean, stopFlashing: boolean, colourGrid: boolean}}
+   */
+  getDisplayView() {
+    return {
+      coloursOff: !!this.get('view.coloursOff'),
+      stopFlashing: !!this.get('view.stopFlashing'),
+      colourGrid: !!this.get('view.colourGrid')
+    };
+  }
+
+  /** @param {boolean} on */
+  setColoursOff(on) {
+    this.set('view.coloursOff', !!on);
+    if (on) this.set('view.colourGrid', false);
+    this._emitDisplayView();
+  }
+
+  /** @param {boolean} on */
+  setStopFlashing(on) {
+    this.set('view.stopFlashing', !!on);
+    this._emitDisplayView();
+  }
+
+  /** @param {boolean} on */
+  setColourGrid(on) {
+    this.set('view.colourGrid', !!on);
+    if (on) this.set('view.coloursOff', false);
+    this._emitDisplayView();
+  }
+
+  /** One event per change, carrying all three so no listener sees half a pair. @private */
+  _emitDisplayView() {
+    EventBus.emit(EVENTS.DISPLAY_VIEW_CHANGED, this.getDisplayView());
+  }
+
   /** @returns {'off'|'h'|'v'|'quad'} Mirror-while-drawing mode */
   getSymmetryMode() {
     return this.get('symmetry.mode') || 'off';
