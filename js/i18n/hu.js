@@ -728,6 +728,8 @@ const hu = {
     'view.display.noDots': 'Ebben a képernyőmódban minden képpontnak saját színe van, így nincsenek megjeleníthető pontok.',
     'view.display.noCells': 'Ennek a képernyőmódnak nincsenek színcéllái.',
     'view.display.noFlash': 'Ebben a képernyőmódban semmi sem villog.',
+    'pref.inverse': 'Fordított: az egérgombok felcserélése',
+    'pref.inverseHint': 'A bal gomb törli a pontokat, a jobb beállítja őket, mint a BASIC INVERSE 1 utasítása. A Shift+I billentyűzetről kapcsolja, és az állapotsor kiírja, ha be van kapcsolva. A Tinta átszínezése, a Papír átszínezése és az XOR rajzmódban nem változtat semmit.',
     'attr.copy': 'Színek másolása',
     'attr.copy.hint': 'Kattints egy cellára, hogy felvedd a benne látható színeket, majd húzd végig más cellákon, hogy megkapják azokat. A pontok változatlanok maradnak, a színsáv nem változik. Kattints rá újra, vagy válassz eszközt vagy rajzmódot, a leállításhoz',
     'attr.invertDots': 'Pontok megfordítása',

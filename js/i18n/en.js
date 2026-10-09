@@ -803,6 +803,8 @@ const en = {
     'view.display.noDots': 'Every pixel has its own colour in this screen mode, so there are no dots to show.',
     'view.display.noCells': 'This screen mode has no colour cells.',
     'view.display.noFlash': 'Nothing flashes in this screen mode.',
+    'pref.inverse': 'Inverse: swap the mouse buttons',
+    'pref.inverseHint': 'The left button clears dots and the right button sets them, like BASIC\'s INVERSE 1. Shift+I switches it from the keyboard, and the status bar says when it is on. It changes nothing in the Ink Recolour, Paper Recolour and XOR draw modes.',
     'attr.copy': 'Copy colours',
     'attr.copy.hint': 'Click a cell to pick up the colours it shows, then drag over other cells to give them those colours. Dots stay as they are and the colour rail is not changed. Click it again, or pick a tool or a draw mode, to stop',
     'attr.invertDots': 'Invert dots',

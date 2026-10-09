@@ -728,6 +728,8 @@ const pt = {
     'view.display.noDots': 'Neste modo de ecrã cada pixel tem a sua própria cor, por isso não há pontos para mostrar.',
     'view.display.noCells': 'Este modo de ecrã não tem células de cor.',
     'view.display.noFlash': 'Neste modo de ecrã nada pisca.',
+    'pref.inverse': 'Inverso: trocar os botões do rato',
+    'pref.inverseHint': 'O botão esquerdo apaga pontos e o direito acende-os, como o INVERSE 1 do BASIC. Shift+I liga-o pelo teclado, e a barra de estado avisa quando está ligado. Não muda nada nos modos de desenho Recolorir tinta, Recolorir papel e XOR.',
     'attr.copy': 'Copiar cores',
     'attr.copy.hint': 'Clica numa célula para apanhar as cores que mostra e arrasta sobre outras células para lhes dar essas cores. Os pontos ficam como estão e a barra de cores não muda. Clica de novo, ou escolhe uma ferramenta ou um modo de desenho, para parar',
     'attr.invertDots': 'Inverter pontos',

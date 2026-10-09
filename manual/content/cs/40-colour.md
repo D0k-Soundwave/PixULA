@@ -78,8 +78,7 @@ křivky, výplně a text jsou vždy jediný přejezd, takže u nich oba režimy 
 stejný výsledek.
 
 **Inverze** prohodí, co dělají obě tlačítka myši: levé tlačítko maže body a
-pravé je nastavuje, jako INVERSE 1 v BASICu. Je to tlačítko hned za režimy
-kreslení, nebo Shift+I, a stavový řádek hlásí „Inverze je zapnutá“, dokud trvá.
+pravé je nastavuje, jako INVERSE 1 v BASICu. Zapíná se v Předvolbách, nebo klávesou Shift+I, a stavový řádek hlásí „Inverze je zapnutá“, dokud trvá.
 V režimech Inkoust přebarvit, Papír přebarvit a ve dvou režimech XOR nic nemění,
 protože obě tlačítka tam dělají totéž; stavový řádek to říká. Text a razítka
 mažou svá písmena a tvary místo jejich nastavení, vzorek klade své body jako

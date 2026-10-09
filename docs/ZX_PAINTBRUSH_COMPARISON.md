@@ -65,7 +65,7 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 |---|---|---|---|
 | Drawing (pixels) switch | Turn pixel drawing off so any tool writes colours only. Combined with the per-colour transparency above, any mix is possible, e.g. paper and flash only. | Pixels Only, Ink Recolour and Paper Recolour, combined with the four "use existing" boxes, give any mix, e.g. paper and flash only (2026-10-08). | Same |
 | Filling switch | Shapes and the fill tool use the chosen fill style instead of solid. | Filled and Use pattern options on each tool. | Same |
-| Inverse mode | Like BASIC INVERSE: tools reset dots instead of setting them; text and solid fills are reversed. | Inverse button in the top strip, or Shift+I (2026-10-09): swaps the two mouse buttons for the brush, fill, shapes, curves, gradient, patterns, text and stamps (left clears dots, right sets them). Ink and Paper Recolour and the XOR modes give both buttons one job, so Inverse changes nothing there and the status line says so. Remembered, saved in presets. | Same |
+| Inverse mode | Like BASIC INVERSE: tools reset dots instead of setting them; text and solid fills are reversed. | Preferences > Inverse, or Shift+I (2026-10-09; the owner moved it out of the top strip): swaps the two mouse buttons for the brush, fill, shapes, curves, gradient, patterns, text and stamps (left clears dots, right sets them). Ink and Paper Recolour and the XOR modes give both buttons one job, so Inverse changes nothing there and the status line says so. Remembered, saved in presets. | Same |
 | Over mode | Like BASIC OVER: dots are toggled. | XOR / Over, plus XOR / Every Pass. | PixULA further |
 
 ### Painting attributes

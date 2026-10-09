@@ -728,6 +728,8 @@ const de = {
     'view.display.noDots': 'In diesem Bildschirmmodus hat jedes Pixel seine eigene Farbe, daher gibt es keine Punkte anzuzeigen.',
     'view.display.noCells': 'Dieser Bildschirmmodus hat keine Farbzellen.',
     'view.display.noFlash': 'In diesem Bildschirmmodus blinkt nichts.',
+    'pref.inverse': 'Invers: Maustasten vertauschen',
+    'pref.inverseHint': 'Die linke Taste löscht Punkte, die rechte setzt sie, wie INVERSE 1 in BASIC. Mit Shift+I schalten Sie es per Tastatur um, und die Statusleiste sagt, wenn es an ist. In den Zeichenmodi Tinte umfärben, Papier umfärben und XOR ändert es nichts.',
     'attr.copy': 'Farben kopieren',
     'attr.copy.hint': 'Klicken Sie auf eine Zelle, um ihre Farben aufzunehmen, und ziehen Sie dann über andere Zellen, um sie ihnen zu geben. Die Punkte bleiben, wie sie sind, und die Farbleiste ändert sich nicht. Nochmals klicken oder ein Werkzeug oder einen Zeichenmodus wählen, um aufzuhören',
     'attr.invertDots': 'Punkte invertieren',

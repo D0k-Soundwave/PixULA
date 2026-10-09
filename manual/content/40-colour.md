@@ -81,8 +81,7 @@ cancels where it crosses. Shapes, curves, fills and text are always a single
 pass, so with those the two modes give the same result.
 
 **Inverse** swaps what the two mouse buttons do: the left button clears dots and
-the right button sets them, like BASIC's INVERSE 1. It is the button just after
-the draw modes, or Shift+I, and the status bar says "Inverse is on" while it is.
+the right button sets them, like BASIC's INVERSE 1. Switch it on in Preferences, or with Shift+I, and the status bar says "Inverse is on" while it is.
 It changes nothing in Ink Recolour, Paper Recolour and the two XOR modes, which
 give both buttons the same job, and the status bar says so. Text and stamps
 clear their letters and shapes instead of setting them, a pattern lays its dots

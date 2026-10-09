@@ -87,8 +87,7 @@ eğriler, dolgular ve yazı her zaman tek bir geçiştir; bu yüzden bunlarda ik
 aynı sonucu verir.
 
 **Ters**, iki fare düğmesinin yaptığını değiştirir: sol düğme noktaları siler,
-sağ düğme koyar, BASIC'in INVERSE 1'i gibi. Çizim modlarından hemen sonraki
-düğmedir, ya da Shift+I; durum çubuğu açıkken „Ters mod açık“ der. Mürekkebi
+sağ düğme koyar, BASIC'in INVERSE 1'i gibi. Tercihler'den açılır, ya da Shift+I ile; durum çubuğu açıkken „Ters mod açık“ der. Mürekkebi
 Yeniden Renklendir, Kâğıdı Yeniden Renklendir ve iki XOR modunda hiçbir şeyi
 değiştirmez, çünkü orada iki düğme aynı işi yapar; durum çubuğu bunu söyler.
 Metin ve damgalar harflerini ve şekillerini koymak yerine silerler, bir desen

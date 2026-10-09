@@ -97,6 +97,11 @@ class PreferencesDialogClass {
                 <span data-i18n="pref.nudgeStep">${this._t('pref.nudgeStep', 'Arrow-key nudge distance (pixels)')}</span>
                 <input type="number" id="pref-nudge-step" name="pref-nudge-step" min="1" max="32" value="1">
             </label>
+            <label class="pref-row">
+                <input type="checkbox" id="pref-inverse" name="pref-inverse">
+                <span data-i18n="pref.inverse">${this._t('pref.inverse', 'Inverse: swap the mouse buttons')}</span>
+            </label>
+            <div class="pref-block__hint" data-i18n="pref.inverseHint">${this._t('pref.inverseHint', 'The left button clears dots and the right button sets them, like BASIC\'s INVERSE 1. Shift+I switches it from the keyboard, and the status bar says when it is on. It changes nothing in the Ink Recolour, Paper Recolour and XOR draw modes.')}</div>
             <h3 data-i18n="pref.input">${this._t('pref.input', 'Input')}</h3>
             <label class="pref-row">
                 <input type="checkbox" id="pref-touch-draw" name="pref-touch-draw">
@@ -234,6 +239,8 @@ class PreferencesDialogClass {
         if (confirmClear) confirmClear.checked = StateManager.get('confirmClear') !== false;
         const resetDrawMode = content.querySelector('#pref-reset-draw-mode');
         if (resetDrawMode) resetDrawMode.checked = StateManager.get('resetDrawModeOnTool') === true;
+        const inverse = content.querySelector('#pref-inverse');
+        if (inverse) inverse.checked = StateManager.getInverse();
         const nudgeStep = content.querySelector('#pref-nudge-step');
         if (nudgeStep) nudgeStep.value = String(clamp(parseInt(StateManager.get('nudgeStep'), 10) || 1, 1, 32));
         const touchDraw = content.querySelector('#pref-touch-draw');
@@ -725,6 +732,7 @@ class PreferencesDialogClass {
         const restoreOnBoot = dialog.querySelector('#pref-restore-on-boot');
         const confirmClear = dialog.querySelector('#pref-confirm-clear');
         const resetDrawMode = dialog.querySelector('#pref-reset-draw-mode');
+        const inverseEl = dialog.querySelector('#pref-inverse');
         const nudgeStepEl = dialog.querySelector('#pref-nudge-step');
         const nudgeStep = nudgeStepEl ? clamp(parseInt(nudgeStepEl.value, 10) || 1, 1, 32) : 1;
         const touchDraw = dialog.querySelector('#pref-touch-draw');
@@ -750,6 +758,8 @@ class PreferencesDialogClass {
         if (confirmClear) StateManager.set('confirmClear', confirmClear.checked);
         if (resetDrawMode) StateManager.set('resetDrawModeOnTool', resetDrawMode.checked);
         if (nudgeStepEl) StateManager.set('nudgeStep', nudgeStep);
+        // Inverse is remembered under its own key (DrawModeBar), like grid snap, so it is not in `stored`.
+        if (inverseEl && inverseEl.checked !== StateManager.getInverse()) StateManager.setInverse(inverseEl.checked);
         // The drawing switch has a second home in the status bar, so it goes
         // through InputHandler — the single writer — rather than being set here
         // and left to drift out of step with the button.

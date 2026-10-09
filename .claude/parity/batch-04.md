@@ -144,6 +144,10 @@ the cells under its centre line and still sets every dot; 4-pixel core;
 Done when: Inverse reverses every tool in every mode, and thick lines can
 colour only their core, with nothing changed when the options are off.
 
+OWNER CHANGED (2026-10-09, after the group A review): Inverse is NOT a strip button. It is a checkbox in Preferences
+(plus Shift+I and the status line). The strip has 14 buttons (6 modes + 5 cell tools + 3 mirror). The first answer
+above (a strip button) is superseded. 1024 px at 200% still wraps to two rows with 14 buttons (it wrapped at 12).
+
 Decided and corrected during part 4B (2026-10-09, from the Opus plan review):
 - Invert dots and colours exists only with the FIXED 16 colours: in ULAplus ink reads CLUT entries 0-7 and paper 8-15,
   in ULANext paper is 128 + paper + 8*bright + 16*flash, so swapping the two numbers recolours the cell. The Image >

@@ -89,8 +89,7 @@ curve, riempimenti e testo sono sempre un solo passaggio, quindi con questi le
 due modalità danno lo stesso risultato.
 
 **Inverso** scambia ciò che fanno i due pulsanti del mouse: il sinistro cancella
-i punti e il destro li accende, come INVERSE 1 del BASIC. È il pulsante subito
-dopo le modalità di disegno, oppure Maiusc+I, e la barra di stato dice “Inverso
+i punti e il destro li accende, come INVERSE 1 del BASIC. Si attiva nelle Preferenze, oppure con Maiusc+I, e la barra di stato dice “Inverso
 attivo” finché lo è. Non cambia nulla in Ricolora inchiostro, Ricolora carta e
 nelle due modalità XOR, dove i due pulsanti fanno la stessa cosa, e la barra di
 stato lo dice. Il testo e i timbri cancellano le loro lettere e forme invece di

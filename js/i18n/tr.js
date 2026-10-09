@@ -728,6 +728,8 @@ const tr = {
     'view.display.noDots': 'Bu ekran modunda her pikselin kendi rengi vardır, bu nedenle gösterilecek nokta yoktur.',
     'view.display.noCells': 'Bu ekran modunda renk hücresi yoktur.',
     'view.display.noFlash': 'Bu ekran modunda hiçbir şey yanıp sönmez.',
+    'pref.inverse': 'Ters: fare düğmelerini değiştir',
+    'pref.inverseHint': 'Sol düğme noktaları siler, sağ düğme koyar, BASIC\'in INVERSE 1\'i gibi. Shift+I bunu klavyeden değiştirir ve durum çubuğu açıkken söyler. Mürekkebi Yeniden Renklendir, Kâğıdı Yeniden Renklendir ve XOR çizim modlarında hiçbir şeyi değiştirmez.',
     'attr.copy': 'Renkleri kopyala',
     'attr.copy.hint': 'Bir hücreye tıklayıp gösterdiği renkleri alın, sonra başka hücrelerin üzerinden sürükleyerek onlara o renkleri verin. Noktalar olduğu gibi kalır ve renk çubuğu değişmez. Durdurmak için tekrar tıklayın ya da bir araç veya çizim modu seçin',
     'attr.invertDots': 'Noktaları ters çevir',

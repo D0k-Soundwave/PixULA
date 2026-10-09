@@ -728,6 +728,8 @@ const ro = {
     'view.display.noDots': 'În acest mod de ecran fiecare pixel are propria culoare, deci nu există puncte de afișat.',
     'view.display.noCells': 'Acest mod de ecran nu are celule de culoare.',
     'view.display.noFlash': 'În acest mod de ecran nimic nu clipește.',
+    'pref.inverse': 'Invers: schimbă butoanele mouse-ului',
+    'pref.inverseHint': 'Butonul stâng șterge punctele, cel drept le aprinde, ca INVERSE 1 din BASIC. Shift+I îl comută de la tastatură, iar bara de stare spune când este pornit. Nu schimbă nimic în modurile de desen Recolorează cerneala, Recolorează hârtia și XOR.',
     'attr.copy': 'Copiază culorile',
     'attr.copy.hint': 'Fă clic pe o celulă ca să iei culorile pe care le arată, apoi trage peste alte celule ca să le dai acele culori. Punctele rămân cum sunt, iar bara de culori nu se schimbă. Fă clic din nou, sau alege o unealtă ori un mod de desen, ca să te oprești',
     'attr.invertDots': 'Inversează punctele',

@@ -94,8 +94,7 @@ se croise. Les formes, les courbes, les remplissages et le texte sont toujours
 un seul passage : avec eux, les deux modes donnent le même résultat.
 
 **Inverse** échange ce que font les deux boutons de la souris : le bouton gauche
-efface les points et le droit les allume, comme INVERSE 1 en BASIC. C'est le
-bouton juste après les modes de dessin, ou Maj+I, et la barre d'état indique «
+efface les points et le droit les allume, comme INVERSE 1 en BASIC. On l'active dans les Préférences, ou avec Maj+I, et la barre d'état indique «
 Inverse activé » tant qu'il l'est. Il ne change rien dans Recolorer l'encre,
 Recolorer le papier et les deux modes XOR, où les deux boutons font la même
 chose, et la barre d'état le dit. Le texte et les tampons effacent leurs lettres

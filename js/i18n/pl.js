@@ -728,6 +728,8 @@ const pl = {
     'view.display.noDots': 'W tym trybie ekranu każdy piksel ma własny kolor, więc nie ma punktów do pokazania.',
     'view.display.noCells': 'Ten tryb ekranu nie ma komórek koloru.',
     'view.display.noFlash': 'W tym trybie ekranu nic nie miga.',
+    'pref.inverse': 'Odwróć: zamień przyciski myszy',
+    'pref.inverseHint': 'Lewy przycisk czyści punkty, a prawy je ustawia, jak INVERSE 1 w BASIC-u. Shift+I przełącza to z klawiatury, a pasek stanu mówi, kiedy jest włączone. Nie zmienia niczego w trybach rysowania Przekoloruj tusz, Przekoloruj papier i XOR.',
     'attr.copy': 'Kopiuj kolory',
     'attr.copy.hint': 'Kliknij komórkę, aby pobrać jej kolory, a potem przeciągnij po innych komórkach, aby je im nadać. Punkty zostają, jak są, a pasek kolorów się nie zmienia. Kliknij ponownie albo wybierz narzędzie lub tryb rysowania, aby przestać',
     'attr.invertDots': 'Odwróć punkty',
