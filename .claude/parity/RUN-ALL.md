@@ -7,10 +7,16 @@ order, the review points and the stops.
 
 ## Changes to the RUNBOOK for this run
 
-- Model: Sonnet for every part (the owner's choice). The per-part Opus plan
-  review is dropped; instead an Opus review of the finished code runs at the
-  end of each part group (below). Opus is still consulted when RUNBOOK section
-  5 says "when needed" (a test failing after two fixes, an undecided design).
+- Model: Sonnet builds every part (the owner's choice). ALL the Opus review
+  stages stay, in two places:
+  1. The Opus plan review before each part's code (RUNBOOK sections 3 and 5),
+     exactly as written: mandatory, once per part, and before changing
+     PixelDrawRoutine, the LayerManager compositor, UndoRedo,
+     ScreenModeService or a file format's byte layout.
+  2. An Opus review of the finished code at the end of each part group (below).
+  Opus is also consulted whenever RUNBOOK section 5 says "when needed" (a test
+  failing after two fixes, an undecided design). Every consult is recorded in
+  the part's LOG entry.
 - No hand-off prompt after each part: go straight to the next one. Still do
   every other step of RUNBOOK section 9 for each part (tests, manual,
   comparison doc, LOG entry, commit).
