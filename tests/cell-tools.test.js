@@ -335,4 +335,49 @@ enter('standard_ula');
   selectionArea = null;
 }
 
+// -- 8. The picture-wide transforms never write into a stamp layer ------------------------------------------------------
+
+enter('standard_ula');
+{
+  const stampLayer = layer();
+  stampLayer.isStamp = true;
+  const altered = () => {
+    let n = 0;
+    for (let cy = 0; cy < ROWS(); cy++) for (let cx = 0; cx < COLS(); cx++) if (stampLayer.isCellAltered(cx, cy)) n++;
+    return n;
+  };
+  const calls = ['flipHorizontal', 'flipVertical', 'rotate90CW', 'rotate90CCW', 'rotate180', 'invert'];
+  for (const name of calls) {
+    const opens = countBatches(() => { T()[name](); });
+    check(`on a stamp layer ${name}() does nothing`, altered() === 0 && opens === 0, `${altered()} cells, ${opens} batches`);
+  }
+  check('...nor shift()', T().shift('right', 1, true, 'both') === false && altered() === 0);
+  check('...nor outline()', (T().outline(1, 1), altered() === 0));
+  stampLayer.isStamp = false;
+}
+
+// -- 9. Swap and Recolour are cell tools too: same guards -----------------------------------------------------------------
+
+enter('standard_ula');
+{
+  setCell(2, 2, { ink: 1, paper: 6, bright: false, flash: false });
+  const opens = countBatches(() => inOneBatch(() => { T().swapCellColours(2, 2); }));
+  check('Swap swaps ink and paper of one cell', shown(2, 2).ink === 6 && shown(2, 2).paper === 1);
+  check('...opening no batch of its own', opens === 1);
+  inOneBatch(() => { T().swapCellColours(2, 2); });
+  check('...and twice puts them back', shown(2, 2).ink === 1 && shown(2, 2).paper === 6);
+  ColorManager.setInk(3); ColorManager.setPaper(4);
+  inOneBatch(() => { T().recolourCell(2, 2); });
+  check('Recolour gives the cell the rail colours', shown(2, 2).ink === 3 && shown(2, 2).paper === 4);
+  const stampLayer = layer();
+  stampLayer.isStamp = true;
+  check('on a stamp layer Swap does nothing', inOneBatch(() => T().swapCellColours(2, 2)) === false && stampLayer.getCell(2, 2).ink === 3);
+  check('...and neither does Recolour', inOneBatch(() => T().recolourCell(2, 2)) === false);
+  check('...and cellToolBlocked says why', T().cellToolBlocked('swap') === 'stamp');
+  stampLayer.isStamp = false;
+  layer().locked = true;
+  check('on a locked layer neither acts', T().swapCellColours(2, 2) === false && T().recolourCell(2, 2) === false);
+  layer().locked = false;
+}
+
 summary();

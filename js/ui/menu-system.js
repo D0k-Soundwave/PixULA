@@ -247,6 +247,21 @@ class MenuSystemClass {
         this.setItemEnabled('dots-flip-h', !b.flip);
         this.setItemEnabled('dots-flip-v', !b.flip);
         this.setItemEnabled('dots-invert', !b.invert);
+        // Image > Flip / Rotate / Invert Colors act on the picture, or on a floating stamp; a
+        // stamp that carries its own cell colours cannot be reshaped, and a stamp layer is not
+        // the picture. Greyed out with the reason as a tooltip (the rows are pointer-reachable).
+        const stampBlock = (b.flip === 'stampAttrs' || b.flip === 'stamp') ? b.flip : null;
+        const stampReasons = {
+            stampAttrs: ['menu.image.dotsStampAttrs', 'This stamp keeps its own colours, so it cannot be flipped here.'],
+            stamp: ['menu.image.attrStamp', 'Finish or cancel the stamp first.']
+        };
+        for (const id of ['flip-h', 'flip-v', 'rotate-90cw', 'rotate-90ccw', 'rotate-180', 'invert']) {
+            this.setItemEnabled(id, !stampBlock);
+            const row = this.element.querySelector(`[data-id="${id}"]`);
+            if (!row) continue;
+            if (stampBlock) row.title = this._t(stampReasons[stampBlock][0], stampReasons[stampBlock][1]);
+            else row.removeAttribute('title');
+        }
         const parent = this.element.querySelector('[data-id="dots"]');
         if (!parent) return;
         const reasons = {
@@ -1060,12 +1075,14 @@ class MenuSystemClass {
             case 'layer:moveDown':  LayerManager.moveLayerDown(LayerManager.currentLayerIndex); break;
 
             // Image
-            case 'image:flipH':       TransformService.flipHorizontal(); break;
-            case 'image:flipV':       TransformService.flipVertical();   break;
-            case 'image:rotate90cw':  TransformService.rotate90CW();     break;
-            case 'image:rotate90ccw': TransformService.rotate90CCW();    break;
-            case 'image:rotate180':   TransformService.rotate180();      break;
-            case 'image:invert':      TransformService.invert();         break;
+            // Through the Transform panel's one entry point, which sends a floating
+            // stamp to SelectionService.transformStamp instead of the picture.
+            case 'image:flipH':       TransformPanel.applyTransform('flipH');        break;
+            case 'image:flipV':       TransformPanel.applyTransform('flipV');        break;
+            case 'image:rotate90cw':  TransformPanel.applyTransform('rotate90CW');   break;
+            case 'image:rotate90ccw': TransformPanel.applyTransform('rotate90CCW');  break;
+            case 'image:rotate180':   TransformPanel.applyTransform('rotate180');    break;
+            case 'image:invert':      TransformPanel.applyTransform('invert');       break;
             case 'image:clear':       this._clearCanvas();               break;
 
             // Image > Attributes (cell colours; dots untouched)

@@ -23,6 +23,7 @@ class CanvasControlsClass {
     }
 
     init() {
+        this._setupStatusNotice();
         this._buildZoomControls();
         this._buildGridControls();
         this._setupCursorDisplay();
@@ -258,6 +259,30 @@ class CanvasControlsClass {
         EventBus.on(EVENTS.GRID_SNAP_CHANGED, (data) => {
             snapBtn.setAttribute('aria-pressed', String(!!data.snap));
             Storage.set('gridSnap', !!data.snap).catch(() => {});
+        });
+    }
+
+    // ── Status notice ────────────────────────────────────────────────────────
+
+    /**
+     * EVENTS.STATUS_NOTICE shows a short reason in the status bar for a moment (a tool that
+     * refused to run says why), then the usual text comes back. The duration is a reading
+     * time [C]: the longest notice is about 8 words, at a comfortable ~4 words a second that
+     * is 2 s, plus a second to notice it appeared.
+     * @private
+     */
+    _setupStatusNotice() {
+        const NOTICE_MS = 3000;
+        let timer = null;
+        EventBus.on(EVENTS.STATUS_NOTICE, ({ text }) => {
+            const el = document.getElementById('status-message');
+            if (!el || !text) return;
+            el.textContent = text;
+            if (window.A11yAnnouncer) A11yAnnouncer.announce(text);
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                el.textContent = this._t('status.ready', 'Ready');
+            }, NOTICE_MS);
         });
     }
 

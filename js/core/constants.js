@@ -1226,6 +1226,7 @@ const EVENTS = Object.freeze({
     DISPLAY_VIEW_CHANGED: 'view:displayChanged',
     READOUT_CHANGED: 'readout:changed',
     INVERSE_CHANGED: 'draw:inverseChanged',
+    STATUS_NOTICE: 'status:notice',
     SYMMETRY_CHANGED: 'symmetry:changed',
     CLIP_CHANGED: 'clip:changed',
     DRAW_MODE_CHANGED: 'draw:modeChanged',
