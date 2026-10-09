@@ -216,3 +216,41 @@ View rows' reasons are not reachable by keyboard or touch, as with the Image > A
 Still open (carried): stamp support for the attribute commands (2A); Image > Flip, Rotate and Invert writing
 into a floating stamp's cells (2B, logged, not fixed).
 Next: Batch 3 part 3B (same branch).
+
+## 2026-10-09 - Batch 3 part 3B - Pointer readout, PLOT, custom grid, grid colours - done
+Model: Sonnet (the owner's choice for the one-run series, see .claude/parity/RUN-ALL.md). Branch: parity-a.
+Commits: d3d7a79 feat: pointer readout with attribute, memory addresses and PLOT Y; custom grid; grid colours; grids remembered
+(the docs and log commit follows)
+Done: js/utils/pointer-info.js (PointerInfo: plotY, attributeByte, attributeParts, addresses, hex; memory bases
+and PLOT rows in constants.js SPECTRUM_MEMORY with [P] sources). Pointer readout: attribute line and address
+line in the status bar (spans #attr-readout, #addr-readout), shown by the new preference, X/Y and Cell now
+translated, refreshed at once on a preference, language or mode change. Preferences: Pointer readout shows
+(position / plus attribute / plus addresses), Y counts from (top or BASIC PLOT bottom), Grid colours (four
+pickers, a Theme colour box each, Reset), all stored in the preferences record. Custom grid: GridLines
+(js/utils/grid-lines.js), a fourth grid canvas, View > Show Custom Grid and Custom Grid... (js/ui/components/
+custom-grid-dialog.js), the preset view slice, and all four grids remembered across a reload (Storage key
+gridState). I18n.t and I18n.plural now treat a "$" in a value as text. Validators.isHexColour / normaliseHexColour.
+33 i18n keys in 13 locales. Manual: "Reading the pointer" section in 20-attribute-clash.md in 13 languages;
+build-manual and check:manual pass.
+Tests: tests/pointer-info.test.js and tests/custom-grid.test.js (Node, failed first); tests/browser/
+pointer-readout.spec.js (12 specs). Full run: run-all ALL TEST FILES PASSED; npx playwright test 622 passed.
+Left: none in 3B. Batch 3 is complete.
+Plan corrections: batch-03.md Decisions list (address table corrected, PLOT scope, status bar not the strip, grid
+memory, colour rule). Grid visibility had never been remembered (the batch file assumed it was).
+Opus: plan review (Plan agent, opus) -> change. Formulas confirmed correct against the cited sources; mode table
+fixed (ULANext has a byte and addresses; ula_plus_8x1 has Timex addresses; GigaScreen needs both attribute bytes;
+Timex hi-res and indexed modes have no cell colours); no typed screen sizes (constants); the strip is full so the
+lines went in the status bar with aria-live off; grid canvases are in index.html not canvas-system.js;
+Preferences saves a whole record (the new keys had to join it); per-grid "theme" box so Reset follows the theme;
+a "$" in a translated value is text (I18n fixed); custom steps stored unclamped and clamped at draw; GRID_VISIBILITY
+carries custom; preset view slice. Seventeen corrections, all applied.
+Owner: "Remember the grids across a reload?" -> "Remember all four grids (Recommended)".
+Flaky tests: none seen.
+Comparison doc: Custom info bar and User-defined grid are Same; Options stays Partial (grid colours and PLOT done).
+count-verdicts: 59 below parity (21 missing, 38 partial), was 61.
+Observed, not fixed: the X/Y readout in the zoom strip is inside a polite live region and is announced about 31
+times a second by a screen reader (the new lines are aria-live off). js/i18n/hu.js 'view.attributes' still reads
+'Attributumok mutatasa' (carried). A stray test log H:\pw_3b.txt (outside the repo) could not be deleted by the run.
+Still open (carried): stamp support for the attribute commands (2A); Image > Flip, Rotate and Invert writing into a
+floating stamp's cells (2B, logged, not fixed).
+Next: Batch 4 part 4A (same branch). It stops to ask the owner two questions (RUN-ALL.md).

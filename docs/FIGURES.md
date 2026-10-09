@@ -618,6 +618,19 @@ grows moved to 1200 px (0.277 / 0.270), where the scale is not floored.
 No decision rests on the grey levels. The compose cost did not move beyond run to
 run noise, so no optimisation was needed.
 
+### Pointer readout and custom grid - 2026-10-09 (batch 3 part 3B)
+
+| Figure | Value | Tag |
+|---|---|---|
+| Display file at $4000, attributes at $5800, PLOT rows 176 | as written | P, ZX BASIC manual ch. 17 and 24, read 2026-10-09 |
+| Timex second display file at $6000, hi-colour attribute = pixel byte + $2000, hi-res columns alternate | as written | P, TS2068 port map, read 2026-10-09 |
+| Shadow screen in bank 7 at $C000 | as written | P, World of Spectrum 128K reference, read 2026-10-09 |
+| GigaScreen screen A = bank 5, screen B = bank 7 | convention | A: the .img file does not say; shown labelled, nothing depends on it |
+| Custom grid draws a direction only when step x scale >= 4 CSS px | 4 px | C: the pixel grid shows from 400%, 1 px x 4 |
+| Custom grid default step | 4 | A: a visible but not crowded start; the owner sets their own |
+| Custom grid default colour | #00aa00 (light), #008800 / #3f7f3a (themes) | A: chosen to differ from the pixel, cell and block grids |
+| Readout refresh | 32 ms throttle, unchanged | C, as before |
+
 ### What was measured and NOT acted on
 
 | Path | Figure | Tag | Why it was left |
