@@ -681,6 +681,23 @@ class ShapeGeneratorClass {
         return this._thickenPoints([{ x, y }], t);
     }
 
+    /**
+     * The colour core of a line: a predicate (x, y) => boolean true for every
+     * pixel within `size` (1 or 4) of the line's centre-line points, using the
+     * same disc the line itself is thickened with, so the core always lies
+     * inside the line.
+     * @param {Array<{x: number, y: number}>} centrePoints - the thickness-1 raster
+     * @param {number} size - core width in pixels
+     * @returns {function(number, number): boolean}
+     */
+    corePredicate(centrePoints, size) {
+        const points = size > 1 ? this._thickenPoints(centrePoints, size) : centrePoints;
+        const W = ZX_SPECTRUM.WIDTH;
+        const keys = new Set();
+        for (const p of points) keys.add(p.y * W + p.x);
+        return (x, y) => keys.has(y * W + x);
+    }
+
     /** Stamp a disc of the given diameter over every point (deduplicated). @private */
     _thickenPoints(points, thickness) {
         const r = thickness / 2;

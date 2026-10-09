@@ -94,6 +94,9 @@ class OptionControlsClass {
             if (data && data.tool === this.currentToolId) this.showOptionsForTool(data.tool);
         });
 
+        // A row that follows the screen mode ({ cells: true }) changes with it.
+        EventBus.on(EVENTS.SCREEN_MODE_CHANGED, () => this._applyVisibility());
+
         this._initialized = true;
 
         const current = ToolManager.getCurrentTool();
@@ -619,6 +622,11 @@ class OptionControlsClass {
     _evalShowIf(cond) {
         if (Array.isArray(cond.any)) return cond.any.some(c => this._evalShowIf(c));
         if (Array.isArray(cond.all)) return cond.all.every(c => this._evalShowIf(c));
+        // { cells: true }: the screen mode, not another option - cells have colours.
+        if ('cells' in cond) {
+            const has = !window.ColorManager || ColorManager.hasCellAttributes();
+            return has === !!cond.cells;
+        }
         const actual = this._values[cond.key];
         if ('equals' in cond) return actual === cond.equals;
         if ('in' in cond)     return cond.in.includes(actual);

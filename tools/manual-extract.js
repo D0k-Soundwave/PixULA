@@ -88,6 +88,7 @@ function extractManualData() {
             if (!c) return '';
             if (c.all) return c.all.map(one).filter(Boolean).join(and);
             if (c.any) return c.any.map(one).filter(Boolean).join(or);
+            if ('cells' in c) return c.cells ? t('manual.showIf.cellAttributes') : '';
             if (!c.key) return '';
             const label = labelFor(c.key);
             if ('equals' in c) {

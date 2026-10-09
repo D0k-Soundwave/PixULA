@@ -1048,11 +1048,14 @@ class GridOverlayClass {
             for (let row = 0; row < cellH; row++) {
                 for (let col = 0; col < cellW; col++) {
                     const pixKey = (baseX + col) + ',' + (baseY + row);
-                    if (inkSet.has(pixKey)) {
-                        writes.push({ localX: col, localY: row, mode: inkMode });
-                    } else if (paperSet.has(pixKey)) {
-                        writes.push({ localX: col, localY: row, mode: paperMode });
-                    }
+                    const wanted = inkSet.has(pixKey) ? inkMode : paperSet.has(pixKey) ? paperMode : null;
+                    if (!wanted) continue;
+                    // Under a colour core the pixels outside it keep their dot but
+                    // not their colours: the same rule the commit applies.
+                    const kept = PixelDrawRoutine.classifyCore(baseX + col, baseY + row, wanted, colorSelection);
+                    if (kept === null) continue;
+                    writes.push({ localX: col, localY: row, mode: kept.mode,
+                        sel: kept.sel !== colorSelection ? kept.sel : undefined });
                 }
             }
 

@@ -53,6 +53,9 @@ class BezierToolClass extends ToolBase {
         { value: 'cubic',     i18n: 'curve.cubic' }
       ] },
     { type: 'range', key: 'thickness', i18n: 'opt.thickness', min: 1, max: 8, value: 1 },
+    // Colour core: only the cells under the curve's centre line take the colours.
+    { type: 'select', key: 'colourCore', i18n: 'opt.colourCore', value: 'whole',
+      options: ToolBase.COLOUR_CORE_OPTS, showIf: { cells: true } },
     { type: 'hint', i18n: 'bezier.usage' }
   ];
 
@@ -60,6 +63,7 @@ class BezierToolClass extends ToolBase {
     super(TOOLS.BEZIER, 'Bezier');
     this._curveType = 'quadratic';
     this._thickness = 1;
+    this._colourCore = 'whole';
     this._phase = 'idle';       // 'idle' | 'baseline' | 'edit'
     this._p0 = null;            // start anchor
     this._p1 = null;            // end anchor
@@ -100,6 +104,24 @@ class BezierToolClass extends ToolBase {
       this._resetControls();
       this._renderPreview();
     }
+  }
+
+  getColourCore() { return this._colourCore; }
+  setColourCore(v) {
+    this._colourCore = ToolBase.cleanColourCore(v);
+    if (this._phase === 'edit') this._renderPreview();
+  }
+
+  /**
+   * The curve's colour core for PixelDrawRoutine.withColourCore, or null when
+   * the whole curve takes colours (see ShapeTool._coreFor).
+   * @private
+   */
+  _coreForCurve() {
+    const size = ToolBase.colourCoreSize(this._colourCore);
+    if (!size || this._thickness <= size) return null;
+    if (!window.ColorManager || !ColorManager.hasCellAttributes()) return null;
+    return ShapeGenerator.corePredicate(this._curvePixels(1), size);
   }
 
   getThickness() { return this._thickness; }
@@ -215,10 +237,13 @@ class BezierToolClass extends ToolBase {
     const mode = PixelDrawRoutine.resolveUserMode(!this._isEraseMode);
     const color = ColorManager.getCurrentSelection();
 
+    const core = this._coreForCurve();
     PixelDrawRoutine.beginBatch('Bezier curve');
-    for (let i = 0; i < pixels.length; i++) {
-      PixelDrawRoutine.draw(pixels[i].x, pixels[i].y, color, mode);
-    }
+    PixelDrawRoutine.withColourCore(core, () => {
+      for (let i = 0; i < pixels.length; i++) {
+        PixelDrawRoutine.draw(pixels[i].x, pixels[i].y, color, mode);
+      }
+    });
     PixelDrawRoutine.endBatch();
 
     this._resetState();
@@ -292,8 +317,8 @@ class BezierToolClass extends ToolBase {
   }
 
   /** Current curve raster from ShapeGenerator (pure math). @private */
-  _curvePixels() {
-    const opts = { thickness: this._thickness };
+  _curvePixels(thickness = this._thickness) {
+    const opts = { thickness };
     if (this._curveType === 'cubic') {
       return ShapeGenerator.generateCubicBezier(
         this._p0, this._controls[0], this._controls[1], this._p1, opts);
@@ -320,8 +345,10 @@ class BezierToolClass extends ToolBase {
     if (!window.GridOverlay) return;
 
     const pixels = this._curvePixels();
-    if (this._isEraseMode) GridOverlay.drawCompositorPreview([], pixels);
-    else GridOverlay.drawCompositorPreview(pixels, []);
+    PixelDrawRoutine.withColourCore(this._coreForCurve(), () => {
+      if (this._isEraseMode) GridOverlay.drawCompositorPreview([], pixels);
+      else GridOverlay.drawCompositorPreview(pixels, []);
+    });
 
     const points = this._handles();
     const radius = this._handleRadius();

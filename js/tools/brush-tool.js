@@ -163,6 +163,11 @@ class BrushToolClass extends ToolBase {
       showIf: FADE_SHOWIF },
     { type: 'range',  key: 'fadeStipple', i18n: 'opt.fadeStipple', min: 0, max: 100, value: 25, unit: '%',
       showIf: FADE_SHOWIF },
+    // Colour core: a thick solid line sets every dot but only its core's cells take the
+    // colours. Shown only where cells have colours, for the solid round/square types.
+    { type: 'select', key: 'colourCore', i18n: 'opt.colourCore', value: 'whole',
+      options: ToolBase.COLOUR_CORE_OPTS,
+      showIf: { all: [ { key: 'brushType', in: SOLID_BRUSHES }, { cells: true } ] } },
     { type: 'range',  key: 'sizeVariation', i18n: 'opt.sizeJitter',    min: 0, max: 100, value: 0, unit: '%' },
     // Jitter spacing only matters while size jitter is active
     { type: 'range',  key: 'variationRate', i18n: 'opt.jitterSpacing', min: 1, max: 50,  value: 10,
@@ -295,6 +300,13 @@ class BrushToolClass extends ToolBase {
    * mode (nothing at all in XOR) - so the mark's colours must follow the tile,
    * or every gap in the outline would promise ink it will not get.
    */
+  getColourCore() { return BrushEngine.colourCore; }
+
+  setColourCore(value) { BrushEngine.colourCore = ToolBase.cleanColourCore(value); }
+
+  /** Which pixels of the hover mark are the colour core (see PixelDrawRoutine.markColours). */
+  markCore(centre) { return BrushEngine.markCoreAround(centre); }
+
   markWrite(pixelX, pixelY) {
     const data = BrushEngine.currentBrush === 'pattern'
       ? PatternService.getCurrentPatternData() : null;

@@ -1268,7 +1268,7 @@ class InputHandlerClass {
     this._hoverOutlineTool = tool.id;
     // Each pixel of the mark in the colour it will be left in (or, for the
     // eyedropper, the colour it will take) - PixelDrawRoutine.markColours.
-    const colourAt = PixelDrawRoutine.markColours(tool, pixels, { live });
+    const colourAt = PixelDrawRoutine.markColours(tool, pixels, { live, centre: point });
     const onPicture = isPointer && this._onPicture(point);
     const cursor = onPicture
       ? GridOverlay.brushCursor(pixels, colourAt, this._pointerAt)

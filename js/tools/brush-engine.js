@@ -84,6 +84,14 @@ class BrushEngineClass {
         // Drawing session state
         this.drawingSessionActive = false;
 
+        // Colour core (PixelDrawRoutine.withColourCore): 'whole' | '1' | '4'. A thick
+        // solid stroke sets every dot but only the cells under its core take the
+        // colours. The mask is the stroke's own PATH widened by the core - not built
+        // from the stamps, which sit size / 2 apart and would leave gaps - and is
+        // made per stroke and dropped after.
+        this.colourCore = 'whole';
+        this._coreMask = null;
+
         this._initialized = false;
     }
 
@@ -276,6 +284,57 @@ class BrushEngineClass {
      * @param {boolean} isInk - True for ink, false for paper
      * @returns {boolean} True if any pixels were drawn
      */
+    /**
+     * The core width in pixels for a stamp of `effectiveSize`, or 0 when the
+     * whole stamp takes colours: option off, the stamp is no wider than the
+     * core, the brush is not a solid round/square one (spray, hatch, pattern
+     * and fade share the option value but draw no solid line), or the mode has
+     * no cell colours (a stored value must not act on Layer 2 or Timex hi-res).
+     * @param {number} effectiveSize
+     * @returns {number} 0, 1 or 4
+     */
+    coreSizeFor(effectiveSize) {
+        const size = this.colourCore === '1' ? 1 : this.colourCore === '4' ? 4 : 0;
+        if (!size || effectiveSize <= size) return 0;
+        if (this.currentBrush !== 'round' && this.currentBrush !== 'square') return 0;
+        if (!window.ColorManager || !ColorManager.hasCellAttributes()) return 0;
+        return size;
+    }
+
+    /** Add the core footprint around (x, y) to this stroke's mask. @private */
+    _markCore(x, y, size) {
+        const brush = this.brushes.get(this.currentBrush);
+        if (!brush) return;
+        const W = ZX_SPECTRUM.WIDTH, H = ZX_SPECTRUM.HEIGHT;
+        if (!this._coreMask || this._coreMask.length !== W * H) this._coreMask = new Uint8Array(W * H);
+        const mask = this._coreMask;
+        for (const o of brush.getFootprintOffsets(size)) {
+            const px = x + o.dx, py = y + o.dy;
+            if (px >= 0 && px < W && py >= 0 && py < H) mask[py * W + px] = 1;
+        }
+    }
+
+    /** The predicate PixelDrawRoutine.withColourCore wants, over this stroke's mask. @private */
+    _corePredicate() {
+        const mask = this._coreMask, W = ZX_SPECTRUM.WIDTH;
+        return (px, py) => mask[py * W + px] === 1;
+    }
+
+    /**
+     * The hover mark's core: the core footprint around the pointer, or null
+     * when the whole mark takes colours.
+     * @param {{x: number, y: number}} centre
+     * @returns {Function|null}
+     */
+    markCoreAround(centre) {
+        const size = this.coreSizeFor(this.currentSize);
+        const brush = this.brushes.get(this.currentBrush);
+        if (!size || !brush) return null;
+        const keys = new Set();
+        for (const o of brush.getFootprintOffsets(size)) keys.add((centre.x + o.dx) + ',' + (centre.y + o.dy));
+        return (px, py) => keys.has(px + ',' + py);
+    }
+
     applyBrush(x, y, pressure = 1.0, isInk = true) {
         this.drawingSessionActive = true;
 
@@ -338,7 +397,7 @@ class BrushEngineClass {
         // comes back over it (PixelDrawRoutine.nextPass).
         PixelDrawRoutine.nextPass(x, y, effectiveSize);
 
-        const applied = brush.apply(x, y, effectiveSize, effectiveFlow, colorSelection, {
+        const stamp = () => brush.apply(x, y, effectiveSize, effectiveFlow, colorSelection, {
             // Pressure is only a fact when the preference is on — otherwise a
             // pen would still modulate the density-driven brushes behind the
             // back of an unticked Pressure Sensitivity setting.
@@ -347,7 +406,11 @@ class BrushEngineClass {
             isInk: isInk
         });
 
-        return applied;
+        // Colour core: this point is on the stroke's path, so its core is core.
+        const coreSize = this.coreSizeFor(effectiveSize);
+        if (!coreSize) return stamp();
+        this._markCore(x, y, coreSize);
+        return PixelDrawRoutine.withColourCore(this._corePredicate(), stamp);
     }
 
     /**
@@ -377,6 +440,14 @@ class BrushEngineClass {
 
         let applied = false;
 
+        // Colour core: mark the whole path first, so every stamp already sees the
+        // centre line AHEAD of it (stamps are size / 2 apart; a core built from
+        // them would be dotted, and would miss the cells a corner clips).
+        const coreSize = this.coreSizeFor(this.currentSize);
+        if (coreSize) {
+            ToolBase.forEachLinePoint(fromX, fromY, toX, toY, (px, py) => this._markCore(px, py, coreSize));
+        }
+
         for (let i = 1; i <= steps; i++) {
             const t = i / steps;
             const x = Math.round(fromX + (toX - fromX) * t);
@@ -395,6 +466,7 @@ class BrushEngineClass {
      */
     startDrawingSession() {
         this.drawingSessionActive = true;
+        this._coreMask = null;
         this.currentSizeVariationValue = 0;
         this.variationDistance = 0;
         this.lastVariationX = null;
@@ -413,6 +485,7 @@ class BrushEngineClass {
      */
     endDrawingSession() {
         this.drawingSessionActive = false;
+        this._coreMask = null;
     }
 
     /**
