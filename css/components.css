@@ -92,6 +92,14 @@
     background: transparent;
 }
 
+/* A ticked row that the current screen mode greys out must not read as active:
+   the ticked style is more specific than the greyed one, so say it again. */
+.menu-action.menu-toggle.checked.disabled,
+.menu-action.menu-toggle.checked.disabled:hover {
+    color: var(--text-muted);
+    background: transparent;
+}
+
 /* The checked state highlights the whole row (same translucent-tint
    convention as the current-layer row, .layer-item.current) rather than
    drawing a glyph — a glyph needed its own gutter reserved on every toggle

@@ -862,46 +862,6 @@ class CanvasSystemClass {
   }
 
   /**
-   * Render a specific cell from layer data
-   * @param {number} cellX - Cell X
-   * @param {number} cellY - Cell Y
-   * @param {Object} cellData - Cell data { ink, paper, bright, pixels }
-   */
-  renderCell(cellX, cellY, cellData) {
-    if (!Validators.isValidCellCoord(cellX, cellY)) return;
-
-    const cellW = ZX_SPECTRUM.CELL_WIDTH;
-    const cellH = ZX_SPECTRUM.CELL_HEIGHT;
-    const baseX = cellX * cellW;
-    const baseY = cellY * cellH;
-
-    let inkRgb, paperRgb;
-    if (window.ColorManager && ColorManager.attrToIndices) {
-      const t = ColorManager.attrToIndices(cellData);
-      inkRgb = ColorManager.getRGB(t.ink);
-      paperRgb = ColorManager.getRGB(t.paper);
-    } else {
-      inkRgb = ZX_PALETTE_RGB[this.getColorIndex(cellData.ink, cellData.bright)];
-      paperRgb = ZX_PALETTE_RGB[this.getColorIndex(cellData.paper, cellData.bright)];
-    }
-
-    for (let row = 0; row < cellH; row++) {
-      const pixelByte = cellData.pixels[row];
-      for (let col = 0; col < cellW; col++) {
-        const x = baseX + col;
-        const y = baseY + row;
-        const bitPosition = 7 - col;
-        const isInk = (pixelByte >> bitPosition) & 1;
-
-        const rgb = isInk ? inkRgb : paperRgb;
-        this.setPixel(x, y, rgb[0], rgb[1], rgb[2]);
-      }
-    }
-
-    this.markCellDirty(cellX, cellY);
-  }
-
-  /**
    * Convert screen coordinates to pixel coordinates
    *
    * IMPORTANT: This method does NOT clamp or reject out-of-bounds coordinates.

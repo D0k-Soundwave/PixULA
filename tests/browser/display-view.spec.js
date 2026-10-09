@@ -133,6 +133,37 @@ test('an image export is byte-identical with the switches on and off', async ({ 
     expect(await hash()).toBe(off);
 });
 
+test('a real PNG and an animated GIF are byte-identical with the switches on and off', async ({ page }) => {
+    await boot(page);
+    await seed(page);
+    const files = () => page.evaluate(async () => {
+        const png = new Uint8Array(await (await PNGFormat.export()).arrayBuffer());
+        const gif = GIFFormat.export({ animated: true });
+        return { png: Array.from(png).join(','), gif: Array.from(gif).join(',') };
+    });
+    const off = await files();
+    await toggle(page, 'colours-off');
+    expect(await files(), 'Colours off').toEqual(off);
+    await toggle(page, 'colour-grid');
+    expect(await files(), 'Colour grid').toEqual(off);
+    await toggle(page, 'stop-flashing');
+    expect(await files(), 'Stop flashing').toEqual(off);
+});
+
+test('a ticked row that the mode greys out does not look active', async ({ page }) => {
+    await boot(page);
+    page.on('dialog', (d) => d.accept());
+    await toggle(page, 'colours-off');
+    await openView(page);
+    const active = await item(page, 'colours-off').evaluate((el) => getComputedStyle(el).color);
+    await page.keyboard.press('Escape');
+    await selectMode(page, 'layer2_256');
+    await openView(page);
+    const greyed = await item(page, 'colours-off').evaluate((el) => getComputedStyle(el).color);
+    expect(greyed, 'ticked and greyed out reads as greyed out').not.toBe(active);
+    await page.keyboard.press('Escape');
+});
+
 test('rows are greyed out with a reason in the modes where they cannot apply', async ({ page }) => {
     await boot(page);
     page.on('dialog', (d) => d.accept());
@@ -198,7 +229,10 @@ test('the choices are remembered across a reload', async ({ page }) => {
     await toggle(page, 'colours-off');
     await toggle(page, 'stop-flashing');
     await page.waitForTimeout(300);
+    await seed(page);
     await reload(page);
+    await seed(page);
+    expect(await shown(page, 16, 16), 'the remembered switch is applied at boot').toEqual(BLACK);
     expect(await page.evaluate(() => StateManager.getDisplayView())).toEqual(
         { coloursOff: true, stopFlashing: true, colourGrid: false });
     await openView(page);

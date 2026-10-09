@@ -279,6 +279,9 @@ class AppClass {
             Storage.set('viewColourGrid', !!v.colourGrid).catch(() => {});
         });
         ColorManager.initialize();
+        // The remembered View switches apply before anything is drawn, so a
+        // restored picture never shows in colour first.
+        LayerManager.setDisplayView(StateManager.getDisplayView());
         UndoRedo.initialize();
         ReferenceLayerService.initialize(); // defers its work to CanvasSystem.onReady
     }
@@ -406,7 +409,6 @@ class AppClass {
         this._setupAutosave();
         this._setupUnloadWarning();
 
-        LayerManager.setDisplayView(StateManager.getDisplayView());
         LayerManager.composeToCanvas();
         CanvasSystem.requestRender();
     }

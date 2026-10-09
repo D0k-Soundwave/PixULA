@@ -730,10 +730,42 @@ class LayerManagerClass {
   _refreshDisplayFlags() {
     const r = this._dispRaw;
     const d = this._disp;
-    d.mono = r.coloursOff && ZX_SPECTRUM.PIXEL_DEPTH === 1;
-    d.grid = r.colourGrid && ZX_SPECTRUM.PIXEL_DEPTH === 1 &&
-      ACTIVE_SCREEN_MODE.paletteModel !== 'timexMono';
-    d.noFlash = r.stopFlashing && ACTIVE_SCREEN_MODE.paletteModel === 'fixed16';
+    const can = this.displayViewAvailability();
+    d.mono = r.coloursOff && can.coloursOff;
+    d.grid = r.colourGrid && can.colourGrid;
+    d.noFlash = r.stopFlashing && can.stopFlashing;
+  }
+
+  /**
+   * Which of the three view switches the ACTIVE screen mode can show. The one
+   * place this is decided: the compositor and the View menu both ask here.
+   *   coloursOff    every mode with dots (the indexed modes have none)
+   *   colourGrid    only where cells have attributes (not Timex hi-res)
+   *   stopFlashing  only where the palette flashes
+   * @returns {{indexed: boolean, coloursOff: boolean, colourGrid: boolean, stopFlashing: boolean}}
+   */
+  displayViewAvailability() {
+    const indexed = ZX_SPECTRUM.PIXEL_DEPTH > 1;
+    const model = ACTIVE_SCREEN_MODE.paletteModel;
+    return {
+      indexed,
+      coloursOff: !indexed,
+      colourGrid: !indexed && model !== 'timexMono',
+      stopFlashing: model === 'fixed16'
+    };
+  }
+
+  /**
+   * The GigaScreen display actually drawn. Flicker is a 50 Hz strobe between
+   * the two screens; with the colours hidden it would be a black and white
+   * flash with screen A only and screen B only looking the same, so while
+   * Colours off or Colour grid applies it shows the Average (the grey levels).
+   * @returns {string} 'average' | 'flicker' | 'a' | 'b'
+   * @private
+   */
+  _effectiveGigaView() {
+    const v = this._gigaView;
+    return (v === 'flicker' && (this._disp.mono || this._disp.grid)) ? 'average' : v;
   }
 
   /**
@@ -748,11 +780,12 @@ class LayerManagerClass {
     };
     this._refreshDisplayFlags();
     this._syncFlashClock();
+    this._syncGigaFlicker();
     this.composeToCanvas();
   }
 
   /**
-   * The ink a cell shows. THE display-colour rule: the five places that
+   * The ink a cell shows. THE display-colour rule: the four places that
    * resolve a cell's colours (composeCellToCanvas, previewCellColours, the
    * single-screen and blended GigaScreen paths) all ask here, so the view
    * switches cannot apply in one path and not another.
@@ -1625,16 +1658,21 @@ class LayerManagerClass {
     // active mode descriptor and GRID_COLS/GRID_ROWS each perform a division,
     // so leaving them in the loop conditions re-derives both on every one of
     // the 768 (or 2,560) iterations.
-    const rows = ZX_SPECTRUM.GRID_ROWS;
-    const cols = ZX_SPECTRUM.GRID_COLS;
     this._refreshDisplayFlags();
     this._syncFlashClock();
+    this._composeAll();
+    CanvasSystem.requestRender();
+  }
+
+  /** Compose every cell with the flags and clock as they are. @private */
+  _composeAll() {
+    const rows = ZX_SPECTRUM.GRID_ROWS;
+    const cols = ZX_SPECTRUM.GRID_COLS;
     for (let cellY = 0; cellY < rows; cellY++) {
       for (let cellX = 0; cellX < cols; cellX++) {
         this.composeCellToCanvas(cellX, cellY);
       }
     }
-    CanvasSystem.requestRender();
   }
 
   /**
@@ -2144,7 +2182,7 @@ class LayerManagerClass {
    * @private
    */
   _composeGigaCell(cellX, cellY, alteredLayers, bgCell, cellW, cellH, baseX, baseY) {
-    const view = this._gigaView;
+    const view = this._effectiveGigaView();
     // One screen at a time (A, B, or a flicker frame) is an ordinary
     // two-colour cell, so it takes the classic blit - the flicker display
     // recomposes every frame and cannot afford 64 setPixel calls per cell.
@@ -2200,9 +2238,10 @@ class LayerManagerClass {
     const inkA = this._cellInk(resA), paperA = this._cellPaper(resA, cellX, cellY);
     const inkB = this._cellInk(resB), paperB = this._cellPaper(resB, cellX, cellY);
 
-    const view = this._gigaView === 'flicker'
+    const shownView = this._effectiveGigaView();
+    const view = shownView === 'flicker'
       ? (this._gigaFlickerPhase ? 'b' : 'a')
-      : this._gigaView;
+      : shownView;
     // The 4 possible blended colours of this cell, indexed bitA*2 + bitB
     // (GIGA_SLOTS)
     // Colours off / Colour grid show the dots as grey levels instead: no dot
@@ -2293,42 +2332,48 @@ class LayerManagerClass {
   /**
    * The canvas as a still picture, for the image exporters (PNG, BMP, JPG).
    *
-   * The canvas buffer is whatever was last composed, and under the Flicker
-   * display that is whichever screen the last frame showed - so an export
-   * would come out as screen A or screen B at random. A still picture cannot
-   * flicker, so it gets the Average, which is what the eye sees; every other
-   * display (Average, A, B) exports as shown, exactly as before.
-   * @returns {ImageData} the live buffer, or a copy rendered in Average
+   * The canvas buffer is whatever was last composed, so three things would
+   * leak into an export, and each is taken out:
+   *  - the Flicker display (the buffer holds whichever screen the last frame
+   *    showed): a still picture gets the Average, which is what the eye sees;
+   *  - the display-only view switches (Colours off, Colour grid): an export
+   *    is the picture, not the way it is being looked at;
+   *  - a FLASH cell caught in its inverted phase: exports show the normal one.
+   * Every other display (Average, A, B) exports as shown, exactly as before.
+   * @returns {ImageData} the live buffer, or a copy rendered as above
    */
   stillImageData() {
+    // The buffer must be current first: the flash clock and queued strokes
+    // only mark cells for the next frame.
+    this.flushPendingCompose();
     const d = this._disp;
     const viewSwitch = d.mono || d.grid;
     const flicker = ZX_SPECTRUM.SCREENS === 2 && this._gigaView === 'flicker';
-    // A mid-flash export would capture a random phase, so any flashing cell
-    // in the inverted phase forces the render too.
     const midFlash = this._flashInverted && this._flashingCells.size > 0;
     if (!viewSwitch && !flicker && !midFlash) return CanvasSystem.getImageData();
 
-    // The view switches are display only: render the real picture, copy it,
-    // then put the screen back as the user has it.
     const savedRaw = this._dispRaw;
     const savedPhase = this._flashInverted;
     const savedView = this._gigaView;
-    this._dispRaw = { coloursOff: false, colourGrid: false, stopFlashing: false };
-    this._flashInverted = false;
-    if (flicker) this._gigaView = 'average';
-    this._refreshDisplayFlags();
-    this.composeToCanvas();
-    const live = CanvasSystem.getImageData();
-    const copy = Helpers.createCanvas(live.width, live.height).getContext('2d')
-      .createImageData(live.width, live.height);
-    copy.data.set(live.data);
-    this._dispRaw = savedRaw;
-    this._flashInverted = savedPhase;
-    this._gigaView = savedView;
-    this._refreshDisplayFlags();
-    this.composeToCanvas();
-    return copy;
+    try {
+      this._dispRaw = { coloursOff: false, colourGrid: false, stopFlashing: false };
+      this._flashInverted = false;
+      if (flicker) this._gigaView = 'average';
+      this._refreshDisplayFlags();
+      this._composeAll();
+      const live = CanvasSystem.getImageData();
+      const copy = Helpers.createCanvas(live.width, live.height).getContext('2d')
+        .createImageData(live.width, live.height);
+      copy.data.set(live.data);
+      return copy;
+    } finally {
+      // Put the screen back as the user has it, whatever happened above.
+      this._dispRaw = savedRaw;
+      this._flashInverted = savedPhase;
+      this._gigaView = savedView;
+      this._refreshDisplayFlags();
+      this._composeAll();
+    }
   }
 
   /**
@@ -2337,7 +2382,8 @@ class LayerManagerClass {
    * change and on every mode switch.
    */
   _syncGigaFlicker() {
-    const want = this._gigaView === 'flicker' && ZX_SPECTRUM.SCREENS === 2;
+    const want = this._gigaView === 'flicker' && ZX_SPECTRUM.SCREENS === 2 &&
+      !(this._disp.mono || this._disp.grid);
     const raf = typeof window !== 'undefined' && window.requestAnimationFrame;
     if (!want || !raf) {
       if (this._gigaFlickerId !== null && window.cancelAnimationFrame) {
@@ -2357,7 +2403,7 @@ class LayerManagerClass {
     // two refreshes; an emulator on the same display does exactly that.
     const frameMs = LayerManagerClass.GIGA_FRAME_MS;
     const tick = (now) => {
-      if (this._gigaView !== 'flicker' || ZX_SPECTRUM.SCREENS !== 2) {
+      if (this._gigaView !== 'flicker' || ZX_SPECTRUM.SCREENS !== 2 || this._disp.mono || this._disp.grid) {
         this._gigaFlickerId = null;
         this._gigaFlickerPhase = 0;
         return;

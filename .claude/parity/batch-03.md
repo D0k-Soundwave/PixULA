@@ -65,6 +65,23 @@ Defaults:
 - Stop flashing shows each cell in its normal (unswapped) phase and pauses
   the clock; turning it off resumes.
 
+Decided during part 3A (2026-10-09):
+- Grey levels [A]: chessboard alternate 224, screen A only 170, screen B only 102
+  (of 255), in `DISPLAY_VIEW_COLOURS`. Changeable; nothing depends on them.
+- The Flicker display shows the Average (the grey levels) while Colours off or
+  Colour grid is on, and its frame loop pauses.
+- Stop flashing is disabled wherever the palette does not flash: ULAplus,
+  ULAplus 8x1, ULANext, Timex hi-res (both), and the indexed modes - wider than
+  the list above, because only the fixed 16 colours flash.
+- Exports (PNG, BMP, JPG via `LayerManager.stillImageData`) draw the real picture
+  and the normal flash phase, whatever the switches say.
+- Grid visibility is NOT remembered per browser today (only grid snap is); the
+  three switches are, under their own Storage keys, like grid snap. For 3B: the
+  custom grid and grid colours need their own keys, they will not inherit any.
+- The border colour and the reference photo are left as they are under Colours off.
+- The reasons for a greyed-out View row are its tooltip; arrow keys skip greyed
+  rows, as with the Image > Attributes rows. Noted for an accessibility pass.
+
 OWNER: none known.
 
 ## Part 3A - Colours off, Stop flashing, Colour grid

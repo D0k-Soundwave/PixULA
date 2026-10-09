@@ -187,21 +187,19 @@ class MenuSystemClass {
      * @private
      */
     _updateDisplayViewMenuState() {
-        if (!window.StateManager || !window.ZX_SPECTRUM || !this.element) return;
+        if (!window.StateManager || !window.LayerManager || !this.element) return;
         const v = StateManager.getDisplayView();
         this._updateToggleState('colours-off', v.coloursOff);
         this._updateToggleState('stop-flashing', v.stopFlashing);
         this._updateToggleState('colour-grid', v.colourGrid);
-        const indexed = ZX_SPECTRUM.PIXEL_DEPTH > 1;
-        const hasCells = window.ColorManager ? ColorManager.hasCellAttributes() : !indexed;
-        const flashes = ACTIVE_SCREEN_MODE.paletteModel === 'fixed16';
+        const can = LayerManager.displayViewAvailability();
         const noDots = ['view.display.noDots', 'Every pixel has its own colour in this screen mode, so there are no dots to show.'];
         const noCells = ['view.display.noCells', 'This screen mode has no colour cells.'];
         const noFlash = ['view.display.noFlash', 'Nothing flashes in this screen mode.'];
         const rows = [
-            ['colours-off', !indexed, noDots],
-            ['colour-grid', hasCells, indexed ? noDots : noCells],
-            ['stop-flashing', flashes, noFlash]
+            ['colours-off', can.coloursOff, noDots],
+            ['colour-grid', can.colourGrid, can.indexed ? noDots : noCells],
+            ['stop-flashing', can.stopFlashing, noFlash]
         ];
         for (const [id, enabled, reason] of rows) {
             this.setItemEnabled(id, enabled);
@@ -674,6 +672,12 @@ class MenuSystemClass {
         EventBus.on(EVENTS.SYMMETRY_CHANGED, ({ mode }) => this._updateMirrorToggles(mode));
         EventBus.on(EVENTS.GRID_SNAP_CHANGED, ({ snap }) => this._updateToggleState('grid-snap', !!snap));
         EventBus.on(EVENTS.DISPLAY_VIEW_CHANGED, () => this._updateDisplayViewMenuState());
+        // The greyed-out reasons are written into tooltips; follow the language.
+        EventBus.on(EVENTS.UI_LANGUAGE_CHANGE, () => {
+            this._updateDisplayViewMenuState();
+            this._updateAttributeMenuState();
+            this._updateDotMenuState();
+        });
 
         // Keep each View-menu panel checkbox in sync with PanelSection's own
         // visibility fact — fired on creation, on restore() resolving

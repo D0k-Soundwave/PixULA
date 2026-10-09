@@ -5,7 +5,7 @@
  *
  * They change what the screen SHOWS and nothing else: not a cell, not undo, not
  * an export. The rule lives in one place in the compositor
- * (LayerManager._displayInkPaper), so every path that used to swap ink and
+ * (LayerManager._cellInk and _cellPaper), so every path that used to swap ink and
  * paper for FLASH on its own (composeCellToCanvas, previewCellColours, the
  * single-screen GigaScreen blit, the GigaScreen blend) follows the switches
  * together. Per mode:
@@ -326,6 +326,81 @@ for (const mode of ['gigascreen', 'multigiga_8x2']) {
   check('GigaScreen: export with Colours off and Flicker equals the plain Average export',
     Buffer.compare(gExp, gBase) === 0);
   LayerManager.setGigaView('average');
+  view({});
+}
+
+// -- 7. Review additions -----------------------------------------------------
+
+{
+  // Flicker would strobe black and white with the colours hidden; it shows the
+  // grey levels (the Average) instead, and its frame loop is not wanted.
+  enter('gigascreen');
+  const c = seed(0, 0, {});
+  c.pixelsB = new Uint8Array(ZX_SPECTRUM.CELL_HEIGHT);
+  c.pixelsB[0] = 0xCC;
+  Object.assign(c, { inkB: 2, paperB: 5, brightB: false, flashB: false });
+  c.pixels[0] = 0xF0;
+  LayerManager._gigaView = 'flicker';
+  LayerManager._gigaFlickerPhase = 0;
+  view({ coloursOff: true });
+  check('Flicker with Colours off shows the grey levels (screen A only)', same(px(2, 0), V.SCREEN_A_ONLY));
+  check('...and screen B only', same(px(4, 0), V.SCREEN_B_ONLY));
+  LayerManager._gigaFlickerPhase = 1;
+  view({ coloursOff: true });
+  check('...the same on the other flicker phase', same(px(2, 0), V.SCREEN_A_ONLY) && same(px(4, 0), V.SCREEN_B_ONLY));
+  LayerManager._gigaView = 'average';
+  view({});
+
+  // Colour grid on an odd cell: no dot is the alternate paper.
+  seed(1, 0, {});
+  const odd = layer().getCell(1, 0);
+  odd.pixelsB = new Uint8Array(ZX_SPECTRUM.CELL_HEIGHT);
+  Object.assign(odd, { inkB: 2, paperB: 5, brightB: false, flashB: false });
+  odd.pixels[0] = 0xF0;
+  view({ colourGrid: true });
+  check('GigaScreen Colour grid: an odd cell with no dot shows the alternate paper', same(px(8 + 7, 0), V.CELL_ALT));
+  check('...an even cell with no dot shows white', same(px(7, 0), V.WHITE));
+  view({});
+}
+
+{
+  // The two-screen Timex hi-res: greys with Colours off, nothing for Colour grid.
+  enter('timex_hires_giga');
+  const c = seed(0, 0, {});
+  c.pixelsB = new Uint8Array(ZX_SPECTRUM.CELL_HEIGHT);
+  c.pixels[0] = 0xF0; c.pixelsB[0] = 0xCC;
+  LayerManager.composeToCanvas();
+  const base = Buffer.from(buf);
+  view({ colourGrid: true });
+  check('timex_hires_giga: Colour grid has no cells, so nothing changes', Buffer.compare(Buffer.from(buf), base) === 0);
+  view({ coloursOff: true });
+  check('timex_hires_giga: Colours off shows both-screens black', same(px(0, 0), V.BLACK));
+  check('timex_hires_giga: ...and no dot white', same(px(6, 0), V.WHITE));
+  view({});
+}
+
+{
+  // An export made while the flash clock's change is only queued is still current.
+  enter('standard_ula');
+  seedFour({ flash: true });
+  LayerManager._flashInverted = true;
+  LayerManager.composeToCanvas();
+  const inverted = Buffer.from(buf);
+  LayerManager._flashInverted = false;
+  LayerManager.deferCellCompose(0, 0);   // queued, not yet drawn
+  const exp = Buffer.from(LayerManager.stillImageData().data);
+  check('an export flushes queued cells first', Buffer.compare(exp, inverted) !== 0 && same(
+    [exp[0], exp[1], exp[2]], rgbOf(ColorManager.getRGB(1))));
+  // A throw mid-render still puts the screen back as the user has it.
+  view({ coloursOff: true });
+  const real = CanvasSystem.getImageData;
+  let boom = true;
+  CanvasSystem.getImageData = function () { if (boom) { boom = false; throw new Error('x'); } return real.call(this); };
+  let threw = false;
+  try { LayerManager.stillImageData(); } catch (e) { threw = true; }
+  CanvasSystem.getImageData = real;
+  check('a failing export throws', threw);
+  check('...and Colours off is still on afterwards', LayerManager._disp.mono === true && same(px(0, 0), V.BLACK));
   view({});
 }
 
