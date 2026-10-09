@@ -44,6 +44,22 @@ ohne einen Punkt zu berühren. Das Kapitel über Farbe listet sie auf.
 Tintendichte – das, wozu Sie greifen, wenn eine Zelle ein Grau braucht, das sie
 nicht darstellen kann.
 
+### Die Punkte sehen
+
+Drei Schalter im Menü Ansicht ändern, was der Bildschirm zeigt, ohne das Bild zu
+ändern. **Farben aus** zeigt die Punkte schwarz auf weiß, sodass Sie sehen,
+welche Punkte wirklich gesetzt sind. **Farbraster** tut dasselbe und färbt die
+Zellen zusätzlich wie ein Schachbrett, damit die Zellgrenzen gut zu erkennen
+sind; es und Farben aus schalten sich gegenseitig aus. **Blinken stoppen** hält
+jede blinkende Zelle in ihren normalen Farben. Keiner der Schalter berührt das
+Bild, Rückgängig oder einen Export: Ein gespeichertes Bild sieht gleich aus, ob
+sie an oder aus sind. Der Browser merkt sie sich, und ein Schalter, der im
+aktuellen Bildschirmmodus nicht wirken kann, ist grau – fahren Sie mit der Maus
+darüber, um den Grund zu sehen. Bei GigaScreen und MultiGiga zeigt Farben aus
+vier Graustufen: weiß, wo keiner der beiden Bildschirme einen Punkt hat,
+hellgrau bei einem Punkt nur auf Bildschirm A, dunkleres Grau nur auf Bildschirm
+B und schwarz bei beiden.
+
 ### Wo andere Regeln gelten
 
 Spätere Hardware hat die Beschränkung auf verschiedene Weise gelockert, und

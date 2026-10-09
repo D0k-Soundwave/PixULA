@@ -45,6 +45,21 @@ cella senza toccare un punto. Il capitolo sul colore le elenca.
 d’inchiostro misurate, quelle a cui ricorrere quando una cella ha bisogno di un
 grigio che non può contenere.
 
+### Vedere i punti
+
+Tre interruttori del menu Visualizza cambiano ciò che lo schermo mostra, senza
+cambiare l'immagine. **Colori disattivati** mostra i punti in nero su bianco,
+così vedi quali punti sono davvero impostati. **Griglia colori** fa lo stesso e
+in più tinge le celle come una scacchiera, per vedere bene i confini delle
+celle; essa e Colori disattivati si escludono a vicenda. **Ferma lampeggio**
+tiene ogni cella lampeggiante nei suoi colori normali. Nessuno tocca l'immagine,
+l'annulla o un'esportazione: un'immagine salvata è identica con gli interruttori
+attivi o no. Il browser li ricorda, e un interruttore che non può funzionare
+nella modalità schermo corrente è in grigio: passaci sopra per vedere perché.
+Con GigaScreen e MultiGiga, Colori disattivati mostra quattro livelli di grigio:
+bianco dove nessuno schermo ha un punto, grigio chiaro per un punto solo sullo
+schermo A, un grigio più scuro solo sullo schermo B e nero per entrambi.
+
 ### Dove le regole cambiano
 
 L’hardware successivo ha allentato il vincolo in vari modi, e PixULA sa

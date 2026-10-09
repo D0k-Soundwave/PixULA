@@ -42,6 +42,20 @@ touching a dot. The colour chapter lists them.
 **The pattern library.** Its core is a set of tiles at measured ink densities,
 which is what you reach for when a cell needs a grey it cannot hold.
 
+### Seeing the dots
+
+Three switches in the View menu change what the screen shows, without changing
+the picture. **Colours Off** shows the dots in black on white, so you can see
+which dots are really set. **Colour Grid** does the same and also tints the
+cells like a chessboard, so the cell boundaries are easy to see; it and Colours
+Off switch each other off. **Stop Flashing** holds every flashing cell in its
+normal colours. None of them touches the picture, undo or an export: a saved
+image looks the same whether they are on or off. The browser remembers them, and
+a switch that cannot work in the current screen mode is greyed out - hover over
+it to see why. On GigaScreen and MultiGiga, Colours Off shows four grey levels:
+white where neither screen has a dot, light grey for a dot on screen A only, a
+darker grey for screen B only, and black for both.
+
 ### Where the rules are different
 
 Later hardware relaxed the constraint in various ways, and PixULA can work in

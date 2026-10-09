@@ -41,6 +41,20 @@ Kapitola o barvě je vyjmenovává.
 **Knihovna vzorů.** Jejím jádrem je sada dlaždic s naměřenou hustotou inkoustu
 – po ní sáhnete, když buňka potřebuje šedou, kterou nepojme.
 
+### Vidět body
+
+Tři přepínače v nabídce Zobrazit mění to, co obrazovka ukazuje, aniž by se
+změnil obrázek. **Barvy vypnuty** zobrazí body černou na bílé, takže vidíte,
+které body jsou opravdu nastavené. **Barevná mřížka** udělá totéž a navíc obarví
+buňky jako šachovnici, takže jsou hranice buněk dobře vidět; ona a Barvy vypnuty
+se navzájem vypínají. **Zastavit blikání** ponechá každou blikající buňku v
+jejích normálních barvách. Žádný z nich se nedotýká obrázku, kroku zpět ani
+exportu: uložený obrázek vypadá stejně, ať jsou zapnuté, nebo ne. Prohlížeč si
+je pamatuje a přepínač, který v aktuálním režimu obrazovky nemůže fungovat, je
+šedý – najetím myši uvidíte proč. U GigaScreen a MultiGiga ukazuje Barvy vypnuty
+čtyři úrovně šedi: bílou tam, kde nemá bod žádná obrazovka, světle šedou pro bod
+jen na obrazovce A, tmavší šedou jen pro obrazovku B a černou pro obě.
+
 ### Kde platí jiná pravidla
 
 Pozdější hardware omezení různě uvolnil a PixULA umí pracovat se všemi

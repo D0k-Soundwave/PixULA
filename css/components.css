@@ -81,6 +81,17 @@
     pointer-events: none;
 }
 
+/* A greyed-out row that explains itself (its title) must still get the
+   pointer for the tooltip to show; the click handler ignores it. */
+.menu-action.disabled[title] {
+    pointer-events: auto;
+    cursor: not-allowed;
+}
+
+.menu-action.disabled[title]:hover {
+    background: transparent;
+}
+
 /* The checked state highlights the whole row (same translucent-tint
    convention as the current-layer row, .layer-item.current) rather than
    drawing a glyph — a glyph needed its own gutter reserved on every toggle

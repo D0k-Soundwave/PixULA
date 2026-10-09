@@ -45,6 +45,21 @@ să atingeți vreun punct. Capitolul despre culoare le enumeră.
 cerneală măsurate – la ele apelați când o celulă are nevoie de un gri pe care nu
 îl poate ține.
 
+### Vizualizarea punctelor
+
+Trei comutatoare din meniul Vizualizare schimbă ceea ce arată ecranul, fără să
+schimbe imaginea. **Culori oprite** arată punctele în negru pe alb, ca să vezi
+care puncte sunt cu adevărat setate. **Grilă de culori** face același lucru și
+colorează în plus celulele ca o tablă de șah, ca limitele celulelor să se vadă
+bine; ea și Culori oprite se opresc una pe alta. **Oprește clipirea** păstrează
+fiecare celulă care clipește în culorile ei normale. Niciunul nu atinge
+imaginea, anularea sau o exportare: o imagine salvată arată la fel, fie că sunt
+pornite sau nu. Browserul le reține, iar un comutator care nu poate funcționa în
+modul de ecran curent este gri – treci cu mouse-ul peste el ca să vezi de ce. În
+GigaScreen și MultiGiga, Culori oprite arată patru niveluri de gri: alb unde
+niciun ecran nu are punct, gri deschis pentru un punct doar pe ecranul A, un gri
+mai închis doar pe ecranul B și negru pentru ambele.
+
 ### Unde regulile sunt altele
 
 Hardware-ul de mai târziu a relaxat constrângerea în diverse feluri, iar PixULA

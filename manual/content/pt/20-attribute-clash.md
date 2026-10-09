@@ -44,6 +44,22 @@ tocar num ponto. O capítulo sobre a cor enumera-os.
 densidades de tinta medidas, aquilo a que recorre quando uma célula precisa de
 um cinzento que não consegue conter.
 
+### Ver os pontos
+
+Três interruptores do menu Ver mudam o que o ecrã mostra, sem mudar a imagem.
+**Cores desligadas** mostra os pontos a preto sobre branco, para veres quais
+pontos estão realmente definidos. **Grelha de cores** faz o mesmo e além disso
+tinge as células como um tabuleiro de xadrez, para os limites das células se
+verem bem; ela e Cores desligadas desligam-se mutuamente. **Parar
+intermitência** mantém cada célula intermitente nas suas cores normais. Nenhum
+toca na imagem, no anular ou numa exportação: uma imagem guardada fica igual com
+eles ligados ou desligados. O navegador lembra-se deles, e um interruptor que
+não pode funcionar no modo de ecrã atual aparece a cinzento – passa o rato por
+cima para veres porquê. No GigaScreen e no MultiGiga, Cores desligadas mostra
+quatro níveis de cinzento: branco onde nenhum ecrã tem ponto, cinzento claro
+para um ponto só no ecrã A, um cinzento mais escuro só no ecrã B e preto para
+ambos.
+
 ### Onde as regras mudam
 
 O hardware posterior aliviou a restrição de várias formas, e o PixULA consegue
