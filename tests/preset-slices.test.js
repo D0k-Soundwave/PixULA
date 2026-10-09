@@ -297,4 +297,20 @@ check('every slice has a label key for the dialogs',
     c.join(','));
 }
 
+// Inverse travels with the drawing-settings slice (so with .pixula projects too).
+{
+  const drawing = global.PresetService.getSlice('drawing');
+  global.StateManager.setInverse(true);
+  const captured = drawing.capture();
+  check('the drawing slice captures Inverse', captured.inverse === true, JSON.stringify(captured));
+  global.StateManager.setInverse(false);
+  drawing.apply(captured);
+  check('...and applies it back', global.StateManager.getInverse() === true);
+  drawing.apply({ drawMode: 'normal', inverse: 'yes' });
+  check('a value that is not a boolean is ignored', global.StateManager.getInverse() === true);
+  drawing.apply({ inverse: false });
+  check('...and an older preset without Inverse leaves it alone, one with false clears it',
+    global.StateManager.getInverse() === false);
+}
+
 summary();
