@@ -81,6 +81,14 @@ this order):
    together). Option 2: one "More cell tools" button that opens a small
    menu of the three. Record both answers below.
 
+OWNER answers (asked in the one-run series, 2026-10-09, measurements [M, 2026-10-09, Playwright at
+800 / 1024 / 1200 px window width, default interface size, icon width in px]):
+1. Inverse switch: a button in the top strip's drawing-modes group (option 1). Strip icons today
+   30.8 / 48.3 / 54 px; with the button 28.3 / 44.5 / 54.
+2. Cell tools: three more buttons beside Swap and Recolour (option 1). With Inverse already added the
+   icons go 28.3 / 44.5 / 54 -> 22.7 / 36.0 / 46.2 px (5.6 / 8.5 / 7.8 px smaller). The owner chose this
+   knowing the cost; the alternative was one "More cell tools" menu button.
+
 ## Part 4A - Inverse switch and Colour core
 
 Build:
