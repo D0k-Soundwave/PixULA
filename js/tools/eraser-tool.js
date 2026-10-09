@@ -11,13 +11,22 @@
 class EraserToolClass extends ToolBase {
   /** Declarative options - rendered by OptionControls (contract in tool-base.js). */
   static optionsSchema = [
-    { type: 'range', key: 'size', i18n: 'opt.size', min: 1, max: 128, value: 8 }
+    { type: 'range', key: 'size', i18n: 'opt.size', min: 1, max: 128, value: 8 },
+    // Wiping: 'set' clears the dots AND gives the cell the colour rail's colours (ZX
+    // Paintbrush's wiping tool); 'keep' is the eraser as it always was.
+    { type: 'select', key: 'eraserColours', i18n: 'opt.eraserColours', value: 'keep',
+      options: [
+        { value: 'keep', i18n: 'ec.keep' },
+        { value: 'set',  i18n: 'ec.set' }
+      ],
+      showIf: { cells: true } }
   ];
 
   constructor() {
     super(TOOLS.ERASER, 'Eraser');
     this.cursor = 'cell';
     this.size = 8;
+    this._eraserColours = 'keep';
     this.lastPoint = null;
     // Pixels already cleared by the stroke in progress — see _eraseAt. Null
     // outside a stroke, so a single _eraseAt() call still writes its whole disc.
@@ -131,9 +140,27 @@ class EraserToolClass extends ToolBase {
       // resets its attributes too, which the primitive never does. The right
       // mouse button is the one that clears ink while still colouring the
       // cell - see the DRAW_MODE block in constants.js.
-      PixelDrawRoutine.draw(x, y, color, DRAW_MODE.ERASE_ALL);
+      PixelDrawRoutine.draw(x, y, color, this._eraseMode());
     }
   }
+
+  /**
+   * The mode this eraser writes. 'set' (wiping) gives the cell the rail's
+   * colours through the right-button primitive, so Bright and Flash "use
+   * existing" are honoured by the gate. Only where cells have colours: a
+   * stored 'set' (a preset, or chosen before a mode switch) must not reach
+   * the indexed modes, where it would write the paper index instead of the
+   * see-through one.
+   * @private
+   */
+  _eraseMode() {
+    return this._eraserColours === 'set' && ColorManager.hasCellAttributes()
+      ? DRAW_MODE.NORMAL_ERASE : DRAW_MODE.ERASE_ALL;
+  }
+
+  getEraserColours() { return this._eraserColours; }
+
+  setEraserColours(value) { this._eraserColours = value === 'set' ? 'set' : 'keep'; }
 
   /**
    * Hover footprint — the same offsets _eraseAt walks, so the outline can never
@@ -149,7 +176,7 @@ class EraserToolClass extends ToolBase {
 
   /** The eraser writes its own mode whatever the draw-mode selector says. */
   markWrite() {
-    return DRAW_MODE.ERASE_ALL;
+    return this._eraseMode();
   }
 
   /**

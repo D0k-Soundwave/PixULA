@@ -220,8 +220,9 @@ class ClutBarClass {
         // two buttons' layout space reserved (an empty gap where they'd be)
         // so the strip's width, and therefore its scale, never depends on
         // which mode is active.
-        const attrHost = document.getElementById('attr-tools');
-        if (attrHost) attrHost.style.visibility = (model === 'timexMono' || indexed) ? 'hidden' : '';
+        // Per button: each tool exists in its own set of screen modes
+        // (ColorManager.cellToolAvailable) - Invert dots works in Timex hi-res.
+        this._syncAttrToolAvailability();
 
         if (model === 'timexMono') {
             if (ZX_SPECTRUM.SCREENS === 2) {
@@ -1083,6 +1084,23 @@ class ClutBarClass {
 
     // ── Attribute operations ─────────────────────────────────────────────────
 
+    /**
+     * Show each whole-cell tool's button only in the screen modes it exists in.
+     * Hidden with `visibility`, never removed, so the strip's width (and the
+     * scale ColorBarFit settles on) does not depend on the mode.
+     * @private
+     */
+    _syncAttrToolAvailability() {
+        for (const [id, op] of Object.entries(ATTR_PAINT_BUTTONS)) {
+            const btn = document.getElementById(id);
+            if (!btn) continue;
+            const available = ColorManager.cellToolAvailable(op);
+            btn.style.visibility = available ? '' : 'hidden';
+            btn.disabled = !available;
+            btn.setAttribute('aria-hidden', String(!available));
+        }
+    }
+
     /** @private */
     _buildAttrOps(host) {
         // Swap/Apply styled as left-toolbar tool buttons: icon-only, like the
@@ -1125,8 +1143,24 @@ class ClutBarClass {
             'attr.apply.hint',
             'Gives each whole cell you click or drag over your ink, paper, bright and flash, without touching a dot and ignoring brush size and Mirror. Click it again, or pick a tool or a draw mode, to stop. With Bright or Flash on "use existing", each cell keeps its own');
 
+        const copyBtn = mkToolBtn('attr-copy', 'icon-attr-copy',
+            'attr.copy', 'Copy colours',
+            'attr.copy.hint',
+            'Click a cell to pick up the colours it shows, then drag over other cells to give them those colours. Dots stay as they are and the colour rail is not changed. Click it again, or pick a tool or a draw mode, to stop');
+        const invertDotsBtn = mkToolBtn('attr-invert-dots', 'icon-attr-invert-dots',
+            'attr.invertDots', 'Invert dots',
+            'attr.invertDots.hint',
+            'Inverts the dots of each whole cell you click or drag over - set dots clear, clear dots set - and leaves the colours. Click it again, or pick a tool or a draw mode, to stop');
+        const invertBothBtn = mkToolBtn('attr-invert-both', 'icon-attr-invert-both',
+            'attr.invertBoth', 'Invert dots and colours',
+            'attr.invertBoth.hint',
+            'Inverts the dots and swaps ink and paper in each whole cell you click or drag over, so the cell looks the same - for tidying an import. Not in ULAplus or ULANext. Click it again, or pick a tool or a draw mode, to stop');
+
         host.appendChild(transposeBtn);
         host.appendChild(applyBtn);
+        host.appendChild(copyBtn);
+        host.appendChild(invertDotsBtn);
+        host.appendChild(invertBothBtn);
 
         // Swap/Apply are interactive paint modes owned by the input handler.
         const toggleAttrMode = (mode) => {
@@ -1137,18 +1171,21 @@ class ClutBarClass {
                 InputHandler.enterAttrPaintMode(mode);
             }
         };
-        transposeBtn.addEventListener('click', () => toggleAttrMode('swap'));
-        applyBtn.addEventListener('click', () => toggleAttrMode('apply'));
+        const buttons = { swap: transposeBtn, apply: applyBtn, copy: copyBtn,
+            invertDots: invertDotsBtn, invertBoth: invertBothBtn };
+        for (const [mode, btn] of Object.entries(buttons)) {
+            btn.addEventListener('click', () => toggleAttrMode(mode));
+        }
+
+        this._syncAttrToolAvailability();
 
         // Render engaged state from the mode fact
         EventBus.on(EVENTS.ATTR_PAINT_MODE, ({ mode }) => {
-            const swapOn  = mode === 'swap';
-            const applyOn = mode === 'apply';
-            transposeBtn.classList.toggle('active', swapOn);
-            transposeBtn.setAttribute('aria-pressed', String(swapOn));
-            applyBtn.classList.toggle('active', applyOn);
-            applyBtn.setAttribute('aria-pressed', String(applyOn));
-            host.classList.toggle('attr-mode-active', swapOn || applyOn);
+            for (const [name, btn] of Object.entries(buttons)) {
+                btn.classList.toggle('active', mode === name);
+                btn.setAttribute('aria-pressed', String(mode === name));
+            }
+            host.classList.toggle('attr-mode-active', !!mode);
         });
     }
 }

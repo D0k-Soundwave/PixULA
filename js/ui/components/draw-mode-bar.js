@@ -108,7 +108,10 @@ const INVERSE_SUFFIX = '+inverse';
 const INVERSE_NO_EFFECT = ['ink', 'paper', 'xor', 'xor_pixel'];
 const ATTR_OPS = {
     swap:  ['status.attrSwap', 'Swap is on'],
-    apply: ['status.attrRecolour', 'Recolour is on']
+    apply: ['status.attrRecolour', 'Recolour is on'],
+    copy: ['status.attrCopy', 'Copy colours is on'],
+    invertDots: ['status.attrInvertDots', 'Invert dots is on'],
+    invertBoth: ['status.attrInvertBoth', 'Invert dots and colours is on']
 };
 
 // Mirror (symmetry-while-drawing) toggle group: mode, icon, caption i18n key

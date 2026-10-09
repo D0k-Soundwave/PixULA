@@ -1130,6 +1130,21 @@ const MODE_SHORTCUTS = Object.freeze([
 ]);
 
 /**
+ * The whole-cell paint tools in the top strip's cell-tools group: button id ->
+ * the InputHandler attribute paint mode it arms. One table for ClutBar (builds
+ * and shows the buttons), DrawModeBar (the status line) and the tests. Which
+ * screen modes each exists in is ColorManager.cellToolAvailable.
+ * @const {Object<string, string>}
+ */
+const ATTR_PAINT_BUTTONS = Object.freeze({
+    'attr-transpose': 'swap',
+    'attr-apply': 'apply',
+    'attr-copy': 'copy',
+    'attr-invert-dots': 'invertDots',
+    'attr-invert-both': 'invertBoth'
+});
+
+/**
  * Canvas zoom configuration — the single source for the zoom dropdown options,
  * the +/- step buttons, wheel zoom, and the Fit computation.
  * @const {Object}
@@ -1581,6 +1596,7 @@ window.TOOLS = TOOLS;
 window.TOOL_GROUPS = TOOL_GROUPS;
 window.COLOUR_SHORTCUTS = COLOUR_SHORTCUTS;
 window.MODE_SHORTCUTS = MODE_SHORTCUTS;
+window.ATTR_PAINT_BUTTONS = ATTR_PAINT_BUTTONS;
 window.PEN_CONTROLS = PEN_CONTROLS;
 window.PEN_ACTIONS = PEN_ACTIONS;
 window.PEN_PROFILES = PEN_PROFILES;

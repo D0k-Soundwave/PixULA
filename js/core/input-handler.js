@@ -47,7 +47,8 @@
  * NOT ported: they shadowed registry shortcuts (V=move, I=eyedropper).
  *
  * Special canvas modes (API relied on by components):
- *   enterAttrPaintMode/exitAttrPaintMode + _attrPaintMode  (clut-bar Swap/Recolour)
+ *   enterAttrPaintMode/exitAttrPaintMode + _attrPaintMode  (clut-bar: Swap, Recolour, Copy colours,
+ *                                                            Invert dots, Invert dots and colours)
  *   enterPatternCaptureMode                                 (pattern-panel)
  *   exitPatternCaptureMode                                  (transform-panel)
  * EVENTS.ATTR_PAINT_MODE announces the mode fact. Attribute paint mode is
@@ -77,6 +78,15 @@
  * than committing it — the OS retracting a contact is palm arbitration, and it
  * is better at that than any timer here.
  */
+/** The undo-step name of a whole-cell tool's drag, by tool. */
+const ATTR_PAINT_LABELS = Object.freeze({
+  apply: 'Apply Attribute',
+  swap: 'Swap INK/PAP',
+  copy: 'Copy Attribute',
+  invertDots: 'Invert Dots',
+  invertBoth: 'Invert Dots and Colours'
+});
+
 class InputHandlerClass {
   constructor() {
     this.canvas = null;       // main-canvas — coordinate reference
@@ -131,8 +141,10 @@ class InputHandlerClass {
     // Special modes
     this._stampMode = null;          // 'stamp' | 'erase' | null
     this._patternCaptureSize = 0;    // 0 = inactive
-    this._attrPaintMode = null;      // 'apply' | 'swap' | null
-    this._attrPaintLastCell = null;
+    this._attrPaintMode = null;      // 'apply' | 'swap' | 'copy' | 'invertDots' | 'invertBoth' | null
+    this._attrPaintLastCell = null;  // the previous cell of this drag: the cell walk starts there
+    this._attrPaintVisited = null;   // cells this drag already inverted or swapped (twice would undo it)
+    this._attrCopy = null;           // Copy colours: { picked } once the press has tried to pick
     this._escapeToolReset = false;   // true while Escape resets to the brush
 
     // Panning
@@ -226,6 +238,13 @@ class InputHandlerClass {
     // the colour a click would paint) is redrawn. It does not leave a cell
     // operation: Swap and Recolour ignore the buttons' meaning.
     EventBus.on(EVENTS.INVERSE_CHANGED, () => this._repaintHover());
+    // A whole-cell tool the new screen mode does not have must not stay armed
+    // out of sight (its button is hidden there).
+    EventBus.on(EVENTS.SCREEN_MODE_CHANGED, () => {
+      if (this._attrPaintMode && !ColorManager.cellToolAvailable(this._attrPaintMode)) {
+        this.exitAttrPaintMode();
+      }
+    });
     EventBus.on(EVENTS.LAYER_SELECTED, () => {
       this.exitPatternCaptureMode();
       this._repaintHover();
@@ -247,11 +266,15 @@ class InputHandlerClass {
   /**
    * Enter attribute paint mode: clicking/dragging applies the chosen
    * attribute operation cell-by-cell without touching pixel bits.
-   * @param {'apply'|'swap'} mode
+   * @param {'apply'|'swap'|'copy'|'invertDots'|'invertBoth'} mode
    */
   enterAttrPaintMode(mode) {
     this._attrPaintMode = mode;
     this._attrPaintLastCell = null;
+    this._attrPaintVisited = null;
+    this._attrCopy = null;
+    // The tool's own footprint outline is not the mark of a cell tool.
+    this._clearHoverOutline();
     EventBus.emit(EVENTS.ATTR_PAINT_MODE, { mode });
   }
 
@@ -259,6 +282,8 @@ class InputHandlerClass {
   exitAttrPaintMode() {
     this._attrPaintMode = null;
     this._attrPaintLastCell = null;
+    this._attrPaintVisited = null;
+    this._attrCopy = null;
     EventBus.emit(EVENTS.ATTR_PAINT_MODE, { mode: null });
   }
 
@@ -304,29 +329,72 @@ class InputHandlerClass {
   }
 
   /**
-   * Apply the active attribute paint operation to the cell under the point.
-   * Skips re-application to the same cell within one drag stroke.
+   * Apply the active whole-cell tool to the cell under the point - and to every
+   * cell between the previous event's cell and this one, because a fast drag
+   * jumps several cells between two pointer events. Cells outside the picture
+   * restart the walk.
    * @param {{x: number, y: number}} point
    * @private
    */
   _applyAttrPaintAtPoint(point) {
     const cell = ZX_COORDS.pixelToCell(point.x, point.y);
-
-    if (this._attrPaintLastCell &&
-        this._attrPaintLastCell.x === cell.x &&
-        this._attrPaintLastCell.y === cell.y) return;
+    if (!Validators.isValidCellCoord(cell.x, cell.y)) {
+      this._attrPaintLastCell = null;
+      return;
+    }
+    const prev = this._attrPaintLastCell;
+    if (prev && prev.x === cell.x && prev.y === cell.y) return;
     this._attrPaintLastCell = cell;
 
-    if (!Validators.isValidCellCoord(cell.x, cell.y)) return;
+    let cells = [cell];
+    if (prev) {
+      cells = [];
+      ToolBase.forEachLinePoint(prev.x, prev.y, cell.x, cell.y, (x, y) => {
+        if (x !== prev.x || y !== prev.y) cells.push({ x, y });
+      });
+    }
+    for (const c of cells) this._applyAttrPaintToCell(c);
+    CanvasSystem.requestRender();
+  }
+
+  /**
+   * One cell of a whole-cell tool. The cell work for Copy and the two inverts
+   * is TransformService's (public methods that open no batch: this drag's
+   * batch is the only one, so one drag is one undo step).
+   * @private
+   */
+  _applyAttrPaintToCell(cell) {
     const layer = LayerManager.getCurrentLayer();
     if (!layer || layer.locked) return;
+    const mode = this._attrPaintMode;
+
+    // Copy colours: the first cell of the drag only picks; a press outside the
+    // picture picks nothing, and then the drag paints nothing.
+    if (mode === 'copy') {
+      if (!this._attrCopy) {
+        this._attrCopy = { picked: TransformService.pickCellColours(cell.x, cell.y) };
+        return;
+      }
+      if (this._attrCopy.picked) TransformService.paintCellColours(cell.x, cell.y, this._attrCopy.picked);
+      return;
+    }
+
+    // Swapping or inverting a cell twice in one drag would put it back.
+    if (mode === 'swap' || mode === 'invertDots' || mode === 'invertBoth') {
+      const key = cell.x + ',' + cell.y;
+      if (!this._attrPaintVisited) this._attrPaintVisited = new Set();
+      if (this._attrPaintVisited.has(key)) return;
+      this._attrPaintVisited.add(key);
+    }
+    if (mode === 'invertDots') { TransformService.invertCellDots(cell.x, cell.y); return; }
+    if (mode === 'invertBoth') { TransformService.invertCellDotsAndColours(cell.x, cell.y); return; }
 
     const px = ZX_COORDS.cellToPixel(cell.x, cell.y);
     // Attr paint targets exactly the cell under the pointer — no symmetry
-    if (this._attrPaintMode === 'apply') {
+    if (mode === 'apply') {
       PixelDrawRoutine.draw(px.x, px.y,
         ColorManager.getCurrentSelection(), DRAW_MODE.ATTRIBUTES_ONLY, { layer, mirror: false });
-    } else if (this._attrPaintMode === 'swap') {
+    } else if (mode === 'swap') {
       // What the cell SHOWS, not the placeholder black-on-white an empty
       // upper-layer cell stores - swapping that produced white ink on black
       // out of nowhere (2026-09-16).
@@ -344,8 +412,6 @@ class InputHandlerClass {
       PixelDrawRoutine.draw(px.x, px.y, swapped,
         DRAW_MODE.ATTRIBUTES_ONLY, { layer, mirror: false });
     }
-
-    CanvasSystem.requestRender();
   }
 
   /** @private */
@@ -558,7 +624,9 @@ class InputHandlerClass {
       // duration and layer 1 protected nothing while the artist recoloured.
       this._strokePointerType = e.pointerType;
       this._attrPaintLastCell = null;
-      PixelDrawRoutine.beginBatch(this._attrPaintMode === 'apply' ? 'Apply Attribute' : 'Swap INK/PAP');
+      this._attrPaintVisited = new Set();
+      this._attrCopy = null;
+      PixelDrawRoutine.beginBatch(ATTR_PAINT_LABELS[this._attrPaintMode] || 'Cell tool');
       this._applyAttrPaintAtPoint(this._getCanvasPoint(e, false));
       return;
     }
@@ -910,6 +978,8 @@ class InputHandlerClass {
     if (this._attrPaintMode) {
       PixelDrawRoutine.endBatch();
       this._attrPaintLastCell = null;
+      this._attrPaintVisited = null;
+      this._attrCopy = null;
       this._strokeTool = null;
       this.lastPoint = null;
       return;
@@ -1035,6 +1105,8 @@ class InputHandlerClass {
     } else if (this._attrPaintMode) {
       PixelDrawRoutine.endBatch();
       this._attrPaintLastCell = null;
+      this._attrPaintVisited = null;
+      this._attrCopy = null;
     } else if (!this._panMode && !this._dragPanActive) {
       const tool = this._strokeTool || ToolManager.getCurrentTool();
       this._strokeTool = null;

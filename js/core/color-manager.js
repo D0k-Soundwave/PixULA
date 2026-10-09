@@ -749,6 +749,29 @@ class ColorManagerClass {
     }
 
     /**
+     * Does a whole-cell paint tool exist in the ACTIVE screen mode? The one table
+     * ClutBar (the buttons), InputHandler (an armed tool the mode switch makes
+     * meaningless) and TransformService read.
+     *   swap, apply, copy ... cells have colours
+     *   invertDots ......... any mode with dots (Timex hi-res too: its cells are 8x8);
+     *                        not the indexed modes
+     *   invertBoth ......... cells with colours AND the fixed 16 colours: only there is
+     *                        ink and paper a pair that can be swapped without changing
+     *                        the look. In ULAplus ink reads CLUT entries 0-7 and paper
+     *                        8-15; in ULANext paper is 128 + paper + 8 * bright +
+     *                        16 * flash; swapping the numbers would recolour the cell.
+     * @param {string} op - 'swap' | 'apply' | 'copy' | 'invertDots' | 'invertBoth'
+     * @returns {boolean}
+     */
+    cellToolAvailable(op) {
+        if (op === 'invertDots') return ZX_SPECTRUM.PIXEL_DEPTH === 1;
+        if (op === 'invertBoth') {
+            return this.hasCellAttributes() && ACTIVE_SCREEN_MODE.paletteModel === 'fixed16';
+        }
+        return this.hasCellAttributes();
+    }
+
+    /**
      * Get INK transparent flag (always false where cells have no attributes)
      * @returns {boolean}
      */

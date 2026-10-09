@@ -395,6 +395,9 @@ class TransformServiceClass {
     else if (layer.isStamp) flip = 'stamp';
     let invert = this.attributeCommandsBlocked();
     if (!invert && fp) invert = 'stamp';
+    // Swapping ink and paper leaves the picture looking the same only with the
+    // fixed 16 colours (see ColorManager.cellToolAvailable).
+    if (!invert && !ColorManager.cellToolAvailable('invertBoth')) invert = 'palette';
     return { flip, invert };
   }
 
@@ -424,24 +427,67 @@ class TransformServiceClass {
   /**
    * Invert the dots and swap ink and paper of each whole cell the work area
    * touches, so the picture looks the same. Cells that are see-through on an
-   * upper layer are left alone: inverting them would fill them. Blocked on a
-   * stamp, a locked layer and modes without cell colours.
+   * upper layer, and cells another visible layer also touches, are left alone
+   * (see _canInvertBoth). Blocked on a stamp, a locked layer and modes where
+   * the swap would change the look. One undo step.
    * @returns {number} cells changed
    */
   invertDotsAndColours() {
     if (this.dotCommandsBlocked().invert) return 0;
-    const layer = LayerManager.getCurrentLayer();
     const rect = this._attributeCellRect(this._getWorkArea());
+    PixelDrawRoutine.beginBatch();
+    let result;
+    try {
+      result = PixelDrawRoutine.suspendClip(() => this._invertBothCells(rect));
+    } finally {
+      PixelDrawRoutine.endBatch();
+    }
+    Logger.debug('TransformService', `Invert dots and colours: ${result.writes} cells`);
+    return result.writes;
+  }
+
+  /**
+   * Can this cell be inverted (dots and colours) and still look the same? Dots
+   * from every visible layer are OR-ed and the colours come from the topmost
+   * layer that owns the cell, so inverting one layer's cell only leaves the
+   * picture alone when it is the only visible layer that touches the cell. An
+   * upper-layer cell the layer does not own is see-through: inverting it would
+   * fill it.
+   * @private
+   */
+  _canInvertBoth(layer, cx, cy) {
+    if (!layer.isBackground && !layer.isCellAltered(cx, cy)) return false;
+    for (const other of LayerManager.layers) {
+      if (other === layer || other.isBackground || !other.visible) continue;
+      if (other.isCellAltered(cx, cy)) return false;
+    }
+    return true;
+  }
+
+  /**
+   * The work of invertDotsAndColours on a cell rectangle, with NO batch of its
+   * own: the Image > Dots command wraps it in one, and the paint tool calls it
+   * for one cell inside its drag's (PixelDrawRoutine.beginBatch does not nest).
+   * @param {{x0:number, y0:number, x1:number, y1:number}} rect
+   * @returns {{writes: number, processed: number}} colour writes made, cells not skipped
+   * @private
+   */
+  _invertBothCells(rect) {
+    const layer = LayerManager.getCurrentLayer();
     const pixels = {
       x: rect.x0 * ZX_SPECTRUM.CELL_WIDTH,
       y: rect.y0 * ZX_SPECTRUM.CELL_HEIGHT,
       width: (rect.x1 - rect.x0 + 1) * ZX_SPECTRUM.CELL_WIDTH,
       height: (rect.y1 - rect.y0 + 1) * ZX_SPECTRUM.CELL_HEIGHT
     };
-    const skip = (cx, cy) => !layer.isBackground && !layer.isCellAltered(cx, cy);
+    const skip = (cx, cy) => !this._canInvertBoth(layer, cx, cy);
     const before = this._dotGrid(pixels);
-    if (!before) return 0;
+    if (!before) return { writes: 0, processed: 0 };
     const giga = ZX_SPECTRUM.SCREENS === 2;
+    let processed = 0;
+    for (let cy = rect.y0; cy <= rect.y1; cy++) {
+      for (let cx = rect.x0; cx <= rect.x1; cx++) if (!skip(cx, cy)) processed++;
+    }
     const after = before.map((row, py) => row.map((v, px) => {
       const cx = Math.floor(px / ZX_SPECTRUM.CELL_WIDTH) + rect.x0;
       const cy = Math.floor(py / ZX_SPECTRUM.CELL_HEIGHT) + rect.y0;
@@ -449,20 +495,102 @@ class TransformServiceClass {
       return giga ? GIGA_SLOTS.INK_INK - v : !v;
     }));
 
-    let cells = 0;
-    PixelDrawRoutine.beginBatch();
-    PixelDrawRoutine.suspendClip(() => {
-      const writes = this._planCellWrites(rect, (cx, cy, grid) => {
-        const c = grid[cy - rect.y0][cx - rect.x0];
-        return skip(cx, cy) ? { ...c } : this._swapInkPaper(c);
-      });
+    const writes = this._planCellWrites(rect, (cx, cy, grid) => {
+      const c = grid[cy - rect.y0][cx - rect.x0];
+      return skip(cx, cy) ? { ...c } : this._swapInkPaper(c);
+    });
+    PixelDrawRoutine.suspendMirror(() => {
       this._applyCellWrites(writes);
-      cells = writes.length;
       this._writeDots(pixels, before, after);
     });
-    PixelDrawRoutine.endBatch();
-    Logger.debug('TransformService', `Invert dots and colours: ${cells} cells`);
-    return cells;
+    return { writes: writes.length, processed };
+  }
+
+  // ── The whole-cell paint tools (Copy colours, Invert dots, Invert dots and colours) ──
+  //
+  // InputHandler owns the drag: it picks on the press, walks the cells under the
+  // pointer, and holds the ONE batch. Everything below is work on one cell and
+  // opens no batch (they would not nest: an inner endBatch closes the drag's).
+
+  /**
+   * Why a whole-cell tool cannot run now, or null. 'locked' (or no layer),
+   * 'stamp' (a stamp layer, or a floating stamp), 'mode' (the tool does not
+   * exist in this screen mode, see ColorManager.cellToolAvailable).
+   * @param {string} op - 'copy' | 'invertDots' | 'invertBoth'
+   * @returns {string|null}
+   */
+  cellToolBlocked(op) {
+    const layer = LayerManager.getCurrentLayer();
+    if (!layer || layer.locked) return 'locked';
+    if (layer.isStamp || this._floatingPaste()) return 'stamp';
+    if (!ColorManager.cellToolAvailable(op)) return 'mode';
+    return null;
+  }
+
+  /** Is the cell's top-left pixel outside the drawing guide? Same judgement Swap and Recolour get. @private */
+  _cellClipped(cx, cy) {
+    const px = ZX_COORDS.cellToPixel(cx, cy);
+    return PixelDrawRoutine.isClipped(px.x, px.y);
+  }
+
+  /**
+   * What the page SHOWS at a cell (the topmost layer that owns it; both screens
+   * on GigaScreen) - the colours Copy picks up.
+   * @returns {Object|null} {ink, paper, bright, flash[, inkB, paperB, brightB, flashB]}
+   */
+  pickCellColours(cx, cy) {
+    if (!Validators.isValidCellCoord(cx, cy) || !ColorManager.cellToolAvailable('copy')) return null;
+    const a = LayerManager.attrsShowing(cx, cy);
+    const e = { ink: a.ink, paper: a.paper, bright: a.bright, flash: a.flash };
+    if (ZX_SPECTRUM.SCREENS === 2) {
+      const b = LayerManager.attrsShowing(cx, cy, 1);
+      e.inkB = b.ink; e.paperB = b.paper; e.brightB = b.bright; e.flashB = b.flash;
+    }
+    return e;
+  }
+
+  /**
+   * Write picked colours to one cell, dots untouched. A cell that already shows
+   * them is left alone (so a see-through cell stays see-through and a click adds
+   * no undo step). Caller holds the batch.
+   * @returns {boolean} whether the cell changed
+   */
+  paintCellColours(cx, cy, picked) {
+    if (!picked || this.cellToolBlocked('copy') || !Validators.isValidCellCoord(cx, cy) ||
+        this._cellClipped(cx, cy)) return false;
+    const writes = this._planCellWrites({ x0: cx, y0: cy, x1: cx, y1: cy }, () => picked);
+    if (writes.length === 0) return false;
+    this._applyCellWrites(writes);
+    return true;
+  }
+
+  /**
+   * Invert the dots of one whole cell; its colours stay. GigaScreen: slot s
+   * becomes 3 - s. A blank upper-layer cell fills (Transform > Invert does too).
+   * Caller holds the batch.
+   * @returns {boolean} whether any dot changed
+   */
+  invertCellDots(cx, cy) {
+    if (this.cellToolBlocked('invertDots') || !Validators.isValidCellCoord(cx, cy) ||
+        this._cellClipped(cx, cy)) return false;
+    const px = ZX_COORDS.cellToPixel(cx, cy);
+    const area = { x: px.x, y: px.y, width: ZX_SPECTRUM.CELL_WIDTH, height: ZX_SPECTRUM.CELL_HEIGHT };
+    const before = this._dotGrid(area);
+    if (!before) return false;
+    const giga = ZX_SPECTRUM.SCREENS === 2;
+    const after = before.map(row => row.map(v => (giga ? GIGA_SLOTS.INK_INK - v : !v)));
+    return this._writeDots(area, before, after);
+  }
+
+  /**
+   * Invert the dots of one cell and swap its ink and paper: the cell looks the
+   * same. Skipped where that cannot hold (see _canInvertBoth). Caller holds the batch.
+   * @returns {boolean} whether the cell was inverted
+   */
+  invertCellDotsAndColours(cx, cy) {
+    if (this.cellToolBlocked('invertBoth') || !Validators.isValidCellCoord(cx, cy) ||
+        this._cellClipped(cx, cy)) return false;
+    return this._invertBothCells({ x0: cx, y0: cy, x1: cx, y1: cy }).processed > 0;
   }
 
   /** Is this buffer entry a marked pixel? Indexed entries carry `idx`. */
