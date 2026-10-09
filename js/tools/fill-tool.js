@@ -159,14 +159,17 @@ class FillToolClass extends ToolBase {
     // button - so a region is "already filled" only when it shows that blend;
     // filling one blend with another changes pixels.
     if (StateManager.getDrawMode() === 'normal') {
+      // What the click writes is decided by the resolved mode, not the raw
+      // button: with Inverse on the left button writes paper.
+      const writesPaper = mode === DRAW_MODE.NORMAL_ERASE;
       let written;
       if (ZX_SPECTRUM.PIXEL_DEPTH > 1) {
-        written = isErase ? ColorManager.getIndexedPaper() : ColorManager.getIndexedInk();
+        written = writesPaper ? ColorManager.getIndexedPaper() : ColorManager.getIndexedInk();
       } else if (startState.slot !== undefined) {
-        written = isErase ? GIGA_SLOTS.PAPER_PAPER
+        written = writesPaper ? GIGA_SLOTS.PAPER_PAPER
           : (color.gigaSlot != null ? color.gigaSlot : GIGA_SLOTS.INK_INK);
       } else {
-        written = !isErase;
+        written = !writesPaper;
       }
       if (targetKey === written) return;
     }

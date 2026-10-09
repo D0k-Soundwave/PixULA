@@ -222,6 +222,10 @@ class InputHandlerClass {
       this.deactivateSpecialModes();
       this._repaintHover();
     });
+    // Inverse changes what each button leaves, so the hover mark (which shows
+    // the colour a click would paint) is redrawn. It does not leave a cell
+    // operation: Swap and Recolour ignore the buttons' meaning.
+    EventBus.on(EVENTS.INVERSE_CHANGED, () => this._repaintHover());
     EventBus.on(EVENTS.LAYER_SELECTED, () => {
       this.exitPatternCaptureMode();
       this._repaintHover();
@@ -2053,6 +2057,17 @@ class InputHandlerClass {
       e.preventDefault();
       LayerManager.addLayer();
       return;
+    }
+
+    // Inverse (MODE_SHORTCUTS, Shift+I). Not while a stroke is in progress: the
+    // buttons would change meaning under the pointer.
+    if (!ctrl && e.shiftKey && !e.altKey) {
+      const mode = MODE_SHORTCUTS.find((s) => s.key === key);
+      if (mode) {
+        e.preventDefault();
+        if (!this.isDrawing) StateManager.setInverse(!StateManager.getInverse());
+        return;
+      }
     }
 
     // Bright, Flash and "use existing" (COLOUR_SHORTCUTS). Toggling a value

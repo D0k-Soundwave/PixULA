@@ -116,6 +116,10 @@
                          Paper Recolour) come last, next to the cell operations
                          they resemble. -->
                     <div id="draw-modes" class="toolbar-section"></div>
+                    <!-- Inverse (DrawModeBar): swaps what the two mouse buttons do. Its
+                         own host, not part of the radiogroup above - it is an on/off
+                         switch beside the pick-one modes, not one of them. -->
+                    <div id="inverse-mode" class="toolbar-section" role="group" aria-label="Inverse" data-i18n-aria-label="dm.inverse"></div>
                     <span class="marks-divider" aria-hidden="true"></span>
                     <!-- Swap / Recolour (ClutBar): whole-cell colour operations
                          that take over the canvas until a tool or draw mode is
@@ -510,6 +514,7 @@
              not two arrows diverging. mirror-v is mirror-h rotated 90deg;
              mirror-quad extends the same solid/hollow language to both
              axes at once (one solid corner, three hollow ghosts). -->
+        <symbol id="icon-inverse" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 4h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6z" fill="currentColor"/></symbol>
         <symbol id="icon-mirror-h" viewBox="0 0 24 24"><path d="M12 2v20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-dasharray="3 2"/><path d="M4 6h5v9l-5 3z" fill="currentColor"/><path d="M20 6h-5v9l5 3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
         <symbol id="icon-mirror-v" viewBox="0 0 24 24"><g transform="rotate(90 12 12)"><path d="M12 2v20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-dasharray="3 2"/><path d="M4 6h5v9l-5 3z" fill="currentColor"/><path d="M20 6h-5v9l5 3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></g></symbol>
         <symbol id="icon-mirror-quad" viewBox="0 0 24 24"><path d="M12 2v20M2 12h20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-dasharray="3 2"/><path d="M4 4L9 4L9 9Z" fill="currentColor"/><path d="M20 4L15 4L15 9Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M4 20L9 20L9 15Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M20 20L15 20L15 15Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>

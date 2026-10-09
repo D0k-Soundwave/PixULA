@@ -575,6 +575,7 @@
    active. An inline style still beats this stylesheet rule either way. */
 #marks-icons-row #attr-tools,
 #marks-icons-row #draw-modes,
+#marks-icons-row #inverse-mode,
 #marks-icons-row #mirror-modes {
     display: contents;
 }

@@ -1119,6 +1119,17 @@ const COLOUR_SHORTCUTS = Object.freeze([
 ]);
 
 /**
+ * The stroke-behaviour keys that are not tools and not colours. Shift+I
+ * (bare I is the Eyedropper) turns Inverse on or off. Same arrangement as
+ * COLOUR_SHORTCUTS: one list read by InputHandler, the Keyboard Shortcuts
+ * dialog and the generated manual.
+ * @const {Array<{id: string, key: string, keys: string, i18n: string, en: string}>}
+ */
+const MODE_SHORTCUTS = Object.freeze([
+    Object.freeze({ id: 'toggleInverse', key: 'i', keys: 'Shift+I', i18n: 'help.toggleInverse', en: 'Inverse on or off' })
+]);
+
+/**
  * Canvas zoom configuration — the single source for the zoom dropdown options,
  * the +/- step buttons, wheel zoom, and the Fit computation.
  * @const {Object}
@@ -1199,6 +1210,7 @@ const EVENTS = Object.freeze({
     GRID_VISIBILITY: 'grid:visibility',
     DISPLAY_VIEW_CHANGED: 'view:displayChanged',
     READOUT_CHANGED: 'readout:changed',
+    INVERSE_CHANGED: 'draw:inverseChanged',
     SYMMETRY_CHANGED: 'symmetry:changed',
     CLIP_CHANGED: 'clip:changed',
     DRAW_MODE_CHANGED: 'draw:modeChanged',
@@ -1568,6 +1580,7 @@ window.SPECTRUM_MEMORY = SPECTRUM_MEMORY;
 window.TOOLS = TOOLS;
 window.TOOL_GROUPS = TOOL_GROUPS;
 window.COLOUR_SHORTCUTS = COLOUR_SHORTCUTS;
+window.MODE_SHORTCUTS = MODE_SHORTCUTS;
 window.PEN_CONTROLS = PEN_CONTROLS;
 window.PEN_ACTIONS = PEN_ACTIONS;
 window.PEN_PROFILES = PEN_PROFILES;

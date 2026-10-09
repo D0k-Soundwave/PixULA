@@ -432,6 +432,9 @@ function extractManualData() {
         for (const s of (window.COLOUR_SHORTCUTS || [])) {
             rows.push({ keys: keyLabel(s.keys), what: t(s.i18n), from: t('manual.area.colourRail') });
         }
+        for (const s of (window.MODE_SHORTCUTS || [])) {
+            rows.push({ keys: keyLabel(s.keys), what: t(s.i18n), from: t('manual.area.drawModes') });
+        }
         if (window.PresetCodec && PresetCodec.KEY_SLOTS) {
             rows.push({
                 keys: 'Alt+1 ... Alt+' + PresetCodec.KEY_SLOTS,

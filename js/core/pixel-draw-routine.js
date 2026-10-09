@@ -229,6 +229,11 @@ class PixelDrawRoutineClass {
   resolveUserMode(isInk) {
     const dm = (window.StateManager && StateManager.getDrawMode)
       ? StateManager.getDrawMode() : 'normal';
+    // Inverse swaps the buttons: left clears, right sets. Only the modes that
+    // read isInk are affected (Normal and Pixels Only); Ink, Paper and the XOR
+    // modes give both buttons the same job, so there is nothing to swap.
+    // Patterns follow too: their gap mode comes from resolveUserMode(false).
+    if (window.StateManager && StateManager.getInverse && StateManager.getInverse()) isInk = !isInk;
     switch (dm) {
       // Pixels Only means exactly that on BOTH buttons, so its right button
       // keeps the attribute-preserving primitive.
