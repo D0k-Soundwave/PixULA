@@ -334,3 +334,34 @@ hu.js 'view.attributes' (carried).
 Still open (carried): stamp support for the attribute commands (2A); Image > Flip, Rotate and Invert writing into a floating
 stamp's cells (2B).
 Next: the group A end-of-build Opus review (RUN-ALL.md step 3), then Batch 5 part 5A on branch parity-b.
+
+## 2026-10-09 - Group A - end-of-build review, review fixes, and the owner's strip redesign - done
+Model: Sonnet (one-run series). Branch: parity-a.
+Opus: end-of-build review of group A (Plan agent, opus) -> change. Fixed: (1) the arrow keys moved a floating stamp and
+the gradient endpoint by a whole cell (the Move choice's cell step leaked into them; Move is greyed out then, so no way
+back): they nudge one pixel again, pinned in transform-shift-pad.spec.js and input-keyboard.spec.js; (2) Image > Flip /
+Rotate / Invert Colors acted on a floating stamp's preview cells (Invert Colors filled it with a screen of dots, and added
+an undo step): they now go through TransformPanel.applyTransform (SelectionService.transformStamp), the rows grey out with
+a reason for a stamp that carries its own colours, and the service methods refuse a stamp layer; (3) Swap and Recolour
+joined the other cell tools (TransformService.swapCellColours / recolourCell: one guard rule, no second implementation),
+and a cell tool pressed over a stamp or a locked layer says why in the status bar (new EVENTS.STATUS_NOTICE); (4) Inverse
+tests for shapes (outline and filled, both buttons) and a stamp; (5) stale comparison-doc text and an AI-tooling path
+mention; (6) non-ASCII characters in what group A added; (7) hu.js and pl.js view.attributes; (8) batch-05.md now carries
+the stamp carry-overs.
+Owner changes during the review (instructions, not questions): Inverse moved OUT of the strip into Preferences (checkbox,
+plus Shift+I and the status line); then the whole top strip became THREE SELECTOR BUTTONS (Draw mode, Cell tool, Mirror),
+each showing the choice in force and opening a small two-column pop-up grid of the others, floating over the page,
+closing at once on a pick / Escape / an outside click, using the app's own two-stage hover tags. Draw mode and Mirror are
+independent and both in force; an armed cell tool takes over every stroke and is switched off by None, by picking it
+again, by a right-click on the canvas, or by choosing a draw mode or a tool. New js/ui/components/strip-selector.js;
+three new icons; 6 + 2 i18n keys in 13 locales; manual paragraphs rewritten in 13 languages. The 1024 px / 200% corner is
+one row again (the earlier 12-15 button strip wrapped there). Specs rewritten to open the selector (helpers pickDrawMode,
+pickMirror, pickCellTool in tests/browser/helpers.js); new tests/browser/strip-selector.spec.js (4).
+Full run: run-all ALL TEST FILES PASSED; npx playwright test 646 passed (+1 inverse stamp spec afterwards).
+Owner decisions still open for the final sign-off (nothing blocks the run): (a) the two commit messages that mention "Opus"
+(273f92a subject, 3e46b59 body): reword before a merge, or accept; (b) "Wiping tool = Same" although ZX Paintbrush's wipe is
+editable as a polygon afterwards; (c) Image > "Invert Colors" inverts dots only: rename in 13 languages?; (d) should Edit >
+Fill Selection follow Inverse?; (e) the cell-tool hint texts still end "Click it again, ... to stop" (it works: pick the armed
+tool again in the grid), reword in 13 locales?
+Flaky tests: none this time.
+Next: Batch 5 part 5A on a new branch parity-b (RUN-ALL.md step 4).

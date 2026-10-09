@@ -115,3 +115,30 @@ test('Inverse works in indexed modes too', async ({ page }) => {
     const mode = await page.evaluate(() => PixelDrawRoutine.resolveUserMode(true));
     expect(mode).toBe('normal_erase');
 });
+
+test('with Inverse on, a stamp placed with the left button CLEARS the dots under it', async ({ page }) => {
+    await boot(page);
+    // a solid block of dots, then a 4x4 stamp over part of it
+    await page.evaluate(() => {
+        const L = LayerManager.getCurrentLayer();
+        const c = L.getCell(4, 4);          // one solid cell, x 32-39, y 32-39
+        c.pixels.fill(0xFF);
+        c.altered = true;
+        LayerManager.composeToCanvas();
+        const mask = Array.from({ length: 4 }, () => new Array(4).fill(true));
+        SelectionService.startFloatingPasteFromMask(mask, 4, 4, 36, 36, 'test', null, 'none');
+    });
+    await page.keyboard.press('Shift+I');
+    expect(await inverse(page)).toBe(true);
+    const p = await pixelPoint(page, 38, 38);
+    await page.mouse.move(p.x, p.y);
+    await page.mouse.down();
+    await page.mouse.up();
+    // the area the stamp covered is cleared; a dot well outside it is still set
+    const state = await page.evaluate(() => {
+        const on = (x, y) => { const c = LayerManager.getCurrentLayer().getCell(Math.floor(x / 8), Math.floor(y / 8)); return ((c.pixels[y % 8] >> (7 - (x % 8))) & 1) === 1; };
+        return { under: on(38, 38), outside: on(33, 33) };
+    });
+    expect(state.under, 'under the stamp').toBe(false);
+    expect(state.outside, 'outside the stamp').toBe(true);
+});
