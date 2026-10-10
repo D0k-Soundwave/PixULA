@@ -543,3 +543,31 @@ alone). Speed recorded in docs/FIGURES.md (worst case over budget; noted there).
 Carried to 7B: move the Shape and Bezier previews onto strokeTargets (they show no mirror or drawing guide) and give them the
 same redraw-on-change.
 Next: part 7B.
+
+## 2026-10-10 - Batch 7 part 7B - line styles, rotation, rounding - done
+Model: Sonnet (one-run series). Branch: parity-b.
+Opus: plan review (Plan agent, opus) -> go with five departures from the brief, all applied: (1) SIX line styles (the help
+names six: solid, dashed, dotted, dash-dot, dash-dot-dot, plus clear); dash lengths read from the help's toolbar picture
+(dashed 18 on 6 off, dotted 3/3, dash-dot 9/6/3/6, dash-dot-dot 9/3/3/3/3/3) [M]; (2) Clear on an unfilled shape draws nothing
+(stays selectable, with a hint) and the Bezier list leaves it out; (3) the rasteriser enforces "dashes only at thickness 1"
+itself, not just the panel (a preset can carry dashed with thickness 3); (4) Rounding is a PERCENTAGE 0-100 (50 = the radius
+the shape always had, so tests/shape-fills stay valid); (5) the circle gets no Rotation row.
+Built: guard first (tests/shape-rotation.test.js pins a checksum of 204 default shape outputs, written from the pre-7B code
+and still passing); ShapeGenerator line styles (LINE_PATTERNS, applyLineStyle, orderOutline - a walk over today's pixels,
+start at a free end or the right end of the top row, least-turn steps - so every shape gets styles without rewriting its
+generator; filled shapes lose the gap pixels); rotation (box shapes turn their vertices round the box centre with a
+.5-safe snap, sampled curves have L-corners thinned; the shapes drawn from a centre and a drag point turn the drag point
+round the start, which makes the 180 degree arc equal the arc dragged the other way); rounding; Bezier and Figure line
+styles (a Figure's phase restarts per ray or line); OptionControls `disabledIf` on select options; ToolBase.lineStyleRow;
+11 i18n keys in 13 locales; manual paragraph in 13 languages.
+Carry-overs from 7A done: the Shape and Bezier previews now go through PixelDrawRoutine.strokeTargets (they showed neither
+mirror nor drawing guide); the Bezier tool redraws on the same facts as Figure and drops its curve on File New/Open and mode
+change; the Bezier tool now COMMITS a curve being edited when you switch tools and Escape drops it (it used to discard on a
+switch). The bezier.usage hint text was not reworded in the 13 locales.
+Known, not changed: a filled sector over 180 degrees fills its mouth (an existing behaviour, noted by the review); the
+parallelogram lean stays a fixed quarter of its width; a rotated ellipse uses a different raster from the unrotated one, so
+it shifts slightly between 0 and 1 degree.
+Tests: tests/shape-rotation.test.js (guard + line styles + rotation + rounding + Bezier), figure-model and preset-slices
+extended, tests/shape-bezier-preview.test.js, tests/browser/line-style-rotation.spec.js (6). run-all ALL TEST FILES PASSED;
+playwright 693 passed. Speed in docs/FIGURES.md.
+Next: part 7C.

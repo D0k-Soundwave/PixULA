@@ -154,15 +154,15 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | Line | Two-point line. | Shape: line. | Same |
 | Rays | Many lines from one start point. | Figure tool > Rays (2026-10-10): the first point, then each further point or freehand sample is joined to it. | Same |
 | Curve | Four-point curve. | Bezier tool, quadratic or cubic, with draggable handles. | Same |
-| Arc and sector | Four points; rotatable. | Shape: arc and sector from a box and an angle; not rotatable. | Partial |
+| Arc and sector | Four points; rotatable. | Shape: arc and sector from a centre and a drag point (its own angle) with a sweep dial; since 2026-10-10 (Batch 7 part 7B) a Rotation option turns them round the pressed point. Arcs are circular, ZX Paintbrush's four-point arc is not. | Partial |
 | Orthogonal and parallel line tools | A second line at right angles to, or parallel with, the first. | Figure tool > Perpendicular line and Parallel line (2026-10-10): drag the first line, click a point; the perpendicular runs from the foot of your point on the first line, the parallel is a copy with your point at its middle. | Same |
-| Ellipse and centred circle | Ellipse from corners (rotatable); circle from centre and edge. | Shape: ellipse and circle from a box; not rotatable. | Partial |
+| Ellipse and centred circle | Ellipse from corners (rotatable); circle from centre and edge. | Shape: ellipse and circle from a box. Since 2026-10-10 (7B) the ellipse has a Rotation option (-180 to 180 degrees, clockwise); a circle needs none. | Same |
 | Triangle tools | Free three-point, equal-sided and symmetrical triangles. | Shape: triangle from a box; Figure tool > Triangle (2026-10-10): three free points, optionally filled. Equal-sided and symmetrical triangles are still only the box form. | Partial |
-| Rectangle, square, rounded rectangle, parallelogram | Rotatable; the rounding is adjustable. | All four exist as shapes; not rotatable. | Partial |
+| Rectangle, square, rounded rectangle, parallelogram | Rotatable; the rounding is adjustable. | All four exist as shapes. Since 2026-10-10 (7B) each has a Rotation option, and the rounded rectangle has an adjustable Rounding (0 to 100 percent; 50, the default, is the radius it always had). The parallelogram's lean is still a fixed quarter of its width. | Same |
 | Polygon, centred polygon, N-edge polygon | Free points, or regular around a centre. | Regular polygons from a box; Figure tool > Polygon (2026-10-10): any number of free points, freehand runs, optionally filled. No centred polygon or N-edge polygon tool beyond the regular shapes. | Partial |
 | Ring | Elliptic ring with adjustable width. | Shape: ring with inner radius. | Same |
 | Line arrow | Line with arrowhead. | Arrow shapes. | Same |
-| Line styles | Solid, dashed, dotted, clear. | No. | Missing |
+| Line styles | Solid, dashed, dotted, clear. | Line style on Shape, Figure and Bezier (2026-10-10, 7B): Solid, Dashed, Dotted, Dash-dot, Dash-dot-dot (the six styles the help names) and Clear. Dash lengths read from the help's toolbar picture [M]; dashes only at thickness 1 (greyed out above, enforced by the rasteriser); Clear draws no outline, so it is for filled shapes. The pattern runs round corners and restarts per ray or line of a figure. | Same |
 | Line thickness | Thickness setting for all lines. | Thickness 1 to 8. | Same |
 | Point mode | Move points, move or rotate the last figure, delete its last point with Backspace. | Only the Bezier curve keeps editable handles. Since Batch 7 part 7A a Figure stays pending and Backspace deletes its last point; dragging points, moving and rotating the figure come with part 7C. | Missing |
 | Clone last drawn figure | Draws the last figure again, ready to move with the cursor keys. | No. | Missing |
