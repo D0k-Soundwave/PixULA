@@ -631,8 +631,13 @@ class PNGFormatClass {
         } else {
           const pair = this._chooseCellPair(decideRGB);
           rows = this._renderCellMask(cellRGB, pair, dithering, cw, ch);
-          inkRGB = ZX_PALETTE_RGB[pair.ink];
-          paperRGB = ZX_PALETTE_RGB[pair.paper];
+          // Which pixels are ink is decided against the hardware colours (so an import gives the
+          // same bytes in every browser); the preview is PAINTED with the standard colours the
+          // person has set in Preferences, so it matches the picture they will get.
+          const shown = (i) => (window.ColorManager && ColorManager.getStandardColoursRGB
+            ? ColorManager.getStandardColoursRGB()[i] : ZX_PALETTE_RGB[i]);
+          inkRGB = shown(pair.ink);
+          paperRGB = shown(pair.paper);
         }
 
         const start = ZX_COORDS.cellToPixel(cellX, cellY);

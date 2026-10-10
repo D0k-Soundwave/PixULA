@@ -65,8 +65,11 @@ class PaletteEditorDialogClass {
                     ColorManager.setUlaplusRegisters(PaletteOps.buildUlaplusRegisters(imageData)),
                 // .npl's trailing transparency index is a Next idea; the
                 // 64-byte ULAplus form has only the one shape.
-                fileKinds: ['pal'],
-                encode: (kind) => NextPaletteFormat.export(kind)
+                // .tap is the ULAplus palette tape (Batch 6 part 6B).
+                fileKinds: ['pal', 'tap'],
+                encode: (kind) => (kind === 'tap'
+                    ? TAPFormat.buildUlaplusPaletteTap(ColorManager.getUlaplusRegisters(), 'palette')
+                    : NextPaletteFormat.export(kind))
             };
         }
         if (model === 'rgb333') {
@@ -127,8 +130,10 @@ class PaletteEditorDialogClass {
                     .replace('{n}', String(row)),
                 rowLabelI18n: 'palette.clut',
                 buildFromImage: (imageData) => regs.set(PaletteOps.buildUlaplusRegisters(imageData)),
-                fileKinds: ['pal'],
-                encode: (kind) => NextPaletteFormat.encodeUlaplus(regs)
+                fileKinds: ['pal', 'tap'],
+                encode: (kind) => (kind === 'tap'
+                    ? TAPFormat.buildUlaplusPaletteTap(regs, 'palette')
+                    : NextPaletteFormat.encodeUlaplus(regs))
             };
         }
         if (model === 'rgb333') {
@@ -316,7 +321,7 @@ class PaletteEditorDialogClass {
         loader.type = 'file';
         loader.id = 'palette-load-file-input';
         loader.name = 'palette-load-file-input';
-        loader.accept = '.pal,.npl';
+        loader.accept = this._accept(traits);
         loader.hidden = true;
         loader.addEventListener('change', async (event) => {
             await this._loadFile(event, document, traits);
@@ -326,11 +331,20 @@ class PaletteEditorDialogClass {
         loader.click();
     }
 
-    /** File > Save Palette… */
-    saveToFile() {
+    /**
+     * File > Save Palette… (the first file kind), or File > Save Palette as TAP… (kind 'tap').
+     * @param {string} [kind]
+     */
+    saveToFile(kind) {
         const traits = this._traits();
         if (!traits) { this._needsPaletteMode(); return; }
-        this._saveFile(traits.fileKinds[0], traits);
+        const k = kind && traits.fileKinds.includes(kind) ? kind : traits.fileKinds[0];
+        this._saveFile(k, traits);
+    }
+
+    /** The file types the Load picker offers: .tap only where there is a ULAplus palette to load. @private */
+    _accept(traits) {
+        return traits.model === 'ulaplus64' ? '.pal,.npl,.tap' : '.pal,.npl';
     }
 
     /** @private */
@@ -364,7 +378,7 @@ class PaletteEditorDialogClass {
             loader.type = 'file';
             loader.id = 'palette-editor-loader';
             loader.name = 'palette-editor-loader';
-            loader.accept = '.pal,.npl';
+            loader.accept = this._accept(traits);
             loader.hidden = true;
             loader.addEventListener('change', (e) => this._loadFile(e, content, traits));
             tools.appendChild(loader);
@@ -543,8 +557,11 @@ class PaletteEditorDialogClass {
         if (!file) return;
 
         const ext = FormatRegistry.getExtension(file.name);
-        const handler = FormatRegistry.getImportHandler(ext);
-        if (!handler) {
+        // A tape here is a palette tape, never a screen: it goes to the palette loader.
+        const handler = ext === 'tap' && traits.model === 'ulaplus64'
+            ? { parse: (b) => TAPFormat.loadUlaplusPalette(b) }
+            : FormatRegistry.getImportHandler(ext);
+        if (!handler || (ext === 'tap' && traits.model !== 'ulaplus64')) {
             alert(this._t('palette.loadFailed', 'That file is not a palette this build reads.'));
             return;
         }

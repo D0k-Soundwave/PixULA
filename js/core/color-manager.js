@@ -29,6 +29,11 @@ class ColorManagerClass {
         // needs a palette colour reads it from here, never from a second copy.
         this.palette = ZX_PALETTE.slice();
         this.paletteRGB = ZX_PALETTE_RGB.slice();
+        // The STANDARD colours the fixed palette modes show (Batch 6 part 6B): ZX_PALETTE unless the
+        // person has edited them in Preferences. A per-browser setting, not document state. ZX_PALETTE
+        // stays frozen as the default and the reset target.
+        this._stdHex = ZX_PALETTE.slice();
+        this._stdRGB = ZX_PALETTE_RGB.map(c => Uint8Array.from(c));
         // ULAplus register file (Uint8Array(64), G3R3B2) — document state,
         // lazily seeded from the default set the first time ULAplus mode
         // activates; carried by undo snapshots, autosave and the SCR variant.
@@ -117,8 +122,8 @@ class ColorManagerClass {
         } else if (ACTIVE_SCREEN_MODE.paletteModel === 'rgb333') {
             this._deriveNextPalette();
         } else {
-            this.palette = ZX_PALETTE.slice();
-            this.paletteRGB = ZX_PALETTE_RGB.slice();
+            this.palette = this._stdHex.slice();
+            this.paletteRGB = this._stdRGB.slice();
         }
         // Keep the indexed drawing indices inside the active palette
         this.nextInk = clamp(this.nextInk, 0, this.palette.length - 1);
@@ -153,14 +158,14 @@ class ColorManagerClass {
     _deriveTimexMonoPalette() {
         const ink = this.timexHiresInk & 7;
         const paper = ink ^ 7;
-        this.palette = [ZX_PALETTE[paper + 8], ZX_PALETTE[ink + 8]];
-        this.paletteRGB = [ZX_PALETTE_RGB[paper + 8], ZX_PALETTE_RGB[ink + 8]];
+        this.palette = [this._stdHex[paper + 8], this._stdHex[ink + 8]];
+        this.paletteRGB = [this._stdRGB[paper + 8], this._stdRGB[ink + 8]];
         // The hi-res pair: screen B's [paper, ink] follow at entries 2 and 3
         if (ZX_SPECTRUM.SCREENS === 2) {
             const inkB = this.timexHiresInkB & 7;
             const paperB = inkB ^ 7;
-            this.palette.push(ZX_PALETTE[paperB + 8], ZX_PALETTE[inkB + 8]);
-            this.paletteRGB.push(ZX_PALETTE_RGB[paperB + 8], ZX_PALETTE_RGB[inkB + 8]);
+            this.palette.push(this._stdHex[paperB + 8], this._stdHex[inkB + 8]);
+            this.paletteRGB.push(this._stdRGB[paperB + 8], this._stdRGB[inkB + 8]);
         }
     }
 
@@ -215,8 +220,8 @@ class ColorManagerClass {
         // their own tokens so the UI never hardcodes colours.
         if (ACTIVE_SCREEN_MODE.paletteModel === 'timexMono') {
             for (let n = 0; n < 8; n++) {
-                root.style.setProperty(`--zx-scheme-ink-${n}`, ZX_PALETTE[n + 8]);
-                root.style.setProperty(`--zx-scheme-paper-${n}`, ZX_PALETTE[(n ^ 7) + 8]);
+                root.style.setProperty(`--zx-scheme-ink-${n}`, this._stdHex[n + 8]);
+                root.style.setProperty(`--zx-scheme-paper-${n}`, this._stdHex[(n ^ 7) + 8]);
             }
         } else {
             for (let n = 0; n < 8; n++) {
@@ -241,9 +246,9 @@ class ColorManagerClass {
         // own scheme's paper, so the display alternates them; the colour
         // shown is the Average view's blend of the two.
         if (model === 'timexMono') {
-            const paperA = ZX_PALETTE_RGB[((this.timexHiresInk & 7) ^ 7) + 8];
-            if (ZX_SPECTRUM.SCREENS !== 2) return ZX_PALETTE[((this.timexHiresInk & 7) ^ 7) + 8];
-            const paperB = ZX_PALETTE_RGB[((this.timexHiresInkB & 7) ^ 7) + 8];
+            const paperA = this._stdRGB[((this.timexHiresInk & 7) ^ 7) + 8];
+            if (ZX_SPECTRUM.SCREENS !== 2) return this._stdHex[((this.timexHiresInk & 7) ^ 7) + 8];
+            const paperB = this._stdRGB[((this.timexHiresInkB & 7) ^ 7) + 8];
             return '#' + [0, 1, 2].map((k) => ((paperA[k] + paperB[k]) >> 1)
                 .toString(16).padStart(2, '0')).join('').toUpperCase();
         }
@@ -251,7 +256,7 @@ class ColorManagerClass {
         if (model === 'rgb333' && ZX_SPECTRUM.PIXEL_DEPTH === 1 && this.palette[128 + n]) {
             return this.palette[128 + n];
         }
-        return ZX_PALETTE[n & 7];
+        return this._stdHex[n & 7];
     }
 
     /**
@@ -396,6 +401,51 @@ class ColorManagerClass {
             this.applyScreenMode();
         }
         StateManager.markModified();
+    }
+
+    // ─── Standard colours (a per-browser setting, Batch 6 part 6B) ─────────
+
+    /** The 16 standard colours as '#RRGGBB' (a copy). Index 8 (bright black) is always black. */
+    getStandardColours() {
+        return this._stdHex.slice();
+    }
+
+    /** The 16 standard colours as [r, g, b] arrays (copies). */
+    getStandardColoursRGB() {
+        return this._stdRGB.map(c => Uint8Array.from(c));
+    }
+
+    /** True when the standard colours differ from ZX_PALETTE. */
+    isStandardEdited() {
+        return this._stdHex.some((c, i) => c !== ZX_PALETTE[i]);
+    }
+
+    /**
+     * Replace the standard colours. 16 '#rgb' or '#rrggbb' values; index 8 (bright black) is forced
+     * to follow index 0, because black is black however bright (see attrToIndices). null restores
+     * ZX_PALETTE. Re-derives the palette, the CSS tokens and announces PALETTE_CHANGED, so the rail,
+     * the canvas and the image exports follow; never touches the document, .scr or .tap bytes.
+     * @param {?string[]} colours
+     * @returns {boolean} false (and nothing changes) when the input is not 16 valid colours
+     */
+    setStandardColours(colours) {
+        let hex;
+        if (colours === null) {
+            hex = ZX_PALETTE.slice();
+        } else {
+            if (!Array.isArray(colours) || colours.length !== 16) return false;
+            hex = [];
+            for (const c of colours) {
+                const n = Validators.normaliseHexColour(c);
+                if (!n) return false;
+                hex.push(n.toUpperCase());
+            }
+            hex[8] = hex[0];
+        }
+        this._stdHex = hex;
+        this._stdRGB = hex.map(h => Uint8Array.from([1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16))));
+        this.applyScreenMode();
+        return true;
     }
 
     // ─── Palette slots (document state in ulaplus64 and rgb333 modes) ──────

@@ -59,6 +59,18 @@ class GIFFormatClass {
    *   otherwise a static single-frame GIF.
    * @returns {Uint8Array} Complete GIF89a file
    */
+  /**
+   * The colour table for a fixed-palette picture: the standard colours as the person has set them
+   * in Preferences (the GIF is an IMAGE, so it follows what they see). Falls back to ZX_PALETTE
+   * where there is no ColorManager (the Node harness).
+   * @returns {Array<Uint8Array|number[]>}
+   * @private
+   */
+  _fixedPalette() {
+    return (window.ColorManager && typeof ColorManager.getStandardColoursRGB === 'function')
+      ? ColorManager.getStandardColoursRGB() : ZX_PALETTE_RGB;
+  }
+
   export(options = {}) {
     // Two-screen modes (GigaScreen, MultiGigaScreen, the hi-res pair): the
     // two screens ARE the animation - a fast two-frame loop approximates the
@@ -76,14 +88,14 @@ class GIFFormatClass {
           { indices: this.screenToIndices(GigascreenFormat.subScreenBytes(0, flat), 0), delayCs: this.GIGA_DELAY_CS },
           { indices: this.screenToIndices(GigascreenFormat.subScreenBytes(1, flat), 0), delayCs: this.GIGA_DELAY_CS }
         ];
-        palette = ZX_PALETTE_RGB;
+        palette = this._fixedPalette();
       } else {
         frames = [
           { indices: this.layerToIndices(flat, 0, 0), delayCs: this.GIGA_DELAY_CS },
           { indices: this.layerToIndices(flat, 0, 1), delayCs: this.GIGA_DELAY_CS }
         ];
         palette = ACTIVE_SCREEN_MODE.paletteModel === 'fixed16'
-          ? ZX_PALETTE_RGB : ColorManager.paletteRGB;
+          ? this._fixedPalette() : ColorManager.paletteRGB;
       }
       const gigaGif = this.encode({
         width: ZX_SPECTRUM.WIDTH,
@@ -111,7 +123,7 @@ class GIFFormatClass {
       const gif = this.encode({
         width: ZX_SPECTRUM.WIDTH,
         height: ZX_SPECTRUM.HEIGHT,
-        palette: ZX_PALETTE_RGB,
+        palette: this._fixedPalette(),
         frames,
         loop: 0 // loop forever (only written for multi-frame output)
       });
@@ -126,7 +138,7 @@ class GIFFormatClass {
     // FLASH only animates in fixed16 models; ULAplus reads the flash bit
     // as a CLUT bit and the rest never flash.
     const layer = LayerManager.flattenVisible();
-    const palette = model === 'fixed16' ? ZX_PALETTE_RGB : ColorManager.paletteRGB;
+    const palette = model === 'fixed16' ? this._fixedPalette() : ColorManager.paletteRGB;
     const animated = model === 'fixed16' && !!options.animated && this.layerHasFlash(layer);
 
     const frames = [{ indices: this.layerToIndices(layer, 0), delayCs: this.FLASH_DELAY_CS }];
