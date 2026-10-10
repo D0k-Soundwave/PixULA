@@ -170,4 +170,117 @@ bezier.commitCurve();
 }
 bezier.setLineStyle('solid');
 
+// ===== A Shape kept editable, and clone / nudge / Ctrl+Z on both (Batch 7 part 7C) ================================================
+{
+  ToolManager.register(shape);
+  ToolManager.register(bezier);
+  const drag = (x1, y1, x2, y2, extra) => {
+    const e = { button: 0, timeStamp: 1 };
+    shape.onPointerDown(x1, y1, e);
+    shape.onPointerMove(x2, y2, e);
+    shape.onPointerUp(x2, y2, e);
+  };
+
+  // Keep editable off: draws on release (the same raster as before), and is remembered
+  fresh();
+  drag(20, 30, 70, 60);
+  const direct = dots();
+  check('Shape, Keep editable off: draws on release', direct.size > 100 && !shape.hasPending);
+  check('...and the shape is remembered for Clone', FigureHistory.has() && FigureHistory.last().tool === 'shape');
+
+  // on: stays pending, Enter draws the same pixels
+  fresh();
+  shape.setPointMode(true);
+  drag(20, 30, 70, 60);
+  check('Shape, Keep editable on: nothing is drawn on release', dots().size === 0 && shape.hasPending);
+  check('...Enter draws exactly what the one-drag commit draws', shape.handleKey('Enter') === true && same(dots(), direct));
+
+  // move by dragging the body = the shape drawn there
+  fresh();
+  shape.setPointMode(true);
+  drag(20, 30, 70, 60);
+  {
+    const e = { button: 0, timeStamp: 1 };
+    shape.onPointerDown(45, 30, e);          // on the top edge
+    shape.onPointerMove(52, 36, e);
+    shape.onPointerUp(52, 36, e);
+  }
+  shape.handleKey('Enter');
+  const movedShape = dots();
+  fresh();
+  shape.setPointMode(false);
+  drag(27, 36, 77, 66);
+  check('Shape: dragging the body by (7,6) = the shape drawn there', movedShape.size > 100 && same(movedShape, dots()));
+  shape.setPointMode(true);
+
+  // drag a corner handle = the rectangle to there
+  fresh();
+  drag(20, 30, 70, 60);
+  {
+    const e = { button: 0, timeStamp: 1 };
+    shape.onPointerDown(70, 60, e);
+    shape.onPointerMove(90, 80, e);
+    shape.onPointerUp(90, 80, e);
+  }
+  shape.handleKey('Enter');
+  const resized = dots();
+  fresh();
+  shape.setPointMode(false);
+  drag(20, 30, 90, 80);
+  check('Shape: dragging the corner handle = the rectangle drawn to there', same(resized, dots()));
+  shape.setPointMode(true);
+
+  // cursor keys, Ctrl+Z and a turned shape
+  fresh();
+  drag(20, 30, 70, 60);
+  check('Shape: nudgePending moves it', shape.nudgePending(4, 2) === true);
+  check('Shape: Ctrl+Z takes the move back', shape.undoPending() === true && shape.hasPending);
+  shape.setRotation(30);
+  check('Shape: changing Rotation turns the pending shape', shape._editor.model.getRotation() === 30);
+  check('Shape: Ctrl+Z with no edits left drops it', (shape.undoPending(), !shape.hasPending));
+  shape.setRotation(0);
+
+  // switching shape-tool off commits
+  fresh();
+  drag(20, 30, 70, 60);
+  shape.deactivate();
+  check('Shape: switching tools draws a shape that is waiting', dots().size > 100 && !shape.hasPending);
+  shape.activate();
+
+  // Escape drops
+  fresh();
+  drag(20, 30, 70, 60);
+  shape.cancelPending();
+  check('Shape: Escape drops it', dots().size === 0 && !shape.hasPending);
+  shape.setPointMode(false);
+
+  // clone of a shape: a pending copy, any setting
+  fresh();
+  drag(20, 30, 70, 60);
+  ToolManager.selectTool('shape');
+  FigureHistory.cloneLast();
+  check('Clone of a shape opens it pending even with Keep editable off', shape.hasPending);
+  shape.nudgePending(10, 10);
+  shape.handleKey('Enter');
+  check('...and the moved copy is drawn beside the original', dots().size > direct.size);
+
+  // Bezier: nudge, undo, commitPending, clone
+  fresh();
+  bezierEdit();
+  check('Bezier: nudgePending moves the curve', bezier.nudgePending(0, 5) === true && bezier._p0.y === 65);
+  check('Bezier: Ctrl+Z drops the curve being edited', bezier.undoPending() === true && bezier._phase === 'idle');
+  check('Bezier: undoPending with nothing held is not claimed', bezier.undoPending() === false);
+  bezierEdit();
+  bezier.commitPending();
+  const bez = dots();
+  check('Bezier: commitPending draws it and remembers it', bez.size > 40 && FigureHistory.last().tool === 'bezier');
+  ToolManager.selectTool(TOOLS.BEZIER);
+  FigureHistory.cloneLast();
+  check('Clone of a curve opens it for editing', bezier._phase === 'edit');
+  bezier.nudgePending(0, 20);
+  bezier.commitPending();
+  check('...and the copy is drawn 20 rows lower', dots().size > bez.size);
+  bezier.cancelPending();
+}
+
 summary();

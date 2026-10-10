@@ -273,4 +273,102 @@ tool.setThickness(1);
   tool.cancelPending();
 }
 
+// ===== Point mode: editing a pending figure (Batch 7 part 7C) ==========================================================================
+ToolManager.register(tool);
+const pending = (points) => { fresh(); for (const [x, y] of points) click(x, y); tool.handleKey('Enter'); };
+const draw = (points) => { pending(points); tool.handleKey('Enter'); return dots(); };
+const press = (x, y, to) => {
+  clock += 1000;
+  const e = { button: 0, timeStamp: clock };
+  tool.onPointerDown(x, y, e);
+  if (to) tool.onPointerMove(to[0], to[1], e);
+  tool.onPointerUp(to ? to[0] : x, to ? to[1] : y, e);
+};
+const L = [[10, 10], [30, 10], [30, 30]];
+
+pending(L);
+press(30, 10, [35, 12]);
+tool.handleKey('Enter');
+check('dragging a point of a pending figure: drawn = the figure with that point', same(dots(), (() => {
+  const d = draw([[10, 10], [35, 12], [30, 30]]); return d; })()));
+
+pending(L);
+press(20, 10, [25, 15]);                 // on the line, not on a handle: the figure moves by (5,5)
+tool.handleKey('Enter');
+const movedDots = dots();
+check('dragging the figure body moves it: drawn = the figure shifted by (5,5)',
+  same(movedDots, draw(L.map(([x, y]) => [x + 5, y + 5]))));
+
+pending(L);
+press(30, 10);                           // a handle, released without moving
+check('pressing a handle and releasing without moving draws the figure and starts the next one',
+  dots().size > 0 && tool._phase === 'drawing' && tool._model.points.length === 1);
+tool.cancelPending();
+
+pending([[10, 50], [30, 50]]);
+const knob = tool._editor.knob();
+check('a pending figure shows a turn knob above its middle', knob && knob.x === 20 && knob.y < 50, JSON.stringify(knob));
+press(knob.x, knob.y, [30, 50]);          // the knob swings from straight above the pivot to straight right of it: +90 degrees
+check('dragging the knob turns the figure', tool._model.getRotation() === 90, String(tool._model.getRotation()));
+tool.handleKey('Enter');
+{
+  const d = dots();
+  check('...and it is drawn turned (the line (10,50)-(30,50) becomes the vertical x = 20, y 40 to 60)', d.has(40 * W + 20) && d.has(50 * W + 20) && d.has(60 * W + 20) && !d.has(50 * W + 10));
+}
+
+// cursor keys and Ctrl+Z while pending
+pending(L);
+check('nudgePending moves the figure', tool.nudgePending(3, -2) === true && tool._model.points[0].x === 13 && tool._model.points[0].y === 8);
+tool.nudgePending(1, 0);
+check('Ctrl+Z (undoPending) takes back the last edit first', tool.undoPending() === true && tool._model.points[0].x === 13);
+check('...then the one before', tool.undoPending() === true && tool._model.points[0].x === 10 && tool._phase === 'pending');
+check('...and with no edits left, drops the pending figure', tool.undoPending() === true && !tool.hasPending && dots().size === 0);
+check('with nothing held, undoPending is not claimed', tool.undoPending() === false);
+
+pending(L);
+for (let i = 0; i < 5; i++) tool.nudgePending(1, 1);
+const depthBefore = UndoRedo.undoStack.length;
+tool.handleKey('Enter');
+check('five edits and a commit are ONE undo step', UndoRedo.undoStack.length === depthBefore + 1);
+UndoRedo.undo();
+check('...which removes it all', dots().size === 0);
+
+// while a figure is being drawn, Ctrl+Z takes back the last point
+fresh();
+click(10, 10); click(30, 10); click(30, 30);
+tool.undoPending();
+check('while drawing, Ctrl+Z removes the last point', tool._model.points.length === 2);
+tool.cancelPending();
+
+// Clone Last Figure
+fresh();
+check('before any figure is drawn there is nothing to clone', (FigureHistory.clear(), FigureHistory.cloneLast() === false));
+const original = draw(L);
+check('a drawn figure is remembered', FigureHistory.has() && FigureHistory.last().tool === 'figure');
+ToolManager.selectTool(TOOLS.FIGURE);
+check('Clone Last Figure opens a pending copy', FigureHistory.cloneLast() === true && tool._phase === 'pending' && tool.hasPending);
+tool.nudgePending(7, 3);
+tool.handleKey('Enter');
+{
+  const both = new Set([...original]);
+  for (const k of draw(L.map(([x, y]) => [x + 7, y + 3]))) both.add(k);
+  fresh();
+  const twice = new Set();
+  // reference: draw L and the shifted L on one fresh layer
+  for (const pts of [L, L.map(([x, y]) => [x + 7, y + 3])]) { for (const [x, y] of pts) click(x, y); tool.handleKey('Enter'); tool.handleKey('Enter'); }
+  for (const k of dots()) twice.add(k);
+  check('clone + move by (7,3) = the original and a copy drawn at the offset', same(both, twice));
+}
+fresh();
+draw(L);
+EventBus.emit(EVENTS.FILE_NEW, {});
+check('File New forgets the last figure', !FigureHistory.has());
+
+// Save commits a pending figure
+pending(L);
+ToolManager.selectTool(TOOLS.FIGURE);
+pending(L);
+ToolManager.commitPending();
+check('ToolManager.commitPending (before a save) draws the pending figure', dots().size > 0 && !tool.hasPending);
+
 summary();
