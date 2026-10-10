@@ -407,15 +407,10 @@ class ShapeToolClass extends ToolBase {
   _isCenterAnchoredShape(shapeType) {
     // These shapes use center-anchored bounds (start point = center, drag defines radius)
     // Shapes NOT in this list use direct coordinates (x1,y1 = start, x2,y2 = drag point)
-    const centerAnchoredShapes = [
-      'circle', 'ellipse',  // Radial shapes - edge touches drag point
-      'star', 'flower', 'gear',  // Complex symmetric shapes
-      'heart', 'x', 'plus', 'hourglass'  // Symmetric symbols
-    ];
-    // Note: triangle, kite, arc, sector, spiral, moon, diamond,
-    // pentagon, hexagon, octagon, polygon all use direct x1,y1 -> x2,y2 coordinates
-    // so one vertex connects directly to the drag point
-    return centerAnchoredShapes.includes(shapeType);
+    // (The list lives in ShapeGenerator so the editable ShapeFigure and this tool share one copy.)
+    // Note: triangle, kite, arc, sector, spiral, moon, diamond, pentagon, hexagon, octagon, polygon all use
+    // direct x1,y1 -> x2,y2 coordinates so one vertex connects directly to the drag point
+    return ShapeGenerator.constructor.isCenterAnchored(shapeType);
   }
 
   /**

@@ -33,7 +33,70 @@ class FigureModel {
         this.points = [];
         this.kinds = [];
         this.finished = false;
+        // Rotation in degrees, applied only when the figure is drawn: the stored points never pick up rounding, so
+        // a turn of 360, four quarter turns, or 37 then 323 give back exactly the figure you started with.
+        this.rotation = 0;
     }
+
+    // ── Editing (Batch 7 part 7C) ─────────────────────────────────────────────
+
+    /** The centre the figure turns round: the middle of the box round its stored points. May be a half pixel. */
+    pivot() {
+        if (this.points.length === 0) return { x: 0, y: 0 };
+        let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+        for (const p of this.points) {
+            if (p.x < x0) x0 = p.x; if (p.x > x1) x1 = p.x;
+            if (p.y < y0) y0 = p.y; if (p.y > y1) y1 = p.y;
+        }
+        return { x: (x0 + x1) / 2, y: (y0 + y1) / 2 };
+    }
+
+    /** The points as drawn: the stored points turned by `rotation` round the pivot, rounded to pixels. */
+    rotatedPoints() {
+        const deg = ShapeGenerator.constructor.rotationDeg(this.rotation);
+        if (deg === 0) return this.points;
+        const c = this.pivot();
+        const G = ShapeGenerator.constructor;
+        return this.points.map(p => {
+            const r = G._rotateXY(p.x, p.y, c.x, c.y, deg);
+            return { x: G._snap(r.x), y: G._snap(r.y) };
+        });
+    }
+
+    getRotation() { return ShapeGenerator.constructor.rotationDeg(this.rotation); }
+    setRotation(deg) { this.rotation = ShapeGenerator.constructor.rotationDeg(deg); }
+
+    /** Make the turn part of the points (before one of them is moved), so the figure looks the same and turns from 0. */
+    bakeRotation() {
+        if (ShapeGenerator.constructor.rotationDeg(this.rotation) === 0) { this.rotation = 0; return; }
+        this.points = this.rotatedPoints().map(p => ({ x: p.x, y: p.y }));
+        this.rotation = 0;
+    }
+
+    /** Where handle `i` is drawn (the stored point turned by the rotation). */
+    handlePoint(i) {
+        const pts = this.rotatedPoints();
+        return pts[i] ? { x: pts[i].x, y: pts[i].y } : null;
+    }
+
+    /** Move handle `i` to `p` (a drawn position). A turned figure is baked first. */
+    movePoint(i, p) {
+        if (!this.points[i]) return false;
+        this.bakeRotation();
+        this.points[i] = { x: p.x, y: p.y };
+        return true;
+    }
+
+    /** True when (x, y) is inside a closed figure (even when it is not filled). */
+    containsPoint(x, y) {
+        const poly = this.fillable && this.points.length >= 3 ? this.def.polygon(this.rotatedPoints()) : null;
+        if (!poly) return false;
+        for (const p of ShapeGenerator.fillPolygon(poly)) if (p.x === x && p.y === y) return true;
+        return false;
+    }
+
+    /** The figure as drawn, ready for the editor: kind of tool it came from, for Clone. */
+    get tool() { return 'figure'; }
 
     get def() { return FigureModel.TYPES[this.type]; }
     get closed() { return !!this.def.closed; }
@@ -107,6 +170,7 @@ class FigureModel {
         c.points = this.points.map(p => ({ x: p.x, y: p.y }));
         c.kinds = this.kinds.slice();
         c.finished = this.finished;
+        c.rotation = this.rotation;
         return c;
     }
 
@@ -115,15 +179,16 @@ class FigureModel {
     }
 
     toJSON() {
-        return { type: this.type, options: { ...this.options }, points: this.points.map(p => ({ ...p })), kinds: this.kinds.slice() };
+        return { type: this.type, options: { ...this.options }, points: this.points.map(p => ({ ...p })), kinds: this.kinds.slice(),
+            rotation: this.rotation };
     }
 
     /** The straight lines of the figure, as [[a, b], ...] with integer points. */
-    segments() { return this.def.segments(this.points); }
+    segments() { return this.def.segments(this.rotatedPoints()); }
 
     /** The vertices to fill (closed types with at least 3 points), else null. */
     polygon() {
-        return this.fillable && this.points.length >= 3 ? this.def.polygon(this.points) : null;
+        return this.fillable && this.points.length >= 3 ? this.def.polygon(this.rotatedPoints()) : null;
     }
 
     /**
@@ -142,7 +207,7 @@ class FigureModel {
             seen.add(k);
             centre.push({ x, y });
         };
-        if (this.points.length === 1) add(this.points[0].x, this.points[0].y);
+        if (this.points.length === 1) { const p0 = this.rotatedPoints()[0]; add(p0.x, p0.y); }
         // The lines as ordered runs for a line style: a new run starts when a line does not begin where the last
         // one ended (rays and the two-line figures), so the pattern starts afresh there.
         const runs = [];
@@ -167,10 +232,11 @@ class FigureModel {
             gone = new Set(centre.map(p => p.y * 100003 + p.x));
         } else if (style !== 'solid' && (t === 1 || poly)) {
             const split = ShapeGenerator.applyLineStyle(runs, style);
-            const onKeys = new Set(split.on.map(p => p.y * 100003 + p.x));
-            outline = Array.from(onKeys).map(k => ({ x: k % 100003, y: Math.floor(k / 100003) }));
+            const onMap = new Map();
+            for (const p of split.on) onMap.set(p.y * 100003 + p.x, p);
+            outline = Array.from(onMap.values());
             gone = new Set(split.off.map(p => p.y * 100003 + p.x));
-            for (const k of onKeys) gone.delete(k);
+            for (const k of onMap.keys()) gone.delete(k);
         }
         let fill = null;
         if (poly) {
@@ -244,5 +310,150 @@ FigureModel.TYPES = Object.freeze({
 });
 
 window.FigureModel = FigureModel;
+
+/**
+ * ShapeFigure - a Shape tool drawing that stays pending and editable ("Keep editable", Batch 7 part 7C). It has the
+ * same editing surface as FigureModel (handles, move, turn, clone) but its two points are the shape's drag start and
+ * drag end and it is rasterised by ShapeGenerator.generateShape exactly as the one-drag commit does.
+ *
+ * `gen` holds the generator's own options (filled, thickness, lineStyle, rotation in degrees, rounding as a fraction
+ * and the per-shape values). Its displayed handles are the drag points as they really sit after the turn: a box shape
+ * turns its corners round the centre the generator uses, a shape drawn from a centre and a drag point turns its drag
+ * point round the start.
+ */
+class ShapeFigure extends FigureModel {
+    constructor(shapeType, start, end, gen = {}) {
+        super('figure-shape', { filled: !!gen.filled, thickness: gen.thickness || 1, lineStyle: gen.lineStyle });
+        this.shapeType = shapeType;
+        this.gen = { ...gen };
+        this.points = [{ x: start.x, y: start.y }, { x: end.x, y: end.y }];
+        this.kinds = ['v', 'v'];
+        this.finished = true;
+    }
+
+    get def() { return FigureModel.TYPES['figure-shape']; }
+    get tool() { return 'shape'; }
+    isComplete() { return true; }
+    addPoint() { return false; }
+    extendRun() { return false; }
+    removeLastPoint() { return false; }
+
+    /** The generator's bounds for the stored drag points. @private */
+    _bounds() {
+        const [a, b] = this.points;
+        return ShapeGenerator.constructor.isCenterAnchored(this.shapeType)
+            ? ShapeGenerator.constructor.centerAnchoredBounds(a.x, a.y, b.x, b.y)
+            : { x1: a.x, y1: a.y, x2: b.x, y2: b.y };
+    }
+
+    /** The generator options with this figure's current line style, thickness, fill and rotation. @private */
+    _options(over = {}) {
+        return { ...this.gen, filled: this.options.filled, thickness: this.options.thickness,
+            lineStyle: this.options.lineStyle, rotation: this.getRotation(), ...over };
+    }
+
+    getRotation() { return ShapeGenerator.constructor.rotationDeg(this.gen.rotation); }
+    setRotation(deg) { this.gen.rotation = ShapeGenerator.constructor.rotationDeg(deg); }
+
+    /** The centre the shape turns round, or null for a shape that does not turn. */
+    pivot() {
+        const p = ShapeGenerator.rotationPivot(this.shapeType, this._bounds(), this._options({ rotation: 0 }));
+        return p || { x: this.points[0].x, y: this.points[0].y };
+    }
+
+    /** True when the shape has a rotation to turn (so the editor may offer its knob). */
+    get turnable() {
+        return ShapeGenerator.rotationPivot(this.shapeType, this._bounds(), this._options({ rotation: 0 })) !== null;
+    }
+
+    /** The drag points as drawn after the turn. */
+    rotatedPoints() {
+        const deg = this.getRotation();
+        if (deg === 0 || !this.turnable) return this.points;
+        const G = ShapeGenerator.constructor;
+        const [a, b] = this.points;
+        const turn = (p, c) => { const r = G._rotateXY(p.x, p.y, c.x, c.y, deg); return { x: G._snap(r.x), y: G._snap(r.y) }; };
+        if (G.BOX_ROTATABLE.has(this.shapeType) && !G.isCenterAnchored(this.shapeType)) {
+            const c = this.pivot();
+            return [turn(a, c), turn(b, c)];
+        }
+        return [{ x: a.x, y: a.y }, turn(b, a)];
+    }
+
+    bakeRotation() { /* the turn is a property of the shape, not of its points */ }
+
+    /** Move handle `i` to the drawn position `p`. */
+    movePoint(i, p) {
+        const G = ShapeGenerator.constructor;
+        const deg = this.getRotation();
+        const [a, b] = this.points;
+        if (i === 0 && (G.isCenterAnchored(this.shapeType) || !G.BOX_ROTATABLE.has(this.shapeType))) {
+            this.translate(p.x - a.x, p.y - a.y);
+            return true;
+        }
+        if (deg === 0 || !this.turnable) {
+            this.points[i] = { x: p.x, y: p.y };
+            return true;
+        }
+        const back = (q, c) => { const r = G._rotateXY(q.x, q.y, c.x, c.y, -deg); return { x: G._snap(r.x), y: G._snap(r.y) }; };
+        if (G.BOX_ROTATABLE.has(this.shapeType) && !G.isCenterAnchored(this.shapeType)) {
+            // the other corner stays where it is drawn: the new centre is halfway between it and the pointer
+            const shown = this.rotatedPoints();
+            const fixed = shown[1 - i];
+            const c = { x: (fixed.x + p.x) / 2, y: (fixed.y + p.y) / 2 };
+            this.points[i] = back(p, c);
+            this.points[1 - i] = back(fixed, c);
+            return true;
+        }
+        this.points[1] = back(p, a);          // drag end turned back round the start
+        return true;
+    }
+
+    translate(dx, dy) {
+        for (const p of this.points) { p.x += dx; p.y += dy; }
+    }
+
+    containsPoint(x, y) {
+        const px = ShapeGenerator.generateShape(this.shapeType, this._bounds(),
+            this._options({ filled: true, thickness: 1, lineStyle: 'solid' }));
+        for (const p of px) if (p.x === x && p.y === y) return true;
+        return false;
+    }
+
+    rasterise() {
+        const bounds = this._bounds();
+        const pixels = ShapeGenerator.generateShape(this.shapeType, bounds, this._options());
+        const centre = ShapeGenerator.generateShape(this.shapeType, bounds,
+            this._options({ filled: false, thickness: 1, lineStyle: 'solid' }));
+        return { centre, outline: pixels, fill: null, pixels };
+    }
+
+    segments() { return []; }
+    polygon() { return null; }
+
+    clone() {
+        const c = new ShapeFigure(this.shapeType, this.points[0], this.points[1], this.gen);
+        c.options = { ...this.options };
+        return c;
+    }
+
+    toJSON() {
+        return { type: this.type, shapeType: this.shapeType, points: this.points.map(p => ({ ...p })), gen: { ...this.gen },
+            options: { ...this.options } };
+    }
+
+    /** Rebuild from toJSON(). */
+    static fromJSON(j) {
+        const f = new ShapeFigure(j.shapeType, j.points[0], j.points[1], j.gen || {});
+        if (j.options) f.options = { ...f.options, ...j.options };
+        return f;
+    }
+}
+
+FigureModel.TYPES = Object.freeze({
+    ...FigureModel.TYPES,
+    'figure-shape': Object.freeze({ maxPoints: 2, closed: false, fillable: false, segments: () => [] })
+});
+window.ShapeFigure = ShapeFigure;
 
 })();
