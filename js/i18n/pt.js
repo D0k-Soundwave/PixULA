@@ -435,6 +435,8 @@ const pt = {
     'menu.image.attrFlipV': 'Espelhar verticalmente',
     'menu.image.attrNoCells': 'Este modo de ecrã não tem cores de célula.',
     'menu.image.attrStamp': 'Conclua ou cancele primeiro o carimbo.',
+    'opt.patternShape': 'Figura',
+    'opt.patternSize': 'Tamanho da figura',
     'menu.edit.cloneFigure': 'Clonar a última figura',
     'opt.pointMode': 'Manter editável',
     'shape.pointMode.hint': 'A forma fica na imagem depois de arrastar: arraste um canto, a forma ou o botão redondo para a alterar, mover ou rodar. Enter desenha-a.',

@@ -763,7 +763,12 @@ class SprayBrush extends BaseBrush {
         this.description = 'Spray brush with scattered particles';
         this.consumesFlow = true;       // flow buys particles — see BaseBrush
         this.weighting = 0;             // -100 rim .. 0 even .. +100 centre (uniform)
-        this.distribution = 'uniform';  // 'uniform' polar scatter | 'poisson' blue-noise
+        this.distribution = 'uniform';  // 'uniform' polar scatter | 'poisson' blue-noise | 'pattern' whole figures
+
+        // Pattern sub-mode state (Batch 7 part 7C2).
+        this.patternShape = 'circle';   // 'circle' | 'square' | 'line'
+        this.patternSize = 5;           // width of one figure, or length of a line
+        this.patternFilled = false;     // solid figures, or outlines
 
         // Poisson sub-mode state.
         this.minDistance = 2;
@@ -793,9 +798,24 @@ class SprayBrush extends BaseBrush {
         this.weighting = clamp(value, -100, 100);
     }
 
-    /** @param {string} value - 'uniform' | 'poisson' */
+    /** @param {string} value - 'uniform' | 'poisson' | 'pattern' */
     setDistribution(value) {
-        this.distribution = value === 'poisson' ? 'poisson' : 'uniform';
+        this.distribution = value === 'poisson' || value === 'pattern' ? value : 'uniform';
+    }
+
+    /** @param {string} value - 'circle' | 'square' | 'line' */
+    setPatternShape(value) {
+        this.patternShape = value === 'square' || value === 'line' ? value : 'circle';
+    }
+
+    /** @param {number} value - Figure width in pixels (2..16) */
+    setPatternSize(value) {
+        this.patternSize = clamp(Math.round(value) || 5, 2, 16);
+    }
+
+    /** @param {boolean} value */
+    setPatternFilled(value) {
+        this.patternFilled = !!value;
     }
 
     /** @param {number} value - Minimum spacing between Poisson points (>= 1). */
@@ -815,9 +835,32 @@ class SprayBrush extends BaseBrush {
     apply(x, y, size, flow, colorSelection, options = {}) {
         if (size <= 1) return this.stampCentre(x, y, { ...options, colorSelection });
 
+        if (this.distribution === 'pattern') return this._applyPattern(x, y, size, flow, colorSelection, options);
         return this.distribution === 'poisson'
             ? this._applyPoisson(x, y, size, flow, colorSelection, options)
             : this._applyUniform(x, y, size, flow, colorSelection, options);
+    }
+
+    /**
+     * Whole little figures instead of dots: circles, squares or short lines, each inside the spray disc (see
+     * BrushShapes.patternStamps). Flow is the share of the disc the figures try to cover. @private
+     */
+    _applyPattern(x, y, size, flow, colorSelection, options) {
+        const isInk = options.isInk !== undefined ? options.isInk : true;
+        const mode = PixelDrawRoutine.resolveUserMode(isInk);
+        const radius = BrushShapes.radiusFor(size);
+        const n = this.patternSize;
+        const count = Math.max(1, Math.round(Math.PI * radius * radius * flow / (n * n)));
+        let applied = false;
+
+        for (const figure of BrushShapes.patternStamps(radius, n, this.patternShape, this.patternFilled, count)) {
+            for (const c of figure) {
+                const pixelX = x + c.dx;
+                const pixelY = y + c.dy;
+                if (_inBounds(pixelX, pixelY) && PixelDrawRoutine.draw(pixelX, pixelY, colorSelection, mode)) applied = true;
+            }
+        }
+        return applied;
     }
 
     /** Polar scatter with independent per-axis rounding — see BrushShapes. @private */

@@ -435,6 +435,8 @@ const fr = {
     'menu.image.attrFlipV': 'Retourner verticalement',
     'menu.image.attrNoCells': 'Ce mode d\'écran ne possède pas de couleurs de cellule.',
     'menu.image.attrStamp': 'Terminez ou annulez d\'abord le tampon.',
+    'opt.patternShape': 'Figure',
+    'opt.patternSize': 'Taille de la figure',
     'menu.edit.cloneFigure': 'Cloner la dernière figure',
     'opt.pointMode': 'Garder modifiable',
     'shape.pointMode.hint': 'La forme reste sur l\'image après le glissement : glissez un coin, la forme ou la poignée ronde pour la modifier, la déplacer ou la tourner. Entrée la dessine.',

@@ -435,6 +435,8 @@ const tr = {
     'menu.image.attrFlipV': 'Dikey çevir',
     'menu.image.attrNoCells': 'Bu ekran kipinde hücre renkleri yok.',
     'menu.image.attrStamp': 'Önce damgayı tamamlayın veya iptal edin.',
+    'opt.patternShape': 'Şekil',
+    'opt.patternSize': 'Şekil boyutu',
     'menu.edit.cloneFigure': 'Son şekli kopyala',
     'opt.pointMode': 'Düzenlenebilir bırak',
     'shape.pointMode.hint': 'Şekil sürüklemeden sonra resimde kalır: değiştirmek, taşımak ya da döndürmek için bir köşeyi, şekli veya yuvarlak topuzu sürükleyin. Enter onu çizer.',

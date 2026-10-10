@@ -76,6 +76,8 @@ const en = {
     'menu.image.attrFlipV': 'Flip Vertical',
     'menu.image.attrNoCells': 'This screen mode has no cell colours.',
     'menu.image.attrStamp': 'Finish or cancel the stamp first.',
+    'opt.patternShape': 'Figure',
+    'opt.patternSize': 'Figure size',
     'menu.edit.cloneFigure': 'Clone Last Figure',
     'opt.pointMode': 'Keep editable',
     'shape.pointMode.hint': 'The shape stays on the picture after the drag: drag a corner, the shape or the round knob to reshape, move or turn it. Enter draws it.',

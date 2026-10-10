@@ -435,6 +435,8 @@ const sk = {
     'menu.image.attrFlipV': 'Otočiť zvisle',
     'menu.image.attrNoCells': 'Tento režim obrazovky nemá farby buniek.',
     'menu.image.attrStamp': 'Najprv dokončite alebo zrušte pečiatku.',
+    'opt.patternShape': 'Obrazec',
+    'opt.patternSize': 'Veľkosť obrazca',
     'menu.edit.cloneFigure': 'Klonovať posledný obrazec',
     'opt.pointMode': 'Ponechať upraviteľné',
     'shape.pointMode.hint': 'Tvar po ťahaní zostane na obrázku: ťahaním rohu, tvaru alebo okrúhleho úchytu ho zmeníte, presuniete alebo otočíte. Enter ho nakreslí.',

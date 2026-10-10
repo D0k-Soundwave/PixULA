@@ -435,6 +435,8 @@ const it = {
     'menu.image.attrFlipV': 'Capovolgi verticalmente',
     'menu.image.attrNoCells': 'Questa modalità schermo non ha colori di cella.',
     'menu.image.attrStamp': 'Termina o annulla prima il timbro.',
+    'opt.patternShape': 'Figura',
+    'opt.patternSize': 'Dimensione figura',
     'menu.edit.cloneFigure': 'Clona l\'ultima figura',
     'opt.pointMode': 'Mantieni modificabile',
     'shape.pointMode.hint': 'La forma resta sull\'immagine dopo il trascinamento: trascina un angolo, la forma o la manopola rotonda per cambiarla, spostarla o ruotarla. Invio la disegna.',
