@@ -284,7 +284,7 @@ class GigaQuantClass {
    * @param {number} h
    * @returns {{pixelsA:Uint8Array, pixelsB:Uint8Array, slots:Uint8Array, slotRGB:Array}}
    */
-  renderCell(cellRGB, pick, dithering, w, h, maxStep = this.MAX_STEP) {
+  renderCell(cellRGB, pick, dithering, w, h, maxStep = this.MAX_STEP, ox = 0, oy = 0) {
     const usable = this.slotsFor(pick, maxStep);
     const slotRGB = [null, null, null, null];
     for (const s of usable) slotRGB[s.slot] = s.rgb;
@@ -293,6 +293,9 @@ class GigaQuantClass {
     const pixelsB = new Uint8Array(h);
     const slots = new Uint8Array(w * h);
     const diffuse = dithering === 'floyd-steinberg';
+    // Any other Dither method: one choice per pixel from Dither.paletteIndices (the two nearest steady slots, dithered).
+    const method = !!dithering && dithering !== 'none' && !diffuse && !!window.Dither && !!Dither.get(dithering);
+    const picked = method ? Dither.paletteIndices(cellRGB, usable.map(s => s.rgb), dithering, w, h, ox, oy) : null;
 
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
@@ -300,6 +303,14 @@ class GigaQuantClass {
         const r = Helpers.clamp(buf[i], 0, 255);
         const g = Helpers.clamp(buf[i + 1], 0, 255);
         const b = Helpers.clamp(buf[i + 2], 0, 255);
+        if (picked) {
+          const s = usable[picked[y * w + x]];
+          slots[y * w + x] = s.slot;
+          const bit = 1 << (w - 1 - x);
+          if (GIGA_SLOTS.bitA(s.slot)) pixelsA[y] |= bit;
+          if (GIGA_SLOTS.bitB(s.slot)) pixelsB[y] |= bit;
+          continue;
+        }
         let best = usable[0], bd = Infinity;
         for (const s of usable) {
           const d = this._dist2(r, g, b, s.rgb);

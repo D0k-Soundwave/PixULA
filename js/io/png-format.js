@@ -314,9 +314,9 @@ class PNGFormatClass {
    * @returns {{pick:Object, result:Object}}
    * @private
    */
-  _gigaCell(hiresPick, decideRGB, cellRGB, dithering, w, h) {
+  _gigaCell(hiresPick, decideRGB, cellRGB, dithering, w, h, ox = 0, oy = 0) {
     const pick = hiresPick || GigaQuant.chooseCell(decideRGB);
-    return { pick, result: GigaQuant.renderCell(cellRGB, pick, dithering, w, h) };
+    return { pick, result: GigaQuant.renderCell(cellRGB, pick, dithering, w, h, undefined, ox, oy) };
   }
 
   /**
@@ -391,7 +391,7 @@ class PNGFormatClass {
         // written (docs/superpowers/specs/2026-09-26-gigascreen-photo-import-design.md)
         if (twoScreens) {
           const { pick, result } =
-            this._gigaCell(hiresPick, decideRGB, cellRGB, dithering, cw, ch);
+            this._gigaCell(hiresPick, decideRGB, cellRGB, dithering, cw, ch, cellX * cw, cellY * ch);
           layer.setCell(cellX, cellY, {
             ink: pick.a.ink, paper: pick.a.paper, bright: pick.a.bright, flash: false,
             pixels: result.pixelsA,
@@ -404,7 +404,7 @@ class PNGFormatClass {
         let attrs, pixels;
         if (ulaplus) {
           const pick = this._chooseCellPairUlaplus(decideRGB, paletteRGBs);
-          pixels = this._renderCellMask(cellRGB, pick, dithering, cw, ch);
+          pixels = this._renderCellMask(cellRGB, pick, dithering, cw, ch, cellX * cw, cellY * ch);
           attrs = {
             ink: pick.inkSlot,
             paper: pick.paperSlot,
@@ -412,8 +412,8 @@ class PNGFormatClass {
             flash: (pick.clut & 2) !== 0
           };
         } else {
-          const pair = this._chooseCellPair(decideRGB);
-          pixels = this._renderCellMask(cellRGB, pair, dithering, cw, ch);
+          const pair = this._cellPair(decideRGB);
+          pixels = this._renderCellMask(cellRGB, pair, dithering, cw, ch, cellX * cw, cellY * ch);
           attrs = {
             ink: pair.ink % 8,
             paper: pair.paper % 8,
@@ -532,7 +532,10 @@ class PNGFormatClass {
    */
   previewRenderer(imageData, scaling) {
     const prepared = this._preparePreview(imageData, scaling);
-    return (id) => this._quantizePrepared(prepared, IMPORT_METHODS.find((m) => m.id === id));
+    return (id, dithering) => {
+      const spec = IMPORT_METHODS.find((m) => m.id === id);
+      return this._quantizePrepared(prepared, dithering && spec.dithering !== 'none' ? { ...spec, dithering } : spec);
+    };
   }
 
   /**
@@ -610,7 +613,7 @@ class PNGFormatClass {
         // Two-screen modes: the Average blend of the cell's steady slots,
         // from the same _gigaCell the import writes with
         if (prepared.giga) {
-          const { result } = this._gigaCell(prepared.hiresPick, decideRGB, cellRGB, dithering, cw, ch);
+          const { result } = this._gigaCell(prepared.hiresPick, decideRGB, cellRGB, dithering, cw, ch, cellX * cw, cellY * ch);
           const start = ZX_COORDS.cellToPixel(cellX, cellY);
           for (let dy = 0; dy < ch; dy++) {
             for (let dx = 0; dx < cw; dx++) {
@@ -625,12 +628,12 @@ class PNGFormatClass {
         let rows, inkRGB, paperRGB;
         if (paletteRGBs) {
           const pick = this._chooseCellPairUlaplus(decideRGB, paletteRGBs);
-          rows = this._renderCellMask(cellRGB, pick, dithering, cw, ch);
+          rows = this._renderCellMask(cellRGB, pick, dithering, cw, ch, cellX * cw, cellY * ch);
           inkRGB = pick.inkRGB;
           paperRGB = pick.paperRGB;
         } else {
-          const pair = this._chooseCellPair(decideRGB);
-          rows = this._renderCellMask(cellRGB, pair, dithering, cw, ch);
+          const pair = this._cellPair(decideRGB);
+          rows = this._renderCellMask(cellRGB, pair, dithering, cw, ch, cellX * cw, cellY * ch);
           // Which pixels are ink is decided against the hardware colours (so an import gives the
           // same bytes in every browser); the preview is PAINTED with the standard colours the
           // person has set in Preferences, so it matches the picture they will get.
@@ -667,6 +670,8 @@ class PNGFormatClass {
    * @returns {Int16Array} width*height palette indices
    */
   _quantizeIndices(imageData, dithering, paletteOverride = null) {
+    // The indexed modes keep their own colour diffusion: any other Dither method is Floyd-Steinberg here.
+    if (dithering !== 'none' && dithering !== 'floyd-steinberg') dithering = 'floyd-steinberg';
     const W = ZX_SPECTRUM.WIDTH, H = ZX_SPECTRUM.HEIGHT;
     const paletteRGB = paletteOverride ||
       Array.from({ length: ZX_SPECTRUM.PALETTE_SIZE }, (_, i) => ColorManager.getRGB(i));
@@ -1055,9 +1060,21 @@ class PNGFormatClass {
    * @returns {Uint8Array} h ZX pixel rows, MSB = leftmost pixel
    * @private
    */
-  _renderCellMask(cellRGB, pair, dithering, w = CS, h = CS) {
+  _renderCellMask(cellRGB, pair, dithering, w = CS, h = CS, ox = 0, oy = 0) {
     const inkRGB = pair.inkRGB || ZX_PALETTE_RGB[pair.ink];
     const paperRGB = pair.paperRGB || ZX_PALETTE_RGB[pair.paper];
+    if (this._isDitherMethod(dithering)) {
+      // Any Dither method but the importer's own Floyd-Steinberg (kept exactly as it was): see Dither.paletteIndices.
+      const same = inkRGB[0] === paperRGB[0] && inkRGB[1] === paperRGB[1] && inkRGB[2] === paperRGB[2];
+      const idx = same ? null : Dither.paletteIndices(cellRGB, [inkRGB, paperRGB], dithering, w, h, ox, oy);
+      const rows = new Uint8Array(h);
+      for (let y = 0; y < h; y++) {
+        let rowByte = 0;
+        for (let x = 0; x < w; x++) if (!idx || idx[y * w + x] === 0) rowByte |= (1 << (w - 1 - x));
+        rows[y] = rowByte;
+      }
+      return rows;
+    }
     const buf = Float32Array.from(cellRGB);
     const pixels = new Uint8Array(h);
     const diffuse = dithering === 'floyd-steinberg';
@@ -1086,6 +1103,26 @@ class PNGFormatClass {
     }
 
     return pixels;
+  }
+
+  /**
+   * The ink / paper pair a cell is drawn with. Everywhere but single-screen Timex hi-res that is the best pair for the
+   * cell. Hi-res ignores cell attributes: every bit is drawn with the screen-wide scheme (ink n on paper n ^ 7, both
+   * bright), so the dots must be decided against THAT pair or a cell whose majority colour sits on the scheme's ink
+   * side comes out inverted. @private
+   */
+  _cellPair(decideRGB) {
+    if (ACTIVE_SCREEN_MODE.paletteModel === 'timexMono') {
+      const s = (window.ColorManager && ColorManager.getTimexHiresInk ? ColorManager.getTimexHiresInk() : 0) & 7;
+      return { ink: 8 + s, paper: 8 + (s ^ 7), bright: true };
+    }
+    return this._chooseCellPair(decideRGB);
+  }
+
+  /** True for a Dither method other than the importer's own Floyd-Steinberg and 'none'. @private */
+  _isDitherMethod(dithering) {
+    return !!dithering && dithering !== 'none' && dithering !== 'floyd-steinberg' &&
+      !!window.Dither && !!Dither.get(dithering);
   }
 
   /**

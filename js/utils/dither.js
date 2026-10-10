@@ -214,6 +214,43 @@ class DitherClass {
         return out;
     }
 
+    /**
+     * Choose one of a few colours for every pixel of a small block (an attribute cell) with a Dither method.
+     * Each pixel is placed between its two nearest colours (luma-weighted distance, the importer's own measure), as a grey
+     * running from the darker of the two (0) to the lighter (255); one Dither.apply over the block then decides which of
+     * the two it takes: a 1 (ink) is the darker. Ordered methods are anchored at the block's screen position (ox, oy), so
+     * the screen continues across cells. Error diffusion stays inside the block.
+     * @param {ArrayLike<number>} rgb - flat r,g,b for the w x h block
+     * @param {Array<ArrayLike<number>>} colours - 1..n [r, g, b] triplets
+     * @returns {Uint8Array} w*h indices into `colours`
+     */
+    paletteIndices(rgb, colours, id, w, h, ox = 0, oy = 0) {
+        const out = new Uint8Array(w * h);
+        if (colours.length < 2) return out;
+        const luma = colours.map(c => this.luma(c[0], c[1], c[2]));
+        const gray = new Float64Array(w * h);
+        const lo = new Int16Array(w * h), hi = new Int16Array(w * h);
+        for (let i = 0; i < w * h; i++) {
+            const r = rgb[i * 3], g = rgb[i * 3 + 1], b = rgb[i * 3 + 2];
+            let n1 = -1, d1 = Infinity, n2 = -1, d2 = Infinity;
+            for (let k = 0; k < colours.length; k++) {
+                const c = colours[k], dr = r - c[0], dg = g - c[1], db = b - c[2];
+                const d = dr * dr * 0.299 + dg * dg * 0.587 + db * db * 0.114;
+                if (d < d1) { n2 = n1; d2 = d1; n1 = k; d1 = d; } else if (d < d2) { n2 = k; d2 = d; }
+            }
+            const dark = luma[n1] <= luma[n2] ? n1 : n2, light = dark === n1 ? n2 : n1;
+            const D = colours[dark], L = colours[light];
+            const lr = L[0] - D[0], lg = L[1] - D[1], lb = L[2] - D[2];
+            const den = lr * lr * 0.299 + lg * lg * 0.587 + lb * lb * 0.114;
+            const s = den > 0 ? ((r - D[0]) * lr * 0.299 + (g - D[1]) * lg * 0.587 + (b - D[2]) * lb * 0.114) / den : 0;
+            gray[i] = 255 * Helpers.clamp(s, 0, 1);
+            lo[i] = dark; hi[i] = light;
+        }
+        const ink = this.apply(gray, w, h, id, { originX: ox, originY: oy });
+        for (let i = 0; i < w * h; i++) out[i] = ink[i] === 1 ? lo[i] : hi[i];
+        return out;
+    }
+
     /** @private */
     _diffuse(gray, w, h, id, serpentine, out) {
         const buf = new Float64Array(w * h);
