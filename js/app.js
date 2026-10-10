@@ -87,6 +87,7 @@ const BOOT_MANIFEST = [
     ['BrushTool',        'js/tools/brush-tool.js'],
     ['BezierTool',       'js/tools/bezier-tool.js'],
     ['FigureModel',      'js/tools/figure-model.js'],
+    ['FigureEditor',     'js/tools/figure-editor.js'],
     ['FigureTool',       'js/tools/figure-tool.js'],
     ['EraserTool',       'js/tools/eraser-tool.js'],
     ['FillTool',         'js/tools/fill-tool.js'],

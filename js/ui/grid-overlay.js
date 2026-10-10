@@ -905,12 +905,25 @@ class GridOverlayClass {
             if (h.kind === 'control') {
                 this._fillDiamond(ctx, h.x, h.y, r + 1, edge);
                 this._fillDiamond(ctx, h.x, h.y, r, fill);
+            } else if (h.kind === 'rotate') {
+                // the turn knob is a round disc, so it reads as different from the square point handles
+                this._fillDisc(ctx, h.x, h.y, r + 1, edge);
+                this._fillDisc(ctx, h.x, h.y, r, fill);
             } else {
                 ctx.fillStyle = edge;
                 ctx.fillRect(h.x - r - 1, h.y - r - 1, 2 * r + 3, 2 * r + 3);
                 ctx.fillStyle = fill;
                 ctx.fillRect(h.x - r, h.y - r, 2 * r + 1, 2 * r + 1);
             }
+        }
+    }
+
+    /** Solid disc of radius r, row by row (crisp at any size). @private */
+    _fillDisc(ctx, cx, cy, r, color) {
+        ctx.fillStyle = color;
+        for (let dy = -r; dy <= r; dy++) {
+            const half = Math.floor(Math.sqrt(r * r - dy * dy) + 0.5);
+            ctx.fillRect(cx - half, cy + dy, 2 * half + 1, 1);
         }
     }
 

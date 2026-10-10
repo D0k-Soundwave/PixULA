@@ -138,6 +138,28 @@ class ToolBaseClass {
   }
 
   /**
+   * Ctrl+Z while the tool holds an unfinished figure: take back its last edit instead of undoing the picture.
+   * Return true when it was used. Called through ToolManager.undo.
+   * @returns {boolean}
+   */
+  undoPending() {
+    return false;
+  }
+
+  /**
+   * Cursor keys while the tool holds a pending figure: move it by (dx, dy) pixels.
+   * @returns {boolean} whether the figure was moved
+   */
+  nudgePending(dx, dy) {
+    return false;
+  }
+
+  /** Draw whatever the tool is holding unfinished (before a save, or before Clone Last Figure). */
+  commitPending() {
+    // Override in subclass
+  }
+
+  /**
    * Throw away anything the tool is holding unfinished, without drawing it. Escape calls this
    * before the tool is switched (switching tools COMMITS a pending figure, so Escape must discard
    * first). Nothing to do by default.
