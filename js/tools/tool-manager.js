@@ -185,6 +185,23 @@ class ToolManagerClassInternal {
   }
 
   /**
+   * Undo: a tool holding an unfinished figure takes back its own last edit first (Ctrl+Z, the Undo button, Edit >
+   * Undo); otherwise the picture's undo. @returns {boolean} whether the tool used it
+   */
+  undo() {
+    const t = this.currentTool;
+    if (t && typeof t.undoPending === 'function' && t.undoPending() === true) return true;
+    if (window.UndoRedo) UndoRedo.undo();
+    return false;
+  }
+
+  /** Draw whatever the current tool holds unfinished (a pending figure) - before a save or export. */
+  commitPending() {
+    const t = this.currentTool;
+    if (t && typeof t.commitPending === 'function') t.commitPending();
+  }
+
+  /**
    * Get the currently active tool
    * @returns {ToolBase|null} Current tool or null
    */

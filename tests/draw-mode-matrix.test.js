@@ -69,6 +69,8 @@ loadModule('js/tools/shape-generator.js');
 loadModule('js/utils/mask-ops.js');
 loadModule('js/utils/coverage-ops.js');
 loadModule('js/utils/font-rasterizer.js');
+loadModule('js/tools/figure-model.js');
+loadModule('js/tools/figure-editor.js');
 for (const f of ['brush-tool.js', 'eraser-tool.js', 'fill-tool.js', 'shape-tool.js',
   'bezier-tool.js', 'gradient-tool.js', 'text-tool.js', 'selection-tool.js',
   'eyedropper-tool.js', 'move-tool.js', 'zoom-tool.js']) {

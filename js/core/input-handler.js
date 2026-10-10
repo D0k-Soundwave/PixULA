@@ -754,7 +754,7 @@ class InputHandlerClass {
         this._showCanvasContextMenu(e.clientX, e.clientY);
         return false;
       case A.UNDO.id:
-        UndoRedo.undo();
+        ToolManager.undo();
         return false;
       case A.REDO.id:
         UndoRedo.redo();
@@ -1939,6 +1939,18 @@ class InputHandlerClass {
       return;
     }
 
+    // A pending figure (Figure, Shape kept editable, Bezier) moves before the selection does: people draw figures
+    // inside a drawing-guide selection, and the arrows must move the figure, not the pixels under it. One pixel, or
+    // one cell under grid snap; Shift moves a whole cell (CELL_WIDTH across, CELL_HEIGHT down).
+    if (activeTool && typeof activeTool.nudgePending === 'function' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      const cx = e.shiftKey || snap ? ZX_SPECTRUM.CELL_WIDTH : 1;
+      const cy = e.shiftKey || snap ? ZX_SPECTRUM.CELL_HEIGHT : 1;
+      if (activeTool.nudgePending(dir.dx * cx, dir.dy * cy) === true) {
+        e.preventDefault();
+        return;
+      }
+    }
+
     if (SelectionService.hasSelection()) {
       e.preventDefault();
       TransformService.shift(dir.name, { x: stepX, y: stepY }, true, move.content);
@@ -1996,7 +2008,7 @@ class InputHandlerClass {
     }
 
     // ── Ctrl combos ──
-    if (ctrl && key === 'z' && !e.shiftKey) { e.preventDefault(); UndoRedo.undo(); return; }
+    if (ctrl && key === 'z' && !e.shiftKey) { e.preventDefault(); ToolManager.undo(); return; }
     if (ctrl && (key === 'y' || (key === 'z' && e.shiftKey))) { e.preventDefault(); UndoRedo.redo(); return; }
     if (ctrl && key === 's') {
       e.preventDefault();
@@ -2168,6 +2180,13 @@ class InputHandlerClass {
         if (!this.isDrawing) StateManager.setInverse(!StateManager.getInverse());
         return;
       }
+    }
+
+    // Shift+C: Edit > Clone Last Figure (bare C is the Bezier tool). Nothing while a stroke is under way.
+    if (!ctrl && e.shiftKey && !e.altKey && key === 'c') {
+      e.preventDefault();
+      if (!this.isDrawing && window.FigureHistory) FigureHistory.cloneLast();
+      return;
     }
 
     // Bright, Flash and "use existing" (COLOUR_SHORTCUTS). Toggling a value

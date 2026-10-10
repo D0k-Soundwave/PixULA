@@ -378,6 +378,8 @@ class MenuSystemClass {
                 items: [
                     { id: 'undo', label: 'Undo', shortcut: 'Ctrl+Z', action: 'edit:undo' },
                     { id: 'redo', label: 'Redo', shortcut: 'Ctrl+Y', action: 'edit:redo' },
+                    // Reopen the last drawn figure (Figure, Shape or Bezier) as a pending copy to move, turn or change.
+                    { id: 'clone-figure', label: 'Clone Last Figure', shortcut: 'Shift+C', action: 'edit:cloneFigure', i18n: 'menu.edit.cloneFigure' },
                     { type: 'separator' },
                     { id: 'cut', label: 'Cut', shortcut: 'Ctrl+X', action: 'edit:cut' },
                     { id: 'copy', label: 'Copy', shortcut: 'Ctrl+C', action: 'edit:copy' },
@@ -834,6 +836,9 @@ class MenuSystemClass {
         // we cannot know synchronously whether an image is actually there
         const canPaste = !!(window.SelectionService && SelectionService.hasClipboard()) ||
             !!(navigator.clipboard && typeof navigator.clipboard.read === 'function');
+        // Clone Last Figure is open once a figure has been drawn.
+        const hasFigure = !!(window.FigureHistory && FigureHistory.has());
+        this.setItemEnabled('clone-figure', hasFigure);
         if (hasSel === this._lastHasSel && canPaste === this._lastHasClip) return;
         this._lastHasSel  = hasSel;
         this._lastHasClip = canPaste;
@@ -1022,8 +1027,9 @@ class MenuSystemClass {
             case 'file:spriteEditor': SpriteEditorDialog.open(); break;
 
             // Edit
-            case 'edit:undo': UndoRedo.undo(); break;
+            case 'edit:undo': ToolManager.undo(); break;
             case 'edit:redo': UndoRedo.redo(); break;
+            case 'edit:cloneFigure': FigureHistory.cloneLast(); break;
             case 'edit:cut':
                 SelectionService.copyOrCut(true);
                 break;

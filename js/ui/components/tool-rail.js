@@ -171,7 +171,7 @@ class ToolRailClass {
     _buildActionGroup() {
         const groupEl = this._buildGroupShell('history', 'toolgroup.history', 'History', 'tool-actions');
         groupEl.appendChild(this._buildActionButton(
-            'undo', 'icon-undo', 'app.undo', 'Ctrl+Z', () => UndoRedo.undo()));
+            'undo', 'icon-undo', 'app.undo', 'Ctrl+Z', () => ToolManager.undo()));
         groupEl.appendChild(this._buildActionButton(
             'redo', 'icon-redo', 'app.redo', 'Ctrl+Y', () => UndoRedo.redo()));
         return groupEl;

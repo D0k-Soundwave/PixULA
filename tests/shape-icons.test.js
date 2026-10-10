@@ -40,6 +40,8 @@ loadModule('js/data/zx-rom-font.js');      // the numerals on the polygon icons
 loadModule('js/tools/tool-base.js');
 loadModule('js/tools/tool-manager.js');
 loadModule('js/tools/shape-generator.js');
+loadModule('js/tools/figure-model.js');
+loadModule('js/tools/figure-editor.js');
 loadModule('js/tools/shape-tool.js');
 
 const SIZE = 25;   // the renderer's box (option-controls SHAPE_ICON_SIZE)

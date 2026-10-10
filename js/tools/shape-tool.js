@@ -131,7 +131,7 @@ const OUTLINE_THICK = Object.freeze({ all: [ OUTLINE_SHOWN, { key: 'thickness', 
 
 const SHAPE_PARAM_ROWS = Object.freeze([
   { type: 'range', key: 'rotation',     i18n: 'opt.rotation',     min: -180, max: 180, step: 1, value: 0, unit: '\u00b0',
-    showIf: { key: 'shapeType', in: ROTATABLE_SHAPES } },
+    showIf: { key: 'shapeType', in: ROTATABLE_SHAPES }, syncEvent: EVENTS.TOOL_OPTIONS },
   { type: 'range', key: 'rounding',     i18n: 'opt.rounding',     min: 0, max: 100, step: 5, value: 50, unit: '%',
     showIf: { key: 'shapeType', equals: 'rounded-rectangle' } },
   { type: 'range', key: 'starPoints',   i18n: 'opt.starPoints',   min: 3, max: 12, value: 5,
@@ -181,6 +181,9 @@ class ShapeToolClass extends ToolBase {
     { type: 'hint', i18n: 'lineStyle.thinOnly', showIf: OUTLINE_THICK },
     { type: 'hint', i18n: 'lineStyle.clearHint',
       showIf: { all: [ { key: 'lineStyle', equals: 'clear' }, OUTLINE_SHOWN ] } },
+    // Keep editable (point mode): the shape stays pending after the drag, with handles to reshape, move and turn it.
+    { type: 'check', key: 'pointMode', i18n: 'opt.pointMode', value: false },
+    { type: 'hint', i18n: 'shape.pointMode.hint', showIf: { key: 'pointMode', equals: true } },
     ...SHAPE_PARAM_ROWS
   ];
 
@@ -196,6 +199,25 @@ class ShapeToolClass extends ToolBase {
     this._lineStyle = 'solid';
     this._rotation = 0;
     this._rounding = 50;
+    this._pointMode = false;
+    // A shape kept editable lives in the editor (shared with the Figure tool).
+    this._editor = new FigureEditor({ colourCore: () => this._colourCore });
+    this._editing = null;
+    this._pending = false;
+
+    // The pending preview is what the commit WOULD leave now: redraw on the facts it depends on; drop it when the
+    // document changes (the same list the Figure tool uses).
+    const redraw = () => {
+      if (this._pending && window.ToolManager && ToolManager.getCurrentTool() === this) this._editor.render();
+    };
+    for (const name of ['COLOR_INK', 'COLOR_PAPER', 'COLOR_BRIGHT', 'COLOR_FLASH', 'PALETTE_CHANGED',
+      'PALETTE_SLOT_CHANGED', 'DRAW_MODE_CHANGED', 'INVERSE_CHANGED', 'SYMMETRY_CHANGED', 'CLIP_CHANGED',
+      'LAYER_SELECTED', 'LAYER_VISIBILITY', 'HISTORY_UNDO', 'HISTORY_REDO', 'CANVAS_ZOOM']) {
+      if (EVENTS[name]) EventBus.on(EVENTS[name], redraw);
+    }
+    for (const name of ['FILE_NEW', 'FILE_OPEN', 'SCREEN_MODE_CHANGED']) {
+      if (EVENTS[name]) EventBus.on(EVENTS[name], () => { if (this._pending) this.cancelPending(); });
+    }
 
     // Per-shape parameters (SHAPE_PARAM_ROWS). Kept in the units the sliders
     // show; _shapeOptions converts them for the generator.
@@ -215,6 +237,18 @@ class ShapeToolClass extends ToolBase {
    * @param {PointerEvent} e - Pointer event
    */
   onPointerDown(pixelX, pixelY, e) {
+    // A shape kept editable: press on a handle, the turn knob or the shape to edit it (the edit begins when the
+    // pointer moves); a press on nothing draws it and starts the next one.
+    if (this._pending) {
+      const hit = this._editor.hitTest(pixelX, pixelY);
+      if (hit) {
+        this._editor.begin(hit, pixelX, pixelY);
+        this._editing = { event: e };
+        this.isDrawing = true;
+        return;
+      }
+      this.commitPending();
+    }
     this.isDrawing = true;
     this.startPoint = { x: pixelX, y: pixelY };
     this.previewActive = true;
@@ -233,6 +267,10 @@ class ShapeToolClass extends ToolBase {
   }
 
   onPointerMove(pixelX, pixelY, e) {
+    if (this._editing) {
+      if (this._editor.drag(pixelX, pixelY)) this._afterEdit();
+      return;
+    }
     if (!this.isDrawing || !this.startPoint) return;
 
     // Generate pixel-accurate preview for all shapes
@@ -263,12 +301,36 @@ class ShapeToolClass extends ToolBase {
    * @param {PointerEvent} e - Pointer event
    */
   onPointerUp(pixelX, pixelY, e) {
+    if (this._editing) {
+      const ev = this._editing.event;
+      this._editing = null;
+      this.isDrawing = false;
+      if (!this._editor.end()) {
+        // pressed and released without moving: a click away - draw the shape and treat the press as a new drag
+        this.commitPending();
+        this.onPointerDown(pixelX, pixelY, ev);
+        this.onPointerUp(pixelX, pixelY, ev);
+        return;
+      }
+      this._afterEdit();
+      return;
+    }
     if (!this.startPoint) return;
 
     this.isDrawing = false;
     this.previewActive = false;
 
     this.clearPreview();
+
+    // Keep editable: build the shape as a ShapeFigure and leave it pending instead of drawing it.
+    if (this._pointMode) {
+      this._editor.open(this._buildFigure(this.startPoint.x, this.startPoint.y, pixelX, pixelY), this.isEraseMode);
+      this._pending = true;
+      this.startPoint = null;
+      this.isEraseMode = false;
+      this._editor.render();
+      return;
+    }
 
     // Erase mode captured at pointer down, resolved through the global draw mode.
     const isInk = !this.isEraseMode;
@@ -295,8 +357,92 @@ class ShapeToolClass extends ToolBase {
 
     PixelDrawRoutine.endBatch();
 
+    // Remember it for Edit > Clone Last Figure.
+    FigureHistory.record({ tool: 'shape', model: this._buildFigure(this.startPoint.x, this.startPoint.y, pixelX, pixelY),
+      erase: this.isEraseMode });
+
     this.startPoint = null;
     this.isEraseMode = false;
+  }
+
+  /** The shape as an editable ShapeFigure, from a drag. @private */
+  _buildFigure(x1, y1, x2, y2) {
+    return new ShapeFigure(this.shapeType, { x: x1, y: y1 }, { x: x2, y: y2 }, this._shapeOptions());
+  }
+
+  /** After an edit drag: show it, and let the options panel follow a turn made with the knob. @private */
+  _afterEdit() {
+    const m = this._editor.model;
+    if (!m) return;
+    if (m.getRotation() !== this._rotation) {
+      this._rotation = m.getRotation();
+      if (window.EventBus && EVENTS.TOOL_OPTIONS) {
+        EventBus.emit(EVENTS.TOOL_OPTIONS, { tool: this.id, option: 'rotation', value: this._rotation, options: {} });
+      }
+    }
+    this._editor.render();
+  }
+
+  // ── A shape kept editable ──────────────────────────────────────────────────
+
+  get hasPending() { return this._pending; }
+
+  /** Cursor keys move a pending shape. */
+  nudgePending(dx, dy) {
+    if (!this._pending) return false;
+    this._editor.nudge(dx, dy);
+    this._editor.render();
+    return true;
+  }
+
+  /** Ctrl+Z takes back the last edit; with none left, drops the shape. */
+  undoPending() {
+    if (!this._pending) return false;
+    if (this._editor.undoEdit()) { this._afterEdit(); return true; }
+    this.cancelPending();
+    return true;
+  }
+
+  /** Enter draws a pending shape (the input handler asks the tool first). */
+  handleKey(key) {
+    if (!this._pending || this.isDrawing) return false;
+    if (key === 'Enter') { this.commitPending(); return true; }
+    return false;
+  }
+
+  /** Draw a pending shape. */
+  commitPending() {
+    if (!this._pending) return;
+    this._editor.commit('Shape');
+    this._pending = false;
+    this.clearPreview();
+  }
+
+  /** Drop a pending shape without drawing it (Escape, a new document). */
+  cancelPending() {
+    if (!this._pending) return;
+    this._editor.close();
+    this._pending = false;
+    this._editing = null;
+    this.isDrawing = false;
+    this.clearPreview();
+  }
+
+  /** Options for the shape about to be reopened by Clone, so the panel shows them. */
+  prepareClone(rec) {
+    const m = rec.model;
+    this.shapeType = m.shapeType;
+    this.filled = !!m.options.filled;
+    this._thickness = m.options.thickness;
+    this._lineStyle = m.options.lineStyle;
+    this._rotation = m.getRotation();
+  }
+
+  /** Open a pending copy of a recorded shape (always editable, whatever "Keep editable" says). */
+  openFigure(rec) {
+    this._editor.open(rec.model.clone(), rec.erase);
+    this._pending = true;
+    this._editor.render();
   }
 
   /**
@@ -362,15 +508,34 @@ class ShapeToolClass extends ToolBase {
   setColourCore(value) { this._colourCore = ToolBase.cleanColourCore(value); }
 
   getLineStyle() { return this._lineStyle; }
-  setLineStyle(v) { this._lineStyle = ShapeGenerator.constructor.cleanLineStyle(v); }
+  setLineStyle(v) { this._lineStyle = ShapeGenerator.constructor.cleanLineStyle(v); this._syncPending(); }
 
   getRotation() { return this._rotation; }
-  setRotation(v) { this._rotation = clamp(Math.round(Number(v)) || 0, -180, 180); }
+  setRotation(v) { this._rotation = clamp(Math.round(Number(v)) || 0, -180, 180); this._syncPending(); }
 
   getRounding() { return this._rounding; }
   setRounding(v) {
     const n = Math.round(Number(v));
     this._rounding = Number.isFinite(n) ? clamp(n, 0, 100) : 50;
+    this._syncPending();
+  }
+
+  getPointMode() { return this._pointMode; }
+  /** "Keep editable". Turning it off draws a shape that is waiting. */
+  setPointMode(v) {
+    this._pointMode = !!v;
+    if (!this._pointMode && this._pending) this.commitPending();
+  }
+
+  /** The editable shape follows the options as they change (fill, thickness, line style, turn, rounding, the dials). @private */
+  _syncPending() {
+    if (!this._pending || !this._editor.model) return;
+    const m = this._editor.model;
+    m.options.filled = !!this.filled;
+    m.options.thickness = this._thickness;
+    m.options.lineStyle = this._lineStyle;
+    m.gen = { ...this._shapeOptions(), rotation: this._rotation };
+    this._editor.render();
   }
 
   /**
@@ -549,6 +714,8 @@ class ShapeToolClass extends ToolBase {
    * Deactivate tool
    */
   deactivate() {
+    // A shape kept editable is drawn when you switch tools (nothing the person drew is lost).
+    this.commitPending();
     this.startPoint = null;
     this.previewActive = false;
     super.deactivate();
