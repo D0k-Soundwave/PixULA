@@ -668,6 +668,28 @@ Two of the rows above are things that looked like optimisations and were not,
 and four more are costs that turned out too small to be worth the change they
 would need. That is the point of measuring first.
 
+### Stamp placement and preview after the one write plan - measured 2026-10-10
+
+Batch 5 part 5A routed `stampAt`, `commitStamp` and both previews through one
+write plan (`SelectionService._forEachStampWrite`). Measured in Node against the
+repo's test stubs (no canvas, so this is the logic cost only, not rendering),
+a full-canvas stamp with a third of its dots set, plain default settings,
+median of 7 calls, two runs back to back against a `git archive` of the tree
+before part 5A (commit ad47ff8), one sitting.
+
+| Path | Before (run 1 / 2) | After (run 1 / 2) | Tag |
+|---|---|---|---|
+| `stampAt`, 256x192 stamp, standard_ula | 1.9 / 2.0 ms | 2.1 / 2.1 ms | M |
+| Preview (`moveFloatingPaste`), 256x192, standard_ula | 1.0 / 0.9 ms | 1.6 / 1.6 ms | M |
+| `stampAt`, 640x256 stamp, layer2_640 | 8.6 / 9.7 ms | 10.8 / 10.4 ms | M |
+| Preview, 640x256, layer2_640 | 2.8 / 2.9 ms | 2.8 / 2.7 ms | M |
+
+The classic preview now collects the stamp's writes into a per-cell map before
+simulating, instead of walking each cell's pixels in turn: +0.6 ms (C: 1.6 -
+1.0) on a stamp that covers the whole picture, which is the worst case. That is
+a tenth of `CoverageOps.LIVE_BUDGET_MS` (7 ms), so nothing was changed on the
+strength of it. The indexed default path is the old direct one and is unchanged.
+
 ---
 
 ## Method

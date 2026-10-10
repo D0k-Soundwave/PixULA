@@ -125,10 +125,10 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 
 | ZX Paintbrush | What it does | PixULA | Verdict |
 |---|---|---|---|
-| Pixels-only or coloured overlay | When an overlay is made you choose: dots only (colours transparent) or full colour. | Stamps take the colours on the rail. Map-tile stamps bring their own colours. | Partial |
-| Overlay INK / PAPER / BRIGHT / FLASH switches | Each part of the overlay's colour can be let through from the background instead. | Stamps follow the rail's four "use existing" boxes when placed (2026-10-08), but the setting is the rail's, not stored per stamp. | Partial |
-| Overlapping or transparent overlay | Decides whether the overlay's clear dots also clear the background. | Stamps draw their set dots only; XOR mode is an option. | Partial |
-| Convert colour overlay to pixels only | Drops an overlay's colours and keeps its dots. | No. | Missing |
+| Pixels-only or coloured overlay | When an overlay is made you choose: dots only (colours transparent) or full colour. | Stamps take the colours on the rail. Map-tile stamps bring their own colours. Built 2026-10-10 (Batch 5 part 5A, no controls yet): every stamp now stores a Colours setting (Pixels or its own cell colours) and its cell grid, both saved, undone and duplicated with it; the buttons arrive in part 5B. | Partial |
+| Overlay INK / PAPER / BRIGHT / FLASH switches | Each part of the overlay's colour can be let through from the background instead. | Stamps follow the rail's four "use existing" boxes when placed (2026-10-08), but the setting is the rail's, not stored per stamp. Built 2026-10-10 (5A, no controls yet): a coloured stamp stores four show-through switches (ink, paper, bright, flash) and places the page's value for each one that is on, in every mode with cell colours, both screens in GigaScreen; plain stamps still follow the rail's boxes. | Partial |
+| Overlapping or transparent overlay | Decides whether the overlay's clear dots also clear the background. | Stamps draw their set dots only; XOR mode is an option. Built 2026-10-10 (5A, no controls yet): every stamp stores Clear dots = Transparent or Overlap. Overlap clears the dots under the stamp's whole box, in the cell-colour modes and the indexed modes, as the opposite of the draw mode in force (XOR and recolour modes have no opposite, so they leave the clear dots alone); Inverse swaps the two. | Partial |
+| Convert colour overlay to pixels only | Drops an overlay's colours and keeps its dots. | Built 2026-10-10 (5A): SelectionService.convertStampToPixels drops a stamp's colours and cell grid, keeps its dots, one undo step; the button arrives in part 5B. | Partial |
 
 ### Attribute layout and palettes
 
