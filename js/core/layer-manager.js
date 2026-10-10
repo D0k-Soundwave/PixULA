@@ -2048,6 +2048,22 @@ class LayerManagerClass {
   }
 
   /**
+   * The composited palette indices of one cell with `overrideCell` standing in
+   * for `overrideLayer`'s and `excludeLayer` left out - previewCellData for the
+   * indexed modes. The floating stamp's "clear dots overlap" preview uses it:
+   * the stamp layer's cell holds the whole picture the commit would leave.
+   * @returns {Int16Array} cellW*cellH indices, none transparent
+   */
+  previewCellIndices(cellX, cellY, overrideLayer, overrideCell, excludeLayer) {
+    const bgLayer = this.layers[0];
+    const bgCell = (overrideCell && overrideLayer === bgLayer)
+      ? overrideCell
+      : (bgLayer ? bgLayer.getCell(cellX, cellY) : null);
+    const altered = this._previewAltered(cellX, cellY, overrideLayer, overrideCell, excludeLayer);
+    return this._composeIndexedCellData(altered, bgCell, ZX_SPECTRUM.CELL_WIDTH, ZX_SPECTRUM.CELL_HEIGHT, false);
+  }
+
+  /**
    * The altered-layer list composeCellToCanvas would build for this cell, with
    * one layer's cell substituted and (optionally) one layer left out. Shared
    * by both preview entry points so they cannot disagree about which layers

@@ -82,7 +82,7 @@ const MASK = '9224499224499224';
 const NOT_MASK = '6ddbb66ddbb66ddb';
 
 function run(label, want, o, setup) {
-  const target = enter('standard_ula');
+  const target = enter(o.mode || 'standard_ula');
   seedTarget(target, o.cells);
   const mask = o.mask || diagonal(o.w, o.h);
   SelectionService.startFloatingPasteFromMask(mask, o.w, o.h, o.x, o.y, 'case');
@@ -153,5 +153,65 @@ run('coloured, show-through bright and ink: the page bright (on) and ink (1) win
   '1/7/1/0:' + PLAIN_DOTS, { ...O, attrs: [0x38], opts: { showThrough: { ink: true, paper: false, bright: true, flash: false } } });
 run('coloured with a cell size that is not the mode\'s: the pixels path',
   '2/5/0/0:' + PLAIN_DOTS, { ...O, attrs: [OWN], attrGrid: { cols: 1, rows: 1, cw: 4, ch: 4, ox: 0, oy: 0 } });
+
+// --- Indexed (Layer 2): the same settings over palette indices ----------------------------------------------------
+{
+  const cases = [
+    ['transparent', {}, null],
+    ['overlap', { clearDots: 'overlap' }, null],
+    ['overlap, Inverse', { clearDots: 'overlap' }, 'inverse'],
+    ['overlap, XOR', { clearDots: 'overlap' }, 'xor']
+  ];
+  const tgt = () => {
+    const t = enter('layer2_256');
+    const cell = t.getCell(0, 0);
+    cell.indices.fill(9);
+    cell.altered = true;
+    return t;
+  };
+  const setup = (kind) => {
+    if (kind === 'inverse') StateManager.setInverse(true);
+    if (kind === 'xor') StateManager.setDrawMode('xor');
+  };
+  const isDot = (i) => ((i >> 3) + (i & 7)) % 3 === 0;
+  for (const [name, opts, kind] of cases) {
+    const t = tgt();
+    const ink = ColorManager.getIndexedInk();
+    const paper = ColorManager.getIndexedPaper();
+    setup(kind);
+    SelectionService.startFloatingPasteFromMask(diagonal(8, 8), 8, 8, 0, 0, 'idx');
+    const fp = SelectionService.floatingPaste;
+    fp.opts = opts;
+    const stamp = fp.floatingLayer;
+    stamp.isStamp = true;
+    LayerManager.setCurrentLayer(1);
+    SelectionService.moveFloatingPaste(0, 0);
+    const below = Array.from(LayerManager.layers[1].getCell(0, 0).indices);
+    const bgBefore = Array.from(LayerManager.layers[0].getCell(0, 0).indices);
+    const preview = Array.from(stamp.getCell(0, 0).indices).map((v, i) => (v >= 0 ? v : (below[i] >= 0 ? below[i] : bgBefore[i])));
+    SelectionService.commitStamp(stamp);
+    const got = Array.from(LayerManager.layers[1].getCell(0, 0).indices);
+    const bg = Array.from(LayerManager.layers[0].getCell(0, 0).indices);
+    const shown = got.map((v, i) => (v >= 0 ? v : bg[i]));
+    StateManager.setInverse(false);
+    StateManager.setDrawMode('normal');
+    let want;
+    if (kind === 'inverse') {
+      // Inverse: the stamp's dots go to paper, and with overlap the rest takes the ink
+      want = got.map((_, i) => (isDot(i) ? paper : (opts.clearDots ? ink : 9)));
+    } else if (kind === 'xor') {
+      want = null; // XOR toggles the dots; only the untouched clear pixels are asserted below
+    } else {
+      want = got.map((_, i) => (isDot(i) ? ink : (opts.clearDots ? -1 : 9)));
+    }
+    if (kind !== 'xor') check(`indexed, ${name}: the pixels written`, JSON.stringify(got) === JSON.stringify(want),
+      `${got.join(',')}  (wanted ${want.join(',')})`);
+    if (kind === 'xor') {
+      check('indexed, overlap, XOR: clear pixels untouched (still 9)', got.every((v, i) => isDot(i) || v === 9), got.join(','));
+    }
+    check(`indexed, ${name}: the preview is the picture the commit leaves`,
+      JSON.stringify(preview) === JSON.stringify(shown), `${preview.join(',')}  vs  ${shown.join(',')}`);
+  }
+}
 
 summary();
