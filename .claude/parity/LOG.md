@@ -472,3 +472,4 @@ Tests: tests/stamp-attribute-commands.test.js (Node: every command, undo, holes,
 tests/browser/stamp-attribute-commands.spec.js (5). run-all ALL TEST FILES PASSED; npx playwright test 661 passed.
 OWNER question, asked next: should a stamp with its own colours be allowed to flip/quarter-turn with its colours carried
 along (today impossible; the panel and menu rows grey out with a reason)?
+ANSWERED 2026-10-10: keep it impossible. Batch 5 is done; next is Batch 6 part 6A (an owner stop).
