@@ -244,4 +244,82 @@ for (const s of SHAPES) for (const [i, d] of DRAGS.entries()) for (const filled 
 }
 check(`all ${total} default shapes are byte for byte what they were before 7B`, wrong === 0, `${wrong} differ`);
 
+// ===== LINE STYLES =====================================================================================================
+// The dash lengths are read from the ZX Paintbrush help picture of its line-style toolbar: a 16 x 16 rectangle, 60
+// outline pixels, started at the top-right corner and running left (counter-clockwise on screen):
+//   dashed 18 on 6 off; dotted 3 on 3 off [M, ZXPaintbrush.chm linestyletoolbar.jpg, 2026-10-10].
+{
+  const set = (pts) => new Set(pts.map(p => `${p.x},${p.y}`));
+  const R = { x1: 0, y1: 0, x2: 15, y2: 15 };
+  const dashed = set(ShapeGenerator.generateShape('rectangle', R, { lineStyle: 'dashed' }));
+  const want = new Set();
+  for (let x = 0; x <= 15; x++) want.add(`${x},0`);                      // 18 on: the whole top row (16) ...
+  want.add('0,1'); want.add('0,2');                                      // ... and 2 down the left side
+  for (let y = 9; y <= 15; y++) want.add(`0,${y}`);                      // 18 on: left side y 9-15 (7) ...
+  for (let x = 1; x <= 11; x++) want.add(`${x},15`);                     // ... and bottom x 1-11 (11)
+  for (let y = 1; y <= 12; y++) want.add(`15,${y}`);                     // 12 on: right side y 12 down to 1 (the leftover)
+  check('a dashed 16 x 16 rectangle is the help icon: 18 on, 6 off, 18 on, 6 off, 12 on (48 pixels)',
+    dashed.size === 48 && [...want].every(k => dashed.has(k)) && want.size === 48, `${dashed.size}`);
+
+  const dotted = set(ShapeGenerator.generateShape('rectangle', R, { lineStyle: 'dotted' }));
+  const topDots = [15, 14, 13, 9, 8, 7, 3, 2, 1].every(x => dotted.has(`${x},0`)) &&
+    [12, 11, 10, 6, 5, 4, 0].every(x => !dotted.has(`${x},0`));
+  check('dotted: 3 on, 3 off along the top row from the right', topDots);
+  check('dotted is half the outline (60 pixels, runs 3 on 3 off: 30)', dotted.size === 30, String(dotted.size));
+
+  const solid2 = set(ShapeGenerator.generateShape('rectangle', R, { thickness: 2 }));
+  const dashed2 = set(ShapeGenerator.generateShape('rectangle', R, { thickness: 2, lineStyle: 'dashed' }));
+  check('dashed at thickness 2 is drawn solid (the rule is in the rasteriser, not only the panel)',
+    dashed2.size === solid2.size && [...solid2].every(k => dashed2.has(k)));
+
+  check('clear on an unfilled shape draws nothing', ShapeGenerator.generateShape('rectangle', R, { lineStyle: 'clear' }).length === 0);
+  check('clear on an unfilled shape draws nothing at any thickness',
+    ShapeGenerator.generateShape('rectangle', R, { lineStyle: 'clear', thickness: 4 }).length === 0);
+  const box = { x1: 0, y1: 0, x2: 9, y2: 9 };
+  const clearFilled = set(ShapeGenerator.generateShape('rectangle', box, { lineStyle: 'clear', filled: true }));
+  check('clear on a filled 10 x 10 box draws only the 8 x 8 inside', clearFilled.size === 64 &&
+    clearFilled.has('1,1') && clearFilled.has('8,8') && !clearFilled.has('0,0') && !clearFilled.has('9,5'), String(clearFilled.size));
+
+  // a filled shape loses the pixels the pattern leaves off, nothing else
+  const fullFill = set(ShapeGenerator.generateShape('rectangle', R, { filled: true }));
+  const dashedFill = set(ShapeGenerator.generateShape('rectangle', R, { filled: true, lineStyle: 'dashed' }));
+  check('filled + dashed = the fill minus the 12 pixels the pattern leaves off (60 - 48)',
+    dashedFill.size === fullFill.size - 12 && [...dashedFill].every(k => fullFill.has(k)), `${dashedFill.size} vs ${fullFill.size}`);
+
+  // for every shape: the walk visits exactly the pixels of the outline, and on + off = solid
+  let bad = 0;
+  for (const shape of SHAPES) {
+    for (const d of DRAGS) {
+      const b = { x1: d[0], y1: d[1], x2: d[2], y2: d[3] };
+      const solid = set(ShapeGenerator.generateShape(shape, b, {}));
+      const ordered = ShapeGenerator.orderOutline(ShapeGenerator.generateShape(shape, b, {}));
+      const orderedSet = set(ordered);
+      const split = ShapeGenerator.applyLineStyle([ordered], 'dash-dot');
+      const on = set(split.on), off = set(split.off);
+      const sameSet = orderedSet.size === solid.size && [...solid].every(k => orderedSet.has(k));
+      const disjoint = [...on].every(k => !off.has(k));
+      if (!sameSet || !disjoint || on.size + off.size !== solid.size) { bad++; console.log(`  ${shape}: ordered ${orderedSet.size}, solid ${solid.size}, on ${on.size}, off ${off.size}`); }
+      const styled = set(ShapeGenerator.generateShape(shape, b, { lineStyle: 'dashed' }));
+      if (![...styled].every(k => solid.has(k))) { bad++; console.log(`  ${shape}: dashed is not a subset of solid`); }
+    }
+  }
+  check('every shape: the ordered walk is the same pixels, on and off split them, dashed is a subset of solid', bad === 0, `${bad} shapes`);
+
+  // the pattern continues round corners
+  const run = ShapeGenerator.orderOutline(ShapeGenerator.generateShape('line', { x1: 0, y1: 0, x2: 47, y2: 0 }, {}));
+  const split = ShapeGenerator.applyLineStyle([run], 'dashed');
+  const onX = new Set(split.on.map(p => p.x));
+  check('a straight 48-pixel line, dashed: x 0-17 and 24-41 are on', [...Array(18).keys()].every(x => onX.has(x)) &&
+    [24, 41].every(x => onX.has(x)) && !onX.has(18) && !onX.has(23) && !onX.has(42) && onX.size === 36);
+  const lshape = [];
+  for (let x = 0; x <= 20; x++) lshape.push({ x, y: 0 });
+  for (let y = 1; y <= 20; y++) lshape.push({ x: 20, y });
+  const ls = ShapeGenerator.applyLineStyle([lshape], 'dashed');
+  const lon = new Set(ls.on.map(p => `${p.x},${p.y}`));
+  check('the phase carries round a corner: x 0-17 on, then (20,y) from y = 4 (pixel 24 of the path)',
+    lon.has('17,0') && !lon.has('18,0') && !lon.has('20,3') && lon.has('20,4') && lon.has('20,20'));
+  const two = ShapeGenerator.applyLineStyle([lshape.slice(0, 21), lshape.slice(21)], 'dashed');
+  check('each separate run starts its pattern afresh (21 + 20 pixels: 18 on in each)', two.on.length === 36 && two.on.some(p => p.x === 20 && p.y === 1));
+}
+
 summary();
