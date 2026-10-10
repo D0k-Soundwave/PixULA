@@ -113,8 +113,18 @@ class SelectionServiceClass {
       // Indexed-mode stamps (Phase 13): per-pixel palette indices
       indices:     fp.indices ? fp.indices.map(r => [...r]) : null,
       _srcIndices: fp._srcIndices ? fp._srcIndices.map(r => [...r]) : null,
-      attrs:       fp.attrs ? [...fp.attrs] : null
+      attrs:       fp.attrs ? [...fp.attrs] : null,
+      attrGrid:    fp.attrGrid ? { ...fp.attrGrid } : null,
+      opts:        this._copyStampOpts(fp.opts)
     };
+  }
+
+  /** A copy of a stamp's settings (never shared with the live stamp). */
+  _copyStampOpts(o) {
+    if (!o) return null;
+    const out = { ...o };
+    if (o.showThrough) out.showThrough = { ...o.showThrough };
+    return out;
   }
 
   /**
@@ -160,7 +170,9 @@ class SelectionServiceClass {
       fontInfo:    state.fontInfo ? { ...state.fontInfo } : null,
       indices:     state.indices ? state.indices.map(r => [...r]) : null,
       _srcIndices: state._srcIndices ? state._srcIndices.map(r => [...r]) : null,
-      attrs:       state.attrs ? [...state.attrs] : null
+      attrs:       state.attrs ? [...state.attrs] : null,
+      attrGrid:    state.attrGrid ? { ...state.attrGrid } : null,
+      opts:        this._copyStampOpts(state.opts)
     };
 
     // Rebuild the derived preview from the mask. restoreAllLayersState may have
@@ -1193,6 +1205,8 @@ class SelectionServiceClass {
         mask: fp.pixels,
         indices: fp.indices || null,
         attrs: fp.attrs || null,
+        attrGrid: fp.attrGrid ? { ...fp.attrGrid } : null,
+        opts: this._copyStampOpts(fp.opts),
         x: fp.x,
         y: fp.y,
         w: fp.width,
@@ -1285,6 +1299,8 @@ class SelectionServiceClass {
       // A map-editor stamp's own per-cell colours (endFloatingPaste parks
       // them); without them a picked-up stamp drew in the current ink.
       attrs: c.attrs || null,
+      attrGrid: c.attrGrid ? { ...c.attrGrid } : null,
+      opts: this._copyStampOpts(c.opts),
     };
 
     // XOR preview depends on the live target-layer state, so re-render rather
@@ -1822,16 +1838,76 @@ class SelectionServiceClass {
   }
 
   /**
+   * A stamp's settings with every default filled in. `colours` is worked out
+   * HERE, when read, because the Map Editor and the tests give a stamp its
+   * attrs after it is created.
+   * @param {?Object} data - stamp data from getStampData (or a floating paste)
+   * @returns {{colours:string, showThrough:Object, clearDots:string}}
+   */
+  stampOptions(data) {
+    const o = (data && data.opts) || {};
+    const st = o.showThrough || {};
+    return {
+      colours: o.colours || (data && data.attrs ? 'coloured' : 'pixels'),
+      showThrough: { ink: st.ink === true, paper: st.paper === true,
+                     bright: st.bright === true, flash: st.flash === true },
+      clearDots: o.clearDots || 'transparent'
+    };
+  }
+
+  /**
+   * The stamp's cell grid: the stored one, or the default 8x8 grid the
+   * stamp's width and height imply.
+   * @param {?Object} data
+   * @returns {?{cols, rows, cw, ch, ox, oy}} null if the stamp has no attrs
+   */
+  stampAttrGrid(data) {
+    if (!data || !data.attrs) return null;
+    if (data.attrGrid) return data.attrGrid;
+    const w = data.w != null ? data.w : data.width;
+    const h = data.h != null ? data.h : data.height;
+    return { cols: Math.ceil(w / 8), rows: Math.ceil(h / 8), cw: 8, ch: 8, ox: 0, oy: 0 };
+  }
+
+  /**
+   * True if the stamp places its own colours right now: its setting says
+   * coloured, it has attrs, its cells are the same size as the live mode's
+   * cells, and the mode has cell colours at all.
+   * @param {?Object} data
+   * @returns {boolean}
+   */
+  stampColoured(data) {
+    return this.stampColoursBlocked(data) === null &&
+      this.stampOptions(data).colours === 'coloured';
+  }
+
+  /**
+   * Why a stamp that has colours cannot place them: null = it can,
+   * 'noColours' = the stamp holds none, 'mode' = the screen mode has no
+   * cell colours, 'geometry' = its cells are not this mode's size.
+   * @param {?Object} data
+   * @returns {?string}
+   */
+  stampColoursBlocked(data) {
+    if (!data || !data.attrs) return 'noColours';
+    if (!(window.ColorManager && ColorManager.hasCellAttributes && ColorManager.hasCellAttributes())) return 'mode';
+    const g = this.stampAttrGrid(data);
+    if (g.cw !== ZX_SPECTRUM.CELL_WIDTH || g.ch !== ZX_SPECTRUM.CELL_HEIGHT) return 'geometry';
+    return null;
+  }
+
+  /**
    * A stamp's data: live from the floating paste while it is the one being
    * dragged, otherwise what it was parked with. The one place that choice is
    * made - stamping, committing and saving the project all read it here.
    * @param {Layer} layer
-   * @returns {?{mask, indices, attrs, x, y, w, h, colorSelection}}
+   * @returns {?{mask, indices, attrs, attrGrid, opts, x, y, w, h, colorSelection}}
    */
   getStampData(layer) {
     const fp = this.floatingPaste;
     if (fp && fp.floatingLayer === layer) {
       return { mask: fp.pixels, indices: fp.indices || null, attrs: fp.attrs || null,
+               attrGrid: fp.attrGrid || null, opts: fp.opts || null,
                x: fp.x, y: fp.y, w: fp.width, h: fp.height,
                colorSelection: fp.colorSelection };
     }
