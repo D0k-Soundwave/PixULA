@@ -25,4 +25,6 @@ Wiele opcji działa tylko w połączeniu z inną. Tabele poniżej mają kolumnę
 **Widoczne, gdy** z warunkiem, przy którym pojawia się każdy wiersz; wiersze
 oznaczone „zawsze” są obecne niezależnie od reszty.
 
+**Figury z punktów.** Lista Kształtów ma grupę Figury, rysowanych przez stawianie punktów: Łamana, Wielokąt, Trójkąt, Promienie, Linia prostopadła i Linia równoległa (klawisz L wybiera narzędzie Figura). Kliknij, by dodać punkt, albo wciśnij i przeciągnij dla odręcznego odcinka. Dwuklik lub Enter kończy figurę, która zostaje na obrazie jako podgląd, który można jeszcze zmienić; kolejny Enter ją rysuje, jednym krokiem cofania. Backspace usuwa ostatni punkt (cały odręczny odcinek naraz), Esc odrzuca figurę bez rysowania, a kliknięcie gdzie indziej lub wybór innego narzędzia ją rysuje. Trójkąt, Linia prostopadła i Linia równoległa kończą się same przy trzecim punkcie: przeciągnij pierwszą linię, potem kliknij ostatni punkt. Linia prostopadła dodaje drugą linię od spodka prostopadłej z twojego punktu na pierwszą linię; Linia równoległa dodaje kopię pierwszej linii z twoim punktem pośrodku. Promienie łączą każdy kolejny punkt z pierwszym. Wielokąt i Trójkąt można wypełnić. Figury podlegają trybowi rysowania, Inwersji, polom „użyj istniejącego”, odbiciu i prowadnicy rysowania jak każdy kształt, a podgląd jest dokładnie tym, co zostanie narysowane.
+
 {{tools}}

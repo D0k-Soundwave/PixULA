@@ -150,21 +150,21 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | ZX Paintbrush | What it does | PixULA | Verdict |
 |---|---|---|---|
 | Freehand | Draw with the mouse. | Brush, with eight engines, size 1 to 32 and pressure. | PixULA further |
-| Freehand and line | Mix straight segments and freehand in one figure; Enter finishes. | No polyline tool. | Missing |
+| Freehand and line | Mix straight segments and freehand in one figure; Enter finishes. | Figure tool > Polyline (2026-10-10, Batch 7 part 7A; Shape list, or the L key): click points or drag for freehand runs, double-click or Enter finishes, the figure stays a pending preview, Enter again draws it as one undo step, Backspace removes the last point (a whole run), Escape drops it (ZX Paintbrush finishes the figure on Escape; here it is dropped, per the plan). | Same |
 | Line | Two-point line. | Shape: line. | Same |
-| Rays | Many lines from one start point. | No. | Missing |
+| Rays | Many lines from one start point. | Figure tool > Rays (2026-10-10): the first point, then each further point or freehand sample is joined to it. | Same |
 | Curve | Four-point curve. | Bezier tool, quadratic or cubic, with draggable handles. | Same |
 | Arc and sector | Four points; rotatable. | Shape: arc and sector from a box and an angle; not rotatable. | Partial |
-| Orthogonal and parallel line tools | A second line at right angles to, or parallel with, the first. | No. | Missing |
+| Orthogonal and parallel line tools | A second line at right angles to, or parallel with, the first. | Figure tool > Perpendicular line and Parallel line (2026-10-10): drag the first line, click a point; the perpendicular runs from the foot of your point on the first line, the parallel is a copy with your point at its middle. | Same |
 | Ellipse and centred circle | Ellipse from corners (rotatable); circle from centre and edge. | Shape: ellipse and circle from a box; not rotatable. | Partial |
-| Triangle tools | Free three-point, equal-sided and symmetrical triangles. | Shape: triangle from a box. | Partial |
+| Triangle tools | Free three-point, equal-sided and symmetrical triangles. | Shape: triangle from a box; Figure tool > Triangle (2026-10-10): three free points, optionally filled. Equal-sided and symmetrical triangles are still only the box form. | Partial |
 | Rectangle, square, rounded rectangle, parallelogram | Rotatable; the rounding is adjustable. | All four exist as shapes; not rotatable. | Partial |
-| Polygon, centred polygon, N-edge polygon | Free points, or regular around a centre. | Regular polygons from a box; no free-point polygon. | Partial |
+| Polygon, centred polygon, N-edge polygon | Free points, or regular around a centre. | Regular polygons from a box; Figure tool > Polygon (2026-10-10): any number of free points, freehand runs, optionally filled. No centred polygon or N-edge polygon tool beyond the regular shapes. | Partial |
 | Ring | Elliptic ring with adjustable width. | Shape: ring with inner radius. | Same |
 | Line arrow | Line with arrowhead. | Arrow shapes. | Same |
 | Line styles | Solid, dashed, dotted, clear. | No. | Missing |
 | Line thickness | Thickness setting for all lines. | Thickness 1 to 8. | Same |
-| Point mode | Move points, move or rotate the last figure, delete its last point with Backspace. | Only the Bezier curve keeps editable handles. | Missing |
+| Point mode | Move points, move or rotate the last figure, delete its last point with Backspace. | Only the Bezier curve keeps editable handles. Since Batch 7 part 7A a Figure stays pending and Backspace deletes its last point; dragging points, moving and rotating the figure come with part 7C. | Missing |
 | Clone last drawn figure | Draws the last figure again, ready to move with the cursor keys. | No. | Missing |
 | X and Y keys | Lock drawing to one axis. | Lock axis on the gradient only. | Partial |
 

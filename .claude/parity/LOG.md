@@ -520,3 +520,26 @@ copied into the repo), tests/standard-colours.test.js, tests/browser/palette-tap
 (5); palette-files.spec.js updated (ULAplus now offers two file kinds). run-all ALL TEST FILES PASSED; playwright 679.
 Owner check-off added: open a PixULA palette tape in ZX Paintbrush 2.6.4 and on a real Spectrum / emulator (unverified).
 Next: Batch 7 part 7A.
+
+## 2026-10-10 - Batch 7 part 7A - the Figure tool - done
+Model: Sonnet (one-run series). Branch: parity-b.
+Opus: plan review (Plan agent, opus) -> go with corrections C1-C8, all applied; it also counted as the consult for the one
+PixelDrawRoutine addition (a read-only method, parity-tested). The first attempt hit the session limit and was re-run.
+Built: FigureModel (pure: six types, kinds 'v'/'r' so Backspace removes a whole run, rasterise through the existing Bresenham
+line, disc thickening and scanline fill); ShapeGenerator.fillPolygon (buffers now grow: the old 128-edge / 64-active buffers
+silently dropped writes for a freehand polygon, pinned by a 450-vertex test) and ShapeGenerator.thicken;
+PixelDrawRoutine.strokeTargets (bounds, mirror and drawing-guide clip, locked layer; tests/stroke-targets.test.js checks it
+against what draw() writes); ToolBase.handleKey / cancelPending, claimed by InputHandler before the selection's Backspace
+and before the tool is switched on Escape; FigureTool (click, drag-run, double click, Enter, Backspace, Escape, tool switch
+commits, three-point figures finish themselves, one batch = one undo step, preview = commit via the same plan, redraw on every
+fact the commit depends on, drop on File New/Open and mode change); six Shape-picker entries with six sprites, TOOL_GROUPS
+(L key), rail umbrella, grid snap for points; 17 i18n keys in 13 locales; manual paragraph in 13 languages; comparison rows
+(polyline, rays, orthogonal/parallel Same; triangle and polygon stay Partial; point mode still Missing).
+Defaults taken: switching tools COMMITS a pending figure (the Bezier tool discards; align it in 7C); Escape DROPS it (ZX
+Paintbrush finishes the figure on Escape; one line to change); filled off by default.
+Tests: tests/figure-model.test.js, tests/stroke-targets.test.js, tests/figure-tool.test.js (34 checks), tests/browser/
+figure-tool.spec.js (8). run-all ALL TEST FILES PASSED; playwright 686 passed, 1 timing flake (undo-partial-capture, passes
+alone). Speed recorded in docs/FIGURES.md (worst case over budget; noted there).
+Carried to 7B: move the Shape and Bezier previews onto strokeTargets (they show no mirror or drawing guide) and give them the
+same redraw-on-change.
+Next: part 7B.

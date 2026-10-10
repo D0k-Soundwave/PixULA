@@ -24,4 +24,6 @@ Mnoho voleb platí jen v kombinaci s jinou. Tabulky níže mají sloupec
 **Zobrazeno, když** s podmínkou, za které se řádek objeví; řádky označené „vždy“
 jsou tam bez ohledu na ostatní nastavení.
 
+**Obrazce z bodů.** Seznam Tvar má skupinu Obrazce, které se kreslí umísťováním bodů: Lomená čára, Mnohoúhelník, Trojúhelník, Paprsky, Kolmá čára a Rovnoběžná čára (klávesa L vybere nástroj Obrazec). Kliknutím přidáte bod, stisknutím a tažením kreslíte od ruky. Dvojklik nebo Enter obrazec dokončí; zůstane na obrázku jako náhled, který lze ještě měnit, a další Enter jej nakreslí jedním krokem zpět. Backspace odebere poslední bod (celou čáru od ruky najednou), Esc obrazec zahodí bez kreslení a kliknutí jinam nebo volba jiného nástroje jej nakreslí. Trojúhelník, Kolmá čára a Rovnoběžná čára se dokončí samy u třetího bodu: natáhněte první čáru a klikněte na poslední bod. Kolmá čára přidá druhou čáru z paty kolmice z vašeho bodu na první čáru; Rovnoběžná čára přidá kopii první čáry s vaším bodem uprostřed. Paprsky spojí každý další bod s prvním. Mnohoúhelník a Trojúhelník lze vyplnit. Obrazce se řídí režimem kreslení, Inverzí, poli „použít existující“, zrcadlením a vodítkem kreslení jako každý tvar a v náhledu jsou přesně tak, jak se nakreslí.
+
 {{tools}}
