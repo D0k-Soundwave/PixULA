@@ -196,7 +196,7 @@ Zelle schon hat. Horizontal spiegeln und Vertikal spiegeln spiegeln die
 Zellfarben. Jeder Befehl wirkt auf die Auswahl (alle berührten Zellen) oder auf
 das ganze Bild, wenn nichts ausgewählt ist, und ist mit einem Schritt
 rückgängig zu machen. Die Einträge sind in Modi ohne Zellfarben (Timex Hi-res,
-Layer 2, LoRes), bei schwebendem Stempel und auf einer gesperrten Ebene
+Layer 2, LoRes), bei schwebendem Stempel ohne eigene Farben und auf einer gesperrten Ebene
 ausgegraut.
 
 Ändern... findet Zellen anhand ihrer Farben und ersetzt sie. Suchen legt fest, welche Zellen gelten: jedes Feld ist ein Wert oder Beliebig. Ersetzen durch legt fest, was daraus wird: jedes Feld ist ein Wert oder Beibehalten. Der Dialog zeigt, wie viele Zellen sich ändern, bevor Sie OK drücken, und OK wird mit einem Schritt rückgängig gemacht. GigaScreen hat eine Gruppe für Bildschirm A und eine für Bildschirm B; in ULAplus ersetzt CLUT 0-3 die Optionen Hell und Blinken. Abbrechen ändert nichts.
@@ -220,3 +220,5 @@ Wenn ein Stempel eingeschaltet ist, zeigt das Feld **Transformieren**, wie er ge
 **Leere Punkte** bestimmt, was die leeren Punkte des Stempels tun. Hintergrund lassen lässt das Bild darunter in Ruhe (ein Stempel mit eigenen Farben färbt das Paper darunter trotzdem um, außer Paper scheint durch). Hintergrund löschen löscht es ebenfalls, über das ganze Rechteck des Stempels. Zeichenmodi ohne Gegenteil (XOR, Ink umfärben, Paper umfärben) und der eigene XOR-Schalter des Stempels lassen die leeren Punkte in Ruhe, und das Feld sagt das. Leere Punkte gibt es in jedem Bildschirmmodus, auch ohne Zellfarben.
 
 **In Nur Pixel umwandeln** verwirft die Farben des Stempels endgültig und behält seine Punkte. Die Wahl Nur Pixel bei Farben behält sie, sodass man zurückschalten kann. Jede Änderung ist ein Rückgängig-Schritt.
+
+Solange ein Stempel mit eigenen Farben eingeschaltet ist, wirken die Befehle unter Bild > Attribute (Invertieren, Löschen, beide Spiegelungen und Ändern...) auf die Zellen des Stempels statt auf das Bild, ob er schwebt oder abgelegt ist. Sie ignorieren die Auswahl und berühren nie die Punkte des Stempels; eine Zelle, die der Stempel nicht abdeckt, bleibt unverändert. Spiegeln spiegelt die Farbzellen des Stempels, seine Punkte bleiben, wo sie sind. Ein GigaScreen-Stempel hat einen Farbsatz für beide Bildschirme, daher zeigt der Dialog Ändern eine Gruppe. Jeder Befehl ist ein Rückgängig-Schritt. Bei einem Stempel ohne eigene Farben bleiben sie ausgegraut.

@@ -1541,6 +1541,7 @@ const pt = {
     'attrChange.scope': 'Aplica-se a: {scope}',
     'attrChange.scopeSelection': 'Seleção',
     'attrChange.scopeWhole': 'Imagem inteira',
+    'attrChange.scopeStamp': 'Carimbo',
     'plural.changeAttrCells': 'one: {n} célula será alterada | other: {n} células serão alteradas',
 };
 

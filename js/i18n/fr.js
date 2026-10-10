@@ -1541,6 +1541,7 @@ const fr = {
     'attrChange.scope': 'S\'applique à : {scope}',
     'attrChange.scopeSelection': 'Sélection',
     'attrChange.scopeWhole': 'Image entière',
+    'attrChange.scopeStamp': 'Tampon',
     'plural.changeAttrCells': 'one: {n} cellule sera modifiée | other: {n} cellules seront modifiées',
 };
 

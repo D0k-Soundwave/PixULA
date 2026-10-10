@@ -1541,6 +1541,7 @@ const ro = {
     'attrChange.scope': 'Se aplică la: {scope}',
     'attrChange.scopeSelection': 'Selecție',
     'attrChange.scopeWhole': 'Imaginea întreagă',
+    'attrChange.scopeStamp': 'Ștampilă',
     'plural.changeAttrCells': 'one: {n} celulă se va modifica | few: {n} celule se vor modifica | other: {n} de celule se vor modifica',
 };
 

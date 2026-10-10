@@ -1541,6 +1541,7 @@ const it = {
     'attrChange.scope': 'Si applica a: {scope}',
     'attrChange.scopeSelection': 'Selezione',
     'attrChange.scopeWhole': 'Intera immagine',
+    'attrChange.scopeStamp': 'Timbro',
     'plural.changeAttrCells': 'one: {n} cella cambierà | other: {n} celle cambieranno',
 };
 

@@ -1541,6 +1541,7 @@ const sk = {
     'attrChange.scope': 'Platí pre: {scope}',
     'attrChange.scopeSelection': 'Výber',
     'attrChange.scopeWhole': 'Celý obrázok',
+    'attrChange.scopeStamp': 'Pečiatka',
     'plural.changeAttrCells': 'one: {n} bunka sa zmení | few: {n} bunky sa zmenia | other: {n} buniek sa zmení',
 };
 

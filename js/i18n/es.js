@@ -1542,6 +1542,7 @@ const es = {
     'attrChange.scope': 'Se aplica a: {scope}',
     'attrChange.scopeSelection': 'Selección',
     'attrChange.scopeWhole': 'Imagen completa',
+    'attrChange.scopeStamp': 'Sello',
     'plural.changeAttrCells': 'one: {n} celda cambiará | other: {n} celdas cambiarán',
 };
 

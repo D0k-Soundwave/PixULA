@@ -172,7 +172,7 @@ zaškrtnutá pole „použít existující“ ponechají to, co buňka už má. 
 vodorovně a Otočit svisle zrcadlí barvy buněk. Každý příkaz působí na výběr
 (všechny buňky, kterých se dotýká), nebo na celý obrázek, není-li nic vybráno,
 a vrací se jedním krokem zpět. Položky jsou šedé v režimech bez barev buněk
-(Timex Hi-res, Layer 2, LoRes), když plove razítko, a na zamčené vrstvě.
+(Timex Hi-res, Layer 2, LoRes), když plove razítko bez vlastních barev, a na zamčené vrstvě.
 
 Změnit... najde buňky podle jejich barev a nahradí je. Hledat určuje, které buňky vybrat: každé pole je hodnota, nebo Libovolné. Nahradit za určuje, čím se stanou: každé pole je hodnota, nebo Ponechat. Dialog ukáže, kolik buněk se změní, dříve než stisknete OK, a OK se vrátí jedním krokem zpět. Na GigaScreenu jsou skupiny Obrazovka A a Obrazovka B; v ULAplus nahrazuje CLUT 0-3 volby Jas a Blikání. Zrušit nic nemění.
 
@@ -195,3 +195,5 @@ Když je razítko zapojené, panel **Transformace** ukazuje, jak se pokládá.
 **Prázdné body** rozhodují, co dělají prázdné body razítka. Ponechat pozadí nechá obraz pod nimi být (razítko s vlastními barvami pod nimi stále přebarví papír, pokud neprosvítá Papír). Smazat pozadí ho také smaže, na celém obdélníku razítka. Režimy kreslení bez opaku (XOR, Přebarvení inkoustu, Přebarvení papíru) a vlastní přepínač XOR razítka nechají prázdné body být a panel to oznámí. Prázdné body jsou dostupné v každém režimu obrazovky, i bez barev buněk.
 
 **Převést na jen body** natrvalo zahodí barvy razítka a ponechá jeho body. Volba Jen body v Barvách je zachová, takže se lze vrátit. Každá změna je jeden krok zpět.
+
+Dokud je zapojené razítko s vlastními barvami, příkazy Obrázek > Atributy (Invertovat, Vymazat, obě Otočení a Změnit...) působí na buňky razítka, ne na obrázek, ať plove, nebo je odložené. Ignorují výběr a nikdy se nedotknou teček razítka a buňka, kterou razítko nepokrývá, zůstane beze změny. Otočení zrcadlí barevné buňky razítka, zatímco jeho tečky zůstanou na místě. Razítko na GigaScreenu má jednu sadu barev pro obě obrazovky, takže dialog Změnit ukazuje jedinou skupinu. Každý příkaz je jeden krok zpět. U razítka bez vlastních barev zůstanou šedé.

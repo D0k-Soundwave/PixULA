@@ -185,8 +185,7 @@ migotanie w każdej komórce; pola „użyj istniejących” zachowują to, co k
 ma już teraz. Odbij poziomo i Odbij pionowo odbijają kolory komórek. Każde
 polecenie działa na zaznaczenie (wszystkie dotknięte komórki) albo na cały
 obraz, gdy nic nie jest zaznaczone, i cofa się jednym krokiem. Pozycje są
-wyszarzone w trybach bez kolorów komórek (Timex Hi-res, Layer 2, LoRes), gdy
-pieczątka jest w toku i na zablokowanej warstwie.
+wyszarzone w trybach bez kolorów komórek (Timex Hi-res, Layer 2, LoRes), gdy pieczątka bez własnych kolorów jest w toku i na zablokowanej warstwie.
 
 Zmień... znajduje komórki po ich kolorach i zamienia je. Znajdź określa, które komórki dopasować: każde pole to wartość albo Dowolny. Zamień na określa, na co się zmienią: każde pole to wartość albo Zachowaj. Okno pokazuje, ile komórek się zmieni, zanim naciśniesz OK, a OK cofa się jednym krokiem. Tryb GigaScreen ma grupę Ekran A i grupę Ekran B; w ULAplus CLUT 0-3 zastępuje Jasny i Migotanie. Anuluj nic nie zmienia.
 
@@ -209,3 +208,5 @@ Gdy pieczątka jest włączona, panel **Przekształcanie** pokazuje, jak jest k�
 **Puste punkty** decydują, co robią puste punkty pieczątki. Zostaw tło zostawia obraz pod nimi w spokoju (pieczątka z własnymi kolorami nadal przemalowuje papier pod nimi, chyba że prześwituje Papier). Wyczyść tło czyści go też, na całym prostokącie pieczątki. Tryby rysowania bez przeciwieństwa (XOR, Przemaluj tusz, Przemaluj papier) i własny przełącznik XOR pieczątki zostawiają puste punkty w spokoju, a panel to mówi. Puste punkty są dostępne w każdym trybie ekranu, także bez kolorów komórek.
 
 **Zamień na same piksele** na stałe odrzuca kolory pieczątki i zachowuje jej punkty. Wybór Tylko piksele w Kolorach je zachowuje, więc można wrócić. Każda zmiana to jeden krok cofania.
+
+Dopóki włączona jest pieczątka z własnymi kolorami, polecenia Obraz > Atrybuty (Odwróć, Wymaż, oba Odbij i Zmień...) działają na komórki pieczątki zamiast na obraz, czy to unoszącej się, czy odłożonej. Ignorują zaznaczenie i nigdy nie dotykają punktów pieczątki, a komórka, której pieczątka nie pokrywa, zostaje bez zmian. Odbijanie odbija komórki kolorów pieczątki, a jej punkty zostają na miejscu. Pieczątka GigaScreen ma jeden zestaw kolorów dla obu ekranów, więc okno Zmień pokazuje jedną grupę. Każde polecenie to jeden krok cofania. Dla pieczątki bez własnych kolorów pozostają wyszarzone.

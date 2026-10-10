@@ -1541,6 +1541,7 @@ const pl = {
     'attrChange.scope': 'Dotyczy: {scope}',
     'attrChange.scopeSelection': 'Zaznaczenie',
     'attrChange.scopeWhole': 'Cały obraz',
+    'attrChange.scopeStamp': 'Pieczątka',
     'plural.changeAttrCells': 'one: {n} komórka zostanie zmieniona | few: {n} komórki zostaną zmienione | many: {n} komórek zostanie zmienionych | other: {n} komórki zostaną zmienione',
 };
 

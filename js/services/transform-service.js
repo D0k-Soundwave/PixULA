@@ -1390,9 +1390,40 @@ class TransformServiceClass {
   attributeCommandsBlocked() {
     if (!ColorManager.hasCellAttributes()) return 'noCellAttributes';
     const layer = LayerManager.getCurrentLayer();
-    if (!layer || this._engagedStamp()) return 'stamp';
+    const stamp = this._engagedStamp();
+    // A stamp that places its own colours has cell colours the commands can
+    // work on; any other stamp is in the way.
+    if (stamp) return stamp.ownColours ? null : 'stamp';
+    if (!layer) return 'stamp';
     if (layer.locked) return 'locked';
     return null;
+  }
+
+  /**
+   * Where the Attributes commands act: the picture (the selection's cells, or
+   * all of them) or - while a stamp places its own colours - the whole stamp.
+   * Null when blocked. For a stamp the grid is the stamp's own colour cells;
+   * a hole (null) is never read, written or counted.
+   * @returns {?{kind:string, rect:Object, stamp:?Object}}
+   * @private
+   */
+  _attributeScope() {
+    if (this.attributeCommandsBlocked()) return null;
+    const stamp = this._engagedStamp();
+    if (stamp && stamp.ownColours) {
+      const data = SelectionService.getStampData(stamp.layer);
+      const g = SelectionService.stampAttrGrid(data);
+      if (!data || !g) return null;
+      return { kind: 'stamp', rect: { x0: 0, y0: 0, x1: g.cols - 1, y1: g.rows - 1 },
+               stamp: { layer: stamp.layer, data, g } };
+    }
+    return { kind: 'picture', rect: this._attributeCellRect(this._getWorkArea()), stamp: null };
+  }
+
+  /** True while the Attributes commands act on a stamp's own colours. */
+  stampScope() {
+    const scope = this._attributeScope();
+    return !!(scope && scope.kind === 'stamp');
   }
 
   /** The stamp in the way (floating, or the current layer), or null. @private */
@@ -1473,9 +1504,17 @@ class TransformServiceClass {
    * @returns {number} cells changed
    * @private
    */
-  _rewriteCells(rect, targetOf) {
-    const writes = this._planCellWrites(rect, targetOf);
+  _rewriteCells(rect, targetOf, scope = null) {
+    const writes = this._planCellWrites(rect, targetOf, scope);
     if (writes.length === 0) return 0;
+
+    if (scope && scope.kind === 'stamp') {
+      const { layer, data, g } = scope.stamp;
+      const attrs = data.attrs.slice();
+      for (const w of writes) attrs[w.cy * g.cols + w.cx] = SelectionService.packStampAttr(w.next);
+      SelectionService.setStampAttrs(attrs, layer);
+      return writes.length;
+    }
 
     PixelDrawRoutine.beginBatch();
     this._applyCellWrites(writes);
@@ -1491,20 +1530,29 @@ class TransformServiceClass {
    * @returns {Array<{cx:number, cy:number, next:Object}>} cells that change
    * @private
    */
-  _planCellWrites(rect, targetOf) {
+  _planCellWrites(rect, targetOf, scope = null) {
+    const stamp = scope && scope.kind === 'stamp' ? scope.stamp : null;
     const layer = LayerManager.getCurrentLayer();
-    if (!layer) return [];
+    if (!layer && !stamp) return [];
     const grid = [];
     for (let cy = rect.y0; cy <= rect.y1; cy++) {
       const row = [];
-      for (let cx = rect.x0; cx <= rect.x1; cx++) row.push(this._readCellAttrs(layer, cx, cy));
+      for (let cx = rect.x0; cx <= rect.x1; cx++) {
+        if (stamp) {
+          const a = stamp.data.attrs[cy * stamp.g.cols + cx];
+          row.push(a == null ? null : SelectionService.unpackStampAttr(a));
+        } else {
+          row.push(this._readCellAttrs(layer, cx, cy));
+        }
+      }
       grid.push(row);
     }
     const writes = [];
     for (let cy = rect.y0; cy <= rect.y1; cy++) {
       for (let cx = rect.x0; cx <= rect.x1; cx++) {
-        const next = targetOf(cx, cy, grid, rect);
         const cur = grid[cy - rect.y0][cx - rect.x0];
+        if (cur === null) continue; // a hole in a stamp: nothing to read or write
+        const next = targetOf(cx, cy, grid, rect);
         if (!this._sameAttrs(next, cur)) writes.push({ cx, cy, next });
       }
     }
@@ -1526,7 +1574,7 @@ class TransformServiceClass {
   /** Swap ink and paper of one cell's colours; bright and flash stay. @private */
   _swapInkPaper(c) {
     const next = { ink: c.paper, paper: c.ink, bright: c.bright, flash: c.flash };
-    if (ZX_SPECTRUM.SCREENS === 2) {
+    if (c.inkB !== undefined) {
       next.inkB = c.paperB; next.paperB = c.inkB;
       next.brightB = c.brightB; next.flashB = c.flashB;
     }
@@ -1539,10 +1587,11 @@ class TransformServiceClass {
    * @returns {number} cells changed
    */
   invertAttributes() {
-    if (this.attributeCommandsBlocked()) return 0;
-    const rect = this._attributeCellRect(this._getWorkArea());
+    const scope = this._attributeScope();
+    if (!scope) return 0;
+    const rect = scope.rect;
     return this._rewriteCells(rect, (cx, cy, grid) =>
-      this._swapInkPaper(grid[cy - rect.y0][cx - rect.x0]));
+      this._swapInkPaper(grid[cy - rect.y0][cx - rect.x0]), scope);
   }
 
   /**
@@ -1551,8 +1600,9 @@ class TransformServiceClass {
    * @returns {number} cells changed
    */
   eraseAttributes() {
-    if (this.attributeCommandsBlocked()) return 0;
-    const rect = this._attributeCellRect(this._getWorkArea());
+    const scope = this._attributeScope();
+    if (!scope) return 0;
+    const rect = scope.rect;
     const rail = ColorManager.getCurrentSelection();
     return this._rewriteCells(rect, (cx, cy, grid) => {
       const c = grid[cy - rect.y0][cx - rect.x0];
@@ -1562,14 +1612,14 @@ class TransformServiceClass {
         bright: rail.brightTransparent ? c.bright : rail.bright,
         flash: rail.flashTransparent ? c.flash : rail.flash
       };
-      if (ZX_SPECTRUM.SCREENS === 2) {
+      if (c.inkB !== undefined) {
         next.inkB = rail.inkTransparent ? c.inkB : (rail.inkB != null ? rail.inkB : rail.ink);
         next.paperB = rail.paperTransparent ? c.paperB : (rail.paperB != null ? rail.paperB : rail.paper);
         next.brightB = rail.brightTransparent ? c.brightB : (rail.brightB != null ? rail.brightB : rail.bright);
         next.flashB = rail.flashTransparent ? c.flashB : (rail.flashB != null ? rail.flashB : rail.flash);
       }
       return next;
-    });
+    }, scope);
   }
 
   /**
@@ -1577,12 +1627,14 @@ class TransformServiceClass {
    * @returns {number} cells changed
    */
   flipAttributesHorizontal() {
-    if (this.attributeCommandsBlocked()) return 0;
-    const rect = this._attributeCellRect(this._getWorkArea());
+    const scope = this._attributeScope();
+    if (!scope) return 0;
+    const rect = scope.rect;
     return this._rewriteCells(rect, (cx, cy, grid) => {
       const mx = rect.x0 + rect.x1 - cx;
-      return { ...grid[cy - rect.y0][mx - rect.x0] };
-    });
+      // a hole opposite keeps this cell's own colours
+      return { ...(grid[cy - rect.y0][mx - rect.x0] || grid[cy - rect.y0][cx - rect.x0]) };
+    }, scope);
   }
 
   /**
@@ -1590,12 +1642,13 @@ class TransformServiceClass {
    * @returns {number} cells changed
    */
   flipAttributesVertical() {
-    if (this.attributeCommandsBlocked()) return 0;
-    const rect = this._attributeCellRect(this._getWorkArea());
+    const scope = this._attributeScope();
+    if (!scope) return 0;
+    const rect = scope.rect;
     return this._rewriteCells(rect, (cx, cy, grid) => {
       const my = rect.y0 + rect.y1 - cy;
-      return { ...grid[my - rect.y0][cx - rect.x0] };
-    });
+      return { ...(grid[my - rect.y0][cx - rect.x0] || grid[cy - rect.y0][cx - rect.x0]) };
+    }, scope);
   }
 
   /**
@@ -1604,9 +1657,10 @@ class TransformServiceClass {
    * @returns {string[]}
    * @private
    */
-  _attrKeys() {
+  _attrKeys(stamp = false) {
     const keys = ['ink', 'paper', 'bright', 'flash'];
-    return ZX_SPECTRUM.SCREENS === 2 ? keys.concat(['inkB', 'paperB', 'brightB', 'flashB']) : keys;
+    // A stamp holds one colour set, used on both screens.
+    return (ZX_SPECTRUM.SCREENS === 2 && !stamp) ? keys.concat(['inkB', 'paperB', 'brightB', 'flashB']) : keys;
   }
 
   /**
@@ -1616,9 +1670,9 @@ class TransformServiceClass {
    * @returns {Object|null}
    * @private
    */
-  _cleanAttrSet(set) {
+  _cleanAttrSet(set, keys = this._attrKeys()) {
     const out = {};
-    for (const k of this._attrKeys()) {
+    for (const k of keys) {
       const v = set ? set[k] : null;
       if (v == null) { out[k] = null; continue; }
       if (k.startsWith('ink') || k.startsWith('paper')) {
@@ -1642,15 +1696,16 @@ class TransformServiceClass {
    * @private
    */
   _changeAttributesPlan(find, replace) {
-    if (this.attributeCommandsBlocked()) return null;
-    const f = this._cleanAttrSet(find);
-    const r = this._cleanAttrSet(replace);
+    const scope = this._attributeScope();
+    if (!scope) return null;
+    const keys = this._attrKeys(scope.kind === 'stamp');
+    const f = this._cleanAttrSet(find, keys);
+    const r = this._cleanAttrSet(replace, keys);
     if (!f || !r) {
       Logger.warn('TransformService', 'changeAttributes: colour out of range');
       return null;
     }
-    const keys = this._attrKeys();
-    const rect = this._attributeCellRect(this._getWorkArea());
+    const rect = scope.rect;
     const targetOf = (cx, cy, grid) => {
       const cur = grid[cy - rect.y0][cx - rect.x0];
       for (const k of keys) {
@@ -1662,7 +1717,7 @@ class TransformServiceClass {
       }
       return next;
     };
-    return { rect, targetOf };
+    return { rect, targetOf, scope };
   }
 
   /**
@@ -1674,7 +1729,7 @@ class TransformServiceClass {
   previewChangeAttributes(find, replace) {
     const plan = this._changeAttributesPlan(find, replace);
     if (!plan) return 0;
-    return this._planCellWrites(plan.rect, plan.targetOf).length;
+    return this._planCellWrites(plan.rect, plan.targetOf, plan.scope).length;
   }
 
   /**
@@ -1687,7 +1742,7 @@ class TransformServiceClass {
   changeAttributes(find, replace) {
     const plan = this._changeAttributesPlan(find, replace);
     if (!plan) return 0;
-    return this._rewriteCells(plan.rect, plan.targetOf);
+    return this._rewriteCells(plan.rect, plan.targetOf, plan.scope);
   }
 
 }
