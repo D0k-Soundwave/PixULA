@@ -13,6 +13,10 @@ yüklemek için `.tap`. Bunları **Dosya > Resmi farklı kaydet** yazar. Yalnız
 resmi içerirler, başka bir şey değil; sonucu teslim ederken istediğiniz budur,
 ama üzerinde çalışmaya devam etmek istiyorsanız değil.
 
+### Resim içe aktarma
+
+Bir fotoğraf veya başka bir resim (PNG, JPG, GIF) açıldığında üç dönüşüm yan yana gösterilir - Keskin, Yumuşak ve Düz - ve beğendiğinize tıklarsınız. Tonları noktalara çeviren Yumuşak dönüşümdür; önizlemelerin altındaki **Tarama** listesi bunun nasıl yapılacağını seçer: varsayılan içe aktarmanın kendi Floyd-Steinberg'idir ve liste ZX Paintbrush'ın diğer 30 yöntemini de sunar - eşikler, hata yayılımı, Bayer matrisleri, küme noktaları ve süperhücreler. Bir yöntem seçmek Yumuşak önizlemeye geçirir. Sıralı yöntemler öznitelik hücreleri boyunca devam eder, böylece desen tüm resimde akar; hata yayılımı her hücrenin içinde kalır, çünkü her hücrenin kendi iki rengi vardır. Layer 2 ve LoRes kiplerinde liste soluktur: bu kipler kendi renk taramalarını korur.
+
 ### Otomatik kaydetme ve yedekler
 
 PixULA çalışmanızı birkaç dakikada bir tarayıcının kendi depolamasına

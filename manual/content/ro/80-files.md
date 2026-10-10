@@ -13,6 +13,10 @@ pe el îl folosiți cât timp o imagine este încă în lucru.
 imaginea și nimic altceva, ceea ce vreți când predați rezultatul, și nu ce vreți
 dacă intenționați să lucrați mai departe la ea.
 
+### Importul unei imagini
+
+Deschiderea unei fotografii sau a altei imagini (PNG, JPG, GIF) arată trei conversii una lângă alta - Clară, Fină și Plată - iar tu o alegi cu un clic pe cea care îți place. Fină este cea care transformă nuanțele în puncte, iar lista **Dither** de sub previzualizări alege cum: implicit este Floyd-Steinberg propriu al importului, iar lista oferă și celelalte 30 de metode ZX Paintbrush - praguri, difuzia erorii, matrice Bayer, puncte grupate și supercelule. Alegerea unei metode trece la previzualizarea Fină. Metodele ordonate continuă peste celulele de atribute, deci modelul străbate toată imaginea; difuzia erorii rămâne în interiorul fiecărei celule, fiindcă fiecare celulă are cele două culori ale ei. În modurile Layer 2 și LoRes lista este estompată: aceste moduri își păstrează propriul dither de culoare.
+
 ### Salvare automată și copii de rezervă
 
 PixULA vă poate salva munca în spațiul de stocare al browserului la fiecare

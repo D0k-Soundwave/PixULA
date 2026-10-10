@@ -13,6 +13,10 @@ wczytania na prawdziwym sprzęcie. Zapisuje je **Plik > Zapisz obraz jako**.
 Zawierają tylko obraz i nic więcej – to, czego chcesz, przekazując wynik, a nie
 to, czego chcesz, jeśli zamierzasz dalej nad nim pracować.
 
+### Importowanie obrazu
+
+Otwarcie zdjęcia lub innego obrazu (PNG, JPG, GIF) pokazuje obok siebie trzy konwersje - Ostrą, Gładką i Płaską - a ty klikasz tę, która ci się podoba. Gładka zamienia odcienie na punkty, a lista **Dithering** pod podglądami wybiera jak: domyślnie jest to własny Floyd-Steinberg importu, a lista oferuje też pozostałe 30 metod ZX Paintbrush - progi, dyfuzję błędu, macierze Bayera, punkty skupione i superkomórki. Wybór metody przełącza na podgląd Gładki. Metody uporządkowane biegną dalej przez komórki atrybutów, więc wzór przebiega przez cały obraz; dyfuzja błędu zostaje wewnątrz każdej komórki, bo każda komórka ma swoje dwa kolory. W trybach Layer 2 i LoRes lista jest wyszarzona: te tryby zachowują własny dithering kolorów.
+
 ### Autozapis i kopie zapasowe
 
 PixULA może co kilka minut zapisywać pracę w pamięci przeglądarki i proponować

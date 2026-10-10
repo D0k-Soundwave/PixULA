@@ -16,6 +16,10 @@ zum Herzeigen, eine `.tap` zum Laden auf echter Hardware. Diese schreibt
 Sie wollen, wenn Sie das Ergebnis weitergeben, nicht aber, wenn Sie
 weiterarbeiten möchten.
 
+### Ein Bild importieren
+
+Beim Öffnen eines Fotos oder anderen Bildes (PNG, JPG, GIF) werden drei Umwandlungen nebeneinander gezeigt - Scharf, Weich und Flach - und Sie klicken die an, die Ihnen gefällt. Weich verwandelt Schattierungen in Punkte, und die Liste **Dithering** unter den Vorschauen bestimmt wie: Standard ist das eigene Floyd-Steinberg des Imports, und die Liste bietet auch die 30 anderen Verfahren von ZX Paintbrush - Schwellen, Fehlerdiffusion, Bayer-Matrizen, Clusterpunkte und Superzellen. Die Wahl eines Verfahrens schaltet auf die Vorschau Weich. Geordnete Verfahren laufen über Attributzellen hinweg weiter, das Muster zieht sich also über das ganze Bild; die Fehlerdiffusion bleibt innerhalb jeder Zelle, weil jede Zelle ihre eigenen zwei Farben hat. In den Modi Layer 2 und LoRes ist die Liste ausgegraut: Diese Modi behalten ihr eigenes Farb-Dithering.
+
 ### Automatisches Speichern und Sicherungen
 
 PixULA kann Ihre Arbeit alle paar Minuten im Speicher des Browsers sichern und

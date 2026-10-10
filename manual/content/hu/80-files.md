@@ -13,6 +13,10 @@ valódi hardveren való betöltéshez. Ezeket a **Fájl > Kép mentése máskén
 Csak a képet tartalmazzák, semmi mást – ezt akarod, ha továbbadod az
 eredményt, de nem ezt, ha tovább akarsz dolgozni rajta.
 
+### Kép importálása
+
+Egy fotó vagy más kép (PNG, JPG, GIF) megnyitásakor három átalakítás jelenik meg egymás mellett - Éles, Lágy és Lapos -, és arra kattintasz, amelyik tetszik. A Lágy alakítja pontokká az árnyalatokat, és az előnézetek alatti **Raszterezés** lista dönti el, hogyan: alapértelmezés az import saját Floyd-Steinberg eljárása, a lista pedig a ZX Paintbrush másik 30 módszerét is kínálja - küszöbök, hibaterítés, Bayer-mátrixok, klaszterpontok és szupercellák. A módszer választása a Lágy előnézetre vált. A rendezett módszerek folytatódnak az attribútumcellák között, így a minta az egész képen végigfut; a hibaterítés minden cellán belül marad, mert minden cellának saját két színe van. A Layer 2 és LoRes üzemmódban a lista szürke: ezek az üzemmódok megtartják a saját színraszterezésüket.
+
 ### Automatikus mentés és biztonsági másolatok
 
 A PixULA néhány percenként a böngésző saját tárhelyére mentheti a munkádat, és

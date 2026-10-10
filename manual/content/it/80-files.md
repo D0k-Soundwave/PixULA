@@ -15,6 +15,10 @@ programma comprende: un `.scr` per un emulatore, un `.png` da mostrare, un
 nome**. Contengono l’immagine e nient’altro, che è ciò che vuoi quando consegni
 il risultato, e non ciò che vuoi se intendi continuare a lavorarci.
 
+### Importare un'immagine
+
+Aprendo una foto o un'altra immagine (PNG, JPG, GIF) si vedono affiancate tre conversioni - Nitida, Morbida e Piatta - e si clicca su quella che piace. La Morbida è quella che trasforma le sfumature in punti, e l'elenco **Dithering** sotto le anteprime sceglie come: il predefinito è il Floyd-Steinberg proprio dell'importazione, e l'elenco offre anche gli altri 30 metodi di ZX Paintbrush - soglie, diffusione dell'errore, matrici di Bayer, punti raggruppati e supercelle. Scegliere un metodo passa all'anteprima Morbida. I metodi ordinati proseguono attraverso le celle di attributi, così il motivo corre su tutta l'immagine; la diffusione dell'errore resta dentro ogni cella, perché ogni cella ha i suoi due colori. Nelle modalità Layer 2 e LoRes l'elenco è disattivato: quelle modalità mantengono il proprio dithering a colori.
+
 ### Salvataggio automatico e backup
 
 PixULA può salvare il lavoro nella memoria del browser ogni pochi minuti e

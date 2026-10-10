@@ -15,6 +15,10 @@ charger sur une vraie machine. **Fichier > Enregistrer l’image sous** les
 écrit. Ils ne contiennent que l’image, ce qu’il faut pour transmettre le
 résultat, mais pas si vous comptez continuer à travailler dessus.
 
+### Importer une image
+
+L'ouverture d'une photo ou d'une autre image (PNG, JPG, GIF) montre trois conversions côte à côte - Nette, Douce et Plate - et vous cliquez sur celle qui vous plaît. La Douce est celle qui transforme les teintes en points, et la liste **Tramage** sous les aperçus choisit comment : par défaut c'est le Floyd-Steinberg propre à l'import, et la liste propose aussi les 30 autres méthodes de ZX Paintbrush - seuils, diffusion d'erreur, matrices de Bayer, points groupés et supercellules. Choisir une méthode passe à l'aperçu Doux. Les méthodes ordonnées se poursuivent d'une cellule d'attributs à l'autre, de sorte que la trame court sur toute l'image ; la diffusion d'erreur reste dans chaque cellule, car chaque cellule a ses deux couleurs. Dans les modes Layer 2 et LoRes la liste est grisée : ces modes gardent leur propre tramage de couleur.
+
 ### Enregistrement automatique et sauvegardes
 
 PixULA peut enregistrer votre travail dans le stockage du navigateur toutes
