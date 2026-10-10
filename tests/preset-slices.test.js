@@ -84,6 +84,8 @@ loadModule('js/tools/brush-tool.js');
 loadModule('js/tools/eraser-tool.js');
 loadModule('js/tools/shape-tool.js');
 loadModule('js/tools/bezier-tool.js');
+loadModule('js/tools/figure-model.js');
+loadModule('js/tools/figure-tool.js');
 loadModule('js/tools/fill-tool.js');
 loadModule('js/tools/gradient-tool.js');
 loadModule('js/tools/text-tool.js');
@@ -94,7 +96,7 @@ loadModule('js/services/preset-service.js');
 
 const TOOL_CLASSES = [
   ['brush', global.BrushTool], ['eraser', global.EraserTool],
-  ['shape', global.ShapeTool], ['bezier', global.BezierTool],
+  ['shape', global.ShapeTool], ['bezier', global.BezierTool], ['figure', global.FigureTool],
   ['fill', global.FillTool], ['gradient', global.GradientTool],
   ['text', global.TextTool], ['selection', global.SelectionTool],
   ['zoom', global.ZoomTool]

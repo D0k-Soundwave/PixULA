@@ -611,6 +611,23 @@ class OptionControlsClass {
             if (!entry.showIf) continue;
             rowEl.hidden = !this._evalShowIf(entry.showIf);
         }
+        this._applyDisabled();
+    }
+
+    /**
+     * Grey out the select options whose `disabledIf` condition holds (same grammar as showIf). A select may
+     * still HOLD a disabled value - a preset can bring one back - so the tool's own rule is what counts.
+     * @private
+     */
+    _applyDisabled() {
+        for (const { entry, rowEl } of this._rows) {
+            if (!Array.isArray(entry.options)) continue;
+            for (const opt of entry.options) {
+                if (!opt || !opt.disabledIf) continue;
+                const el = rowEl.querySelector(`option[value="${opt.value}"]`);
+                if (el) el.disabled = this._evalShowIf(opt.disabledIf);
+            }
+        }
     }
 
     /**

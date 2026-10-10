@@ -48,6 +48,19 @@ class FigureToolClass extends ToolBase {
         { any: [ { key: 'filled', equals: false },
                  { key: 'shapeType', notIn: ['figure-polygon', 'figure-triangle'] } ] },
         { cells: true } ] } },
+    // Line style: the dash styles need a one-pixel line (a filled figure counts as one).
+    ToolBase.lineStyleRow({ thickWhen: { all: [
+      { any: [ { key: 'filled', equals: false },
+               { key: 'shapeType', notIn: ['figure-polygon', 'figure-triangle'] } ] },
+      { key: 'thickness', gt: 1 } ] } }),
+    { type: 'hint', i18n: 'lineStyle.thinOnly', showIf: { all: [
+      { any: [ { key: 'filled', equals: false },
+               { key: 'shapeType', notIn: ['figure-polygon', 'figure-triangle'] } ] },
+      { key: 'thickness', gt: 1 } ] } },
+    { type: 'hint', i18n: 'lineStyle.clearHint', showIf: { all: [
+      { key: 'lineStyle', equals: 'clear' },
+      { any: [ { key: 'filled', equals: false },
+               { key: 'shapeType', notIn: ['figure-polygon', 'figure-triangle'] } ] } ] } },
     { type: 'hint', i18n: 'figure.usage.open',
       showIf: { key: 'shapeType', in: ['figure-polyline', 'figure-polygon', 'figure-rays'] } },
     { type: 'hint', i18n: 'figure.usage.fixed',
@@ -60,6 +73,7 @@ class FigureToolClass extends ToolBase {
     this._filled = false;
     this._thickness = 1;
     this._colourCore = 'whole';
+    this._lineStyle = 'solid';
     this._phase = 'idle';          // 'idle' | 'drawing' | 'pending'
     this._model = null;
     this._isEraseMode = false;
@@ -114,6 +128,12 @@ class FigureToolClass extends ToolBase {
     if (this._model) this._renderPreview();
   }
 
+  getLineStyle() { return this._lineStyle; }
+  setLineStyle(v) {
+    this._lineStyle = ShapeGenerator.constructor.cleanLineStyle(v);
+    if (this._model) { this._model.options.lineStyle = this._lineStyle; this._renderPreview(); }
+  }
+
   /** Hover footprint: the nib the figure is dilated with. */
   getFootprint(pixelX, pixelY) {
     return ShapeGenerator.nibFootprint(pixelX, pixelY, this._thickness);
@@ -133,7 +153,7 @@ class FigureToolClass extends ToolBase {
 
   /** @private */
   _newModel() {
-    this._model = new FigureModel(this._type, { filled: this._filled, thickness: this._thickness });
+    this._model = new FigureModel(this._type, { filled: this._filled, thickness: this._thickness, lineStyle: this._lineStyle });
     this._phase = 'drawing';
   }
 

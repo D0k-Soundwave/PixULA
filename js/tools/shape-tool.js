@@ -115,7 +115,25 @@ window.SHAPE_TYPE_ROW = SHAPE_TYPE_ROW;
  * takes fractions and radians.
  * @const {Array<Object>}
  */
+/** Shapes whose outline can be turned (Batch 7 part 7B): the box shapes, and those drawn from a centre and a drag point. */
+const ROTATABLE_SHAPES = Object.freeze(['rectangle', 'square', 'rounded-rectangle', 'ellipse', 'parallelogram', 'arc',
+  'sector', 'triangle', 'diamond', 'pentagon', 'hexagon', 'heptagon', 'octagon', 'nonagon', 'decagon', 'dodecagon', 'polygon']);
+
+/** The shapes with no fillable interior (their Filled box is hidden and thickness always applies). */
+const UNFILLABLE_SHAPES = Object.freeze(['line', 'arc', 'spiral', 'x']);
+
+/** True when the outline being drawn can be thicker than a pixel: unfilled, or a shape that cannot be filled. */
+const OUTLINE_SHOWN = Object.freeze({ any: [ { key: 'filled', equals: false },
+                                             { key: 'shapeType', in: UNFILLABLE_SHAPES } ] });
+
+/** ... and the thickness is above one, which is where the dash styles are not available. */
+const OUTLINE_THICK = Object.freeze({ all: [ OUTLINE_SHOWN, { key: 'thickness', gt: 1 } ] });
+
 const SHAPE_PARAM_ROWS = Object.freeze([
+  { type: 'range', key: 'rotation',     i18n: 'opt.rotation',     min: -180, max: 180, step: 1, value: 0, unit: '\u00b0',
+    showIf: { key: 'shapeType', in: ROTATABLE_SHAPES } },
+  { type: 'range', key: 'rounding',     i18n: 'opt.rounding',     min: 0, max: 100, step: 5, value: 50, unit: '%',
+    showIf: { key: 'shapeType', equals: 'rounded-rectangle' } },
   { type: 'range', key: 'starPoints',   i18n: 'opt.starPoints',   min: 3, max: 12, value: 5,
     showIf: { key: 'shapeType', equals: 'star' } },
   { type: 'range', key: 'flowerPetals', i18n: 'opt.flowerPetals', min: 3, max: 12, value: 6,
@@ -158,6 +176,11 @@ class ShapeToolClass extends ToolBase {
         { any: [ { key: 'filled', equals: false },
                  { key: 'shapeType', in: ['line', 'arc', 'spiral', 'x'] } ] },
         { cells: true } ] } },
+    // Line style: solid, dashed, dotted, dash-dot, dash-dot-dot, clear. The dash styles need a one-pixel line.
+    ToolBase.lineStyleRow({ thickWhen: OUTLINE_THICK }),
+    { type: 'hint', i18n: 'lineStyle.thinOnly', showIf: OUTLINE_THICK },
+    { type: 'hint', i18n: 'lineStyle.clearHint',
+      showIf: { all: [ { key: 'lineStyle', equals: 'clear' }, OUTLINE_SHOWN ] } },
     ...SHAPE_PARAM_ROWS
   ];
 
@@ -170,6 +193,9 @@ class ShapeToolClass extends ToolBase {
     this.isEraseMode = false;
     this._thickness = 1;
     this._colourCore = 'whole';
+    this._lineStyle = 'solid';
+    this._rotation = 0;
+    this._rounding = 50;
 
     // Per-shape parameters (SHAPE_PARAM_ROWS). Kept in the units the sliders
     // show; _shapeOptions converts them for the generator.
@@ -216,12 +242,15 @@ class ShapeToolClass extends ToolBase {
         pixelX, pixelY
       );
 
+      // Only the pixels the commit would really write: mirror copies, the drawing guide and a locked layer
+      // included (PixelDrawRoutine.strokeTargets), so the preview is the commit.
       const core = this._coreFor(this.startPoint.x, this.startPoint.y, pixelX, pixelY);
-      PixelDrawRoutine.withColourCore(core, () => {
+      const shown = PixelDrawRoutine.strokeTargets(pixels, core);
+      PixelDrawRoutine.withColourCore(shown.isCore, () => {
         if (this.isEraseMode) {
-          GridOverlay.drawCompositorPreview([], pixels);
+          GridOverlay.drawCompositorPreview([], shown.pixels);
         } else {
-          GridOverlay.drawCompositorPreview(pixels, []);
+          GridOverlay.drawCompositorPreview(shown.pixels, []);
         }
       });
     }
@@ -324,13 +353,25 @@ class ShapeToolClass extends ToolBase {
     const size = ToolBase.colourCoreSize(this._colourCore);
     if (!size || this.filled || this._thickness <= size) return null;
     if (!window.ColorManager || !ColorManager.hasCellAttributes()) return null;
-    const centre = this._getShapePixels(x1, y1, x2, y2, { thickness: 1 });
+    const centre = this._getShapePixels(x1, y1, x2, y2, { thickness: 1, lineStyle: 'solid' });
     return ShapeGenerator.corePredicate(centre, size);
   }
 
   getColourCore() { return this._colourCore; }
 
   setColourCore(value) { this._colourCore = ToolBase.cleanColourCore(value); }
+
+  getLineStyle() { return this._lineStyle; }
+  setLineStyle(v) { this._lineStyle = ShapeGenerator.constructor.cleanLineStyle(v); }
+
+  getRotation() { return this._rotation; }
+  setRotation(v) { this._rotation = clamp(Math.round(Number(v)) || 0, -180, 180); }
+
+  getRounding() { return this._rounding; }
+  setRounding(v) {
+    const n = Math.round(Number(v));
+    this._rounding = Number.isFinite(n) ? clamp(n, 0, 100) : 50;
+  }
 
   /**
    * Everything the generator may want, in ITS units. Handing over the whole
@@ -344,6 +385,9 @@ class ShapeToolClass extends ToolBase {
     return {
       filled: this.filled,
       thickness: this._thickness,
+      lineStyle: this._lineStyle,
+      rotation: this._rotation,
+      rounding: this._rounding / 100,
       points: this._starPoints,
       petals: this._flowerPetals,
       teeth: this._gearTeeth,

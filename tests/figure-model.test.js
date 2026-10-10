@@ -161,4 +161,33 @@ const same = (a, b) => a.size === b.size && [...a].every(k => b.has(k));
   check('clone and translate move a copy', c.points[0].x === 4 && c.points[0].y === 3 && m.points[0].x === 1);
 }
 
+// --- line styles on figures ---------------------------------------------------------------------------------------------------------
+{
+  const LS = (style, o) => ({ filled: false, thickness: 1, lineStyle: style, ...(o || {}) });
+  // (0,0) -> (20,0) -> (20,20): the pattern runs round the corner: x 0-17 on, then (20,4) on (path pixel 24)
+  const m = make(T.POLYLINE, pts([0, 0], [20, 0], [20, 20]), LS('dashed'));
+  const px = set(m.rasterise().pixels);
+  check('dashed polyline: the pattern carries round the corner', px.has('17,0') && !px.has('18,0') && !px.has('20,3') && px.has('20,4') && px.has('20,20') && px.size === 18 + 17);
+  check('...and the centre line (used for the colour core) stays solid', m.rasterise().centre.length === 41);
+
+  // rays: every ray starts its pattern afresh from the first point
+  const r = set(make(T.RAYS, pts([0, 0], [30, 0], [0, 30]), LS('dashed')).rasterise().pixels);
+  check('dashed rays restart per ray', r.has('17,0') && !r.has('18,0') && r.has('0,17') && !r.has('0,18') && r.has('0,0'));
+
+  // orthogonal and parallel are two runs of their own
+  const par = set(make(T.PARALLEL, pts([0, 0], [30, 0], [15, 10]), LS('dashed')).rasterise().pixels);
+  check('dashed parallel: both lines start at their own beginning', par.has('17,0') && !par.has('18,0') && par.has('17,10') && !par.has('18,10'));
+
+  check('clear draws no outline', make(T.POLYLINE, pts([0, 0], [20, 0]), LS('clear')).rasterise().pixels.length === 0);
+  const tri = make(T.POLYGON, pts([0, 0], [10, 0], [0, 10]), LS('clear', { filled: true })).rasterise().pixels;
+  // 66 filled pixels, 30 on the outline (11 top + 10 left + 9 slanted): 36 inside
+  check('clear on a filled triangle draws only the inside (36)', tri.length === 36, String(tri.length));
+  const fd = make(T.POLYGON, pts([0, 0], [10, 0], [0, 10]), LS('dashed', { filled: true })).rasterise().pixels;
+  // the 30 outline pixels run 18 on, 6 off, 6 on: the 6 off are cut from the 66-pixel fill
+  check('a filled dashed triangle is the fill with the 6 gap pixels of its edge cut out (60)', fd.length === 60, String(fd.length));
+  const t3 = set(make(T.POLYLINE, pts([0, 0], [20, 0]), LS('dashed', { thickness: 3 })).rasterise().pixels);
+  const s3 = set(make(T.POLYLINE, pts([0, 0], [20, 0]), { filled: false, thickness: 3 }).rasterise().pixels);
+  check('dashed at thickness 3 is solid', same(t3, s3));
+}
+
 summary();
