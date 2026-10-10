@@ -213,3 +213,15 @@ Les éléments Points du menu Image modifient les points et laissent les couleur
 Le choix Déplacer de la section Décaler du panneau Transformation indique ce qui se déplace. Points et couleurs (par défaut) déplace des cellules entières avec leur papier. Points seuls déplace les points d'un pixel ou d'une cellule à la fois. Couleurs seules déplace les couleurs de cellule une cellule à la fois. La croix possède aussi les diagonales. Pendant qu'un tampon flotte, Déplacer est grisé, car un décalage déplace tout le tampon.
 
 Les touches fléchées suivent le même choix Déplacer lorsqu'une sélection existe.
+
+### Tampons
+
+Quand un tampon est actif, le panneau **Transformer** montre comment il est posé.
+
+**Couleurs** choisit entre Pixels seuls et Couleurs propres. Pixels seuls pose les points du tampon avec les couleurs de la barre d'attributs, comme toujours. Couleurs propres pose les couleurs que le tampon porte, cellule par cellule : un tampon de l'éditeur de cartes, ou copié d'une image dans un mode à couleurs de cellule. Un tampon copié depuis l'image commence en Pixels seuls, donc un collage tombe exactement comme avant. Couleurs propres cale le tampon sur des cellules entières, ignore le mode de dessin, la barre de couleurs et l'interrupteur XOR, et ne peut être ni redimensionné, tourné, déformé, retourné, inversé ni détouré ; le panneau les grise et dit pourquoi. Changer la forme d'un tampon Pixels seuls abandonne les couleurs qu'il portait. Inverse échange toujours ce que font les points pleins et vides. Si les cellules du tampon n'ont pas la taille du mode d'écran actuel, seul Pixels seuls est possible.
+
+**Transparence** (Couleurs propres seulement) laisse transparaître la couleur déjà présente sur la page à la place de celle du tampon. Encre, Papier, Brillance et Clignotement ont chacun une case. ULAplus a une case CLUT pour Brillance et Clignotement ensemble. En GigaScreen chaque case couvre les deux écrans.
+
+**Points vides** décide ce que font les points vides du tampon. Garder le fond laisse le dessin en dessous tranquille (un tampon aux couleurs propres recolore quand même le papier dessous, sauf si le Papier transparaît). Effacer le fond l'efface aussi, sur tout le rectangle du tampon. Les modes de dessin sans inverse (XOR, Recolorer l'encre, Recolorer le papier) et l'interrupteur XOR propre du tampon laissent les points vides tranquilles, et le panneau le dit. Points vides est disponible dans tous les modes d'écran, même sans couleurs de cellule.
+
+**Convertir en pixels seuls** abandonne définitivement les couleurs du tampon et garde ses points. Le choix Pixels seuls dans Couleurs les garde, donc on peut revenir. Chaque changement est une étape d'annulation.

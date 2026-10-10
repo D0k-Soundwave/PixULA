@@ -48,7 +48,7 @@ class TransformPanelClass {
 
         EventBus.on(EVENTS.CANVAS_RENDER,  () => this._sync());
         EventBus.on(EVENTS.LAYER_SELECTED, () => this._sync());
-        EventBus.on(EVENTS.SCREEN_MODE_CHANGED, () => this._syncShiftControls());
+        EventBus.on(EVENTS.SCREEN_MODE_CHANGED, () => { this._syncShiftControls(); this._sync(); });
         this._sync();
 
         Logger.info('TransformPanel', 'Initialized');
@@ -66,6 +66,36 @@ class TransformPanelClass {
           <div class="tp-stamp-section" hidden>
             <div class="tool-option">
               <label><input type="checkbox" class="tp-xor" id="tp-xor" name="tp-xor" data-i18n-title-name="transform.xorMode" data-i18n-title="transform.xorMode.hint"> <span data-i18n="transform.xorMode">XOR Mode</span></label>
+              <span class="tool-option-hint tp-stamp-xor-ignored" data-i18n="transform.colouredIgnoresXor" hidden>A stamp with its own colours ignores XOR</span>
+            </div>
+            <div class="tp-stamp-controls" hidden>
+              <div class="tool-option tp-colours-row">
+                <label for="tp-stamp-colours" data-i18n="transform.stampColours">Colours</label>
+                <select class="tp-stamp-colours" id="tp-stamp-colours" name="tp-stamp-colours" data-i18n-title-name="transform.stampColours" data-i18n-title="transform.stampColours.hint">
+                  <option value="pixels" data-i18n="transform.stampColours.pixels">Pixels only</option>
+                  <option value="coloured" data-i18n="transform.stampColours.own">Own colours</option>
+                </select>
+                <span class="tool-option-hint tp-stamp-colours-geometry" data-i18n="transform.stampColours.geometryHint" hidden>This stamp's colour cells are a different size from this screen mode's, so it can only place its dots</span>
+              </div>
+              <div class="tool-option tp-show-through-row" hidden>
+                <span class="tp-show-through-heading" data-i18n="transform.showThrough">Show through</span>
+              <label class="tp-st-box"><input type="checkbox" class="tp-st" id="tp-st-ink" name="tp-st-ink" data-st="ink" data-i18n-title-name="transform.showThrough.ink" data-i18n-title="transform.showThrough.ink.hint"> <span data-i18n="transform.st.ink">Ink</span></label>
+              <label class="tp-st-box"><input type="checkbox" class="tp-st" id="tp-st-paper" name="tp-st-paper" data-st="paper" data-i18n-title-name="transform.showThrough.paper" data-i18n-title="transform.showThrough.paper.hint"> <span data-i18n="transform.st.paper">Paper</span></label>
+              <label class="tp-st-box"><input type="checkbox" class="tp-st" id="tp-st-bright" name="tp-st-bright" data-st="bright" data-i18n-title-name="transform.showThrough.bright" data-i18n-title="transform.showThrough.bright.hint"> <span data-i18n="transform.st.bright">Bright</span></label>
+              <label class="tp-st-box"><input type="checkbox" class="tp-st" id="tp-st-flash" name="tp-st-flash" data-st="flash" data-i18n-title-name="transform.showThrough.flash" data-i18n-title="transform.showThrough.flash.hint"> <span data-i18n="transform.st.flash">Flash</span></label>
+              <label class="tp-st-box"><input type="checkbox" class="tp-st" id="tp-st-clut" name="tp-st-clut" data-st="clut" data-i18n-title-name="transform.showThrough.clut" data-i18n-title="transform.showThrough.clut.hint"> <span data-i18n="transform.st.clut">CLUT</span></label>
+              </div>
+              <div class="tool-option tp-clear-dots-row">
+                <label for="tp-clear-dots" data-i18n="transform.clearDots">Clear dots</label>
+                <select class="tp-clear-dots" id="tp-clear-dots" name="tp-clear-dots" data-i18n-title-name="transform.clearDots" data-i18n-title="transform.clearDots.hint">
+                  <option value="transparent" data-i18n="transform.clearDots.transparent">Leave background</option>
+                  <option value="overlap" data-i18n="transform.clearDots.overlap">Clear background</option>
+                </select>
+                <span class="tool-option-hint tp-clear-dots-none" data-i18n="transform.clearDots.noEffectHint" hidden>The draw mode in force has no opposite, so Clear background changes nothing here</span>
+              </div>
+              <div class="tool-option tp-convert-row">
+                <button type="button" class="panel-button small tp-stamp-convert" id="tp-stamp-convert" data-i18n="transform.stampConvert" data-i18n-title-name="transform.stampConvert" data-i18n-title="transform.stampConvert.hint">Convert to pixels only</button>
+              </div>
             </div>
             <hr class="tool-option-separator">
             <div class="tool-option">
@@ -97,6 +127,7 @@ class TransformPanelClass {
             </div>
             <div class="tool-option">
               <button type="button" class="panel-button small tp-reset" data-i18n="transform.reset" data-i18n-title-name="transform.reset" data-i18n-title="transform.reset.hint">Reset</button>
+              <span class="tool-option-hint tp-stamp-reshape-blocked" data-i18n="transform.colouredNoReshape" hidden>A stamp with its own colours cannot be scaled, rotated, bent, flipped, inverted or outlined; switch it to Pixels only first</span>
             </div>
             <hr class="tool-option-separator">
           </div>
@@ -173,11 +204,37 @@ class TransformPanelClass {
         });
 
         content.querySelector('.tp-xor').addEventListener('change', (e) => {
-            const layer = LayerManager.getCurrentLayer();
-            const stamp = (layer && layer.isStamp) ? layer : null;
+            const stamp = this._stampTarget();
             if (!stamp) return;
+            const ctl = SelectionService.stampControls(stamp);
+            if (ctl && ctl.ownColours) { e.target.checked = !!stamp.xorMode; return; }
             LayerManager.setLayerXorMode(stamp.index, e.target.checked);
             CanvasSystem.requestRender();
+        });
+
+        // The stamp's settings (batch 5 part 5B). Each control sends one patch to
+        // SelectionService.setStampOptions, which is one undo step and redraws.
+        content.querySelector('.tp-stamp-colours').addEventListener('change', (e) => {
+            const stamp = this._stampTarget();
+            if (stamp) SelectionService.setStampOptions({ colours: e.target.value }, stamp);
+        });
+        content.querySelector('.tp-clear-dots').addEventListener('change', (e) => {
+            const stamp = this._stampTarget();
+            if (stamp) SelectionService.setStampOptions({ clearDots: e.target.value }, stamp);
+        });
+        content.querySelectorAll('.tp-st').forEach((box) => {
+            box.addEventListener('change', () => {
+                const stamp = this._stampTarget();
+                if (!stamp) return;
+                const on = box.checked;
+                // ULAplus has one box for Bright and Flash together (they are the CLUT).
+                const part = box.dataset.st === 'clut' ? { bright: on, flash: on } : { [box.dataset.st]: on };
+                SelectionService.setStampOptions({ showThrough: part }, stamp);
+            });
+        });
+        content.querySelector('.tp-stamp-convert').addEventListener('click', () => {
+            const stamp = this._stampTarget();
+            if (stamp) SelectionService.convertStampToPixels(stamp);
         });
 
         content.querySelector('.tp-sx').addEventListener('input', (e) => {
@@ -551,6 +608,61 @@ class TransformPanelClass {
         if (step.value !== want) step.value = want;
     }
 
+    /**
+     * The stamp the panel shows and edits: the current layer if it is a stamp,
+     * else the floating stamp's layer (the layer panel can make a drawing layer
+     * current while a stamp floats). Null if neither.
+     * @private
+     */
+    _stampTarget() {
+        const layer = LayerManager.getCurrentLayer();
+        if (layer && layer.isStamp) return layer;
+        const fp = SelectionService.floatingPaste;
+        return (fp && fp.floatingLayer && fp.floatingLayer.isStamp) ? fp.floatingLayer : null;
+    }
+
+    /**
+     * Draw what SelectionService.stampControls says: which of Colours, Show
+     * through, Clear dots and Convert show, their values, and - for a stamp that
+     * places its own colours - which controls cannot act on it (XOR and the
+     * reshaping ones), each with a visible reason. Writes only what changed: it
+     * runs on every render and an open drop-down must not be disturbed.
+     * @private
+     */
+    _syncStampControls() {
+        const c = this._content;
+        const set = (el, prop, val) => { if (el && el[prop] !== val) el[prop] = val; };
+        const stamp = this._stampTarget();
+        const ctl = stamp ? SelectionService.stampControls(stamp) : null;
+        const own = !!(ctl && ctl.ownColours);
+
+        set(c.querySelector('.tp-stamp-controls'), 'hidden', !ctl);
+        // Controls a stamp with its own colours cannot use (see setStampScale etc.)
+        const blockedEls = c.querySelectorAll('.tp-xor, .tp-sx, .tp-sy, .tp-rot, .tp-warp, .tp-reset, .tp-og, .tp-os, [data-tp-transform]');
+        blockedEls.forEach((el) => set(el, 'disabled', own));
+        set(c.querySelector('.tp-stamp-xor-ignored'), 'hidden', !own);
+        set(c.querySelector('.tp-stamp-reshape-blocked'), 'hidden', !own);
+        if (!ctl) return;
+
+        const colours = c.querySelector('.tp-stamp-colours');
+        set(c.querySelector('.tp-colours-row'), 'hidden', !ctl.colours.visible);
+        set(colours, 'value', ctl.colours.value);
+        set(colours, 'disabled', !ctl.colours.enabled);
+        set(c.querySelector('.tp-stamp-colours-geometry'), 'hidden', !ctl.colours.geometry);
+        set(c.querySelector('.tp-convert-row'), 'hidden', !ctl.convert.visible);
+
+        set(c.querySelector('.tp-show-through-row'), 'hidden', !ctl.showThrough.visible);
+        const shown = new Map(ctl.showThrough.parts.map((p) => [p.key, p.on]));
+        c.querySelectorAll('.tp-st').forEach((box) => {
+            const key = box.dataset.st;
+            set(box.closest('.tp-st-box'), 'hidden', !shown.has(key));
+            if (shown.has(key)) set(box, 'checked', shown.get(key));
+        });
+
+        set(c.querySelector('.tp-clear-dots'), 'value', ctl.clearDots.value);
+        set(c.querySelector('.tp-clear-dots-none'), 'hidden', !ctl.clearDots.noEffect);
+    }
+
     /** Sync the panel's live values to the current floating stamp state. @private */
     _sync() {
         const content = this._content;
@@ -562,6 +674,8 @@ class TransformPanelClass {
         const isFloating    = SelectionService.isFloating();
         const fp            = isFloating ? SelectionService.floatingPaste : null;
         const isReallyFloat = isFloating && fp && fp._isBrushStamp !== true;
+
+        this._syncStampControls();
 
         const stampSection = content.querySelector('.tp-stamp-section');
         stampSection.hidden = !(engagedStamp || isReallyFloat);

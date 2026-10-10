@@ -187,3 +187,15 @@ The Dots items in the Image menu change the dots and leave the colours in their 
 The Move choice in the Shift section of the Transform panel decides what moves. Dots and colours (the default) moves whole cells with their paper. Dots only moves the dots a pixel or a cell at a time. Colours only moves cell colours one cell at a time. The pad has the four diagonals as well as the four sides. While a stamp is floating, Move is greyed out, because a shift moves the whole stamp.
 
 The arrow keys follow the same Move choice when something is selected.
+
+### Stamps
+
+When a stamp is engaged, the **Transform** panel shows how it is placed.
+
+**Colours** chooses between Pixels only and Own colours. Pixels only places the stamp's dots in the colours on the attribute bar, as it always did. Own colours places the colours the stamp carries, cell by cell: a stamp from the Map Editor, or one copied from a picture in a mode with cell colours. A stamp copied from the picture starts as Pixels only, so a paste lands exactly as before. Own colours puts the stamp on whole cells, ignores the draw mode, the colour rail and the XOR switch, and cannot be scaled, rotated, bent, flipped, inverted or outlined; the panel greys those out and says why. Reshaping a Pixels only stamp throws away the colours it carried. Inverse still swaps what the set and clear dots do. If the stamp's cells are a different size from the current screen mode's, only Pixels only is possible.
+
+**Show through** (Own colours only) lets the colour already on the page show through instead of the stamp's. Ink, Paper, Bright and Flash each have a box. ULAplus has one CLUT box for Bright and Flash together. In GigaScreen each box covers both screens.
+
+**Clear dots** decides what the stamp's empty dots do. Leave background leaves the picture under them alone (a stamp with its own colours still recolours the paper under them, unless Paper shows through). Clear background clears it too, over the stamp's whole rectangle. The draw modes with no opposite (XOR, Ink Recolour, Paper Recolour) and the stamp's own XOR switch leave the empty dots alone, and the panel says so. Clear dots is available in every screen mode, including those with no cell colours.
+
+**Convert to pixels only** drops the stamp's colours for good and keeps its dots. The Pixels only choice in Colours keeps them, so you can switch back. Every change is one undo step.

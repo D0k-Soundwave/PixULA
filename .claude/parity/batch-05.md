@@ -121,7 +121,16 @@ Build:
 Done when: the four comparison rows read Same, or Partial with the reason
 written in the row.
 
-## After 5B
+## Part 5C - Image > Attributes on a stamp's own colours (added by the 5B Opus review, 2026-10-10)
 
-Batch 5 is done. Update the comparison doc rows, then hand off to Batch 6
-part 6A.
+Deferred out of 5B because it is new service behaviour, not a control. Build: Image > Attributes Invert, Erase, Flip
+Horizontal/Vertical and Change... act on the cell colours of a stamp that places its own colours, floating or parked, one
+undo step each, with the per-mode rules (GigaScreen: one colour set for both screens; ULAplus: Bright and Flash are the
+CLUT; Change... needs a stamp target and a live count). Until then they stay blocked with "Finish or cancel the stamp
+first." Also decide with the owner (recommended default: stays impossible) whether a stamp with its own colours can be
+flipped or quarter-turned with its colours carried along. Needs its own Opus plan review, tests first, 13 locales if any
+text is added, manual in 13 languages.
+
+## After 5C
+
+Batch 5 is done. Update the comparison doc rows, then go to Batch 6 part 6A.

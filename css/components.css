@@ -1654,6 +1654,29 @@
     color: var(--accent-primary);
 }
 
+/* A stamp that places its own colours ignores XOR: the button stays, dimmed. */
+.stamp-xor.is-ignored {
+    opacity: 0.4;
+}
+
+/* Stamp settings in the Transform panel: the show-through boxes sit in a row that wraps. */
+.tp-show-through-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+}
+
+.tp-show-through-heading {
+    flex-basis: 100%;
+}
+
+.tp-st-box {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
 .layer-visibility:not(.visible),
 .stamp-visibility:not(.visible) {
     color: var(--text-muted);

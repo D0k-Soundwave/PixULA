@@ -205,3 +205,15 @@ A Kép menü Pontok elemei a pontokat módosítják, a színeket pedig a cellák
 A Transform panel Eltolás szakaszában a Mozgatás választja ki, mi mozog. A Pontok és színek (alapérték) egész cellákat mozgat a papírjukkal együtt. A Csak pontok a pontokat pixelenként vagy cellánként mozgatja. A Csak színek a cellaszíneket cellánként mozgatja. Az irányítóelemen az átlós irányok is megvannak. Amíg bélyeg lebeg, a Mozgatás szürke, mert az eltolás a teljes bélyeget mozgatja.
 
 Kijelölés esetén a nyilak ugyanezt a Mozgatás-választást követik.
+
+### Bélyegzők
+
+Ha egy bélyegző be van kapcsolva, az **Átalakítás** panel mutatja, hogyan helyezi le.
+
+A **Színek** a Csak pixelek és a Saját színek között választ. A Csak pixelek a bélyegző pontjait az attribútumsáv színeivel rakja le, mint mindig. A Saját színek a bélyegző hordozta színeket rakja le cellánként: a térképszerkesztő bélyegzőjét, vagy egy cellaszínes módban képről másoltat. A képről másolt bélyegző Csak pixelek állapotban indul, így a beillesztés pontosan úgy esik, mint korábban. A Saját színek egész cellákra illeszti a bélyegzőt, figyelmen kívül hagyja a rajzmódot, a színsávot és az XOR kapcsolót, és nem méretezhető, nem forgatható, nem hajlítható, nem tükrözhető, nem invertálható és nem körvonalazható; a panel ezeket szürkíti és megmondja miért. Egy Csak pixelek bélyegző alakjának megváltoztatása eldobja a hordozott színeket. Az Inverz továbbra is felcseréli, mit csinálnak a kitöltött és az üres pontok. Ha a bélyegző cellái más méretűek, mint a jelenlegi képernyőmódé, csak a Csak pixelek lehetséges.
+
+Az **Átlátszás** (csak Saját színeknél) a bélyegző színe helyett a lapon már levő színt engedi át. A Tintának, Papírnak, Fényerőnek és Villogásnak külön négyzete van. Az ULAplus-nak egy CLUT négyzete van a Fényerőhöz és Villogáshoz együtt. A GigaScreenben minden négyzet mindkét képernyőre vonatkozik.
+
+Az **Üres pontok** döntik el, mit tesznek a bélyegző üres pontjai. A Háttér marad nem bántja az alattuk levő képet (a saját színű bélyegző ettől még átszínezi alattuk a papírt, hacsak a Papír át nem látszik). A Háttér törlése azt is törli, a bélyegző teljes téglalapján. Az ellentét nélküli rajzmódok (XOR, Tinta átszínezése, Papír átszínezése) és a bélyegző saját XOR kapcsolója békén hagyják az üres pontokat, és a panel ezt kiírja. Az Üres pontok minden képernyőmódban elérhetők, cellaszínek nélkül is.
+
+Az **Átalakítás csak pixelekké** véglegesen elveti a bélyegző színeit, a pontjait megtartja. A Színeknél a Csak pixelek választás megtartja őket, így vissza lehet kapcsolni. Minden módosítás egy visszavonási lépés.

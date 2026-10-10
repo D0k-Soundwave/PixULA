@@ -201,3 +201,15 @@ Los elementos Puntos del menú Imagen cambian los puntos y dejan los colores en 
 La opción Mover de la sección Desplazar del panel de Transformar decide qué se mueve. Puntos y colores (por defecto) mueve celdas completas con su papel. Solo puntos mueve los puntos un píxel o una celda cada vez. Solo colores mueve los colores de celda una celda cada vez. La cruceta tiene también las diagonales. Mientras flota un sello, Mover aparece en gris, porque un desplazamiento mueve todo el sello.
 
 Las flechas siguen la misma opción Mover cuando hay una selección.
+
+### Sellos
+
+Cuando un sello está activo, el panel **Transformar** muestra cómo se coloca.
+
+**Colores** elige entre Solo píxeles y Colores propios. Solo píxeles coloca los puntos del sello con los colores de la barra de atributos, como siempre. Colores propios coloca los colores que lleva el sello, celda a celda: un sello del Editor de mapas o uno copiado de una imagen en un modo con colores de celda. Un sello copiado de la imagen empieza como Solo píxeles, así que un pegado cae exactamente como antes. Colores propios coloca el sello en celdas enteras, ignora el modo de dibujo, la barra de colores y el interruptor XOR, y no se puede escalar, girar, curvar, voltear, invertir ni perfilar; el panel lo atenúa y dice por qué. Cambiar la forma de un sello Solo píxeles descarta los colores que llevaba. Inverso sigue intercambiando lo que hacen los puntos llenos y los vacíos. Si las celdas del sello tienen otro tamaño que las del modo de pantalla actual, solo es posible Solo píxeles.
+
+**Dejar ver** (solo con Colores propios) deja ver el color que ya hay en la página en lugar del del sello. Tinta, Papel, Brillo y Parpadeo tienen cada uno su casilla. ULAplus tiene una casilla CLUT para Brillo y Parpadeo juntos. En GigaScreen cada casilla cubre las dos pantallas.
+
+**Puntos vacíos** decide qué hacen los puntos vacíos del sello. Dejar el fondo deja en paz el dibujo de debajo (un sello con colores propios sigue recoloreando el papel de debajo, salvo que se vea el Papel). Borrar el fondo lo borra también, en todo el rectángulo del sello. Los modos de dibujo sin opuesto (XOR, Recolorear tinta, Recolorear papel) y el interruptor XOR propio del sello dejan en paz los puntos vacíos, y el panel lo dice. Los puntos vacíos están disponibles en todos los modos de pantalla, también sin colores de celda.
+
+**Convertir a solo píxeles** descarta los colores del sello para siempre y conserva sus puntos. La opción Solo píxeles en Colores los conserva, así que se puede volver. Cada cambio es un paso de deshacer.

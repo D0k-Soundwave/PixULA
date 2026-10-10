@@ -203,3 +203,15 @@ Le voci Punti del menu Immagine modificano i punti e lasciano i colori nelle lor
 La scelta Sposta nella sezione Sposta del pannello Trasforma stabilisce cosa si muove. Punti e colori (predefinito) sposta intere celle con la loro carta. Solo punti sposta i punti di un pixel o di una cella alla volta. Solo colori sposta i colori di cella una cella alla volta. Il pad ha anche le diagonali. Mentre un timbro è in sospeso, Sposta è grigio, perché uno spostamento muove l'intero timbro.
 
 Con una selezione attiva, le frecce seguono la stessa scelta Sposta.
+
+### Timbri
+
+Quando un timbro è attivo, il pannello **Trasforma** mostra come viene messo.
+
+**Colori** sceglie tra Solo pixel e Colori propri. Solo pixel mette i punti del timbro con i colori della barra degli attributi, come sempre. Colori propri mette i colori che il timbro porta, cella per cella: un timbro dell'Editor mappe, o uno copiato da un'immagine in una modalità con colori di cella. Un timbro copiato dall'immagine parte come Solo pixel, così un incolla cade esattamente come prima. Colori propri posa il timbro su celle intere, ignora la modalità di disegno, la barra dei colori e l'interruttore XOR, e non si può ridimensionare, ruotare, curvare, ribaltare, invertire o contornare; il pannello li rende grigi e dice perché. Cambiare la forma di un timbro Solo pixel scarta i colori che portava. Inverso scambia ancora ciò che fanno i punti pieni e vuoti. Se le celle del timbro hanno una dimensione diversa da quella della modalità schermo attuale, è possibile solo Solo pixel.
+
+**Trasparenza** (solo con Colori propri) lascia trasparire il colore già presente sulla pagina al posto di quello del timbro. Inchiostro, Carta, Luminosità e Lampeggio hanno ciascuno una casella. ULAplus ha una casella CLUT per Luminosità e Lampeggio insieme. In GigaScreen ogni casella copre entrambi gli schermi.
+
+**Punti vuoti** decide cosa fanno i punti vuoti del timbro. Lascia lo sfondo lascia stare il disegno sotto (un timbro con colori propri ricolora comunque la carta sotto, salvo che la Carta traspaia). Cancella lo sfondo lo cancella anche, su tutto il rettangolo del timbro. Le modalità di disegno senza opposto (XOR, Ricolora inchiostro, Ricolora carta) e l'interruttore XOR del timbro lasciano stare i punti vuoti, e il pannello lo dice. Punti vuoti è disponibile in ogni modalità schermo, anche senza colori di cella.
+
+**Converti in solo pixel** scarta per sempre i colori del timbro e tiene i suoi punti. La scelta Solo pixel in Colori li conserva, così si può tornare indietro. Ogni modifica è un passo di annullamento.

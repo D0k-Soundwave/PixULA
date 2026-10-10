@@ -187,3 +187,15 @@ Položky Bodky v ponuke Obrázok menia bodky a farby nechávajú v ich bunkách.
 Voľba Posun v sekcii Posun panela Transformácia určuje, čo sa hýbe. Bodky a farby (predvolené) posúva celé bunky aj s ich papierom. Iba bodky posúva bodky o pixel alebo o bunku naraz. Iba farby posúva farby buniek po jednej bunke. Ovládací kríž má aj uhlopriečky. Keď pláva pečiatka, Posun je sivý, pretože posun presúva celú pečiatku.
 
 Šípky pri výbere sledujú rovnakú voľbu Posun.
+
+### Pečiatky
+
+Keď je pečiatka zapojená, panel **Transformácia** ukazuje, ako sa kladie.
+
+**Farby** vyberajú medzi Iba pixely a Vlastné farby. Iba pixely kladie body pečiatky vo farbách z lišty atribútov, ako vždy. Vlastné farby kladú farby, ktoré pečiatka nesie, bunku po bunke: pečiatku z Editora máp alebo pečiatku skopírovanú z obrázka v režime s farbami buniek. Pečiatka skopírovaná z obrázka začína ako Iba pixely, takže sa vloží presne ako predtým. Vlastné farby usadia pečiatku na celé bunky, ignorujú režim kreslenia, lištu farieb aj prepínač XOR a pečiatku nemožno zmenšiť, otáčať, ohnúť, preklopiť, invertovať ani obrysovať; panel to zašedí a povie prečo. Zmena tvaru pečiatky Iba pixely zahodí farby, ktoré niesla. Inverzia stále vymieňa, čo robia plné a prázdne body. Ak majú bunky pečiatky inú veľkosť ako súčasný režim obrazovky, je možné len Iba pixely.
+
+**Presvitanie** (len Vlastné farby) nechá namiesto farby pečiatky presvitať farbu, ktorá už je na strane. Atrament, Papier, Jas a Blikanie majú každý svoje políčko. ULAplus má jedno políčko CLUT pre Jas a Blikanie spolu. V GigaScreen každé políčko platí pre obe obrazovky.
+
+**Prázdne body** rozhodujú, čo robia prázdne body pečiatky. Ponechať pozadie nechá obraz pod nimi na pokoji (pečiatka s vlastnými farbami pod nimi stále prefarbí papier, pokiaľ nepresvitá Papier). Zmazať pozadie ho tiež zmaže, na celom obdĺžniku pečiatky. Režimy kreslenia bez opaku (XOR, Prefarbenie atramentu, Prefarbenie papiera) a vlastný prepínač XOR pečiatky nechajú prázdne body na pokoji a panel to oznámi. Prázdne body sú dostupné v každom režime obrazovky, aj bez farieb buniek.
+
+**Previesť na iba pixely** navždy zahodí farby pečiatky a ponechá jej body. Voľba Iba pixely vo Farbách ich zachová, takže sa dá vrátiť. Každá zmena je jeden krok späť.
