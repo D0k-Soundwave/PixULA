@@ -43,7 +43,7 @@ class ImportDialogClass {
         // are three is written up there.
         const METHODS = PNGFormat.IMPORT_METHODS;
 
-        const state = { brightness: 0, contrast: 0, scaling: 'fit' };
+        const state = { brightness: 0, contrast: 0, scaling: 'fit', dither: 'floyd-steinberg' };
         let chosen = METHODS[0];
 
         return new Promise((resolve) => {
@@ -120,7 +120,8 @@ class ImportDialogClass {
             let renderer = null, rendererKey = null;
             const drawnKey = new Map();   // method id -> setting it shows
             const paint = (ids) => {
-                const key = `${state.brightness}|${state.contrast}|${state.scaling}`;
+                const baseKey = `${state.brightness}|${state.contrast}|${state.scaling}`;
+                const key = baseKey;
                 if (key !== rendererKey) {
                     const adjusted = (state.brightness !== 0 || state.contrast !== 0)
                         ? PNGFormat.applyBrightnessContrast(decoded, state.brightness, state.contrast)
@@ -129,10 +130,12 @@ class ImportDialogClass {
                     rendererKey = key;
                 }
                 for (const p of panes) {
-                    if (!ids.includes(p.spec.id) || drawnKey.get(p.spec.id) === key) continue;
-                    const q = renderer(p.spec.id);
+                    // Only the Smooth conversion dithers dots; its pane also depends on the chosen Dither method
+                    const paneKey = p.spec.id === 'smooth' ? `${key}|${state.dither}` : key;
+                    if (!ids.includes(p.spec.id) || drawnKey.get(p.spec.id) === paneKey) continue;
+                    const q = renderer(p.spec.id, p.spec.id === 'smooth' ? state.dither : undefined);
                     p.ctx.putImageData(new ImageData(q.data, q.width, q.height), 0, 0);
-                    drawnKey.set(p.spec.id, key);
+                    drawnKey.set(p.spec.id, paneKey);
                 }
             };
             const catchUp = (ms) => {
@@ -217,6 +220,55 @@ class ImportDialogClass {
                 controls.appendChild(row);
             };
 
+            // The Dither method (Batch 8 part 8B) drives the Smooth conversion; the indexed modes keep their own
+            // colour dither, so there it is shown shut with the reason.
+            const addDitherSelect = () => {
+                const row = document.createElement('div');
+                row.className = 'tool-option';
+                const label = document.createElement('label');
+                label.htmlFor = 'import-dither';
+                const span = document.createElement('span');
+                span.dataset.i18n = 'import.dither';
+                span.textContent = this._t('import.dither', 'Dither');
+                label.appendChild(span);
+                const dsel = document.createElement('select');
+                dsel.id = 'import-dither';
+                dsel.className = 'opt-input';
+                const groups = [['threshold', 'Threshold'], ['diffusion', 'Error diffusion'], ['bayer', 'Bayer matrix'],
+                                ['cluster', 'Cluster dot'], ['supercell', 'Supercell']];
+                for (const [fam, fb] of groups) {
+                    const og = document.createElement('optgroup');
+                    og.dataset.i18nLabel = `dither.family.${fam}`;
+                    og.label = this._t(`dither.family.${fam}`, fb);
+                    for (const m of Dither.METHODS.filter((x) => x.family === fam)) {
+                        const el = document.createElement('option');
+                        el.value = m.id;
+                        el.dataset.i18n = m.i18n;
+                        el.textContent = this._t(m.i18n, m.id);
+                        if (m.id === state.dither) el.selected = true;
+                        og.appendChild(el);
+                    }
+                    dsel.appendChild(og);
+                }
+                const indexed = ZX_SPECTRUM.PIXEL_DEPTH > 1;
+                if (indexed) {
+                    dsel.disabled = true;
+                    row.title = this._t('import.ditherIndexed', 'This mode keeps its own colour dither.');
+                    row.dataset.i18nTitle = 'import.ditherIndexed';
+                } else {
+                    row.title = this._t('import.dither.hint', 'How the Smooth conversion turns shades into dots.');
+                    row.dataset.i18nTitle = 'import.dither.hint';
+                }
+                dsel.addEventListener('change', () => {
+                    state.dither = dsel.value;
+                    select(METHODS.find((m) => m.id === 'smooth'));
+                    refresh();
+                });
+                row.appendChild(label);
+                row.appendChild(dsel);
+                controls.appendChild(row);
+            };
+
             addRange('brightness', 'import.brightness', 'Brightness');
             addRange('contrast',   'import.contrast',   'Contrast');
             addSelect('scaling', 'import.scaling', 'Scaling', [
@@ -224,6 +276,7 @@ class ImportDialogClass {
                 { value: 'stretch', i18n: 'import.scalingStretch', fallback: 'Stretch' },
                 { value: 'crop',    i18n: 'import.scalingCrop',    fallback: 'Crop (fill)' }
             ]);
+            addDitherSelect();
 
 
             Dialog.open({
@@ -238,7 +291,7 @@ class ImportDialogClass {
                       onClick: () => settle({
                           ...state,
                           method: chosen.method,
-                          dithering: chosen.dithering,
+                          dithering: chosen.id === 'smooth' ? state.dither : chosen.dithering,
                           choice: chosen.id
                       }) }
                 ],
