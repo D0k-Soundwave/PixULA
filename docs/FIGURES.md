@@ -690,6 +690,24 @@ simulating, instead of walking each cell's pixels in turn: +0.6 ms (C: 1.6 -
 a tenth of `CoverageOps.LIVE_BUDGET_MS` (7 ms), so nothing was changed on the
 strength of it. The indexed default path is the old direct one and is unchanged.
 
+### Figure tool geometry cost - measured 2026-10-10
+
+Node, repo test stubs (no canvas, so this is the geometry only; the compositor preview that follows is
+measured in the browser specs, not here). A filled four-corner polygon covering the whole canvas (the worst
+case a person can draw), median of 9 calls, two runs back to back in one sitting.
+
+| Path | Run 1 / 2 | Tag |
+|---|---|---|
+| `FigureModel.rasterise`, 256x192 (49,152 pixels), standard_ula | 4.5 / 4.6 ms | M |
+| `PixelDrawRoutine.strokeTargets`, same pixels | 4.1 / 4.0 ms | M |
+| `FigureModel.rasterise`, 640x256 (163,840 pixels), layer2_640 | 10.9 / 10.6 ms | M |
+| `PixelDrawRoutine.strokeTargets`, same pixels | 13.0 / 13.0 ms | M |
+
+A full-canvas fill in Layer 2 640 costs about 24 ms of geometry (C: 10.9 + 13.0) per preview redraw, which is over
+the 7 ms `CoverageOps.LIVE_BUDGET_MS` budget. That is the extreme case; a figure the size of a sprite is a few
+hundred pixels. Nothing was changed on the strength of it: the Shape tool's preview rasterises the same fill on
+every move, and the Figure preview redraws on a click, not on every pointer move (hover draws only the open outline).
+
 ---
 
 ## Method
