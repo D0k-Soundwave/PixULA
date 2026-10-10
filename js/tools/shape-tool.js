@@ -266,6 +266,8 @@ class ShapeToolClass extends ToolBase {
     return true;
   }
 
+  get axisLockable() { return true; }
+
   onPointerMove(pixelX, pixelY, e) {
     if (this._editing) {
       if (this._editor.drag(pixelX, pixelY)) this._afterEdit();

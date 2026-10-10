@@ -54,6 +54,7 @@ const BOOT_MANIFEST = [
     ['CanvasSystem',     'js/core/canvas-system.js'],
     ['PixelDrawRoutine', 'js/core/pixel-draw-routine.js'],
     ['LayerManager',     'js/core/layer-manager.js'],
+    ['AxisLock',         'js/core/axis-lock.js'],
     ['InputHandler',     'js/core/input-handler.js'],
     ['PATTERN_BITMAPS',  'js/data/pattern-bitmaps.js'],
     ['UndoRedo',         'js/services/undo-redo.js'],

@@ -9,6 +9,8 @@
  * Supports variable eraser size.
  */
 class EraserToolClass extends ToolBase {
+  get axisLockable() { return true; }
+
   /** Declarative options - rendered by OptionControls (contract in tool-base.js). */
   static optionsSchema = [
     { type: 'range', key: 'size', i18n: 'opt.size', min: 1, max: 128, value: 8 },

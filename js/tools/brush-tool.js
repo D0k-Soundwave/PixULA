@@ -109,6 +109,8 @@ const SPRAY_POISSON_SHOWIF = { all: [ SPRAY_SHOWIF, { key: 'distribution', equal
 const HATCH_SHOWIF = showIfBrush(['hatch']);
 
 class BrushToolClass extends ToolBase {
+  get axisLockable() { return true; }
+
   /** Declarative options - rendered by OptionControls (contract in tool-base.js). */
   static optionsSchema = [
     // Draw mode moved to the GLOBAL top-bar selector (StateManager) — no

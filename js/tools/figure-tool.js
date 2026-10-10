@@ -143,6 +143,8 @@ class FigureToolClass extends ToolBase {
   /** Every sample of a freehand run is kept; a click-only phase does not care. */
   get coalescesPointerMoves() { return !(this._model && this._press && this._isOpenType()); }
 
+  get axisLockable() { return true; }
+
   // ── State helpers ──────────────────────────────────────────────────────────
 
   /** True for the open-ended types that take freehand runs. @private */
