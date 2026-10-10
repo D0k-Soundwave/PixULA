@@ -676,7 +676,7 @@ class InputHandlerClass {
     this.pressure = (typeof e.pressure === 'number' && e.pressure > 0) ? e.pressure : 1.0;
     this._updateTilt(e);
 
-    const point = this._getCanvasPoint(e);
+    let point = this._getCanvasPoint(e);
     this.lastPoint = point;
     // A brush's mark IS its pointer, so it stays up through the stroke (it is
     // redrawn once the tool has written, below); every other press takes the
@@ -704,6 +704,11 @@ class InputHandlerClass {
 
     // ── Delegate to the (possibly rerouted) tool — DIRECT call ──
     const tool = this._strokeTool || ToolManager.getCurrentTool();
+    AxisLock.endStroke();
+    if (tool && tool.axisLockable) {
+      AxisLock.beginStroke(point);
+      point = AxisLock.project(point);
+    }
     if (tool) tool.onPointerDown(point.x, point.y, this._toolEvent(e));
     if (marking) this._drawToolFootprint(point, markTool, { force: true, live: true });
   }
@@ -911,7 +916,8 @@ class InputHandlerClass {
     const first = tool.coalescesPointerMoves ? events.length - 1 : 0;
     for (let i = first; i < events.length; i++) {
       const sample = events[i];
-      const samplePoint = this._getCanvasPoint(sample);
+      let samplePoint = this._getCanvasPoint(sample);
+      if (tool.axisLockable) samplePoint = AxisLock.project(samplePoint);
 
       // Skip samples that stayed on the same canvas pixel (common at high zoom)
       if (this.lastPoint &&
@@ -952,7 +958,10 @@ class InputHandlerClass {
     this._touchStrokeRevocable = false;
     this._touchNavigating = false;
 
-    const point = this._getCanvasPoint(e);
+    let point = this._getCanvasPoint(e);
+    const lockedTool = this._strokeTool || ToolManager.getCurrentTool();
+    if (lockedTool && lockedTool.axisLockable) point = AxisLock.project(point);
+    AxisLock.endStroke();
 
     // Close the stamp batch opened in pointerdown; the tool never saw this
     // stroke (pointerdown returned before delegation), so don't notify it.
@@ -1775,12 +1784,20 @@ class InputHandlerClass {
       if (this._isTypingTarget(e.target)) return;
       this.keysDown.add(e.key);
       this._updateModifiers(e);
+      // Bare X / Y: hold to lock a stroke to an axis. X's colour swap moved to the key coming up (a tap).
+      if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && AxisLock.keyDown(e.key, e.repeat)) {
+        e.preventDefault();
+        return;
+      }
       this._handleKeyboardShortcut(e);
     });
 
     doc.addEventListener('keyup', (e) => {
       this.keysDown.delete(e.key);
       this._updateModifiers(e);
+      if (AxisLock.keyUp(e.key) === 'tap' && e.key.toLowerCase() === 'x' && !this._isTypingTarget(e.target)) {
+        ColorManager.swapColors();
+      }
       if (e.key === ' ' && this._panMode) {
         this._panMode = false;
         this._lastPanClient = null;
@@ -1799,6 +1816,7 @@ class InputHandlerClass {
         setTimeout(() => {
           if (document.hasFocus()) return;
           this.keysDown.clear();
+          AxisLock.reset();
           this.modifiers = { shift: false, ctrl: false, alt: false, meta: false };
           if (this._panMode) {
             this._panMode = false;
@@ -2210,12 +2228,7 @@ class InputHandlerClass {
         ToolManager.selectTool(toolId);
         return;
       }
-      // Swap ink/paper (not a registry tool — colour operation)
-      if (key === 'x') {
-        e.preventDefault();
-        ColorManager.swapColors();
-        return;
-      }
+      // Swap ink/paper is bare X coming UP (see the keyup handler): X held is the axis lock.
     }
 
     // Colour keys: 1–8 set INK, Shift+1–8 set PAPER

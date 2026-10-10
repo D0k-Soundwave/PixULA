@@ -116,6 +116,15 @@ class ToolBaseClass {
   }
 
   /**
+   * Whether holding X or Y keeps this tool's stroke on one axis (AxisLock, via InputHandler). True for the tools that
+   * follow the pointer to draw: brush, eraser, shapes and figures.
+   * @returns {boolean}
+   */
+  get axisLockable() {
+    return false;
+  }
+
+  /**
    * Handle pointer up event
    * @param {number} pixelX - X coordinate in pixel space (0-255)
    * @param {number} pixelY - Y coordinate in pixel space (0-191)
