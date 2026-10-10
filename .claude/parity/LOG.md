@@ -425,7 +425,7 @@ grid); a stamp that carries colours loses them on any shape change. Nothing in t
 yet (the controls are 5B), so this costs nothing today; carrying them through a flip is a possible later refinement.
 OWNER decision taken by default (RUN-ALL says ask; the resume instruction said not to): clipboard stamps START as "Pixels
 only" (the recommended option). To start them with Own colours instead, change the one line in startFloatingPaste.
-Open for the sign-off: confirm Pixels only as the starting state.
+RESOLVED 2026-10-10: the owner was asked afterwards (the stop should have happened before the build) and chose Pixels only. Nothing to change.
 Tests: tests/clipboard-colours.test.js (Node), tests/browser/clipboard-colours.spec.js (reload keeps the colours; a plain
 paste takes the rail colours; Own colours snaps and places the copied ones). run-all ALL TEST FILES PASSED; npx
 playwright test 646 passed, 1 failed (dialog-listeners, a load flake: passes alone, run twice).
