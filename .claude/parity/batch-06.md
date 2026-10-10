@@ -146,3 +146,9 @@ also open in.
 
 Batch 6 is done. Update the comparison doc rows, then hand off to Batch 7
 part 7A.
+
+## 6B owner answers (2026-10-10)
+
+- Bright black stays the same as black: 15 editable standard colours (recommended option).
+- A Save .pal button is added to the Preferences standard-colours section (256-byte ZX Paintbrush layout).
+- 6B Opus review corrections recorded in the LOG: there is no File > Export submenu (the TAP is a File leaf next to Save Palette); a 256-byte .pal opened via File > Open stays a Next palette, ZX Paintbrush's layout is read only from Preferences.
