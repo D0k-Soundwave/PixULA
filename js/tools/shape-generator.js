@@ -418,6 +418,34 @@ class ShapeGeneratorClass {
 
     // ===== ROTATION (Batch 7 part 7B) =====
 
+    /** Shapes whose start point is the CENTRE and whose drag point defines the radius (the others run corner to corner). */
+    static isCenterAnchored(shapeType) {
+        return ['circle', 'ellipse', 'star', 'flower', 'gear', 'heart', 'x', 'plus', 'hourglass'].includes(shapeType);
+    }
+
+    /** Bounds for a centre-anchored shape: a box round the centre reaching the drag point. */
+    static centerAnchoredBounds(cx, cy, ex, ey) {
+        const dx = Math.abs(ex - cx), dy = Math.abs(ey - cy);
+        return { x1: cx - dx, y1: cy - dy, x2: cx + dx, y2: cy + dy };
+    }
+
+    /**
+     * The point a shape turns round when it is rotated: the box centre the generator uses for the box shapes, the start
+     * point for the shapes drawn from a centre and a drag point, null for a shape that has no rotation.
+     * @param {string} shapeType
+     * @param {{x1,y1,x2,y2}} bounds - raw drag bounds (as passed to generateShape)
+     * @param {Object} [options]
+     * @returns {?{x:number,y:number}}
+     */
+    rotationPivot(shapeType, bounds, options = {}) {
+        if (ShapeGeneratorClass.DRAG_ROTATABLE.has(shapeType)) return { x: bounds.x1, y: bounds.y1 };
+        if (ShapeGeneratorClass.BOX_ROTATABLE.has(shapeType)) {
+            const box = this._boxVertices(shapeType, this._standardizeBounds(shapeType, bounds), options);
+            return box ? { x: box.cx, y: box.cy } : null;
+        }
+        return null;
+    }
+
     /** Shapes drawn from a box that turn round the box centre. */
     static get BOX_ROTATABLE() {
         return new Set(['rectangle', 'square', 'rounded-rectangle', 'parallelogram', 'ellipse']);
