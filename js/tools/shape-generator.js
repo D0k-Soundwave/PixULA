@@ -698,6 +698,11 @@ class ShapeGeneratorClass {
         return (x, y) => keys.has(y * W + x);
     }
 
+    /** The points of a line/outline thickened to `thickness` (the same disc stamp the line and nib use). */
+    thicken(points, thickness) {
+        return this._thickenPoints(points, thickness);
+    }
+
     /** Stamp a disc of the given diameter over every point (deduplicated). @private */
     _thickenPoints(points, thickness) {
         const r = thickness / 2;
@@ -2154,8 +2159,42 @@ class ShapeGeneratorClass {
             // Fallback to outline-based fill for shapes without clean vertices
             return this._fillFromOutline(generator, bounds, options);
         }
+        return this.fillPolygon(vertices);
+    }
 
+    /**
+     * Grow the edge, active-edge and intersection buffers to hold a polygon of n vertices. The
+     * fixed-size buffers (128 edges, 64 active) are plenty for every built-in shape, but a
+     * hand-drawn figure can have hundreds of vertices, and a write past the end of a typed array
+     * is silently dropped.
+     * @private
+     */
+    _ensureEdgeBuffers(n) {
+        if (n <= this._edgeYMin.length && n <= this._activeIdx.length) return;
+        const size = Math.max(n + 8, this._edgeYMin.length);
+        this._edgeYMin = new Int16Array(size);
+        this._edgeYMax = new Int16Array(size);
+        this._edgeX = new Int16Array(size);
+        this._edgeDeltaX = new Int16Array(size);
+        this._edgeDeltaY = new Int16Array(size);
+        this._edgeXStep = new Int8Array(size);
+        this._edgeOrder = new Uint16Array(size);
+        this._activeIdx = new Uint16Array(size);
+        this._activeX = new Int16Array(size);
+        this._activeError = new Int16Array(size);
+        this._intersections = new Int16Array(size);
+    }
+
+    /**
+     * The points inside a polygon, by scanline, for ANY number of vertices (the buffers grow).
+     * Vertices must already be integer {x, y}. The shapes' own fill and the Figure tool both use it.
+     * @param {Array<{x:number,y:number}>} vertices
+     * @returns {Array<{x:number,y:number}>} the filled points, clipped to the canvas
+     */
+    fillPolygon(vertices) {
         const n = vertices.length;
+        if (n < 3) return [];
+        this._ensureEdgeBuffers(n);
 
         // Find Y bounds (vertices already rounded in _getShapeVertices)
         // Allow shapes to extend beyond canvas - we'll clip pixels when adding to buffer
