@@ -390,13 +390,12 @@ class TransformServiceClass {
    */
   dotCommandsBlocked() {
     const layer = LayerManager.getCurrentLayer();
-    const fp = this._floatingPaste();
+    const stamp = this._engagedStamp();
     let flip = null;
     if (!layer || layer.locked) flip = 'locked';
-    else if (fp) flip = fp.attrs ? 'stampAttrs' : null;
-    else if (layer.isStamp) flip = 'stamp';
+    else if (stamp) flip = stamp.floating ? (stamp.ownColours ? 'stampAttrs' : null) : 'stamp';
     let invert = this.attributeCommandsBlocked();
-    if (!invert && fp) invert = 'stamp';
+    if (!invert && stamp) invert = 'stamp';
     // Swapping ink and paper leaves the picture looking the same only with the
     // fixed 16 colours (see ColorManager.cellToolAvailable).
     if (!invert && !ColorManager.cellToolAvailable('invertBoth')) invert = 'palette';
@@ -536,7 +535,7 @@ class TransformServiceClass {
   cellToolBlocked(op) {
     const layer = LayerManager.getCurrentLayer();
     if (!layer || layer.locked) return 'locked';
-    if (layer.isStamp || this._floatingPaste()) return 'stamp';
+    if (this._engagedStamp()) return 'stamp';
     if (!ColorManager.cellToolAvailable(op)) return 'mode';
     return null;
   }
@@ -1391,9 +1390,14 @@ class TransformServiceClass {
   attributeCommandsBlocked() {
     if (!ColorManager.hasCellAttributes()) return 'noCellAttributes';
     const layer = LayerManager.getCurrentLayer();
-    if (!layer || layer.isStamp) return 'stamp';
+    if (!layer || this._engagedStamp()) return 'stamp';
     if (layer.locked) return 'locked';
     return null;
+  }
+
+  /** The stamp in the way (floating, or the current layer), or null. @private */
+  _engagedStamp() {
+    return window.SelectionService ? SelectionService.engagedStamp() : null;
   }
 
   /**

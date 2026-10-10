@@ -537,6 +537,25 @@ class SelectionServiceClass {
 
   // ─── Floating paste ───────────────────────────────────────────────────────
 
+  /**
+   * The stamp that is in the way of picture-wide commands, or null: one is
+   * engaged while a stamp floats OR the current layer is a stamp layer. The
+   * one answer behind Image > Attributes, the cell tools and Image > Dots
+   * (they used to ask three slightly different questions).
+   * @returns {?{layer: Object, floating: boolean, ownColours: boolean}}
+   *   ownColours = the floating stamp places colours of its own, so a flip
+   *   of its dots would leave them pointing at the wrong cells
+   */
+  engagedStamp() {
+    const fp = this.floatingPaste;
+    if (fp) {
+      return { layer: fp.floatingLayer || null, floating: true, ownColours: this.stampColoured(fp) };
+    }
+    const layer = window.LayerManager ? LayerManager.getCurrentLayer() : null;
+    if (layer && layer.isStamp) return { layer, floating: false, ownColours: false };
+    return null;
+  }
+
   /** True while a floating paste is in progress. */
   isFloating() {
     return this.floatingPaste !== null;
@@ -1168,13 +1187,15 @@ class SelectionServiceClass {
 
     this._clearFloatingFootprint(fp.floatingLayer, fp.x, fp.y, fp.width, fp.height);
 
-    // Attributed stamps carry one attribute PER CELL, not per pixel — a
-    // non-cell-aligned drop would make one destination cell straddle two
-    // source cells with two different attribute bytes, which has no valid
-    // resolution (see spec §3, "Cell-grid alignment is load-bearing").
-    if (fp.attrs) {
-      newX = Math.floor(newX / 8) * 8;
-      newY = Math.floor(newY / 8) * 8;
+    // A stamp that places its own colours carries one attribute PER CELL, not
+    // per pixel — a non-cell-aligned drop would make one destination cell
+    // straddle two source cells with two different attribute bytes, which has
+    // no valid resolution (see spec §3, "Cell-grid alignment is load-bearing").
+    // A stamp set to "Pixels" (or in a mode that cannot place colours) is free.
+    if (this.stampColoured(fp)) {
+      const g = this.stampAttrGrid(fp);
+      newX = Math.floor((newX - g.ox) / g.cw) * g.cw + g.ox;
+      newY = Math.floor((newY - g.oy) / g.ch) * g.ch + g.oy;
     }
 
     fp.x = newX;

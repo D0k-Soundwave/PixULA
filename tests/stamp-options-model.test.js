@@ -117,6 +117,28 @@ let drawn = 0;
 for (let cy = 0; cy < ZX_SPECTRUM.GRID_ROWS; cy++) for (let cx = 0; cx < ZX_SPECTRUM.GRID_COLS; cx++) { const c = dup.getCell(cx, cy); if (c && c.altered) drawn++; }
 check('a duplicate carries no preview cells', drawn === 0);
 
+
+// --- the one "is a stamp in the way" answer ---------------------------------------------------------------------
+SelectionService.floatingPaste = null;
+LayerManager.initialize();
+LayerManager.addLayer();
+LayerManager.setCurrentLayer(1);
+check('nothing engaged on a drawing layer', SelectionService.engagedStamp() === null);
+SelectionService.startFloatingPasteFromMask(mask, 16, 8, 0, 0, 'eng');
+let eng = SelectionService.engagedStamp();
+check('a floating stamp is engaged', eng && eng.floating === true && eng.ownColours === false);
+LayerManager.setCurrentLayer(1);
+check('still engaged when the layer panel makes a drawing layer current (the corner case)', SelectionService.engagedStamp() !== null);
+SelectionService.floatingPaste.attrs = [0x38, 0x41];
+check('with colours of its own, ownColours is true', SelectionService.engagedStamp().ownColours === true);
+SelectionService.floatingPaste.opts = { colours: 'pixels' };
+check('set to Pixels, ownColours is false', SelectionService.engagedStamp().ownColours === false);
+SelectionService.endFloatingPaste();
+LayerManager.setCurrentLayer(LayerManager.layers.findIndex(l => l.isStamp));
+eng = SelectionService.engagedStamp();
+check('a parked stamp layer that is current is engaged, not floating', eng && eng.floating === false);
+LayerManager.setCurrentLayer(1);
+
 // --- reading junk ---------------------------------------------------------------------------------------------------
 const base = { x: 0, y: 0, w: 16, h: 8, mask, attrs: [1, 2] };
 const r = (extra) => LayerManager._readStamp({ ...base, ...extra });

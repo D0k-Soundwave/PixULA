@@ -31,7 +31,11 @@ global.ColorManager = {
 global.SelectionService = {
   hasSelection() { return false; },
   getSelection() { return null; },
-  isFloating() { return false; }
+  isFloating() { return false; },
+  engagedStamp() {
+    const l = global.LayerManager && LayerManager.getCurrentLayer();
+    return l && l.isStamp ? { layer: l, floating: false, ownColours: false } : null;
+  }
 };
 
 loadModule('js/core/layer-manager.js');

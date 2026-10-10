@@ -43,6 +43,10 @@ global.SelectionService = {
   hasSelection() { return selectionArea !== null; },
   getSelection() { return selectionArea; },
   isFloating() { return false; },
+  engagedStamp() {
+    const l = global.LayerManager && LayerManager.getCurrentLayer();
+    return l && l.isStamp ? { layer: l, floating: false, ownColours: false } : null;
+  },
   clear() { selectionArea = null; }
 };
 
