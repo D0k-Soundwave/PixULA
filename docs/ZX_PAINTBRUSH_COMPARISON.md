@@ -176,10 +176,10 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | Spray pattern tool | Sprays little circles, squares or lines, each filled with the fill style. | Spray Distribution Pattern lays whole circles, squares or lines, solid or outline, in the ink colours; no line style or fill pattern per figure, and ZX Paintbrush's spray trace can be edited in point mode, which this cannot (Batch 7 part 7C2). | Partial |
 | Fill tool | Flood fill with solid or a fill style. | Fill with pattern, contiguous or not, diagonal option. | PixULA further |
 | Fill styles and fill style editor | Built-in 16x16 patterns, each editable. | Pattern library and Pattern Creator. | PixULA further |
-| Custom fill style from a picture | Turns a picture file into a fill through the converter. | Patterns captured from the canvas or loaded as .pat. | Partial |
+| Custom fill style from a picture | Turns a picture file into a fill through the converter. | From picture... in the pattern panel (2026-10-10, Batch 8 part 8B2): brightness, contrast, scaling, any of the 31 dithers, to a square tile of 8, 16 or 32 pixels, saved to the library under the file name. ZX Paintbrush also allows other widths and heights, which the library does not (square tiles only). Patterns captured from the canvas, and JSON import / export; there are no .pat files. | Partial |
 | Capture fill style | Uses the last captured area as the fill. | Pattern capture from a selection. | Same |
 | Gradient fills and custom gradient | Linear, radial, circular, triangular, rectangular, pentagonal, hexagonal, octagonal; rotation, repeats, zoom. | Gradient tool: linear, radial, reflected, diamond, square, conical, spiral; repeats, curve, bias, steps, shape fills. | Same |
-| Dithering styles | 31 methods: three thresholds, 14 error-diffusion kernels, three Bayer matrices, seven cluster-dot and four supercell screens, for gradients, fills and imports. | Gradient: Bayer 2x2, 4x4, 8x8. Fade: ordered, halftone, noise. Picture import: Floyd-Steinberg or none. | Partial |
+| Dithering styles | 31 methods: three thresholds, 14 error-diffusion kernels, three Bayer matrices, seven cluster-dot and four supercell screens, for gradients, fills and imports. | All 31 exist in js/utils/dither.js (2026-10-10, Batch 8 part 8A; tables from the help, usage measured against its pictures). Gradient (8B): its own Bayer 2/4/8 first, then the 28 others. Picture import (8B): the Smooth conversion takes any of the 31 in the cell modes; the Layer 2 / LoRes modes keep Floyd-Steinberg only; error diffusion stays inside each attribute cell. Custom fills (8B2): all 31. The fade brush keeps its own ordered, halftone and noise. The gradient's Bayer matrices are the transpose of ZX Paintbrush's. | Partial |
 
 ### Capture, selection and overlays
 
@@ -231,7 +231,7 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | Archives and Warajevo tapes | Reads zip, rar and 28 other archive formats, and Warajevo TAP. | No. | Missing |
 | ZXB meta files | ZX-Blockeditor's container. | Left out on purpose; the Tape Blocks dialog covers tape blocks. | N/A |
 | BMP, GIF, JPG, PNG | Read and write. | Read and write; GIF can animate Flash. | PixULA further |
-| Picture converter | Brightness, contrast, size, crop, 31 dithers, black-and-white, colour, Timex, ULAplus via Image2ULAPlus, GIF frame picker. | Import dialog: brightness, contrast, fit/stretch/crop, Floyd-Steinberg, live preview; ULAplus palette built in; GIF first frame only. | Partial |
+| Picture converter | Brightness, contrast, size, crop, 31 dithers, black-and-white, colour, Timex, ULAplus via Image2ULAPlus, GIF frame picker. | Import dialog: brightness, contrast, fit/stretch/crop, Dither select with the 31 methods for the Smooth conversion (8B), live preview; ULAplus palette built in; GIF first frame only. | Partial |
 | File window | Edit each SCREEN$ block in a tape or disk file; add, delete, move blocks. | Tape Blocks dialog for tapes. | Same |
 | Data block composer, memory and pulse editors, header changer | Build and edit any tape block byte by byte. | No. | Missing |
 | ASM and BIN export settings | Number base, prefixes, bytes per line, line or block layout, attributes mixed in. | .asm, .c, .bin and .atr with a fixed layout. | Partial |

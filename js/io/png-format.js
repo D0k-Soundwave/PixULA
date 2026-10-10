@@ -1119,6 +1119,62 @@ class PNGFormatClass {
     return this._chooseCellPair(decideRGB);
   }
 
+  /**
+   * A pattern tile (a fill) from a picture, as a size x size list of 0 / 1 with 1 = ink (the dark side), the same
+   * convention as the pattern library. Pure: no canvas, so the tile is the same in every browser.
+   *
+   * The picture is box-averaged onto the tile (alpha laid over white paper), then brightness / contrast, then luma and
+   * one Dither.apply. `scaling`: 'fit' shows the whole picture with paper around it, 'stretch' fills the tile with it,
+   * 'crop' fills the tile from the middle square.
+   * @param {{width:number,height:number,data:Uint8ClampedArray}} imageData
+   * @param {{size?:number, dithering?:string, brightness?:number, contrast?:number, scaling?:string}} [options]
+   * @returns {Uint8Array}
+   */
+  patternFromImage(imageData, options = {}) {
+    const { size = 32, dithering = 'floyd-steinberg', brightness = 0, contrast = 0, scaling = 'crop' } = options;
+    if (![8, 16, 32].includes(size)) throw new Error('patternFromImage: size must be 8, 16 or 32');
+    const w = imageData.width, h = imageData.height;
+    // The window of the picture the tile shows
+    let wx = 0, wy = 0, ww = w, wh = h;
+    if (scaling === 'crop') { const s = Math.min(w, h); wx = (w - s) / 2; wy = (h - s) / 2; ww = wh = s; }
+    else if (scaling === 'fit') { const L = Math.max(w, h); wx = (w - L) / 2; wy = (h - L) / 2; ww = wh = L; }
+    const tile = { width: size, height: size, data: new Uint8ClampedArray(size * size * 4) };
+    const src = imageData.data;
+    for (let dy = 0; dy < size; dy++) {
+      const y0 = wy + dy * wh / size, y1 = wy + (dy + 1) * wh / size;
+      for (let dx = 0; dx < size; dx++) {
+        const x0 = wx + dx * ww / size, x1 = wx + (dx + 1) * ww / size;
+        let r = 0, g = 0, b = 0, covered = 0;
+        const iy0 = y0 > 0 ? Math.floor(y0) : 0, iy1 = y1 < h ? Math.ceil(y1) : h;
+        const ix0 = x0 > 0 ? Math.floor(x0) : 0, ix1 = x1 < w ? Math.ceil(x1) : w;
+        for (let sy = iy0; sy < iy1; sy++) {
+          const wyv = (sy + 1 < y1 ? sy + 1 : y1) - (sy > y0 ? sy : y0);
+          if (wyv <= 0) continue;
+          for (let sx = ix0; sx < ix1; sx++) {
+            const wxv = (sx + 1 < x1 ? sx + 1 : x1) - (sx > x0 ? sx : x0);
+            if (wxv <= 0) continue;
+            const o = (sy * w + sx) * 4, a = src[o + 3] / 255, wt = wxv * wyv;
+            r += wt * (src[o] * a + 255 * (1 - a));
+            g += wt * (src[o + 1] * a + 255 * (1 - a));
+            b += wt * (src[o + 2] * a + 255 * (1 - a));
+            covered += wt;
+          }
+        }
+        const area = (x1 - x0) * (y1 - y0);
+        const white = Math.max(0, area - covered) * 255;       // outside the picture: paper
+        const o = (dy * size + dx) * 4;
+        tile.data[o] = Math.round((r + white) / area);
+        tile.data[o + 1] = Math.round((g + white) / area);
+        tile.data[o + 2] = Math.round((b + white) / area);
+        tile.data[o + 3] = 255;
+      }
+    }
+    const adj = (brightness || contrast) ? this.applyBrightnessContrast(tile, brightness, contrast) : tile;
+    const gray = new Float64Array(size * size);
+    for (let i = 0; i < gray.length; i++) gray[i] = Dither.luma(adj.data[i * 4], adj.data[i * 4 + 1], adj.data[i * 4 + 2]);
+    return Dither.apply(gray, size, size, dithering === 'none' ? 'threshold-50' : dithering);
+  }
+
   /** True for a Dither method other than the importer's own Floyd-Steinberg and 'none'. @private */
   _isDitherMethod(dithering) {
     return !!dithering && dithering !== 'none' && dithering !== 'floyd-steinberg' &&

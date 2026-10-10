@@ -303,6 +303,156 @@ class ImportDialogClass {
             refresh(true);
         });
     }
+
+    /**
+     * "Make a fill from a picture": the same controls as the import dialog but one result, a pattern tile
+     * (Batch 8 part 8B2). A tile is 8, 16 or 32 pixels square (the pattern library's sizes), so the preview is the tile
+     * repeated, built by the same PNGFormat.patternFromImage the result comes from.
+     * @param {ArrayBuffer} buffer - Raw file bytes
+     * @param {string} ext - 'png' | 'jpg' | 'jpeg' | 'gif'
+     * @returns {Promise<{size:number,bitmap:Uint8Array}|null|undefined>} the tile; null if cancelled; undefined if the file
+     *   could not be read as a picture
+     */
+    async showPattern(buffer, ext) {
+        const mime = (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg'
+            : (ext === 'gif') ? 'image/gif' : 'image/png';
+        const decoded = await PNGFormat.decodeToImageData(buffer, mime);
+        if (!decoded) return undefined;
+
+        const state = { brightness: 0, contrast: 0, scaling: 'crop', size: 32, dither: 'floyd-steinberg' };
+
+        return new Promise((resolve) => {
+            let settled = false;
+            const settle = (value) => {
+                if (!settled) { settled = true; resolve(value); }
+            };
+
+            const content = document.createElement('div');
+            content.className = 'import-dialog-body';
+
+            const preview = document.createElement('canvas');
+            preview.className = 'import-preview pattern-from-picture-preview';
+            preview.width = 128;
+            preview.height = 128;
+            content.appendChild(preview);
+
+            const controls = document.createElement('div');
+            controls.className = 'import-controls';
+            content.appendChild(controls);
+
+            const tile = () => PNGFormat.patternFromImage(decoded, {
+                size: state.size, dithering: state.dither, brightness: state.brightness,
+                contrast: state.contrast, scaling: state.scaling
+            });
+            const draw = () => {
+                if (settled) return;
+                const bits = tile();
+                const n = state.size, zoom = Math.max(1, Math.floor(128 / (n * 2)));
+                const ctx = preview.getContext('2d');
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(0, 0, 128, 128);
+                ctx.fillStyle = '#000';
+                // the tile repeated, so the join shows
+                for (let ty = 0; ty * n * zoom < 128; ty++) {
+                    for (let tx = 0; tx * n * zoom < 128; tx++) {
+                        for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+                            if (bits[y * n + x]) ctx.fillRect((tx * n + x) * zoom, (ty * n + y) * zoom, zoom, zoom);
+                        }
+                    }
+                }
+            };
+            let rafPending = false;
+            const refresh = () => {
+                if (rafPending) return;
+                rafPending = true;
+                requestAnimationFrame(() => { rafPending = false; draw(); });
+            };
+
+            const row = (key, i18n, fallback, control) => {
+                const r = document.createElement('div');
+                r.className = 'tool-option';
+                const label = document.createElement('label');
+                label.htmlFor = `pattern-${key}`;
+                const span = document.createElement('span');
+                span.dataset.i18n = i18n;
+                span.textContent = this._t(i18n, fallback);
+                label.appendChild(span);
+                control.id = `pattern-${key}`;
+                control.className = 'opt-input';
+                r.appendChild(label);
+                r.appendChild(control);
+                controls.appendChild(r);
+                return r;
+            };
+            const range = (key, i18n, fallback) => {
+                const input = document.createElement('input');
+                input.type = 'range';
+                input.min = '-100';
+                input.max = '100';
+                input.value = '0';
+                input.addEventListener('input', () => { state[key] = parseInt(input.value, 10) || 0; refresh(); });
+                const r = row(key, i18n, fallback, input);
+                if (window.OptionControls) OptionControls.decorateSliders(r);
+            };
+            const select = (key, i18n, fallback, options, parse) => {
+                const el = document.createElement('select');
+                for (const opt of options) {
+                    const o = document.createElement('option');
+                    o.value = opt.value;
+                    if (opt.i18n) o.dataset.i18n = opt.i18n;
+                    o.textContent = opt.i18n ? this._t(opt.i18n, opt.fallback) : opt.fallback;
+                    if (String(opt.value) === String(state[key])) o.selected = true;
+                    el.appendChild(o);
+                }
+                el.addEventListener('change', () => { state[key] = parse ? parse(el.value) : el.value; refresh(); });
+                row(key, i18n, fallback, el);
+            };
+
+            range('brightness', 'import.brightness', 'Brightness');
+            range('contrast', 'import.contrast', 'Contrast');
+            select('scaling', 'import.scaling', 'Scaling', [
+                { value: 'fit',     i18n: 'import.scalingFit',     fallback: 'Fit (letterbox)' },
+                { value: 'stretch', i18n: 'import.scalingStretch', fallback: 'Stretch' },
+                { value: 'crop',    i18n: 'import.scalingCrop',    fallback: 'Crop (fill)' }
+            ]);
+            select('size', 'import.tileSize', 'Tile size', [8, 16, 32].map((n) => (
+                { value: n, i18n: null, fallback: n + 'x' + n })), (v) => parseInt(v, 10));
+
+            const dsel = document.createElement('select');
+            for (const [fam, fb] of [['threshold', 'Threshold'], ['diffusion', 'Error diffusion'], ['bayer', 'Bayer matrix'],
+                                     ['cluster', 'Cluster dot'], ['supercell', 'Supercell']]) {
+                const og = document.createElement('optgroup');
+                og.dataset.i18nLabel = `dither.family.${fam}`;
+                og.label = this._t(`dither.family.${fam}`, fb);
+                for (const m of Dither.METHODS.filter((x) => x.family === fam)) {
+                    const o = document.createElement('option');
+                    o.value = m.id;
+                    o.dataset.i18n = m.i18n;
+                    o.textContent = this._t(m.i18n, m.id);
+                    if (m.id === state.dither) o.selected = true;
+                    og.appendChild(o);
+                }
+                dsel.appendChild(og);
+            }
+            dsel.addEventListener('change', () => { state.dither = dsel.value; refresh(); });
+            row('dither', 'import.dither', 'Dither', dsel);
+
+            Dialog.open({
+                id: 'pattern-from-picture',
+                titleI18n: 'dialog.patternFromPicture',
+                title: 'Make a fill from a picture',
+                content,
+                className: 'import-conversion-dialog',
+                buttons: [
+                    { i18n: 'dialog.cancel', label: 'Cancel', onClick: () => { settle(null); } },
+                    { i18n: 'dialog.ok', label: 'OK', primary: true,
+                      onClick: () => settle({ size: state.size, bitmap: tile() }) }
+                ],
+                onClose: () => settle(null)
+            });
+            draw();
+        });
+    }
 }
 
 /**

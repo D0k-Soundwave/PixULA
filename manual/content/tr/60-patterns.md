@@ -15,4 +15,6 @@ olduğunu değiştirmeden görünüşünü değiştirebilirsiniz.
 Desen düzenleyicide kendi karolarınızı da çizip bunların yanında kendi
 kitaplığınızda saklayabilirsiniz.
 
+**Resimden.** Desen panelindeki **Resimden...** düğmesi bir resim dosyasından (PNG, JPG veya GIF) dolgu oluşturur. Bir pencere döşemeyi tekrarlanacağı gibi gösterir ve Parlaklık, Karşıtlık, Ölçekleme, Döşeme boyutu (8, 16 veya 32 piksellik kare) ile içe aktarmayla aynı 31 tarama yöntemini sunar; varsayılan Floyd-Steinberg'dir. Resmin koyu kısımları mürekkep olur. Tamam, döşemeyi dosya adıyla kendi kitaplığınıza ekler - aynı adlı ikinci dosya "ad 2" olur ve birincinin yerine asla geçmez - ve onu geçerli desen yapar; dolgu ve desen fırçası için hazırdır.
+
 {{patterns}}

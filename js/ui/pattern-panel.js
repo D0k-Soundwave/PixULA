@@ -113,6 +113,8 @@ class PatternPanelClass {
                         <input type="file" class="psb-file-input" id="psb-file-input" name="psb-file-input" accept=".json" hidden>
                     </div>
                     <button type="button" class="psb-create-btn" data-i18n="pattern.create">${this._t('pattern.create', '+ Create pattern...')}</button>
+                    <button type="button" class="psb-picture-btn" data-i18n="pattern.fromPicture" data-i18n-title="pattern.fromPicture.hint" title="${this._t('pattern.fromPicture.hint', 'Make a fill from a picture file, dithered to a tile.')}">${this._t('pattern.fromPicture', 'From picture...')}</button>
+                    <input type="file" class="psb-picture-input" id="psb-picture-input" name="psb-picture-input" accept=".png,.jpg,.jpeg,.gif" hidden>
                     <div class="psb-capture-row">
                         <span class="psb-capture-label" data-i18n="pattern.capture">${this._t('pattern.capture', 'Capture:')}</span>
                         <button type="button" class="psb-cap-btn" data-cap="8">8×8</button>
@@ -192,6 +194,17 @@ class PatternPanelClass {
         if (createBtn) {
             createBtn.addEventListener('click', () => {
                 if (window.PatternCreatorPanel) PatternCreatorPanel.open();
+            });
+        }
+
+        const pictureBtn = slot.querySelector('.psb-picture-btn');
+        const pictureInput = slot.querySelector('.psb-picture-input');
+        if (pictureBtn && pictureInput) {
+            pictureBtn.addEventListener('click', () => pictureInput.click());
+            pictureInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                e.target.value = '';
+                if (file) await this._fromPicture(file, slot);
             });
         }
 
@@ -395,7 +408,30 @@ class PatternPanelClass {
     /**
      * @private
      */
-    _applyToSelection() {
+    /**
+   * Make a fill from a picture file: the conversion dialog, then a new tile in the library (under a name no saved tile has),
+   * made the current pattern, with the Mine tab showing it. @private
+   */
+  async _fromPicture(file, slot) {
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    const result = await ImportDialog.showPattern(await file.arrayBuffer(), ext);
+    if (result === undefined) { alert(this._t('err.imageLoad', 'Failed to load the image')); return; }
+    if (!result) return;
+    const name = await PatternService.freeName(file.name);
+    const saved = await PatternService.savePatternData(name, result.size, result.bitmap);
+    if (!saved) {
+      alert(Helpers.interpolate(this._t('pc.libraryFull', 'Pattern library is full ({max}). Delete one to save another.',
+        { max: PatternService.MAX_USER_PATTERNS }), { max: PatternService.MAX_USER_PATTERNS }));
+      return;
+    }
+    await PatternService.setCurrentPattern({ name, userDefined: true, width: result.size, height: result.size, bitmap: result.bitmap });
+    this._currentSize = 'mine';
+    slot.querySelectorAll('.psb-tab').forEach(t => t.classList.toggle('active', t.dataset.size === 'mine'));
+    if (this._jsonActions) this._jsonActions.hidden = false;
+    this._renderPatterns();
+  }
+
+  _applyToSelection() {
         if (!PatternService.getCurrentPattern()) return;
         UndoRedo.beginAction('Apply pattern');
         PatternService.applyToSelection();

@@ -766,3 +766,21 @@ Against the 7 ms `CoverageOps.LIVE_BUDGET_MS` budget [P: coverage-ops.js, read 2
 this size; error diffusion is a serial scan and cannot be done per pointer move on a full 640x256 image either way, so 8B
 should preview on a reduced image or debounce it. `PKK_SPLIT = 224` in `js/utils/dither.js` is an [A] figure: the
 measurement against the help pictures could not tell kernel A from kernel B in the highlights, and nothing rests on it.
+
+### Dither in import and gradient - measured 2026-10-10 (Batch 8 part 8B)
+
+`node tools/import-dither-bench.js`, Node v24.19.0, standard_ula (256x192, 49,152 pixels [C: 256 x 192]), the Smooth
+conversion of one image (cell pairs chosen, dots rendered, preview painted), median of 9, two runs back to back [M]:
+
+| Dither | Run 1 / 2 | Tag |
+|---|---|---|
+| Floyd-Steinberg (the importer's own, unchanged) | 4.4 / 4.2 ms | M |
+| Bayer 8 (through Dither.paletteIndices) | 5.0 / 5.1 ms | M |
+| Stevenson-Arce | 6.3 / 6.5 ms | M |
+
+All within the 7 ms live-preview budget [P: CoverageOps.LIVE_BUDGET_MS] at this size. The gradient tool now runs one
+`Dither.apply` over the whole gradient rectangle for a method: the full-canvas Layer 2 640 case (163,840 pixels)
+costs the Dither time already measured above (0.2-0.5 ms ordered, 2-4.5 ms most kernels, 6.6 ms Park-Kang-Kim, 16.8 ms
+Stevenson-Arce [M, 2026-10-10 section above]) plus the existing per-pixel position loop; a before / after run of the
+gradient preview on layer2_640 was NOT made [A: nothing was measured]. A picture-made fill is at most 32 x 32 = 1,024
+pixels [C], negligible.
