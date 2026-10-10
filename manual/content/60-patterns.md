@@ -15,4 +15,6 @@ can change how a shade looks without changing how dark it is.
 You can also draw your own tiles in the Pattern Creator and keep them in your
 own library alongside these.
 
+**From picture.** The **From picture...** button in the pattern panel makes a fill from a picture file (PNG, JPG or GIF). A dialog shows the tile as it will repeat and offers Brightness, Contrast, Scaling, Tile size (8, 16 or 32 pixels square) and the same 31 Dither methods as the importer; the default is Floyd-Steinberg. The dark parts of the picture become ink. OK adds the tile to your own library under the file's name - a second file with the same name becomes "name 2" and never replaces the first - and makes it the current pattern, ready for the fill and the pattern brush.
+
 {{patterns}}

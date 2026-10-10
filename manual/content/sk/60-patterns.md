@@ -15,4 +15,6 @@ odtieňa bez toho, aby ste zmenili jeho tmavosť.
 Môžete si tiež kresliť vlastné dlaždice v Editore vzorov a uchovávať ich vo
 svojej knižnici vedľa týchto.
 
+**Z obrázka.** Tlačidlo **Z obrázka...** v paneli vzorov vytvorí výplň zo súboru s obrázkom (PNG, JPG alebo GIF). Dialóg ukáže dlaždicu tak, ako sa bude opakovať, a ponúka Jas, Kontrast, Mierku, Veľkosť dlaždice (štvorec 8, 16 alebo 32 bodov) a rovnakých 31 metód ditheringu ako import; predvolený je Floyd-Steinberg. Tmavé časti obrázka sa stanú atramentom. OK pridá dlaždicu do vašej knižnice pod názvom súboru - druhý súbor s rovnakým názvom sa stane "názov 2" a prvý nikdy neprepíše - a nastaví ju ako aktuálny vzor, pripravený pre výplň a štetec so vzorom.
+
 {{patterns}}

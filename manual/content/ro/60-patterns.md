@@ -17,4 +17,6 @@ unei nuanțe fără a-i schimba cât de închisă este.
 Puteți și să vă desenați propriile plăci în Editorul de modele și să le păstrați
 în propria bibliotecă alături de acestea.
 
+**Din imagine.** Butonul **Din imagine...** din panoul de modele creează o umplere dintr-un fișier imagine (PNG, JPG sau GIF). O fereastră arată placa așa cum se va repeta și oferă Luminozitate, Contrast, Scalare, Dimensiunea plăcii (pătrat de 8, 16 sau 32 de pixeli) și aceleași 31 de metode de dither ca importul; implicit, Floyd-Steinberg. Părțile întunecate ale imaginii devin cerneală. OK adaugă placa în biblioteca ta sub numele fișierului - un al doilea fișier cu același nume devine "nume 2" și nu îl înlocuiește niciodată pe primul - și o face modelul curent, gata pentru umplere și pensula de model.
+
 {{patterns}}

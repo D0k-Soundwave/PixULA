@@ -648,3 +648,37 @@ FIGURES.md timings (all 31 summed 64 ms on 640x256; Stevenson-Arce 16.8 ms the s
 Tests: tests/dither.test.js (kernels vs independent grids, sums, lattice tiles vs printed first rows, level counts, thresholds
 exact, uniform fields, ramp bands, hand-computed Floyd-Steinberg, determinism, options, errors). run-all passes.
 Next: 8B (plan review first).
+
+## Batch 8 part 8B / 8B2 (dither in gradient, import, fills) - 2026-10-10, branch parity-c
+Opus plan review: split into 8B step 1 (gradient), step 2 (import), 8B2 (fill from picture); corrected batch facts (no .pat
+files - user patterns are IndexedDB records and JSON; 80-files.md had no import section; the Patterns panel shows only for the
+pattern brush).
+Built:
+- Gradient: the Dithered grain select keeps the key ditherScale (old presets, Alt slots, .pixula files load unchanged) and
+  offers 31 entries: the gradient's own Bayer 2 / 4 / 8 first (numbers, the first value stays the number 2 for
+  OptionControls._coerce), then 28 Dither methods by family. Methods run one Dither.apply over the gradient rectangle with the
+  gradient position (steps, reverse, bias) as the grey, anchored at the screen. The three ZX Bayers are left out (transposes
+  of the gradient's own; would repeat the names).
+- Import: a Dither select (all 31, default the importer's own Floyd-Steinberg) drives the Smooth pane, redraws it, and is shut
+  with a reason in the indexed modes (they keep Floyd-Steinberg; any other id is treated as Floyd-Steinberg there). New
+  Dither.paletteIndices: each pixel sits between its two nearest colours (luma-weighted), one Dither.apply per attribute cell,
+  ordered methods anchored at the cell's screen position, error diffusion inside the cell. Wired into
+  PNGFormat._renderCellMask and GigaQuant.renderCell. (Difference from the Opus plan: multi-slot GigaScreen cells use the
+  nearest-two-slots grey rather than a per-method slot loop - simpler, same family of results; noted for the sign-off.)
+- FIX (found by the review, own test first): single-screen Timex hi-res import decided dots against a per-cell pair although
+  the mode draws every bit with the screen-wide scheme, so cells whose majority colour sat on the scheme's ink side came out
+  inverted (and the preview did not show it). Now decided against the scheme pair (_cellPair). Changes how imports look in
+  that mode: owner to know at the sign-off.
+- Fill from a picture: PNGFormat.patternFromImage (pure; box-average resample, alpha over paper, brightness / contrast, luma,
+  Dither.apply; ink = dark), ImportDialog.showPattern (no panes; brightness, contrast, scaling, tile size 8 / 16 / 32,
+  dither, tiled preview), PatternService.freeName (never overwrites a saved tile), Patterns panel "From picture..." button.
+Keys: dither.family.* (5), import.dither (+ .hint, .ditherIndexed), pattern.fromPicture (+ .hint),
+dialog.patternFromPicture, import.tileSize. Manual: 80-files (new Importing a picture section) and 60-patterns, 13 languages.
+Tests: gradient-dither, import-dither, import-timex, pattern-from-picture (Node); import-dither, pattern-from-picture (Playwright).
+Timing: tools/import-dither-bench.js and FIGURES.md. Comparison rows: Dithering styles, Custom fill style from a picture,
+Picture converter stay Partial with reasons.
+Owner decisions raised (not stops; sign-off): picture fills are square 8 / 16 / 32 only (ZX allows any width and height; cost
+about half a session); Layer 2 / LoRes imports keep Floyd-Steinberg only (the 31 there need a new nearest-two-colours quantiser
+and palette-bench measurement, half to one session); the Timex hi-res import fix changes those imports; the Dither select
+drives only the Smooth pane (also Sharp: about an hour).
+Next: Batch 9 part 9A (plan review first).

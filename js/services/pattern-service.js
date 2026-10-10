@@ -493,6 +493,25 @@ class PatternServiceClass {
         return true;
     }
 
+    /**
+     * A name for a new tile that no saved pattern has yet: the stem of `base` (a file name), cut to the name limit, with
+     * " 2", " 3" ... added while it is taken. savePatternData replaces a record with the same name, so a picture-made
+     * tile asking for a free name keeps it from overwriting one the artist made.
+     * @param {string} base
+     * @returns {Promise<string>}
+     */
+    async freeName(base) {
+        const stem = String(base || '').replace(/\.[^.\/]*$/, '').trim() || 'picture';
+        const records = await Storage.getAll(Storage.STORES.PATTERNS);
+        const taken = new Set(records.map(r => (r.value ?? r).name));
+        const cut = (suffix) => stem.slice(0, this.MAX_PATTERN_NAME - suffix.length) + suffix;
+        if (!taken.has(cut(''))) return cut('');
+        for (let n = 2; ; n++) {
+            const candidate = cut(' ' + n);
+            if (!taken.has(candidate)) return candidate;
+        }
+    }
+
     _unpackToArray(bytes, size) {
         const bytesPerRow = Math.ceil(size / 8);
         const bitmap = new Uint8Array(size * size);
