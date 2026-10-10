@@ -106,6 +106,14 @@ const ClipboardCodec = {
             payload.idx = Helpers.encodeBase64(idxBytes);
         }
 
+        // Cell colours of the copied area (Batch 5 part 5A2): one byte per cell,
+        // -1 for a cell the copy did not cover, plus the shape of the cell grid.
+        // Optional: payloads without them paste exactly as before.
+        if (Array.isArray(clipboard.attrs) && clipboard.attrGrid) {
+            payload.att = clipboard.attrs.map(a => (a == null ? -1 : a & 0xFF));
+            payload.ag = { ...clipboard.attrGrid };
+        }
+
         // Size-cap sanity: never persist something a future boot would choke on
         if (JSON.stringify(payload).length > this.MAX_JSON_BYTES) return null;
         return payload;
@@ -185,6 +193,19 @@ const ClipboardCodec = {
                 }
                 clipboard.indices.push(row);
             }
+        }
+
+        // Cell colours: kept only if they describe a grid that fits (a damaged
+        // block is dropped, the pixels still paste).
+        const g = payload.ag;
+        if (Array.isArray(payload.att) && g && typeof g === 'object' &&
+            [g.cols, g.rows, g.cw, g.ch, g.ox, g.oy].every(Number.isInteger) &&
+            g.cols >= 1 && g.rows >= 1 && g.cw >= 1 && g.ch >= 1 &&
+            g.cols * g.rows === payload.att.length &&
+            g.ox >= 0 && g.ox < g.cw && g.oy >= 0 && g.oy < g.ch &&
+            payload.att.every(a => Number.isInteger(a) && a >= -1 && a <= 255)) {
+            clipboard.attrs = payload.att.map(a => (a < 0 ? null : a));
+            clipboard.attrGrid = { cols: g.cols, rows: g.rows, cw: g.cw, ch: g.ch, ox: g.ox, oy: g.oy };
         }
 
         return clipboard;

@@ -406,3 +406,27 @@ exactly as today; one click on Own colours brings the copied colours back) or st
 ignores the rail and the draw mode, cannot be scaled, rotated or warped)?
 Tests: run-all ALL TEST FILES PASSED; 41 stamp/cell-tool browser specs passed.
 Next: part 5A2.
+
+## 2026-10-10 - Batch 5 part 5A2 - clipboard colours - done
+Model: Sonnet (one-run series). Branch: parity-b.
+Opus: no separate plan review: the 5A Opus plan review specified 5A2 in full (capture, codec, snapping, transforms) and this
+follows it, with the one simplification below.
+Built: a copy keeps the colours of the cells it covered (SelectionService.copyToClipboard -> clipboard.attrs / attrGrid,
+one byte per cell from LayerManager.attrsAsSeen, null for a cell the lasso never touched, the grid offset recorded for an
+off-grid copy); not captured in GigaScreen, the indexed modes or modes without cell colours. ClipboardCodec saves them as
+optional att / ag fields (a damaged block is dropped and the pixels still paste; old payloads paste as before). A paste
+carries them and starts as Pixels only (opts.colours 'pixels'), so it lands exactly as it always did; setStampOptions
+{colours:'coloured'} snaps it to whole cells and places the copied colours. Scale, free rotation, warp, flips, quarter turns
+and outline on a Pixels stamp that carries colours DROP the colours (they would point at the wrong dots); on a stamp that
+places its own colours they are refused (as Map stamps always were). engagedStamp().ownColours now means "places its own
+colours".
+Simplification from the Opus design: flips and half turns do not carry the colours along (the plan had them reverse the
+grid); a stamp that carries colours loses them on any shape change. Nothing in the app lets a person ask for Own colours
+yet (the controls are 5B), so this costs nothing today; carrying them through a flip is a possible later refinement.
+OWNER decision taken by default (RUN-ALL says ask; the resume instruction said not to): clipboard stamps START as "Pixels
+only" (the recommended option). To start them with Own colours instead, change the one line in startFloatingPaste.
+Open for the sign-off: confirm Pixels only as the starting state.
+Tests: tests/clipboard-colours.test.js (Node), tests/browser/clipboard-colours.spec.js (reload keeps the colours; a plain
+paste takes the rail colours; Own colours snaps and places the copied ones). run-all ALL TEST FILES PASSED; npx
+playwright test 646 passed, 1 failed (dialog-listeners, a load flake: passes alone, run twice).
+Next: part 5B.

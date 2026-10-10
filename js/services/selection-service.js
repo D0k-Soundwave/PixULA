@@ -335,6 +335,37 @@ class SelectionServiceClass {
       }
     }
 
+    // The colours of the cells the copy covered, so a paste can bring them back
+    // ("Own colours"). Only where one cell colour pair describes a cell: not in
+    // GigaScreen (two screens), not in the indexed modes, not where cells have
+    // no colours. A cell the lasso did not touch has none (null).
+    if (ZX_SPECTRUM.SCREENS !== 2 && ZX_SPECTRUM.PIXEL_DEPTH === 1 &&
+        ColorManager.hasCellAttributes && ColorManager.hasCellAttributes()) {
+      const CW = ZX_SPECTRUM.CELL_WIDTH, CH = ZX_SPECTRUM.CELL_HEIGHT;
+      const cols = endCell.x - startCell.x + 1;
+      const rows = endCell.y - startCell.y + 1;
+      const attrs = [];
+      for (let cy = startCell.y; cy <= endCell.y; cy++) {
+        for (let cx = startCell.x; cx <= endCell.x; cx++) {
+          let covered = !mask;
+          if (mask) {
+            for (let ly = 0; ly < CH && !covered; ly++) {
+              const row = mask[cy * CH + ly - y];
+              if (!row) continue;
+              for (let lx = 0; lx < CW; lx++) {
+                if (row[cx * CW + lx - x]) { covered = true; break; }
+              }
+            }
+          }
+          if (!covered) { attrs.push(null); continue; }
+          const a = LayerManager.attrsAsSeen(layer, cx, cy);
+          attrs.push((a.ink & 7) | ((a.paper & 7) << 3) | (a.bright ? 0x40 : 0) | (a.flash ? 0x80 : 0));
+        }
+      }
+      this.clipboard.attrs = attrs;
+      this.clipboard.attrGrid = { cols, rows, cw: CW, ch: CH, ox: x - startCell.x * CW, oy: y - startCell.y * CH };
+    }
+
     Logger.debug('SelectionService', `Copied ${width}x${height} selection`);
     this._persistClipboard();
   }
@@ -543,15 +574,15 @@ class SelectionServiceClass {
    * one answer behind Image > Attributes, the cell tools and Image > Dots
    * (they used to ask three slightly different questions).
    * @returns {?{layer: Object, floating: boolean, ownColours: boolean}}
-   *   ownColours = the floating stamp holds cell colours, so a flip of its
-   *   dots would leave them pointing at the wrong cells (until part 5A2
-   *   makes the colours follow, flips, scale, rotate and warp stay blocked
-   *   for any stamp that holds them, whatever its Colours setting)
+   *   ownColours = the floating stamp places cell colours of its own, so a
+   *   flip of its dots would leave them pointing at the wrong cells (flips,
+   *   scale, rotate and warp are refused for it; a Pixels stamp that only
+   *   carries copied colours loses them instead, see _dropStaleColours)
    */
   engagedStamp() {
     const fp = this.floatingPaste;
     if (fp) {
-      return { layer: fp.floatingLayer || null, floating: true, ownColours: !!fp.attrs };
+      return { layer: fp.floatingLayer || null, floating: true, ownColours: this.stampColoured(fp) };
     }
     const layer = window.LayerManager ? LayerManager.getCurrentLayer() : null;
     if (layer && layer.isStamp) return { layer, floating: false, ownColours: false };
@@ -575,6 +606,14 @@ class SelectionServiceClass {
       this.clipboard.pixels, this.clipboard.width, this.clipboard.height, x, y, 'Paste'
     );
     if (!this.floatingPaste) { this.pasteFromClipboard(x, y); return; } // fallback: max layers
+    // The copied cells' colours ride with the stamp but start switched OFF
+    // ("Pixels only"): a paste then lands exactly as it always did, and
+    // Colours > Own colours brings the copied colours back.
+    if (this.clipboard.attrs && this.clipboard.attrGrid) {
+      this.floatingPaste.attrs = [...this.clipboard.attrs];
+      this.floatingPaste.attrGrid = { ...this.clipboard.attrGrid };
+      this.floatingPaste.opts = { colours: 'pixels' };
+    }
     // Indexed clipboards float with their palette indices so the preview and
     // commit reproduce the copied colours (mask-only elsewhere).
     if (ZX_SPECTRUM.PIXEL_DEPTH > 1 && this.clipboard.indices) {
@@ -665,6 +704,21 @@ class SelectionServiceClass {
   // ─── Live stamp transforms ─────────────────────────────────────────────────
 
   /**
+   * A stamp set to Pixels keeps the colours it was copied with, so Colours >
+   * Own colours can bring them back - until its shape changes in a way the
+   * colour cells cannot follow (scale, free rotation, warp, flips, quarter
+   * turns, outline). Then they are dropped: they would point at the wrong
+   * dots. A stamp that places its own colours refuses those operations
+   * instead (the caller checks stampColoured first).
+   * @private
+   */
+  _dropStaleColours(fp) {
+    if (!fp.attrs) return;
+    fp.attrs = null;
+    fp.attrGrid = null;
+  }
+
+  /**
    * Resample the stamp to a new scale. Re-rasterizes from font if fontInfo is available.
    * Does NOT create an undo entry — call beginAction/endAction around a drag sequence.
    * @param {number} sx - Scale X (1.0 = original size)
@@ -672,7 +726,8 @@ class SelectionServiceClass {
    */
   setStampScale(sx, sy) {
     const fp = this.floatingPaste;
-    if (!fp || fp.attrs) return;
+    if (!fp || this.stampColoured(fp)) return;
+    this._dropStaleColours(fp);
     fp._scaleX = Math.max(0.1, sx);
     fp._scaleY = Math.max(0.1, sy);
     this._recomputeStampTransform();
@@ -684,7 +739,8 @@ class SelectionServiceClass {
    */
   setStampRotation(degrees) {
     const fp = this.floatingPaste;
-    if (!fp || fp.attrs) return;
+    if (!fp || this.stampColoured(fp)) return;
+    this._dropStaleColours(fp);
     fp._rotation = degrees % 360;
     this._recomputeStampTransform();
   }
@@ -695,7 +751,8 @@ class SelectionServiceClass {
    */
   setStampWarp(effect) {
     const fp = this.floatingPaste;
-    if (!fp || fp.attrs) return;
+    if (!fp || this.stampColoured(fp)) return;
+    this._dropStaleColours(fp);
     fp._warpEffect = effect || 'none';
     this._recomputeStampTransform();
   }
@@ -1404,9 +1461,13 @@ class SelectionServiceClass {
     if (!this.floatingPaste) return;
     const isShift = type === 'shiftLeft' || type === 'shiftRight'
       || type === 'shiftUp' || type === 'shiftDown';
-    if (this.floatingPaste.attrs && !isShift) return; // shape ops undefined on a per-cell attribute grid
+    // Shape ops are undefined on a per-cell colour grid: a stamp that places its
+    // own colours refuses them; a Pixels stamp that merely carries the copied
+    // colours loses them (see _dropStaleColours).
+    if (this.stampColoured(this.floatingPaste) && !isShift) return;
     UndoRedo.beginAction(`Stamp ${type}`);
     const fp = this.floatingPaste;
+    if (!isShift) this._dropStaleColours(fp);
 
     // Shift operations reposition the stamp — no pixel data transform needed.
     // No canvas clamp: the stamp may shift past the canvas edge.
