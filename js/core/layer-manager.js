@@ -1636,8 +1636,12 @@ class LayerManagerClass {
     newLayer.locked = source.locked;
     newLayer.isStamp = source.isStamp;
     newLayer.xorMode = source.xorMode;
-    newLayer.stamp = this._plainStamp(source.stamp);
+    // The stamp's live data (it may be the one being dragged, or a fresh
+    // paste with no parked copy), and none of the preview cells it drew.
+    const live = window.SelectionService ? SelectionService.getStampData(source) : source.stamp;
+    newLayer.stamp = this._plainStamp(live || source.stamp);
     newLayer.restoreAttributeData(source.cloneAttributeData());
+    if (newLayer.isStamp && newLayer.stamp) newLayer.clear();
 
     return newLayer;
   }
@@ -2870,13 +2874,52 @@ class LayerManagerClass {
    */
   _plainStamp(s) {
     if (!s || !Array.isArray(s.mask) || s.mask.length === 0) return null;
-    return {
+    const out = {
       x: s.x, y: s.y, w: s.w, h: s.h,
       colorSelection: s.colorSelection ? { ...s.colorSelection } : null,
       mask: s.mask.map(row => Array.from(row, Boolean)),
       indices: s.indices ? s.indices.map(row => Array.from(row)) : null,
       attrs: s.attrs ? Array.from(s.attrs) : null
     };
+    // Written only when set, so a stamp without settings saves as it always did.
+    if (s.attrGrid) out.attrGrid = { ...s.attrGrid };
+    if (s.opts) {
+      out.opts = { ...s.opts };
+      if (s.opts.showThrough) out.opts.showThrough = { ...s.opts.showThrough };
+    }
+    return out;
+  }
+
+  /**
+   * The per-stamp settings of a file's stamp, cleaned: only allowed values
+   * survive and anything else falls back to the default (null).
+   * @private
+   */
+  _readStampOpts(o) {
+    if (!o || typeof o !== 'object') return null;
+    const out = {};
+    if (o.colours === 'pixels' || o.colours === 'coloured') out.colours = o.colours;
+    if (o.clearDots === 'transparent' || o.clearDots === 'overlap') out.clearDots = o.clearDots;
+    if (o.showThrough && typeof o.showThrough === 'object') {
+      out.showThrough = {};
+      for (const k of ['ink', 'paper', 'bright', 'flash']) out.showThrough[k] = o.showThrough[k] === true;
+    }
+    return Object.keys(out).length ? out : null;
+  }
+
+  /**
+   * The attribute grid of a file's stamp, or null if it does not hold
+   * together with the attrs it describes.
+   * @private
+   */
+  _readStampAttrGrid(g, attrs) {
+    if (!g || typeof g !== 'object' || !Array.isArray(attrs)) return null;
+    const ints = [g.cols, g.rows, g.cw, g.ch, g.ox, g.oy];
+    if (!ints.every(Number.isInteger)) return null;
+    if (g.cols < 1 || g.rows < 1 || g.cw < 1 || g.ch < 1) return null;
+    if (g.cols * g.rows !== attrs.length) return null;
+    if (g.ox < 0 || g.ox >= g.cw || g.oy < 0 || g.oy >= g.ch) return null;
+    return { cols: g.cols, rows: g.rows, cw: g.cw, ch: g.ch, ox: g.ox, oy: g.oy };
   }
 
   /**
@@ -2901,7 +2944,9 @@ class LayerManagerClass {
       mask: s.mask,
       colorSelection: s.colorSelection && typeof s.colorSelection === 'object' ? s.colorSelection : null,
       indices: rowsOk(s.indices) ? s.indices : null,
-      attrs: Array.isArray(s.attrs) ? s.attrs : null
+      attrs: Array.isArray(s.attrs) ? s.attrs : null,
+      attrGrid: this._readStampAttrGrid(s.attrGrid, s.attrs),
+      opts: this._readStampOpts(s.opts)
     });
   }
 
