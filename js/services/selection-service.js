@@ -1692,21 +1692,41 @@ class SelectionServiceClass {
    * @private
    */
   _paintIndexedStamp(data, targetLayer, color, mode = DRAW_MODE.NORMAL) {
+    this._forEachIndexedStampWrite(data, color, mode,
+      (cx, cy, sel, m) => PixelDrawRoutine.draw(cx, cy, sel, m, { layer: targetLayer }));
+  }
+
+  /**
+   * The write plan for an indexed stamp (see _forEachStampWrite for the
+   * classic one): `visit(px, py, sel, mode)` per write. Set pixels are the
+   * stamp's own indices (or the mask at the current ink) in the resolved mode.
+   * With "clear dots overlap" the clear pixels inside the stamp's box are
+   * written too, as the opposite of the mode in force - Erase for Normal and
+   * Pixels Only, the ink for the right button / Inverse - and nothing for the
+   * XOR and recolour modes, which have no opposite.
+   * @private
+   */
+  _forEachIndexedStampWrite(data, color, mode, visit) {
     const { mask, indices, x, y, w, h } = data;
+    const overlap = this.stampOptions(data).clearDots === 'overlap';
+    let clearMode = null;
+    if (overlap) {
+      if (mode === DRAW_MODE.NORMAL || mode === DRAW_MODE.PIXEL_ONLY) clearMode = DRAW_MODE.ERASE;
+      else if (mode === DRAW_MODE.NORMAL_ERASE || mode === DRAW_MODE.ERASE) clearMode = DRAW_MODE.PIXEL_ONLY;
+    }
     for (let py = 0; py < h; py++) {
       const maskRow = mask ? mask[py] : null;
       const idxRow = indices ? indices[py] : null;
-      if (!maskRow && !idxRow) continue;
+      if (!maskRow && !idxRow && !clearMode) continue;
       for (let px = 0; px < w; px++) {
-        let idx = null;
+        const cx = x + px, cy = y + py;
+        let idx = null, set = true;
         if (idxRow && idxRow[px] != null && idxRow[px] >= 0) idx = idxRow[px];
         else if (!idxRow && maskRow && maskRow[px]) idx = null; // mask -> current ink
-        else continue;
-        const cx = x + px, cy = y + py;
+        else set = false;
         if (!Validators.isValidPixelCoord(cx, cy)) continue;
-        PixelDrawRoutine.draw(cx, cy,
-          idx != null ? { ...color, index: idx } : color,
-          mode, { layer: targetLayer });
+        if (set) visit(cx, cy, idx != null ? { ...color, index: idx } : color, mode);
+        else if (clearMode) visit(cx, cy, color, clearMode);
       }
     }
   }
@@ -2057,6 +2077,36 @@ class SelectionServiceClass {
     }
   }
 
+  /** The overlap half of the indexed preview. @private */
+  _drawFloatingLayerIndexedOverlap(mode) {
+    const fp = this.floatingPaste;
+    const floatingLayer = fp.floatingLayer;
+    const CW = ZX_SPECTRUM.CELL_WIDTH;
+    const CH = ZX_SPECTRUM.CELL_HEIGHT;
+    const color = ColorManager.getCurrentSelection();
+    const targetLayer = this._findTargetBelow(floatingLayer);
+    const writeLayer = targetLayer || floatingLayer;
+    const excludeLayer = targetLayer ? floatingLayer : null;
+    const byCell = new Map();
+    this._forEachIndexedStampWrite(this.getStampData(floatingLayer), color, mode,
+      (px, py, sel, m) => {
+        const key = Math.floor(py / CH) * ZX_SPECTRUM.GRID_COLS + Math.floor(px / CW);
+        let list = byCell.get(key);
+        if (!list) { list = []; byCell.set(key, list); }
+        list.push({ localX: px % CW, localY: py % CH, mode: m, sel });
+      });
+    for (const [key, writes] of byCell) {
+      const cx = key % ZX_SPECTRUM.GRID_COLS, cy = Math.floor(key / ZX_SPECTRUM.GRID_COLS);
+      const fpCell = floatingLayer.getCell(cx, cy);
+      if (!fpCell || !fpCell.indices) continue;
+      const simulated = PixelDrawRoutine.simulateCell(writeLayer, cx, cy, writes, color);
+      if (!simulated) continue;
+      fpCell.indices.set(LayerManager.previewCellIndices(cx, cy, writeLayer, simulated, excludeLayer));
+      fpCell.altered = true;
+      LayerManager.deferCellCompose(cx, cy);
+    }
+  }
+
   /**
    * Indexed-mode stamp preview (Phase 13): write the stamp's palette
    * indices (or the mask at the current indexed ink) into the floating
@@ -2080,6 +2130,15 @@ class SelectionServiceClass {
     const CH = ZX_SPECTRUM.CELL_HEIGHT;
     const inkIdx = ColorManager.getIndexedInk();
     const mode = PixelDrawRoutine.resolveUserMode(true);
+
+    // "Clear dots overlap" changes pixels the stamp does not cover, so the
+    // direct per-pixel preview below cannot show it. Walk the same write
+    // plan the placement walks, simulate each cell on the layer the stamp
+    // would land on, and show the composite - as the classic preview does.
+    if (this.stampOptions(this.floatingPaste).clearDots === 'overlap') {
+      this._drawFloatingLayerIndexedOverlap(mode);
+      return;
+    }
 
     let paperIdx = 0, targetLayer = null;
     if (mode === DRAW_MODE.PAPER || mode === DRAW_MODE.XOR || mode === DRAW_MODE.XOR_PIXEL ||
