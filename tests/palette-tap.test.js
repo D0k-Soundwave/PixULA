@@ -139,6 +139,7 @@ check('a palette tape is not a document', TAPFormat.importsDocumentFor(tap.buffe
   t[24] = 0; t[25] = 0;                         // line 0
   t.set([0x14, 0x01, ...Array.from('64colour').map(c => c.charCodeAt(0))], 4);
   t.fill(0x41, 28, 44);                           // different BASIC, still before the REM
+  t[30] = 0xC0;                                   // ... that starts the code with USR
   t[44] = 0xEA;
   check('a tape with another loader and line number is accepted', sameArr(Array.from(TAPFormat.findUlaplusPalette(t)), regsOther));
 }
@@ -156,6 +157,17 @@ check('a palette tape is not a document', TAPFormat.importsDocumentFor(tap.buffe
   bad('a line too short to hold 64 bytes', (t) => { t[26] = 40; });
   bad('a truncated tape', (t) => t.slice(0, 120));
   bad('an empty tape', () => new Uint8Array(0));
+  bad('a loader with no USR before the REM', (t) => { t.fill(0x41, 28, 44); });
+  bad('a longer program: more BASIC lines after the REM line', (t) => {
+    const len = t[21] | (t[22] << 8);                // the data block's length word
+    const extra = [0x00, 0x14, 0x03, 0x00, 0xF9, 0x0D];
+    const cut = 21 + 2 + len - 1;                    // the checksum byte
+    const out = new Uint8Array(t.length + extra.length);
+    out.set(t.subarray(0, cut), 0);
+    out.set(extra, cut);
+    out[21] = (len + extra.length) & 0xFF; out[22] = ((len + extra.length) >> 8) & 0xFF;
+    return out;
+  });
 }
 {
   __setActiveScreenMode('standard_ula');

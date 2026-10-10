@@ -283,4 +283,71 @@ bezier.setLineStyle('solid');
   bezier.cancelPending();
 }
 
+// --- Review fixes (group B): a waiting shape follows every option, survives the pointer leaving, keeps its own dials in a clone ----
+{
+  ToolManager.register(shape);
+  ToolManager.register(bezier);
+  const drag = (x1, y1, x2, y2) => {
+    const e = { button: 0, timeStamp: 1 };
+    shape.onPointerDown(x1, y1, e);
+    shape.onPointerMove(x2, y2, e);
+    shape.onPointerUp(x2, y2, e);
+  };
+  fresh();
+  shape.setPointMode(true);
+  drag(20, 30, 70, 60);
+  shape.setFilled(true);
+  shape.handleKey('Enter');
+  const filledCount = dots().size;
+  fresh();
+  shape.setPointMode(false);
+  shape.setFilled(true);
+  drag(20, 30, 70, 60);
+  check('a waiting shape follows Filled (same pixels as drawing it filled)', filledCount > 1000 && filledCount === dots().size, filledCount + ' vs ' + dots().size);
+
+  fresh();
+  shape.setPointMode(true);
+  drag(20, 30, 70, 60);
+  shape.setThickness(3);
+  shape.handleKey('Enter');
+  const thick = dots().size;
+  fresh();
+  shape.setPointMode(false);
+  shape.setThickness(3);
+  drag(20, 30, 70, 60);
+  check('a waiting shape follows Thickness', thick > 200 && thick === dots().size);
+  shape.setThickness(1);
+
+  fresh();
+  shape.setPointMode(true);
+  drag(20, 30, 70, 60);
+  previews.length = 0;
+  shape.onPointerLeave({});
+  const shown = previews.length ? previews[previews.length - 1].ink.length : 0;
+  check('the pointer leaving the canvas keeps a waiting shape on show', shape.hasPending && shown > 100, 'shown ' + shown);
+  shape.cancelPending();
+
+  // a cloned arc keeps its own span when another option changes
+  fresh();
+  shape.setPointMode(false);
+  shape.setShapeType('arc');
+  shape.setArcSpan(270);
+  drag(20, 30, 70, 60);
+  const arc270 = dots();
+  shape.setArcSpan(90);
+  fresh();
+  shape.setPointMode(true);
+  shape.setShapeType('arc');
+  shape.setArcSpan(270);
+  drag(20, 30, 70, 60);
+  shape.handleKey('Enter');
+  shape.setArcSpan(90);
+  FigureHistory.cloneLast();
+  shape.setLineStyle('solid');
+  check('a cloned arc keeps its 270 degrees when an option changes', shape.getArcSpan() === 270);
+  shape.cancelPending();
+  shape.setArcSpan(180);
+  shape.setShapeType('rectangle');
+}
+
 summary();

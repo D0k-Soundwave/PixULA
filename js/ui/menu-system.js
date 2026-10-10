@@ -1334,6 +1334,8 @@ class MenuSystemClass {
         for (const s of COLOUR_SHORTCUTS) shortcuts.push([s.keys, this._t(s.i18n, s.en)]);
         // ULAplus CLUT keys - one list with the key handler
         shortcuts.push([CLUT_SHORTCUTS.keys, this._t(CLUT_SHORTCUTS.i18n, CLUT_SHORTCUTS.en)]);
+        shortcuts.push(['X / Y', this._t('help.axisLock', 'Hold while drawing: keep to a horizontal (X) or vertical (Y) line. Tap X: swap ink and paper')]);
+        shortcuts.push(['Shift+C', this._t('menu.edit.cloneFigure', 'Clone Last Figure')]);
         // Inverse - one list with the key handler
         for (const s of MODE_SHORTCUTS) shortcuts.push([s.keys, this._t(s.i18n, s.en)]);
         // Preset recall — both the key range and the number in the description

@@ -612,3 +612,29 @@ small for one figure draws nothing (by the "whole figures only" rule).
 Comparison rows: X and Y keys Same; Spray pattern Partial.
 Tests: tests/axis-lock.test.js, tests/spray-pattern.test.js, browser axis-lock.spec.js, spray-pattern.spec.js.
 Next: group B Opus end-of-build review.
+
+## Group B end-of-build Opus review (2026-10-10)
+Opus (Plan agent) reviewed 5A..7C2. Run-all, check:manual and the 706-spec Playwright run passed beforehand; it found 4
+real bugs and 9 smaller points. Fixed, each with a failing test first (verified failing before the fix):
+1. A shape kept editable vanished when the pointer left the canvas (onPointerLeave cleared the preview): now re-renders.
+2. A waiting shape ignored Filled, Thickness, the per-shape dials and Colour core: every setter now calls _syncPending.
+3. Clone lost a shape's own dials (arc span, star points, rounding...) at the next option change: prepareClone restores them.
+4. An ordinary one-REM tape read as a ULAplus palette: findUlaplusPalette now requires a one-line program with a USR
+   before the REM (tests: no-USR loader, a longer program).
+5. X / Y could stay locked when focus left from inside the canvas iframe: blur on every document's window, and
+   visibilitychange, now reset AxisLock (needs a manual check in a real browser; not testable headless).
+6. X / Y held while clicking figure points had no effect: AxisLock.projectAbout, ToolBase.axisAnchor (FigureTool returns
+   its last point); applied to the click and the hover rubber band. Browser spec added.
+7. Manual: the Bezier exception (handles + arrow keys only; Ctrl+Z drops the whole curve) added in 13 languages.
+8. Comparison doc: Totals line updated (33 below parity: 7 missing, 26 partial, 69 same [M, count-verdicts.js]); rows for
+   overlays (5A/5B text), ellipse wording, parallelogram -> Partial, re-colour -> Partial, spray pattern reason.
+9. FIGURES.md: false "redraws on a click" claim corrected and the 35 ms worst case recorded; the single-rasterise
+   refactor is left OPEN.
+10. F1 shortcuts dialog lists X / Y and Shift+C (new key help.axisLock, 13 locales). 11. German show-through labels
+   translated. 13. Spray Pattern Flow now counts by the dots one figure really lays.
+Not done (low): untagged constants (6 tries, size 2-16, knob offset, grab radius 4); the turn knob is drawn but pressing it
+adds a point while a figure is still being drawn; a 5B reload-persistence test.
+OWNER decisions raised by Opus, to ask at the sign-off: Escape on a pending figure (drops it; ZX Paintbrush completes it);
+palette tape row Same vs Partial until opened in ZX Paintbrush 2.6.4; whether pending-only cursor keys/re-colour are Same
+or Partial; whether a knob turn should stick as the Shape tool's Rotation option; build the 3-point parallelogram; ASCII
+rule vs box-drawing characters in comments; group A leftovers (a)-(e) and two commit messages mentioning "Opus".

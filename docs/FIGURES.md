@@ -704,13 +704,17 @@ case a person can draw), median of 9 calls, two runs back to back in one sitting
 | `PixelDrawRoutine.strokeTargets`, same pixels | 13.0 / 13.0 ms | M |
 
 A full-canvas fill in Layer 2 640 costs about 24 ms of geometry (C: 10.9 + 13.0) per preview redraw, which is over
-the 7 ms `CoverageOps.LIVE_BUDGET_MS` budget. That is the extreme case; a figure the size of a sprite is a few
-hundred pixels. Nothing was changed on the strength of it: the Shape tool's preview rasterises the same fill on
-every move, and the Figure preview redraws on a click, not on every pointer move (hover draws only the open outline).
+the 7 ms `CoverageOps.LIVE_BUDGET_MS` budget [P: CoverageOps, read 2026-10-10]. That is the extreme case; a figure the size of
+a sprite is a few hundred pixels [A: not measured]. Corrected 2026-10-10 (group B review): since Batch 7C the Figure
+preview is NOT only redrawn on a click. `figure-tool.js` re-renders the full figure, fill included, on every hover
+move while points are being placed, and point-mode drags re-render on every move; `FigureEditor.render` rasterises
+twice (the plan, and `knob()`), and an editable Shape rasterises twice more. Worst case per move in Layer 2 640 is about
+35 ms [C: 2 x 10.9 + 13.0, from the table], five times the 7 ms budget. Not yet fixed; it is only reached with a
+full-canvas filled figure, and a figure of a few hundred pixels is far below it. Open item: rasterise once per render.
 
 ### Line style and rotation cost - measured 2026-10-10
 
-Node, repo test stubs, a 601 x 241 ellipse (about 1,300 pixels) in Layer 2 640, median of 7 calls, two runs back to
+Node, repo test stubs, a 601 x 241 ellipse (about 1,300 pixels [C: counted from the raster of that ellipse]) in Layer 2 640, median of 7 calls, two runs back to
 back in one sitting.
 
 | Path | Run 1 / 2 | Tag |

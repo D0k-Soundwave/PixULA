@@ -84,4 +84,14 @@ const same = (a, b) => a.x === b.x && a.y === b.y;
   check('...but a new stroke with X still down locks at its own press point', (L.beginStroke(p(40, 60)), L.project(p(90, 5)).y === 60));
 }
 
+{
+  const L = A();
+  check('projectAbout with no key returns the point', same(L.projectAbout(p(5, 5), p(9, 9)), p(9, 9)));
+  L.keyDown('x', false);
+  check('projectAbout X keeps the anchor y', same(L.projectAbout(p(5, 5), p(9, 40)), p(9, 5)));
+  L.keyDown('y', false);
+  check('projectAbout Y keeps the anchor x', same(L.projectAbout(p(5, 5), p(9, 40)), p(5, 40)));
+  check('projectAbout without an anchor returns the point', same(L.projectAbout(null, p(9, 40)), p(9, 40)));
+}
+
 summary();

@@ -65,3 +65,20 @@ test('tapping X still swaps ink and paper; holding it through a stroke does not'
     await stroke(page, 'x');
     expect(await sel(), 'locking an axis is not a swap').toBe(before);
 });
+
+test('holding X while clicking figure points keeps them on one line', async ({ page }) => {
+    await boot(page);
+    await page.click('.tool-btn[data-tool="shape"]');
+    await page.click('#tool-options-panel .tool-btn[data-value="figure-polyline"]');
+    await page.keyboard.down('x');
+    for (const [x, y] of [[30, 30], [90, 60], [150, 20]]) {
+        const p = await pixelPoint(page, x, y);
+        await page.mouse.move(p.x, p.y);
+        await page.mouse.down();
+        await page.mouse.up();
+        await page.waitForTimeout(550);
+    }
+    await page.keyboard.up('x');
+    const ys = await page.evaluate(() => ToolManager.getCurrentTool()._model.points.map(q => q.y));
+    expect(new Set(ys).size, 'one y for all the points').toBe(1);
+});

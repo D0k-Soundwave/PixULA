@@ -435,6 +435,7 @@ const pt = {
     'menu.image.attrFlipV': 'Espelhar verticalmente',
     'menu.image.attrNoCells': 'Este modo de ecrã não tem cores de célula.',
     'menu.image.attrStamp': 'Conclua ou cancele primeiro o carimbo.',
+    'help.axisLock': 'Manter ao desenhar: linha horizontal (X) ou vertical (Y). Tocar em X: trocar tinta e papel',
     'opt.patternShape': 'Figura',
     'opt.patternSize': 'Tamanho da figura',
     'menu.edit.cloneFigure': 'Clonar a última figura',

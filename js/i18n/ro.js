@@ -435,6 +435,7 @@ const ro = {
     'menu.image.attrFlipV': 'Oglindește vertical',
     'menu.image.attrNoCells': 'Acest mod de ecran nu are culori de celulă.',
     'menu.image.attrStamp': 'Finalizați sau anulați mai întâi ștampila.',
+    'help.axisLock': 'Ține apăsat la desenat: linie orizontală (X) sau verticală (Y). Atinge X: schimbă cerneala cu hârtia',
     'opt.patternShape': 'Figură',
     'opt.patternSize': 'Mărimea figurii',
     'menu.edit.cloneFigure': 'Clonează ultima figură',

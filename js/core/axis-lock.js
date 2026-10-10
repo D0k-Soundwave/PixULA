@@ -89,6 +89,17 @@ class AxisLockClass {
     }
 
     /**
+     * `p` put on the axis through `anchor` (X keeps anchor.y, Y keeps anchor.x), or `p` itself when no key is held.
+     * No state: for points that are not part of a drag, such as the clicks of a figure and its rubber band.
+     * @returns {{x:number,y:number}}
+     */
+    projectAbout(anchor, p) {
+        const ax = this.axis();
+        if (!ax || !anchor) return p;
+        return ax === 'x' ? { x: p.x, y: anchor.y } : { x: anchor.x, y: p.y };
+    }
+
+    /**
      * The point to use for `p`: on the locked axis, or `p` itself when nothing is held.
      * @returns {{x:number,y:number}}
      */

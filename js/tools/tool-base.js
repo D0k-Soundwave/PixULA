@@ -125,6 +125,15 @@ class ToolBaseClass {
   }
 
   /**
+   * For a tool built from clicked points: the last point placed, or null. Held X / Y then constrain the NEXT click
+   * and the hover line to the axis through it, not just drags.
+   * @returns {?{x: number, y: number}}
+   */
+  axisAnchor() {
+    return null;
+  }
+
+  /**
    * Handle pointer up event
    * @param {number} pixelX - X coordinate in pixel space (0-255)
    * @param {number} pixelY - Y coordinate in pixel space (0-191)
