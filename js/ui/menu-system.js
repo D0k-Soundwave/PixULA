@@ -250,6 +250,15 @@ class MenuSystemClass {
             this._updateToggleState(`palette-slot-${i + 1}`, !b.slots && i === active);
         }
         this.setItemEnabled('palette-invert', !b.invert);
+        // File > Save Palette as TAP: a ULAplus palette only. A disabled row takes no pointer
+        // events, but the row title is still read by assistive technology and the status line.
+        const tapOk = ColorManager.paletteSlotKind() === 'ulaplus64';
+        this.setItemEnabled('save-palette-tap', tapOk);
+        const tapRow = this.element.querySelector('[data-id="save-palette-tap"]');
+        if (tapRow) {
+            if (tapOk) tapRow.removeAttribute('title');
+            else tapRow.title = this._t('mode.paletteTapNeedsUlaplus', 'The palette tape is for the ULAplus modes.');
+        }
         const parent = this.element.querySelector('[data-id="palette-slots"]');
         if (!parent) return;
         const reason = b.slots ? ['menu.image.paletteFixed', 'This screen mode has fixed colours, so it has no palette slots.']
@@ -354,6 +363,7 @@ class MenuSystemClass {
                     // just two entries buried in the Export format list.
                     { id: 'load-palette', label: 'Load Palette...', action: 'file:loadPalette' },
                     { id: 'save-palette', label: 'Save Palette...', action: 'file:savePalette' },
+                    { id: 'save-palette-tap', label: 'Save Palette as TAP...', action: 'file:savePaletteTap', i18n: 'menu.file.savePaletteTap' },
                     { id: 'create-palette', label: 'Create Palette...', action: 'file:createPalette' },
                     { type: 'separator' },
                     { id: 'tape-blocks', label: 'Tape Blocks...', action: 'file:tapeBlocks' },
@@ -794,6 +804,7 @@ class MenuSystemClass {
     _showMenu(menuId) {
         this._closeAllMenus();
 
+        if (menuId === 'file') this._updatePaletteMenuState();
         if (menuId === 'edit') this._updateEditMenuState();
         if (menuId === 'view') this._updateViewMenuState();
         if (menuId === 'image') {
@@ -1002,6 +1013,7 @@ class MenuSystemClass {
             case 'file:loadProject': FileManager.loadProjectFile(); break;
             case 'file:loadPalette': PaletteEditorDialog.loadFromFile(); break;
             case 'file:savePalette': PaletteEditorDialog.saveToFile(); break;
+            case 'file:savePaletteTap': PaletteEditorDialog.saveToFile('tap'); break;
             case 'file:createPalette': PaletteEditorDialog.create(); break;
             case 'file:import': FileManager.openFile(); break;
             case 'file:tapeBlocks': TapeBlockDialog.openForFile(); break;
