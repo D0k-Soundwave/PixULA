@@ -746,3 +746,23 @@ observed, and it is the right order of magnitude for deciding whether a cap is
 protecting anything. Where a decision needs the true heap figure, say so and
 measure it with the profiler.
 
+
+### Dither module timing - measured 2026-10-10 (Batch 8 part 8A)
+
+`node tools/dither-bench.js`, Node v24.19.0, a 640x256 grey image (163,840 pixels; a ramp plus fixed noise), median of 9
+calls per method, two runs back to back in one sitting [M]. Run 1 / run 2:
+
+| Methods | Run 1 / 2 | Tag |
+|---|---|---|
+| 3 thresholds | 0.17 / 0.17-0.18 ms each | M |
+| 9 ordered, cluster and supercell methods, bayer 2/4/8 | 0.34-0.52 ms each | M |
+| Error diffusion, small kernels (Sierra Lite, False FS, FS, Zhigang Fan, Shiau-Fan, Atkinson, Burkes, Sierra 2-row) | 1.9-3.1 ms each | M |
+| Error diffusion, large kernels (JJN, Stucki, Sierra 3-row) | 3.9-4.5 ms each | M |
+| Park-Kang-Kim | 6.5 / 6.6 ms | M |
+| Stevenson-Arce | 16.8 / 16.7 ms | M |
+| All 31, summed | 64.4 / 63.x ms | C: sum of the 31 medians |
+
+Against the 7 ms `CoverageOps.LIVE_BUDGET_MS` budget [P: coverage-ops.js, read 2026-10-10] every method but Stevenson-Arce fits at
+this size; error diffusion is a serial scan and cannot be done per pointer move on a full 640x256 image either way, so 8B
+should preview on a reduced image or debounce it. `PKK_SPLIT = 224` in `js/utils/dither.js` is an [A] figure: the
+measurement against the help pictures could not tell kernel A from kernel B in the highlights, and nothing rests on it.

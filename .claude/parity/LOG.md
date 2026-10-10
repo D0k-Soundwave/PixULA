@@ -638,3 +638,13 @@ OWNER decisions raised by Opus, to ask at the sign-off: Escape on a pending figu
 palette tape row Same vs Partial until opened in ZX Paintbrush 2.6.4; whether pending-only cursor keys/re-colour are Same
 or Partial; whether a knob turn should stick as the Shape tool's Rotation option; build the 3-point parallelogram; ASCII
 rule vs box-drawing characters in comments; group A leftovers (a)-(e) and two commit messages mentioning "Opus".
+
+## Batch 8 part 8A (dither module) - 2026-10-10, branch parity-c (from parity-b)
+js/utils/dither.js: all 31 methods (3 thresholds, 14 error diffusion, 3 Bayer, 7 cluster dot, 4 supercell), API
+Dither.METHODS / apply / matrix / kernel / get / luma, options serpentine and origin. Opus plan review changed the plan:
+usage rules were measured against the help's output pictures (see batch-08.md "8A decisions"); the Bayer-equals-fade test
+became a transpose test. 31 names x 13 locales (dither.* keys). Script tag, boot manifest. tools/dither-bench.js and the
+FIGURES.md timings (all 31 summed 64 ms on 640x256; Stevenson-Arce 16.8 ms the slowest).
+Tests: tests/dither.test.js (kernels vs independent grids, sums, lattice tiles vs printed first rows, level counts, thresholds
+exact, uniform fields, ramp bands, hand-computed Floyd-Steinberg, determinism, options, errors). run-all passes.
+Next: 8B (plan review first).
