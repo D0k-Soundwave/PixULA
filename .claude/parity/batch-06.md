@@ -84,6 +84,11 @@ OWNER - ask in 6A, before building the keys:
    then Alt+Shift+1 to 4. Option 2: no CLUT keys; the rail's CLUT picker
    only. Palette slots get menu items only, no keys. Record the answer here.
 
+ANSWERED 2026-10-10 (owner): option 1, Ctrl+Shift+1 to 4. Tested 2026-10-10 in Chrome only (Playwright key press,
+channel chrome): all four combinations of both candidates reached the page with ctrl+shift+Digit codes. Edge was not installed
+and Firefox was not installed; Playwright injects events so it cannot see Windows-level interception. Match on e.code
+(Digit1-4), not e.key (Shift changes the key on some layouts).
+
 ## Part 6A - Palette slots, palette inverter, CLUT keys
 
 Build:
