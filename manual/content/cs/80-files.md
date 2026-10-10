@@ -12,6 +12,10 @@ projekt**, a je to to pravé, dokud je obrázek rozpracovaný.
 Zapisuje je **Soubor > Uložit obrázek jako**. Obsahují jen obrázek a nic jiného
 – to chcete, když výsledek předáváte, ne když na něm chcete dál pracovat.
 
+### Import obrázku
+
+Při otevření fotky nebo jiného obrázku (PNG, JPG, GIF) se vedle sebe ukážou tři převody - Ostrý, Hladký a Plochý - a kliknete na ten, který se vám líbí. Hladký mění odstíny na tečky a seznam **Dithering** pod náhledy určuje jak: výchozí je vlastní Floyd-Steinberg importu a seznam nabízí i dalších 30 metod ZX Paintbrush - prahy, rozptyl chyby, Bayerovy matice, shlukové tečky a superbuňky. Výběr metody přepne na náhled Hladký. Uspořádané metody pokračují přes atributové buňky, takže vzor běží přes celý obrázek; rozptyl chyby zůstává uvnitř každé buňky, protože každá buňka má své dvě barvy. V režimech Layer 2 a LoRes je seznam zašedlý: tyto režimy mají vlastní barevný dithering.
+
 ### Automatické ukládání a zálohy
 
 PixULA umí každých pár minut ukládat vaši práci do úložiště prohlížeče a

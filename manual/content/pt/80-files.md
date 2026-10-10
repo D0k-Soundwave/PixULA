@@ -14,6 +14,10 @@ carregar em hardware real. **Ficheiro > Guardar imagem como** escreve-os.
 Contêm a imagem e mais nada, que é o que quer ao entregar o resultado, e não o
 que quer se tenciona continuar a trabalhar nela.
 
+### Importar uma imagem
+
+Ao abrir uma foto ou outra imagem (PNG, JPG, GIF) aparecem três conversões lado a lado - Nítida, Suave e Plana - e clica-se na que se preferir. A Suave é a que transforma tons em pontos, e a lista **Pontilhado** por baixo das pré-visualizações escolhe como: por omissão é o Floyd-Steinberg próprio da importação, e a lista oferece ainda os outros 30 métodos do ZX Paintbrush - limiares, difusão de erro, matrizes de Bayer, pontos agrupados e supercélulas. Escolher um método passa para a pré-visualização Suave. Os métodos ordenados continuam através das células de atributos, pelo que o padrão percorre a imagem toda; a difusão de erro fica dentro de cada célula, porque cada célula tem as suas duas cores. Nos modos Layer 2 e LoRes a lista aparece esbatida: esses modos mantêm o seu próprio pontilhado de cor.
+
 ### Gravação automática e cópias
 
 O PixULA pode guardar o seu trabalho no armazenamento do próprio navegador a

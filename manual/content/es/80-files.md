@@ -15,6 +15,10 @@ cargarla en hardware real. **Archivo > Guardar imagen como** los escribe.
 Contienen la imagen y nada más, que es lo que quieres al entregar el resultado,
 y no lo que quieres si piensas seguir trabajando en ella.
 
+### Importar una imagen
+
+Al abrir una foto u otra imagen (PNG, JPG, GIF) se muestran tres conversiones una junto a otra - Nítida, Suave y Plana - y haces clic en la que prefieras. Suave es la que convierte los tonos en puntos, y la lista **Tramado** bajo las vistas previas elige cómo: por defecto es el Floyd-Steinberg propio del importador, y la lista ofrece además los otros 30 métodos de ZX Paintbrush - umbrales, difusión de error, matrices de Bayer, puntos agrupados y superceldas. Elegir un método pasa a la vista previa Suave. Los métodos ordenados continúan a través de las celdas de atributos, de modo que el patrón recorre toda la imagen; la difusión de error se queda dentro de cada celda, porque cada celda tiene sus dos colores. En los modos Layer 2 y LoRes la lista aparece atenuada: esos modos conservan su propio tramado de color.
+
 ### Guardado automático y copias
 
 PixULA puede guardar tu trabajo en el almacenamiento del propio navegador cada
