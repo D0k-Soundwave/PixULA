@@ -662,6 +662,7 @@ const TOOLS = Object.freeze({
     POLYGON: 'polygon',
     STAR: 'star',
     BEZIER: 'bezier',
+    FIGURE: 'figure',
     SELECTION: 'selection',
     // Viewport pan tool. The id string is legacy ('transform') and is kept for
     // persisted-session compatibility (the saved current-tool id is the raw
@@ -1608,7 +1609,22 @@ window.DEFAULT_CELL_ATTRS = DEFAULT_CELL_ATTRS;
 window.GIGA_SLOTS = GIGA_SLOTS;
 window.DISPLAY_VIEW_COLOURS = DISPLAY_VIEW_COLOURS;
 window.SPECTRUM_MEMORY = SPECTRUM_MEMORY;
+/**
+ * The point-based figures the Figure tool draws (Batch 7 part 7A). Values are prefixed so they can
+ * never collide with the shape ids ('triangle', 'polygon') in the Shape picker.
+ * @const {Object}
+ */
+const FIGURE_TYPES = Object.freeze({
+    POLYLINE: 'figure-polyline',
+    POLYGON: 'figure-polygon',
+    TRIANGLE: 'figure-triangle',
+    RAYS: 'figure-rays',
+    ORTHOGONAL: 'figure-orthogonal',
+    PARALLEL: 'figure-parallel'
+});
+
 window.TOOLS = TOOLS;
+window.FIGURE_TYPES = FIGURE_TYPES;
 window.TOOL_GROUPS = TOOL_GROUPS;
 window.COLOUR_SHORTCUTS = COLOUR_SHORTCUTS;
 window.CLUT_SHORTCUTS = CLUT_SHORTCUTS;
