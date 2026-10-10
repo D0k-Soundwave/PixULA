@@ -47,6 +47,7 @@ loadModule('js/tools/tool-base.js');
 loadModule('js/tools/tool-manager.js');
 loadModule('js/tools/shape-generator.js');
 loadModule('js/tools/figure-model.js');
+loadModule('js/tools/figure-editor.js');
 loadModule('js/tools/shape-tool.js');
 loadModule('js/tools/figure-tool.js');
 

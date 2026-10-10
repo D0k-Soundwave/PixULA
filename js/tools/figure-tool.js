@@ -75,8 +75,9 @@ class FigureToolClass extends ToolBase {
     this._colourCore = 'whole';
     this._lineStyle = 'solid';
     this._phase = 'idle';          // 'idle' | 'drawing' | 'pending'
-    this._model = null;
-    this._isEraseMode = false;
+    // The figure itself lives in the editor (preview, handles, editing and the commit are its job; ShapeTool shares it).
+    this._editor = new FigureEditor({ colourCore: () => this._colourCore });
+    this._editing = null;          // an edit drag of a pending figure: { event }
     this._press = null;            // { x, y, moved, first }
     this._lastClick = null;        // { x, y, t }
     this._finishOnRelease = false;
@@ -149,17 +150,27 @@ class FigureToolClass extends ToolBase {
     return this._type === FIGURE_TYPES.POLYLINE || this._type === FIGURE_TYPES.POLYGON || this._type === FIGURE_TYPES.RAYS;
   }
 
+  /** The figure being drawn or edited (held by the editor). */
+  get _model() { return this._editor.model; }
+  set _model(v) { if (v) this._editor.model = v; else this._editor.close(); }
+
+  /** True when the figure erases (its first press was the right button). */
+  get _isEraseMode() { return this._editor.erase; }
+  set _isEraseMode(v) { this._editor.erase = !!v; }
+
   get hasPending() { return !!this._model; }
 
   /** @private */
   _newModel() {
-    this._model = new FigureModel(this._type, { filled: this._filled, thickness: this._thickness, lineStyle: this._lineStyle });
+    this._editor.open(new FigureModel(this._type,
+      { filled: this._filled, thickness: this._thickness, lineStyle: this._lineStyle }), false);
     this._phase = 'drawing';
   }
 
   /** @private */
   _reset() {
-    this._model = null;
+    this._editor.close();
+    this._editing = null;
     this._phase = 'idle';
     this._press = null;
     this._finishOnRelease = false;
@@ -170,8 +181,20 @@ class FigureToolClass extends ToolBase {
   // ── Pointer state machine ─────────────────────────────────────────────────
 
   onPointerDown(pixelX, pixelY, e) {
-    // A pending figure: a click away commits it and starts the next one.
-    if (this._phase === 'pending') this.commit();
+    // A pending figure: press on a handle, the turn knob or the figure itself to edit it (the edit begins when the
+    // pointer moves; released without moving it counts as a click away). A press on nothing commits it and starts
+    // the next one.
+    if (this._phase === 'pending') {
+      const hit = this._editor.hitTest(pixelX, pixelY);
+      if (hit) {
+        this._editor.begin(hit, pixelX, pixelY);
+        this._editing = { event: e };
+        this.isDrawing = true;
+        this._renderPreview();
+        return;
+      }
+      this.commit();
+    }
 
     if (!this._model) {
       this._newModel();
@@ -180,7 +203,7 @@ class FigureToolClass extends ToolBase {
 
     const now = (e && typeof e.timeStamp === 'number') ? e.timeStamp : Date.now();
     const last = this._lastClick;
-    const grab = this._grabRadius();
+    const grab = this._editor.grabRadius();
     const isDouble = !!(last && this._model.points.length > 0 && now - last.t <= FIGURE_DBL_MS &&
       Math.abs(last.x - pixelX) <= grab && Math.abs(last.y - pixelY) <= grab);
 
@@ -198,6 +221,10 @@ class FigureToolClass extends ToolBase {
   }
 
   onPointerMove(pixelX, pixelY, e) {
+    if (this._editing) {
+      if (this._editor.drag(pixelX, pixelY)) this._renderPreview();
+      return;
+    }
     if (!this.isDrawing || !this._model || !this._press) return;
     if (pixelX !== this._press.x || pixelY !== this._press.y) this._press.moved = true;
     if (this._finishOnRelease) return;
@@ -219,6 +246,20 @@ class FigureToolClass extends ToolBase {
   }
 
   onPointerUp(pixelX, pixelY, e) {
+    if (this._editing) {
+      const ev = this._editing.event;
+      this._editing = null;
+      this.isDrawing = false;
+      if (!this._editor.end()) {
+        // pressed and released without moving: a click away - draw it and treat the press as a click
+        this.commit();
+        this.onPointerDown(pixelX, pixelY, ev);
+        this.onPointerUp(pixelX, pixelY, ev);
+        return;
+      }
+      this._renderPreview();
+      return;
+    }
     if (!this.isDrawing || !this._model) { this.isDrawing = false; return; }
     const press = this._press;
     this.isDrawing = false;
@@ -302,82 +343,67 @@ class FigureToolClass extends ToolBase {
     super.deactivate();
   }
 
-  // ── Write plan: the preview IS the commit ─────────────────────────────────
+  // ── Editing a pending figure (Batch 7 part 7C) ─────────────────────────────
 
-  /** The pixels, colour core and erase flag for the current figure. @private */
-  _plan(model = this._model) {
-    const r = model.rasterise();
-    let core = null;
-    const size = ToolBase.colourCoreSize(this._colourCore);
-    const filled = this._filled && model.fillable && model.points.length >= 3;
-    if (size && !filled && this._thickness > size && window.ColorManager && ColorManager.hasCellAttributes()) {
-      core = ShapeGenerator.corePredicate(r.centre, size);
-    }
-    return { pixels: r.pixels, core, erase: this._isEraseMode };
+  /** Cursor keys: move the pending figure. @returns {boolean} whether it was moved */
+  nudgePending(dx, dy) {
+    if (this._phase !== 'pending' || !this._model) return false;
+    this._editor.nudge(dx, dy);
+    this._renderPreview();
+    return true;
   }
+
+  /**
+   * Ctrl+Z while a figure is held: take back the last edit; with none left, the last point of a figure being
+   * drawn, or the pending figure itself. @returns {boolean} whether it was used
+   */
+  undoPending() {
+    if (!this._model) return false;
+    if (this._phase === 'pending') {
+      if (this._editor.undoEdit()) { this._renderPreview(); return true; }
+      this.cancelPending();
+      return true;
+    }
+    this._model.removeLastPoint();
+    if (this._model.points.length === 0) { this._reset(); this.clearPreview(); } else this._renderPreview();
+    return true;
+  }
+
+  /** Draw a figure that is being held (before a save, or before Clone). */
+  commitPending() {
+    if (this._model && this._model.points.length > 0) this.commit();
+  }
+
+  /** Set the options from a figure that is about to be reopened by Clone, so the panel shows them. */
+  prepareClone(rec) {
+    const o = rec.model.options;
+    this._type = rec.model.type;
+    this._filled = !!o.filled;
+    this._thickness = o.thickness;
+    this._lineStyle = o.lineStyle;
+  }
+
+  /** Open a pending copy of a recorded figure. */
+  openFigure(rec) {
+    this._editor.open(rec.model.clone(), rec.erase);
+    this._model.finished = true;
+    this._phase = 'pending';
+    this._renderPreview();
+  }
+
+  // ── Draw and preview: the editor's plan, shared with the commit ───────────
 
   /** Draw the figure as one undoable batch, then forget it. */
   commit() {
-    const model = this._model;
-    if (!model || model.points.length === 0) { this._reset(); this.clearPreview(); return; }
-    const plan = this._plan(model);
-    const mode = PixelDrawRoutine.resolveUserMode(!plan.erase);
-    const color = ColorManager.getCurrentSelection();
-    PixelDrawRoutine.beginBatch('Figure');
-    PixelDrawRoutine.withColourCore(plan.core, () => {
-      for (const p of plan.pixels) PixelDrawRoutine.draw(p.x, p.y, color, mode);
-    });
-    PixelDrawRoutine.endBatch();
+    if (!this._model || this._model.points.length === 0) { this._reset(); this.clearPreview(); return; }
+    this._editor.commit('Figure');
     this._reset();
     this.clearPreview();
   }
 
-  // ── Preview ───────────────────────────────────────────────────────────────
-
-  /**
-   * Draw the figure (or a hover variant of it) as the compositor preview, restricted to the
-   * pixels the commit would really write, plus the point markers.
-   * @private
-   */
+  /** @private */
   _renderPreview(model = this._model) {
-    if (!window.GridOverlay || !model) return;
-    const plan = this._plan(model);
-    const t = PixelDrawRoutine.strokeTargets(plan.pixels, plan.core);
-    PixelDrawRoutine.withColourCore(t.isCore, () => {
-      if (plan.erase) GridOverlay.drawCompositorPreview([], t.pixels);
-      else GridOverlay.drawCompositorPreview(t.pixels, []);
-    });
-    this._renderHandles(this._model);
-  }
-
-  /** Point markers: anchors for pressed points, a control marker for the third point of a 3-point figure. @private */
-  _renderHandles(model) {
-    if (!model) return;
-    const radius = this._handleRadius();
-    const handles = [];
-    model.points.forEach((p, i) => {
-      if (model.kinds[i] !== 'v') return;
-      const control = (model.type === FIGURE_TYPES.ORTHOGONAL || model.type === FIGURE_TYPES.PARALLEL) && i === 2;
-      handles.push({ x: p.x, y: p.y, radius, kind: control ? 'control' : 'anchor', active: false });
-    });
-    // a freehand run's last sample is an anchor too, so the person can see where it ended
-    const n = model.points.length;
-    if (n > 0 && model.kinds[n - 1] === 'r') {
-      handles.push({ x: model.points[n - 1].x, y: model.points[n - 1].y, radius, kind: 'anchor', active: false });
-    }
-    GridOverlay.drawHandles(handles, []);
-  }
-
-  /** Marker radius in ZX pixels for the current zoom (screen size / scale, at least one pixel). @private */
-  _handleRadius() {
-    const zoom = (window.StateManager && typeof StateManager.getZoom === 'function'
-      ? StateManager.getZoom() : 0) || DEFAULT_ZOOM || 100;
-    return Math.max(1, Math.round(FIGURE_HANDLE_SCREEN_RADIUS / (zoom / 100)));
-  }
-
-  /** Never smaller than what is drawn, or the person aims at the marker they see and misses it. @private */
-  _grabRadius() {
-    return Math.max(FIGURE_GRAB_RADIUS, this._handleRadius() + 1);
+    this._editor.render(model);
   }
 }
 

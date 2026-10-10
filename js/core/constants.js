@@ -1234,6 +1234,7 @@ const EVENTS = Object.freeze({
     COLOR_BORDER: 'color:border',
     PALETTE_CHANGED: 'color:paletteChanged',
     PALETTE_SLOT_CHANGED: 'color:paletteSlotChanged',
+    FIGURE_HISTORY_CHANGED: 'figure:historyChanged',
 
     // Canvas events
     CANVAS_RENDER: 'canvas:render',

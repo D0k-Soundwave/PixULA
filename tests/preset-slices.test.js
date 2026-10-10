@@ -85,6 +85,7 @@ loadModule('js/tools/eraser-tool.js');
 loadModule('js/tools/shape-tool.js');
 loadModule('js/tools/bezier-tool.js');
 loadModule('js/tools/figure-model.js');
+loadModule('js/tools/figure-editor.js');
 loadModule('js/tools/figure-tool.js');
 loadModule('js/tools/fill-tool.js');
 loadModule('js/tools/gradient-tool.js');
