@@ -435,6 +435,8 @@ const cs = {
     'menu.image.attrFlipV': 'Otočit svisle',
     'menu.image.attrNoCells': 'Tento režim obrazovky nemá barvy buněk.',
     'menu.image.attrStamp': 'Nejprve dokončete nebo zrušte razítko.',
+    'opt.patternShape': 'Obrazec',
+    'opt.patternSize': 'Velikost obrazce',
     'menu.edit.cloneFigure': 'Klonovat poslední obrazec',
     'opt.pointMode': 'Ponechat upravitelné',
     'shape.pointMode.hint': 'Tvar po tažení zůstane na obrázku: tažením rohu, tvaru nebo kulatého úchytu jej změníte, přesunete nebo otočíte. Enter jej nakreslí.',

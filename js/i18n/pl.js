@@ -435,6 +435,8 @@ const pl = {
     'menu.image.attrFlipV': 'Odbij pionowo',
     'menu.image.attrNoCells': 'Ten tryb ekranu nie ma kolorów komórek.',
     'menu.image.attrStamp': 'Najpierw zakończ lub anuluj pieczątkę.',
+    'opt.patternShape': 'Figura',
+    'opt.patternSize': 'Rozmiar figury',
     'menu.edit.cloneFigure': 'Klonuj ostatnią figurę',
     'opt.pointMode': 'Zostaw do edycji',
     'shape.pointMode.hint': 'Kształt po przeciągnięciu zostaje na obrazie: przeciągnij róg, kształt lub okrągły uchwyt, by go zmienić, przesunąć lub obrócić. Enter go rysuje.',

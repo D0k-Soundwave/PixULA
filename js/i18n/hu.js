@@ -435,6 +435,8 @@ const hu = {
     'menu.image.attrFlipV': 'Függőleges tükrözés',
     'menu.image.attrNoCells': 'Ez a képernyőmód nem használ cellaszíneket.',
     'menu.image.attrStamp': 'Előbb fejezze be vagy vonja vissza a bélyeget.',
+    'opt.patternShape': 'Alakzat',
+    'opt.patternSize': 'Alakzat mérete',
     'menu.edit.cloneFigure': 'Utolsó alakzat másolása',
     'opt.pointMode': 'Maradjon szerkeszthető',
     'shape.pointMode.hint': 'Az alakzat a húzás után a képen marad: húzz egy sarkot, az alakzatot vagy a kerek gombot az átalakításhoz, mozgatáshoz vagy forgatáshoz. Az Enter megrajzolja.',

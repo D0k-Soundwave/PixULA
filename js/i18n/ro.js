@@ -435,6 +435,8 @@ const ro = {
     'menu.image.attrFlipV': 'Oglindește vertical',
     'menu.image.attrNoCells': 'Acest mod de ecran nu are culori de celulă.',
     'menu.image.attrStamp': 'Finalizați sau anulați mai întâi ștampila.',
+    'opt.patternShape': 'Figură',
+    'opt.patternSize': 'Mărimea figurii',
     'menu.edit.cloneFigure': 'Clonează ultima figură',
     'opt.pointMode': 'Păstrează editabil',
     'shape.pointMode.hint': 'Forma rămâne pe imagine după tragere: trage un colț, forma sau butonul rotund ca s-o schimbi, s-o muți sau s-o rotești. Enter o desenează.',

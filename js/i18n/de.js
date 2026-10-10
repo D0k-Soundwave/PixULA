@@ -435,6 +435,8 @@ const de = {
     'menu.image.attrFlipV': 'Vertikal spiegeln',
     'menu.image.attrNoCells': 'Dieser Bildschirmmodus hat keine Zellenfarben.',
     'menu.image.attrStamp': 'Stempel zuerst abschließen oder abbrechen.',
+    'opt.patternShape': 'Figur',
+    'opt.patternSize': 'Figurgröße',
     'menu.edit.cloneFigure': 'Letzte Figur klonen',
     'opt.pointMode': 'Bearbeitbar halten',
     'shape.pointMode.hint': 'Die Form bleibt nach dem Ziehen im Bild: Ziehen Sie eine Ecke, die Form oder den runden Knauf, um sie zu ändern, zu verschieben oder zu drehen. Enter zeichnet sie.',

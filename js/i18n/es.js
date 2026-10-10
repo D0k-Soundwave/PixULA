@@ -435,6 +435,8 @@ const es = {
     'menu.image.attrFlipV': 'Voltear verticalmente',
     'menu.image.attrNoCells': 'Este modo de pantalla no tiene colores de celda.',
     'menu.image.attrStamp': 'Termine o cancele primero el sello.',
+    'opt.patternShape': 'Figura',
+    'opt.patternSize': 'Tamaño de figura',
     'menu.edit.cloneFigure': 'Clonar la última figura',
     'opt.pointMode': 'Mantener editable',
     'shape.pointMode.hint': 'La forma queda en la imagen tras arrastrar: arrastra una esquina, la forma o el mando redondo para cambiarla, moverla o girarla. Intro la dibuja.',
