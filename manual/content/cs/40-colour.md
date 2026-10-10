@@ -183,3 +183,15 @@ Položky Tečky v nabídce Obrázek mění tečky a barvy nechávají v jejich b
 Volba Posun v sekci Posunout panelu Transformace určuje, co se pohybuje. Tečky a barvy (výchozí) posouvá celé buňky i s jejich papírem. Jen tečky posouvá tečky po pixelu nebo po buňce. Jen barvy posouvá barvy buněk po buňce. Ovladač má i úhlopříčné směry. Když plove razítko, je volba Posun šedá, protože posun přesouvá celé razítko.
 
 Šipky se řídí stejnou volbou Posun, když je něco vybráno.
+
+### Razítka
+
+Když je razítko zapojené, panel **Transformace** ukazuje, jak se pokládá.
+
+**Barvy** volí mezi Jen body a Vlastní barvy. Jen body klade body razítka v barvách z lišty atributů, jako vždy. Vlastní barvy klade barvy, které razítko nese, buňku po buňce: razítko z Editoru map nebo razítko zkopírované z obrázku v režimu s barvami buněk. Razítko zkopírované z obrázku začíná jako Jen body, takže se vloží přesně jako dřív. Vlastní barvy razítko usadí na celé buňky, ignorují režim kreslení, lištu barev i přepínač XOR a razítko nelze zmenšit, otáčet, ohnout, převrátit, invertovat ani obrysovat; panel to zašedí a řekne proč. Změna tvaru razítka Jen body zahodí barvy, které nese. Inverze stále prohodí, co dělají plné a prázdné body. Pokud mají buňky razítka jinou velikost než současný režim obrazovky, je možné jen Jen body.
+
+**Prosvítání** (jen Vlastní barvy) nechá místo barvy razítka prosvítat barvu, která už na stránce je. Inkoust, Papír, Jas a Blikání mají každý své políčko. ULAplus má jedno políčko CLUT pro Jas a Blikání dohromady. V GigaScreen každé políčko platí pro obě obrazovky.
+
+**Prázdné body** rozhodují, co dělají prázdné body razítka. Ponechat pozadí nechá obraz pod nimi být (razítko s vlastními barvami pod nimi stále přebarví papír, pokud neprosvítá Papír). Smazat pozadí ho také smaže, na celém obdélníku razítka. Režimy kreslení bez opaku (XOR, Přebarvení inkoustu, Přebarvení papíru) a vlastní přepínač XOR razítka nechají prázdné body být a panel to oznámí. Prázdné body jsou dostupné v každém režimu obrazovky, i bez barev buněk.
+
+**Převést na jen body** natrvalo zahodí barvy razítka a ponechá jeho body. Volba Jen body v Barvách je zachová, takže se lze vrátit. Každá změna je jeden krok zpět.

@@ -195,3 +195,15 @@ Os itens Pontos do menu Imagem alteram os pontos e deixam as cores nas suas cél
 A opção Mover na secção Deslocar do painel Transformar escolhe o que se move. Pontos e cores (predefinição) move células inteiras com o seu papel. Só pontos move os pontos um píxel ou uma célula de cada vez. Só cores move as cores das células uma célula de cada vez. O painel tem também as diagonais. Enquanto um carimbo flutua, Mover fica acinzentado, porque um deslocamento move o carimbo inteiro.
 
 Quando há uma seleção, as setas seguem a mesma opção Mover.
+
+### Carimbos
+
+Quando um carimbo está ativo, o painel **Transformar** mostra como é colocado.
+
+**Cores** escolhe entre Só píxeis e Cores próprias. Só píxeis coloca os pontos do carimbo nas cores da barra de atributos, como sempre. Cores próprias coloca as cores que o carimbo leva, célula a célula: um carimbo do Editor de mapas, ou um copiado de uma imagem num modo com cores de célula. Um carimbo copiado da imagem começa como Só píxeis, por isso uma colagem cai exatamente como antes. Cores próprias assenta o carimbo em células inteiras, ignora o modo de desenho, a barra de cores e o interruptor XOR, e não pode ser redimensionado, rodado, curvado, espelhado, invertido nem contornado; o painel desativa essas opções e diz porquê. Mudar a forma de um carimbo Só píxeis descarta as cores que levava. Inverso continua a trocar o que fazem os pontos cheios e vazios. Se as células do carimbo têm um tamanho diferente do modo de ecrã atual, só é possível Só píxeis.
+
+**Deixar ver** (só com Cores próprias) deixa ver a cor que já está na página em vez da do carimbo. Tinta, Papel, Brilho e Intermitência têm cada um a sua caixa. O ULAplus tem uma caixa CLUT para Brilho e Intermitência juntos. No GigaScreen cada caixa cobre os dois ecrãs.
+
+**Pontos vazios** decide o que fazem os pontos vazios do carimbo. Deixar o fundo deixa em paz o desenho por baixo (um carimbo com cores próprias continua a recolorir o papel por baixo, salvo se o Papel se vir). Apagar o fundo apaga-o também, em todo o retângulo do carimbo. Os modos de desenho sem oposto (XOR, Recolorir tinta, Recolorir papel) e o interruptor XOR próprio do carimbo deixam os pontos vazios em paz, e o painel di-lo. Pontos vazios está disponível em todos os modos de ecrã, mesmo sem cores de célula.
+
+**Converter em só píxeis** descarta para sempre as cores do carimbo e mantém os seus pontos. A escolha Só píxeis em Cores mantém-nas, por isso pode voltar atrás. Cada alteração é um passo de anular.

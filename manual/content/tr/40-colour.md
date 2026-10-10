@@ -195,3 +195,15 @@ Görüntü menüsündeki Noktalar öğeleri noktaları değiştirir, renkleri h�
 Dönüşüm panelindeki Kaydırma bölümünde Taşıma seçeneği neyin taşınacağını belirler. Noktalar ve renkler (varsayılan) tam hücreleri kağıtlarıyla birlikte taşır. Yalnızca noktalar noktaları seferinde bir piksel ya da bir hücre taşır. Yalnızca renkler hücre renklerini bir hücre kadar taşır. Yön tuşları çapraz yönleri de içerir. Bir damga yüzerken Taşıma gri görünür, çünkü kaydırma tüm damgayı taşır.
 
 Bir seçim varken ok tuşları aynı Taşıma seçeneğini izler.
+
+### Damgalar
+
+Bir damga etkinken **Dönüştür** paneli onun nasıl yerleştirildiğini gösterir.
+
+**Renkler**, Yalnızca pikseller ile Kendi renkleri arasında seçim yapar. Yalnızca pikseller damganın noktalarını her zamanki gibi öznitelik çubuğundaki renklerle koyar. Kendi renkleri damganın taşıdığı renkleri hücre hücre koyar: Harita Düzenleyici'den bir damga ya da hücre renkli bir kipte resimden kopyalanmış bir damga. Resimden kopyalanan damga Yalnızca pikseller olarak başlar, böylece yapıştırma eskisiyle aynen düşer. Kendi renkleri damgayı tam hücrelere oturtur, çizim kipini, renk çubuğunu ve XOR anahtarını yok sayar ve ölçeklenemez, döndürülemez, eğilemez, çevrilemez, ters çevrilemez ya da çizgilenemez; panel bunları soluklaştırır ve nedenini söyler. Yalnızca pikseller bir damganın şeklini değiştirmek taşıdığı renkleri atar. Ters hâlâ dolu ve boş noktaların ne yaptığını değiştirir. Damganın hücreleri geçerli ekran kipininkinden farklı boyuttaysa yalnızca Yalnızca pikseller mümkündür.
+
+**Geçirgenlik** (yalnızca Kendi renkleri) damganın rengi yerine sayfada zaten olan rengin görünmesini sağlar. Mürekkep, Kâğıt, Parlaklık ve Yanıp sönme için ayrı birer kutu vardır. ULAplus'ta Parlaklık ve Yanıp sönme birlikte tek bir CLUT kutusu vardır. GigaScreen'de her kutu iki ekranı da kapsar.
+
+**Boş noktalar** damganın boş noktalarının ne yapacağını belirler. Arka planı bırak altındaki resme dokunmaz (kendi renkleri olan damga, Kâğıt görünmedikçe altındaki kâğıdı yine de yeniden boyar). Arka planı sil onu da siler, damganın tüm dikdörtgeni üzerinde. Tersi olmayan çizim kipleri (XOR, Mürekkebi yeniden boya, Kâğıdı yeniden boya) ve damganın kendi XOR anahtarı boş noktalara dokunmaz ve panel bunu söyler. Boş noktalar, hücre renkleri olmayanlar dahil her ekran kipinde vardır.
+
+**Yalnızca piksele dönüştür** damganın renklerini kalıcı olarak atar ve noktalarını tutar. Renkler içindeki Yalnızca pikseller seçimi onları korur, böylece geri dönülebilir. Her değişiklik tek bir geri alma adımıdır.

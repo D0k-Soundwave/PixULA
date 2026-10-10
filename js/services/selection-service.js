@@ -1660,11 +1660,7 @@ class SelectionServiceClass {
     const color = ColorManager.getCurrentSelection();
     const mode = PixelDrawRoutine.resolveUserMode(true);
     const xorBox = !!stampLayer.xorMode;
-    let clearMode = null;
-    if (overlap && !xorBox) {
-      if (mode === DRAW_MODE.NORMAL || mode === DRAW_MODE.PIXEL_ONLY) clearMode = DRAW_MODE.ERASE;
-      else if (mode === DRAW_MODE.NORMAL_ERASE || mode === DRAW_MODE.ERASE) clearMode = DRAW_MODE.PIXEL_ONLY;
-    }
+    const clearMode = overlap ? this._overlapClearMode(mode, xorBox) : null;
     for (let py = 0; py < h; py++) {
       const row = mask[py];
       if (!row && !clearMode) continue;
@@ -1760,6 +1756,24 @@ class SelectionServiceClass {
   }
 
   /**
+   * What "clear dots overlap" writes on a Pixels stamp's clear dots: the
+   * opposite of the draw mode in force - Erase for Normal and Pixels Only,
+   * set-the-dot for the right button and Inverse - or null where the mode has
+   * no opposite (the XOR and recolour modes) or the stamp's own XOR box is on.
+   * One answer for both write plans and for the panel's "this changes
+   * nothing" hint.
+   * @param {string} mode - the resolved DRAW_MODE
+   * @param {boolean} xorBox
+   * @returns {?string}
+   */
+  _overlapClearMode(mode, xorBox) {
+    if (xorBox) return null;
+    if (mode === DRAW_MODE.NORMAL || mode === DRAW_MODE.PIXEL_ONLY) return DRAW_MODE.ERASE;
+    if (mode === DRAW_MODE.NORMAL_ERASE || mode === DRAW_MODE.ERASE) return DRAW_MODE.PIXEL_ONLY;
+    return null;
+  }
+
+  /**
    * The write plan for an indexed stamp (see _forEachStampWrite for the
    * classic one): `visit(px, py, sel, mode)` per write. Set pixels are the
    * stamp's own indices (or the mask at the current ink) in the resolved mode.
@@ -1772,11 +1786,7 @@ class SelectionServiceClass {
   _forEachIndexedStampWrite(data, color, mode, visit) {
     const { mask, indices, x, y, w, h } = data;
     const overlap = this.stampOptions(data).clearDots === 'overlap';
-    let clearMode = null;
-    if (overlap) {
-      if (mode === DRAW_MODE.NORMAL || mode === DRAW_MODE.PIXEL_ONLY) clearMode = DRAW_MODE.ERASE;
-      else if (mode === DRAW_MODE.NORMAL_ERASE || mode === DRAW_MODE.ERASE) clearMode = DRAW_MODE.PIXEL_ONLY;
-    }
+    const clearMode = overlap ? this._overlapClearMode(mode, false) : null;
     for (let py = 0; py < h; py++) {
       const maskRow = mask ? mask[py] : null;
       const idxRow = indices ? indices[py] : null;
@@ -1983,11 +1993,62 @@ class SelectionServiceClass {
       t.fp.opts = clean;
       this.moveFloatingPaste(t.fp.x, t.fp.y);
     } else {
-      t.layer.stamp = { ...t.layer.stamp, opts: clean };
+      const next = { ...t.layer.stamp, opts: clean };
+      // Switching to Own colours puts the stamp on the cell grid, parked or not.
+      if (this.stampColoured(next)) {
+        const g = this.stampAttrGrid(next);
+        next.x = Math.floor((next.x - g.ox) / g.cw) * g.cw + g.ox;
+        next.y = Math.floor((next.y - g.oy) / g.ch) * g.ch + g.oy;
+      }
+      t.layer.stamp = next;
     }
     UndoRedo.endAction();
     EventBus.emit(EVENTS.CANVAS_RENDER);
     return true;
+  }
+
+  /**
+   * What the stamp controls should show for a stamp, as plain data (no DOM),
+   * so the rules can be tested in every screen mode and the panel only draws.
+   *   colours   - the Colours choice: visible where the stamp holds colours and
+   *               the mode has cell colours; enabled unless the stamp's cells
+   *               are not the mode's size (geometry)
+   *   showThrough - visible only while the stamp places its own colours; the
+   *               parts are ink/paper/bright/flash, or ink/paper/clut in ULAplus
+   *   clearDots - visible for every stamp; noEffect = Clear background would
+   *               write nothing with the draw mode in force
+   *   convert   - visible with Colours
+   *   ownColours - the stamp places colours of its own right now
+   * @param {Layer} layer - the stamp layer the panel shows
+   * @returns {?Object} null if the layer has no stamp
+   */
+  stampControls(layer) {
+    const d = layer ? this.getStampData(layer) : null;
+    if (!d) return null;
+    const o = this.stampOptions(d);
+    const blocked = this.stampColoursBlocked(d);
+    const own = blocked === null && o.colours === 'coloured';
+    const hasColours = blocked === null || blocked === 'geometry';
+    const clut = ACTIVE_SCREEN_MODE.paletteModel === 'ulaplus64';
+    const st = o.showThrough;
+    const parts = clut
+      ? [{ key: 'ink', on: st.ink }, { key: 'paper', on: st.paper }, { key: 'clut', on: st.bright && st.flash }]
+      : [{ key: 'ink', on: st.ink }, { key: 'paper', on: st.paper },
+         { key: 'bright', on: st.bright }, { key: 'flash', on: st.flash }];
+    const xorBox = !!layer.xorMode;
+    let noEffect = false;
+    if (o.clearDots === 'overlap' && !own) {
+      const mode = PixelDrawRoutine.resolveUserMode(true);
+      noEffect = this._overlapClearMode(mode, ZX_SPECTRUM.PIXEL_DEPTH > 1 ? false : xorBox) === null;
+    }
+    return {
+      ownColours: own,
+      colours: { visible: hasColours, enabled: blocked === null, geometry: blocked === 'geometry',
+                 value: own ? 'coloured' : 'pixels' },
+      showThrough: { visible: own, parts },
+      clearDots: { visible: true, value: o.clearDots, noEffect },
+      convert: { visible: hasColours }
+    };
   }
 
   /**

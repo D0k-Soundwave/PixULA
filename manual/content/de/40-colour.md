@@ -208,3 +208,15 @@ Die Einträge Punkte im Menü Bild ändern die Punkte und lassen die Farben in i
 Die Option Verschieben im Abschnitt Verschieben des Transform-Panels legt fest, was sich bewegt. Punkte und Farben (Vorgabe) verschiebt ganze Zellen mit ihrem Papier. Nur Punkte verschiebt die Punkte um einen Pixel oder eine Zelle. Nur Farben verschiebt die Zellenfarben Zelle für Zelle. Das Feld hat auch die vier Diagonalen. Solange ein Stempel schwebt, ist Verschieben grau, weil eine Verschiebung den ganzen Stempel bewegt.
 
 Die Pfeiltasten folgen bei einer Auswahl derselben Option Verschieben.
+
+### Stempel
+
+Wenn ein Stempel eingeschaltet ist, zeigt das Feld **Transformieren**, wie er gesetzt wird.
+
+**Farben** wählt zwischen Nur Pixel und Eigene Farben. Nur Pixel setzt die Punkte des Stempels in den Farben der Attributleiste, wie bisher. Eigene Farben setzt die Farben, die der Stempel trägt, Zelle für Zelle: ein Stempel aus dem Karteneditor oder einer, der aus einem Bild in einem Modus mit Zellfarben kopiert wurde. Ein aus dem Bild kopierter Stempel beginnt als Nur Pixel, sodass ein Einfügen genau wie früher landet. Eigene Farben legt den Stempel auf ganze Zellen, ignoriert Zeichenmodus, Farbleiste und XOR-Schalter und lässt sich nicht skalieren, drehen, biegen, spiegeln, invertieren oder umranden; das Feld graut das aus und nennt den Grund. Eine Formänderung bei einem Nur-Pixel-Stempel verwirft die Farben, die er trug. Invers vertauscht weiterhin, was gesetzte und leere Punkte tun. Haben die Zellen des Stempels eine andere Größe als der aktuelle Bildschirmmodus, ist nur Nur Pixel möglich.
+
+**Durchscheinen** (nur bei Eigene Farben) lässt statt der Farbe des Stempels die Farbe durchscheinen, die schon auf der Seite ist. Ink, Paper, Bright und Flash haben je ein Kästchen. ULAplus hat ein CLUT-Kästchen für Bright und Flash zusammen. In GigaScreen gilt jedes Kästchen für beide Bildschirme.
+
+**Leere Punkte** bestimmt, was die leeren Punkte des Stempels tun. Hintergrund lassen lässt das Bild darunter in Ruhe (ein Stempel mit eigenen Farben färbt das Paper darunter trotzdem um, außer Paper scheint durch). Hintergrund löschen löscht es ebenfalls, über das ganze Rechteck des Stempels. Zeichenmodi ohne Gegenteil (XOR, Ink umfärben, Paper umfärben) und der eigene XOR-Schalter des Stempels lassen die leeren Punkte in Ruhe, und das Feld sagt das. Leere Punkte gibt es in jedem Bildschirmmodus, auch ohne Zellfarben.
+
+**In Nur Pixel umwandeln** verwirft die Farben des Stempels endgültig und behält seine Punkte. Die Wahl Nur Pixel bei Farben behält sie, sodass man zurückschalten kann. Jede Änderung ist ein Rückgängig-Schritt.

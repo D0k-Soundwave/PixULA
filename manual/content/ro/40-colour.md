@@ -203,3 +203,15 @@ Elementele Puncte din meniul Imagine modifică punctele și lasă culorile în c
 Alegerea Deplasare din secțiunea Deplasare a panoului Transformare stabilește ce se mută. Puncte și culori (implicit) mută celule întregi cu hârtia lor. Doar puncte mută punctele cu un pixel sau o celulă pe rând. Doar culori mută culorile celulelor câte o celulă. Panoul are și diagonale. Cât timp o ștampilă plutește, Deplasare este cenușie, pentru că o deplasare mută întreaga ștampilă.
 
 Când există o selecție, săgețile urmează aceeași alegere Deplasare.
+
+### Ștampile
+
+Când o ștampilă este activă, panoul **Transformare** arată cum este așezată.
+
+**Culori** alege între Doar pixeli și Culori proprii. Doar pixeli pune punctele ștampilei în culorile din bara de atribute, ca întotdeauna. Culori proprii pune culorile pe care le poartă ștampila, celulă cu celulă: o ștampilă din Editorul de hărți sau una copiată dintr-o imagine într-un mod cu culori de celulă. O ștampilă copiată din imagine începe ca Doar pixeli, deci o lipire cade exact ca înainte. Culori proprii așază ștampila pe celule întregi, ignoră modul de desen, bara de culori și comutatorul XOR, și nu poate fi scalată, rotită, curbată, răsturnată, inversată sau conturată; panoul le face gri și spune de ce. Schimbarea formei unei ștampile Doar pixeli renunță la culorile pe care le purta. Inversul tot schimbă ce fac punctele pline și goale. Dacă celulele ștampilei au altă mărime decât modul de ecran curent, este posibil doar Doar pixeli.
+
+**Transparență** (doar Culori proprii) lasă să se vadă culoarea deja aflată pe pagină în locul celei a ștampilei. Cerneala, Hârtia, Luminozitatea și Clipirea au fiecare câte o căsuță. ULAplus are o căsuță CLUT pentru Luminozitate și Clipire împreună. În GigaScreen fiecare căsuță acoperă ambele ecrane.
+
+**Puncte goale** hotărăsc ce fac punctele goale ale ștampilei. Păstrează fundalul lasă desenul de dedesubt în pace (o ștampilă cu culori proprii tot recolorează hârtia de dedesubt, dacă nu se vede Hârtia). Șterge fundalul îl șterge și pe el, pe tot dreptunghiul ștampilei. Modurile de desen fără opus (XOR, Recolorează cerneala, Recolorează hârtia) și comutatorul XOR propriu al ștampilei lasă punctele goale în pace, iar panoul spune asta. Punctele goale sunt disponibile în orice mod de ecran, chiar și fără culori de celulă.
+
+**Convertește în doar pixeli** renunță definitiv la culorile ștampilei și păstrează punctele. Alegerea Doar pixeli din Culori le păstrează, deci te poți întoarce. Fiecare schimbare este un pas de anulare.

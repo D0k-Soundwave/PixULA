@@ -197,3 +197,15 @@ Pozycje Kropki w menu Obraz zmieniają kropki i zostawiają kolory w ich komórk
 Wybór Przesuń w sekcji Przesunięcie panelu Transformacja określa, co się przesuwa. Kropki i kolory (domyślnie) przesuwa całe komórki razem z ich papierem. Tylko kropki przesuwa kropki o piksel lub o komórkę naraz. Tylko kolory przesuwa kolory komórek po jednej komórce. Krzyżak ma też przekątne. Gdy unosi się pieczątka, Przesuń jest wyszarzone, bo przesunięcie przenosi całą pieczątkę.
 
 Gdy coś jest zaznaczone, klawisze strzałek stosują ten sam wybór Przesuń.
+
+### Pieczątki
+
+Gdy pieczątka jest włączona, panel **Przekształcanie** pokazuje, jak jest kładziona.
+
+**Kolory** wybiera między Tylko piksele a Własne kolory. Tylko piksele kładzie punkty pieczątki w kolorach z paska atrybutów, jak zawsze. Własne kolory kładzie kolory, które niesie pieczątka, komórka po komórce: pieczątkę z Edytora map albo skopiowaną z obrazu w trybie z kolorami komórek. Pieczątka skopiowana z obrazu zaczyna jako Tylko piksele, więc wklejenie ląduje dokładnie jak dawniej. Własne kolory układają pieczątkę na całych komórkach, ignorują tryb rysowania, pasek kolorów i przełącznik XOR, a pieczątki nie można skalować, obracać, wyginać, odbijać, odwracać ani obrysowywać; panel wyszarza te opcje i mówi dlaczego. Zmiana kształtu pieczątki Tylko piksele odrzuca kolory, które niosła. Inwersja nadal zamienia, co robią punkty pełne i puste. Jeśli komórki pieczątki mają inny rozmiar niż bieżący tryb ekranu, możliwe jest tylko Tylko piksele.
+
+**Prześwit** (tylko Własne kolory) pozwala, by zamiast koloru pieczątki prześwitywał kolor, który już jest na stronie. Tusz, Papier, Jasność i Miganie mają po jednym polu. ULAplus ma jedno pole CLUT dla Jasności i Migania razem. W GigaScreen każde pole obejmuje oba ekrany.
+
+**Puste punkty** decydują, co robią puste punkty pieczątki. Zostaw tło zostawia obraz pod nimi w spokoju (pieczątka z własnymi kolorami nadal przemalowuje papier pod nimi, chyba że prześwituje Papier). Wyczyść tło czyści go też, na całym prostokącie pieczątki. Tryby rysowania bez przeciwieństwa (XOR, Przemaluj tusz, Przemaluj papier) i własny przełącznik XOR pieczątki zostawiają puste punkty w spokoju, a panel to mówi. Puste punkty są dostępne w każdym trybie ekranu, także bez kolorów komórek.
+
+**Zamień na same piksele** na stałe odrzuca kolory pieczątki i zachowuje jej punkty. Wybór Tylko piksele w Kolorach je zachowuje, więc można wrócić. Każda zmiana to jeden krok cofania.

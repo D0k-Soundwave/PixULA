@@ -430,3 +430,27 @@ Tests: tests/clipboard-colours.test.js (Node), tests/browser/clipboard-colours.s
 paste takes the rail colours; Own colours snaps and places the copied ones). run-all ALL TEST FILES PASSED; npx
 playwright test 646 passed, 1 failed (dialog-listeners, a load flake: passes alone, run twice).
 Next: part 5B.
+
+## 2026-10-10 - Batch 5 part 5B - the stamp controls - done
+Model: Sonnet (one-run series). Branch: parity-b.
+Opus: plan review (Plan agent, opus) -> change. Its corrections, all applied: (1) a screen-mode switch DELETED a stamp that
+had been picked up from the Stamps panel (cancelFloatingPaste removed the saved stamp, before the undo action opened): it is
+now parked instead (ScreenModeService.switchMode; the review approved that one change to the service); (2) a parked stamp
+switched to Own colours is snapped to the cell grid; (3) Scale, Rotate, Shape, Reset, Flip, Invert and Outline are disabled
+(with a visible reason) while a stamp places its own colours, instead of silently doing nothing; (4) the panel edits the stamp
+it shows (current stamp layer, else the floating one); (5) reasons are visible hint spans, never title text; (6) every new
+control has a two-stage title and is registered with TooltipManager.SELECTOR.
+Built: Transform panel block (Colours select, Show through boxes, Clear dots select, Convert to pixels only) drawn from one
+pure function, SelectionService.stampControls(layer), tested in every screen mode (tests/stamp-controls.test.js); ULAplus
+shows one CLUT box (on only when Bright and Flash both show through); Timex hi-res and the indexed modes show Clear dots only;
+GigaScreen boxes cover both screens; a stamp whose cells are another size shows Colours greyed with a reason. A stamp with
+its own colours disables the XOR box in the panel and the X button in the layer panel (dimmed, aria-disabled, status notice on
+click; the stored XOR value is kept). "Clear background changes nothing here" hint where the draw mode has no opposite
+(_overlapClearMode, now the one rule for both write plans and the hint). 30 i18n keys in 13 locales. Manual: new Stamps
+section in 40-colour.md in 13 languages. Comparison rows: overlay switches, overlapping/transparent and convert now Same;
+pixels-only/coloured stays Partial (ZX Paintbrush asks at creation).
+Deferred to a new part 5C (recorded in batch-05.md and RUN-ALL.md): Image > Attributes on a stamp's own colours.
+Tests: stamp-controls.test.js (Node), tests/browser/stamp-controls.spec.js (8), tooltip specs extended. run-all ALL TEST FILES
+PASSED; playwright 654 passed, 2 failed under load (dialog-listeners fails 3 of 8 under 4 workers with or without these
+changes; undo-partial-capture timing); both pass alone.
+Next: part 5C.
