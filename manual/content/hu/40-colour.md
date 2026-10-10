@@ -135,6 +135,12 @@ hiszen palettát általában még a rajzolás előtt töltünk be.
 Ahol egy fájlformátumban van hely palettának – a 6976 bájtos `.scr`, a `.nxi`, a
 Timex-változat –, ott a paletta a képpel együtt utazik.
 
+**Palettahelyek.** Az ULAplus palettának és a Next palettának egyaránt négy helye van, a Kép > Paletta menüben (1. hely – 4. hely). A használatban levő hely be van jelölve, és a palettaszerkesztő megmondja, melyiket szerkeszti. Az új dokumentum az 1. helyen indul, a többi hely az alapértelmezett palettát tartja, amíg nem használod őket. Másik hely választása a kép megjelenítési színeit változtatja, a kép színattribútumait soha. Minden választás egy visszavonási lépés. A helyek a projektben és az automatikus mentésben tárolódnak, de csak akkor, ha használtál egy helyet; más fájltípusból megnyitott kép az 1. helyen indul, a többi hely a palettájának másolatát tartja. A .scr, .tap és képexportok mindig a használatban levő helyet használják. A rögzített palettájú módoknak (Standard ULA, a Multicolor módok, GigaScreen és a Timex módok) nincsenek helyeik.
+
+**Paletta invertálása** (csak ULAplus) a négy CLUT mindegyikében felcseréli a tintafelet (0–7. bejegyzés) a papírfellel (8–15. bejegyzés), egy visszavonási lépésben; kétszer végrehajtva visszaáll a paletta. Hogy egy ULAplus kép invertálás után ugyanúgy nézzen ki, használd a Paletta invertálása parancsot, majd a Kép > Attribútumok > Invertálás parancsot. A keret a 0. CLUT papírfelét követi, ezért ő is színt vált. A Next módoknak nincs palettainvertálója, mert az ULANext a tintát 8, a papírt 32 palettabejegyzésben tartja.
+
+**CLUT billentyűk.** Az ULAplus módokban a Ctrl+Shift+1 – Ctrl+Shift+4 a 0–3. CLUT-ot választja, ugyanúgy, mint a színsáv CLUT-választója. Más módokban az állapotsor ezt közli, egyébként nem történik semmi.
+
 ### GigaScreen
 
 A GigaScreen két teljes képernyőt tárol, és felváltva mutatja őket,

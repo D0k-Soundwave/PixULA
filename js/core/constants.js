@@ -1119,6 +1119,20 @@ const COLOUR_SHORTCUTS = Object.freeze([
 ]);
 
 /**
+ * The ULAplus CLUT keys: Ctrl+Shift+1 to 4 pick CLUT 0 to 3 (the owner's choice, 2026-10-10: every
+ * plain and Alt digit is taken, and ZX Paintbrush's bare 0-3 cannot be copied). Matched on
+ * `KeyboardEvent.code` (Digit1-Digit4), never `key`: Shift changes the key on many layouts.
+ * Read by InputHandler (what the key does), the Keyboard Shortcuts dialog and the generated manual.
+ * @const {{codes: string[], keys: string, i18n: string, en: string}}
+ */
+const CLUT_SHORTCUTS = Object.freeze({
+    codes: Object.freeze(['Digit1', 'Digit2', 'Digit3', 'Digit4']),
+    keys: 'Ctrl+Shift+1 to 4',
+    i18n: 'help.clutKeys',
+    en: 'Pick CLUT 0-3 (ULAplus modes)'
+});
+
+/**
  * The stroke-behaviour keys that are not tools and not colours. Shift+I
  * (bare I is the Eyedropper) turns Inverse on or off. Same arrangement as
  * COLOUR_SHORTCUTS: one list read by InputHandler, the Keyboard Shortcuts
@@ -1215,6 +1229,7 @@ const EVENTS = Object.freeze({
     COLOR_FLASH: 'color:flash',
     COLOR_BORDER: 'color:border',
     PALETTE_CHANGED: 'color:paletteChanged',
+    PALETTE_SLOT_CHANGED: 'color:paletteSlotChanged',
 
     // Canvas events
     CANVAS_RENDER: 'canvas:render',
@@ -1596,6 +1611,7 @@ window.SPECTRUM_MEMORY = SPECTRUM_MEMORY;
 window.TOOLS = TOOLS;
 window.TOOL_GROUPS = TOOL_GROUPS;
 window.COLOUR_SHORTCUTS = COLOUR_SHORTCUTS;
+window.CLUT_SHORTCUTS = CLUT_SHORTCUTS;
 window.MODE_SHORTCUTS = MODE_SHORTCUTS;
 window.ATTR_PAINT_BUTTONS = ATTR_PAINT_BUTTONS;
 window.PEN_CONTROLS = PEN_CONTROLS;

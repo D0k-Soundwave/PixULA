@@ -130,6 +130,12 @@ solito una tavolozza si carica prima di iniziare a disegnare.
 Dove un formato di file ha spazio per una tavolozza – `.scr` da 6976 byte,
 `.nxi`, la variante Timex – la tavolozza viaggia anche dentro l’immagine.
 
+**Posizioni della tavolozza.** La tavolozza ULAplus e la tavolozza Next hanno quattro posizioni ciascuna, in Immagine > Tavolozza (Posizione 1 – Posizione 4). La posizione in uso è spuntata, e l'editor della tavolozza dice quale modifica. Un nuovo documento parte dalla Posizione 1, e le altre contengono la tavolozza predefinita finché non le usi. Scegliere un'altra posizione cambia i colori con cui l'immagine è mostrata e non cambia mai gli attributi di colore dell'immagine. Ogni scelta è un passo di annullamento. Le posizioni sono salvate in un progetto e nel backup automatico, ma solo dopo che ne hai usata una; un'immagine aperta da un altro tipo di file parte dalla Posizione 1 e le altre contengono copie della sua tavolozza. Le esportazioni .scr, .tap e immagine usano sempre la posizione in uso. Le modalità a tavolozza fissa (ULA standard, le modalità Multicolor, GigaScreen e le modalità Timex) non hanno posizioni.
+
+**Inverti tavolozza** (solo ULAplus) scambia la metà inchiostro (voci 0-7) con la metà carta (voci 8-15) di ciascuna delle quattro CLUT, in un passo di annullamento; farlo due volte riporta la tavolozza com'era. Per invertire un'immagine ULAplus in modo che resti uguale, usa Inverti tavolozza e poi Immagine > Attributi > Inverti. Il bordo segue la metà carta della CLUT 0 e quindi cambia colore anche lui. Le modalità Next non hanno l'inversione della tavolozza, perché ULANext tiene l'inchiostro in 8 voci di tavolozza e la carta in 32.
+
+**Tasti CLUT.** Nelle modalità ULAplus, Ctrl+Maiusc+1 – Ctrl+Maiusc+4 scelgono la CLUT 0-3, come la scelta della CLUT nella barra dei colori. Nelle altre modalità la barra di stato lo dice e non succede altro.
+
 ### GigaScreen
 
 GigaScreen conserva due schermi completi e li mostra alternandoli, cinquanta

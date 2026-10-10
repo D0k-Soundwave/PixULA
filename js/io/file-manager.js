@@ -354,6 +354,12 @@ class FileManagerClass {
         return false;
       }
 
+      // A picture that is not a project has no palette slots: it opens on slot 1, slots 2-4
+      // copies of its palette. A project restores its own in App._loadProjectData.
+      if (replacesDocument && extension !== 'pixula' && window.ColorManager) {
+        ColorManager.resetPaletteSlots();
+      }
+
       if (!replacesDocument) {
         // Nothing about the artwork changed, so nothing about its file state
         // may change either. The handler announced its own import.

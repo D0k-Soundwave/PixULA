@@ -300,6 +300,7 @@ class UndoRedoManagerClass {
       // (mode-switch seeding, a .pal import) survives its own undo.
       ulaplusRegisters: null,
       nextRegisters: null,
+      paletteSlots: null,
       timexHiresInk: null,
       timexHiresInkB: null,
       background: null,
@@ -307,6 +308,11 @@ class UndoRedoManagerClass {
       floatingPaste: null,
       selection: null
     };
+    // Which palette slot is live (Batch 6 part 6A). References only: a stored slot file is never
+    // changed in place, so sharing them costs nothing and cannot go stale.
+    if (window.ColorManager && typeof ColorManager.getPaletteSlotState === 'function') {
+      snap.paletteSlots = ColorManager.getPaletteSlotState();
+    }
     if (window.ColorManager && ColorManager.ulaplusRegisters) {
       snap.ulaplusRegisters = Array.from(ColorManager.ulaplusRegisters);
     }
@@ -357,6 +363,10 @@ class UndoRedoManagerClass {
     if (snap.screenModeId && window.ScreenModeService
         && snap.screenModeId !== ACTIVE_SCREEN_MODE.id) {
       ScreenModeService.applyModeRaw(snap.screenModeId);
+    }
+    if (window.ColorManager && snap.paletteSlots
+        && typeof ColorManager.setPaletteSlotState === 'function') {
+      ColorManager.setPaletteSlotState(snap.paletteSlots);
     }
     if (window.ColorManager && 'ulaplusRegisters' in snap
         && typeof ColorManager.setUlaplusRegisters === 'function') {

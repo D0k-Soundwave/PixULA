@@ -126,6 +126,12 @@ uma paleta é normalmente algo que se faz antes de começar a desenhar.
 Quando um formato de ficheiro tem espaço para uma paleta – `.scr` com 6976
 bytes, `.nxi`, a variante Timex –, a paleta viaja também dentro da imagem.
 
+**Posições da paleta.** A paleta ULAplus e a paleta Next têm cada uma quatro posições, em Imagem > Paleta (Posição 1 a Posição 4). A posição em uso está marcada, e o editor de paleta diz qual está a editar. Um documento novo começa na Posição 1, e as outras guardam a paleta predefinida até as usar. Escolher outra posição muda as cores com que a imagem é mostrada e nunca muda os atributos de cor da imagem. Cada escolha é um passo de anular. As posições são guardadas num projeto e na cópia de segurança automática, mas só depois de usar uma posição; uma imagem aberta de outro tipo de ficheiro começa na Posição 1 e as outras guardam cópias da sua paleta. As exportações .scr, .tap e de imagem usam sempre a posição em uso. Os modos de paleta fixa (ULA padrão, os modos Multicolor, GigaScreen e os modos Timex) não têm posições.
+
+**Inverter paleta** (só ULAplus) troca a metade da tinta (entradas 0-7) com a metade do papel (entradas 8-15) de cada uma das quatro CLUT, num passo de anular; fazê-lo duas vezes repõe a paleta. Para inverter uma imagem ULAplus de modo que fique igual, use Inverter paleta e depois Imagem > Atributos > Inverter. A margem segue a metade do papel da CLUT 0, por isso também muda de cor. Os modos Next não têm inversor de paleta, porque o ULANext guarda a tinta em 8 entradas da paleta e o papel em 32.
+
+**Teclas CLUT.** Nos modos ULAplus, Ctrl+Shift+1 a Ctrl+Shift+4 escolhem a CLUT 0 a 3, tal como a escolha de CLUT da barra de cores. Nos outros modos a barra de estado di-lo e não acontece mais nada.
+
 ### GigaScreen
 
 O GigaScreen mantém dois ecrãs completos e mostra-os alternadamente, cinquenta

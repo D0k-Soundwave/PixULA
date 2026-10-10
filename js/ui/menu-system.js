@@ -236,6 +236,31 @@ class MenuSystemClass {
     }
 
     /**
+     * Image > Palette: tick the slot in use, grey the rows out where the mode has a fixed palette
+     * (slots) or no ULAplus palette (the inverter). The reason goes on the Palette row tooltip: a
+     * disabled row takes no pointer events, so a tooltip on it would never show.
+     * @private
+     */
+    _updatePaletteMenuState() {
+        if (!window.TransformService || !window.ColorManager) return;
+        const b = TransformService.paletteCommandsBlocked();
+        const active = ColorManager.getPaletteSlot();
+        for (let i = 0; i < 4; i++) {
+            this.setItemEnabled(`palette-slot-${i + 1}`, !b.slots);
+            this._updateToggleState(`palette-slot-${i + 1}`, !b.slots && i === active);
+        }
+        this.setItemEnabled('palette-invert', !b.invert);
+        const parent = this.element.querySelector('[data-id="palette-slots"]');
+        if (!parent) return;
+        const reason = b.slots ? ['menu.image.paletteFixed', 'This screen mode has fixed colours, so it has no palette slots.']
+            : (b.invert === 'nextPalette'
+                ? ['menu.image.invertPaletteNext', 'The palette inverter is for ULAplus palettes; the Next modes keep ink and paper in different parts of the palette.']
+                : null);
+        if (reason) parent.title = this._t(reason[0], reason[1]);
+        else parent.removeAttribute('title');
+    }
+
+    /**
      * Grey out the Image > Dots rows the current state blocks (TransformService
      * dotCommandsBlocked). The reasons go on the Dots row tooltip; a disabled
      * row takes no pointer events, so the tooltip would never show on a row.
@@ -478,6 +503,17 @@ class MenuSystemClass {
                         { id: 'mode-lores_radastan', label: 'Radastan 128×96', action: 'image:modeLoresRadastan', toggle: true, i18n: 'mode.loresRadastan', mode: 'lores_radastan' }
                     ]},
                     { type: 'separator' },
+                    // Four palettes per palette kind (ULAplus, Next), and the ULAplus palette
+                    // inverter. Greyed out where the mode has a fixed palette; the reason shows
+                    // as the Palette row tooltip (_updatePaletteMenuState).
+                    { id: 'palette-slots', label: 'Palette', i18n: 'menu.image.palette', items: [
+                        { id: 'palette-slot-1', label: 'Slot 1', action: 'image:paletteSlot1', toggle: true, i18n: 'menu.image.paletteSlot1' },
+                        { id: 'palette-slot-2', label: 'Slot 2', action: 'image:paletteSlot2', toggle: true, i18n: 'menu.image.paletteSlot2' },
+                        { id: 'palette-slot-3', label: 'Slot 3', action: 'image:paletteSlot3', toggle: true, i18n: 'menu.image.paletteSlot3' },
+                        { id: 'palette-slot-4', label: 'Slot 4', action: 'image:paletteSlot4', toggle: true, i18n: 'menu.image.paletteSlot4' },
+                        { type: 'separator' },
+                        { id: 'palette-invert', label: 'Invert Palette', action: 'image:invertPalette', i18n: 'menu.image.invertPalette' }
+                    ]},
                     { id: 'edit-palette', label: 'Edit Palette...', action: 'image:editPalette' }
                 ]
             },
@@ -683,8 +719,10 @@ class MenuSystemClass {
             this._updateExportAsMenuState();
             this._updateAttributeMenuState();
             this._updateDotMenuState();
+            this._updatePaletteMenuState();
             this._updateDisplayViewMenuState();
         });
+        EventBus.on(EVENTS.PALETTE_SLOT_CHANGED, () => this._updatePaletteMenuState());
 
         // Keep the View-menu Mirror radios and Snap toggle in sync with their
         // facts (both can also change from the canvas-controls rail).
@@ -696,6 +734,7 @@ class MenuSystemClass {
             this._updateDisplayViewMenuState();
             this._updateAttributeMenuState();
             this._updateDotMenuState();
+            this._updatePaletteMenuState();
         });
 
         // Keep each View-menu panel checkbox in sync with PanelSection's own
@@ -760,6 +799,7 @@ class MenuSystemClass {
         if (menuId === 'image') {
             this._updateAttributeMenuState();
             this._updateDotMenuState();
+            this._updatePaletteMenuState();
         }
 
         const menuItem = this.element.querySelector(`[data-menu="${menuId}"]`);
@@ -1118,6 +1158,11 @@ class MenuSystemClass {
             case 'image:modeLores':         this.requestScreenMode('lores');          break;
             case 'image:modeLoresRadastan': this.requestScreenMode('lores_radastan'); break;
             case 'image:editPalette':       PaletteEditorDialog.open();               break;
+            case 'image:paletteSlot1':      TransformService.selectPaletteSlot(0);    break;
+            case 'image:paletteSlot2':      TransformService.selectPaletteSlot(1);    break;
+            case 'image:paletteSlot3':      TransformService.selectPaletteSlot(2);    break;
+            case 'image:paletteSlot4':      TransformService.selectPaletteSlot(3);    break;
+            case 'image:invertPalette':     TransformService.invertPalette();         break;
 
             // Settings
             case 'settings:preferences': PreferencesDialog.open(); break;
@@ -1269,6 +1314,8 @@ class MenuSystemClass {
         shortcuts.push(['+/-', this._t('view.zoomIn', 'Zoom in') + '/' + this._t('view.zoomOut', 'Zoom out')]);
         // Bright, Flash and "use existing" - one list with the key handler
         for (const s of COLOUR_SHORTCUTS) shortcuts.push([s.keys, this._t(s.i18n, s.en)]);
+        // ULAplus CLUT keys - one list with the key handler
+        shortcuts.push([CLUT_SHORTCUTS.keys, this._t(CLUT_SHORTCUTS.i18n, CLUT_SHORTCUTS.en)]);
         // Inverse - one list with the key handler
         for (const s of MODE_SHORTCUTS) shortcuts.push([s.keys, this._t(s.i18n, s.en)]);
         // Preset recall — both the key range and the number in the description

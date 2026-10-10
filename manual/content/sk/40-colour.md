@@ -120,6 +120,12 @@ načítava ešte pred kreslením.
 Kde má formát súboru miesto pre paletu – `.scr` s 6976 bajtmi, `.nxi`, variant
 Timex –, cestuje paleta aj vnútri obrázka.
 
+**Pozície palety.** Paleta ULAplus a paleta Next majú každá štyri pozície, v ponuke Obrázok > Paleta (Pozícia 1 – Pozícia 4). Použitá pozícia je zaškrtnutá a editor palety hovorí, ktorú upravuje. Nový dokument začína na Pozícii 1 a ostatné držia predvolenú paletu, kým ich nepoužijete. Výber inej pozície zmení farby, ktorými sa obrázok zobrazuje, a nikdy nezmení farebné atribúty obrázka. Každá voľba je jeden krok späť. Pozície sa ukladajú do projektu a do automatickej zálohy, ale až keď ste nejakú použili; obrázok otvorený z iného druhu súboru začína na Pozícii 1 a ostatné držia kópie jeho palety. Exporty .scr, .tap a obrázkov vždy používajú použitú pozíciu. Režimy s pevnou paletou (Standard ULA, režimy Multicolor, GigaScreen a režimy Timex) pozície nemajú.
+
+**Invertovať paletu** (len ULAplus) vymení atramentovú polovicu (položky 0-7) s papierovou polovicou (položky 8-15) každej zo štyroch CLUT v jednom kroku späť; dvojité vykonanie paletu vráti. Aby obrázok ULAplus po invertovaní vyzeral rovnako, použite Invertovať paletu a potom Obrázok > Atribúty > Invertovať. Okraj sleduje papierovú polovicu CLUT 0, takže zmení farbu tiež. Režimy Next invertor palety nemajú, pretože ULANext drží atrament v 8 položkách palety a papier v 32.
+
+**Klávesy CLUT.** V režimoch ULAplus vyberajú Ctrl+Shift+1 až Ctrl+Shift+4 CLUT 0 až 3, rovnako ako voľba CLUT na lište farieb. V iných režimoch to stavový riadok oznámi a nič iné sa nestane.
+
 ### GigaScreen
 
 GigaScreen uchováva dve úplné obrazovky a zobrazuje ich striedavo, päťdesiatkrát

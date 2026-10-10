@@ -27,6 +27,24 @@ class PaletteOpsClass {
     this._nearestUlaplus = new WeakMap();
   }
 
+  /**
+   * The palette inverter: in each of the four CLUTs swap the ink half (entries 0-7) with the
+   * paper half (entries 8-15). CLUT n owns registers 16n to 16n+15 [P, ULAplus specification as
+   * cited in ColorManager]. Returns a new array; doing it twice gives the original back.
+   * @param {Uint8Array|number[]} regs - the 64 ULAplus registers
+   * @returns {Uint8Array}
+   */
+  invertUlaplusHalves(regs) {
+    const out = Uint8Array.from(regs);
+    for (let c = 0; c < 4; c++) {
+      for (let i = 0; i < 8; i++) {
+        const a = 16 * c + i, b = 16 * c + 8 + i;
+        out[a] = regs[b];
+        out[b] = regs[a];
+      }
+    }
+    return out;
+  }
 
   /**
    * An even RGB interpolation from `from` to `to`, inclusive of both.

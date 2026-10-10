@@ -134,6 +134,12 @@ eine Palette lädt man meist, bevor man zu zeichnen beginnt.
 Wo ein Dateiformat Platz für eine Palette hat – `.scr` mit 6976 Bytes, `.nxi`,
 die Timex-Variante –, reist die Palette auch im Bild mit.
 
+**Palettenplätze.** Die ULAplus-Palette und die Next-Palette haben je vier Plätze, unter Bild > Palette (Platz 1 bis Platz 4). Der benutzte Platz ist abgehakt, und der Paletteneditor sagt, welchen Platz er bearbeitet. Ein neues Dokument beginnt auf Platz 1, die anderen Plätze enthalten die Standardpalette, bis Sie sie benutzen. Ein anderer Platz ändert die Farben, mit denen das Bild angezeigt wird, und nie die Farbattribute des Bildes. Jede Wahl ist ein Rückgängig-Schritt. Die Plätze werden in einem Projekt und in der automatischen Sicherung gespeichert, aber erst, nachdem Sie einen Platz benutzt haben; ein aus einer anderen Dateiart geöffnetes Bild beginnt auf Platz 1, und die anderen Plätze enthalten Kopien seiner Palette. Die Exporte als .scr, .tap und Bild benutzen immer den benutzten Platz. Die Modi mit fester Palette (Standard-ULA, die Multicolor-Modi, GigaScreen und die Timex-Modi) haben keine Plätze.
+
+**Palette invertieren** (nur ULAplus) tauscht in jeder der vier CLUTs die Ink-Hälfte (Einträge 0-7) mit der Paper-Hälfte (Einträge 8-15), in einem Rückgängig-Schritt; zweimal angewandt ist die Palette wieder wie vorher. Damit ein ULAplus-Bild nach dem Invertieren gleich aussieht, nehmen Sie Palette invertieren und danach Bild > Attribute > Invertieren. Der Rand folgt der Paper-Hälfte von CLUT 0 und ändert daher ebenfalls die Farbe. Die Next-Modi haben keine Paletteninvertierung, weil ULANext Ink in 8 Paletteneinträgen und Paper in 32 hält.
+
+**CLUT-Tasten.** In den ULAplus-Modi wählen Strg+Umschalt+1 bis Strg+Umschalt+4 die CLUT 0 bis 3, genau wie die CLUT-Wahl in der Farbleiste. In anderen Modi sagt die Statuszeile das und sonst passiert nichts.
+
 ### GigaScreen
 
 GigaScreen hält zwei vollständige Bildschirme und zeigt sie abwechselnd,

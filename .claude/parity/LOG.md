@@ -473,3 +473,24 @@ tests/browser/stamp-attribute-commands.spec.js (5). run-all ALL TEST FILES PASSE
 OWNER question, asked next: should a stamp with its own colours be allowed to flip/quarter-turn with its colours carried
 along (today impossible; the panel and menu rows grey out with a reason)?
 ANSWERED 2026-10-10: keep it impossible. Batch 5 is done; next is Batch 6 part 6A (an owner stop).
+
+## 2026-10-10 - Batch 6 part 6A - palette slots, palette inverter, CLUT keys - done
+Model: Sonnet (one-run series). Branch: parity-b.
+OWNER stop: asked, before building, which keys pick the ULAplus CLUTs. Tested Ctrl+Shift+1-4 and Alt+Shift+1-4 in Chrome with
+a Playwright key press (all reached the page; Edge and Firefox were not installed, and injected keys cannot show Windows-level
+interception). Owner chose Ctrl+Shift+1 to 4 (matched on e.code).
+Opus: plan review (Plan agent, opus) -> go, with C1-C4 applied; it also counted as the mandatory UndoRedo consult for the two
+hunks made (the snapshot carries the slot bookkeeping). Decisions taken from it: state in ColorManager (no new file); the
+live register file IS the active slot, the others are stored aside and never changed in place; slots are written to a project
+only once used (an untouched document saves exactly as before); a project saved with the default palette now restores that
+default instead of inheriting the previous document's palette (C1); a non-project file opens on slot 1 with slots 2-4 copies
+(C2); File > New keeps the palette and slots; the Next palette has no inverter (reason in the comparison row).
+Built: ColorManager slot model and PALETTE_SLOT_CHANGED; TransformService.paletteCommandsBlocked / selectPaletteSlot /
+invertPalette (one undo step each, recompose after); PaletteOps.invertUlaplusHalves; UndoRedo snapshot carries the slot state;
+App project save/load and FileManager.loadFile; Image > Palette submenu (4 radio slots + Invert Palette, reasons as the row
+tooltip); palette editor shows "Slot n of 4"; CLUT_SHORTCUTS (constants, input handler before every key-matched branch, the
+Shortcuts dialog, the manual's key table); 11 i18n keys in 13 locales; manual paragraphs in 13 languages; comparison rows
+(CLUT grid and Palette inverter Same; palette slots Partial: menu only, no keys, fixed modes have none).
+Tests: tests/palette-slots.test.js (Node), tests/browser/palette-slots.spec.js (8). run-all ALL TEST FILES PASSED;
+npx playwright test 669 passed.
+Next: part 6B (Mandatory Opus consult on the TAP byte layout).

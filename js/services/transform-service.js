@@ -1420,6 +1420,57 @@ class TransformServiceClass {
     return { kind: 'picture', rect: this._attributeCellRect(this._getWorkArea()), stamp: null };
   }
 
+  // ─── Palette slots and the palette inverter (Batch 6 part 6A) ──────────
+
+  /**
+   * Why the palette commands cannot run now, or null.
+   *   slots  - 'fixedPalette' where the mode's colours are the fixed standard ones
+   *   invert - 'fixedPalette', or 'nextPalette' in the Next modes (ink and paper do not map
+   *            one to one there: 8 ink entries against 32 paper entries in ULANext)
+   * @returns {{slots: (string|null), invert: (string|null)}}
+   */
+  paletteCommandsBlocked() {
+    const kind = ColorManager.paletteSlotKind();
+    const slots = kind ? null : 'fixedPalette';
+    let invert = null;
+    if (!kind) invert = 'fixedPalette';
+    else if (kind === 'rgb333') invert = 'nextPalette';
+    return { slots, invert };
+  }
+
+  /**
+   * Make palette slot `index` (0-3) the one in use. One undo step; the picture's attribute bytes
+   * never change, only the colours it is shown with. Picking the slot in use does nothing.
+   * @returns {boolean} whether the slot changed
+   */
+  selectPaletteSlot(index) {
+    if (this.paletteCommandsBlocked().slots) return false;
+    if (!Number.isInteger(index) || index < 0 || index > 3 || index === ColorManager.getPaletteSlot()) return false;
+    UndoRedo.beginAction('Palette slot');
+    ColorManager.selectPaletteSlot(index);
+    UndoRedo.endAction();
+    LayerManager.composeToCanvas();
+    return true;
+  }
+
+  /**
+   * Swap the ink and paper halves of each of the four CLUTs in the live ULAplus palette. One undo
+   * step. For a ULAplus picture follow it with Image > Attributes > Invert (the help's recipe).
+   * @returns {boolean} whether the palette changed
+   */
+  invertPalette() {
+    if (this.paletteCommandsBlocked().invert) return false;
+    const before = ColorManager.getUlaplusRegisters();
+    const next = PaletteOps.invertUlaplusHalves(before);
+    if (next.every((v, i) => v === before[i])) return false;
+    UndoRedo.beginAction('Invert palette');
+    ColorManager.setUlaplusRegisters(next);
+    StateManager.markModified();
+    UndoRedo.endAction();
+    LayerManager.composeToCanvas();
+    return true;
+  }
+
   /** True while the Attributes commands act on a stamp's own colours. */
   stampScope() {
     const scope = this._attributeScope();

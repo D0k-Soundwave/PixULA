@@ -128,6 +128,12 @@ palet genellikle çizime başlamadan önce yüklenir.
 Bir dosya biçiminde palete yer varsa – 6976 baytlık `.scr`, `.nxi`, Timex
 türü –, palet resmin içinde de taşınır.
 
+**Palet yuvaları.** ULAplus paletinin ve Next paletinin her birinin dört yuvası vardır, Görüntü > Palet menüsünde (Yuva 1 – Yuva 4). Kullanılan yuva işaretlidir ve palet düzenleyici hangisini düzenlediğini söyler. Yeni bir belge Yuva 1'de başlar, diğer yuvalar siz kullanana kadar varsayılan paleti tutar. Başka bir yuva seçmek resmin gösterildiği renkleri değiştirir, resmin renk özniteliklerini asla değiştirmez. Her seçim tek bir geri alma adımıdır. Yuvalar bir projede ve otomatik yedekte saklanır, ama yalnızca bir yuvayı kullandıktan sonra; başka türde bir dosyadan açılan resim Yuva 1'de başlar ve diğer yuvalar paletinin kopyalarını tutar. .scr, .tap ve resim dışa aktarımları her zaman kullanılan yuvayı kullanır. Sabit paletli kiplerde (Standart ULA, Multicolor kipleri, GigaScreen ve Timex kipleri) yuva yoktur.
+
+**Paleti ters çevir** (yalnızca ULAplus) dört CLUT'un her birinde mürekkep yarısını (0-7. girişler) kâğıt yarısıyla (8-15. girişler) değiştirir, tek bir geri alma adımında; iki kez yapmak paleti geri getirir. Bir ULAplus resmini aynı görünecek biçimde ters çevirmek için Paleti ters çevir'i, sonra Görüntü > Öznitelikler > Ters çevir'i kullanın. Kenarlık CLUT 0'ın kâğıt yarısını izler, bu yüzden o da renk değiştirir. Next kiplerinde palet çeviricisi yoktur, çünkü ULANext mürekkebi 8, kâğıdı 32 palet girişinde tutar.
+
+**CLUT tuşları.** ULAplus kiplerinde Ctrl+Shift+1'den Ctrl+Shift+4'e kadar CLUT 0-3'ü seçer, renk çubuğundaki CLUT seçimi gibi. Diğer kiplerde durum çubuğu bunu söyler ve başka bir şey olmaz.
+
 ### GigaScreen
 
 GigaScreen iki tam ekranı saklar ve onları saniyede elli kez sırayla gösterir.

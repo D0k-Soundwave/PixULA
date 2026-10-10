@@ -49,6 +49,16 @@ class ColorManagerClass {
         // shared by Layer 2 / LoRes / ULANext. Carried by undo snapshots,
         // autosave and the .nxi/.npl/.pal palette blocks.
         this.nextRegisters = null;
+        // Palette SLOTS (Batch 6 part 6A): four palettes per palette kind. The live
+        // register file above IS the active slot; the other three are stored aside
+        // here. A stored file is NEVER changed in place (an undo snapshot may hold
+        // the same array), every change replaces the kind's object. `touched` is
+        // false until a slot has been used, so an untouched document saves no
+        // slot data. null in `stored` = the pristine defaults.
+        this._slots = {
+            ulaplus64: { active: 0, stored: [null, null, null, null], touched: false },
+            rgb333: { active: 0, stored: [null, null, null, null], touched: false }
+        };
         // Indexed-mode drawing state (pixelDepth > 1): the palette index the
         // brush paints (nextInk) and the index ERASE/PAPER writes on the
         // background layer (nextPaper). Tool state like ink/paper, not
@@ -386,6 +396,119 @@ class ColorManagerClass {
             this.applyScreenMode();
         }
         StateManager.markModified();
+    }
+
+    // ─── Palette slots (document state in ulaplus64 and rgb333 modes) ──────
+
+    /** Which kind of slots the active mode has: 'ulaplus64', 'rgb333' or null (fixed palette). */
+    paletteSlotKind() {
+        const m = ACTIVE_SCREEN_MODE.paletteModel;
+        return (m === 'ulaplus64' || m === 'rgb333') ? m : null;
+    }
+
+    /** The active slot, 0-3 (0 when the mode has none). */
+    getPaletteSlot() {
+        const kind = this.paletteSlotKind();
+        return kind ? this._slots[kind].active : 0;
+    }
+
+    /** A copy of the live register file of a kind (pristine defaults when never seeded). @private */
+    _liveRegisterCopy(kind) {
+        if (kind === 'ulaplus64') return Uint8Array.from(this.ulaplusRegisters || ULAPLUS.defaultRegisters());
+        return Uint16Array.from(this.nextRegisters || NEXTRGB333.defaultRegisters());
+    }
+
+    /**
+     * Make slot `index` (0-3) the live palette. The live file goes aside into the slot being left;
+     * the chosen slot's file becomes live, which re-derives the palette and the CSS tokens. Attribute
+     * bytes are never touched. Returns false when there is nothing to do.
+     * @param {number} index
+     * @returns {boolean}
+     */
+    selectPaletteSlot(index) {
+        const kind = this.paletteSlotKind();
+        if (!kind || !Number.isInteger(index) || index < 0 || index > 3) return false;
+        const cur = this._slots[kind];
+        if (index === cur.active) return false;
+        const stored = cur.stored.slice();
+        stored[cur.active] = this._liveRegisterCopy(kind);
+        const incoming = stored[index];
+        stored[index] = null;
+        this._slots[kind] = { active: index, stored, touched: true };
+        if (kind === 'ulaplus64') this.setUlaplusRegisters(incoming);
+        else this.setNextRegisters(incoming);
+        StateManager.markModified();
+        EventBus.emit(EVENTS.PALETTE_SLOT_CHANGED, { kind, slot: index });
+        return true;
+    }
+
+    /** The slot bookkeeping, for an undo snapshot (references only; stored files are immutable). */
+    getPaletteSlotState() {
+        const one = (s) => ({ active: s.active, stored: s.stored.slice(), touched: s.touched });
+        return { ulaplus64: one(this._slots.ulaplus64), rgb333: one(this._slots.rgb333) };
+    }
+
+    /** Restore the bookkeeping from an undo snapshot. Does not touch the live files (the snapshot restores those). */
+    setPaletteSlotState(state) {
+        if (!state) return;
+        const one = (s) => ({ active: s.active, stored: s.stored.slice(), touched: !!s.touched });
+        if (state.ulaplus64) this._slots.ulaplus64 = one(state.ulaplus64);
+        if (state.rgb333) this._slots.rgb333 = one(state.rgb333);
+        EventBus.emit(EVENTS.PALETTE_SLOT_CHANGED, { kind: this.paletteSlotKind(), slot: this.getPaletteSlot() });
+    }
+
+    /**
+     * Slot 1 active, slots 2-4 copies of the live palette (what a document without slot data gets).
+     * A palette still at the pristine defaults is stored as null.
+     */
+    resetPaletteSlots() {
+        const make = (kind) => {
+            const live = kind === 'ulaplus64' ? this.ulaplusRegisters : this.nextRegisters;
+            const copy = live ? this._liveRegisterCopy(kind) : null;
+            return { active: 0, stored: [null, copy, copy ? copy.slice() : null, copy ? copy.slice() : null], touched: false };
+        };
+        this._slots = { ulaplus64: make('ulaplus64'), rgb333: make('rgb333') };
+    }
+
+    /**
+     * The slots as plain data for a project file, or null while no slot has been used (so a
+     * document that never touched them saves exactly as it always did).
+     * @returns {?{version:number, ulaplus:Object, next:Object}}
+     */
+    exportPaletteSlots() {
+        const s = this._slots;
+        if (!s.ulaplus64.touched && !s.rgb333.touched) return null;
+        const one = (kind, defaults) => {
+            const st = s[kind];
+            const slots = st.stored.map((f, i) => {
+                if (i === st.active) return Array.from(this._liveRegisterCopy(kind));
+                return Array.from(f || defaults());
+            });
+            return { active: st.active, slots };
+        };
+        return { version: 1, ulaplus: one('ulaplus64', () => ULAPLUS.defaultRegisters()),
+                 next: one('rgb333', () => NEXTRGB333.defaultRegisters()) };
+    }
+
+    /**
+     * Load slots from a project file. The live files are already set from the file's own register
+     * fields; this adds the other three of each kind. Anything missing or damaged falls back to
+     * slot 1 plus copies, for that kind.
+     * @param {?Object} data - from exportPaletteSlots, via JSON
+     */
+    importPaletteSlots(data) {
+        this.resetPaletteSlots();
+        if (!data || typeof data !== 'object') return;
+        const read = (src, kind, len, mask, Type) => {
+            if (!src || !Number.isInteger(src.active) || src.active < 0 || src.active > 3) return;
+            if (!Array.isArray(src.slots) || src.slots.length !== 4) return;
+            if (!src.slots.every(f => Array.isArray(f) && f.length === len)) return;
+            const stored = src.slots.map(f => Type.from(f.map(v => (Number(v) | 0) & mask)));
+            stored[src.active] = null;
+            this._slots[kind] = { active: src.active, stored, touched: true };
+        };
+        read(data.ulaplus, 'ulaplus64', 64, 0xFF, Uint8Array);
+        read(data.next, 'rgb333', 256, 0x1FF, Uint16Array);
     }
 
     // ─── Next RGB333 register file (document state in rgb333 modes) ────────
