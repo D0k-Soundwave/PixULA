@@ -276,8 +276,53 @@ class BezierToolClass extends ToolBase {
     });
     PixelDrawRoutine.endBatch();
 
+    // Remember it for Edit > Clone Last Figure.
+    FigureHistory.record({ tool: 'bezier', erase: this._isEraseMode, model: {
+      p0: { ...this._p0 }, p1: { ...this._p1 }, controls: this._controls.map(c => ({ ...c })),
+      curveType: this._curveType, thickness: this._thickness, lineStyle: this._lineStyle } });
+
     this._resetState();
     this.clearPreview();
+  }
+
+  // ── Holding a curve (cursor keys, Ctrl+Z, Save, Clone) ──────────────────────
+
+  /** Cursor keys move the curve being edited. */
+  nudgePending(dx, dy) {
+    if (this._phase !== 'edit') return false;
+    for (const p of [this._p0, this._p1, ...this._controls]) { p.x += dx; p.y += dy; }
+    this._renderPreview();
+    return true;
+  }
+
+  /** Ctrl+Z while a curve is being edited drops it (its handle moves are not kept as steps). */
+  undoPending() {
+    if (this._phase !== 'edit') return false;
+    this.cancelPending();
+    return true;
+  }
+
+  /** Draw a curve that is being edited (before a save, or before Clone). */
+  commitPending() {
+    if (this._phase === 'edit') this.commitCurve();
+  }
+
+  /** Options for the curve about to be reopened by Clone, so the panel shows them. */
+  prepareClone(rec) {
+    this._curveType = rec.model.curveType;
+    this._thickness = rec.model.thickness;
+    this._lineStyle = rec.model.lineStyle;
+  }
+
+  /** Open a pending copy of a recorded curve. */
+  openFigure(rec) {
+    const m = rec.model;
+    this._p0 = { ...m.p0 };
+    this._p1 = { ...m.p1 };
+    this._controls = m.controls.map(c => ({ ...c }));
+    this._isEraseMode = !!rec.erase;
+    this._phase = 'edit';
+    this._renderPreview();
   }
 
   // ── Geometry helpers ──────────────────────────────────────────────────────
