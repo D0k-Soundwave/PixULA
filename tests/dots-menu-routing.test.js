@@ -37,6 +37,11 @@ global.SelectionService = {
   hasSelection() { return false; }, getSelection() { return null; },
   isFloating() { return stamp.floating; },
   get floatingPaste() { return stamp.floating ? { attrs: stamp.attrs } : null; },
+  engagedStamp() {
+    if (stamp.floating) return { layer: null, floating: true, ownColours: !!stamp.attrs };
+    const l = global.LayerManager && LayerManager.getCurrentLayer();
+    return l && l.isStamp ? { layer: l, floating: false, ownColours: false } : null;
+  },
   transformStamp(type) { stamp.calls.push(type); }
 };
 
