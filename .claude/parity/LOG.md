@@ -571,3 +571,30 @@ Tests: tests/shape-rotation.test.js (guard + line styles + rotation + rounding +
 extended, tests/shape-bezier-preview.test.js, tests/browser/line-style-rotation.spec.js (6). run-all ALL TEST FILES PASSED;
 playwright 693 passed. Speed in docs/FIGURES.md.
 Next: part 7C.
+
+## 2026-10-10 - Batch 7 part 7C (first half) - point mode, editable shapes, clone, cursor keys - done
+Model: Sonnet (one-run series). Branch: parity-b.
+Opus: plan review (Plan agent, opus) -> change; applied. OWNER question asked first (as the review said it was the owner's):
+a dragged Shape draws on release as today; "Keep editable" is an opt-in tick box, off by default. The review split 7C: this
+entry is the first half; axis lock and the spray pattern follow as 7C2.
+Review corrections applied: no "Apply current colours" button (a pending figure already follows the rail live; for a drawn
+one: Ctrl+Z then Clone); bare X is NOT free (it swaps ink and paper) - axis lock moves to 7C2 with X acting on a tap; Ctrl+Z
+while a figure is pending must not undo the picture (ToolManager.undo -> tool.undoPending, all four Ctrl+Z paths); Save did
+not commit a pending figure (FileManager now does, before save, save-as and export); a negative-coordinate decode bug in
+FigureModel (a dashed figure partly off the left or top edge) fixed with a failing test first.
+Built: FigureModel rotation (applied only when drawn: 360, 4 x 90 and 37 + 323 give back exactly the original), pivot,
+movePoint, containsPoint; ShapeFigure (a Shape drawing kept editable; displayed handles follow the turn; dragging a corner of
+a turned box keeps the opposite corner where it is drawn); FigureEditor (the preview/plan/commit that were in FigureTool, hit
+testing in priority point > knob > body, drag/move/turn, nudge, edit stack of 64, take-back) shared by FigureTool and ShapeTool;
+FigureHistory (the last drawn Figure, Shape or Bezier; not part of undo; cleared on File New/Open and mode change) and
+Edit > Clone Last Figure (Shift+C); cursor keys move a pending figure/shape/curve before a selection (1 pixel, or a cell with
+Shift or grid snap); GridOverlay round turn knob; Shape "Keep editable" row and hint; Bezier nudge/undo/commit/clone.
+13 locales: 4 new keys, 2 reworded usage hints. Manual paragraph in 13 languages. Comparison rows: clone, cursor keys, re-colour
+Same; point mode Partial (a Bezier curve cannot be dragged or turned as a whole; no "clear points").
+Defaults taken: pressing a handle and releasing without moving draws the figure and starts the next (the Bezier/Figure
+"click away"); dragging inside an unfilled closed figure moves it, so to start a new figure inside it press Enter first;
+the knob sits above the figure (below when that would be off the top); the pivot is the middle of the figure's box (ZX
+Paintbrush says "median point" [P]; box centre is [A]).
+Tests: tests/figure-edit.test.js (new), figure-tool.test.js and shape-bezier-preview.test.js extended, tests/browser/point-mode.spec.js
+(8). run-all ALL TEST FILES PASSED; playwright 701 passed.
+Next: 7C2 (axis lock with X/Y, spray pattern), then the group B Opus review.
