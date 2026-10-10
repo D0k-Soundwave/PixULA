@@ -136,6 +136,10 @@ Dove un formato di file ha spazio per una tavolozza – `.scr` da 6976 byte,
 
 **Tasti CLUT.** Nelle modalità ULAplus, Ctrl+Maiusc+1 – Ctrl+Maiusc+4 scelgono la CLUT 0-3, come la scelta della CLUT nella barra dei colori. Nelle altre modalità la barra di stato lo dice e non succede altro.
 
+**Colori standard.** In Impostazioni > Preferenze, Colori standard permette di cambiare i 15 colori che mostrano le modalità Standard, Multicolor, GigaScreen e Timex. Il nero brillante è sempre nero. I colori cambiano ciò che vedi e ciò che contengono le esportazioni di immagini (PNG, GIF, BMP, JPG); non cambiano mai i byte dei file .scr o .tap, e l'importazione di un'immagine continua a confrontarsi con i colori originali dello Spectrum, così la stessa foto dà la stessa immagine su ogni macchina. Le tavolozze ULAplus e Next sono separate. OK applica i colori, Annulla non conserva nulla e Ripristina standard rimette gli originali. Sono conservati in questo browser, non nel progetto. Carica .pal legge un file di colori standard di ZX Paintbrush (256 byte) e Salva .pal ne scrive uno, che è il modo per portare i tuoi colori in un altro browser.
+
+**Nastri della tavolozza.** File > Salva tavolozza come TAP scrive la tavolozza ULAplus come nastro di 176 byte. Caricato su uno Spectrum con `LOAD ""` imposta le 64 voci della tavolozza e poi carica il file successivo sul nastro, così un nastro di tavolozza può stare davanti a un nastro di immagine o di gioco. File > Carica tavolozza e File > Apri leggono i nastri di tavolozza: quelli di PixULA e quelli di ZX Paintbrush. Un nastro di tavolozza entra nella posizione di tavolozza in uso con un passo di annullamento e non diventa il file aperto.
+
 ### GigaScreen
 
 GigaScreen conserva due schermi completi e li mostra alternandoli, cinquanta

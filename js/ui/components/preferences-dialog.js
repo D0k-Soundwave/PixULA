@@ -1,6 +1,10 @@
 'use strict';
 (function() {
 
+/** The eight colour names (black to white), for the standard-colour pickers' tooltips. */
+const COLOUR_KEYS = ['color.black', 'color.blue', 'color.red', 'color.magenta', 'color.green', 'color.cyan', 'color.yellow', 'color.white'];
+const COLOUR_FALLBACKS = ['Black', 'Blue', 'Red', 'Magenta', 'Green', 'Cyan', 'Yellow', 'White'];
+
 /**
  * PreferencesDialog — Settings > Preferences… and Reset All Preferences.
  *
@@ -166,6 +170,25 @@ class PreferencesDialogClass {
                 </div>
                 <div class="pref-block__hint" data-i18n="pref.privacyClearHint">${this._t('pref.privacyClearHint', 'Empties everything listed above and reloads. Files you saved yourself, including backup versions, are left alone.')}</div>
             </div>
+            <h3 data-i18n="pref.standardColours">${this._t('pref.standardColours', 'Standard colours')}</h3>
+            <div class="pref-block" id="pref-standard-colours">
+                <div class="pref-block__hint" data-i18n="pref.standardColoursHint">${this._t('pref.standardColoursHint', 'The 15 colours the standard, Multicolor, GigaScreen and Timex modes show, and image exports (PNG, GIF, BMP, JPG) use. Bright black is always black. They never change .scr or .tap files, and ULAplus and Next palettes are separate. Kept in this browser.')}</div>
+                <div class="pref-block__label" data-i18n="pref.standardColours.normal">${this._t('pref.standardColours.normal', 'Normal')}</div>
+                <div class="pref-row pref-std-row">
+                    ${[0, 1, 2, 3, 4, 5, 6, 7].map((n) => `<input type="color" class="pref-std" id="pref-std-${n}" name="pref-std-${n}" data-std="${n}" value="#000000" title="${this._t(COLOUR_KEYS[n], COLOUR_FALLBACKS[n])}">`).join('')}
+                </div>
+                <div class="pref-block__label" data-i18n="color.bright">${this._t('color.bright', 'Bright')}</div>
+                <div class="pref-row pref-std-row">
+                    ${[9, 10, 11, 12, 13, 14, 15].map((n) => `<input type="color" class="pref-std" id="pref-std-${n}" name="pref-std-${n}" data-std="${n}" value="#000000" title="${this._t(COLOUR_KEYS[n - 8], COLOUR_FALLBACKS[n - 8])}">`).join('')}
+                </div>
+                <div class="pref-row">
+                    <button type="button" class="panel-button" id="pref-std-load" data-i18n="pref.standardColours.load">${this._t('pref.standardColours.load', 'Load .pal...')}</button>
+                    <button type="button" class="panel-button" id="pref-std-save" data-i18n="pref.standardColours.save">${this._t('pref.standardColours.save', 'Save .pal...')}</button>
+                    <button type="button" class="panel-button" id="pref-std-reset" data-i18n="pref.standardColours.reset">${this._t('pref.standardColours.reset', 'Reset to standard')}</button>
+                    <input type="file" id="pref-std-file" name="pref-std-file" accept=".pal" hidden>
+                </div>
+                <div class="pref-block__hint" id="pref-std-note" hidden></div>
+            </div>
             <h3 data-i18n="pref.pointerAndGrids">${this._t('pref.pointerAndGrids', 'Pointer readout and grids')}</h3>
             <label class="pref-row">
                 <span data-i18n="pref.readoutDetail">${this._t('pref.readoutDetail', 'Pointer readout shows')}</span>
@@ -253,6 +276,7 @@ class PreferencesDialogClass {
         }
         this._initPressurePreferences(content);
         this._initReadoutAndGridPreferences(content);
+        this._initStandardColours(content);
 
         Dialog.open({
             id: 'preferences-dialog',
@@ -312,6 +336,72 @@ class PreferencesDialogClass {
                         theme.checked = true;
                         theme.dispatchEvent(new Event('change'));
                     }
+                }
+            });
+        }
+    }
+
+    /**
+     * The standard-colours section (Batch 6 part 6B). The pickers edit a WORKING copy; OK applies it
+     * (ColorManager.setStandardColours) and stores it with the other preferences, Cancel discards it.
+     * Load .pal and Save .pal use ZX Paintbrush's 256-byte layout (NextPaletteFormat).
+     * @private
+     */
+    _initStandardColours(root) {
+        this._stdWork = ColorManager.getStandardColours();
+        const pickers = Array.from(root.querySelectorAll('.pref-std'));
+        const note = root.querySelector('#pref-std-note');
+        const show = () => {
+            for (const p of pickers) p.value = this._stdWork[parseInt(p.dataset.std, 10)].toLowerCase();
+        };
+        const say = (key, fallback) => {
+            if (!note) return;
+            note.hidden = !key;
+            note.textContent = key ? this._t(key, fallback) : '';
+        };
+        show();
+        for (const p of pickers) {
+            p.addEventListener('input', () => {
+                const n = parseInt(p.dataset.std, 10);
+                const hex = Validators.normaliseHexColour(p.value);
+                if (!hex) return;
+                this._stdWork[n] = hex.toUpperCase();
+                if (n === 0) { this._stdWork[8] = this._stdWork[0]; }
+                say(null);
+            });
+        }
+        const reset = root.querySelector('#pref-std-reset');
+        if (reset) reset.addEventListener('click', () => { this._stdWork = ZX_PALETTE.slice(); show(); say(null); });
+        const file = root.querySelector('#pref-std-file');
+        const load = root.querySelector('#pref-std-load');
+        if (load && file) load.addEventListener('click', () => file.click());
+        if (file) {
+            file.addEventListener('change', async () => {
+                const f = file.files[0];
+                file.value = '';
+                if (!f) return;
+                try {
+                    const decoded = NextPaletteFormat.decodeStandardColours(
+                        new Uint8Array(await Helpers.readFileAsArrayBuffer(f)));
+                    if (!decoded) { say('pref.standardColours.loadFailed', 'That is not a ZX Paintbrush standard-colours .pal file (256 bytes).'); return; }
+                    this._stdWork = decoded.hex16;
+                    show();
+                    if (decoded.brightBlackDropped) {
+                        say('pref.standardColours.brightBlackDropped', 'Bright black is always black here, so that file\'s bright black was not used.');
+                    } else say(null);
+                } catch (error) {
+                    Logger.warn('PreferencesDialog', 'Standard colours load failed', error);
+                    say('pref.standardColours.loadFailed', 'That is not a ZX Paintbrush standard-colours .pal file (256 bytes).');
+                }
+            });
+        }
+        const save = root.querySelector('#pref-std-save');
+        if (save) {
+            save.addEventListener('click', async () => {
+                try {
+                    await FormatRegistry.download(NextPaletteFormat.encodeStandardColours(this._stdWork), 'standard-colours.pal');
+                } catch (error) {
+                    Logger.warn('PreferencesDialog', 'Standard colours save failed', error);
                 }
             });
         }
@@ -781,6 +871,14 @@ class PreferencesDialogClass {
         const readoutDetailEl = dialog.querySelector('#pref-readout-detail');
         const yDirectionEl = dialog.querySelector('#pref-y-direction');
         if (readoutDetailEl && yDirectionEl) StateManager.setReadout(readoutDetailEl.value, yDirectionEl.value);
+        // Standard colours: applied only if they changed, so OK on an untouched dialog recomposes nothing.
+        if (dialog.querySelector('#pref-standard-colours') && this._stdWork) {
+            const now = ColorManager.getStandardColours();
+            if (this._stdWork.some((c, i) => c.toUpperCase() !== now[i])) {
+                ColorManager.setStandardColours(this._stdWork);
+                if (window.LayerManager) LayerManager.composeToCanvas();
+            }
+        }
         const gridColours = dialog.querySelector('#pref-grid-colours') ? this._readGridColours(dialog) : null;
         if (gridColours && window.GridOverlay) GridOverlay.setGridColorOverrides(gridColours);
 
@@ -818,6 +916,8 @@ class PreferencesDialogClass {
             readoutDetail: StateManager.getReadout().detail,
             yDirection: StateManager.getReadout().yDirection,
             gridColors: gridColours || undefined,
+            // Only when edited, so the record stays as it was for everybody else.
+            standardColours: ColorManager.isStandardEdited() ? ColorManager.getStandardColours() : undefined,
             penProfile: pen?.profile,
             penCustom: pen?.custom,
             penActions: pen?.actions

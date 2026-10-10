@@ -124,6 +124,10 @@ Timex –, cestuje paleta i uvnitř obrázku.
 
 **Klávesy CLUT.** V režimech ULAplus vybírají Ctrl+Shift+1 až Ctrl+Shift+4 CLUT 0 až 3, stejně jako volba CLUT na liště barev. V jiných režimech to stavový řádek oznámí a nic dalšího se nestane.
 
+**Standardní barvy.** V Nastavení > Předvolby můžete v části Standardní barvy změnit 15 barev, které ukazují režimy Standard, Multicolor, GigaScreen a Timex. Jasná černá je vždy černá. Barvy mění, co vidíte a co obsahují exporty obrázků (PNG, GIF, BMP, JPG); nikdy nemění bajty souborů .scr ani .tap a import obrázku stále porovnává s původními barvami Spectra, takže stejná fotografie dá na každém stroji stejný obrázek. Palety ULAplus a Next jsou oddělené. OK barvy použije, Zrušit nic nezachová a Vrátit standardní vrátí původní. Ukládají se v tomto prohlížeči, ne v projektu. Načíst .pal čte soubor standardních barev ZX Paintbrush (256 bajtů) a Uložit .pal jej zapíše, což je způsob, jak barvy přenést do jiného prohlížeče.
+
+**Pásky s paletou.** Soubor > Uložit paletu jako TAP zapíše paletu ULAplus jako 176bajtovou pásku. Načtena na Spectru příkazem `LOAD ""` nastaví 64 položek palety a pak načte další soubor na pásce, takže páska s paletou může být před páskou s obrázkem nebo hrou. Soubor > Načíst paletu a Soubor > Otevřít čtou pásky s paletou: vlastní PixULA i ZX Paintbrush. Páska s paletou jde do použité pozice palety jedním krokem zpět a nestane se otevřeným souborem.
+
 ### GigaScreen
 
 GigaScreen uchovává dvě úplné obrazovky a zobrazuje je střídavě, padesátkrát za

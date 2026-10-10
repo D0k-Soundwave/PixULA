@@ -494,3 +494,29 @@ Shortcuts dialog, the manual's key table); 11 i18n keys in 13 locales; manual pa
 Tests: tests/palette-slots.test.js (Node), tests/browser/palette-slots.spec.js (8). run-all ALL TEST FILES PASSED;
 npx playwright test 669 passed.
 Next: part 6B (Mandatory Opus consult on the TAP byte layout).
+
+## 2026-10-10 - Batch 6 part 6B - standard colours and the ULAplus palette tape - done
+Model: Sonnet (one-run series). Branch: parity-b.
+Opus: plan review (Plan agent, opus) -> change; all corrections applied. It read the real ZX Paintbrush files: 13 palette
+tapes (not 9), all 176 bytes with identical framing, only the 64 palette bytes and the data checksum differ; Brights.pal is
+64 entries x R,G,B,0 in CLUT order. Corrections: there is no File > Export submenu (the tape is a File row beside Save
+Palette); File > Open already reads a 256-byte .pal as a Next palette, so ZX Paintbrush's layout is read only from
+Preferences; a palette tape opened through File > Open must not become the open document (FileManager asks the handler,
+TAPFormat.importsDocumentFor; .pal/.npl got importsDocument false for the same reason).
+Owner questions asked before building: bright black stays the same as black (15 colours); add Save .pal to Preferences (yes).
+Built: TAPFormat.buildUlaplusPaletteTap (176 bytes: the BASIC line is RANDOMIZE USR (46 + PEEK 23635 + 256 * PEEK 23636):
+LOAD "": REM, then a 35-byte Z80 routine (written from the ULAplus port spec, run on a small Z80 model in the test) padded to
+40, then the 64 registers and 0x0D), findUlaplusPalette (first Program block whose line ends REM ... 64 bytes 0x0D; ignores
+name, line number and the loader code), loadUlaplusPalette (one undo step, notice outside ULAplus modes), parse fallback;
+File > Save Palette as TAP; the palette editor offers .pal and .tap in ULAplus and Load reads tapes. ColorManager standard
+colours (_stdHex/_stdRGB, setStandardColours/getStandardColours/isStandardEdited, index 8 forced to follow black, applied by
+re-deriving the palette so the rail, canvas, CSS tokens, Timex, border and GigaScreen blends follow); GIF export and the
+import preview paint use them; image IMPORT still matches the hardware colours so a photo gives the same bytes everywhere
+(Opus). NextPaletteFormat.decodeStandardColours / encodeStandardColours (layout recorded [M] in its header). Preferences
+section (pickers on a working copy, OK applies, Cancel keeps nothing, Load .pal, Save .pal, Reset), stored in the
+'preferences' record only when edited and read at boot. 13 i18n keys in 13 locales; manual paragraphs in 13 languages.
+Tests: tests/palette-tap.test.js (reads the 13 real tapes from Program Files when present, otherwise prints SKIP; nothing
+copied into the repo), tests/standard-colours.test.js, tests/browser/palette-tap.spec.js (5), tests/browser/standard-colours.spec.js
+(5); palette-files.spec.js updated (ULAplus now offers two file kinds). run-all ALL TEST FILES PASSED; playwright 679.
+Owner check-off added: open a PixULA palette tape in ZX Paintbrush 2.6.4 and on a real Spectrum / emulator (unverified).
+Next: Batch 7 part 7A.

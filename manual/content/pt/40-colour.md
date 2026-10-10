@@ -132,6 +132,10 @@ bytes, `.nxi`, a variante Timex –, a paleta viaja também dentro da imagem.
 
 **Teclas CLUT.** Nos modos ULAplus, Ctrl+Shift+1 a Ctrl+Shift+4 escolhem a CLUT 0 a 3, tal como a escolha de CLUT da barra de cores. Nos outros modos a barra de estado di-lo e não acontece mais nada.
 
+**Cores padrão.** Em Definições > Preferências, Cores padrão permite mudar as 15 cores que os modos Padrão, Multicolor, GigaScreen e Timex mostram. O preto brilhante é sempre preto. As cores mudam o que vê e o que as exportações de imagem contêm (PNG, GIF, BMP, JPG); nunca mudam os bytes dos ficheiros .scr ou .tap, e a importação de uma imagem continua a comparar com as cores originais do Spectrum, por isso a mesma fotografia dá a mesma imagem em qualquer máquina. As paletas ULAplus e Next são separadas. OK aplica as cores, Cancelar não guarda nada e Repor o padrão devolve as originais. Ficam guardadas neste navegador, não no projeto. Carregar .pal lê um ficheiro de cores padrão do ZX Paintbrush (256 bytes) e Guardar .pal escreve um, que é a forma de levar as suas cores para outro navegador.
+
+**Fitas de paleta.** Ficheiro > Guardar paleta como TAP escreve a paleta ULAplus como uma fita de 176 bytes. Carregada num Spectrum com `LOAD ""` define as 64 entradas da paleta e depois carrega o ficheiro seguinte da fita, por isso uma fita de paleta pode ficar à frente de uma fita de imagem ou de jogo. Ficheiro > Carregar paleta e Ficheiro > Abrir leem fitas de paleta: as do PixULA e as do ZX Paintbrush. Uma fita de paleta entra na posição de paleta em uso num passo de anular e não passa a ser o ficheiro aberto.
+
 ### GigaScreen
 
 O GigaScreen mantém dois ecrãs completos e mostra-os alternadamente, cinquenta

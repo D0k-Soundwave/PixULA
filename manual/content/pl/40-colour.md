@@ -134,6 +134,10 @@ Jeśli format pliku ma miejsce na paletę – `.scr` o rozmiarze 6976 bajtów,
 
 **Klawisze CLUT.** W trybach ULAplus Ctrl+Shift+1 do Ctrl+Shift+4 wybierają CLUT 0-3, tak jak wybór CLUT na pasku kolorów. W innych trybach pasek stanu to mówi i nic więcej się nie dzieje.
 
+**Kolory standardowe.** W Ustawienia > Preferencje sekcja Kolory standardowe pozwala zmienić 15 kolorów, które pokazują tryby Standard, Multicolor, GigaScreen i Timex. Jasna czerń jest zawsze czernią. Kolory zmieniają to, co widzisz, i to, co zawierają eksporty obrazów (PNG, GIF, BMP, JPG); nigdy nie zmieniają bajtów plików .scr ani .tap, a import obrazu nadal dopasowuje do oryginalnych kolorów Spectrum, więc to samo zdjęcie daje ten sam obraz na każdej maszynie. Palety ULAplus i Next są osobne. OK stosuje kolory, Anuluj nie zachowuje niczego, a Przywróć standardowe przywraca oryginały. Są zapamiętane w tej przeglądarce, nie w projekcie. Wczytaj .pal czyta plik kolorów standardowych ZX Paintbrush (256 bajtów), a Zapisz .pal zapisuje taki plik, co jest sposobem na przeniesienie kolorów do innej przeglądarki.
+
+**Taśmy z paletą.** Plik > Zapisz paletę jako TAP zapisuje paletę ULAplus jako taśmę 176 bajtów. Wczytana na Spectrum poleceniem `LOAD ""` ustawia 64 wpisy palety, a potem wczytuje następny plik z taśmy, więc taśma z paletą może stać przed taśmą z obrazem lub grą. Plik > Wczytaj paletę i Plik > Otwórz czytają taśmy z paletą: własne PixULA i ZX Paintbrush. Taśma z paletą trafia do używanego miejsca palety jednym krokiem cofania i nie staje się otwartym plikiem.
+
 ### GigaScreen
 
 GigaScreen przechowuje dwa pełne ekrany i pokazuje je na przemian, pięćdziesiąt

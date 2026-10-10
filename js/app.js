@@ -202,6 +202,7 @@ class AppClass {
                 if (typeof prefs.resetDrawModeOnTool === 'boolean') StateManager.set('resetDrawModeOnTool', prefs.resetDrawModeOnTool);
                 if (typeof prefs.nudgeStep === 'number') StateManager.set('nudgeStep', prefs.nudgeStep);
                 // Pointer readout (what it shows, which way Y counts) and the owner's grid colours
+                if (Array.isArray(prefs.standardColours)) StateManager.set('standardColours', prefs.standardColours);
                 StateManager.set('readout.detail', prefs.readoutDetail);
                 StateManager.set('readout.yDirection', prefs.yDirection);
                 if (prefs.gridColors && typeof prefs.gridColors === 'object') {

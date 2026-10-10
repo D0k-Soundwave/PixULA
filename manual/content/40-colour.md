@@ -127,6 +127,10 @@ Timex variant - the palette travels inside the picture as well.
 
 **CLUT keys.** In the ULAplus modes Ctrl+Shift+1 to Ctrl+Shift+4 pick CLUT 0 to 3, the same as the CLUT choice on the colour rail. In other modes they say so in the status bar and do nothing else.
 
+**Standard colours.** In Settings > Preferences, Standard colours lets you change the 15 colours that the Standard, Multicolor, GigaScreen and Timex modes show. Bright black is always black. The colours change what you see and what the image exports contain (PNG, GIF, BMP, JPG); they never change the bytes of .scr or .tap files, and importing a picture still matches the original Spectrum colours, so the same photo gives the same picture on every machine. ULAplus and Next palettes are separate. OK applies the colours, Cancel keeps nothing, and Reset to standard puts the originals back. They are kept in this browser, not in the project. Load .pal reads a ZX Paintbrush standard-colours file (256 bytes) and Save .pal writes one, which is the way to carry your colours to another browser.
+
+**Palette tapes.** File > Save Palette as TAP writes the ULAplus palette as a 176-byte tape. Loaded on a Spectrum with `LOAD ""` it sets the 64 palette entries and then loads the next file on the tape, so a palette tape can sit in front of a picture or a game tape. File > Load Palette, and File > Open, read palette tapes: PixULA's own and ZX Paintbrush's. A palette tape goes into the palette slot in use as one undo step and does not become the open file.
+
 ### GigaScreen
 
 GigaScreen keeps two whole screens and shows them alternately, fifty times a
