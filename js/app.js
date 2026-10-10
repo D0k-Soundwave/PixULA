@@ -86,6 +86,8 @@ const BOOT_MANIFEST = [
     ['ShapeGenerator',   'js/tools/shape-generator.js'],
     ['BrushTool',        'js/tools/brush-tool.js'],
     ['BezierTool',       'js/tools/bezier-tool.js'],
+    ['FigureModel',      'js/tools/figure-model.js'],
+    ['FigureTool',       'js/tools/figure-tool.js'],
     ['EraserTool',       'js/tools/eraser-tool.js'],
     ['FillTool',         'js/tools/fill-tool.js'],
     ['ShapeTool',        'js/tools/shape-tool.js'],
@@ -342,6 +344,7 @@ class AppClass {
         ToolManager.register(new FillTool());
         ToolManager.register(new ShapeTool());
         ToolManager.register(new BezierTool());
+        ToolManager.register(new FigureTool());
         ToolManager.register(new EyedropperTool());
         ToolManager.register(new SelectionTool());
         ToolManager.register(new GradientTool());

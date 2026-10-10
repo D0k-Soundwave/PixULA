@@ -1698,6 +1698,7 @@ class InputHandlerClass {
     return tool.id === TOOLS.SELECTION ||
            tool.id === TOOLS.RECTANGLE || // ShapeTool base — all shape variants
            tool.id === TOOLS.BEZIER ||    // anchor/handle placement
+           tool.id === TOOLS.FIGURE ||    // figure points
            tool.id === TOOLS.TEXT;
   }
 
@@ -1829,6 +1830,11 @@ class InputHandlerClass {
    */
   _handleEscape(e) {
     e.preventDefault();
+
+    // 0. A tool holding an unfinished figure drops it BEFORE the tool is switched below
+    //    (switching tools commits a pending figure).
+    const held = window.ToolManager && ToolManager.getCurrentTool();
+    if (held && typeof held.cancelPending === 'function') held.cancelPending();
 
     // 1. End any in-progress stroke (close open batches so undo stays sound)
     if (this.isDrawing) {
@@ -2082,6 +2088,16 @@ class InputHandlerClass {
     // Phase 5 deliberately left the arrows unbound; they now nudge at the
     // configurable step (pref.nudgeStep), or one attribute cell with grid
     // snap on, whenever a stamp is floating or a selection is active.
+    // The active tool may claim Enter / Backspace first (a pending figure). Ahead of the
+    // selection's Delete below: people draw figures inside a drawing-guide selection.
+    if (!ctrl && !e.altKey && (key === 'enter' || key === 'backspace')) {
+      const active = window.ToolManager && ToolManager.getCurrentTool();
+      if (active && typeof active.handleKey === 'function' && active.handleKey(e.key, e) === true) {
+        e.preventDefault();
+        return;
+      }
+    }
+
     if (key.startsWith('arrow')) {
       this._handleArrowNudge(e, key);
       return;

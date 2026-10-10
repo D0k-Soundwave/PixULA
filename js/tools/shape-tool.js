@@ -45,6 +45,17 @@ const SHAPE_TYPE_OPTS = Object.freeze([
     // place one — so it wears the rail's bezier symbol.
     { value: TOOLS.BEZIER, i18n: 'tool.bezier', tool: TOOLS.BEZIER, icon: 'icon-bezier' }
   ]},
+  // The point-based figures are a TOOL of their own (figure-tool.js), picked from this list like the
+  // Bezier curve: each entry names the tool and carries the figure type, which OptionControls hands
+  // to FigureTool.setShapeType before switching.
+  { i18n: 'shapecat.figures', options: [
+    { value: 'figure-polyline',   i18n: 'figure.polyline',   hintI18n: 'figure.polyline.hint',   tool: TOOLS.FIGURE, icon: 'icon-fig-polyline' },
+    { value: 'figure-polygon',    i18n: 'figure.polygon',    hintI18n: 'figure.polygon.hint',    tool: TOOLS.FIGURE, icon: 'icon-fig-polygon' },
+    { value: 'figure-triangle',   i18n: 'figure.triangle',   hintI18n: 'figure.triangle.hint',   tool: TOOLS.FIGURE, icon: 'icon-fig-triangle' },
+    { value: 'figure-rays',       i18n: 'figure.rays',       hintI18n: 'figure.rays.hint',       tool: TOOLS.FIGURE, icon: 'icon-fig-rays' },
+    { value: 'figure-orthogonal', i18n: 'figure.orthogonal', hintI18n: 'figure.orthogonal.hint', tool: TOOLS.FIGURE, icon: 'icon-fig-orthogonal' },
+    { value: 'figure-parallel',   i18n: 'figure.parallel',   hintI18n: 'figure.parallel.hint',   tool: TOOLS.FIGURE, icon: 'icon-fig-parallel' }
+  ]},
   { i18n: 'shapecat.polygons', options: [
     { value: 'triangle',      i18n: 'common.triangle' },
     { value: 'diamond',       i18n: 'gt.diamond' },
