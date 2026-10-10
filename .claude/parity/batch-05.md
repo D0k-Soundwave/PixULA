@@ -32,8 +32,9 @@ Help pages: `overlay_bar`, `create_overlay`, `create_overlay_type_dialog`,
   `{ mask, indices, attrs, x, y, w, h, colorSelection }`; `stampAt(layer)`
   places set dots only and never changes colours; `_paintAttributedStamp`
   places a coloured stamp cell by cell (set dots `NORMAL`, clear dots
-  `PAPER` - so coloured stamps already overlap); `_paintIndexedStamp` for
-  indexed modes; `commitStamp`, `commitActiveStamp`, `toggleStampMode`,
+  `PAPER`, which recolours the paper and touches NO dot - so coloured stamps
+  do NOT overlap today; corrected by the 5A Opus review, 2026-10-10);
+  `_paintIndexedStamp` for indexed modes; `commitStamp`, `commitActiveStamp`, `toggleStampMode`,
   `setStampEraseMode`, `transformStamp`.
 - Design notes: `docs/superpowers/specs/2026-08-28-attributed-stamps-design.md`
   and `docs/superpowers/specs/2026-08-29-stamp-coverage-pipeline-design.md`.
@@ -56,8 +57,10 @@ Defaults:
     stamps keep following the rail's boxes);
   - `clearDots`: `'transparent'` (clear dots leave the background) or
     `'overlap'` (clear dots clear it).
-- Today's behaviour is the default: plain stamps `pixels` + `transparent`;
-  coloured stamps `coloured` + `overlap` + nothing showing through.
+- Today's behaviour is the default: every stamp is `transparent` (clear
+  dots leave the dots under them alone); plain stamps `pixels`, stamps
+  that carry colours `coloured`, nothing showing through. (This note used to
+  say coloured stamps default to `overlap`; that was wrong - see above.)
 - No dialog at creation: a stamp made from a selection with colours starts
   `coloured`; the Transform panel can switch it. (ZX Paintbrush asks every
   time; asking on every paste would slow PixULA's existing flows.)

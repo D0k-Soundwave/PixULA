@@ -365,3 +365,44 @@ Fill Selection follow Inverse?; (e) the cell-tool hint texts still end "Click it
 tool again in the grid), reword in 13 locales?
 Flaky tests: none this time.
 Next: Batch 5 part 5A on a new branch parity-b (RUN-ALL.md step 4).
+
+## 2026-10-10 - Batch 5 part 5A - the stamp model and placing rules - done
+Model: Sonnet (one-run series). Branch: parity-b.
+Opus: plan review (Plan agent, opus) -> change; the verdict's changes are all in. It found batch-05.md wrong on one point:
+coloured stamps do NOT overlap today (their clear dots use Paper recolour, which touches no dot), so the default Clear dots
+is Transparent for every stamp. batch-05.md corrected.
+Built (build order from the review):
+1. tests/stamp-golden.test.js - a PIN written first: what stamps write today in standard ULA, ULAplus, ULANext, GigaScreen,
+   multicolour 8x4, Timex hi-res and Layer 2 (plain, attributed, indexed; commit and stampAt; the stamp XOR box), hand
+   checked. Passed on the code as it stood and still passes unchanged: every default is byte for byte what it was.
+2. Model, no behaviour change: stamps may carry attrGrid (the shape of their colour cells) and opts (colours / showThrough /
+   clearDots). Threaded through creation, floating capture and restore (undo), parking, picking up again, duplicate, save and
+   read (cleaned on read: only allowed values survive, a grid that disagrees with its attrs is dropped, old files and
+   stamp-less documents save exactly as before). Also fixed: duplicating a floating or fresh stamp used the stale parked copy
+   and copied preview cells. SelectionService.stampOptions / stampAttrGrid / stampColoured / stampColoursBlocked.
+3. One write plan (_forEachStampWrite, and _forEachIndexedStampWrite) used by stampAt, commitStamp and the previews, so a
+   preview cannot drift from a placement. The old separate attributed preview is gone: a tile cell with no dots now previews
+   its paper recolour (it did not before), pinned by a 128-combination preview-equals-commit matrix in
+   stamp-draw-mode.test.js.
+4. Placing rules, tests/stamp-placing.test.js (hand derived): Pixels stamp with Overlap clears the dots under its whole box as
+   the opposite of the draw mode (Erase for Normal and Pixels Only, set for the right button and Inverse, nothing for the XOR
+   and recolour modes or the stamp's XOR box); a coloured stamp ignores the draw mode, the rail and the XOR box, writes each
+   cell's own colours, a hole writes nothing, Inverse swaps set and clear, show-through takes the page's value per part;
+   Layer 2 overlap likewise, preview included (new LayerManager.previewCellIndices).
+   Deliberate changes outside the defaults: Inverse now affects coloured (Map) stamps; a coloured stamp in a mode without cell
+   colours, or whose cells are not the mode's size, is placed as a Pixels stamp.
+5. SelectionService.setStampOptions(patch) and convertStampToPixels(): one undo step each, floating or parked, undo/redo
+   tested. Buttons arrive with 5B.
+6. The three "what is a stamp" checks merged: SelectionService.engagedStamp(). Corner case changed on purpose: with a stamp
+   floating, the attribute commands are now blocked even if the layer panel made a drawing layer current (they used to run
+   on the picture under the stamp). A stamp that holds colours still cannot be flipped, scaled, rotated or warped - lifting
+   that is part 5A2/5B.
+7. Speed (docs/FIGURES.md, new section, M): full-picture stamp, standard ULA, preview 1.0 -> 1.6 ms; stampAt 2.0 -> 2.1 ms;
+   Layer 2 640 unchanged to within drift. A tenth of the 7 ms live budget.
+Not in 5A, still to do: clipboard colours (5A2, owner question below), the controls (5B), Image > Attributes on a stamp's own
+colours (5B/5C).
+Owner question for 5A2 (asked then): should a stamp copied from the picture start as "Pixels only" (recommended: pastes
+exactly as today; one click on Own colours brings the copied colours back) or start with Own colours (snaps to whole cells,
+ignores the rail and the draw mode, cannot be scaled, rotated or warped)?
+Tests: run-all ALL TEST FILES PASSED; 41 stamp/cell-tool browser specs passed.
+Next: part 5A2.
