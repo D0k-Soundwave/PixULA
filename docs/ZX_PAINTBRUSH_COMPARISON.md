@@ -78,7 +78,7 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | Wiping tool | Wipes dots away and sets the cells to the current colours; transparent channels are kept. Editable as a polygon afterwards. | Eraser option Colours: Set to current (2026-10-09) clears the dots and gives the cell the rail's colours, with Bright and Flash "use existing" honoured; Keep (the default) is the eraser as before. Shown only where cells have colours. Not editable as a polygon afterwards. | Same |
 | Colour attribute line thickness (option) | Thick lines colour only the cells under a 1-pixel or 4-pixel core, so less clash. | Colour core option (2026-10-09) on the round and square brush, shape outlines and the Bezier curve: Whole line (default) / 1 pixel / 4 pixels. Every dot is set; only the core's cells take the colours; Mirror and XOR respected; previews match the commit; hidden where cells have no colours. | Same |
 | Attribute changes visible while drawing | Figures show their colours before they are finished. | Shapes, curves, gradients and stamps preview with the real colours. | Same |
-| Re-colour the last figure (point mode) | Click a control point to give the last drawn figure the current colours, line and fill style. | No. Undo and draw it again. | Missing |
+| Re-colour the last figure (point mode) | Click a control point to give the last drawn figure the current colours, line and fill style. | A figure that is still waiting follows the rail colours, line style and fill live; one already drawn: Ctrl+Z, then Edit > Clone Last Figure (2026-10-10, Batch 7 part 7C). ZX Paintbrush re-draws it in place with a click on a control point; here it is two steps. | Same |
 
 ### Inverter tools - click cell by cell
 
@@ -164,8 +164,8 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | Line arrow | Line with arrowhead. | Arrow shapes. | Same |
 | Line styles | Solid, dashed, dotted, clear. | Line style on Shape, Figure and Bezier (2026-10-10, 7B): Solid, Dashed, Dotted, Dash-dot, Dash-dot-dot (the six styles the help names) and Clear. Dash lengths read from the help's toolbar picture [M]; dashes only at thickness 1 (greyed out above, enforced by the rasteriser); Clear draws no outline, so it is for filled shapes. The pattern runs round corners and restarts per ray or line of a figure. | Same |
 | Line thickness | Thickness setting for all lines. | Thickness 1 to 8. | Same |
-| Point mode | Move points, move or rotate the last figure, delete its last point with Backspace. | Only the Bezier curve keeps editable handles. Since Batch 7 part 7A a Figure stays pending and Backspace deletes its last point; dragging points, moving and rotating the figure come with part 7C. | Missing |
-| Clone last drawn figure | Draws the last figure again, ready to move with the cursor keys. | No. | Missing |
+| Point mode | Move points, move or rotate the last figure, delete its last point with Backspace. | A pending Figure, a Shape with Keep editable ticked, and a Bezier curve can be edited before they are drawn (2026-10-10, 7C): drag a square point, drag the figure to move it, drag the round knob to turn it (a Bezier curve has handles, moves with the arrow keys, but cannot be dragged or turned as a whole), Backspace removes the last point of a Figure, Ctrl+Z takes back edits. There is no 'clear points' or point list. | Partial |
+| Clone last drawn figure | Draws the last figure again, ready to move with the cursor keys. | Edit > Clone Last Figure, Shift+C (2026-10-10, 7C): a pending copy of the last Figure, Shape or Bezier curve, which the arrow keys (Shift for a cell) move. | Same |
 | X and Y keys | Lock drawing to one axis. | Lock axis on the gradient only. | Partial |
 
 ### Special draw tools, fills and gradients
@@ -218,7 +218,7 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | Preview window | Miniature of the whole picture. | No. | Missing |
 | Background picture (P key) | A picture behind the canvas with position and transparency. | Reference panel: position, scale, rotate, flip, opacity. | PixULA further |
 | Raster jump 8x8, 16x16, 256x192, user-defined | The pointer moves in fixed steps. | Snap to the attribute grid; nudge step preference. | Partial |
-| Cursor keys move the last figure | Pixel-by-pixel nudging of what you just drew. | No (stamps and selections move with the Transform panel). | Missing |
+| Cursor keys move the last figure | Pixel-by-pixel nudging of what you just drew. | The arrow keys move a pending figure, shape or curve by one pixel, or a cell with Shift or grid snap (2026-10-10, 7C); they move a floating stamp or the selection when no figure is waiting. | Same |
 
 ### Files and tapes
 
