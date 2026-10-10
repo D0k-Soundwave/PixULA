@@ -370,6 +370,17 @@ class ShapeGeneratorClass {
 
         const standardBounds = this._standardizeBounds(shapeType, bounds);
 
+        // Line style (solid by default, which changes nothing). Dashed, dotted and the two mixed styles
+        // are drawn on the 1-pixel outline only, so they apply at thickness 1 (a filled shape counts as
+        // 1); 'clear' draws no outline at any thickness. See _generateStyled.
+        const style = ShapeGeneratorClass.cleanLineStyle(options.lineStyle);
+        if (style !== 'solid') {
+            const thick = Helpers.clamp(Math.round(options.thickness || 1), 1, 16);
+            if (style === 'clear' || filled || thick === 1) {
+                return this._generateStyled(shapeType, standardBounds, options, style);
+            }
+        }
+
         if (filled && this.filledShapes.has(shapeType)) {
             return this.filledShapes.get(shapeType)(standardBounds, options);
         }
@@ -386,6 +397,176 @@ class ShapeGeneratorClass {
         const points = generator(standardBounds, options);
         const thickness = Helpers.clamp(Math.round(options.thickness || 1), 1, 16);
         return thickness > 1 ? this._thickenPoints(points, thickness) : points;
+    }
+
+    // ===== LINE STYLES (Batch 7 part 7B) =====
+
+    /**
+     * The line style names the option takes. 'clear' is not a pattern: it draws no outline.
+     * @const {string[]}
+     */
+    static get LINE_STYLES() {
+        return ['solid', 'dashed', 'dotted', 'dash-dot', 'dash-dot-dot', 'clear'];
+    }
+
+    /** @returns {string} a valid line style (anything else is 'solid') */
+    static cleanLineStyle(v) {
+        return ShapeGeneratorClass.LINE_STYLES.includes(v) ? v : 'solid';
+    }
+
+    /**
+     * Dash patterns as alternating on / off lengths in pixel steps along the outline, starting with an
+     * on run. Read from the line-style toolbar picture in the ZX Paintbrush help (a 16x16 rectangle,
+     * 60 outline pixels, one icon per style) [M, ZXPaintbrush.chm linestyletoolbar.jpg, 2026-10-10]:
+     *   dashed 18 on 6 off; dotted 3 on 3 off; dash-dot 9 on 6 off 3 on 6 off;
+     *   dash-dot-dot 9 on 3 off 3 on 3 off 3 on 3 off.
+     * That the canvas draws with the same pens as the toolbar icons is [A].
+     * @const {Object<string, number[]>}
+     */
+    static get LINE_PATTERNS() {
+        return {
+            'dashed': [18, 6],
+            'dotted': [3, 3],
+            'dash-dot': [9, 6, 3, 6],
+            'dash-dot-dot': [9, 3, 3, 3, 3, 3]
+        };
+    }
+
+    /**
+     * Split ordered runs of outline pixels into the pixels a pattern leaves on and the pixels it leaves
+     * off. The pattern advances one step per pixel along each run, carries on round corners, and starts
+     * afresh at the beginning of each run.
+     * @param {Array<Array<{x:number,y:number}>>} runs - ordered paths
+     * @param {string} style - 'dashed', 'dotted', 'dash-dot' or 'dash-dot-dot'
+     * @returns {{on: Array, off: Array}}
+     */
+    applyLineStyle(runs, style) {
+        const pattern = ShapeGeneratorClass.LINE_PATTERNS[style];
+        const on = [], off = [];
+        for (const run of runs) {
+            if (!pattern) { on.push(...run); continue; }
+            let seg = 0, left = pattern[0];
+            for (const p of run) {
+                if (left === 0) { seg = (seg + 1) % pattern.length; left = pattern[seg]; }
+                (seg % 2 === 0 ? on : off).push(p);
+                left--;
+            }
+        }
+        return { on, off };
+    }
+
+    /**
+     * Put an unordered 1-pixel outline (what most generators return) into the order a pen would draw it,
+     * so a pattern can run along it. It walks the pixels that are there, so the set is the same pixels.
+     *  - starts at a pixel with one neighbour (an end of an open outline); for a closed outline, at the
+     *    right end of the top row, heading left, which is where ZX Paintbrush starts its rectangle;
+     *  - steps to the unvisited neighbour that turns least, straight neighbours before diagonal ones, and
+     *    takes a straight neighbour that touches a diagonal target first so no corner pixel is skipped;
+     *  - when it gets stuck it jumps to the nearest unvisited pixel and carries on.
+     * @param {Array<{x:number,y:number}>} points
+     * @returns {Array<{x:number,y:number}>} the same pixels, in walking order
+     */
+    orderOutline(points) {
+        const key = (x, y) => y * 100003 + x;
+        const pos = new Map();
+        for (const p of points) if (!pos.has(key(p.x, p.y))) pos.set(key(p.x, p.y), { x: p.x, y: p.y });
+        if (pos.size <= 1) return Array.from(pos.values());
+        const visited = new Set();
+        const out = [];
+        const DIRS = [[-1, 0], [0, 1], [1, 0], [0, -1], [-1, -1], [-1, 1], [1, 1], [1, -1]];
+        const neighbours = (p) => {
+            const list = [];
+            for (const [dx, dy] of DIRS) {
+                const q = pos.get(key(p.x + dx, p.y + dy));
+                if (q) list.push({ q, dx, dy });
+            }
+            return list;
+        };
+        const unvisited = (p) => neighbours(p).filter(n => !visited.has(key(n.q.x, n.q.y)));
+
+        let start = null;
+        for (const p of pos.values()) {
+            if (neighbours(p).length === 1) { start = p; break; }
+        }
+        let heading = null;
+        if (!start) {
+            for (const p of pos.values()) {
+                if (!start || p.y < start.y || (p.y === start.y && p.x > start.x)) start = p;
+            }
+            heading = [-1, 0];
+        }
+        let cur = start;
+        visited.add(key(cur.x, cur.y));
+        out.push(cur);
+        while (out.length < pos.size) {
+            const cand = unvisited(cur);
+            let next = null;
+            if (cand.length) {
+                const h = heading;
+                const turn = (n) => {
+                    if (!h) return (n.dx === 0 || n.dy === 0) ? 0 : 1;
+                    const a = Math.atan2(h[1], h[0]), b = Math.atan2(n.dy, n.dx);
+                    let d = Math.abs(a - b);
+                    if (d > Math.PI) d = 2 * Math.PI - d;
+                    return d;
+                };
+                let best = null, bestTurn = Infinity;
+                for (const n of cand) {
+                    const tn = turn(n) + ((n.dx !== 0 && n.dy !== 0) ? 1e-6 : 0);
+                    if (tn < bestTurn - 1e-9) { best = n; bestTurn = tn; }
+                }
+                if (best.dx !== 0 && best.dy !== 0) {
+                    // a diagonal step: a straight neighbour of mine that also touches the target goes first
+                    const straight = cand.find(n => (n.dx === 0 || n.dy === 0) &&
+                        Math.abs(n.q.x - (cur.x + best.dx)) + Math.abs(n.q.y - (cur.y + best.dy)) === 1);
+                    if (straight) best = straight;
+                }
+                next = best;
+                heading = [next.dx, next.dy];
+            } else {
+                // stuck: jump to the nearest unvisited pixel
+                let nearest = null, nd = Infinity;
+                for (const p of pos.values()) {
+                    if (visited.has(key(p.x, p.y))) continue;
+                    const d = (p.x - cur.x) * (p.x - cur.x) + (p.y - cur.y) * (p.y - cur.y);
+                    if (d < nd) { nd = d; nearest = p; }
+                }
+                next = { q: nearest, dx: Math.sign(nearest.x - cur.x), dy: Math.sign(nearest.y - cur.y) };
+                heading = null;
+            }
+            cur = next.q;
+            visited.add(key(cur.x, cur.y));
+            out.push(cur);
+        }
+        return out;
+    }
+
+    /**
+     * A shape drawn in a line style other than solid. Unfilled: the pixels the pattern leaves on (nothing
+     * for 'clear'). Filled: the fill without the pixels the pattern leaves off (for 'clear', without the
+     * whole 1-pixel outline, so only the inside is drawn).
+     * @private
+     */
+    _generateStyled(shapeType, standardBounds, options, style) {
+        const generator = this.shapes.get(shapeType);
+        if (!generator) {
+            Logger.warn('ShapeGenerator', `Unknown shape: ${shapeType}`);
+            return [];
+        }
+        const outline = generator(standardBounds, options);
+        const filled = !!options.filled;
+        const fillOf = () => (this.filledShapes.has(shapeType)
+            ? this.filledShapes.get(shapeType)(standardBounds, options)
+            : this._fillFromOutline(generator, standardBounds, options));
+        if (style === 'clear') {
+            if (!filled) return [];
+            const gone = new Set(outline.map(p => p.y * 100003 + p.x));
+            return fillOf().filter(p => !gone.has(p.y * 100003 + p.x));
+        }
+        const split = this.applyLineStyle([this.orderOutline(outline)], style);
+        if (!filled) return split.on;
+        const off = new Set(split.off.map(p => p.y * 100003 + p.x));
+        return fillOf().filter(p => !off.has(p.y * 100003 + p.x));
     }
 
     /**
