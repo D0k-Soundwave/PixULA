@@ -76,6 +76,7 @@ const en = {
     'menu.image.attrFlipV': 'Flip Vertical',
     'menu.image.attrNoCells': 'This screen mode has no cell colours.',
     'menu.image.attrStamp': 'Finish or cancel the stamp first.',
+    'help.axisLock': 'Hold while drawing: keep to a horizontal (X) or vertical (Y) line. Tap X: swap ink and paper',
     'opt.patternShape': 'Figure',
     'opt.patternSize': 'Figure size',
     'menu.edit.cloneFigure': 'Clone Last Figure',

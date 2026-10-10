@@ -438,6 +438,17 @@ class ShapeToolClass extends ToolBase {
     this._thickness = m.options.thickness;
     this._lineStyle = m.options.lineStyle;
     this._rotation = m.getRotation();
+    // The shape's own dials, so a later option change rebuilds it with ITS values, not the tool's old ones.
+    const g = m.gen || {};
+    const back = (v, scale, set) => { if (Number.isFinite(v)) set(Math.round(v * scale)); };
+    back(g.rounding, 100, (n) => { this._rounding = n; });
+    back(g.points, 1, (n) => { this._starPoints = n; });
+    back(g.petals, 1, (n) => { this._flowerPetals = n; });
+    back(g.teeth, 1, (n) => { this._gearTeeth = n; });
+    back(g.turns, 1, (n) => { this._spiralTurns = n; });
+    back(g.innerRatio, 100, (n) => { this._ringInner = n; });
+    back(g.phase, 100, (n) => { this._moonPhase = n; });
+    back(g.arcSpan, 180 / Math.PI, (n) => { this._arcSpan = n; });
   }
 
   /** Open a pending copy of a recorded shape (always editable, whatever "Keep editable" says). */
@@ -452,6 +463,13 @@ class ShapeToolClass extends ToolBase {
    * @param {PointerEvent} e - Pointer event
    */
   onPointerLeave(e) {
+    // A shape kept editable stays on show while the pointer is off the canvas (e.g. in the options panel).
+    if (this._pending) {
+      this.isDrawing = false;
+      this._editing = null;
+      this._editor.render();
+      return;
+    }
     this.isDrawing = false;
     this.previewActive = false;
     this.startPoint = null;
@@ -507,7 +525,7 @@ class ShapeToolClass extends ToolBase {
 
   getColourCore() { return this._colourCore; }
 
-  setColourCore(value) { this._colourCore = ToolBase.cleanColourCore(value); }
+  setColourCore(value) { this._colourCore = ToolBase.cleanColourCore(value); this._syncPending(); }
 
   getLineStyle() { return this._lineStyle; }
   setLineStyle(v) { this._lineStyle = ShapeGenerator.constructor.cleanLineStyle(v); this._syncPending(); }
@@ -652,6 +670,7 @@ class ShapeToolClass extends ToolBase {
    */
   setFilled(filled) {
     this.filled = Boolean(filled);
+    this._syncPending();
     Logger.debug('ShapeTool', `Filled mode set to ${this.filled}`);
   }
 
@@ -685,6 +704,7 @@ class ShapeToolClass extends ToolBase {
    */
   setThickness(value) {
     this._thickness = clamp(parseInt(value, 10) || 1, 1, 8);
+    this._syncPending();
   }
 
   // ── Per-shape parameters (SHAPE_PARAM_ROWS) ────────────────────────────────
@@ -692,25 +712,25 @@ class ShapeToolClass extends ToolBase {
   // from more than its slider (session restore, scripts, tests).
 
   getStarPoints() { return this._starPoints; }
-  setStarPoints(v) { this._starPoints = clamp(parseInt(v, 10) || 5, 3, 12); }
+  setStarPoints(v) { this._starPoints = clamp(parseInt(v, 10) || 5, 3, 12); this._syncPending(); }
 
   getFlowerPetals() { return this._flowerPetals; }
-  setFlowerPetals(v) { this._flowerPetals = clamp(parseInt(v, 10) || 6, 3, 12); }
+  setFlowerPetals(v) { this._flowerPetals = clamp(parseInt(v, 10) || 6, 3, 12); this._syncPending(); }
 
   getGearTeeth() { return this._gearTeeth; }
-  setGearTeeth(v) { this._gearTeeth = clamp(parseInt(v, 10) || 8, 3, 16); }
+  setGearTeeth(v) { this._gearTeeth = clamp(parseInt(v, 10) || 8, 3, 16); this._syncPending(); }
 
   getSpiralTurns() { return this._spiralTurns; }
-  setSpiralTurns(v) { this._spiralTurns = clamp(parseInt(v, 10) || 3, 1, 8); }
+  setSpiralTurns(v) { this._spiralTurns = clamp(parseInt(v, 10) || 3, 1, 8); this._syncPending(); }
 
   getRingInner() { return this._ringInner; }
-  setRingInner(v) { this._ringInner = clamp(parseInt(v, 10) || 50, 10, 90); }
+  setRingInner(v) { this._ringInner = clamp(parseInt(v, 10) || 50, 10, 90); this._syncPending(); }
 
   getMoonPhase() { return this._moonPhase; }
-  setMoonPhase(v) { this._moonPhase = clamp(parseInt(v, 10) || 30, 5, 95); }
+  setMoonPhase(v) { this._moonPhase = clamp(parseInt(v, 10) || 30, 5, 95); this._syncPending(); }
 
   getArcSpan() { return this._arcSpan; }
-  setArcSpan(v) { this._arcSpan = clamp(parseInt(v, 10) || 180, 15, 360); }
+  setArcSpan(v) { this._arcSpan = clamp(parseInt(v, 10) || 180, 15, 360); this._syncPending(); }
 
   /**
    * Deactivate tool

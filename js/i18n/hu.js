@@ -435,6 +435,7 @@ const hu = {
     'menu.image.attrFlipV': 'Függőleges tükrözés',
     'menu.image.attrNoCells': 'Ez a képernyőmód nem használ cellaszíneket.',
     'menu.image.attrStamp': 'Előbb fejezze be vagy vonja vissza a bélyeget.',
+    'help.axisLock': 'Rajzolás közben tartsd: vízszintes (X) vagy függőleges (Y) vonal. X megérintése: tinta és papír cseréje',
     'opt.patternShape': 'Alakzat',
     'opt.patternSize': 'Alakzat mérete',
     'menu.edit.cloneFigure': 'Utolsó alakzat másolása',

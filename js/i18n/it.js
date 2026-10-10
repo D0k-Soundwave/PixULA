@@ -435,6 +435,7 @@ const it = {
     'menu.image.attrFlipV': 'Capovolgi verticalmente',
     'menu.image.attrNoCells': 'Questa modalità schermo non ha colori di cella.',
     'menu.image.attrStamp': 'Termina o annulla prima il timbro.',
+    'help.axisLock': 'Tieni premuto mentre disegni: linea orizzontale (X) o verticale (Y). Tocca X: scambia inchiostro e carta',
     'opt.patternShape': 'Figura',
     'opt.patternSize': 'Dimensione figura',
     'menu.edit.cloneFigure': 'Clona l\'ultima figura',

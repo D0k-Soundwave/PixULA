@@ -435,6 +435,7 @@ const es = {
     'menu.image.attrFlipV': 'Voltear verticalmente',
     'menu.image.attrNoCells': 'Este modo de pantalla no tiene colores de celda.',
     'menu.image.attrStamp': 'Termine o cancele primero el sello.',
+    'help.axisLock': 'Mantener al dibujar: línea horizontal (X) o vertical (Y). Tocar X: intercambiar tinta y papel',
     'opt.patternShape': 'Figura',
     'opt.patternSize': 'Tamaño de figura',
     'menu.edit.cloneFigure': 'Clonar la última figura',

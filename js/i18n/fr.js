@@ -435,6 +435,7 @@ const fr = {
     'menu.image.attrFlipV': 'Retourner verticalement',
     'menu.image.attrNoCells': 'Ce mode d\'écran ne possède pas de couleurs de cellule.',
     'menu.image.attrStamp': 'Terminez ou annulez d\'abord le tampon.',
+    'help.axisLock': 'Maintenir en dessinant : ligne horizontale (X) ou verticale (Y). Appuyer sur X : échanger encre et papier',
     'opt.patternShape': 'Figure',
     'opt.patternSize': 'Taille de la figure',
     'menu.edit.cloneFigure': 'Cloner la dernière figure',

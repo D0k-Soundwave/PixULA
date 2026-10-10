@@ -435,6 +435,7 @@ const sk = {
     'menu.image.attrFlipV': 'Otočiť zvisle',
     'menu.image.attrNoCells': 'Tento režim obrazovky nemá farby buniek.',
     'menu.image.attrStamp': 'Najprv dokončite alebo zrušte pečiatku.',
+    'help.axisLock': 'Držať pri kreslení: vodorovná (X) alebo zvislá (Y) čiara. Klepnutie na X: vymeniť atrament a papier',
     'opt.patternShape': 'Obrazec',
     'opt.patternSize': 'Veľkosť obrazca',
     'menu.edit.cloneFigure': 'Klonovať posledný obrazec',

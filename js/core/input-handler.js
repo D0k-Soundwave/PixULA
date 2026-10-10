@@ -706,6 +706,7 @@ class InputHandlerClass {
     const tool = this._strokeTool || ToolManager.getCurrentTool();
     AxisLock.endStroke();
     if (tool && tool.axisLockable) {
+      point = AxisLock.projectAbout(tool.axisAnchor(), point);
       AxisLock.beginStroke(point);
       point = AxisLock.project(point);
     }
@@ -1157,6 +1158,7 @@ class InputHandlerClass {
     if (!tool) return;
 
     if (e.buttons === 0 && typeof tool.onPointerHover === 'function') {
+      if (tool.axisLockable) point = AxisLock.projectAbout(tool.axisAnchor(), point);
       tool.onPointerHover(point.x, point.y, e);
     }
 
@@ -1804,6 +1806,16 @@ class InputHandlerClass {
         EventBus.emit(EVENTS.SHORTCUT_PAN_MODE, { active: false });
       }
     });
+
+    // Focus usually sits inside the canvas iframe while drawing, and leaving the browser from there blurs the
+    // IFRAME window, not the main one: the held X / Y must let go on either, or a key released elsewhere locks every
+    // later stroke. Also when the tab is hidden.
+    if (doc.defaultView) {
+      doc.defaultView.addEventListener('blur', () => {
+        setTimeout(() => { if (!document.hasFocus()) AxisLock.reset(); }, 0);
+      });
+    }
+    doc.addEventListener('visibilitychange', () => { if (doc.hidden) AxisLock.reset(); });
 
     // Only attach the blur reset once (init calls this per document)
     if (doc === document) {

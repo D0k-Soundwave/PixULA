@@ -435,6 +435,7 @@ const pl = {
     'menu.image.attrFlipV': 'Odbij pionowo',
     'menu.image.attrNoCells': 'Ten tryb ekranu nie ma kolorów komórek.',
     'menu.image.attrStamp': 'Najpierw zakończ lub anuluj pieczątkę.',
+    'help.axisLock': 'Przytrzymaj podczas rysowania: linia pozioma (X) lub pionowa (Y). Stuknij X: zamień tusz z papierem',
     'opt.patternShape': 'Figura',
     'opt.patternSize': 'Rozmiar figury',
     'menu.edit.cloneFigure': 'Klonuj ostatnią figurę',

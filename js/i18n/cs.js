@@ -435,6 +435,7 @@ const cs = {
     'menu.image.attrFlipV': 'Otočit svisle',
     'menu.image.attrNoCells': 'Tento režim obrazovky nemá barvy buněk.',
     'menu.image.attrStamp': 'Nejprve dokončete nebo zrušte razítko.',
+    'help.axisLock': 'Držet při kreslení: vodorovná (X) nebo svislá (Y) čára. Klepnutí na X: prohodit inkoust a papír',
     'opt.patternShape': 'Obrazec',
     'opt.patternSize': 'Velikost obrazce',
     'menu.edit.cloneFigure': 'Klonovat poslední obrazec',

@@ -435,6 +435,7 @@ const tr = {
     'menu.image.attrFlipV': 'Dikey çevir',
     'menu.image.attrNoCells': 'Bu ekran kipinde hücre renkleri yok.',
     'menu.image.attrStamp': 'Önce damgayı tamamlayın veya iptal edin.',
+    'help.axisLock': 'Çizerken basılı tut: yatay (X) veya dikey (Y) çizgi. X\'e dokun: mürekkep ve kağıdı değiştir',
     'opt.patternShape': 'Şekil',
     'opt.patternSize': 'Şekil boyutu',
     'menu.edit.cloneFigure': 'Son şekli kopyala',

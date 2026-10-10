@@ -218,10 +218,13 @@ class TAPFormatClass {
       if (p.length < 4) continue;
       const lineLen = p[2] | (p[3] << 8);               // line length counts everything after itself
       const end = 4 + lineLen;                           // one past the 0x0D
-      if (lineLen < 66 || end > p.length || p[end - 1] !== 0x0D) continue;
+      // One line and nothing after it (the loader is a single line), so a longer program is never mistaken for one.
+      if (lineLen < 66 || end !== p.length || p[end - 1] !== 0x0D) continue;
       let rem = -1;
       for (let k = 4; k <= end - 66; k++) if (p[k] === this.TOKENS.REM) { rem = k; break; }
       if (rem < 0) continue;
+      // A palette loader starts the machine code itself: a USR comes before the REM.
+      if (!p.subarray(4, rem).includes(this.TOKENS.USR)) continue;
       return Uint8Array.from(p.subarray(end - 65, end - 1));
     }
     return null;

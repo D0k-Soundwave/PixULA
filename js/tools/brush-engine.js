@@ -850,7 +850,9 @@ class SprayBrush extends BaseBrush {
         const mode = PixelDrawRoutine.resolveUserMode(isInk);
         const radius = BrushShapes.radiusFor(size);
         const n = this.patternSize;
-        const count = Math.max(1, Math.round(Math.PI * radius * radius * flow / (n * n)));
+        // Flow is the share of the disc the figures try to cover: a solid figure covers n*n (a disc about 0.8 of that); an outline or a line far fewer dots, so count by the dots one figure really lays.
+        const dots = Math.max(1, BrushShapes.patternFigure(this.patternShape, n, this.patternFilled, 0).length);
+        const count = Math.max(1, Math.round(Math.PI * radius * radius * flow / dots));
         let applied = false;
 
         for (const figure of BrushShapes.patternStamps(radius, n, this.patternShape, this.patternFilled, count)) {

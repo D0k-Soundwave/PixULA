@@ -145,6 +145,11 @@ class FigureToolClass extends ToolBase {
 
   get axisLockable() { return true; }
 
+  axisAnchor() {
+    const pts = this._phase === 'drawing' && this._model ? this._model.points : null;
+    return pts && pts.length ? { x: pts[pts.length - 1].x, y: pts[pts.length - 1].y } : null;
+  }
+
   // ── State helpers ──────────────────────────────────────────────────────────
 
   /** True for the open-ended types that take freehand runs. @private */
