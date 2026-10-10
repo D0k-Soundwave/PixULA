@@ -112,3 +112,20 @@ and a fill can be made from a picture.
 
 Batch 8 is done. Update the comparison doc rows, then hand off to Batch 9
 part 9A.
+
+## 8A decisions (2026-10-10, Opus plan review)
+
+- Measured against ZX Paintbrush's own 160x160 output pictures [M, 2026-10-10]: grey is Rec.601 luma; thresholds ink when
+  100*g < 255*T; ordered methods use the printed table (row = y) with level 0 at the origin and ink when
+  2*N*g < (2*m+1)*255; error diffusion is left-to-right on every row (serpentine is an option, off); Park-Kang-Kim uses
+  kernel A except above grey 224 (an [A] cut, `PKK_SPLIT`).
+- The 8 non-rectangular methods are lattice tilings (cluster cells repeated on two lattice vectors); `Dither` builds each
+  tile at load and throws unless every pixel is covered by exactly one cell. The help's supercell diagonal cross 5x4 x4
+  prints 16 twice and no 19 (used as printed); the 4x4 x3 table's "38" is a typo for 28.
+- CORRECTION to the Tests line above: ZX Paintbrush's Bayer is the TRANSPOSE of the matrix the fade brush and the gradient
+  use, so "Bayer 4x4 equals the fade's ordered4" cannot hold. The fade and gradient stay as they are; the test asserts
+  the transpose relation to the textbook matrix.
+- For 8B: the gradient's old `ditherScale` presets (2/4/8) must keep the gradient's own Bayer code to stay byte-identical;
+  the new method select adds the Dither methods beside them.
+- Side finding: `CLUSTERED_8` in brush-engine.js has two cells swapped against the help (row 4 col 3 reads 38, row 7 col 3 reads
+  36; correct 36 and 38). Not part of 8A; not changed.
