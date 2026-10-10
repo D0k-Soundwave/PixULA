@@ -1071,6 +1071,9 @@ const TOOL_GROUPS = Object.freeze([
             // in the registry so its shortcut, label and options schema are found
             // exactly like any tool's — `variantOf` only says "no rail button".
             Object.freeze({ id: TOOLS.BEZIER,     icon: 'icon-bezier',     i18n: 'tool.bezier',     hintI18n: 'tool.bezier.hint', shortcut: 'C', variantOf: 'shape' }),
+            // The point-based figures (polyline, polygon, triangle, rays, orthogonal, parallel): one
+            // tool, six entries in the Shape picker. No rail button of its own.
+            Object.freeze({ id: TOOLS.FIGURE,     icon: 'icon-fig-polygon', i18n: 'tool.figure',     hintI18n: 'tool.figure.hint', shortcut: 'L', variantOf: 'shape' }),
             Object.freeze({ id: TOOLS.EYEDROPPER, icon: 'icon-eyedropper', i18n: 'tool.eyedropper', hintI18n: 'tool.eyedropper.hint', shortcut: 'I' })
         ])
     }),

@@ -126,6 +126,27 @@ class ToolBaseClass {
   }
 
   /**
+   * A key the active tool may claim before the global shortcuts see it (Enter and Backspace for a
+   * tool with a pending figure, in Batch 7). Return true when the key was used; the input handler
+   * then stops. Called with Ctrl and Alt NOT held.
+   * @param {string} key - KeyboardEvent.key
+   * @param {KeyboardEvent} [e]
+   * @returns {boolean}
+   */
+  handleKey(key, e) {
+    return false;
+  }
+
+  /**
+   * Throw away anything the tool is holding unfinished, without drawing it. Escape calls this
+   * before the tool is switched (switching tools COMMITS a pending figure, so Escape must discard
+   * first). Nothing to do by default.
+   */
+  cancelPending() {
+    // Override in subclass
+  }
+
+  /**
    * Handle pointer leave event
    * Called when pointer exits the canvas area
    * @param {PointerEvent} e - Original pointer event
