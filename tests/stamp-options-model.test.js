@@ -132,7 +132,7 @@ check('still engaged when the layer panel makes a drawing layer current (the cor
 SelectionService.floatingPaste.attrs = [0x38, 0x41];
 check('with colours of its own, ownColours is true', SelectionService.engagedStamp().ownColours === true);
 SelectionService.floatingPaste.opts = { colours: 'pixels' };
-check('set to Pixels it still holds colours a flip could not carry, so ownColours stays true', SelectionService.engagedStamp().ownColours === true);
+check('set to Pixels it places none of its own, so ownColours is false', SelectionService.engagedStamp().ownColours === false);
 SelectionService.endFloatingPaste();
 LayerManager.setCurrentLayer(LayerManager.layers.findIndex(l => l.isStamp));
 eng = SelectionService.engagedStamp();
