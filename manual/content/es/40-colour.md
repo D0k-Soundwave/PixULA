@@ -135,6 +135,10 @@ bytes, `.nxi`, la variante Timex), la paleta viaja también dentro de la imagen.
 
 **Teclas CLUT.** En los modos ULAplus, Ctrl+Mayús+1 a Ctrl+Mayús+4 eligen la CLUT 0 a 3, igual que la elección de CLUT de la barra de colores. En otros modos la barra de estado lo dice y no pasa nada más.
 
+**Colores estándar.** En Ajustes > Preferencias, Colores estándar permite cambiar los 15 colores que muestran los modos Estándar, Multicolor, GigaScreen y Timex. El negro brillante es siempre negro. Los colores cambian lo que ves y lo que contienen las exportaciones de imagen (PNG, GIF, BMP, JPG); nunca cambian los bytes de los archivos .scr o .tap, y al importar una imagen se sigue comparando con los colores originales del Spectrum, así que la misma foto da la misma imagen en cualquier máquina. Las paletas ULAplus y Next son aparte. Aceptar aplica los colores, Cancelar no guarda nada y Restablecer estándar devuelve los originales. Se guardan en este navegador, no en el proyecto. Cargar .pal lee un archivo de colores estándar de ZX Paintbrush (256 bytes) y Guardar .pal escribe uno, que es la forma de llevar tus colores a otro navegador.
+
+**Cintas de paleta.** Archivo > Guardar paleta como TAP escribe la paleta ULAplus como una cinta de 176 bytes. Cargada en un Spectrum con `LOAD ""` fija las 64 entradas de la paleta y luego carga el siguiente archivo de la cinta, así que una cinta de paleta puede ir delante de una cinta de imagen o de juego. Archivo > Cargar paleta y Archivo > Abrir leen cintas de paleta: las de PixULA y las de ZX Paintbrush. Una cinta de paleta entra en la ranura de paleta en uso como un paso de deshacer y no se convierte en el archivo abierto.
+
 ### GigaScreen
 
 GigaScreen mantiene dos pantallas completas y las muestra alternándolas,

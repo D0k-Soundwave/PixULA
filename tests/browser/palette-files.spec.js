@@ -57,8 +57,10 @@ test('the palette editor carries its own file, build and ramp controls',
                     .map(b => b.dataset.i18n),
                 rampFrom: document.getElementById('palette-ramp-from') !== null,
                 rampTo: document.getElementById('palette-ramp-to') !== null,
-                // ULAplus has only one file form, so it offers no chooser
-                kinds: host.querySelector('.palette-editor-kind') !== null
+                // ULAplus offers two file forms since Batch 6 part 6B: the .pal and the .tap palette tape
+                kinds: host.querySelector('.palette-editor-kind') !== null,
+                kindValues: host.querySelector('.palette-editor-kind')
+                    ? Array.from(host.querySelector('.palette-editor-kind').options).map(o => o.value) : []
             };
         });
 
@@ -68,7 +70,8 @@ test('the palette editor carries its own file, build and ramp controls',
         ]);
         expect(tools.rampFrom).toBe(true);
         expect(tools.rampTo).toBe(true);
-        expect(tools.kinds).toBe(false);
+        expect(tools.kinds).toBe(true);
+        expect(tools.kindValues).toEqual(['pal', 'tap']);
 
         await page.keyboard.press('Escape');
     });
@@ -103,7 +106,7 @@ test('the CLUT labels print their number, and keep it through a locale change',
         await page.keyboard.press('Escape');
     });
 
-test('the Next offers both of its file forms; ULAplus has only the one',
+test('the Next offers both of its file forms; ULAplus offers .pal and the .tap tape',
     async ({ page }) => {
         await boot(page);
         page.on('dialog', (d) => d.accept());   // the lossy-conversion warning

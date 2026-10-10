@@ -134,6 +134,10 @@ türü –, palet resmin içinde de taşınır.
 
 **CLUT tuşları.** ULAplus kiplerinde Ctrl+Shift+1'den Ctrl+Shift+4'e kadar CLUT 0-3'ü seçer, renk çubuğundaki CLUT seçimi gibi. Diğer kiplerde durum çubuğu bunu söyler ve başka bir şey olmaz.
 
+**Standart renkler.** Ayarlar > Tercihler içindeki Standart renkler bölümü, Standart, Multicolor, GigaScreen ve Timex kiplerinin gösterdiği 15 rengi değiştirmenizi sağlar. Parlak siyah her zaman siyahtır. Renkler gördüğünüzü ve resim dışa aktarımlarının (PNG, GIF, BMP, JPG) içerdiğini değiştirir; .scr veya .tap dosyalarının baytlarını asla değiştirmez, ve bir resmi içe aktarma hâlâ özgün Spectrum renklerine göre eşleştirir, böylece aynı fotoğraf her makinede aynı resmi verir. ULAplus ve Next paletleri ayrıdır. Tamam renkleri uygular, İptal hiçbir şey saklamaz, Standarda sıfırla özgün renkleri geri koyar. Projede değil, bu tarayıcıda saklanırlar. .pal yükle bir ZX Paintbrush standart renkler dosyasını (256 bayt) okur, .pal kaydet de bir tane yazar; renklerinizi başka bir tarayıcıya taşımanın yolu budur.
+
+**Palet bantları.** Dosya > Paleti TAP olarak kaydet, ULAplus paletini 176 baytlık bir bant olarak yazar. Bir Spectrum'da `LOAD ""` ile yüklendiğinde 64 palet girişini ayarlar ve sonra banttaki sonraki dosyayı yükler; böylece bir palet bandı bir resim ya da oyun bandının önüne konabilir. Dosya > Palet yükle ve Dosya > Aç palet bantlarını okur: PixULA'nınkileri ve ZX Paintbrush'ınkileri. Bir palet bandı kullanılan palet yuvasına tek bir geri alma adımıyla girer ve açık dosya olmaz.
+
 ### GigaScreen
 
 GigaScreen iki tam ekranı saklar ve onları saniyede elli kez sırayla gösterir.

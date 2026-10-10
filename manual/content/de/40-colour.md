@@ -140,6 +140,10 @@ die Timex-Variante –, reist die Palette auch im Bild mit.
 
 **CLUT-Tasten.** In den ULAplus-Modi wählen Strg+Umschalt+1 bis Strg+Umschalt+4 die CLUT 0 bis 3, genau wie die CLUT-Wahl in der Farbleiste. In anderen Modi sagt die Statuszeile das und sonst passiert nichts.
 
+**Standardfarben.** Unter Einstellungen > Einstellungen können Sie bei Standardfarben die 15 Farben ändern, die die Modi Standard, Multicolor, GigaScreen und Timex zeigen. Helles Schwarz ist immer Schwarz. Die Farben ändern, was Sie sehen und was die Bildexporte enthalten (PNG, GIF, BMP, JPG); sie ändern nie die Bytes von .scr- oder .tap-Dateien, und der Import eines Bildes gleicht weiterhin mit den originalen Spectrum-Farben ab, sodass dasselbe Foto auf jedem Rechner dasselbe Bild ergibt. ULAplus- und Next-Paletten sind getrennt. OK wendet die Farben an, Abbrechen behält nichts, und Auf Standard zurücksetzen bringt die Originale zurück. Sie werden in diesem Browser gespeichert, nicht im Projekt. .pal laden liest eine Standardfarben-Datei von ZX Paintbrush (256 Bytes), .pal speichern schreibt eine; so nehmen Sie Ihre Farben in einen anderen Browser mit.
+
+**Palettenbänder.** Datei > Palette als TAP speichern schreibt die ULAplus-Palette als Band mit 176 Bytes. Auf einem Spectrum mit `LOAD ""` geladen setzt es die 64 Paletteneinträge und lädt dann die nächste Datei auf dem Band; ein Palettenband kann also vor einem Bild- oder Spielband stehen. Datei > Palette laden und Datei > Öffnen lesen Palettenbänder: die von PixULA und die von ZX Paintbrush. Ein Palettenband geht in einem Rückgängig-Schritt in den benutzten Palettenplatz und wird nicht zur geöffneten Datei.
+
 ### GigaScreen
 
 GigaScreen hält zwei vollständige Bildschirme und zeigt sie abwechselnd,

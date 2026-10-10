@@ -146,6 +146,10 @@ octets, `.nxi`, la variante Timex –, la palette voyage aussi dans l’image.
 
 **Touches CLUT.** Dans les modes ULAplus, Ctrl+Maj+1 à Ctrl+Maj+4 choisissent la CLUT 0 à 3, comme le choix de CLUT de la barre de couleurs. Dans les autres modes la barre d'état le dit et rien d'autre ne se passe.
 
+**Couleurs standard.** Dans Réglages > Préférences, Couleurs standard permet de changer les 15 couleurs que montrent les modes Standard, Multicolor, GigaScreen et Timex. Le noir brillant est toujours noir. Les couleurs changent ce que vous voyez et ce que contiennent les exports d'image (PNG, GIF, BMP, JPG) ; elles ne changent jamais les octets des fichiers .scr ou .tap, et l'import d'une image se compare toujours aux couleurs d'origine du Spectrum, si bien que la même photo donne la même image sur toutes les machines. Les palettes ULAplus et Next sont séparées. OK applique les couleurs, Annuler ne garde rien et Rétablir le standard remet les originales. Elles sont conservées dans ce navigateur, pas dans le projet. Charger .pal lit un fichier de couleurs standard ZX Paintbrush (256 octets) et Enregistrer .pal en écrit un, ce qui permet d'emporter vos couleurs dans un autre navigateur.
+
+**Cassettes de palette.** Fichier > Enregistrer la palette en TAP écrit la palette ULAplus sous forme de cassette de 176 octets. Chargée sur un Spectrum avec `LOAD ""`, elle règle les 64 entrées de la palette puis charge le fichier suivant de la cassette ; une cassette de palette peut donc précéder une cassette d'image ou de jeu. Fichier > Charger une palette et Fichier > Ouvrir lisent les cassettes de palette : celles de PixULA et celles de ZX Paintbrush. Une cassette de palette va dans l'emplacement de palette en cours en une étape d'annulation et ne devient pas le fichier ouvert.
+
 ### GigaScreen
 
 GigaScreen conserve deux écrans complets et les affiche en alternance,

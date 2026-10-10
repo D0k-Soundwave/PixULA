@@ -138,6 +138,10 @@ Unde un format de fișier are loc pentru o paletă – `.scr` de 6976 de octeți
 
 **Tastele CLUT.** În modurile ULAplus, Ctrl+Shift+1 până la Ctrl+Shift+4 aleg CLUT 0-3, ca alegerea CLUT din bara de culori. În alte moduri bara de stare spune asta și nu se întâmplă nimic altceva.
 
+**Culori standard.** În Setări > Preferințe, Culori standard permite schimbarea celor 15 culori pe care le arată modurile Standard, Multicolor, GigaScreen și Timex. Negrul strălucitor este mereu negru. Culorile schimbă ce vezi și ce conțin exporturile de imagini (PNG, GIF, BMP, JPG); nu schimbă niciodată octeții fișierelor .scr sau .tap, iar importul unei imagini se potrivește în continuare cu culorile originale ale Spectrum-ului, deci aceeași fotografie dă aceeași imagine pe orice mașină. Paletele ULAplus și Next sunt separate. OK aplică culorile, Anulează nu păstrează nimic, iar Revino la standard le pune la loc pe cele originale. Sunt păstrate în acest browser, nu în proiect. Încarcă .pal citește un fișier de culori standard ZX Paintbrush (256 de octeți), iar Salvează .pal scrie unul, ceea ce este calea de a-ți duce culorile în alt browser.
+
+**Benzi cu paletă.** Fișier > Salvează paleta ca TAP scrie paleta ULAplus ca bandă de 176 de octeți. Încărcată pe un Spectrum cu `LOAD ""`, setează cele 64 de intrări ale paletei și apoi încarcă următorul fișier de pe bandă, deci o bandă cu paletă poate sta înaintea unei benzi cu imagine sau joc. Fișier > Încarcă paleta și Fișier > Deschide citesc benzile cu paletă: cele ale PixULA și cele ZX Paintbrush. O bandă cu paletă intră în locul de paletă în uz printr-un pas de anulare și nu devine fișierul deschis.
+
 ### GigaScreen
 
 GigaScreen păstrează două ecrane întregi și le afișează alternativ, de cincizeci

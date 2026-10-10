@@ -141,6 +141,10 @@ Timex-változat –, ott a paletta a képpel együtt utazik.
 
 **CLUT billentyűk.** Az ULAplus módokban a Ctrl+Shift+1 – Ctrl+Shift+4 a 0–3. CLUT-ot választja, ugyanúgy, mint a színsáv CLUT-választója. Más módokban az állapotsor ezt közli, egyébként nem történik semmi.
 
+**Szabványos színek.** A Beállítások > Beállítások ablak Szabványos színek részében megváltoztathatod azt a 15 színt, amelyet a Standard, Multicolor, GigaScreen és Timex módok mutatnak. A fényes fekete mindig fekete. A színek azt változtatják, amit látsz és amit a képexportok (PNG, GIF, BMP, JPG) tartalmaznak; a .scr és .tap fájlok bájtjait soha, és a kép importálása továbbra is az eredeti Spectrum-színekhez illeszt, így ugyanaz a fotó minden gépen ugyanazt a képet adja. Az ULAplus és a Next paletták külön vannak. Az OK alkalmazza a színeket, a Mégse semmit sem tart meg, a Visszaállítás szabványosra visszaadja az eredetiket. Ebben a böngészőben tárolódnak, nem a projektben. A .pal betöltése egy ZX Paintbrush szabványosszín-fájlt olvas (256 bájt), a .pal mentése ilyet ír; így viheted át a színeidet másik böngészőbe.
+
+**Palettaszalagok.** A Fájl > Paletta mentése TAP-ként az ULAplus palettát 176 bájtos szalagként írja. Spectrumon `LOAD ""` paranccsal betöltve beállítja a 64 palettabejegyzést, majd betölti a szalag következő fájlját, így a palettaszalag állhat egy kép- vagy játékszalag előtt. A Fájl > Paletta betöltése és a Fájl > Megnyitás palettaszalagokat olvas: a PixULA sajátjait és a ZX Paintbrushét. A palettaszalag egy visszavonási lépésben kerül a használt palettahelyre, és nem lesz a megnyitott fájl.
+
 ### GigaScreen
 
 A GigaScreen két teljes képernyőt tárol, és felváltva mutatja őket,

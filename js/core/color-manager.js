@@ -86,6 +86,9 @@ class ColorManagerClass {
      * Initialize color manager from stored state
      */
     initialize() {
+        // The standard colours set in Preferences (a per-browser setting read at boot).
+        const savedStandard = StateManager.get('standardColours');
+        if (Array.isArray(savedStandard)) this.setStandardColours(savedStandard);
         const colorState = StateManager.getSection('color');
         if (colorState) {
             this.ink = colorState.ink;
