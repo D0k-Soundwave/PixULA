@@ -6,6 +6,8 @@ Le bouton gauche dessine à l’encre et le droit au papier. Maj et clic droit
 ouvrent le menu de la zone de dessin, qui permet d’accéder à couper, copier et
 coller quand un outil utilise le bouton droit pour dessiner.
 
+Maintenez **X** pendant le glissement pour garder le pinceau, la gomme, la forme ou la figure sur une ligne horizontale, ou **Y** pour une ligne verticale. La ligne passe par le point où vous avez appuyé sur le bouton (ou sur la touche) ; appuyez sur l'autre touche pour tourner à angle droit, et relâchez pour dessiner de nouveau librement. Un simple appui sur **X** sans glisser échange toujours l'encre et le papier, désormais au relâchement de la touche.
+
 ### Stylet
 
 La pointe du stylet dessine avec l’outil choisi et ne peut pas être

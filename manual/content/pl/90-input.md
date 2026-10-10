@@ -6,6 +6,8 @@ Lewy przycisk rysuje tuszem, prawy papierem. Shift i prawy przycisk otwierają
 menu płótna – tak dostaniesz się do wycinania, kopiowania i wklejania, gdy
 narzędzie używa prawego przycisku do rysowania.
 
+Przytrzymaj **X** podczas przeciągania, aby pędzel, gumka, kształt lub figura trzymały się linii poziomej, albo **Y** dla pionowej. Linia przechodzi przez punkt, w którym wcisnąłeś przycisk (lub klawisz); drugim klawiszem zmienisz kierunek, a po puszczeniu znów rysujesz swobodnie. Krótkie naciśnięcie **X** bez przeciągania nadal zamienia tusz z papierem, teraz przy puszczeniu klawisza.
+
 ### Pióro
 
 Końcówka pióra rysuje wybranym narzędziem i nie można jej przypisać inaczej.

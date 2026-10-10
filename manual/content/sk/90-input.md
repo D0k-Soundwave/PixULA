@@ -6,6 +6,8 @@
 ponuku plátna – tak sa dostanete k vystrihnutiu, kopírovaniu a vloženiu, keď
 nástroj používa pravé tlačidlo na kreslenie.
 
+Podržte **X** pri ťahaní a štetec, guma, tvar alebo obrazec zostane na vodorovnej čiare, alebo **Y** pre zvislú. Čiara vedie bodom, kde ste stlačili tlačidlo (alebo kláves); stlačením druhého klávesu zahnete do pravého uhla a po uvoľnení opäť kreslíte voľne. Krátke stlačenie **X** bez ťahania stále vymení atrament a papier, teraz až pri uvoľnení klávesu.
+
 ### Pero
 
 Hrot pera kreslí vybraným nástrojom a nedá sa preradiť. Všetky ostatné prvky

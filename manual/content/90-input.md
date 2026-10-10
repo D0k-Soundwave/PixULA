@@ -6,6 +6,8 @@ The left button draws ink and the right draws paper. Shift and right-click opens
 the canvas menu, which is how to reach cut, copy and paste while a tool is using
 the right button for drawing.
 
+Hold **X** while you drag to keep the brush, eraser, shape or figure on a horizontal line, or **Y** to keep it vertical. The line runs through the point where you pressed the button (or where you pressed the key); press the other key to turn the corner, and let go to draw freely again. Tapping **X** without dragging still swaps ink and paper, now when you let go of the key.
+
 ### Pen
 
 The pen tip draws with the selected tool and cannot be reassigned. Every other

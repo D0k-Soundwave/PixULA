@@ -6,6 +6,8 @@ A bal gomb tintával, a jobb papírral rajzol. A Shift és a jobb kattintás a v
 menüjét nyitja meg – így érheted el a kivágást, a másolást és a beillesztést,
 amíg egy eszköz a jobb gombot rajzolásra használja.
 
+Húzás közben tartsd lenyomva az **X**-et, hogy az ecset, a radír, az alakzat vagy az ábra vízszintes vonalon maradjon, vagy az **Y**-t a függőlegeshez. A vonal azon a ponton megy át, ahol megnyomtad a gombot (vagy a billentyűt); a másik billentyűvel élesen fordulhatsz, elengedve pedig újra szabadon rajzolhatsz. Az **X** húzás nélküli megérintése továbbra is felcseréli a tintát és a papírt, mostantól a billentyű felengedésekor.
+
 ### Toll
 
 A toll hegye a kiválasztott eszközzel rajzol, és nem rendelhető át. A toll minden
