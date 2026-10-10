@@ -2,6 +2,25 @@
 (function() {
 
 /**
+ * The Dithered grain: the gradient's own Bayer matrices first (2 / 4 / 8, so every old preset keeps loading and
+ * drawing exactly as before; the first value must stay the NUMBER 2, see OptionControls._coerce), then the other
+ * Dither methods by family (Batch 8 part 8B). ZX Paintbrush's three Bayer matrices are left out: they are the transpose
+ * of these and would only repeat the names.
+ */
+const GRADIENT_DITHER_OPTIONS = (() => {
+  const groups = [{ i18n: 'dither.family.bayer', options: [
+    { value: 2, i18n: 'dg.coarse' }, { value: 4, i18n: 'dg.medium' }, { value: 8, i18n: 'dg.fine' }
+  ] }];
+  if (window.Dither) {
+    for (const fam of ['threshold', 'diffusion', 'cluster', 'supercell']) {
+      groups.push({ i18n: 'dither.family.' + fam,
+        options: Dither.METHODS.filter(m => m.family === fam).map(m => ({ value: m.id, i18n: m.i18n })) });
+    }
+  }
+  return groups;
+})();
+
+/**
  * Gradient Tool — Two-phase interaction
  *
  * Phase 1: User drags to define the shape/region (shown as outline on canvas).
@@ -72,11 +91,7 @@ class GradientToolClass extends ToolBase {
     // Dither grain is the Bayer matrix size; only used while Dithered is on
     // (off = a single hard threshold), so hide it when Dithered is off.
     { type: 'select', key: 'ditherScale', i18n: 'opt.ditherGrain', value: 8,
-      showIf: { key: 'dithered', equals: true }, options: [
-      { value: 2, i18n: 'dg.coarse' },
-      { value: 4, i18n: 'dg.medium' },
-      { value: 8, i18n: 'dg.fine' }
-    ]},
+      showIf: { key: 'dithered', equals: true }, options: GRADIENT_DITHER_OPTIONS },
     { type: 'check', key: 'dithered',        i18n: 'opt.dithered',  value: true },
     { type: 'check', key: 'shapeConstraint', i18n: 'opt.shapeFill', value: false },
     { type: 'check', key: 'lockAxis',        i18n: 'opt.lockAxis', value: false }
@@ -99,6 +114,7 @@ class GradientToolClass extends ToolBase {
 
     // Size of Bayer dither matrix tile: 2, 4, or 8
     this.ditherScale = 8;
+    this._ditherMethod = null;   // a Dither method id, or null for the 2/4/8 grain
 
     // Bayer dither matrices normalised to 0-63, keyed by matrix size
     this.ditherPatterns = this._createDitherPatterns();
@@ -229,13 +245,40 @@ class GradientToolClass extends ToolBase {
   getGradientSteps() { return this.gradientSteps; }
   setGradientSteps(v) { this.gradientSteps = clamp(parseInt(v) || 1, 1, 16); }
 
-  getDitherScale() { return this.ditherScale; }
+  /** The grain: 2 / 4 / 8 (the gradient's own Bayer matrices) or a Dither method id (8B). */
+  getDitherScale() { return this._ditherMethod || this.ditherScale; }
   setDitherScale(v) {
     const n = parseInt(v);
-    if (n === 2 || n === 4 || n === 8) {
+    if ((n === 2 || n === 4 || n === 8) && String(n) === String(v).trim()) {
       this.ditherScale = n;
+      this._ditherMethod = null;
       this._activeDitherMatrix = this.ditherPatterns[n];
+      return;
     }
+    const m = window.Dither && Dither.get(String(v));
+    if (m && m.family !== 'bayer') this._ditherMethod = m.id;
+  }
+
+  /**
+   * With a Dither method chosen: 1 = ink for every pixel of `rect`, from the gradient position (steps, reverse and
+   * bias applied) as a grey, so the picture is anchored to the screen like the Bayer grain. Null for the legacy
+   * 2/4/8 grain, or with Dithered off.
+   * @private
+   */
+  _methodMask(rect, reverse) {
+    if (!this._ditherMethod || this._dithered === false || !window.Dither) return null;
+    const w = rect.width, h = rect.height;
+    const gray = new Float64Array(w * h);
+    const bias = this._bias / 100;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        let pos = this._getGradientPosition(rect.x + x, rect.y + y);
+        if (this.gradientSteps > 1) pos = Math.floor(pos * this.gradientSteps) / this.gradientSteps;
+        if (reverse) pos = 1 - pos;
+        gray[y * w + x] = 255 * (1 - clamp(pos + bias, 0, 1));
+      }
+    }
+    return Dither.apply(gray, w, h, this._ditherMethod, { originX: rect.x, originY: rect.y });
   }
 
   getBias() { return this._bias; }
@@ -621,6 +664,7 @@ class GradientToolClass extends ToolBase {
     const encodeKey = region ? (x, y) => (y << 16) | x : null;
     const checkShape = !this._shapeConstraint && this._fillShape !== 'none';
 
+    const mask = this._methodMask(rect, reverse);
     PixelDrawRoutine.beginBatch();
 
     for (let y = 0; y < rect.height; y++) {
@@ -631,6 +675,11 @@ class GradientToolClass extends ToolBase {
         if (region && !region.has(encodeKey(pixelX, pixelY))) continue;
         if (checkShape && !this._isInsideShape(pixelX, pixelY, rect)) continue;
 
+        if (mask) {
+          if (mask[y * rect.width + x] !== 1) continue;
+          PixelDrawRoutine.draw(pixelX, pixelY, color, PixelDrawRoutine.resolveUserMode(true));
+          continue;
+        }
         let gradientPos = this._getGradientPosition(pixelX, pixelY);
         if (this.gradientSteps > 1) {
           gradientPos = Math.floor(gradientPos * this.gradientSteps) / this.gradientSteps;
@@ -802,6 +851,7 @@ class GradientToolClass extends ToolBase {
     // Additive preview, mirroring _drawGradient: only the pixels the gradient
     // will actually ADD show as pending ink. gradientPaprSet stays empty -
     // the gradient never clears a pixel, so nothing previews as erased.
+    const mask = this._methodMask(rect, this.isReverseMode);
     for (let y = 0; y < rect.height; y++) {
       for (let x = 0; x < rect.width; x++) {
         const pixelX = rect.x + x;
@@ -810,13 +860,17 @@ class GradientToolClass extends ToolBase {
         if (region && !region.has(encodeKey(pixelX, pixelY))) continue;
         if (checkShape && !this._isInsideShape(pixelX, pixelY, rect)) continue;
 
-        let gradientPos = this._getGradientPosition(pixelX, pixelY);
-        if (this.gradientSteps > 1) {
-          gradientPos = Math.floor(gradientPos * this.gradientSteps) / this.gradientSteps;
-        }
-        if (this.isReverseMode) gradientPos = 1 - gradientPos;
+        if (mask) {
+          if (mask[y * rect.width + x] !== 1) continue;
+        } else {
+          let gradientPos = this._getGradientPosition(pixelX, pixelY);
+          if (this.gradientSteps > 1) {
+            gradientPos = Math.floor(gradientPos * this.gradientSteps) / this.gradientSteps;
+          }
+          if (this.isReverseMode) gradientPos = 1 - gradientPos;
 
-        if (!this._shouldBeInk(pixelX, pixelY, gradientPos)) continue;
+          if (!this._shouldBeInk(pixelX, pixelY, gradientPos)) continue;
+        }
 
         affectedCells.add(Math.floor(pixelX / ZX_SPECTRUM.CELL_WIDTH) + ',' + Math.floor(pixelY / ZX_SPECTRUM.CELL_HEIGHT));
         gradientInkSet.add(pixelX + ',' + pixelY);
