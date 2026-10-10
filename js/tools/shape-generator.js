@@ -1058,6 +1058,12 @@ class ShapeGeneratorClass {
                 samples[i - 1].x, samples[i - 1].y, samples[i].x, samples[i].y, add);
         }
 
+        // Line style: the points are already in path order, so the pattern runs along them. Dashes need a
+        // 1-pixel line; clear draws nothing.
+        const style = ShapeGeneratorClass.cleanLineStyle(options.lineStyle);
+        if (style === 'clear') return [];
+        if (style !== 'solid' && thickness === 1) return this.applyLineStyle([points], style).on;
+
         return thickness > 1 ? this._thickenPoints(points, thickness) : points;
     }
 

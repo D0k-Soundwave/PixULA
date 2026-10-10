@@ -249,6 +249,26 @@ ToolBaseClass.COLOUR_CORE_OPTS = Object.freeze([
   { value: '4',     i18n: 'cc.four' }
 ]);
 
+/**
+ * The Line style select row shared by Shape, Figure and Bezier (Batch 7 part 7B). The dash styles carry
+ * `disabledIf: thickWhen` - they are drawn on a one-pixel line only (the rasteriser enforces it as well) -
+ * and `clear: false` leaves 'clear' out (a Bezier curve has no inside to keep).
+ * @param {{thickWhen: Object, clear?: boolean}} opts - `thickWhen` is a showIf-style condition that is true when
+ *   the outline is thicker than one pixel
+ * @returns {Object} an optionsSchema entry
+ */
+ToolBaseClass.lineStyleRow = ({ thickWhen, clear = true }) => ({
+  type: 'select', key: 'lineStyle', i18n: 'opt.lineStyle', value: 'solid',
+  options: [
+    { value: 'solid',        i18n: 'lineStyle.solid' },
+    { value: 'dashed',       i18n: 'lineStyle.dashed',      disabledIf: thickWhen },
+    { value: 'dotted',       i18n: 'lineStyle.dotted',      disabledIf: thickWhen },
+    { value: 'dash-dot',     i18n: 'lineStyle.dashDot',     disabledIf: thickWhen },
+    { value: 'dash-dot-dot', i18n: 'lineStyle.dashDotDot',  disabledIf: thickWhen },
+    ...(clear ? [{ value: 'clear', i18n: 'lineStyle.clear' }] : [])
+  ]
+});
+
 /** @param {*} value - a COLOUR_CORE_OPTS value @returns {number} 0, 1 or 4 */
 ToolBaseClass.colourCoreSize = (value) => (value === '1' ? 1 : value === '4' ? 4 : 0);
 

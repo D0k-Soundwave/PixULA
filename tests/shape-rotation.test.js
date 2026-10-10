@@ -416,4 +416,16 @@ check(`all ${total} default shapes are byte for byte what they were before 7B`, 
   check('a turned rounded rectangle is one closed outline', components(gen('rounded-rectangle', 10, 10, 50, 40, { rotation: 30 })) === 1);
 }
 
+// ===== BEZIER LINE STYLE ===============================================================================================
+{
+  const quad = (o) => new Set(ShapeGenerator.generateQuadraticBezier({ x: 0, y: 0 }, { x: 23, y: 0 }, { x: 47, y: 0 }, o).map(p => `${p.x},${p.y}`));
+  const solid = quad({});
+  const dashed = quad({ lineStyle: 'dashed' });
+  const xs = new Set([...dashed].map(k => Number(k.split(',')[0])));
+  check('a straight Bezier from 0 to 47, dashed: x 0-17 and 24-41 are on',
+    solid.size === 48 && dashed.size === 36 && [0, 17, 24, 41].every(x => xs.has(x)) && ![18, 23, 42, 47].some(x => xs.has(x)), String(dashed.size));
+  check('a Bezier with line style clear draws nothing', quad({ lineStyle: 'clear' }).size === 0);
+  check('a dashed Bezier at thickness 2 is drawn solid', quad({ lineStyle: 'dashed', thickness: 2 }).size === quad({ thickness: 2 }).size);
+}
+
 summary();
