@@ -166,14 +166,14 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | Line thickness | Thickness setting for all lines. | Thickness 1 to 8. | Same |
 | Point mode | Move points, move or rotate the last figure, delete its last point with Backspace. | A pending Figure, a Shape with Keep editable ticked, and a Bezier curve can be edited before they are drawn (2026-10-10, 7C): drag a square point, drag the figure to move it, drag the round knob to turn it (a Bezier curve has handles, moves with the arrow keys, but cannot be dragged or turned as a whole), Backspace removes the last point of a Figure, Ctrl+Z takes back edits. There is no 'clear points' or point list. | Partial |
 | Clone last drawn figure | Draws the last figure again, ready to move with the cursor keys. | Edit > Clone Last Figure, Shift+C (2026-10-10, 7C): a pending copy of the last Figure, Shape or Bezier curve, which the arrow keys (Shift for a cell) move. | Same |
-| X and Y keys | Lock drawing to one axis. | Lock axis on the gradient only. | Partial |
+| X and Y keys | Lock drawing to one axis. | Hold X or Y to keep a brush, eraser, shape or figure stroke on a horizontal or vertical line (Batch 7 part 7C2). | Same |
 
 ### Special draw tools, fills and gradients
 
 | ZX Paintbrush | What it does | PixULA | Verdict |
 |---|---|---|---|
 | Spray can | Spray with size and strength. | Spray brush with flow, weighting and Poisson spacing. | PixULA further |
-| Spray pattern tool | Sprays little circles, squares or lines, each filled with the fill style. | No. | Missing |
+| Spray pattern tool | Sprays little circles, squares or lines, each filled with the fill style. | Spray Distribution Pattern lays whole circles, squares or lines, solid or outline, in the ink colours; no line style or fill pattern per figure (Batch 7 part 7C2). | Partial |
 | Fill tool | Flood fill with solid or a fill style. | Fill with pattern, contiguous or not, diagonal option. | PixULA further |
 | Fill styles and fill style editor | Built-in 16x16 patterns, each editable. | Pattern library and Pattern Creator. | PixULA further |
 | Custom fill style from a picture | Turns a picture file into a fill through the converter. | Patterns captured from the canvas or loaded as .pat. | Partial |

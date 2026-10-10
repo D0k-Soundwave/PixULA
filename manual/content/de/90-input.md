@@ -6,6 +6,8 @@ Die linke Taste zeichnet mit Tinte, die rechte mit Papier. Umschalt und
 Rechtsklick öffnen das Leinwandmenü – so erreichen Sie Ausschneiden, Kopieren
 und Einfügen, während ein Werkzeug die rechte Taste zum Zeichnen verwendet.
 
+Halten Sie beim Ziehen **X**, damit Pinsel, Radierer, Form oder Figur auf einer waagerechten Linie bleiben, oder **Y** für eine senkrechte. Die Linie verläuft durch den Punkt, an dem Sie die Maustaste gedrückt haben (oder die Taste); mit der anderen Taste knicken Sie ab, und nach dem Loslassen zeichnen Sie wieder frei. Ein kurzes Tippen auf **X** ohne Ziehen tauscht weiterhin Tinte und Papier, jetzt beim Loslassen der Taste.
+
 ### Stift
 
 Die Stiftspitze zeichnet mit dem gewählten Werkzeug und lässt sich nicht

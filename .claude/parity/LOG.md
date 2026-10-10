@@ -598,3 +598,17 @@ Paintbrush says "median point" [P]; box centre is [A]).
 Tests: tests/figure-edit.test.js (new), figure-tool.test.js and shape-bezier-preview.test.js extended, tests/browser/point-mode.spec.js
 (8). run-all ALL TEST FILES PASSED; playwright 701 passed.
 Next: 7C2 (axis lock with X/Y, spray pattern), then the group B Opus review.
+
+## Batch 7 part 7C2 (axis lock, spray pattern)
+AxisLock (js/core/axis-lock.js, pure bookkeeping, Node-tested): bare X / Y held while dragging project every point onto
+a horizontal / vertical line through the press point (or where the key went down); the key pressed last wins and
+re-anchors; auto-repeat ignored; reset on window blur. InputHandler projects pointer down, every move sample and pointer
+up for tools with `axisLockable` (Brush, Eraser, Shape, Figure). Bare X swaps ink and paper on key UP (a tap) so holding it
+can lock; Ctrl+X is still Cut. Spray Distribution gained Pattern: BrushShapes.patternFigure / patternStamps lay whole
+circles, squares or lines (outline or solid) wholly inside the spray disc; options Figure, Figure size, Filled; Flow is
+the share of the disc covered. Not done: per-figure line style / fill pattern (comparison row is Partial). A spray too
+small for one figure draws nothing (by the "whole figures only" rule).
+13 locales: 2 new keys (opt.patternShape, opt.patternSize). Manual paragraphs (50-tools, 90-input) in 13 languages.
+Comparison rows: X and Y keys Same; Spray pattern Partial.
+Tests: tests/axis-lock.test.js, tests/spray-pattern.test.js, browser axis-lock.spec.js, spray-pattern.spec.js.
+Next: group B Opus end-of-build review.

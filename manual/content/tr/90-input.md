@@ -6,6 +6,8 @@ Sol düğme mürekkeple, sağ düğme kâğıtla çizer. Shift ve sağ tık tuva
 açar; bir araç sağ düğmeyi çizim için kullanırken kesme, kopyalama ve
 yapıştırmaya bu yolla ulaşırsınız.
 
+Sürüklerken **X** tuşunu basılı tutarsanız fırça, silgi, şekil veya figür yatay bir çizgide kalır; dikey için **Y** tuşunu kullanın. Çizgi, düğmeye (veya tuşa) bastığınız noktadan geçer; diğer tuşa basarak köşe dönebilir, bırakarak yeniden serbest çizebilirsiniz. Sürüklemeden **X**'e kısa basış mürekkep ile kağıdı yine değiştirir, artık tuş bırakılınca.
+
 ### Kalem
 
 Kalem ucu seçili araçla çizer ve yeniden atanamaz. Kalemin diğer her denetimi

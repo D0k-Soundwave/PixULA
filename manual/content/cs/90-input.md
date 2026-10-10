@@ -6,6 +6,8 @@ Levé tlačítko kreslí inkoustem, pravé papírem. Shift a pravé tlačítko o
 nabídku plátna – tak se dostanete k vyjmutí, kopírování a vložení, když nástroj
 používá pravé tlačítko ke kreslení.
 
+Podržte **X** při tažení a štětec, guma, tvar nebo obrazec zůstane na vodorovné čáře, nebo **Y** pro svislou. Čára vede bodem, kde jste stiskli tlačítko (nebo klávesu); stiskem druhé klávesy zahnete do pravého úhlu a po uvolnění zase kreslíte volně. Krátké stisknutí **X** bez tažení stále prohodí inkoust a papír, nyní až při uvolnění klávesy.
+
 ### Pero
 
 Hrot pera kreslí vybraným nástrojem a nelze ho přeřadit. Všechny ostatní prvky

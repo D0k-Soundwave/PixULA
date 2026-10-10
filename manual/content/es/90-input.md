@@ -6,6 +6,8 @@ El botón izquierdo dibuja con tinta y el derecho con papel. Mayús y clic
 derecho abre el menú del lienzo, que es la forma de llegar a cortar, copiar y
 pegar mientras una herramienta usa el botón derecho para dibujar.
 
+Mantén pulsada **X** mientras arrastras para que el pincel, la goma, la forma o la figura sigan una línea horizontal, o **Y** para una vertical. La línea pasa por el punto donde pulsaste el botón (o la tecla); pulsa la otra tecla para girar la esquina y suéltala para dibujar libremente otra vez. Un toque en **X** sin arrastrar sigue intercambiando tinta y papel, ahora al soltar la tecla.
+
 ### Lápiz
 
 La punta del lápiz dibuja con la herramienta seleccionada y no se puede

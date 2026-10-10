@@ -6,6 +6,8 @@ O botão esquerdo desenha com tinta e o direito com papel. Shift e clique
 direito abrem o menu da tela, que é a forma de chegar a cortar, copiar e colar
 enquanto uma ferramenta usa o botão direito para desenhar.
 
+Mantenha **X** premido enquanto arrasta para manter o pincel, a borracha, a forma ou a figura numa linha horizontal, ou **Y** para uma vertical. A linha passa pelo ponto onde premiu o botão (ou a tecla); prima a outra tecla para virar a esquina e largue para desenhar livremente outra vez. Um toque em **X** sem arrastar continua a trocar tinta e papel, agora ao largar a tecla.
+
 ### Caneta
 
 A ponta da caneta desenha com a ferramenta selecionada e não pode ser
