@@ -132,11 +132,70 @@ check('still engaged when the layer panel makes a drawing layer current (the cor
 SelectionService.floatingPaste.attrs = [0x38, 0x41];
 check('with colours of its own, ownColours is true', SelectionService.engagedStamp().ownColours === true);
 SelectionService.floatingPaste.opts = { colours: 'pixels' };
-check('set to Pixels, ownColours is false', SelectionService.engagedStamp().ownColours === false);
+check('set to Pixels it still holds colours a flip could not carry, so ownColours stays true', SelectionService.engagedStamp().ownColours === true);
 SelectionService.endFloatingPaste();
 LayerManager.setCurrentLayer(LayerManager.layers.findIndex(l => l.isStamp));
 eng = SelectionService.engagedStamp();
 check('a parked stamp layer that is current is engaged, not floating', eng && eng.floating === false);
+LayerManager.setCurrentLayer(1);
+
+
+// --- setStampOptions / convertStampToPixels -----------------------------------------------------------------------
+LayerManager.initialize();
+LayerManager.addLayer();
+LayerManager.setCurrentLayer(1);
+SelectionService.floatingPaste = null;
+SelectionService.startFloatingPasteFromMask(mask, 16, 8, 3, 2, 'opt');
+let f = SelectionService.floatingPaste;
+check('changing nothing reports no change', SelectionService.setStampOptions({ clearDots: 'transparent' }) === false);
+check('a junk value is ignored', SelectionService.setStampOptions({ clearDots: 'nonsense' }) === false);
+check('a real change reports true', SelectionService.setStampOptions({ clearDots: 'overlap' }) === true);
+check('and is stored', f.opts.clearDots === 'overlap');
+SelectionService.setStampOptions({ showThrough: { paper: true } });
+SelectionService.setStampOptions({ showThrough: { ink: true } });
+check('show-through patches merge', f.opts.showThrough.paper === true && f.opts.showThrough.ink === true && f.opts.clearDots === 'overlap');
+const keep = f.opts;
+SelectionService.setStampOptions({ showThrough: { bright: true } });
+check('the old settings object is replaced, not edited', f.opts !== keep && keep.showThrough.bright === false);
+check('a plain stamp has nothing to convert', SelectionService.convertStampToPixels() === false);
+f.attrs = [0x38, 0x41];
+f.opts = { colours: 'coloured', clearDots: 'overlap' };
+SelectionService.moveFloatingPaste(3, 2);
+check('a coloured stamp snaps to whole cells', f.x === 0 && f.y === 0);
+check('converting reports true', SelectionService.convertStampToPixels() === true);
+check('the colours and grid are gone, the dots kept', f.attrs === null && f.attrGrid === null && f.pixels.length === 8);
+check('it is now a Pixels stamp that keeps its clear-dots setting', f.opts.colours === 'pixels' && f.opts.clearDots === 'overlap');
+SelectionService.moveFloatingPaste(3, 2);
+check('a Pixels stamp is free to sit between cells', f.x === 3 && f.y === 2);
+// a parked stamp
+SelectionService.endFloatingPaste();
+const parked = LayerManager.layers.find(l => l.isStamp);
+LayerManager.setCurrentLayer(parked.index);
+check('a parked stamp takes settings too', SelectionService.setStampOptions({ clearDots: 'transparent' }) === true && parked.stamp.opts.clearDots === 'transparent');
+parked.stamp = { ...parked.stamp, attrs: [1, 2] };
+check('a parked stamp converts', SelectionService.convertStampToPixels() === true && parked.stamp.attrs === null);
+SelectionService.floatingPaste = null;
+LayerManager.initialize();
+LayerManager.addLayer();
+LayerManager.setCurrentLayer(1);
+
+// undo / redo of a settings change
+LayerManager.initialize();
+LayerManager.addLayer();
+LayerManager.setCurrentLayer(1);
+SelectionService.floatingPaste = null;
+SelectionService.startFloatingPasteFromMask(mask, 16, 8, 0, 0, 'undo');
+SelectionService.setStampOptions({ clearDots: 'overlap' });
+check('set', SelectionService.floatingPaste.opts.clearDots === 'overlap');
+UndoRedo.undo();
+const afterUndo = SelectionService.floatingPaste;
+check('undo takes the setting back (one step)', !!afterUndo && SelectionService.stampOptions(afterUndo).clearDots === 'transparent');
+UndoRedo.redo();
+const afterRedo = SelectionService.floatingPaste;
+check('redo puts it back', afterRedo && SelectionService.stampOptions(afterRedo).clearDots === 'overlap');
+SelectionService.floatingPaste = null;
+LayerManager.initialize();
+LayerManager.addLayer();
 LayerManager.setCurrentLayer(1);
 
 // --- reading junk ---------------------------------------------------------------------------------------------------

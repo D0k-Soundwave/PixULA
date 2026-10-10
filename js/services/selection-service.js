@@ -543,13 +543,15 @@ class SelectionServiceClass {
    * one answer behind Image > Attributes, the cell tools and Image > Dots
    * (they used to ask three slightly different questions).
    * @returns {?{layer: Object, floating: boolean, ownColours: boolean}}
-   *   ownColours = the floating stamp places colours of its own, so a flip
-   *   of its dots would leave them pointing at the wrong cells
+   *   ownColours = the floating stamp holds cell colours, so a flip of its
+   *   dots would leave them pointing at the wrong cells (until part 5A2
+   *   makes the colours follow, flips, scale, rotate and warp stay blocked
+   *   for any stamp that holds them, whatever its Colours setting)
    */
   engagedStamp() {
     const fp = this.floatingPaste;
     if (fp) {
-      return { layer: fp.floatingLayer || null, floating: true, ownColours: this.stampColoured(fp) };
+      return { layer: fp.floatingLayer || null, floating: true, ownColours: !!fp.attrs };
     }
     const layer = window.LayerManager ? LayerManager.getCurrentLayer() : null;
     if (layer && layer.isStamp) return { layer, floating: false, ownColours: false };
@@ -1872,6 +1874,86 @@ class SelectionServiceClass {
     }
     UndoRedo.endAction();
     return count;
+  }
+
+  /**
+   * The stamp whose settings a command edits: the floating one, else the
+   * current layer when it is a parked stamp, else null.
+   * @param {Layer} [layer] - a specific stamp layer
+   * @returns {?{layer: Layer, fp: ?Object}} fp = its floating paste, if it floats
+   * @private
+   */
+  _settingsTarget(layer) {
+    const fp = this.floatingPaste;
+    if (fp && fp.floatingLayer && fp.floatingLayer.isStamp && (!layer || layer === fp.floatingLayer)) {
+      return { layer: fp.floatingLayer, fp };
+    }
+    const l = layer || (window.LayerManager ? LayerManager.getCurrentLayer() : null);
+    if (l && l.isStamp && l.stamp) return { layer: l, fp: null };
+    return null;
+  }
+
+  /**
+   * Change a stamp's settings: { colours, clearDots, showThrough:{ink,paper,bright,flash} }.
+   * Anything not named stays; anything not allowed is ignored. Works on the
+   * floating stamp or a parked one, is ONE undo step, and redraws the preview
+   * (switching to coloured snaps the stamp to the cell grid again).
+   * @param {Object} patch
+   * @param {Layer} [layer]
+   * @returns {boolean} whether a stamp was changed
+   */
+  setStampOptions(patch, layer) {
+    const t = this._settingsTarget(layer);
+    if (!t || !patch || typeof patch !== 'object') return false;
+    const holder = t.fp || t.layer.stamp;
+    const cur = holder.opts || {};
+    const merged = { ...cur, ...patch };
+    if (patch.showThrough || cur.showThrough) {
+      merged.showThrough = { ...(cur.showThrough || {}), ...(patch.showThrough || {}) };
+    }
+    const clean = LayerManager._readStampOpts(merged);
+    if (JSON.stringify(this.stampOptions({ attrs: holder.attrs, opts: clean })) ===
+        JSON.stringify(this.stampOptions(holder))) return false;
+
+    UndoRedo.beginAction('Stamp settings');
+    // Replaced, never edited in place: undo snapshots and the layer's parked
+    // copy must not see a half-changed object.
+    if (t.fp) {
+      t.fp.opts = clean;
+      this.moveFloatingPaste(t.fp.x, t.fp.y);
+    } else {
+      t.layer.stamp = { ...t.layer.stamp, opts: clean };
+    }
+    UndoRedo.endAction();
+    EventBus.emit(EVENTS.CANVAS_RENDER);
+    return true;
+  }
+
+  /**
+   * Make a stamp that carries colours a plain Pixels stamp: its colours and
+   * cell grid are dropped for good, its dots kept. ONE undo step.
+   * @param {Layer} [layer]
+   * @returns {boolean} whether anything changed (false if it had no colours)
+   */
+  convertStampToPixels(layer) {
+    const t = this._settingsTarget(layer);
+    if (!t) return false;
+    const holder = t.fp || t.layer.stamp;
+    if (!holder.attrs) return false;
+    const opts = LayerManager._readStampOpts({ ...(holder.opts || {}), colours: 'pixels' });
+
+    UndoRedo.beginAction('Stamp to pixels');
+    if (t.fp) {
+      t.fp.attrs = null;
+      t.fp.attrGrid = null;
+      t.fp.opts = opts;
+      this.moveFloatingPaste(t.fp.x, t.fp.y);
+    } else {
+      t.layer.stamp = { ...t.layer.stamp, attrs: null, attrGrid: null, opts };
+    }
+    UndoRedo.endAction();
+    EventBus.emit(EVENTS.CANVAS_RENDER);
+    return true;
   }
 
   /**
