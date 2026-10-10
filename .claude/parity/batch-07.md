@@ -171,3 +171,18 @@ top read Same or Partial with the reason.
 
 Batch 7 and group B are done. Update the comparison doc rows. Hand off to
 the group B check-off (Opus): CHECKOFF.md, branch `parity-b`.
+
+## 7C decisions (2026-10-10, Opus plan review and owner answer)
+
+- OWNER: a dragged Shape draws on release as today; a new "Keep editable" tick box in the Shape options (off by default)
+  keeps it pending for point mode. Clone Last Figure and the cursor keys work either way.
+- No "Apply current colours" button: a pending figure already follows the rail colours, line style and fill live (a button
+  would do nothing). For a figure already drawn: Ctrl+Z, then Edit > Clone Last Figure.
+- Clone's key is Shift+C. X and Y hold for axis lock (the Shift fallback is not built; Shift is used by the gradient and
+  selection tools). X swaps ink and paper on a TAP (keyup) so holding it can lock an axis.
+- "When no selection or stamp is floating" is read as: no floating stamp. A selection is only a drawing guide, so arrows
+  move a pending figure first.
+- Edits to a pending figure are not undo steps; Ctrl+Z while a figure is pending takes back the last edit (then the last
+  point, then drops the figure). The commit is one undo step.
+- 7C is split: 7C (point mode, editable shapes, clone, cursor keys, Ctrl+Z, Save commits) and 7C2 (axis lock, spray pattern).
+
