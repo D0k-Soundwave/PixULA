@@ -322,4 +322,98 @@ check(`all ${total} default shapes are byte for byte what they were before 7B`, 
   check('each separate run starts its pattern afresh (21 + 20 pixels: 18 on in each)', two.on.length === 36 && two.on.some(p => p.x === 20 && p.y === 1));
 }
 
+// ===== ROTATION AND ROUNDING ===========================================================================================
+{
+  const set = (pts) => new Set(pts.map(p => `${p.x},${p.y}`));
+  const same = (a, b) => a.size === b.size && [...a].every(k => b.has(k));
+  const gen = (shape, x1, y1, x2, y2, o = {}) => set(ShapeGenerator.generateShape(shape, { x1, y1, x2, y2 }, o));
+  const bounds = (s) => {
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    for (const k of s) { const [x, y] = k.split(',').map(Number); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    return { x0, x1, y0, y1 };
+  };
+  const components = (s) => {
+    const left = new Set(s); let n = 0;
+    for (const start of s) {
+      if (!left.has(start)) continue;
+      n++;
+      const stack = [start]; left.delete(start);
+      while (stack.length) {
+        const [x, y] = stack.pop().split(',').map(Number);
+        for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+          const k = `${x + dx},${y + dy}`;
+          if (left.has(k)) { left.delete(k); stack.push(k); }
+        }
+      }
+    }
+    return n;
+  };
+
+  // rectangle turned a quarter: the rectangle of swapped size round the same centre
+  check('a 21 x 11 rectangle turned 90 degrees is the 11 x 21 rectangle round the same centre',
+    same(gen('rectangle', 10, 20, 30, 30, { rotation: 90 }), gen('rectangle', 15, 15, 25, 35)));
+  check('...and -90 is the same rectangle', same(gen('rectangle', 10, 20, 30, 30, { rotation: -90 }), gen('rectangle', 15, 15, 25, 35)));
+  check('...and 270 is -90', same(gen('rectangle', 10, 20, 30, 30, { rotation: 270 }), gen('rectangle', 15, 15, 25, 35)));
+  // an odd box: centre (14.5, 12), half-extents 4.5 x 2 turn into 2 x 4.5; a .5 rounds up
+  check('an odd-sized box turns with its .5 rounding up: (10,10)-(19,14) at 90 = (13,8)-(17,17)',
+    same(gen('rectangle', 10, 10, 19, 14, { rotation: 90 }), gen('rectangle', 13, 8, 17, 17)));
+  check('a filled rectangle turned 90 degrees is the filled swapped rectangle',
+    same(gen('rectangle', 10, 20, 30, 30, { rotation: 90, filled: true }), gen('rectangle', 15, 15, 25, 35, { filled: true })));
+  check('a square turned 90 degrees is the same square', same(gen('square', 10, 10, 40, 40, { rotation: 90 }), gen('square', 10, 10, 40, 40)));
+  check('a turn of 360 is no turn', same(gen('rectangle', 10, 20, 30, 30, { rotation: 360 }), gen('rectangle', 10, 20, 30, 30)));
+  check('a turn of 0 is byte for byte the same', same(gen('ellipse', 30, 40, 50, 60, { rotation: 0 }), gen('ellipse', 30, 40, 50, 60)));
+
+  // a 30 degree rectangle moves as a rigid thing
+  const a = gen('rectangle', 10, 20, 40, 30, { rotation: 30 });
+  const b = gen('rectangle', 17, 23, 47, 33, { rotation: 30 });
+  check('a rectangle turned 30 degrees, moved by (7,3), is the original shifted by (7,3)',
+    same(new Set([...a].map(k => { const [x, y] = k.split(',').map(Number); return `${x + 7},${y + 3}`; })), b));
+  check('...and it is a closed, connected outline', components(a) === 1 && a.size > 60);
+
+  // parallelogram: point-symmetric, so a half turn gives the same shape
+  check('a parallelogram turned 180 degrees is unchanged', same(gen('parallelogram', 10, 10, 50, 40, { rotation: 180 }), gen('parallelogram', 10, 10, 50, 40)));
+
+  // shapes drawn from a centre and a drag point turn round the start point
+  check('an arc turned 180 degrees is the arc dragged the opposite way',
+    same(gen('arc', 40, 40, 70, 40, { rotation: 180 }), gen('arc', 40, 40, 10, 40)));
+  check('a hexagon turned 90 degrees equals the hexagon dragged a quarter turn round',
+    same(gen('hexagon', 40, 40, 70, 40, { rotation: 90 }), gen('hexagon', 40, 40, 40, 70)));
+  check('a diamond turned 360 degrees is unchanged', same(gen('diamond', 40, 40, 70, 40, { rotation: 360 }), gen('diamond', 40, 40, 70, 40)));
+
+  // ellipse turned a quarter: the radii swap
+  const e0 = bounds(gen('ellipse', 30, 40, 70, 60));      // centre (50,50), radii 20 x 10
+  const e90 = bounds(gen('ellipse', 30, 40, 70, 60, { rotation: 90 }));
+  check('an ellipse turned 90 degrees has its radii swapped', e90.x1 - e90.x0 === e0.y1 - e0.y0 && e90.y1 - e90.y0 === e0.x1 - e0.x0,
+    JSON.stringify([e0, e90]));
+  const e45 = gen('ellipse', 30, 40, 70, 60, { rotation: 45 });
+  check('a turned ellipse is one closed connected outline', components(e45) === 1);
+  // no pixel of a one-pixel outline has both an up/down and a left/right neighbour that are in turn touching (an L corner)
+  let corners = 0;
+  for (const k of e45) {
+    const [x, y] = k.split(',').map(Number);
+    const n4 = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dy]) => e45.has(`${x + dx},${y + dy}`));
+    if (n4.length >= 2 && n4.some(([ax, ay], i) => n4.some(([bx, by], j) => j > i && ax !== -bx && ay !== -by))) corners++;
+  }
+  check('...and one pixel thin (no L-corner pixels)', corners <= 2, `${corners} L corners`);
+
+  // rounding
+  const rect = gen('rectangle', 10, 10, 50, 40);
+  check('rounding 0 is the rectangle', same(gen('rounded-rectangle', 10, 10, 50, 40, { rounding: 0 }), rect));
+  check('rounding 0 filled is the filled rectangle', same(gen('rounded-rectangle', 10, 10, 50, 40, { rounding: 0, filled: true }), gen('rectangle', 10, 10, 50, 40, { filled: true })));
+  check('rounding 0 turned 30 degrees is the rectangle turned 30 degrees',
+    same(gen('rounded-rectangle', 10, 10, 50, 40, { rounding: 0, rotation: 30 }), gen('rectangle', 10, 10, 50, 40, { rotation: 30 })));
+  check('rounding 0.5 is the default shape', same(gen('rounded-rectangle', 10, 10, 50, 40, { rounding: 0.5 }), gen('rounded-rectangle', 10, 10, 50, 40)));
+  const small = gen('rounded-rectangle', 10, 10, 50, 40, { rounding: 0.2 });
+  const big = gen('rounded-rectangle', 10, 10, 50, 40, { rounding: 0.9 });
+  check('more rounding cuts more of the corner', !small.has('10,10') && !big.has('10,10') && big.has('30,10') &&
+    !big.has('14,10') && small.has('17,10'));
+  const stadium = gen('rounded-rectangle', 0, 0, 20, 10, { rounding: 1 });
+  let leftColumn = 0;
+  for (const k of stadium) if (k.startsWith('0,')) leftColumn++;
+  // radius 5 = half the 11-pixel side: the ends are half-circles. The midpoint circle of radius 5 has a flat spot of
+  // 5 pixels (offsets -2..2) at its extreme, which is the 5 pixels of the left column; the top run is x 3 to 17 (5 either side of the corner centre, minus the circle's two-pixel flat).
+  check('rounding 100% on a 21 x 11 box gives half-circle ends (a flat spot of 5 pixels) and a top run of 15 (x 3 to 17)', leftColumn === 5 && [3, 10, 17].every(x => stadium.has(`${x},0`)) && !stadium.has('2,0') && !stadium.has('18,0'), String(leftColumn));
+  check('a turned rounded rectangle is one closed outline', components(gen('rounded-rectangle', 10, 10, 50, 40, { rotation: 30 })) === 1);
+}
+
 summary();
