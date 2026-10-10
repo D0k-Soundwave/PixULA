@@ -43,6 +43,8 @@ loadModule('js/tools/shape-generator.js');
 loadModule('js/utils/brush-shapes.js');
 loadModule('js/tools/brush-engine.js');
 loadModule('js/tools/brush-tool.js');
+loadModule('js/tools/figure-model.js');
+loadModule('js/tools/figure-editor.js');
 loadModule('js/tools/shape-tool.js');
 loadModule('js/tools/fill-tool.js');
 loadModule('js/tools/gradient-tool.js');

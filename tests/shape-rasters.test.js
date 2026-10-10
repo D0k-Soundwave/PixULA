@@ -33,6 +33,8 @@ loadModule('js/core/pixel-draw-routine.js');
 loadModule('js/tools/tool-base.js');
 loadModule('js/tools/tool-manager.js');
 loadModule('js/tools/shape-generator.js');
+loadModule('js/tools/figure-model.js');
+loadModule('js/tools/figure-editor.js');
 loadModule('js/tools/shape-tool.js');
 
 const bounds = { x1: 10, y1: 10, x2: 60, y2: 40 };

@@ -405,6 +405,7 @@ class FileManagerClass {
    * @returns {Promise<boolean>} True if saved successfully
    */
   async save() {
+    if (window.ToolManager) ToolManager.commitPending();   // a figure still being edited is part of the picture
     if (this._fileHandle) {
       return this._writeProjectToHandle(this._fileHandle);
     }
@@ -434,6 +435,7 @@ class FileManagerClass {
    * @returns {Promise<boolean>} True if saved successfully
    */
   async saveAs() {
+    if (window.ToolManager) ToolManager.commitPending();
     const defaultName = this.currentFilename || 'image.pixula';
 
     if (typeof window.showSaveFilePicker !== 'function') {
@@ -619,6 +621,7 @@ class FileManagerClass {
    * @returns {boolean} True if exported successfully
    */
   async exportAs(format, options = {}) {
+    if (window.ToolManager) ToolManager.commitPending();
     const handler = FormatRegistry.getExportHandler(format);
 
     if (!handler) {
