@@ -208,6 +208,45 @@ class PixelDrawRoutineClass {
     }
   }
 
+  /**
+   * The pixels a stroke of `pixels` would actually be written to, read-only: the same bounds check,
+   * symmetry expansion and drawing-guide clip that draw() applies, in the same order, and nothing
+   * when the current layer is missing or locked. A live PREVIEW asks this so it shows what the
+   * commit will leave (the previews of the older tools show neither mirror nor clip).
+   * Each mirrored copy counts as colour-core exactly when its source pixel does (see draw()).
+   * The dither gate is not applied: no shape tool uses it.
+   * @param {Array<{x:number,y:number}>} pixels
+   * @param {?function(number, number): boolean} [isCore] - the colour-core predicate, or null
+   * @returns {{pixels: Array<{x:number,y:number}>, isCore: ?function(number, number): boolean}}
+   */
+  strokeTargets(pixels, isCore = null) {
+    const layer = window.LayerManager ? LayerManager.getCurrentLayer() : null;
+    if (!layer || layer.locked) return { pixels: [], isCore: isCore ? () => false : null };
+    const sym = window.StateManager && StateManager.getSymmetryMode ? StateManager.getSymmetryMode() : 'off';
+    const W = ZX_SPECTRUM.WIDTH;
+    const seen = new Set();
+    const core = new Set();
+    const out = [];
+    const take = (x, y, coreOfSource) => {
+      if (!Validators.isValidPixelCoord(x, y)) return;
+      if (this._clipSuspend === 0 && this.isClipped(x, y)) return;
+      const k = y * W + x;
+      if (coreOfSource) core.add(k);
+      if (seen.has(k)) return;
+      seen.add(k);
+      out.push({ x, y });
+    };
+    for (const p of pixels) {
+      if (!Validators.isValidPixelCoord(p.x, p.y)) continue;
+      const c = isCore ? !!isCore(p.x, p.y) : false;
+      take(p.x, p.y, c);
+      if (sym !== 'off') {
+        for (const m of this.getMirrorPoints(p.x, p.y, sym)) take(m.x, m.y, c);
+      }
+    }
+    return { pixels: out, isCore: isCore ? (x, y) => core.has(y * W + x) : null };
+  }
+
   // ── Clip region (the drawing guide / barrier) ──────────────────────────────
   //
   // A region that confines every pixel write. Because draw() is THE gate, one
