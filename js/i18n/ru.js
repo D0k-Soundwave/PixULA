@@ -1541,6 +1541,7 @@ const ru = {
     'attrChange.scope': 'Применяется к: {scope}',
     'attrChange.scopeSelection': 'Выделение',
     'attrChange.scopeWhole': 'Всё изображение',
+    'attrChange.scopeStamp': 'Штамп',
     'plural.changeAttrCells': 'one: {n} ячейка изменится | few: {n} ячейки изменятся | many: {n} ячеек изменится | other: {n} ячейки изменятся',
 };
 

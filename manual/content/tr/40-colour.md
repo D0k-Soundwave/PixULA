@@ -184,7 +184,7 @@ yanıp sönmeyi yazar; "mevcut olanı kullan" kutuları her hücrede zaten olan�
 Yatay çevir ve Dikey çevir hücre renklerini aynalar. Her komut seçimi (dokunduğu
 tüm hücreleri) ya da hiçbir şey seçili değilse tüm resmi etkiler ve tek adımda
 geri alınır. Öğeler, hücre renkleri olmayan kiplerde (Timex Hi-res, Layer 2,
-LoRes), bir damga yüzerken ve kilitli bir katmanda soluk görünür.
+LoRes), kendi renkleri olmayan bir damga yüzerken ve kilitli bir katmanda soluk görünür.
 
 Değiştir... hücreleri renklerine göre bulur ve değiştirir. Bul, hangi hücrelerin eşleşeceğini belirler: her alan bir değer ya da Herhangi. Şununla değiştir, hücrelerin ne olacağını belirler: her alan bir değer ya da Koru. İletişim kutusu, Tamam'a basmadan önce kaç hücrenin değişeceğini gösterir ve Tamam tek adımda geri alınır. GigaScreen'de Ekran A ve Ekran B grupları vardır; ULAplus'ta CLUT 0-3, Parlaklık ve Yanıp sönme yerine geçer. İptal hiçbir şeyi değiştirmez.
 
@@ -207,3 +207,5 @@ Bir damga etkinken **Dönüştür** paneli onun nasıl yerleştirildiğini göst
 **Boş noktalar** damganın boş noktalarının ne yapacağını belirler. Arka planı bırak altındaki resme dokunmaz (kendi renkleri olan damga, Kâğıt görünmedikçe altındaki kâğıdı yine de yeniden boyar). Arka planı sil onu da siler, damganın tüm dikdörtgeni üzerinde. Tersi olmayan çizim kipleri (XOR, Mürekkebi yeniden boya, Kâğıdı yeniden boya) ve damganın kendi XOR anahtarı boş noktalara dokunmaz ve panel bunu söyler. Boş noktalar, hücre renkleri olmayanlar dahil her ekran kipinde vardır.
 
 **Yalnızca piksele dönüştür** damganın renklerini kalıcı olarak atar ve noktalarını tutar. Renkler içindeki Yalnızca pikseller seçimi onları korur, böylece geri dönülebilir. Her değişiklik tek bir geri alma adımıdır.
+
+Kendi renkleri olan bir damga etkinken Görüntü > Öznitelikler komutları (Ters çevir, Sil, iki Çevir ve Değiştir...) resim yerine damganın hücreleri üzerinde çalışır; damga ister yüzüyor ister kenara konmuş olsun. Seçimi yok sayar ve damganın noktalarına asla dokunmaz; damganın kaplamadığı hücre olduğu gibi kalır. Çevirme damganın renk hücrelerini yansıtır, noktaları yerinde kalır. GigaScreen damgasında iki ekran için tek bir renk takımı vardır, bu yüzden Değiştir penceresi tek bir grup gösterir. Her komut tek bir geri alma adımıdır. Kendi renkleri olmayan bir damgada soluk kalırlar.

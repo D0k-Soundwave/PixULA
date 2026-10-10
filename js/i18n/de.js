@@ -1541,6 +1541,7 @@ const de = {
     'attrChange.scope': 'Gilt für: {scope}',
     'attrChange.scopeSelection': 'Auswahl',
     'attrChange.scopeWhole': 'Ganzes Bild',
+    'attrChange.scopeStamp': 'Stempel',
     'plural.changeAttrCells': 'one: {n} Zelle wird geändert | other: {n} Zellen werden geändert',
 };
 

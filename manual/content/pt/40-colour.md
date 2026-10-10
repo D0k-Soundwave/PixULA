@@ -184,7 +184,7 @@ Espelhar horizontalmente e Espelhar verticalmente espelham as cores das
 células. Cada comando atua sobre a seleção (todas as células que toca) ou sobre
 a imagem inteira quando nada está selecionado, e desfaz-se num único passo. Os
 itens ficam esmaecidos nos modos sem cores de célula (Timex Hi-res, Layer 2,
-LoRes), enquanto um carimbo está flutuante e numa camada bloqueada.
+LoRes), enquanto um carimbo sem cores próprias está flutuante e numa camada bloqueada.
 
 Alterar... encontra células pelas suas cores e substitui-as. Localizar indica quais células correspondem: cada campo é um valor ou Qualquer. Substituir por indica no que se tornam: cada campo é um valor ou Manter. A caixa mostra quantas células vão mudar antes de premir OK, e OK desfaz-se num único passo. O GigaScreen tem um grupo para o Ecrã A e outro para o Ecrã B; no ULAplus, o CLUT 0-3 ocupa o lugar de Brilho e Piscar. Cancelar não altera nada.
 
@@ -207,3 +207,5 @@ Quando um carimbo está ativo, o painel **Transformar** mostra como é colocado.
 **Pontos vazios** decide o que fazem os pontos vazios do carimbo. Deixar o fundo deixa em paz o desenho por baixo (um carimbo com cores próprias continua a recolorir o papel por baixo, salvo se o Papel se vir). Apagar o fundo apaga-o também, em todo o retângulo do carimbo. Os modos de desenho sem oposto (XOR, Recolorir tinta, Recolorir papel) e o interruptor XOR próprio do carimbo deixam os pontos vazios em paz, e o painel di-lo. Pontos vazios está disponível em todos os modos de ecrã, mesmo sem cores de célula.
 
 **Converter em só píxeis** descarta para sempre as cores do carimbo e mantém os seus pontos. A escolha Só píxeis em Cores mantém-nas, por isso pode voltar atrás. Cada alteração é um passo de anular.
+
+Enquanto um carimbo com cores próprias está ativo, os comandos de Imagem > Atributos (Inverter, Apagar, os dois Espelhar e Alterar...) atuam nas células do carimbo em vez da imagem, quer flutue quer esteja guardado. Ignoram a seleção e nunca tocam nos pontos do carimbo, e uma célula que o carimbo não cobre fica como está. Espelhar reflete as células de cor do carimbo enquanto os pontos ficam onde estão. Um carimbo GigaScreen tem um só conjunto de cores para os dois ecrãs, por isso o diálogo Alterar mostra um grupo. Cada comando é um passo de anular. Com um carimbo sem cores próprias continuam esmaecidos.

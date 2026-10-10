@@ -1541,6 +1541,7 @@ const tr = {
     'attrChange.scope': 'Uygulanan alan: {scope}',
     'attrChange.scopeSelection': 'Seçim',
     'attrChange.scopeWhole': 'Tüm resim',
+    'attrChange.scopeStamp': 'Damga',
     'plural.changeAttrCells': 'one: {n} hücre değişecek | other: {n} hücre değişecek',
 };
 

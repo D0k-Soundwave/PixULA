@@ -1541,6 +1541,7 @@ const cs = {
     'attrChange.scope': 'Platí pro: {scope}',
     'attrChange.scopeSelection': 'Výběr',
     'attrChange.scopeWhole': 'Celý obrázek',
+    'attrChange.scopeStamp': 'Razítko',
     'plural.changeAttrCells': 'one: {n} buňka se změní | few: {n} buňky se změní | other: {n} buněk se změní',
 };
 

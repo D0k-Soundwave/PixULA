@@ -585,7 +585,9 @@ class SelectionServiceClass {
       return { layer: fp.floatingLayer || null, floating: true, ownColours: this.stampColoured(fp) };
     }
     const layer = window.LayerManager ? LayerManager.getCurrentLayer() : null;
-    if (layer && layer.isStamp) return { layer, floating: false, ownColours: false };
+    if (layer && layer.isStamp) {
+      return { layer, floating: false, ownColours: !!layer.stamp && this.stampColoured(layer.stamp) };
+    }
     return null;
   }
 
@@ -1630,10 +1632,7 @@ class SelectionServiceClass {
           const attr = data.attrs[sr * g.cols + sc];
           if (attr == null) continue;
           const sel = {
-            ink: attr & 7,
-            paper: (attr >> 3) & 7,
-            bright: (attr & 0x40) !== 0,
-            flash: (attr & 0x80) !== 0,
+            ...this.unpackStampAttr(attr),
             inkTransparent: st.ink,
             paperTransparent: st.paper,
             brightTransparent: st.bright,
@@ -2001,6 +2000,42 @@ class SelectionServiceClass {
         next.y = Math.floor((next.y - g.oy) / g.ch) * g.ch + g.oy;
       }
       t.layer.stamp = next;
+    }
+    UndoRedo.endAction();
+    EventBus.emit(EVENTS.CANVAS_RENDER);
+    return true;
+  }
+
+  /** One stamp colour byte as {ink, paper, bright, flash}. The one place the layout is written. */
+  unpackStampAttr(a) {
+    return { ink: a & 7, paper: (a >> 3) & 7, bright: (a & 0x40) !== 0, flash: (a & 0x80) !== 0 };
+  }
+
+  /** {ink, paper, bright, flash} as one stamp colour byte. */
+  packStampAttr(c) {
+    return (c.ink & 7) | ((c.paper & 7) << 3) | (c.bright ? 0x40 : 0) | (c.flash ? 0x80 : 0);
+  }
+
+  /**
+   * Replace a stamp's cell colours (same length as before) as ONE undo step,
+   * floating or parked, and redraw. The Image > Attributes commands use it.
+   * @param {Array<?number>} attrs
+   * @param {Layer} [layer]
+   * @returns {boolean} false if nothing changed
+   */
+  setStampAttrs(attrs, layer) {
+    const t = this._settingsTarget(layer);
+    if (!t || !Array.isArray(attrs)) return false;
+    const holder = t.fp || t.layer.stamp;
+    if (!holder.attrs || holder.attrs.length !== attrs.length) return false;
+    if (attrs.every((a, i) => a === holder.attrs[i])) return false;
+
+    UndoRedo.beginAction('Stamp colours');
+    if (t.fp) {
+      t.fp.attrs = attrs.slice();
+      this.moveFloatingPaste(t.fp.x, t.fp.y);
+    } else {
+      t.layer.stamp = { ...t.layer.stamp, attrs: attrs.slice() };
     }
     UndoRedo.endAction();
     EventBus.emit(EVENTS.CANVAS_RENDER);

@@ -175,7 +175,7 @@ bunky; zaškrtnuté polia „použiť existujúce“ ponechajú to, čo bunka u�
 Otočiť vodorovne a Otočiť zvisle zrkadlia farby buniek. Každý príkaz pôsobí na
 výber (všetky bunky, ktorých sa dotýka), alebo na celý obrázok, ak nič nie je
 vybraté, a vracia sa jedným krokom. Položky sú šedé v režimoch bez farieb
-buniek (Timex Hi-res, Layer 2, LoRes), keď pláva pečiatka, a na zamknutej
+buniek (Timex Hi-res, Layer 2, LoRes), keď pláva pečiatka bez vlastných farieb, a na zamknutej
 vrstve.
 
 Zmeniť... nájde bunky podľa ich farieb a nahradí ich. Hľadať určuje, ktoré bunky sa majú nájsť: každé pole je hodnota alebo Ľubovoľné. Nahradiť za určuje, čím sa stanú: každé pole je hodnota alebo Ponechať. Dialóg ukáže, koľko buniek sa zmení, skôr než stlačíte OK, a OK sa vráti jedným krokom späť. Na GigaScreene sú skupiny Obrazovka A a Obrazovka B; v ULAplus CLUT 0-3 nahrádza voľby Jas a Blikanie. Zrušiť nič nemení.
@@ -199,3 +199,5 @@ Keď je pečiatka zapojená, panel **Transformácia** ukazuje, ako sa kladie.
 **Prázdne body** rozhodujú, čo robia prázdne body pečiatky. Ponechať pozadie nechá obraz pod nimi na pokoji (pečiatka s vlastnými farbami pod nimi stále prefarbí papier, pokiaľ nepresvitá Papier). Zmazať pozadie ho tiež zmaže, na celom obdĺžniku pečiatky. Režimy kreslenia bez opaku (XOR, Prefarbenie atramentu, Prefarbenie papiera) a vlastný prepínač XOR pečiatky nechajú prázdne body na pokoji a panel to oznámi. Prázdne body sú dostupné v každom režime obrazovky, aj bez farieb buniek.
 
 **Previesť na iba pixely** navždy zahodí farby pečiatky a ponechá jej body. Voľba Iba pixely vo Farbách ich zachová, takže sa dá vrátiť. Každá zmena je jeden krok späť.
+
+Kým je zapojená pečiatka s vlastnými farbami, príkazy Obrázok > Atribúty (Invertovať, Vymazať, obe Otočenia a Zmeniť...) pôsobia na bunky pečiatky, nie na obrázok, či už pláva, alebo je odložená. Ignorujú výber a nikdy sa nedotknú bodiek pečiatky a bunka, ktorú pečiatka nepokrýva, zostane bez zmeny. Otočenie zrkadlí farebné bunky pečiatky, kým jej bodky zostanú na mieste. Pečiatka na GigaScreen má jednu sadu farieb pre obe obrazovky, takže dialóg Zmeniť ukazuje jednu skupinu. Každý príkaz je jeden krok späť. Pri pečiatke bez vlastných farieb zostanú šedé.

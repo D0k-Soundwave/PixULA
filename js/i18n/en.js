@@ -1564,6 +1564,7 @@ const en = {
     'attrChange.scope': 'Applies to: {scope}',
     'attrChange.scopeSelection': 'Selection',
     'attrChange.scopeWhole': 'Whole picture',
+    'attrChange.scopeStamp': 'Stamp',
     'plural.changeAttrCells': 'one: {n} cell will change | other: {n} cells will change',
 };
 

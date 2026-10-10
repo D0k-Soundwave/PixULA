@@ -175,7 +175,7 @@ each cell, and the "use existing" boxes keep what a cell already has. Flip
 Horizontal and Flip Vertical mirror the cell colours. Each command works on
 the selection (every cell it touches), or on the whole picture when nothing
 is selected, and undoes in one step. The items are greyed out in modes with
-no cell colours (Timex Hi-res, Layer 2, LoRes), while a stamp is floating,
+no cell colours (Timex Hi-res, Layer 2, LoRes), while a stamp that keeps no colours of its own is floating,
 and on a locked layer.
 
 Change... finds cells by their colours and replaces them. Find sets which cells to match: each field is a value or Any. Replace with sets what they become: each field is a value or Keep. The dialog shows how many cells will change before you press OK, and OK undoes in one step. GigaScreen has a Screen A and a Screen B group; in ULAplus, CLUT 0-3 takes the place of Bright and Flash. Cancel changes nothing.
@@ -199,3 +199,5 @@ When a stamp is engaged, the **Transform** panel shows how it is placed.
 **Clear dots** decides what the stamp's empty dots do. Leave background leaves the picture under them alone (a stamp with its own colours still recolours the paper under them, unless Paper shows through). Clear background clears it too, over the stamp's whole rectangle. The draw modes with no opposite (XOR, Ink Recolour, Paper Recolour) and the stamp's own XOR switch leave the empty dots alone, and the panel says so. Clear dots is available in every screen mode, including those with no cell colours.
 
 **Convert to pixels only** drops the stamp's colours for good and keeps its dots. The Pixels only choice in Colours keeps them, so you can switch back. Every change is one undo step.
+
+While a stamp that places its own colours is engaged, the Image > Attributes commands (Invert, Erase, both Flips and Change...) act on the stamp's cells instead of the picture, floating or parked. They ignore the selection and never touch the stamp's dots, and a cell the stamp does not cover is left alone. Flips mirror the stamp's colour cells while its dots stay put. A GigaScreen stamp holds one set of colours for both screens, so the Change dialog shows one group. Each command is one undo step. For a stamp without its own colours they stay greyed out.

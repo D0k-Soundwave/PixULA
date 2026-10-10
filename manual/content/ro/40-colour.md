@@ -191,8 +191,7 @@ existentul” păstrează ce are deja fiecare celulă. Oglindește orizontal și
 Oglindește vertical oglindesc culorile celulelor. Fiecare comandă lucrează pe
 selecție (toate celulele atinse) sau pe toată imaginea când nu e nimic
 selectat, și se anulează dintr-un pas. Elementele sunt estompate în modurile
-fără culori de celulă (Timex Hi-res, Layer 2, LoRes), cât timp o ștampilă
-plutește și pe un strat blocat.
+fără culori de celulă (Timex Hi-res, Layer 2, LoRes), cât timp o ștampilă fără culori proprii plutește și pe un strat blocat.
 
 Modifică... găsește celulele după culorile lor și le înlocuiește. Caută indică ce celule se potrivesc: fiecare câmp este o valoare sau Oricare. Înlocuiește cu indică ce devin: fiecare câmp este o valoare sau Păstrează. Caseta arată câte celule se vor modifica înainte de a apăsa OK, iar OK se anulează dintr-un singur pas. GigaScreen are un grup pentru Ecranul A și unul pentru Ecranul B; în ULAplus, CLUT 0-3 ia locul opțiunilor Luminozitate și Clipire. Renunță nu schimbă nimic.
 
@@ -215,3 +214,5 @@ Când o ștampilă este activă, panoul **Transformare** arată cum este așezat
 **Puncte goale** hotărăsc ce fac punctele goale ale ștampilei. Păstrează fundalul lasă desenul de dedesubt în pace (o ștampilă cu culori proprii tot recolorează hârtia de dedesubt, dacă nu se vede Hârtia). Șterge fundalul îl șterge și pe el, pe tot dreptunghiul ștampilei. Modurile de desen fără opus (XOR, Recolorează cerneala, Recolorează hârtia) și comutatorul XOR propriu al ștampilei lasă punctele goale în pace, iar panoul spune asta. Punctele goale sunt disponibile în orice mod de ecran, chiar și fără culori de celulă.
 
 **Convertește în doar pixeli** renunță definitiv la culorile ștampilei și păstrează punctele. Alegerea Doar pixeli din Culori le păstrează, deci te poți întoarce. Fiecare schimbare este un pas de anulare.
+
+Cât timp este activă o ștampilă cu culori proprii, comenzile Imagine > Atribute (Inversează, Șterge, ambele Oglindiri și Schimbă...) acționează asupra celulelor ștampilei în loc de imagine, fie că plutește, fie că este pusă deoparte. Ignoră selecția și nu ating niciodată punctele ștampilei, iar o celulă pe care ștampila nu o acoperă rămâne cum este. Oglindirea oglindește celulele de culoare ale ștampilei, iar punctele ei rămân pe loc. O ștampilă GigaScreen are un singur set de culori pentru ambele ecrane, deci dialogul Schimbă arată un singur grup. Fiecare comandă este un pas de anulare. Pentru o ștampilă fără culori proprii rămân estompate.

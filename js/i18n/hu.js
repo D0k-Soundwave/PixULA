@@ -1541,6 +1541,7 @@ const hu = {
     'attrChange.scope': 'Érintett terület: {scope}',
     'attrChange.scopeSelection': 'Kijelölés',
     'attrChange.scopeWhole': 'Teljes kép',
+    'attrChange.scopeStamp': 'Bélyegző',
     'plural.changeAttrCells': 'one: {n} cella változik | other: {n} cella változik',
 };
 

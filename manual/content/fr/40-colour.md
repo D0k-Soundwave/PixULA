@@ -202,7 +202,7 @@ horizontalement et Retourner verticalement retournent les couleurs des
 cellules. Chaque commande agit sur la sélection (toutes les cellules touchées)
 ou sur toute l'image sans sélection, et s'annule en une seule fois. Les
 éléments sont grisés dans les modes sans couleurs de cellule (Timex Hi-res,
-Layer 2, LoRes), pendant qu'un tampon flotte, et sur un calque verrouillé.
+Layer 2, LoRes), pendant qu'un tampon sans couleurs propres flotte, et sur un calque verrouillé.
 
 Modifier... trouve les cellules d'après leurs couleurs et les remplace. Rechercher indique les cellules visées : chaque champ est une valeur ou Tous. Remplacer par indique ce qu'elles deviennent : chaque champ est une valeur ou Conserver. La boîte de dialogue indique combien de cellules vont changer avant que vous ne cliquiez sur OK, et OK s'annule en une seule étape. GigaScreen a un groupe Écran A et un groupe Écran B ; en ULAplus, CLUT 0-3 remplace Brillant et Clignotement. Annuler ne modifie rien.
 
@@ -225,3 +225,5 @@ Quand un tampon est actif, le panneau **Transformer** montre comment il est pos�
 **Points vides** décide ce que font les points vides du tampon. Garder le fond laisse le dessin en dessous tranquille (un tampon aux couleurs propres recolore quand même le papier dessous, sauf si le Papier transparaît). Effacer le fond l'efface aussi, sur tout le rectangle du tampon. Les modes de dessin sans inverse (XOR, Recolorer l'encre, Recolorer le papier) et l'interrupteur XOR propre du tampon laissent les points vides tranquilles, et le panneau le dit. Points vides est disponible dans tous les modes d'écran, même sans couleurs de cellule.
 
 **Convertir en pixels seuls** abandonne définitivement les couleurs du tampon et garde ses points. Le choix Pixels seuls dans Couleurs les garde, donc on peut revenir. Chaque changement est une étape d'annulation.
+
+Tant qu'un tampon aux couleurs propres est actif, les commandes Image > Attributs (Inverser, Effacer, les deux Retourner et Changer...) agissent sur les cellules du tampon et non sur l'image, qu'il flotte ou soit rangé. Elles ignorent la sélection et ne touchent jamais les points du tampon, et une cellule que le tampon ne couvre pas reste telle quelle. Retourner reflète les cellules de couleur du tampon pendant que ses points restent en place. Un tampon GigaScreen porte un seul jeu de couleurs pour les deux écrans, donc la boîte Changer montre un seul groupe. Chaque commande est une étape d'annulation. Pour un tampon sans couleurs propres elles restent grisées.

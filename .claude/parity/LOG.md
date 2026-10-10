@@ -454,3 +454,21 @@ Tests: stamp-controls.test.js (Node), tests/browser/stamp-controls.spec.js (8), 
 PASSED; playwright 654 passed, 2 failed under load (dialog-listeners fails 3 of 8 under 4 workers with or without these
 changes; undo-partial-capture timing); both pass alone.
 Next: part 5C.
+
+## 2026-10-10 - Batch 5 part 5C - Image > Attributes on a stamp's own colours - done
+Model: Sonnet (one-run series). Branch: parity-b.
+Opus: plan review (Plan agent, opus) -> go; no second mandatory review needed (no PixelDrawRoutine, UndoRedo, compositor or
+file-format change). Semantics as the review set: whole stamp, selection ignored; a hole (null cell) is never read, written,
+counted or used as a flip partner (a cell opposite a hole keeps its own colours); Erase honours the use-existing boxes against
+the stamp's own value and writes the rail's screen A colours in GigaScreen (a stamp holds one colour set); Flip mirrors the
+colour grid, the dots, position, grid offset and mask stay; Invert keeps bright and flash (so the ULAplus CLUT survives).
+Built: TransformService._attributeScope() chooses picture or stamp; _planCellWrites/_rewriteCells take the scope (one planner
+for both, picture callers unchanged); SelectionService.setStampAttrs (one undo step, floating or parked),
+packStampAttr/unpackStampAttr (the one place the byte layout is written); engagedStamp().ownColours for a parked stamp;
+attributeCommandsBlocked is null for a stamp with its own colours and 'stamp' for any other. Image > Dots and the cell tools
+stay blocked on stamps. Change dialog: "Applies to: Stamp", no Screen B group for a stamp (key attrChange.scopeStamp, 13
+locales). Manual: the Attributes sentence corrected and a paragraph added in 13 languages. Comparison rows 95-99 now Same.
+Tests: tests/stamp-attribute-commands.test.js (Node: every command, undo, holes, parked, blocked cases, GigaScreen, ULAplus),
+tests/browser/stamp-attribute-commands.spec.js (5). run-all ALL TEST FILES PASSED; npx playwright test 661 passed.
+OWNER question, asked next: should a stamp with its own colours be allowed to flip/quarter-turn with its colours carried
+along (today impossible; the panel and menu rows grey out with a reason)?

@@ -193,7 +193,7 @@ jelölőnégyzetek megtartják, ami a cellában már van. A Vízszintes tükröz
 Függőleges tükrözés tükrözi a cellák színeit. Minden parancs a kijelölésen
 (minden érintett cellán) hajtódik végre, kijelölés nélkül az egész képen, és
 egy lépésben visszavonható. A pontok szürkék a cellaszíneket nem használó
-módokban (Timex Hi-res, Layer 2, LoRes), lebegő bélyegző közben és zárolt
+módokban (Timex Hi-res, Layer 2, LoRes), saját színek nélküli lebegő bélyegző közben és zárolt
 rétegen.
 
 A Módosítás... a cellákat a színeik alapján keresi meg és cseréli le. A Keresés adja meg, mely cellákat kell találni: minden mező érték vagy Bármely. A Csere erre adja meg, mivé válnak: minden mező érték vagy Megtartás. A párbeszédpanel az OK megnyomása előtt megmutatja, hány cella változik, az OK pedig egy lépésben visszavonható. A GigaScreen-en külön csoport van az A és a B képernyőnek; ULAplus módban a CLUT 0-3 a Fényerő és a Villogás helyét veszi át. A Mégse nem változtat semmit.
@@ -217,3 +217,5 @@ Az **Átlátszás** (csak Saját színeknél) a bélyegző színe helyett a lapo
 Az **Üres pontok** döntik el, mit tesznek a bélyegző üres pontjai. A Háttér marad nem bántja az alattuk levő képet (a saját színű bélyegző ettől még átszínezi alattuk a papírt, hacsak a Papír át nem látszik). A Háttér törlése azt is törli, a bélyegző teljes téglalapján. Az ellentét nélküli rajzmódok (XOR, Tinta átszínezése, Papír átszínezése) és a bélyegző saját XOR kapcsolója békén hagyják az üres pontokat, és a panel ezt kiírja. Az Üres pontok minden képernyőmódban elérhetők, cellaszínek nélkül is.
 
 Az **Átalakítás csak pixelekké** véglegesen elveti a bélyegző színeit, a pontjait megtartja. A Színeknél a Csak pixelek választás megtartja őket, így vissza lehet kapcsolni. Minden módosítás egy visszavonási lépés.
+
+Amíg egy saját színeket hordozó bélyegző be van kapcsolva, a Kép > Attribútumok parancsai (Invertálás, Törlés, mindkét Tükrözés és Csere...) a bélyegző celláira hatnak a kép helyett, akár lebeg, akár el van téve. Figyelmen kívül hagyják a kijelölést, és sosem érintik a bélyegző pontjait; a bélyegző által le nem fedett cella változatlan marad. A Tükrözés a bélyegző színcelláit tükrözi, a pontjai a helyükön maradnak. A GigaScreen bélyegzőnek egy színkészlete van mindkét képernyőre, ezért a Csere párbeszédablak egy csoportot mutat. Minden parancs egy visszavonási lépés. Saját színek nélküli bélyegzőnél szürkék maradnak.

@@ -191,7 +191,7 @@ conservano ciò che la cella ha già. Capovolgi orizzontalmente e Capovolgi
 verticalmente specchiano i colori delle celle. Ogni comando agisce sulla
 selezione (tutte le celle toccate) o sull'intera immagine se non c'è selezione,
 e si annulla con un solo passo. Le voci sono disattivate nelle modalità senza
-colori di cella (Timex Hi-res, Layer 2, LoRes), mentre un timbro è fluttuante e
+colori di cella (Timex Hi-res, Layer 2, LoRes), mentre un timbro senza colori propri è fluttuante e
 su un livello bloccato.
 
 Cambia... trova le celle in base ai loro colori e le sostituisce. Trova indica quali celle selezionare: ogni campo è un valore o Qualsiasi. Sostituisci con indica come diventano: ogni campo è un valore o Mantieni. La finestra mostra quante celle cambieranno prima di premere OK, e OK si annulla con un solo passo. Su GigaScreen ci sono un gruppo per lo Schermo A e uno per lo Schermo B; in ULAplus, CLUT 0-3 prende il posto di Luminoso e Lampeggio. Annulla non cambia nulla.
@@ -215,3 +215,5 @@ Quando un timbro è attivo, il pannello **Trasforma** mostra come viene messo.
 **Punti vuoti** decide cosa fanno i punti vuoti del timbro. Lascia lo sfondo lascia stare il disegno sotto (un timbro con colori propri ricolora comunque la carta sotto, salvo che la Carta traspaia). Cancella lo sfondo lo cancella anche, su tutto il rettangolo del timbro. Le modalità di disegno senza opposto (XOR, Ricolora inchiostro, Ricolora carta) e l'interruttore XOR del timbro lasciano stare i punti vuoti, e il pannello lo dice. Punti vuoti è disponibile in ogni modalità schermo, anche senza colori di cella.
 
 **Converti in solo pixel** scarta per sempre i colori del timbro e tiene i suoi punti. La scelta Solo pixel in Colori li conserva, così si può tornare indietro. Ogni modifica è un passo di annullamento.
+
+Finché è attivo un timbro con colori propri, i comandi Immagine > Attributi (Inverti, Cancella, i due Capovolgi e Cambia...) agiscono sulle celle del timbro invece che sull'immagine, sia che fluttui sia che sia riposto. Ignorano la selezione e non toccano mai i punti del timbro, e una cella che il timbro non copre resta com'è. Capovolgi specchia le celle di colore del timbro mentre i suoi punti restano dove sono. Un timbro GigaScreen ha un solo gruppo di colori per entrambi gli schermi, quindi la finestra Cambia mostra un solo gruppo. Ogni comando è un passo di annullamento. Con un timbro senza colori propri restano disattivati.

@@ -189,8 +189,7 @@ conservan lo que ya tiene cada celda. Voltear horizontalmente y Voltear
 verticalmente reflejan los colores de las celdas. Cada orden actúa sobre la
 selección (todas las celdas que toca) o sobre toda la imagen si no hay
 selección, y se deshace en un solo paso. Los elementos aparecen atenuados en
-los modos sin colores de celda (Timex Hi-res, Layer 2, LoRes), mientras flota
-un sello y en una capa bloqueada.
+los modos sin colores de celda (Timex Hi-res, Layer 2, LoRes), mientras flota un sello sin colores propios y en una capa bloqueada.
 
 Cambiar... busca celdas por sus colores y las reemplaza. Buscar indica qué celdas coinciden: cada campo es un valor o Cualquiera. Reemplazar por indica en qué se convierten: cada campo es un valor o Mantener. El cuadro muestra cuántas celdas cambiarán antes de pulsar Aceptar, y Aceptar se deshace en un solo paso. GigaScreen tiene un grupo para la Pantalla A y otro para la Pantalla B; en ULAplus, CLUT 0-3 ocupa el lugar de Brillo y Parpadeo. Cancelar no cambia nada.
 
@@ -213,3 +212,5 @@ Cuando un sello está activo, el panel **Transformar** muestra cómo se coloca.
 **Puntos vacíos** decide qué hacen los puntos vacíos del sello. Dejar el fondo deja en paz el dibujo de debajo (un sello con colores propios sigue recoloreando el papel de debajo, salvo que se vea el Papel). Borrar el fondo lo borra también, en todo el rectángulo del sello. Los modos de dibujo sin opuesto (XOR, Recolorear tinta, Recolorear papel) y el interruptor XOR propio del sello dejan en paz los puntos vacíos, y el panel lo dice. Los puntos vacíos están disponibles en todos los modos de pantalla, también sin colores de celda.
 
 **Convertir a solo píxeles** descarta los colores del sello para siempre y conserva sus puntos. La opción Solo píxeles en Colores los conserva, así que se puede volver. Cada cambio es un paso de deshacer.
+
+Mientras un sello con colores propios está activo, los comandos de Imagen > Atributos (Invertir, Borrar, los dos Voltear y Cambiar...) actúan sobre las celdas del sello en lugar de la imagen, flote o esté guardado. Ignoran la selección y nunca tocan los puntos del sello, y una celda que el sello no cubre se deja como está. Voltear refleja las celdas de color del sello mientras sus puntos se quedan donde están. Un sello de GigaScreen tiene un solo juego de colores para las dos pantallas, así que el diálogo Cambiar muestra un grupo. Cada comando es un paso de deshacer. Con un sello sin colores propios siguen atenuados.

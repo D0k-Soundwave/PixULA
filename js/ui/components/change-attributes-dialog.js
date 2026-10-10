@@ -49,7 +49,7 @@ class ChangeAttributesDialogClass {
 
     /**
      * Open the dialog. Does nothing where the Attributes commands are blocked
-     * (no cell colours, a floating stamp, a locked layer): the menu greys the
+     * (no cell colours, a stamp that places no colours of its own, a locked layer): the menu greys the
      * row out, and the service checks again.
      */
     open() {
@@ -66,15 +66,19 @@ class ChangeAttributesDialogClass {
         const scope = document.createElement('p');
         scope.className = 'attr-change-scope';
         const onSelection = SelectionService.hasSelection();
+        const onStamp = TransformService.stampScope();
         scope.textContent = this._t('attrChange.scope', 'Applies to: {scope}', {
-            scope: onSelection
-                ? this._t('attrChange.scopeSelection', 'Selection')
-                : this._t('attrChange.scopeWhole', 'Whole picture')
+            scope: onStamp
+                ? this._t('attrChange.scopeStamp', 'Stamp')
+                : (onSelection
+                    ? this._t('attrChange.scopeSelection', 'Selection')
+                    : this._t('attrChange.scopeWhole', 'Whole picture'))
         });
         form.appendChild(scope);
 
-        form.appendChild(this._buildSide('find', giga, plus));
-        form.appendChild(this._buildSide('replace', giga, plus));
+        // A stamp holds one colour set, so no Screen B group in GigaScreen.
+        form.appendChild(this._buildSide('find', giga && !onStamp, plus));
+        form.appendChild(this._buildSide('replace', giga && !onStamp, plus));
 
         this._countEl = document.createElement('p');
         this._countEl.className = 'attr-change-count';
