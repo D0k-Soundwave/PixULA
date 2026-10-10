@@ -32,7 +32,8 @@ global.CanvasSystem = withBlit({
 });
 global.ColorManager = {
   _sel: { ink: 3, paper: 7, bright: false, flash: false, inkTransparent: false, paperTransparent: false },
-  getCurrentSelection() { return { ...this._sel }; }
+  getCurrentSelection() { return { ...this._sel }; },
+  hasCellAttributes() { return true; }
 };
 global.UndoRedo = { beginAction() {}, endAction() {}, cancelAction() {}, snapshot() {} };
 global.TransformService = {};
@@ -265,6 +266,77 @@ check('normal: commitStamp bakes the same paper the drag painted',
   check('the floating preview equals the committed composite in all 24 ' +
     'draw-mode x transparent-box combinations', disagreements === 0);
   StateManager.setDrawMode('normal');
+}
+
+// ── Coloured stamps: the preview IS the commit here too ─────────────────────
+//
+// A coloured stamp brings its own colours per cell and ignores the draw mode,
+// so the matrix is: cell shape (dots, no dots at all, a hole) x clear dots
+// (transparent, overlap) x Inverse x the four show-through boxes. The "no
+// dots at all" cell is the one the old attributed preview skipped: its commit
+// recolours the paper, and the preview used to show nothing there.
+{
+  const composite = () => {
+    const altered = [];
+    for (let i = 1; i < LayerManager.layers.length; i++) {
+      const layer = LayerManager.layers[i];
+      if (!layer.visible || layer.isStamp) continue;
+      const cell = layer.getCell(CELL_X, CELL_Y);
+      if (cell && cell.altered) altered.push({ layer, cell, index: i });
+    }
+    const out = LayerManager._composeCellData(altered,
+      LayerManager.layers[0].getCell(CELL_X, CELL_Y), ZX_SPECTRUM.CELL_HEIGHT);
+    return JSON.stringify({ ink: out.attrs.ink, paper: out.attrs.paper,
+      bright: out.attrs.bright, flash: out.attrs.flash, pixels: Array.from(out.pixels) });
+  };
+  const previewed = (stampLayer) => {
+    const cell = stampLayer.getCell(CELL_X, CELL_Y);
+    return JSON.stringify({ ink: cell.ink, paper: cell.paper, bright: cell.bright, flash: cell.flash,
+      pixels: Array.from(cell.pixels) });
+  };
+  const shapes = {
+    dots: Array.from({ length: 8 }, (_, r) => Array.from({ length: 8 }, (_, c) => (r + c) % 3 === 0)),
+    noDots: Array.from({ length: 8 }, () => new Array(8).fill(false))
+  };
+  const ATTR = (1 << 6) | (2 << 3) | 1; // bright, paper 2, ink 1
+  let disagreements = 0, runs = 0, recoloured = 0;
+  for (const shape of ['dots', 'noDots']) {
+    for (const clearDots of ['transparent', 'overlap']) {
+      for (const inverse of [false, true]) {
+        for (let mask = 0; mask < 16; mask++) {
+          const showThrough = { ink: !!(mask & 1), paper: !!(mask & 2), bright: !!(mask & 4), flash: !!(mask & 8) };
+          target.clearCell(CELL_X, CELL_Y);
+          paintHalfCell(3, 6);
+          StateManager.setDrawMode('normal');
+          StateManager.setInverse(inverse);
+          global.ColorManager._sel = { ink: 4, paper: 5, bright: false, flash: false,
+            inkTransparent: false, paperTransparent: false };
+          SelectionService.startFloatingPasteFromMask(shapes[shape], 8, 8, 40, 40, 'T', {}, 'none');
+          const fp = SelectionService.floatingPaste;
+          fp.attrs = [ATTR];
+          fp.opts = { colours: 'coloured', clearDots, showThrough };
+          const s = fp.floatingLayer;
+          SelectionService.moveFloatingPaste(40, 40);
+          const before = previewed(s);
+          SelectionService.commitStamp(s);
+          const after = composite();
+          runs++;
+          if (shape === 'noDots' && !showThrough.paper && JSON.parse(after).paper === 2) recoloured++;
+          if (before !== after) {
+            disagreements++;
+            if (disagreements <= 3) {
+              console.log(`  coloured preview != commit: ${shape} ${clearDots} inverse=${inverse} show=${JSON.stringify(showThrough)}`);
+              console.log(`    preview ${before}`);
+              console.log(`    commit  ${after}`);
+            }
+          }
+        }
+      }
+    }
+  }
+  check(`a coloured stamp's preview equals its commit in all ${runs} combinations`, disagreements === 0);
+  check('a dot-less coloured cell recolours the paper (and the preview agrees)', recoloured > 0);
+  StateManager.setInverse(false);
 }
 
 summary();

@@ -1492,51 +1492,115 @@ class SelectionServiceClass {
   }
 
   /**
-   * Paint an attributed stamp's pixels onto a target layer, one cell at a
-   * time: each cell's own ink/paper/bright/flash from `data.attrs`, not
-   * the stamp's colorSelection. Shared by stampAt and commitStamp. Caller
-   * wraps in suspendMirror + batch.
-   * @param {Object} data - stamp data ({mask, attrs, x, y, w, h})
-   * @param {Layer} targetLayer
+   * The one write plan for a classic (1-bit, attribute-cell) stamp. stampAt,
+   * commitStamp and both previews all walk THIS, so the picture the preview
+   * shows and the picture a placement leaves cannot drift apart.
+   *
+   * It calls `visit(px, py, sel, mode)` once per write, in drawing order;
+   * the caller draws it (placement) or collects it (preview). Pixels outside
+   * the picture are skipped here.
+   *
+   * Pixels stamp (the default): each set dot is written with the colour
+   * selection in the resolved draw mode, or - if the stamp's own XOR box is on
+   * - toggled against the target. With "clear dots overlap" the stamp's
+   * clear dots are written too, as the opposite of the mode in force; the XOR
+   * modes and the XOR box have no opposite, so they write nothing there.
+   *
+   * Coloured stamp: every cell takes its OWN ink, paper, bright and flash
+   * (a null cell is a hole and writes nothing), ignoring the draw mode, the
+   * colour rail and the XOR box. Set dots set the dot; clear dots recolour the
+   * cell's paper and leave the dot alone, or - with overlap - clear the dot.
+   * Inverse swaps which of the two clears the dot.
+   *
+   * @param {Object} data - stamp data from getStampData
+   * @param {Layer} stampLayer
+   * @param {Layer} target - the layer the writes land on
+   * @param {Function} visit - (px, py, sel, mode)
+   * @param {?Set} [xorOnce] - when given, the stamp's XOR box toggles each
+   *   pixel of the target at most once per stroke (stampAt passes its set)
    * @private
    */
-  _paintAttributedStamp(data, targetLayer) {
-    const { mask, attrs, x, y, w, h } = data;
+  _forEachStampWrite(data, stampLayer, target, visit, xorOnce = null) {
+    const { mask, x, y, w, h } = data;
+    const opts = this.stampOptions(data);
+    const overlap = opts.clearDots === 'overlap';
+    const inverse = StateManager.getInverse();
     const CW = ZX_SPECTRUM.CELL_WIDTH;
     const CH = ZX_SPECTRUM.CELL_HEIGHT;
-    const stampCellsWide = Math.ceil(w / CW);
-    const startCellX = Math.floor(x / CW);
-    const startCellY = Math.floor(y / CH);
-    const endCellX = Math.floor((x + w - 1) / CW);
-    const endCellY = Math.floor((y + h - 1) / CH);
 
-    for (let cy = startCellY; cy <= endCellY; cy++) {
-      for (let cx = startCellX; cx <= endCellX; cx++) {
-        const srcCellX = cx - startCellX;
-        const srcCellY = cy - startCellY;
-        const attr = attrs[srcCellY * stampCellsWide + srcCellX];
-        if (attr == null) continue;
-        const sel = {
-          ink: attr & 7,
-          paper: (attr >> 3) & 7,
-          bright: (attr & 0x40) !== 0,
-          flash: (attr & 0x80) !== 0
-        };
-        for (let ly = 0; ly < CH; ly++) {
-          const py = cy * CH + ly;
-          const stampY = py - y;
-          if (stampY < 0 || stampY >= h) continue;
-          const row = mask[stampY];
-          if (!row) continue;
-          for (let lx = 0; lx < CW; lx++) {
-            const px = cx * CW + lx;
-            const stampX = px - x;
-            if (stampX < 0 || stampX >= w) continue;
-            if (!Validators.isValidPixelCoord(px, py)) continue;
-            const isInk = !!row[stampX];
-            PixelDrawRoutine.draw(px, py, sel,
-              isInk ? DRAW_MODE.NORMAL : DRAW_MODE.PAPER, { layer: targetLayer });
+    if (this.stampColoured(data)) {
+      const g = this.stampAttrGrid(data);
+      const setMode = inverse ? DRAW_MODE.NORMAL_ERASE : DRAW_MODE.NORMAL;
+      const clearMode = overlap
+        ? (inverse ? DRAW_MODE.NORMAL : DRAW_MODE.NORMAL_ERASE)
+        : DRAW_MODE.PAPER;
+      const st = opts.showThrough;
+      const startCellX = Math.floor((x - g.ox) / CW);
+      const startCellY = Math.floor((y - g.oy) / CH);
+      const endCellX = Math.floor((x + w - 1) / CW);
+      const endCellY = Math.floor((y + h - 1) / CH);
+      for (let cy = startCellY; cy <= endCellY; cy++) {
+        for (let cx = startCellX; cx <= endCellX; cx++) {
+          const sc = cx - startCellX, sr = cy - startCellY;
+          if (sc < 0 || sc >= g.cols || sr < 0 || sr >= g.rows) continue;
+          const attr = data.attrs[sr * g.cols + sc];
+          if (attr == null) continue;
+          const sel = {
+            ink: attr & 7,
+            paper: (attr >> 3) & 7,
+            bright: (attr & 0x40) !== 0,
+            flash: (attr & 0x80) !== 0,
+            inkTransparent: st.ink,
+            paperTransparent: st.paper,
+            brightTransparent: st.bright,
+            flashTransparent: st.flash
+          };
+          for (let ly = 0; ly < CH; ly++) {
+            const py = cy * CH + ly;
+            const stampY = py - y;
+            if (stampY < 0 || stampY >= h) continue;
+            const row = mask[stampY];
+            for (let lx = 0; lx < CW; lx++) {
+              const px = cx * CW + lx;
+              const stampX = px - x;
+              if (stampX < 0 || stampX >= w) continue;
+              if (!Validators.isValidPixelCoord(px, py)) continue;
+              visit(px, py, sel, row && row[stampX] ? setMode : clearMode);
+            }
           }
+        }
+      }
+      return;
+    }
+
+    const color = ColorManager.getCurrentSelection();
+    const mode = PixelDrawRoutine.resolveUserMode(true);
+    const xorBox = !!stampLayer.xorMode;
+    let clearMode = null;
+    if (overlap && !xorBox) {
+      if (mode === DRAW_MODE.NORMAL || mode === DRAW_MODE.PIXEL_ONLY) clearMode = DRAW_MODE.ERASE;
+      else if (mode === DRAW_MODE.NORMAL_ERASE || mode === DRAW_MODE.ERASE) clearMode = DRAW_MODE.PIXEL_ONLY;
+    }
+    for (let py = 0; py < h; py++) {
+      const row = mask[py];
+      if (!row && !clearMode) continue;
+      for (let px = 0; px < w; px++) {
+        const cx = x + px, cy = y + py;
+        if (row && row[px]) {
+          if (!Validators.isValidPixelCoord(cx, cy)) continue;
+          if (xorBox) {
+            if (xorOnce) {
+              const key = target.id + ':' + (cy * ZX_SPECTRUM.WIDTH + cx);
+              if (xorOnce.has(key)) continue;
+              xorOnce.add(key);
+            }
+            const inv = PixelDrawRoutine.invertWrite(target, cx, cy, color);
+            visit(cx, cy, inv.sel, inv.mode);
+          } else {
+            visit(cx, cy, color, mode);
+          }
+        } else if (clearMode && Validators.isValidPixelCoord(cx, cy)) {
+          visit(cx, cy, color, clearMode);
         }
       }
     }
@@ -1552,7 +1616,6 @@ class SelectionServiceClass {
     if (!layer || !layer.isStamp) return;
     const data = this.getStampData(layer);
     if (!data) return;
-    const { mask, x, y, w, h } = data;
     const targetLayer = this._findTargetBelow(layer);
     if (!targetLayer) return;
 
@@ -1575,12 +1638,6 @@ class SelectionServiceClass {
 
     // Stamp writes place exactly the stamp mask — never symmetry-mirrored
     PixelDrawRoutine.suspendMirror(() => {
-      // Attributed stamps (Map Editor): each cell paints its own colour.
-      if (data.attrs) {
-        this._paintAttributedStamp(data, targetLayer);
-        return;
-      }
-
       // Indexed modes (Phase 13): paint the stamp's palette indices (or the
       // mask at the current indexed ink), routed through the same resolved
       // mode (Paper Recolour/XOR still mean something over an index grid).
@@ -1589,43 +1646,14 @@ class SelectionServiceClass {
         return;
       }
 
-      // The stamp's OWN "XOR mode" checkbox (LayerPanel) is a persisted,
-      // per-stamp feature independent of the global draw-mode selector and
-      // takes priority when engaged. Toggle ink <-> paper against the
-      // target's current pixel state. Each pixel toggles at most once per
-      // drag — _xorStampToggled guards the overlap between successive
-      // rubber-stamp positions (see the constructor).
-      if (layer.xorMode) {
-        for (let py = 0; py < h; py++) {
-          const row = mask[py];
-          if (!row) continue;
-          for (let px = 0; px < w; px++) {
-            if (!row[px]) continue;
-            const cx = x + px, cy = y + py;
-            if (!Validators.isValidPixelCoord(cx, cy)) continue;
-            const xorKey = targetLayer.id + ':' + (cy * ZX_SPECTRUM.WIDTH + cx);
-            if (this._xorStampToggled.has(xorKey)) continue;
-            this._xorStampToggled.add(xorKey);
-            const inv = PixelDrawRoutine.invertWrite(targetLayer, cx, cy, color);
-            PixelDrawRoutine.draw(cx, cy, inv.sel, inv.mode, { layer: targetLayer });
-          }
-        }
-        return;
-      }
-
-      // Every resolved mode paints the plain current selection, exactly as
-      // BrushEngine does - Normal included, since 2026-08-29.
-      for (let py = 0; py < h; py++) {
-        const row = mask[py];
-        if (!row) continue;
-        for (let px = 0; px < w; px++) {
-          if (!row[px]) continue;
-          const cx = x + px, cy = y + py;
-          if (Validators.isValidPixelCoord(cx, cy)) {
-            PixelDrawRoutine.draw(cx, cy, color, mode, { layer: targetLayer });
-          }
-        }
-      }
+      // Everything else walks the shared write plan: the stamp's own XOR box
+      // toggles each pixel at most once per drag (_xorStampToggled guards the
+      // overlap between successive rubber-stamp positions - see the
+      // constructor), Pixels stamps write the plain current selection exactly
+      // as BrushEngine does, Coloured stamps write each cell's own colours.
+      this._forEachStampWrite(data, layer, targetLayer,
+        (px, py, sel, m) => PixelDrawRoutine.draw(px, py, sel, m, { layer: targetLayer }),
+        this._xorStampToggled);
     });
   }
 
@@ -1733,7 +1761,6 @@ class SelectionServiceClass {
       this.floatingPaste = null;
     }
 
-    const { mask, x, y, w, h } = data;
     const color = ColorManager.getCurrentSelection();
     // The top-bar draw-mode selector governs the commit exactly as it would
     // a brush stroke laying down the same ink.
@@ -1745,44 +1772,13 @@ class SelectionServiceClass {
 
     // Commits bake exactly the previewed stamp — never symmetry-mirrored
     PixelDrawRoutine.suspendMirror(() => {
-      // Attributed stamps (Map Editor): each cell paints its own colour.
-      if (data.attrs) {
-        this._paintAttributedStamp(data, target);
-      } else
       // Indexed modes (Phase 13): bake the previewed indices/mask directly,
-      // through the same resolved mode as the classic branch below.
+      // through the same resolved mode as the classic branch.
       if (ZX_SPECTRUM.PIXEL_DEPTH > 1) {
         this._paintIndexedStamp(data, target, color, mode);
-      } else
-      if (layer.xorMode) {
-        // The stamp's OWN "XOR mode" checkbox — a persisted, per-stamp
-        // feature independent of the global draw-mode selector — toggles
-        // ink <-> paper against the resolved target when engaged.
-        for (let py = 0; py < h; py++) {
-          const row = mask[py];
-          if (!row) continue;
-          for (let px = 0; px < w; px++) {
-            if (!row[px]) continue;
-            const cx = x + px, cy = y + py;
-            if (!Validators.isValidPixelCoord(cx, cy)) continue;
-            const inv = PixelDrawRoutine.invertWrite(target, cx, cy, color);
-            PixelDrawRoutine.draw(cx, cy, inv.sel, inv.mode, { layer: target });
-          }
-        }
       } else {
-        // Every resolved mode bakes the plain current selection, exactly as
-        // BrushEngine does - Normal included, since 2026-08-29.
-        for (let py = 0; py < h; py++) {
-          const row = mask[py];
-          if (!row) continue;
-          for (let px = 0; px < w; px++) {
-            if (!row[px]) continue;
-            const cx = x + px, cy = y + py;
-            if (Validators.isValidPixelCoord(cx, cy)) {
-              PixelDrawRoutine.draw(cx, cy, color, mode, { layer: target });
-            }
-          }
-        }
+        this._forEachStampWrite(data, layer, target,
+          (px, py, sel, m) => PixelDrawRoutine.draw(px, py, sel, m, { layer: target }));
       }
     });
 
@@ -1952,14 +1948,6 @@ class SelectionServiceClass {
    * @private
    */
   _drawFloatingLayer() {
-    // Attributed stamps (Map Editor tiles/rooms, 2026-08-28): each cell
-    // brings its own ink/paper/bright/flash - never mixed with indexed or
-    // colorSelection-driven stamps.
-    if (this.floatingPaste.attrs) {
-      this._drawFloatingLayerAttributed();
-      return;
-    }
-
     // Indexed modes (Phase 13): stamp cells carry palette indices - the
     // stamp's own indices when it was cut/copied in an indexed mode, else
     // the mask painted with the current indexed ink.
@@ -1981,7 +1969,7 @@ class SelectionServiceClass {
    * @private
    */
   _drawFloatingLayerClassic() {
-    const { pixels, width, height, x, y, floatingLayer } = this.floatingPaste;
+    const { width, height, x, y, floatingLayer } = this.floatingPaste;
     const colorSelection = (window.ColorManager && ColorManager.getCurrentSelection)
       ? ColorManager.getCurrentSelection()
       : this.floatingPaste.colorSelection;
@@ -1991,9 +1979,6 @@ class SelectionServiceClass {
     // whose empty cells seed from the page exactly as a real cell would.
     const writeLayer = targetLayer || floatingLayer;
     const excludeLayer = targetLayer ? floatingLayer : null;
-    // XOR_PIXEL reuses XOR's preview: a stamp touches each pixel once, so the
-    // once-per-stroke gate that tells them apart never comes into play here.
-    const mode = PixelDrawRoutine.resolveUserMode(true);
 
     const CW = ZX_SPECTRUM.CELL_WIDTH;
     const CH = ZX_SPECTRUM.CELL_HEIGHT;
@@ -2002,36 +1987,22 @@ class SelectionServiceClass {
     const endCellX = Math.min(ZX_SPECTRUM.GRID_COLS - 1, ZX_COORDS.pixelToCell(x + width - 1, y).x);
     const endCellY = Math.min(ZX_SPECTRUM.GRID_ROWS - 1, ZX_COORDS.pixelToCell(x, y + height - 1).y);
 
+    // The writes the stamp would make, grouped by cell: the SAME plan the
+    // placement walks (_forEachStampWrite), so the preview is the commit.
+    const byCell = new Map();
+    this._forEachStampWrite(this.getStampData(floatingLayer), floatingLayer, writeLayer,
+      (px, py, sel, m) => {
+        const key = Math.floor(py / CH) * ZX_SPECTRUM.GRID_COLS + Math.floor(px / CW);
+        let list = byCell.get(key);
+        if (!list) { list = []; byCell.set(key, list); }
+        list.push({ localX: px % CW, localY: py % CH, mode: m, sel });
+      });
+
     for (let cy = startCellY; cy <= endCellY; cy++) {
       for (let cx = startCellX; cx <= endCellX; cx++) {
         const fpCell = floatingLayer.getCell(cx, cy);
         if (!fpCell) continue;
-
-        // The writes the stamp would make inside this cell. The stamp's own
-        // XOR-mode checkbox (LayerPanel) is a persisted, per-stamp feature
-        // independent of the draw-mode selector and takes priority when
-        // engaged: it toggles ink <-> paper against the target, which is
-        // exactly what stampAt and commitStamp bake.
-        const writes = [];
-        for (let ly = 0; ly < CH; ly++) {
-          const py = cy * CH + ly;
-          const stampY = py - y;
-          if (stampY < 0 || stampY >= height) continue;
-          const row = pixels[stampY];
-          if (!row) continue;
-          for (let lx = 0; lx < CW; lx++) {
-            const px = cx * CW + lx;
-            const stampX = px - x;
-            if (stampX < 0 || stampX >= width) continue;
-            if (!row[stampX]) continue;
-            if (floatingLayer.xorMode) {
-              const inv = PixelDrawRoutine.invertWrite(writeLayer, px, py, colorSelection);
-              writes.push({ localX: lx, localY: ly, mode: inv.mode, sel: inv.sel });
-            } else {
-              writes.push({ localX: lx, localY: ly, mode });
-            }
-          }
-        }
+        const writes = byCell.get(cy * ZX_SPECTRUM.GRID_COLS + cx) || [];
 
         if (writes.length === 0) {
           fpCell.xorReplace = false;
@@ -2133,67 +2104,6 @@ class SelectionServiceClass {
         cell.indices[(cy % CH) * CW + (cx % CW)] = value;
         cell.altered = true;
         LayerManager.deferCellCompose(Math.floor(cx / CW), Math.floor(cy / CH));
-      }
-    }
-  }
-
-  /**
-   * Preview an attributed stamp (Map Editor tiles/rooms): each destination
-   * cell gets its own pixel bits AND its own ink/paper/bright/flash from
-   * the stamp's `attrs`, never inherited from the target layer below —
-   * unlike the plain classic-mode branch, an attributed stamp brings its
-   * own paper on purpose. x/y are always cell-aligned (moveFloatingPaste
-   * snaps them), so this can iterate destination cells directly instead of
-   * doing per-pixel cell-boundary math the way the plain branch must.
-   * @private
-   */
-  _drawFloatingLayerAttributed() {
-    const { pixels, width, height, x, y, attrs, floatingLayer } = this.floatingPaste;
-    const CW = ZX_SPECTRUM.CELL_WIDTH;
-    const CH = ZX_SPECTRUM.CELL_HEIGHT;
-    const stampCellsWide = Math.ceil(width / CW);
-    const startCellX = Math.max(0, Math.floor(x / CW));
-    const startCellY = Math.max(0, Math.floor(y / CH));
-    const endCellX = Math.min(ZX_SPECTRUM.GRID_COLS - 1, Math.floor((x + width - 1) / CW));
-    const endCellY = Math.min(ZX_SPECTRUM.GRID_ROWS - 1, Math.floor((y + height - 1) / CH));
-
-    for (let cy = startCellY; cy <= endCellY; cy++) {
-      for (let cx = startCellX; cx <= endCellX; cx++) {
-        const fpCell = floatingLayer.getCell(cx, cy);
-        if (!fpCell) continue;
-
-        const srcCellX = cx - Math.floor(x / CW);
-        const srcCellY = cy - Math.floor(y / CH);
-        const attr = attrs[srcCellY * stampCellsWide + srcCellX];
-        if (attr == null) continue; // empty map cell contributed no tile here
-
-        let touched = false;
-        for (let ly = 0; ly < CH; ly++) {
-          const stampY = cy * CH + ly - y;
-          if (stampY < 0 || stampY >= height) continue;
-          const row = pixels[stampY];
-          if (!row) continue;
-          for (let lx = 0; lx < CW; lx++) {
-            const stampX = cx * CW + lx - x;
-            if (stampX < 0 || stampX >= width) continue;
-            if (row[stampX]) {
-              fpCell.pixels[ly] |= (1 << (CW - 1 - lx));
-              touched = true;
-            }
-          }
-        }
-        if (!touched) continue;
-
-        fpCell.ink    = attr & 7;
-        fpCell.paper  = (attr >> 3) & 7;
-        fpCell.bright = (attr & 0x40) !== 0;
-        fpCell.flash  = (attr & 0x80) !== 0;
-        // GigaScreen: a single-screen tile shows the same on both screens,
-        // exactly as its commit (no slot = ink on both) will leave it.
-        if (fpCell.pixelsB) LayerManagerClass.mirrorPlaneB(fpCell);
-        fpCell.xorReplace = false;
-        fpCell.altered = true;
-        LayerManager.deferCellCompose(cx, cy);
       }
     }
   }
