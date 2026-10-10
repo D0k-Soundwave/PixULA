@@ -638,6 +638,9 @@ class AppClass {
                 ? Array.from(ColorManager.ulaplusRegisters) : null,
             nextRegisters: ColorManager.nextRegisters
                 ? Array.from(ColorManager.nextRegisters) : null,
+            // Written only once a palette slot has been used, so a document that never
+            // touched them saves exactly as it always did.
+            ...(ColorManager.exportPaletteSlots() ? { paletteSlots: ColorManager.exportPaletteSlots() } : {}),
             timexHiresInk: ColorManager.getTimexHiresInk(),
             timexHiresInkB: ColorManager.getTimexHiresInkB(),
             layers: LayerManager.getAllLayers({ packed }),
@@ -660,10 +663,12 @@ class AppClass {
         if (data.screenMode && data.screenMode !== ScreenModeService.getModeId()) {
             ScreenModeService.applyModeRaw(data.screenMode);
         }
-        if (data.ulaplusRegisters) {
+        // A saved null IS the pristine defaults: apply it too, or this document would inherit
+        // the palette of whatever was open before it.
+        if ('ulaplusRegisters' in data) {
             ColorManager.setUlaplusRegisters(data.ulaplusRegisters);
         }
-        if (data.nextRegisters) {
+        if ('nextRegisters' in data) {
             ColorManager.setNextRegisters(data.nextRegisters);
         }
         if (data.timexHiresInk !== undefined && data.timexHiresInk !== null) {
@@ -687,6 +692,10 @@ class AppClass {
             ColorManager.upgradeLegacyNextDefaults(LayerManager.usesPaletteIndices(
                 NEXTRGB333.FLASH_PAPER_FIRST, NEXTRGB333.FLASH_PAPER_LAST));
         }
+        // Palette slots last, so slots 2-4 of a file without slot data are copies of the
+        // palette AFTER the legacy-default upgrade above. Missing or damaged data gives
+        // slot 1 plus copies.
+        ColorManager.importPaletteSlots(data.paletteSlots);
 
         if (data.slices) {
             await PresetService.applyCapturedSlices(data.slices);

@@ -189,6 +189,21 @@ class PaletteEditorDialogClass {
         hint.textContent = this._t(traits.hintI18n, traits.hint);
         content.appendChild(hint);
 
+        // Which palette slot is being edited (ULAplus and Next palettes have four).
+        let slotListener = null;
+        if (!traits.scratch && ColorManager.paletteSlotKind()) {
+            const slotLabel = document.createElement('p');
+            slotLabel.className = 'palette-editor-slot';
+            const showSlot = () => {
+                slotLabel.textContent = this._t('palette.slot', 'Slot {n} of 4')
+                    .replace('{n}', String(ColorManager.getPaletteSlot() + 1));
+            };
+            showSlot();
+            content.appendChild(slotLabel);
+            slotListener = showSlot;
+            EventBus.on(EVENTS.PALETTE_SLOT_CHANGED, slotListener);
+        }
+
         // Hidden native picker, retargeted per swatch click
         const picker = document.createElement('input');
         picker.type = 'color';
@@ -271,6 +286,7 @@ class PaletteEditorDialogClass {
             title: traits.title,
             content,
             className: 'palette-editor-dialog',
+            onClose: () => { if (slotListener) EventBus.off(EVENTS.PALETTE_SLOT_CHANGED, slotListener); },
             buttons: [
                 {
                     i18n: 'palette.reset', label: 'Reset to defaults',

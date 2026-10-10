@@ -132,6 +132,12 @@ fiindcă o paletă se încarcă de obicei înainte de a începe desenul.
 Unde un format de fișier are loc pentru o paletă – `.scr` de 6976 de octeți,
 `.nxi`, varianta Timex –, paleta călătorește și în interiorul imaginii.
 
+**Locurile paletei.** Paleta ULAplus și paleta Next au câte patru locuri, în Imagine > Paletă (Locul 1 – Locul 4). Locul folosit este bifat, iar editorul de paletă spune pe care îl editează. Un document nou începe pe Locul 1, iar celelalte rețin paleta implicită până le folosești. Alegerea altui loc schimbă culorile cu care este afișată imaginea și nu schimbă niciodată atributele de culoare ale imaginii. Fiecare alegere este un pas de anulare. Locurile se salvează într-un proiect și în copia automată, dar abia după ce ai folosit un loc; o imagine deschisă dintr-un alt fel de fișier începe pe Locul 1, iar celelalte rețin copii ale paletei ei. Exporturile .scr, .tap și de imagine folosesc mereu locul în uz. Modurile cu paletă fixă (ULA standard, modurile Multicolor, GigaScreen și modurile Timex) nu au locuri.
+
+**Inversează paleta** (doar ULAplus) schimbă jumătatea de cerneală (intrările 0-7) cu jumătatea de hârtie (intrările 8-15) a fiecăreia dintre cele patru CLUT, într-un pas de anulare; făcut de două ori, readuce paleta. Ca să inversezi o imagine ULAplus astfel încât să arate la fel, folosește Inversează paleta, apoi Imagine > Atribute > Inversează. Bordura urmează jumătatea de hârtie a CLUT 0, deci își schimbă și ea culoarea. Modurile Next nu au inversor de paletă, pentru că ULANext ține cerneala în 8 intrări de paletă și hârtia în 32.
+
+**Tastele CLUT.** În modurile ULAplus, Ctrl+Shift+1 până la Ctrl+Shift+4 aleg CLUT 0-3, ca alegerea CLUT din bara de culori. În alte moduri bara de stare spune asta și nu se întâmplă nimic altceva.
+
 ### GigaScreen
 
 GigaScreen păstrează două ecrane întregi și le afișează alternativ, de cincizeci

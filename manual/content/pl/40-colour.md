@@ -128,6 +128,12 @@ wczytuje się, zanim zacznie się rysować.
 Jeśli format pliku ma miejsce na paletę – `.scr` o rozmiarze 6976 bajtów,
 `.nxi`, wariant Timex – paleta podróżuje też wewnątrz obrazu.
 
+**Miejsca na palety.** Paleta ULAplus i paleta Next mają po cztery miejsca, w menu Obraz > Paleta (Miejsce 1 – Miejsce 4). Używane miejsce jest zaznaczone, a edytor palety mówi, które edytuje. Nowy dokument zaczyna na Miejscu 1, a pozostałe zawierają paletę domyślną, dopóki ich nie użyjesz. Wybór innego miejsca zmienia kolory, którymi obraz jest pokazywany, i nigdy nie zmienia atrybutów kolorów obrazu. Każdy wybór to jeden krok cofania. Miejsca są zapisywane w projekcie i w automatycznej kopii, ale dopiero gdy użyjesz któregoś miejsca; obraz otwarty z innego rodzaju pliku zaczyna na Miejscu 1, a pozostałe zawierają kopie jego palety. Eksporty .scr, .tap i obrazów zawsze używają używanego miejsca. Tryby ze stałą paletą (Standard ULA, tryby Multicolor, GigaScreen i tryby Timex) nie mają miejsc.
+
+**Odwróć paletę** (tylko ULAplus) zamienia połowę tuszu (wpisy 0-7) z połową papieru (wpisy 8-15) w każdej z czterech CLUT, w jednym kroku cofania; dwukrotne użycie przywraca paletę. Aby odwrócić obraz ULAplus tak, by wyglądał tak samo, użyj Odwróć paletę, a potem Obraz > Atrybuty > Odwróć. Ramka podąża za połową papieru CLUT 0, więc też zmienia kolor. Tryby Next nie mają odwracania palety, bo ULANext trzyma tusz w 8 wpisach palety, a papier w 32.
+
+**Klawisze CLUT.** W trybach ULAplus Ctrl+Shift+1 do Ctrl+Shift+4 wybierają CLUT 0-3, tak jak wybór CLUT na pasku kolorów. W innych trybach pasek stanu to mówi i nic więcej się nie dzieje.
+
 ### GigaScreen
 
 GigaScreen przechowuje dwa pełne ekrany i pokazuje je na przemian, pięćdziesiąt

@@ -1972,6 +1972,23 @@ class InputHandlerClass {
       return;
     }
 
+    // ULAplus CLUT keys: Ctrl+Shift+1 to 4. Matched on e.code and tested before every branch that
+    // looks at e.key (Shift+1 is '+' on some layouts, which would zoom). !altKey keeps AltGr
+    // (Ctrl+Alt on Windows) out. Always claimed, so the browser never sees the chord.
+    if (ctrl && e.shiftKey && !e.altKey) {
+      const clutIndex = CLUT_SHORTCUTS.codes.indexOf(e.code);
+      if (clutIndex >= 0) {
+        e.preventDefault();
+        if (ACTIVE_SCREEN_MODE.paletteModel === 'ulaplus64') {
+          ColorManager.setClut(clutIndex);
+        } else {
+          EventBus.emit(EVENTS.STATUS_NOTICE, { text: Helpers.localizedMessage('help.clutKeysUlaplusOnly',
+            'The CLUT keys work in the ULAplus modes only.') });
+        }
+        return;
+      }
+    }
+
     // ── Ctrl combos ──
     if (ctrl && key === 'z' && !e.shiftKey) { e.preventDefault(); UndoRedo.undo(); return; }
     if (ctrl && (key === 'y' || (key === 'z' && e.shiftKey))) { e.preventDefault(); UndoRedo.redo(); return; }

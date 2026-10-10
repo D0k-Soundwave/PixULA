@@ -129,6 +129,12 @@ que cargar una paleta suele hacerse antes de empezar a dibujar.
 Cuando un formato de archivo tiene sitio para una paleta (`.scr` de 6976
 bytes, `.nxi`, la variante Timex), la paleta viaja también dentro de la imagen.
 
+**Ranuras de paleta.** La paleta ULAplus y la paleta Next tienen cada una cuatro ranuras, en Imagen > Paleta (Ranura 1 a Ranura 4). La ranura en uso está marcada, y el editor de paleta dice qué ranura edita. Un documento nuevo empieza en la Ranura 1, y las demás guardan la paleta por defecto hasta que las uses. Elegir otra ranura cambia los colores con que se muestra la imagen y nunca cambia los atributos de color de la imagen. Cada elección es un paso de deshacer. Las ranuras se guardan en un proyecto y en la copia de seguridad automática, pero solo una vez que has usado una ranura; una imagen abierta desde otro tipo de archivo empieza en la Ranura 1 y las demás guardan copias de su paleta. Las exportaciones .scr, .tap y de imagen usan siempre la ranura en uso. Los modos de paleta fija (ULA estándar, los modos Multicolor, GigaScreen y los modos Timex) no tienen ranuras.
+
+**Invertir paleta** (solo ULAplus) intercambia la mitad de tinta (entradas 0-7) con la mitad de papel (entradas 8-15) de cada una de las cuatro CLUT, en un paso de deshacer; hacerlo dos veces devuelve la paleta. Para invertir una imagen ULAplus de modo que se vea igual, usa Invertir paleta y luego Imagen > Atributos > Invertir. El borde sigue la mitad de papel de la CLUT 0, así que también cambia de color. Los modos Next no tienen inversor de paleta, porque ULANext guarda la tinta en 8 entradas de paleta y el papel en 32.
+
+**Teclas CLUT.** En los modos ULAplus, Ctrl+Mayús+1 a Ctrl+Mayús+4 eligen la CLUT 0 a 3, igual que la elección de CLUT de la barra de colores. En otros modos la barra de estado lo dice y no pasa nada más.
+
 ### GigaScreen
 
 GigaScreen mantiene dos pantallas completas y las muestra alternándolas,

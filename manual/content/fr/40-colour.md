@@ -140,6 +140,12 @@ avant de commencer à dessiner.
 Quand un format de fichier a de la place pour une palette – `.scr` à 6976
 octets, `.nxi`, la variante Timex –, la palette voyage aussi dans l’image.
 
+**Emplacements de palette.** La palette ULAplus et la palette Next ont chacune quatre emplacements, dans Image > Palette (Emplacement 1 à Emplacement 4). L'emplacement utilisé est coché, et l'éditeur de palette dit lequel il modifie. Un nouveau document démarre sur l'Emplacement 1, et les autres contiennent la palette par défaut jusqu'à ce que vous les utilisiez. Choisir un autre emplacement change les couleurs avec lesquelles l'image est affichée et ne change jamais les attributs de couleur de l'image. Chaque choix est une étape d'annulation. Les emplacements sont enregistrés dans un projet et dans la sauvegarde automatique, mais seulement une fois que vous en avez utilisé un ; une image ouverte depuis un autre type de fichier démarre sur l'Emplacement 1 et les autres contiennent des copies de sa palette. Les exports .scr, .tap et image utilisent toujours l'emplacement en cours. Les modes à palette fixe (ULA standard, les modes Multicolor, GigaScreen et les modes Timex) n'ont pas d'emplacements.
+
+**Inverser la palette** (ULAplus seulement) échange la moitié encre (entrées 0-7) avec la moitié papier (entrées 8-15) de chacune des quatre CLUT, en une étape d'annulation ; le faire deux fois rétablit la palette. Pour inverser une image ULAplus afin qu'elle reste identique, utilisez Inverser la palette puis Image > Attributs > Inverser. La bordure suit la moitié papier de la CLUT 0 et change donc de couleur aussi. Les modes Next n'ont pas d'inverseur de palette, car ULANext garde l'encre dans 8 entrées de palette et le papier dans 32.
+
+**Touches CLUT.** Dans les modes ULAplus, Ctrl+Maj+1 à Ctrl+Maj+4 choisissent la CLUT 0 à 3, comme le choix de CLUT de la barre de couleurs. Dans les autres modes la barre d'état le dit et rien d'autre ne se passe.
+
 ### GigaScreen
 
 GigaScreen conserve deux écrans complets et les affiche en alternance,

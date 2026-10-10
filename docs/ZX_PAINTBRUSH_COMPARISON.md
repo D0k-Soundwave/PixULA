@@ -56,7 +56,7 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | FLASH control | FLASH 0, FLASH 1, or transparent (FLASH 8). | Flash on or off, plus a "use existing" box (2026-10-08). | Same |
 | T key | Sets ink, paper, bright and flash all to transparent. | Shift+T puts Ink, Paper, Bright and Flash all on "use existing" (2026-10-08; bare T is the Text tool). | Same |
 | B and F keys | Toggle BRIGHT 0/1 and FLASH 0/1 from the keyboard. | Shift+B and Shift+F (2026-10-08; bare B and F are Brush and Fade). | Same |
-| ULAplus CLUT grid | In ULAplus mode the bright/flash controls become a CLUT picker; keys 0 to 3 choose the CLUT. | CLUT selector replaces Bright and Flash, with one "use existing" box that keeps each cell's CLUT (2026-10-08). No 0 to 3 keys. | Partial |
+| ULAplus CLUT grid | In ULAplus mode the bright/flash controls become a CLUT picker; keys 0 to 3 choose the CLUT. | CLUT selector replaces Bright and Flash, with one "use existing" box that keeps each cell's CLUT (2026-10-08). Ctrl+Shift+1 to 4 pick the CLUT in the ULAplus modes (2026-10-10, the owner's choice: the plain and Alt digits were taken; tested in Chrome only), listed in the Keyboard Shortcuts dialog. | Same |
 | Pipette | Sets all four controls from the clicked cell; never sets transparent. | Eyedropper picks the whole cell, Bright and Flash included, and clears "use existing". | Same |
 
 ### Drawing mode bar
@@ -136,8 +136,8 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 |---|---|---|---|
 | Attribute format 8x8 / 8x4 / 8x2 / 8x1 | Changes cell height; coarsening keeps the most-used colours. | Screen modes Standard and Multicolor 8x4, 8x2, 8x1, same rule. | Same |
 | Convert to Timex / to Spectrum | 8x1 colour and back. | Screen Mode menu. | Same |
-| Four palettes P0 to P3 and four ULAplus palettes U0 to U3 | Flip between palettes with one click or key. | One palette per document. | Missing |
-| Palette inverter | Swaps the ink and paper halves of the palette's CLUTs. | No. | Missing |
+| Four palettes P0 to P3 and four ULAplus palettes U0 to U3 | Flip between palettes with one click or key. | Image > Palette: four slots for the ULAplus palette and four for the Next palette (2026-10-10), saved in the project and the automatic backup once used; one undo step per switch; picture attributes never change. Menu only, no keys; the fixed-palette modes have no slots (decision). | Partial |
+| Palette inverter | Swaps the ink and paper halves of the palette's CLUTs. | Image > Palette > Invert Palette (2026-10-10): ULAplus only, one undo step, twice restores it; follow with Image > Attributes > Invert to keep a picture looking the same. Not in the Next modes: ULANext keeps ink in 8 palette entries and paper in 32, so there is no one-to-one swap. | Same |
 | Edit, load and save palettes | PAL files for any mode; ULAplus palette as a 151-byte TAP. | Palette editor in ULAplus and Next modes; .pal and .npl; ULAplus registers inside a 6976-byte .scr. No palette TAP. | Partial |
 | Edit the standard Spectrum colours | Change, load or reset the colours used for the standard 15. | No. The standard palette is fixed. | Missing |
 

@@ -121,6 +121,12 @@ palette is usually something you do before you start drawing.
 Where a file format has room for a palette - `.scr` at 6976 bytes, `.nxi`, the
 Timex variant - the palette travels inside the picture as well.
 
+**Palette slots.** The ULAplus palette and the Next palette each have four slots, in Image > Palette (Slot 1 to Slot 4). The slot in use is ticked, and the palette editor says which slot it edits. A new document starts on Slot 1, and the other slots hold the default palette until you use them. Choosing another slot changes the colours the picture is shown with and never changes the picture's colour attributes. Each choice is one undo step. The slots are saved in a project and in the automatic backup, but only once you have used a slot; a picture opened from any other kind of file starts on Slot 1 with the other slots holding copies of its palette. The .scr, .tap and image exports always use the slot in use. The fixed-palette modes (Standard ULA, the Multicolor modes, GigaScreen and the Timex modes) have no slots.
+
+**Invert Palette** (ULAplus only) swaps the ink half (entries 0-7) with the paper half (entries 8-15) of each of the four CLUTs, in one undo step; doing it twice puts the palette back. To invert a ULAplus picture so that it looks the same, use Invert Palette and then Image > Attributes > Invert. The border follows the paper half of CLUT 0, so it changes colour too. The Next modes have no palette inverter, because ULANext keeps ink in 8 palette entries and paper in 32.
+
+**CLUT keys.** In the ULAplus modes Ctrl+Shift+1 to Ctrl+Shift+4 pick CLUT 0 to 3, the same as the CLUT choice on the colour rail. In other modes they say so in the status bar and do nothing else.
+
 ### GigaScreen
 
 GigaScreen keeps two whole screens and shows them alternately, fifty times a

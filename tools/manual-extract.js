@@ -433,6 +433,9 @@ function extractManualData() {
         for (const s of (window.COLOUR_SHORTCUTS || [])) {
             rows.push({ keys: keyLabel(s.keys), what: t(s.i18n), from: t('manual.area.colourRail') });
         }
+        if (window.CLUT_SHORTCUTS) {
+            rows.push({ keys: keyLabel(CLUT_SHORTCUTS.keys), what: t(CLUT_SHORTCUTS.i18n), from: t('manual.area.colourRail') });
+        }
         for (const s of (window.MODE_SHORTCUTS || [])) {
             rows.push({ keys: keyLabel(s.keys), what: t(s.i18n), from: t('manual.area.drawModes') });
         }
