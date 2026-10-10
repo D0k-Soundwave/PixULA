@@ -368,7 +368,15 @@ class ShapeGeneratorClass {
             return [];
         }
 
-        const standardBounds = this._standardizeBounds(shapeType, bounds);
+        let standardBounds = this._standardizeBounds(shapeType, bounds);
+
+        // Rotation (0 by default, which changes nothing). The shapes drawn from a centre and a drag point turn
+        // their drag point round the start; the box shapes turn their outline round the box centre (_outlineOf).
+        const deg = ShapeGeneratorClass.rotationDeg(options.rotation);
+        const boxTurned = deg !== 0 && ShapeGeneratorClass.BOX_ROTATABLE.has(shapeType);
+        if (deg !== 0 && ShapeGeneratorClass.DRAG_ROTATABLE.has(shapeType)) {
+            standardBounds = this._standardizeBounds(shapeType, this._rotatedDragBounds(bounds, deg));
+        }
 
         // Line style (solid by default, which changes nothing). Dashed, dotted and the two mixed styles
         // are drawn on the 1-pixel outline only, so they apply at thickness 1 (a filled shape counts as
@@ -377,8 +385,16 @@ class ShapeGeneratorClass {
         if (style !== 'solid') {
             const thick = Helpers.clamp(Math.round(options.thickness || 1), 1, 16);
             if (style === 'clear' || filled || thick === 1) {
-                return this._generateStyled(shapeType, standardBounds, options, style);
+                return this._generateStyled(shapeType, standardBounds, options, style, deg);
             }
+        }
+
+        if (boxTurned) {
+            // A turned box shape: fill the turned outline, or thicken it.
+            const turned = this._rotatedBoxOutline(shapeType, standardBounds, options, deg);
+            if (filled) return this._fillFromOutline(() => turned, standardBounds, options);
+            const th = Helpers.clamp(Math.round(options.thickness || 1), 1, 16);
+            return th > 1 ? this._thickenPoints(turned, th) : turned;
         }
 
         if (filled && this.filledShapes.has(shapeType)) {
@@ -397,6 +413,217 @@ class ShapeGeneratorClass {
         const points = generator(standardBounds, options);
         const thickness = Helpers.clamp(Math.round(options.thickness || 1), 1, 16);
         return thickness > 1 ? this._thickenPoints(points, thickness) : points;
+    }
+
+
+    // ===== ROTATION (Batch 7 part 7B) =====
+
+    /** Shapes drawn from a box that turn round the box centre. */
+    static get BOX_ROTATABLE() {
+        return new Set(['rectangle', 'square', 'rounded-rectangle', 'parallelogram', 'ellipse']);
+    }
+
+    /** Shapes drawn from a centre point and a drag point: turning them turns the drag point round the start. */
+    static get DRAG_ROTATABLE() {
+        return new Set(['arc', 'sector', 'triangle', 'diamond', 'pentagon', 'hexagon', 'heptagon', 'octagon',
+            'nonagon', 'decagon', 'dodecagon', 'polygon']);
+    }
+
+    /**
+     * The rotation in degrees, turned into the range -180 to 180 so that 360 is 0.
+     * Positive turns clockwise on screen. Anything that is not a finite number is 0.
+     */
+    static rotationDeg(v) {
+        const n = Number(v);
+        if (!Number.isFinite(n)) return 0;
+        let d = n % 360;
+        if (d > 180) d -= 360;
+        if (d < -180) d += 360;
+        return d;
+    }
+
+    /** Round a coordinate; floating-point noise at .5 is removed first so a .5 always rounds up. @private */
+    static _snap(v) {
+        return Math.round(Math.round(v * 1e6) / 1e6);
+    }
+
+    /**
+     * (x, y) turned by `deg` degrees (clockwise on screen) round (cx, cy). Quarter turns use exact sines
+     * and cosines. Not rounded.
+     * @private
+     */
+    static _rotateXY(x, y, cx, cy, deg) {
+        const q = ((deg % 360) + 360) % 360;
+        let c, s;
+        if (q === 0) { c = 1; s = 0; }
+        else if (q === 90) { c = 0; s = 1; }
+        else if (q === 180) { c = -1; s = 0; }
+        else if (q === 270) { c = 0; s = -1; }
+        else { const r = deg * Math.PI / 180; c = Math.cos(r); s = Math.sin(r); }
+        const dx = x - cx, dy = y - cy;
+        return { x: cx + dx * c - dy * s, y: cy + dx * s + dy * c };
+    }
+
+    /**
+     * Bounds with the drag point turned round the start point, for the shapes that are defined by a centre and a
+     * drag point (their own generators then do the rest).
+     * @private
+     */
+    _rotatedDragBounds(bounds, deg) {
+        const p = ShapeGeneratorClass._rotateXY(bounds.x2, bounds.y2, bounds.x1, bounds.y1, deg);
+        return { x1: bounds.x1, y1: bounds.y1,
+            x2: ShapeGeneratorClass._snap(p.x), y2: ShapeGeneratorClass._snap(p.y) };
+    }
+
+    /**
+     * The vertices (closed, in drawing order) of a box shape, before rotation, plus the centre it turns round.
+     * Polygons give their corners; the rounded rectangle and the ellipse are sampled so that neighbouring samples
+     * are no more than a pixel apart.
+     * @private
+     */
+    _boxVertices(shapeType, b, options) {
+        const left = b.left, right = b.right, top = b.top, bottom = b.bottom;
+        let cx = (left + right) / 2, cy = (top + bottom) / 2;
+        let verts;
+        let sampled = false;
+        if (shapeType === 'rectangle') {
+            verts = [[left, top], [right, top], [right, bottom], [left, bottom]];
+        } else if (shapeType === 'square') {
+            const size = Math.max(b.width, b.height);
+            verts = [[left, top], [left + size, top], [left + size, top + size], [left, top + size]];
+            cx = left + size / 2; cy = top + size / 2;
+        } else if (shapeType === 'parallelogram') {
+            const skew = Math.round((right - left) * 0.25);
+            const mirrored = (b.deltaX < 0) === (b.deltaY < 0);
+            const topLeft = mirrored ? left : left + skew;
+            const topRight = mirrored ? right - skew : right;
+            const bottomLeft = mirrored ? left + skew : left;
+            const bottomRight = mirrored ? right : right - skew;
+            verts = [[topLeft, top], [topRight, top], [bottomRight, bottom], [bottomLeft, bottom]];
+        } else if (shapeType === 'ellipse') {
+            const ecx = Math.round(b.centerX), ecy = Math.round(b.centerY);
+            const rx = Math.round(b.radiusX), ry = Math.round(b.radiusY);
+            const n = Math.max(12, Math.ceil(2 * Math.PI * Math.max(rx, ry)));
+            verts = [];
+            for (let i = 0; i < n; i++) {
+                const a = 2 * Math.PI * i / n;
+                verts.push([ecx + rx * Math.cos(a), ecy + ry * Math.sin(a)]);
+            }
+            cx = ecx; cy = ecy;
+            sampled = true;
+        } else if (shapeType === 'rounded-rectangle') {
+            const width = right - left, height = bottom - top;
+            if (width < 2 || height < 2) {
+                verts = [[left, top], [right, top], [right, bottom], [left, bottom]];
+            } else {
+                const r = this._cornerRadius(width, height, options);
+                if (r === 0) {
+                    verts = [[left, top], [right, top], [right, bottom], [left, bottom]];
+                } else {
+                    const steps = Math.max(4, Math.ceil(r * 1.6));
+                    const corners = [
+                        { cx: right - r, cy: top + r, a0: -Math.PI / 2 },
+                        { cx: right - r, cy: bottom - r, a0: 0 },
+                        { cx: left + r, cy: bottom - r, a0: Math.PI / 2 },
+                        { cx: left + r, cy: top + r, a0: Math.PI }
+                    ];
+                    verts = [];
+                    for (const c of corners) {
+                        for (let i = 0; i <= steps; i++) {
+                            const a = c.a0 + (Math.PI / 2) * (i / steps);
+                            verts.push([c.cx + r * Math.cos(a), c.cy + r * Math.sin(a)]);
+                        }
+                    }
+                    sampled = true;
+                }
+            }
+        } else {
+            return null;
+        }
+        return { verts, cx, cy, sampled };
+    }
+
+    /**
+     * The outline of a box shape turned by `deg` degrees round the box centre: the vertices are rotated, rounded
+     * to pixels and joined with straight lines. A sampled curve then has its one-pixel corners thinned, so it stays
+     * one pixel thick.
+     * @private
+     */
+    _rotatedBoxOutline(shapeType, b, options, deg) {
+        const box = this._boxVertices(shapeType, b, options);
+        if (!box) return [];
+        const pts = [];
+        for (const [x, y] of box.verts) {
+            const r = ShapeGeneratorClass._rotateXY(x, y, box.cx, box.cy, deg);
+            const p = { x: ShapeGeneratorClass._snap(r.x), y: ShapeGeneratorClass._snap(r.y) };
+            const last = pts[pts.length - 1];
+            if (!last || last.x !== p.x || last.y !== p.y) pts.push(p);
+        }
+        if (pts.length > 1) {
+            const f = pts[0], l = pts[pts.length - 1];
+            if (f.x === l.x && f.y === l.y) pts.pop();
+        }
+        if (pts.length === 1) return [pts[0]];
+        const seen = new Set();
+        const path = [];
+        const add = (x, y) => {
+            const k = y * 100003 + x;
+            if (seen.has(k)) return;
+            seen.add(k);
+            path.push({ x, y });
+        };
+        for (let i = 0; i < pts.length; i++) {
+            const a = pts[i], c = pts[(i + 1) % pts.length];
+            ToolBase.forEachLinePoint(a.x, a.y, c.x, c.y, add);
+        }
+        return box.sampled ? this._thinCorners(path) : path;
+    }
+
+    /**
+     * Drop an L-corner pixel from a closed one-pixel path: a pixel whose two path neighbours already touch each
+     * other. Keeps a sampled curve one pixel thick.
+     * @private
+     */
+    _thinCorners(path) {
+        const out = path.slice();
+        let changed = true;
+        while (changed && out.length > 4) {
+            changed = false;
+            for (let i = 0; i < out.length; i++) {
+                const a = out[(i + out.length - 1) % out.length], c = out[(i + 1) % out.length];
+                if (Math.abs(a.x - c.x) <= 1 && Math.abs(a.y - c.y) <= 1) {
+                    out.splice(i, 1);
+                    changed = true;
+                    break;
+                }
+            }
+        }
+        return out;
+    }
+
+    /**
+     * The rounded rectangle's corner radius for a width x height box. options.rounding is a fraction 0 to 1 of the
+     * largest radius there is (a stadium). 0.5, the default, is the radius the shape always had: a quarter of the
+     * smaller side. 0 gives 0, which means square corners.
+     * @private
+     */
+    _cornerRadius(width, height, options = {}) {
+        const f = (options.rounding === undefined || options.rounding === null) ? 0.5 : clamp(Number(options.rounding) || 0, 0, 1);
+        if (f === 0) return 0;
+        const minSide = Math.min(width, height);
+        return clamp(Math.round(minSide * f / 2), 1, Math.floor(minSide / 2));
+    }
+
+    /**
+     * The 1-pixel outline of a shape, honouring rotation: the box shapes turn round their centre, the shapes
+     * drawn from a centre and a drag point were handled by turning the drag point before this is called.
+     * @private
+     */
+    _outlineOf(shapeType, standardBounds, options, deg) {
+        if (deg !== 0 && ShapeGeneratorClass.BOX_ROTATABLE.has(shapeType)) {
+            return this._rotatedBoxOutline(shapeType, standardBounds, options, deg);
+        }
+        return this.shapes.get(shapeType)(standardBounds, options);
     }
 
     // ===== LINE STYLES (Batch 7 part 7B) =====
@@ -547,17 +774,21 @@ class ShapeGeneratorClass {
      * whole 1-pixel outline, so only the inside is drawn).
      * @private
      */
-    _generateStyled(shapeType, standardBounds, options, style) {
+    _generateStyled(shapeType, standardBounds, options, style, deg = 0) {
         const generator = this.shapes.get(shapeType);
         if (!generator) {
             Logger.warn('ShapeGenerator', `Unknown shape: ${shapeType}`);
             return [];
         }
-        const outline = generator(standardBounds, options);
+        const outline = this._outlineOf(shapeType, standardBounds, options, deg);
         const filled = !!options.filled;
-        const fillOf = () => (this.filledShapes.has(shapeType)
-            ? this.filledShapes.get(shapeType)(standardBounds, options)
-            : this._fillFromOutline(generator, standardBounds, options));
+        const turned = deg !== 0 && ShapeGeneratorClass.BOX_ROTATABLE.has(shapeType);
+        const fillOf = () => {
+            if (turned) return this._fillFromOutline(() => outline, standardBounds, options);
+            return this.filledShapes.has(shapeType)
+                ? this.filledShapes.get(shapeType)(standardBounds, options)
+                : this._fillFromOutline(generator, standardBounds, options);
+        };
         if (style === 'clear') {
             if (!filled) return [];
             const gone = new Set(outline.map(p => p.y * 100003 + p.x));
@@ -958,8 +1189,8 @@ class ShapeGeneratorClass {
         // pixel: a 17 px rounded rectangle was a plain rectangle with the corner
         // pixels nicked off. The old floor could also exceed the cap on boxes
         // under 4 px, rounding a corner wider than the box's own half.
-        const minSide = Math.min(width, height);
-        const cornerRadius = clamp(Math.round(minSide * 0.25), 1, Math.floor(minSide / 2));
+        const cornerRadius = this._cornerRadius(width, height, options);
+        if (cornerRadius === 0) return this._generateRectangle(bounds);
 
         const points = [];
 
