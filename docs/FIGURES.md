@@ -708,6 +708,21 @@ the 7 ms `CoverageOps.LIVE_BUDGET_MS` budget. That is the extreme case; a figure
 hundred pixels. Nothing was changed on the strength of it: the Shape tool's preview rasterises the same fill on
 every move, and the Figure preview redraws on a click, not on every pointer move (hover draws only the open outline).
 
+### Line style and rotation cost - measured 2026-10-10
+
+Node, repo test stubs, a 601 x 241 ellipse (about 1,300 pixels) in Layer 2 640, median of 7 calls, two runs back to
+back in one sitting.
+
+| Path | Run 1 / 2 | Tag |
+|---|---|---|
+| Solid | 0.0 / 0.1 ms | M |
+| Dashed (orderOutline walk + pattern) | 0.9 / 1.0 ms | M |
+| Rotated 30 degrees (sampled outline) | 0.8 / 0.7 ms | M |
+| Rotated 30 degrees and dashed | 1.2 / 1.4 ms | M |
+
+All far inside the 7 ms live budget (C: 1.4 / 7 = 20 percent at worst). The outline walk is quadratic only when it has
+to jump between pieces, which a one-pixel closed outline does not.
+
 ---
 
 ## Method
