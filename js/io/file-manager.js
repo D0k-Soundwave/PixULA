@@ -324,7 +324,18 @@ class FileManagerClass {
       return false;
     }
 
-    const replacesDocument = handler.importsDocument !== false;
+    // A handler may decide from the bytes (a tape that holds only a ULAplus palette does not
+    // replace the document); the others decide from a flag.
+    let preRead = null;
+    let replacesDocument = handler.importsDocument !== false;
+    if (typeof handler.importsDocumentFor === 'function') {
+      try {
+        preRead = await file.arrayBuffer();
+        replacesDocument = handler.importsDocumentFor(preRead);
+      } catch (error) {
+        Logger.warn('FileManager', `Could not read ${file.name}: ${error.message}`);
+      }
+    }
 
     if (replacesDocument && this.hasUnsavedChanges) {
       const confirmed = await this._confirmDiscard();
@@ -332,7 +343,7 @@ class FileManagerClass {
     }
 
     try {
-      const buffer = await file.arrayBuffer();
+      const buffer = preRead || await file.arrayBuffer();
 
       // PNG/JPG/GIF imports go through the conversion dialog first (Phase 8):
       // live quantized preview + brightness/contrast/scaling/dither options.
