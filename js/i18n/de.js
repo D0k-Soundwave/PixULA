@@ -435,6 +435,7 @@ const de = {
     'menu.image.attrFlipV': 'Vertikal spiegeln',
     'menu.image.attrNoCells': 'Dieser Bildschirmmodus hat keine Zellenfarben.',
     'menu.image.attrStamp': 'Stempel zuerst abschließen oder abbrechen.',
+    'opt.textBackground': 'Hintergrund',
     'opt.shadowDir': 'Schattenrichtung',
     'opt.shadowDir.downRight': 'Unten rechts',
     'opt.shadowDir.downLeft': 'Unten links',

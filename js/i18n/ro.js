@@ -435,6 +435,7 @@ const ro = {
     'menu.image.attrFlipV': 'Oglindește vertical',
     'menu.image.attrNoCells': 'Acest mod de ecran nu are culori de celulă.',
     'menu.image.attrStamp': 'Finalizați sau anulați mai întâi ștampila.',
+    'opt.textBackground': 'Fundal',
     'opt.shadowDir': 'Direcția umbrei',
     'opt.shadowDir.downRight': 'Jos dreapta',
     'opt.shadowDir.downLeft': 'Jos stânga',

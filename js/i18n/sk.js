@@ -435,6 +435,7 @@ const sk = {
     'menu.image.attrFlipV': 'Otočiť zvisle',
     'menu.image.attrNoCells': 'Tento režim obrazovky nemá farby buniek.',
     'menu.image.attrStamp': 'Najprv dokončite alebo zrušte pečiatku.',
+    'opt.textBackground': 'Pozadie',
     'opt.shadowDir': 'Smer tieňa',
     'opt.shadowDir.downRight': 'Dole vpravo',
     'opt.shadowDir.downLeft': 'Dole vľavo',

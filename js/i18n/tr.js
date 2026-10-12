@@ -435,6 +435,7 @@ const tr = {
     'menu.image.attrFlipV': 'Dikey çevir',
     'menu.image.attrNoCells': 'Bu ekran kipinde hücre renkleri yok.',
     'menu.image.attrStamp': 'Önce damgayı tamamlayın veya iptal edin.',
+    'opt.textBackground': 'Arka plan',
     'opt.shadowDir': 'Gölge yönü',
     'opt.shadowDir.downRight': 'Sağ alta',
     'opt.shadowDir.downLeft': 'Sol alta',

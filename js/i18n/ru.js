@@ -435,6 +435,7 @@ const ru = {
     'menu.image.attrFlipV': 'Отразить по вертикали',
     'menu.image.attrNoCells': 'Этот режим экрана не имеет цветов ячеек.',
     'menu.image.attrStamp': 'Сначала завершите или отмените штамп.',
+    'opt.textBackground': 'Фон',
     'opt.shadowDir': 'Направление тени',
     'opt.shadowDir.downRight': 'Вниз вправо',
     'opt.shadowDir.downLeft': 'Вниз влево',

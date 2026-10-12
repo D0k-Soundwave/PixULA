@@ -435,6 +435,7 @@ const pt = {
     'menu.image.attrFlipV': 'Espelhar verticalmente',
     'menu.image.attrNoCells': 'Este modo de ecrã não tem cores de célula.',
     'menu.image.attrStamp': 'Conclua ou cancele primeiro o carimbo.',
+    'opt.textBackground': 'Fundo',
     'opt.shadowDir': 'Direção da sombra',
     'opt.shadowDir.downRight': 'Baixo à direita',
     'opt.shadowDir.downLeft': 'Baixo à esquerda',

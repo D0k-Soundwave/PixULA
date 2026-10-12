@@ -435,6 +435,7 @@ const pl = {
     'menu.image.attrFlipV': 'Odbij pionowo',
     'menu.image.attrNoCells': 'Ten tryb ekranu nie ma kolorów komórek.',
     'menu.image.attrStamp': 'Najpierw zakończ lub anuluj pieczątkę.',
+    'opt.textBackground': 'Tło',
     'opt.shadowDir': 'Kierunek cienia',
     'opt.shadowDir.downRight': 'W dół w prawo',
     'opt.shadowDir.downLeft': 'W dół w lewo',

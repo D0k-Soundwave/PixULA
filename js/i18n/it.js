@@ -435,6 +435,7 @@ const it = {
     'menu.image.attrFlipV': 'Capovolgi verticalmente',
     'menu.image.attrNoCells': 'Questa modalità schermo non ha colori di cella.',
     'menu.image.attrStamp': 'Termina o annulla prima il timbro.',
+    'opt.textBackground': 'Sfondo',
     'opt.shadowDir': 'Direzione dell\\\'ombra',
     'opt.shadowDir.downRight': 'In basso a destra',
     'opt.shadowDir.downLeft': 'In basso a sinistra',

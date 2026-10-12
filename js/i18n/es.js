@@ -435,6 +435,7 @@ const es = {
     'menu.image.attrFlipV': 'Voltear verticalmente',
     'menu.image.attrNoCells': 'Este modo de pantalla no tiene colores de celda.',
     'menu.image.attrStamp': 'Termine o cancele primero el sello.',
+    'opt.textBackground': 'Fondo',
     'opt.shadowDir': 'Dirección de la sombra',
     'opt.shadowDir.downRight': 'Abajo a la derecha',
     'opt.shadowDir.downLeft': 'Abajo a la izquierda',

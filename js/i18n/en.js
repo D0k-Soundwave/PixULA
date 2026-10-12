@@ -76,6 +76,7 @@ const en = {
     'menu.image.attrFlipV': 'Flip Vertical',
     'menu.image.attrNoCells': 'This screen mode has no cell colours.',
     'menu.image.attrStamp': 'Finish or cancel the stamp first.',
+    'opt.textBackground': 'Background',
     'opt.shadowDir': 'Shadow direction',
     'opt.shadowDir.downRight': 'Down-right',
     'opt.shadowDir.downLeft': 'Down-left',

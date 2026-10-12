@@ -131,6 +131,14 @@ class TextToolClass extends ToolBase {
       showIf: { key: 'textShadow', equals: true },
       options: TextToolClass.SHADOW_DIRS.map(d => ({ value: d.id, i18n: d.i18n })) },
     { type: 'check', key: 'textOutline', i18n: 'opt.outline', value: false },
+    // Clear background = the stamp's Clear dots (Transform panel): the box's clear dots are written as well as the
+    // letters, so the text sits on a cleared patch. Inverse gives reset-dot text in the same way.
+    { type: 'select', key: 'textBackground', i18n: 'opt.textBackground', value: 'transparent',
+      syncEvent: EVENTS.STAMP_OPTIONS_CHANGED,
+      options: [{ value: 'transparent', i18n: 'transform.clearDots.transparent' },
+                { value: 'overlap', i18n: 'transform.clearDots.overlap' }] },
+    { type: 'hint', i18n: 'transform.clearDots.noEffectHint',
+      showIf: { all: [ { key: 'textBackground', equals: 'overlap' }, { clearDotsNoEffect: true } ] } },
     { type: 'hint', i18n: 'text.hint' }
   ];
 
@@ -151,6 +159,7 @@ class TextToolClass extends ToolBase {
     this._textShadowDir   = 'down-right';   // which way it falls (TextToolClass.SHADOW_DIRS)
     this._textAnchor      = 'center';       // which point of the block the click is (ANCHORS)
     this._textOutline     = false;  // hollow contour (MaskOps dilate-minus-glyph)
+    this._textBackground  = 'transparent';  // 'overlap' = Clear background: the box's clear dots are written too
     this._fixedSize       = 16;   // px height; always > 0 (selected from dropdown)
     this._cachedFonts     = null;
     this._sizeCache       = new Map(); // fontFamily -> number[] of clean sizes
@@ -162,6 +171,15 @@ class TextToolClass extends ToolBase {
     // Saved bitmap fonts feed the font list — drop the cache when the
     // font editor's library changes so the next open re-enumerates.
     EventBus.on(EVENTS.FONT_LIBRARY_CHANGED, () => { this._cachedFonts = null; });
+
+    // The Transform panel's Clear dots changes the very same setting of the waiting stamp: follow it, so the two controls
+    // never disagree. (Only for the stamp this tool made - fontInfo is set by no one else.)
+    EventBus.on(EVENTS.STAMP_OPTIONS_CHANGED, () => {
+      const fp = window.SelectionService ? SelectionService.floatingPaste : null;
+      if (!fp || !fp.fontInfo) return;
+      const v = SelectionService.stampOptions(fp).clearDots;
+      if (v !== this._textBackground) this._textBackground = v;
+    });
 
     // Drive stamp cursor-following.  This event fires on every pointermove
     // (including hover, no button needed).
@@ -235,10 +253,26 @@ class TextToolClass extends ToolBase {
     this._textShadowDir = v;  this._disengaged = false;  this._updatePreviewIfActive();
   }
 
+  getTextBackground() { return this._textBackground; }
+  /** 'transparent' (Leave background) | 'overlap' (Clear background). Patches the waiting stamp, no undo entry. */
+  setTextBackground(v) {
+    if (v !== 'transparent' && v !== 'overlap') return;
+    this._textBackground = v;
+    this._disengaged = false;
+    if (this._textStampActive && this._ownStampFloating()) {
+      SelectionService.refreshTextStamp(null, null, 0, 0, { clearDots: v });
+    }
+  }
+
+  /** The settings a new text stamp starts with: null unless Clear background is on. @private */
+  _stampOpts() {
+    return this._textBackground === 'overlap' ? { clearDots: 'overlap' } : null;
+  }
+
   getTextAnchor()     { return this._textAnchor; }
   setTextAnchor(v) {
     if (!TextToolClass.ANCHORS.some(a => a.id === v)) return;
-    this._textAnchor = v;  this._disengaged = false;
+    this._textAnchor = v;  this._disengaged = false;  this._updatePreviewIfActive();
   }
 
   getTextOutline()    { return this._textOutline; }
@@ -414,7 +448,7 @@ class TextToolClass extends ToolBase {
     if (window.SelectionService) {
       SelectionService.startFloatingPasteFromMask(
         pixels, width, height,
-        px, py, 'Text', fontInfo, 'none'
+        px, py, 'Text', fontInfo, 'none', this._stampOpts()
       );
       this._textStampActive = true;
     }

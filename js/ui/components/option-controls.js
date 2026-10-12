@@ -641,6 +641,8 @@ class OptionControlsClass {
         if (Array.isArray(cond.all)) return cond.all.every(c => this._evalShowIf(c));
         // { cells: true }: the screen mode, not another option - cells have colours.
         // { screenFits: true }: a whole 256x192 screen is smaller than the canvas (Layer 2 320 and 640).
+        // { clearDotsNoEffect: true }: Clear background would write nothing with the draw mode in force.
+        if ('clearDotsNoEffect' in cond) return (window.SelectionService ? !SelectionService.clearDotsHasEffect() : false) === !!cond.clearDotsNoEffect;
         if ('screenFits' in cond) return SnapGrid.screenFits() === !!cond.screenFits;
         if ('cells' in cond) {
             const has = !window.ColorManager || ColorManager.hasCellAttributes();

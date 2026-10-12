@@ -435,6 +435,7 @@ const fr = {
     'menu.image.attrFlipV': 'Retourner verticalement',
     'menu.image.attrNoCells': 'Ce mode d\'écran ne possède pas de couleurs de cellule.',
     'menu.image.attrStamp': 'Terminez ou annulez d\'abord le tampon.',
+    'opt.textBackground': 'Arrière-plan',
     'opt.shadowDir': 'Direction de l\\\'ombre',
     'opt.shadowDir.downRight': 'Bas droite',
     'opt.shadowDir.downLeft': 'Bas gauche',
