@@ -769,3 +769,13 @@ paragraph, 80-files "Saving part of a picture" and "A new picture from a selecti
 Same; Export selection / new file from selection Partial (the character-set and CHX font exports of a selection are not covered).
 Tests: tests/browser/preview-panel.spec.js (7). FIGURES.md: draw cost and crop cost recorded.
 Still to do from the 9B owner answers: none (all five built). Batch 9 is complete; next Batch 10 part 10A (plan review first).
+
+## Batch 10A plan review and owner answer (2026-10-12)
+Opus: go with corrections: alignment does not place text today (the stamp is centred on the click), so a separate 9-way Anchor option
+(default Centre = today); Background maps onto the existing stamp clearDots ('overlap') via a text option kept in step with the
+Transform panel (new EVENTS.STAMP_OPTIONS_CHANGED); Inverse already gives reset-dot text (test it); shadow direction needs MaskOps AND
+CoverageOps. Commits: (1) pin test, (2) shadow direction + anchor, (3) background, (4) manual + spec.
+OWNER: add ZX Paintbrush-style opposite-dot shadow and contour NOW (a third stamp state: set / force-clear / leave alone). Do it as
+10A2 after commit 3, with a focused Opus design consult first (it touches the stamp write plans).
+For later: 10B and 10C owner questions (uncommitted typed text on click elsewhere; big CHX fonts usable in the Text tool / library)
+to be asked when those parts start.
