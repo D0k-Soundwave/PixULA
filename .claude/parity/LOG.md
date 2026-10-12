@@ -745,3 +745,17 @@ partial old snapshot onto the reset layers); failing browser test first. 4 keys 
 Tests: tests/new-from-selection.test.js (11 modes: cells, undo, stamp), browser new-from-selection (3) and undo-after-new (2).
 Not measured yet: cropToCells time at layer2_640 with 32 layers (FIGURES.md) - do with step 2.
 Next: step 2, Save Selection As (format rules in the registry; including the any-size ASM / C / BIN / ATR the owner asked for).
+
+## Batch 9 part 9B step 2 (Save Selection As) - 2026-10-12
+FormatRegistry.SELECTION_RULES / selectionRule / selectionFit: pixels (png, bmp, jpg: any rectangle), cells (zxp, sev, zed, asm, c,
+bin, atr: fitted to whole cells), tiles16 (ctile: fitted to the 16 grid), screen (scr, mlt, ifl, hrg, img, mg*, nxi, sl2, slr, tap,
+tzx: only the whole screen); palettes and maps are not offered. Writers take options.rect: Helpers.cropImageData for png / bmp / jpg,
+exportZxp, SEV and ZED (encodeScreen with a cell block; the importers already place a smaller picture at the top left), ctile
+(now from options.rect - Save Image As > .ctile saves the whole canvas, as the owner chose), and DevFormat.rectBytes: the OWNER asked
+for any-size ASM / C / BIN / ATR, so a part is dumped linear (w/8 bytes a row, rows top to bottom; attributes one byte a cell, row by
+row) in every 256x192 one-bit single-screen mode (classic, multicolor, ULAplus; not Timex hi-res, GigaScreen or the indexed modes,
+which keep the full dump only). FileManager.exportSelectionAs (fits and says so; refuses with a reason), File > Save Selection As
+submenu with each leaf enabled by its rule and a reason in the title. 6 keys in 13 locales.
+Tests: tests/selection-export.test.js (rules, crop, BMP crop equals full BMP rows, SEV/ZED/ZXP/DEV/ctile blocks), browser
+selection-export (3: leaves, PNG crop pixel for pixel, SEV fit + notice). Full suites pass (731 browser).
+Next: step 3, the Preview panel (9B2), then the manual for steps 1-3.

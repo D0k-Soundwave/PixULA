@@ -144,18 +144,23 @@ class PNGFormatClass {
    */
   async export(options = {}) {
     const scale = options.scale || 1;
-    const width = ZX_SPECTRUM.WIDTH * scale;
-    const height = ZX_SPECTRUM.HEIGHT * scale;
+
+    // Get current canvas image data; Save Selection As passes the part to keep (options.rect)
+    let imageData = LayerManager.stillImageData();
+    if (options.rect) imageData = Helpers.cropImageData(imageData, options.rect);
+    const width = imageData.width * scale;
+    const height = imageData.height * scale;
 
     const canvas = Helpers.createCanvas(width, height);
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
 
-    // Get current canvas image data
-    const imageData = LayerManager.stillImageData();
-
     if (scale === 1) {
       ctx.putImageData(imageData, 0, 0);
+    } else if (options.rect) {
+      const part = Helpers.createCanvas(imageData.width, imageData.height);
+      part.getContext('2d').putImageData(imageData, 0, 0);
+      ctx.drawImage(part, 0, 0, width, height);
     } else {
       // Scale up using temp canvas
       this.tempCtx.putImageData(imageData, 0, 0);

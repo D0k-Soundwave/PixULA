@@ -44,21 +44,21 @@ class JPGFormatClass {
   async export(options = {}) {
     const scale = options.scale || 1;
     const quality = options.quality || this.defaultQuality;
-    const width = ZX_SPECTRUM.WIDTH * scale;
-    const height = ZX_SPECTRUM.HEIGHT * scale;
+    // Get current canvas image data; Save Selection As passes the part to keep (options.rect)
+    let imageData = LayerManager.stillImageData();
+    if (options.rect) imageData = Helpers.cropImageData(imageData, options.rect);
+    const width = imageData.width * scale;
+    const height = imageData.height * scale;
 
     const canvas = Helpers.createCanvas(width, height);
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
 
-    // Get current canvas image data
-    const imageData = LayerManager.stillImageData();
-
     if (scale === 1) {
       ctx.putImageData(imageData, 0, 0);
     } else {
       // Scale up
-      const tempCanvas = Helpers.createCanvas(ZX_SPECTRUM.WIDTH, ZX_SPECTRUM.HEIGHT);
+      const tempCanvas = Helpers.createCanvas(imageData.width, imageData.height);
       const tempCtx = tempCanvas.getContext('2d');
       tempCtx.putImageData(imageData, 0, 0);
       ctx.drawImage(tempCanvas, 0, 0, width, height);

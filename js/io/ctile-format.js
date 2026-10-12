@@ -139,17 +139,19 @@ class CtileFormatClass {
       && (mode.screens || 1) === 1;
   }
 
-  export() {
+  /**
+   * @param {{rect?: {x:number,y:number,width:number,height:number}}} [options] - rect: the part to save (Save Selection As),
+   *   on the 16-pixel grid; without it the whole canvas is saved
+   */
+  export(options = {}) {
     const mode = ACTIVE_SCREEN_MODE;
     if (!this.canExport()) {
       throw new Error(Helpers.localizedMessage('mode.ctileNeedsTimex',
         'ColorTiles are 8×1-attribute tiles - switch to Multicolor 8×1 (Timex) mode first.'));
     }
 
-    // Region: selection bounds (tile-aligned) or the whole canvas
     let x = 0, y = 0, w = mode.width, h = mode.height;
-    const sel = window.SelectionService && SelectionService.getSelection
-      ? SelectionService.getSelection() : null;
+    const sel = options.rect || null;
     if (sel) {
       if (sel.x % 16 || sel.y % 16 || sel.width % 16 || sel.height % 16) {
         throw new Error(Helpers.localizedMessage('mode.ctileSelectionAlign',
@@ -191,7 +193,7 @@ class CtileFormatClass {
   async exportAndDownload(filename, options = {}, handle = null) {
     let name = filename || 'tiles.ctile';
     if (!name.toLowerCase().endsWith('.ctile')) name = `${name}.ctile`;
-    return FormatRegistry.download(this.export(), name, undefined, handle);
+    return FormatRegistry.download(this.export(options), name, undefined, handle);
   }
 }
 

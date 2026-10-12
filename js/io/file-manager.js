@@ -698,6 +698,50 @@ class FileManagerClass {
   }
 
   /**
+   * The selection as a plain rectangle (a freehand or ellipse selection is its bounding box), or null.
+   * @returns {?{x:number,y:number,width:number,height:number}}
+   */
+  selectionRect() {
+    const s = window.SelectionService ? SelectionService.getSelection() : null;
+    return s ? { x: s.x, y: s.y, width: s.width, height: s.height } : null;
+  }
+
+  /**
+   * Save the selection in a format (File > Save Selection As). The format's rule decides: pictures take any rectangle,
+   * cell formats and ColorTiles take the selection fitted to whole cells / 16x16 tiles (said in the status bar), screen
+   * dumps only the whole screen. Nothing is written if the format cannot take it.
+   * @param {string} format - extension
+   * @returns {Promise<boolean>}
+   */
+  async exportSelectionAs(format) {
+    if (window.ToolManager) ToolManager.commitPending();
+    const handler = FormatRegistry.getExportHandler(format);
+    if (!handler) return false;
+    const fit = FormatRegistry.selectionFit(format, this.selectionRect());
+    if (!fit.ok) {
+      const key = { none: 'export.sel.none', mode: 'export.sel.mode', layout: 'export.sel.layout',
+        screenOnly: 'export.sel.screenOnly', notPicture: 'export.sel.notPicture' }[fit.reason];
+      EventBus.emit(EVENTS.FILE_ERROR, { message: this._t(key, 'This part cannot be saved in that format.',
+        { w: ZX_SPECTRUM.WIDTH, h: ZX_SPECTRUM.HEIGHT }) });
+      return false;
+    }
+    if (fit.snapped) {
+      SelectionService.setSelection(fit.rect);
+      EventBus.emit(EVENTS.STATUS_NOTICE, { text: Helpers.localizedMessage('msg.selectionSnapped',
+        'Selection fitted to whole cells: {w} x {h}.', { w: fit.rect.width, h: fit.rect.height }) });
+    }
+    const baseName = this.currentFilename ? this.currentFilename.replace(/\.[^.]+$/, '') : 'image';
+    try {
+      const written = await handler.exportAndDownload(`${baseName}-selection.${format}`, fit.rect ? { rect: fit.rect } : {});
+      return written !== false;
+    } catch (error) {
+      Logger.error('FileManager', `Selection export failed: ${error.message}`);
+      EventBus.emit(EVENTS.FILE_ERROR, { message: error.message });
+      return false;
+    }
+  }
+
+  /**
    * Check if there are unsaved changes
    * @returns {boolean}
    */

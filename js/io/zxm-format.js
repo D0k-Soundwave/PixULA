@@ -98,9 +98,9 @@ class ZXMFormatClass {
       parse: (buffer) => this.parseZxp(buffer)
     });
     FormatRegistry.registerExport('zxp', {
-      export: () => this.exportZxp(),
+      export: (options) => this.exportZxp(options),
       canExport: () => this.canExportZxp(),
-      exportAndDownload: (filename, options, handle) => this.exportZxpAndDownload(filename, handle)
+      exportAndDownload: (filename, options, handle) => this.exportZxpAndDownload(filename, handle, options)
     });
     Logger.info('ZXMFormat', 'Initialized (zxm/zxp)');
   }
@@ -234,7 +234,7 @@ class ZXMFormatClass {
       && (mode.paletteModel === 'fixed16' || mode.paletteModel === 'ulaplus64');
   }
 
-  exportZxp() {
+  exportZxp(options = {}) {
     const mode = ACTIVE_SCREEN_MODE;
     if ((mode.pixelDepth || 1) !== 1 || (mode.screens || 1) === 2
         || (mode.paletteModel !== 'fixed16' && mode.paletteModel !== 'ulaplus64')) {
@@ -246,14 +246,21 @@ class ZXMFormatClass {
     const extended = mode.attrCellH !== 8;
     const lines = [extended ? this.IDENTIFIER_EXT : this.IDENTIFIER, ''];
 
+    // Save Selection As: a block of whole cells (options.rect, in pixels); the picture is then that size, top left
+    // (the importer already places a smaller picture there).
+    const r = options.rect || { x: 0, y: 0, width: mode.width, height: mode.height };
+    const cols0 = r.x / 8, colsN = r.width / 8, rows0 = r.y, rowsN = r.height;
+    if (!Number.isInteger(cols0) || !Number.isInteger(colsN) || r.y % mode.attrCellH || r.height % mode.attrCellH) {
+      throw new Error('ZXP: the part to save must be whole attribute cells');
+    }
     const cellAt = (cx, cy) => flattened.getCell(cx, cy);
     const attrByte = (cell) => (cell.flash ? 0x80 : 0) | (cell.bright ? 0x40 : 0)
       | ((cell.paper & 7) << 3) | (cell.ink & 7);
 
-    for (let y = 0; y < mode.height; y++) {
+    for (let y = rows0; y < rows0 + rowsN; y++) {
       let row = '';
       const cy = Math.floor(y / mode.attrCellH);
-      for (let cx = 0; cx < mode.width / 8; cx++) {
+      for (let cx = cols0; cx < cols0 + colsN; cx++) {
         const bits = cellAt(cx, cy).pixels[y % mode.attrCellH];
         for (let b = 0; b < 8; b++) row += (bits & (0x80 >> b)) ? '1' : '0';
       }
@@ -261,11 +268,12 @@ class ZXMFormatClass {
     }
     lines.push('');
 
-    const attrRowCount = extended ? mode.height : mode.height / 8;
-    for (let r = 0; r < attrRowCount; r++) {
-      const cy = extended ? Math.floor(r / mode.attrCellH) : r;
+    const attrFirst = extended ? rows0 : rows0 / 8;
+    const attrRowCount = extended ? rowsN : rowsN / 8;
+    for (let ar = attrFirst; ar < attrFirst + attrRowCount; ar++) {
+      const cy = extended ? Math.floor(ar / mode.attrCellH) : ar;
       const parts = [];
-      for (let cx = 0; cx < mode.width / 8; cx++) {
+      for (let cx = cols0; cx < cols0 + colsN; cx++) {
         parts.push(attrByte(cellAt(cx, cy)).toString(16).toUpperCase().padStart(2, '0'));
       }
       lines.push(parts.join(' '));
@@ -282,10 +290,10 @@ class ZXMFormatClass {
   }
 
   /** @param {string} filename */
-  async exportZxpAndDownload(filename = 'image.zxp', handle = null) {
+  async exportZxpAndDownload(filename = 'image.zxp', handle = null, options = {}) {
     let name = filename || 'image.zxp';
     if (!name.toLowerCase().endsWith('.zxp')) name = `${name}.zxp`;
-    return FormatRegistry.download(this.exportZxp(), name, undefined, handle);
+    return FormatRegistry.download(this.exportZxp(options), name, undefined, handle);
   }
 
   /**
