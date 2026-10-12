@@ -72,7 +72,7 @@ class PanelSectionClass {
      *   checkbox this flag exists to prevent.
      * @returns {{ section: HTMLElement, content: HTMLElement, title: HTMLElement }}
      */
-    create({ id, titleI18n, title, collapsed = false, hintI18n, hint, persistVisibility = true }) {
+    create({ id, titleI18n, title, collapsed = false, hintI18n, hint, persistVisibility = true, visible = true }) {
         const host = document.getElementById('panels');
         const tpl = document.getElementById('tpl-panel');
         if (!host || !tpl) {
@@ -126,7 +126,7 @@ class PanelSectionClass {
         this._sections.set(id, entry);
 
         this._setCollapsedDom(entry, collapsed);
-        this._setVisibleDom(entry, true); // default: present in the sidebar
+        this._setVisibleDom(entry, visible); // default: present in the sidebar (a panel can start away, shown from View)
 
         header.addEventListener('click', () => {
             const expanded = button.getAttribute('aria-expanded') === 'true';

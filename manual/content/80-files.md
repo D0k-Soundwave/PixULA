@@ -18,6 +18,14 @@ if you intend to keep working on it.
 
 Opening a photo or other picture (PNG, JPG, GIF) shows three conversions side by side - Sharp, Smooth and Flat - and you click the one you like. Smooth is the one that turns shades into dots, and the **Dither** list under the previews chooses how: Floyd-Steinberg is the importer's own and is the default, and the list also offers the 30 other methods of ZX Paintbrush - thresholds, error diffusion, Bayer matrices, cluster dots and supercells. Choosing a method switches to the Smooth preview. Ordered methods carry on across attribute cells, so a pattern runs over the whole picture; error diffusion stays inside each cell, because each cell has its own two colours. In the Layer 2 and LoRes modes the list is greyed out: those modes keep their own colour dithering.
 
+### Saving part of a picture
+
+**File > Save Selection As** lists the same formats as Save Image As, each open only if the selection suits it. PNG, BMP and JPEG take any rectangle. ZXP, SEV, ZED, ASM, C, BIN and ATR take whole attribute cells: the selection is first fitted to cells and the status bar says so. ColorTiles take whole 16x16 tiles. The formats that are a dump of one whole screen (SCR, tapes, MLT and the like) are open only when the selection is the whole screen. ASM, C, BIN and ATR write the part row by row: the bitmap as a block of bytes a row, top to bottom, and the attributes one byte a cell; they do this in the classic, multicolor and ULAplus modes. A freehand or ellipse selection saves its bounding rectangle. A format that is shut says why when you point at it. Save Image As saves the whole picture and ignores the selection.
+
+### A new picture from a selection
+
+**Edit > New Picture from Selection** turns the selection into the whole picture. The selection is fitted to whole cells first. It asks before it does anything, and Ctrl+Z gives the old picture back. Every layer is kept and cut down to that block, which moves to the top left; the rest is empty, and the background there is white paper. The screen mode stays the same and the picture becomes untitled, so the next Save asks for a name.
+
 ### Autosave and backups
 
 PixULA can save your work into the browser's own storage every few minutes, and

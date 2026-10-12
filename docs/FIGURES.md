@@ -784,3 +784,21 @@ costs the Dither time already measured above (0.2-0.5 ms ordered, 2-4.5 ms most 
 Stevenson-Arce [M, 2026-10-10 section above]) plus the existing per-pixel position loop; a before / after run of the
 gradient preview on layer2_640 was NOT made [A: nothing was measured]. A picture-made fill is at most 32 x 32 = 1,024
 pixels [C], negligible.
+
+### Preview panel and New Picture from Selection - measured 2026-10-12 (Batch 9 part 9B)
+
+One redraw of the Preview map (drawImage of the live canvas into the panel's canvas, frame stroked, then a 1-pixel read-back to
+force the work to finish), median of 200, two runs back to back, in the Playwright Chrome [M]:
+
+| Mode | Run 1 / 2 | Tag |
+|---|---|---|
+| standard_ula | 0.5 / 0.4 ms | M |
+| layer2_640 | 0.6 / 0.3 ms | M |
+
+Against the 32 ms redraw interval [C: every second frame of a 60 Hz display; 16.7 ms a frame, P] that is about 1-2 % of the interval [C: 0.6 / 32].
+The cheaper route the plan hoped for (drawImage from the live canvas rather than a copy through getImageData) was the one used and
+it agrees with the canvas pixel for pixel in the spec; the getImageData alternative was NOT timed [A: assumed slower, never measured].
+
+`node tools/crop-bench.js`: LayerManager.cropToCells at layer2_640 (80 x 32 cells a layer) with 32 drawing layers, median of 7,
+two runs: 56.1 / 31.7 ms [M, Node v24.19.0, repo test stubs]. The undo entry holds every layer [P: about 6.8 MB, undo-redo.js comment
+of 2026-08-07]. A one-off action, not a per-frame cost.

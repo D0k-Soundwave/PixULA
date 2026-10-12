@@ -489,11 +489,13 @@ test.describe('the global draw mode can never hide', () => {
 // Presets is last and preference-gated (Preferences > General, off by
 // default), so it stays in the DOM (for its own specs) but is not laid out
 // unless that preference is on.
-test('right sidebar order: Reference -> Layers -> Tool Options -> Patterns -> Transform -> Presets (collapsed)', async ({ page }) => {
+test('right sidebar order: Reference -> Layers -> Tool Options -> Patterns -> Transform -> Preview (hidden) -> Presets (collapsed)', async ({ page }) => {
     await boot(page);
     const panels = await page.$$eval('#panels > section', els => els.map(e => e.id));
     expect(panels).toEqual(['reference-panel', 'layer-panel', 'tool-options-panel',
-        'patterns-panel', 'transform-panel', 'tool-preset-panel']);
+        'patterns-panel', 'transform-panel', 'preview-panel', 'tool-preset-panel']);
+    // The Preview map is in the DOM but hidden until View > Preview (Batch 9 part 9B)
+    expect(await page.evaluate(() => getComputedStyle(document.getElementById('preview-panel')).display)).toBe('none');
     const refCollapsed = await page.evaluate(() =>
         window.PanelSection ? PanelSection.isCollapsed('reference-panel') : null);
     if (refCollapsed !== null) expect(refCollapsed).toBe(true);

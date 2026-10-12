@@ -83,6 +83,7 @@ class MenuSystemClass {
             'tool-options-panel': 'panel-tools',
             'layer-panel':        'panel-layers',
             'transform-panel':    'panel-transform',
+            'preview-panel':      'panel-preview',
             'tool-preset-panel':  'panel-presets'
         };
     }
@@ -468,6 +469,7 @@ class MenuSystemClass {
                     { id: 'panel-transform', label: 'Transform', action: 'view:toggleTransform', toggle: true, i18n: 'panels.transform' },
                     { id: 'panel-reference', label: 'Reference Panel', action: 'view:toggleReference', toggle: true },
                     { id: 'panel-tools', label: 'Tool Options', action: 'view:toggleToolOptions', toggle: true },
+                    { id: 'panel-preview', label: 'Preview', action: 'view:togglePreview', toggle: true, i18n: 'panels.preview' },
                     { id: 'panel-presets', label: 'Tool Presets', action: 'view:toggleToolPresets', toggle: true, i18n: 'panels.presets' }
                 ]
             },
@@ -1161,6 +1163,7 @@ class MenuSystemClass {
             // fact any other caller of setVisible/toggleVisibility fires, so
             // the two paths can never disagree.
             case 'view:toggleReference':   PanelSection.toggleVisibility('reference-panel');    break;
+            case 'view:togglePreview':     PanelSection.toggleVisibility('preview-panel');      break;
             case 'view:toggleToolOptions': PanelSection.toggleVisibility('tool-options-panel'); break;
             case 'view:toggleLayers':      PanelSection.toggleVisibility('layer-panel');        break;
             case 'view:toggleTransform':   PanelSection.toggleVisibility('transform-panel');    break;

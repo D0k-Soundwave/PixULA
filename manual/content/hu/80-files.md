@@ -17,6 +17,14 @@ eredményt, de nem ezt, ha tovább akarsz dolgozni rajta.
 
 Egy fotó vagy más kép (PNG, JPG, GIF) megnyitásakor három átalakítás jelenik meg egymás mellett - Éles, Lágy és Lapos -, és arra kattintasz, amelyik tetszik. A Lágy alakítja pontokká az árnyalatokat, és az előnézetek alatti **Raszterezés** lista dönti el, hogyan: alapértelmezés az import saját Floyd-Steinberg eljárása, a lista pedig a ZX Paintbrush másik 30 módszerét is kínálja - küszöbök, hibaterítés, Bayer-mátrixok, klaszterpontok és szupercellák. A módszer választása a Lágy előnézetre vált. A rendezett módszerek folytatódnak az attribútumcellák között, így a minta az egész képen végigfut; a hibaterítés minden cellán belül marad, mert minden cellának saját két színe van. A Layer 2 és LoRes üzemmódban a lista szürke: ezek az üzemmódok megtartják a saját színraszterezésüket.
 
+### A kép egy részének mentése
+
+A **Fájl > Kijelölés mentése másként** ugyanazokat a formátumokat listázza, mint a Kép mentése másként, mindegyik csak akkor nyitott, ha a kijelölés megfelel neki. A PNG, a BMP és a JPEG bármilyen téglalapot elfogad. A ZXP, SEV, ZED, ASM, C, BIN és ATR egész attribútumcellákat fogad: a kijelölést előbb cellákhoz igazítja, és az állapotsor szól róla. A ColorTiles egész 16x16-os csempéket fogad. Azok a formátumok, amelyek egy egész képernyő lenyomatai (SCR, szalagok, MLT és hasonlók), csak akkor nyitottak, ha a kijelölés a teljes képernyő. Az ASM, C, BIN és ATR soronként írja ki a részt: a bittérképet soronkénti bájtblokkként fentről lefelé, az attribútumokat cellánként egy bájtként; ezt a klasszikus, multicolor és ULAplus módokban teszik. A szabadkézi vagy ellipszis kijelölés a befoglaló téglalapját menti. A zárt formátum megmondja az okát, ha rámutatsz. A Kép mentése másként az egész képet menti, a kijelölést figyelmen kívül hagyja.
+
+### Új kép egy kijelölésből
+
+A **Szerkesztés > Új kép a kijelölésből** a kijelölést teszi a teljes képpé. A kijelölést előbb egész cellákhoz igazítja. Mielőtt bármit tenne, rákérdez, és a Ctrl+Z visszaadja a régi képet. Minden réteg megmarad, és erre a blokkra vágódik, amely a bal felső sarokba kerül; a többi üres, a háttér ott fehér papír. A képernyőmód ugyanaz marad, a kép névtelen lesz, így a következő Mentés nevet kér.
+
 ### Automatikus mentés és biztonsági másolatok
 
 A PixULA néhány percenként a böngésző saját tárhelyére mentheti a munkádat, és
