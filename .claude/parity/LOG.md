@@ -725,3 +725,13 @@ a Free drag under Snap is now exact (0 -> 16 selects 16 pixels, not 17). Cell mo
 equals it on 200 random drags in 4 cell geometries. 8 keys in 13 locales; manual "Selection sizes" in 13 languages.
 Tests: tests/selection-size.test.js, tests/browser/selection-size.spec.js (4). Comparison row Selectors -> Same; Raster jump -> Same.
 Next: full suites, then Batch 9 part 9B (New picture from selection, Export selection, Preview panel).
+
+## Batch 9B plan review and owner answers (2026-10-12)
+Opus: split into step 1 (Fit Selection to Cells + New picture from selection), step 2 (Save Selection As, format rules in the
+registry), step 3 / 9B2 (Preview panel), step 4 (words and manual). Corrections: no autosave-backup / no undoable New in the code;
+writers read live globals so export crops at the composite via options.rect; menu label is "Save Image As"; ctile already reads the
+selection.
+Owner answers: (1) New picture from selection asks "are you sure?" first (Ctrl+Z also works); (2) keep all layers, cropped;
+(3) BUILD any-size ASM / C / BIN / ATR (and font formats where sensible) for Save Selection As; (4) Preview panel hidden until
+View > Preview; (5) Save Image As > .ctile saves the whole picture AND fix Ctrl+Z after File > New / Open (UndoRedo.clear in the new
+and project-load paths; failing test first).
