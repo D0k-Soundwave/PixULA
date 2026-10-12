@@ -217,7 +217,7 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | Zoom | Up to 1600%; Ctrl+wheel; Ctrl + and -. | 100 to 1600%; wheel; + and -. | Same |
 | Preview window | Miniature of the whole picture. | No. | Missing |
 | Background picture (P key) | A picture behind the canvas with position and transparency. | Reference panel: position, scale, rotate, flip, opacity. | PixULA further |
-| Raster jump 8x8, 16x16, 256x192, user-defined | The pointer moves in fixed steps. | Snap to the attribute grid; nudge step preference. | Partial |
+| Raster jump 8x8, 16x16, 256x192, user-defined | The pointer moves in fixed steps. | Snap has a step (2026-10-12, Batch 9 part 9A): the mode's attribute cell, 16x16, a whole 256x192 screen (only on a canvas bigger than one screen) or a custom across/down step set in Preferences; picking a step turns Snap on; shape ends, figure points, text, selections and pasted pieces land on it (a pasted piece by its top-left corner). Also the arrow keys step by it with Snap on. ZX Paintbrush moves pixel by pixel with the keyboard whatever the raster, so that part differs on purpose. | Same |
 | Cursor keys move the last figure | Pixel-by-pixel nudging of what you just drew. | The arrow keys move a pending figure, shape or curve by one pixel, or a cell with Shift or grid snap (2026-10-10, 7C); they move a floating stamp or the selection when no figure is waiting. | Same |
 
 ### Files and tapes

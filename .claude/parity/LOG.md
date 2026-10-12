@@ -696,3 +696,21 @@ quantiser, palette-bench); (3) keep the Timex hi-res fix; (4) the Dither select 
 Batch 9: blocks start where you press (with Snap on the press drops to the snap cell first).
 To do from these answers (queued, in this order, each with tests): group A leftovers (b)-(e); Sharp + Dither; Layer 2 / LoRes
 dither; 3-point parallelogram (group D); commit rewording (end, before any merge).
+
+## Batch 9 part 9A (snap step) - 2026-10-12, branch parity-c
+Opus plan review split 9A into 9A (snap step) and 9A2 (selection Size); owner answered the block-placement question (blocks start
+where you press). Built 9A: js/utils/snap-grid.js (SnapGrid: sizeOf for cell / block16 / screen / custom, screenFits, snap,
+floor, blockRect (for 9A2), nudgeStep), StateManager get/setGridSnapStep + getGridSnapSize (GRID_SNAP_CHANGED now carries the
+step), own Storage key gridSnapStep (restored in app.js, deleted on Preferences reset), the "drawing" preset/.pixula slice
+carries snapStep (an older preset with Snap but no step gets Cell), a step list beside the Snap button (labels are the sizes;
+Screen disabled unless a whole screen fits - layer2_320 and layer2_640 only; picking a step turns Snap on), custom across / down
+fields in Preferences > Drawing, pointer snapping uses the step, a pasted/floating piece snaps by its top-left corner (it used
+to centre on a snapped point, half a step off the grid), arrow keys step by the snap step (selection with colours: the step
+rounded to cells), Selection tool can opt out via snapsPointer (used in 9A2). 5 new i18n keys + view.snap.hint reworded in 13
+locales. Manual: 50-tools "Snap and its step" in 13 languages (the older figure-nudge sentence in the translations still says
+"one cell with Shift or with grid snap": true for the default Cell step).
+Tests: tests/snap-grid.test.js, preset-slices (step), tests/browser/snap-step.spec.js (6). Fixed on the way: tooltip SELECTOR now
+includes .grid-step-select.
+Not in 9A (go to 9A2): Selection Size option, drag-to-multiples, the Cell-select half-cell bug and the 17-pixel free-rectangle
+bug under Snap.
+Next: 9A2.

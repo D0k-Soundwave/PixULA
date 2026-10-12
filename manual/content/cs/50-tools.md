@@ -32,4 +32,6 @@ jsou tam bez ohledu na ostatní nastavení.
 
 **Rozprašovač se vzorem.** Nastavte u rozprašovače Rozložení na **Vzor** a místo teček bude klást malé celé obrazce - kolečka, čtverečky nebo krátké čárky. Vyberte obrazec, jeho velikost a zda je plný, nebo jen obrys; Průtok určuje, kolik plochy se snaží pokrýt. Uvnitř oblasti se kladou jen celé obrazce, takže příliš malý rozprašovač nenakreslí nic.
 
+**Přichytávání a jeho krok.** Přichytávání (tlačítko pod plátnem nebo Shift+S) způsobí, že výběry, tvary, body obrazců, text a vkládané kusy dosednou na mřížku; kreslení od ruky se nikdy nepřichytává. Seznam vedle tlačítka určuje mřížku: atributovou buňku režimu (8x8, nebo 8x4, 8x2 či 8x1 v multicolor režimech), 16x16, celou obrazovku 256x192 (jen na plátně větším než jedna obrazovka, např. Layer 2 320 a 640), nebo vlastní krok, jehož vodorovnou a svislou velikost nastavíte v Nastavení v části Kreslení. Volba kroku také zapne přichytávání. Vložený kus dosedne levým horním rohem na mřížku. Při zapnutém přichytávání šipky posouvají čekající obrazec, plovoucí kus nebo konec přechodu o jeden krok; výběr nesoucí své barvy se posouvá o krok zaokrouhlený na celé buňky. ZX Paintbrush posouvá klávesnicí po jednom bodu bez ohledu na rastr, takže se to záměrně liší.
+
 {{tools}}

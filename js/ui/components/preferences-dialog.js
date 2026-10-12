@@ -102,6 +102,14 @@ class PreferencesDialogClass {
                 <input type="number" id="pref-nudge-step" name="pref-nudge-step" min="1" max="32" value="1">
             </label>
             <label class="pref-row">
+                <span data-i18n="pref.snapStepX">${this._t('pref.snapStepX', 'Custom snap step, across (pixels)')}</span>
+                <input type="number" id="pref-snap-x" name="pref-snap-x" min="1" max="640" value="24">
+            </label>
+            <label class="pref-row">
+                <span data-i18n="pref.snapStepY">${this._t('pref.snapStepY', 'Custom snap step, down (pixels)')}</span>
+                <input type="number" id="pref-snap-y" name="pref-snap-y" min="1" max="256" value="24">
+            </label>
+            <label class="pref-row">
                 <input type="checkbox" id="pref-inverse" name="pref-inverse">
                 <span data-i18n="pref.inverse">${this._t('pref.inverse', 'Inverse: swap the mouse buttons')}</span>
             </label>
@@ -266,6 +274,10 @@ class PreferencesDialogClass {
         if (inverse) inverse.checked = StateManager.getInverse();
         const nudgeStep = content.querySelector('#pref-nudge-step');
         if (nudgeStep) nudgeStep.value = String(clamp(parseInt(StateManager.get('nudgeStep'), 10) || 1, 1, 32));
+        const snapX = content.querySelector('#pref-snap-x');
+        const snapY = content.querySelector('#pref-snap-y');
+        if (snapX) snapX.value = String(StateManager.getGridSnapStep().x);
+        if (snapY) snapY.value = String(StateManager.getGridSnapStep().y);
         const touchDraw = content.querySelector('#pref-touch-draw');
         if (touchDraw) touchDraw.checked = StateManager.get('touchDrawing') !== false;
         const touchNoDouble = content.querySelector('#pref-touch-no-double');
@@ -848,6 +860,10 @@ class PreferencesDialogClass {
         if (confirmClear) StateManager.set('confirmClear', confirmClear.checked);
         if (resetDrawMode) StateManager.set('resetDrawModeOnTool', resetDrawMode.checked);
         if (nudgeStepEl) StateManager.set('nudgeStep', nudgeStep);
+        // The custom snap step has its own storage key (see CanvasControls), written when the step changes.
+        const snapXEl = dialog.querySelector('#pref-snap-x');
+        const snapYEl = dialog.querySelector('#pref-snap-y');
+        if (snapXEl && snapYEl) StateManager.setGridSnapStep({ x: parseInt(snapXEl.value, 10), y: parseInt(snapYEl.value, 10) });
         // Inverse is remembered under its own key (DrawModeBar), like grid snap, so it is not in `stored`.
         if (inverseEl && inverseEl.checked !== StateManager.getInverse()) StateManager.setInverse(inverseEl.checked);
         // The drawing switch has a second home in the status bar, so it goes
@@ -946,6 +962,7 @@ class PreferencesDialogClass {
                 Storage.delete('preferences'),
                 Storage.delete('theme'),
                 Storage.delete('gridSnap'),
+                Storage.delete('gridSnapStep'),
                 Storage.delete('gridState'),
                 Storage.delete('inverse', Storage.STORES.PREFERENCES),
                 Storage.delete('viewColoursOff'),

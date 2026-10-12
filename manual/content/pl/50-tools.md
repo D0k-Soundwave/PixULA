@@ -33,4 +33,6 @@ oznaczone „zawsze” są obecne niezależnie od reszty.
 
 **Spray ze wzorem.** Ustaw Rozkład sprayu na **Wzór**, a zamiast punktów będzie kładł małe, całe figury - kółka, kwadraty lub krótkie kreski. Wybierz figurę, jej rozmiar i czy jest wypełniona, czy tylko obrysem; Przepływ określa, jaką część obszaru mają pokryć. W obszarze sprayu kładzione są tylko całe figury, więc spray za mały na jedną figurę nic nie rysuje.
 
+**Przyciąganie i jego krok.** Przyciąganie (przycisk pod płótnem lub Shift+S) sprawia, że zaznaczenia, kształty, punkty figur, tekst i wklejone kawałki lądują na siatce; rysowanie odręczne nigdy nie jest przyciągane. Lista obok przycisku ustawia siatkę: komórkę atrybutów trybu (8x8, a w trybach multicolor 8x4, 8x2 lub 8x1), 16x16, cały ekran 256x192 (tylko na płótnie większym niż jeden ekran, np. Layer 2 320 i 640) albo własny krok, którego szerokość i wysokość ustawiasz w Preferencjach, w części Rysowanie. Wybór kroku włącza też przyciąganie. Wklejony kawałek ląduje lewym górnym rogiem na siatce. Przy włączonym przyciąganiu strzałki przesuwają czekającą figurę, pływający kawałek lub koniec gradientu o jeden krok; zaznaczenie niosące swoje kolory przesuwa się o krok zaokrąglony do pełnych komórek. ZX Paintbrush przesuwa klawiaturą piksel po pikselu niezależnie od skoku rastra, więc tu jest celowo inaczej.
+
 {{tools}}

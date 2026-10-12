@@ -1264,6 +1264,7 @@ PresetServiceClass.SLICES = Object.freeze([
                 symmetry: StateManager.getSymmetryMode(),
                 clip: StateManager.getClipMode(),
                 snap: StateManager.getGridSnap(),
+                snapStep: StateManager.getGridSnapStep(),
                 nudgeStep: StateManager.get('nudgeStep')
             };
         },
@@ -1274,6 +1275,9 @@ PresetServiceClass.SLICES = Object.freeze([
             if (typeof value.inverse === 'boolean') StateManager.setInverse(value.inverse);
             if (typeof value.symmetry === 'string') StateManager.setSymmetryMode(value.symmetry);
             if (typeof value.clip === 'string') StateManager.setClipMode(value.clip);
+            // The step: an older preset or file that has Snap but no step snapped to the attribute cell, so it gets Cell.
+            if (value.snapStep && typeof value.snapStep === 'object') StateManager.setGridSnapStep(value.snapStep);
+            else if (typeof value.snap === 'boolean') StateManager.setGridSnapStep({ kind: 'cell' });
             if (typeof value.snap === 'boolean') StateManager.setGridSnap(value.snap);
             if (Number.isFinite(value.nudgeStep)) {
                 StateManager.set('nudgeStep', Helpers.clamp(value.nudgeStep, 1, 32));

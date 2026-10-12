@@ -34,4 +34,6 @@ marcadas «sempre» estão lá seja qual for o resto.
 
 **Spray com padrão.** Ponha a Distribuição do spray em **Padrão** e ele coloca pequenas figuras inteiras - círculos, quadrados ou traços curtos - em vez de pontos. Escolha a figura, o tamanho e se é cheia ou só contorno; o Fluxo diz que parte da área tentam cobrir. Só são colocadas figuras inteiras dentro da área, por isso um spray pequeno demais para uma figura não desenha nada.
 
+**O ajuste e o seu passo.** O ajuste (o botão sob a tela, ou Shift+S) faz as seleções, formas, pontos de figura, texto e peças coladas caírem numa grelha; o desenho à mão livre nunca é ajustado. A lista junto ao botão define a grelha: a célula de atributos do modo (8x8, ou 8x4, 8x2 ou 8x1 nos modos multicolor), 16x16, um ecrã inteiro de 256x192 (só numa tela maior que um ecrã, como Layer 2 320 e 640) ou o seu passo, cuja largura e altura define nas Preferências, em Desenho. Escolher um passo também liga o ajuste. Uma peça colada cai com o canto superior esquerdo na grelha. Com o ajuste ligado, as setas movem um passo uma figura em espera, uma peça flutuante ou a ponta do gradiente; uma seleção que leva as suas cores move-se o passo arredondado a células inteiras. O ZX Paintbrush move com o teclado pixel a pixel seja qual for o seu salto de trama, por isso isto difere de propósito.
+
 {{tools}}
