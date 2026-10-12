@@ -714,3 +714,14 @@ includes .grid-step-select.
 Not in 9A (go to 9A2): Selection Size option, drag-to-multiples, the Cell-select half-cell bug and the 17-pixel free-rectangle
 bug under Snap.
 Next: 9A2.
+
+## Batch 9 part 9A2 (selection Size) - 2026-10-12, branch parity-c
+Selection tool: Size list on the rectangle (Free, Cell, 16x16, Screen, Custom) with Custom block width / height rows; one
+_dragRect() feeds preview and commit; blocks via SnapGrid.blockRect (Cell blocks on the cell grid, the others start at the press,
+or at the snap cell the press fell in when Snap is on); Screen is greyed out unless a whole screen fits (new `screenFits` leaf in
+OptionControls._evalShowIf) and a preset-borne Screen is clamped to the canvas. The tool no longer takes a pre-rounded pointer for
+blocks and Cell (snapsPointer): fixes the half-cell bug (a click in the right half of a cell selected the next one under Snap);
+a Free drag under Snap is now exact (0 -> 16 selects 16 pixels, not 17). Cell mode itself is unchanged and Rectangle + Size Cell
+equals it on 200 random drags in 4 cell geometries. 8 keys in 13 locales; manual "Selection sizes" in 13 languages.
+Tests: tests/selection-size.test.js, tests/browser/selection-size.spec.js (4). Comparison row Selectors -> Same; Raster jump -> Same.
+Next: full suites, then Batch 9 part 9B (New picture from selection, Export selection, Preview panel).

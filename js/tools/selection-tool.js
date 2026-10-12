@@ -16,7 +16,21 @@ class SelectionToolClass extends ToolBase {
       { value: 'ellipse',   i18n: 'sel.ellipse' },
       { value: 'cell',      i18n: 'sel.cell' },
       { value: 'freeform',  i18n: 'sel.lasso' }
-    ]}
+    ]},
+    // Batch 9 part 9A2: the rectangle can select whole blocks. Free is today's behaviour; the others pick whole multiples
+    // of the size (a click picks one block).
+    { type: 'select', key: 'selectSize', i18n: 'opt.selectSize', value: 'free',
+      showIf: { key: 'selectMode', equals: 'rectangle' }, options: [
+      { value: 'free',    i18n: 'sel.size.free' },
+      { value: 'cell',    i18n: 'sel.size.cell' },
+      { value: 'block16', i18n: 'sel.size.block16' },
+      { value: 'screen',  i18n: 'sel.size.screen', disabledIf: { screenFits: false } },
+      { value: 'custom',  i18n: 'sel.size.custom' }
+    ]},
+    { type: 'range', key: 'selectSizeX', i18n: 'opt.selectSizeX', min: 1, max: 640, value: 24, unit: 'px',
+      showIf: { all: [ { key: 'selectMode', equals: 'rectangle' }, { key: 'selectSize', equals: 'custom' } ] } },
+    { type: 'range', key: 'selectSizeY', i18n: 'opt.selectSizeY', min: 1, max: 256, value: 24, unit: 'px',
+      showIf: { all: [ { key: 'selectMode', equals: 'rectangle' }, { key: 'selectSize', equals: 'custom' } ] } }
   ];
 
   constructor() {
@@ -32,6 +46,39 @@ class SelectionToolClass extends ToolBase {
     this.currentY = 0;
     this._selectMode = 'rectangle';
     this._lassoPath = [];
+    this._selectSize = 'free';
+    this._selectSizeX = 24;   // custom block size [A: any value would do]
+    this._selectSizeY = 24;
+  }
+
+  getSelectSize() { return this._selectSize; }
+  /** @param {string} v - 'free' | 'cell' | 'block16' | 'screen' | 'custom' (Screen only where a whole screen fits) */
+  setSelectSize(v) {
+    if (['free', 'cell', 'block16', 'screen', 'custom'].includes(v)) this._selectSize = v;
+  }
+  getSelectSizeX() { return this._selectSizeX; }
+  setSelectSizeX(v) { this._selectSizeX = clamp(Math.round(Number(v)) || 24, 1, 640); }
+  getSelectSizeY() { return this._selectSizeY; }
+  setSelectSizeY(v) { this._selectSizeY = clamp(Math.round(Number(v)) || 24, 1, 256); }
+
+  /** The block size in force for a rectangle drag, or null for a free drag. @private */
+  _blockSize() {
+    if (this._selectMode !== 'rectangle' || this._selectSize === 'free') return null;
+    if (this._selectSize === 'screen') {
+      // The list greys Screen out unless a whole screen is smaller than the canvas, but a preset can still bring it in:
+      // then it is one screen clamped to the canvas (the whole picture in a 256x192 mode).
+      const sc = SnapGrid.screenSize();
+      return { w: clamp(sc.w, 1, ZX_SPECTRUM.WIDTH), h: clamp(sc.h, 1, ZX_SPECTRUM.HEIGHT) };
+    }
+    return SnapGrid.sizeOf(this._selectSize, { x: this._selectSizeX, y: this._selectSizeY });
+  }
+
+  /**
+   * Blocks and cell selection read the raw pointer: InputHandler rounds a snapped pointer to the NEAREST step, so a click
+   * in the right half of a cell used to select the next one. The tool snaps what it needs itself.
+   */
+  get snapsPointer() {
+    return !(this._selectMode === 'cell' || this._blockSize());
   }
 
   /**
@@ -118,13 +165,12 @@ class SelectionToolClass extends ToolBase {
         GridOverlay.drawLassoPreview(this._lassoPath);
       }
     } else if (this._selectMode === 'ellipse') {
-      const rect = this._normalizeRect(this.startX, this.startY, pixelX, pixelY);
+      const rect = this._dragRect();
       if (window.GridOverlay) {
         GridOverlay.drawLassoPreview(this._ellipseOutline(rect));
       }
     } else {
-      const rect = this._normalizeRect(this.startX, this.startY, pixelX, pixelY);
-      const previewRect = this._selectMode === 'cell' ? this._snapToCell(rect) : rect;
+      const previewRect = this._dragRect();
       if (window.GridOverlay && previewRect.width > 0 && previewRect.height > 0) {
         GridOverlay.drawSelectionPreview(previewRect.x, previewRect.y, previewRect.width, previewRect.height);
       }
@@ -219,8 +265,39 @@ class SelectionToolClass extends ToolBase {
    */
   getSelectionPreview() {
     if (!this.isSelecting) return null;
+    return this._dragRect();
+  }
+
+  /**
+   * The rectangle the current drag covers, for the preview and the commit. Cell mode snaps to the cells touched; a block
+   * size picks whole blocks (Cell on the cell grid, the others starting where the press landed - or on the snap cell the
+   * press fell in, when Snap is on); a free drag is the bare rectangle. With Snap on, a free drag's far end is exclusive:
+   * both ends are snapped, so a drag from 0 to 16 selects 16 pixels, not 17.
+   * @private
+   */
+  _dragRect() {
+    const size = this._blockSize();
+    if (size) {
+      const start = { x: this.startX, y: this.startY };
+      const end = { x: this.currentX, y: this.currentY };
+      let origin = { x: 0, y: 0 };
+      if (this._selectSize !== 'cell') {
+        origin = start;
+        if (StateManager.getGridSnap()) {
+          const st = StateManager.getGridSnapSize();
+          origin = { x: SnapGrid.floor(start.x, st.w), y: SnapGrid.floor(start.y, st.h) };
+        }
+      }
+      const r = SnapGrid.blockRect(start, end, size, origin);
+      return { x: r.x, y: r.y, width: r.w, height: r.h };
+    }
     const rect = this._normalizeRect(this.startX, this.startY, this.currentX, this.currentY);
-    return this._selectMode === 'cell' ? this._snapToCell(rect) : rect;
+    if (this._selectMode === 'cell') return this._snapToCell(rect);
+    if (StateManager.getGridSnap() && (this._selectMode === 'rectangle' || this._selectMode === 'ellipse')) {
+      if (rect.width > 1) rect.width -= 1;
+      if (rect.height > 1) rect.height -= 1;
+    }
+    return rect;
   }
 
   /**
@@ -280,7 +357,7 @@ class SelectionToolClass extends ToolBase {
    * @private
    */
   _commitDragSelection() {
-    const rect = this._normalizeRect(this.startX, this.startY, this.currentX, this.currentY);
+    const rect = this._dragRect();
     if (rect.width <= 0 || rect.height <= 0) return null;
 
     // A drag that settles to a single pixel wide or tall (a plain click with
@@ -294,7 +371,7 @@ class SelectionToolClass extends ToolBase {
     // exempt -- a snapped single cell is a deliberate, meaningful minimum
     // there, and can legitimately BE 1px tall by design in the 8x1
     // multicolor modes.
-    if (this._selectMode !== 'cell' && (rect.width === 1 || rect.height === 1)) {
+    if (this._selectMode !== 'cell' && !this._blockSize() && (rect.width === 1 || rect.height === 1)) {
       return null;
     }
 
