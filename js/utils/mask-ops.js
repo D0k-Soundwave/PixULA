@@ -149,6 +149,35 @@ const MaskOps = {
     },
 
     /**
+     * The (dx, dy) a drop shadow of size `off` falls by. The direction is relative to the LETTERS (the effects run before
+     * the turn), so a quarter turn turns the shadow with the text. Anything unknown is down-right, today's shadow.
+     * @param {string} dir - 'down-right' | 'down-left' | 'up-right' | 'up-left'
+     * @param {number} off
+     * @returns {{dx:number,dy:number}}
+     */
+    shadowVector(dir, off) {
+        const left = dir === 'down-left' || dir === 'up-left';
+        const up = dir === 'up-right' || dir === 'up-left';
+        return { dx: left ? -off : off, dy: up ? -off : off };
+    },
+
+    /**
+     * The pixel of a w x h box that a placement click lands on. Nine anchors: 'top-left' ... 'bottom-right'; a left/top
+     * anchor is the first column/row, a right/bottom one the last, and the middle is floor(n / 2) - exactly the rule text
+     * was centred by before anchors existed. Unknown or missing is 'center'.
+     * @param {string} anchor
+     * @param {number} w
+     * @param {number} h
+     * @returns {{x:number,y:number}} offsets from the box's top-left
+     */
+    anchorOffset(anchor, w, h) {
+        const a = String(anchor || 'center');
+        const x = a.includes('left') || a === 'left' ? 0 : a.includes('right') ? w - 1 : Math.floor(w / 2);
+        const y = a.startsWith('top') ? 0 : a.startsWith('bottom') ? h - 1 : Math.floor(h / 2);
+        return { x, y };
+    },
+
+    /**
      * Contour/outline: 8-neighbour dilation minus the glyph — a hollow 1px
      * outline around the letterforms. The result grows by 1px on every side.
      * @param {boolean[][]} mask
@@ -258,6 +287,7 @@ const MaskOps = {
      *   shadow        boolean — drop shadow (offset-OR)
      *   outline       boolean — hollow contour (dilate-minus-glyph)
      *   shadowOffset  px; defaults to max(1, round(maskHeight / 8))
+     *   shadowDir     'down-right' (default) | 'down-left' | 'up-right' | 'up-left' - relative to the letters
      * @returns {boolean[][]}
      */
     process(mask, opts = {}) {
@@ -268,7 +298,8 @@ const MaskOps = {
         if (opts.shadow) {
             const off = opts.shadowOffset ||
                 Math.max(1, Math.round(MaskOps.size(mask).h / 8));   // pre-effect height
-            out = MaskOps.shadow(out, off, off);
+            const v = MaskOps.shadowVector(opts.shadowDir, off);
+            out = MaskOps.shadow(out, v.dx, v.dy);
         }
         if (opts.direction) out = MaskOps.rotate(out, opts.direction);
         return out;

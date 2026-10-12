@@ -1724,8 +1724,8 @@ class InputHandlerClass {
     if (fp && StateManager.getGridSnap() && this._snapContextActive()) {
       const raw = this._getCanvasPoint(e, false);
       const step = StateManager.getGridSnapSize();
-      SelectionService.moveFloatingPaste(SnapGrid.snap(raw.x - Math.floor(fp.width / 2), step.w),
-        SnapGrid.snap(raw.y - Math.floor(fp.height / 2), step.h));
+      const a = SelectionService.anchorOffset(fp, fp.width, fp.height);
+      SelectionService.moveFloatingPaste(SnapGrid.snap(raw.x - a.x, step.w), SnapGrid.snap(raw.y - a.y, step.h));
       return;
     }
     SelectionService.moveStampPreview(point.x, point.y);

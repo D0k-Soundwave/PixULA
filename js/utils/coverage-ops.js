@@ -397,7 +397,10 @@ const CoverageOps = {
         if (opts.outline) out = CoverageOps.outline(out);
         if (opts.shadow) {
             const off = opts.shadowOffset || Math.max(1, Math.round(cov.h / 8));
-            out = CoverageOps.shadow(out, off, off);
+            // the same vector as MaskOps.shadowVector (this file does not depend on MaskOps)
+            const left = opts.shadowDir === 'down-left' || opts.shadowDir === 'up-left';
+            const up = opts.shadowDir === 'up-right' || opts.shadowDir === 'up-left';
+            out = CoverageOps.shadow(out, left ? -off : off, up ? -off : off);
         }
         return out;
     },
