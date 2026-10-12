@@ -137,6 +137,7 @@ class MenuSystemClass {
         }
         this._updateModeToggles();
         this._updateExportAsMenuState();
+        this._updateExportSelectionMenuState();
         this._updateMirrorToggles();
         if (window.StateManager) this._updateToggleState('grid-snap', StateManager.getGridSnap());
         this._updateDisplayViewMenuState();
@@ -327,6 +328,31 @@ class MenuSystemClass {
     }
 
     /**
+     * Save Selection As: open each format whose rule lets the selection through, and say why the shut ones are shut.
+     * @private
+     */
+    _updateExportSelectionMenuState() {
+        if (!window.FormatRegistry || !window.FileManager) return;
+        const rect = FileManager.selectionRect();
+        const reasons = {
+            none: ['export.sel.none', 'Select part of the picture first.'],
+            mode: ['export.sel.mode', 'This screen mode cannot be saved in this format.'],
+            layout: ['export.sel.layout', 'This screen mode cannot save a part in this format.'],
+            screenOnly: ['export.sel.screenOnly', 'This format saves a whole screen: select all of it first.']
+        };
+        for (const [ext] of EXPORT_FORMATS) {
+            if (!FormatRegistry.selectionRule(ext)) continue;
+            const id = 'export-selection-' + ext;
+            const fit = FormatRegistry.selectionFit(ext, rect);
+            this.setItemEnabled(id, fit.ok);
+            const el = this.element.querySelector('[data-id="' + id + '"]');
+            if (!el) continue;
+            const r = reasons[fit.reason];
+            if (r) el.title = this._t(r[0], r[1]); else el.removeAttribute('title');
+        }
+    }
+
+    /**
      * Build the menu structure
      * @private
      */
@@ -351,6 +377,13 @@ class MenuSystemClass {
                       items: EXPORT_FORMATS.map(([ext, label]) => ({
                           id: 'export-as-' + ext, label, i18n: 'format.' + ext,
                           action: 'file:exportAs:' + ext
+                      })) },
+                    // The same formats for just the selection: each leaf is open when its rule lets the selection
+                    // through (see FormatRegistry.selectionFit and _updateExportSelectionMenuState).
+                    { id: 'export-selection', label: 'Save Selection As', i18n: 'menu.file.exportSelection',
+                      items: EXPORT_FORMATS.filter(([ext]) => !['pal', 'npl'].includes(ext)).map(([ext, label]) => ({
+                          id: 'export-selection-' + ext, label, i18n: 'format.' + ext,
+                          action: 'file:exportSelection:' + ext
                       })) },
                     { type: 'separator' },
                     { id: 'load-project', label: 'Load Project...', action: 'file:loadProject' },
@@ -811,6 +844,7 @@ class MenuSystemClass {
 
         if (menuId === 'file') this._updatePaletteMenuState();
         if (menuId === 'edit') this._updateEditMenuState();
+        if (menuId === 'file') this._updateExportSelectionMenuState();
         if (menuId === 'view') this._updateViewMenuState();
         if (menuId === 'image') {
             this._updateAttributeMenuState();
@@ -1012,6 +1046,10 @@ class MenuSystemClass {
         // File > Save Image As leaves carry their format in the action id
         // itself ('file:exportAs:tap') rather than one switch case per
         // format — see the File menu's export-as submenu in _buildMenus().
+        if (actionId.startsWith('file:exportSelection:')) {
+            FileManager.exportSelectionAs(actionId.slice('file:exportSelection:'.length));
+            return;
+        }
         if (actionId.startsWith('file:exportAs:')) {
             FileManager.exportAs(actionId.slice('file:exportAs:'.length));
             return;

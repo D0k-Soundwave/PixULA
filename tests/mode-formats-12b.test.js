@@ -363,19 +363,17 @@ LayerManager.initialize();
     && layer.getCell(0, 0).paper === 7);
   check('.ctile tile 1 landed to the right', layer.getCell(2, 0).pixels[0] === 0xFF);
 
-  // Export the imported region back via a selection stub — must round-trip
-  global.SelectionService = {
-    getSelection: () => ({ x: 0, y: 0, width: 32, height: 16, mask: null })
-  };
-  const out = CtileFormat.export();
-  check('.ctile selection export round-trips', Buffer.from(out).equals(Buffer.from(file)));
+  // Export the imported region back via the rect option (Save Selection As) - must round-trip
+  const out = CtileFormat.export({ rect: { x: 0, y: 0, width: 32, height: 16 } });
+  check('.ctile rect export round-trips', Buffer.from(out).equals(Buffer.from(file)));
 
   let threw = false;
-  global.SelectionService = {
-    getSelection: () => ({ x: 4, y: 0, width: 32, height: 16, mask: null })
-  };
-  try { CtileFormat.export(); } catch (e) { threw = true; }
-  check('.ctile misaligned selection gates', threw);
+  try { CtileFormat.export({ rect: { x: 4, y: 0, width: 32, height: 16 } }); } catch (e) { threw = true; }
+  check('.ctile misaligned rect gates', threw);
+
+  // Save Image As no longer reads the selection: the whole canvas is saved even with one active
+  global.SelectionService = { getSelection: () => ({ x: 0, y: 0, width: 32, height: 16, mask: null }) };
+  check('.ctile ignores a live selection (the whole canvas is saved)', CtileFormat.export().length === 192 * 64);
   delete global.SelectionService;
 
   // Full-canvas export = 16×12 tiles

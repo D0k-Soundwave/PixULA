@@ -122,6 +122,58 @@ class FormatRegistryClass {
   }
 
   /**
+   * What Save Selection As may do for a format (Batch 9 part 9B), by extension. The rule is about the format, so it lives here
+   * with the other format metadata:
+   *   pixels  a picture format: any rectangle of the picture
+   *   cells   whole attribute cells (the rectangle is fitted to cells first)
+   *   tiles16 whole 16x16 tiles (fitted to the 16 grid first)
+   *   screen  a fixed-size dump of one whole screen: only offered when the selection IS the whole screen
+   * An extension with no entry (palettes, tile maps, fonts) is not a picture and is not offered.
+   */
+  get SELECTION_RULES() {
+    return {
+      png: 'pixels', bmp: 'pixels', jpg: 'pixels',
+      zxp: 'cells', sev: 'cells', zed: 'cells', asm: 'cells', c: 'cells', bin: 'cells', atr: 'cells',
+      ctile: 'tiles16',
+      scr: 'screen', mlt: 'screen', ifl: 'screen', hrg: 'screen', img: 'screen', mg8: 'screen', mg4: 'screen',
+      mg2: 'screen', mg1: 'screen', nxi: 'screen', sl2: 'screen', slr: 'screen', tap: 'screen', tzx: 'screen'
+    };
+  }
+
+  /** @returns {?string} the Save Selection As rule of an extension, or null if it is not offered */
+  selectionRule(extension) {
+    return this.SELECTION_RULES[extension.toLowerCase()] || null;
+  }
+
+  /**
+   * Whether, and as what rectangle, a selection can be saved in a format.
+   * @param {string} extension
+   * @param {?{x:number,y:number,width:number,height:number}} rect - the selection's bounding rectangle in pixels
+   * @returns {{ok:boolean, rect?:Object, snapped?:boolean, reason?:string}} reason: none (no selection), notPicture,
+   *   mode (the format cannot be saved in this screen mode), screenOnly (needs the whole screen), layout (this mode has no
+   *   linear dump for a part)
+   */
+  selectionFit(extension, rect) {
+    const ext = extension.toLowerCase();
+    const rule = this.selectionRule(ext);
+    if (!rule) return { ok: false, reason: 'notPicture' };
+    if (!rect) return { ok: false, reason: 'none' };
+    if (!this.isExportCompatible(ext)) return { ok: false, reason: 'mode' };
+    const W = ZX_SPECTRUM.WIDTH, H = ZX_SPECTRUM.HEIGHT;
+    const whole = rect.x === 0 && rect.y === 0 && rect.width === W && rect.height === H;
+    if (rule === 'screen') return whole ? { ok: true, rect: null, snapped: false } : { ok: false, reason: 'screenOnly' };
+    if (rule === 'pixels') return { ok: true, rect: { ...rect }, snapped: false };
+    // cells / tiles16: fit to the grid, covering what was selected
+    const handler = this.getExportHandler(ext);
+    if (typeof handler.canExportRect === 'function' && !handler.canExportRect()) return { ok: false, reason: 'layout' };
+    const size = SnapGrid.sizeOf(rule === 'cells' ? 'cell' : 'block16');
+    const r = SnapGrid.blockRect({ x: rect.x, y: rect.y }, { x: rect.x + rect.width - 1, y: rect.y + rect.height - 1 }, size);
+    const fitted = { x: r.x, y: r.y, width: r.w, height: r.h };
+    const snapped = fitted.x !== rect.x || fitted.y !== rect.y || fitted.width !== rect.width || fitted.height !== rect.height;
+    return { ok: true, rect: fitted, snapped };
+  }
+
+  /**
    * Get list of supported import formats
    * @returns {string[]} Array of extensions
    */

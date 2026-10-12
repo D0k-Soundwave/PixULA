@@ -30,8 +30,12 @@ class BMPFormatClass {
    */
   export(options = {}) {
     const scale = options.scale || 1;
-    const width = ZX_SPECTRUM.WIDTH * scale;
-    const height = ZX_SPECTRUM.HEIGHT * scale;
+    // Save Selection As passes the part to keep (options.rect)
+    let imageData = LayerManager.stillImageData();
+    if (options.rect) imageData = Helpers.cropImageData(imageData, options.rect);
+    const srcW = imageData.width;
+    const width = srcW * scale;
+    const height = imageData.height * scale;
 
     // Calculate sizes
     const rowSize = Math.ceil(width * 3 / 4) * 4; // Padded to 4 bytes
@@ -62,8 +66,6 @@ class BMPFormatClass {
     view.setUint32(46, 0, true);                    // Colors in palette
     view.setUint32(50, 0, true);                    // Important colors
 
-    // Get image data
-    const imageData = LayerManager.stillImageData();
     const data = imageData.data;
 
     // Write pixel data (BGR format, top-down due to negative height)
@@ -74,7 +76,7 @@ class BMPFormatClass {
         // Scale coordinates back to source
         const srcX = Math.floor(x / scale);
         const srcY = Math.floor(y / scale);
-        const srcI = (srcY * ZX_SPECTRUM.WIDTH + srcX) * 4;
+        const srcI = (srcY * srcW + srcX) * 4;
 
         // BMP uses BGR order
         bytes[offset++] = data[srcI + 2]; // B

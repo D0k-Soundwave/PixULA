@@ -470,6 +470,25 @@ const Helpers = {
      * @param {number} height
      * @returns {HTMLCanvasElement}
      */
+    /**
+     * A copy of part of an image (the selection, for Save Selection As). The source is never touched.
+     * @param {{width:number,height:number,data:Uint8ClampedArray}} img
+     * @param {{x:number,y:number,width:number,height:number}} rect - clamped to the image
+     * @returns {{width:number,height:number,data:Uint8ClampedArray}} an ImageData where the platform has one
+     */
+    cropImageData(img, rect) {
+        const x0 = Helpers.clamp(Math.round(rect.x), 0, img.width - 1);
+        const y0 = Helpers.clamp(Math.round(rect.y), 0, img.height - 1);
+        const w = Helpers.clamp(Math.round(rect.width), 1, img.width - x0);
+        const h = Helpers.clamp(Math.round(rect.height), 1, img.height - y0);
+        const out = new Uint8ClampedArray(w * h * 4);
+        for (let y = 0; y < h; y++) {
+            const from = ((y0 + y) * img.width + x0) * 4;
+            out.set(img.data.subarray(from, from + w * 4), y * w * 4);
+        }
+        return typeof ImageData !== 'undefined' ? new ImageData(out, w, h) : { width: w, height: h, data: out };
+    },
+
     createCanvas(width, height) {
         const canvas = document.createElement('canvas');
         canvas.width = width;

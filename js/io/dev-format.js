@@ -45,6 +45,7 @@ class DevFormatClass {
       // extension, so it is the one thing the caller cannot have meant.
       export: (options) => this.export(Object.assign({}, options, { format: ext })),
       canExport: () => this.canExport(ext),
+      canExportRect: () => this.canExportRect(),
       exportAndDownload: (filename, options, handle) =>
         this.exportAndDownload(filename, options, handle)
     };
@@ -147,12 +148,58 @@ class DevFormatClass {
   }
 
   /**
+   * Whether a PART of the screen can be dumped: the screen has to be the 256x192 one-bit single-screen picture whose
+   * bitmap is in ZX screen memory order, so a block of cells can be lifted out of it (every classic, multicolor and ULAplus
+   * mode; not Timex hi-res, GigaScreen or the indexed modes).
+   * @returns {boolean}
+   */
+  canExportRect() {
+    const std = SCREEN_MODES.STANDARD_ULA;
+    return SCRFormat.canExport() && ZX_SPECTRUM.WIDTH === std.width && ZX_SPECTRUM.HEIGHT === std.height &&
+      ZX_SPECTRUM.PIXEL_DEPTH === 1 && (ACTIVE_SCREEN_MODE.screens || 1) === 1;
+  }
+
+  /**
+   * The bytes of a block of whole cells (Save Selection As): the bitmap row by row, w/8 bytes a row (linear, not the
+   * interleaved screen order), and the attribute bytes of its cells row by row. Null attributes where the mode has none.
+   * @param {{x:number,y:number,width:number,height:number}} rect - pixels; x and width multiples of 8, y and height multiples of the cell height
+   * @returns {{bitmap: Uint8Array, attrs: ?Uint8Array, cols: number, rows: number}}
+   */
+  rectBytes(rect) {
+    if (!this.canExportRect()) throw new Error('DevFormat: a part of this screen mode cannot be saved');
+    const cellH = ZX_SPECTRUM.CELL_HEIGHT;
+    if (rect.x % 8 || rect.width % 8 || rect.y % cellH || rect.height % cellH) {
+      throw new Error('DevFormat: the part to save must be whole cells');
+    }
+    const scr = SCRFormat.export();
+    const bytesPerRow = rect.width / 8;
+    const bitmap = new Uint8Array(bytesPerRow * rect.height);
+    for (let y = 0; y < rect.height; y++) {
+      const from = AttributeSystem._lineOffset(rect.y + y) + rect.x / 8;
+      bitmap.set(scr.subarray(from, from + bytesPerRow), y * bytesPerRow);
+    }
+    const cols = rect.width / 8, rows = rect.height / cellH;
+    let attrs = null;
+    if (this.hasAttributeBlock()) {
+      attrs = new Uint8Array(cols * rows);
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          attrs[r * cols + c] = scr[ZX_SPECTRUM.BITMAP_SIZE + (rect.y / cellH + r) * ZX_SPECTRUM.GRID_COLS + rect.x / 8 + c];
+        }
+      }
+    }
+    return { bitmap, attrs, cols, rows };
+  }
+
+  /**
    * Generate export data for one of the developer formats
    * @param {string} ext - 'asm' | 'c' | 'bin' | 'atr'
    * @param {string} name - Base name used for labels/identifiers
+   * @param {?{x:number,y:number,width:number,height:number}} [rect] - save only this block of whole cells (Save Selection As)
    * @returns {Uint8Array} File content (text formats are UTF-8 encoded)
    */
-  generate(ext, name) {
+  generate(ext, name, rect = null) {
+    if (rect) return this._generateRect(ext, name, rect);
     // Mode-native dump: bitmap + attribute sizes follow the active screen
     // mode (multicolor modes emit their larger linear attribute blocks).
     // The attr slice is explicit — the ULAplus SCR variant appends 64
@@ -180,6 +227,22 @@ class DevFormatClass {
     }
   }
 
+  /** @private */
+  _generateRect(ext, name, rect) {
+    const { bitmap, attrs, cols, rows } = this.rectBytes(rect);
+    const label = this._identifier(name);
+    const note = `${cols * 8}x${rect.height} pixels (${bitmap.length / rect.height} bytes a row, rows top to bottom)`;
+    switch (ext) {
+      case 'bin': return new Uint8Array(bitmap);
+      case 'atr':
+        if (!attrs) throw new Error('DevFormat: this screen mode has no attribute block');
+        return new Uint8Array(attrs);
+      case 'asm': return new TextEncoder().encode(this._asmSource(label, bitmap, attrs, note));
+      case 'c':   return new TextEncoder().encode(this._cSource(label, bitmap, attrs, note));
+      default: throw new Error(`DevFormat: unsupported extension .${ext}`);
+    }
+  }
+
   /**
    * Registry contract — not used directly (exportAndDownload dispatches),
    * but keeps the handler shape consistent with other formats.
@@ -187,7 +250,7 @@ class DevFormatClass {
    * @returns {Uint8Array}
    */
   export(options = {}) {
-    return this.generate(options.format || 'asm', options.name || 'screen');
+    return this.generate(options.format || 'asm', options.name || 'screen', options.rect || null);
   }
 
   /**
@@ -199,7 +262,7 @@ class DevFormatClass {
   async exportAndDownload(filename = 'image.asm', options = {}, handle = null) {
     const ext = FormatRegistry.getExtension(filename) || 'asm';
     const base = filename.replace(/\.[^.]+$/, '');
-    const data = this.generate(ext, base);
+    const data = this.generate(ext, base, options.rect || null);
 
     const mime = (ext === 'asm' || ext === 'c') ? 'text/plain' : 'application/octet-stream';
     return FormatRegistry.download(data, filename, mime, handle);
@@ -465,10 +528,10 @@ class DevFormatClass {
    * Build Z80 assembly DEFB source
    * @private
    */
-  _asmSource(label, bitmap, attrs) {
+  _asmSource(label, bitmap, attrs, note = null) {
     const lines = [
       `; ${label} — ZX Spectrum SCREEN$ data`,
-      `; bitmap: ${bitmap.length} bytes (interleaved screen order), attributes: ` +
+      `; bitmap: ${bitmap.length} bytes (${note || 'interleaved screen order'}), attributes: ` +
         (attrs ? `${attrs.length} bytes` : 'none in this screen mode'),
       '',
       `${label}_bitmap:`
@@ -489,9 +552,9 @@ class DevFormatClass {
    * Build C array source
    * @private
    */
-  _cSource(label, bitmap, attrs) {
+  _cSource(label, bitmap, attrs, note = null) {
     const lines = [
-      `/* ${label} — ZX Spectrum SCREEN$ data */`,
+      `/* ${label} — ZX Spectrum SCREEN$ data${note ? ': ' + note : ''} */`,
       '',
       `const unsigned char ${label}_bitmap[${bitmap.length}] = {`
     ];
