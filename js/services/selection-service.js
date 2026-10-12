@@ -658,12 +658,12 @@ class SelectionServiceClass {
    *   { text, fontFamily, fontSize, bold, italic }
    * @param {string} [warpEffect] - Initial warp effect name (or 'none')
    */
-  startFloatingPasteFromMask(pixels, width, height, x = 0, y = 0, label = 'Place', fontInfo = null, warpEffect = 'none') {
-    this._createFloatingPaste(pixels, width, height, x, y, label, fontInfo, warpEffect);
+  startFloatingPasteFromMask(pixels, width, height, x = 0, y = 0, label = 'Place', fontInfo = null, warpEffect = 'none', opts = null) {
+    this._createFloatingPaste(pixels, width, height, x, y, label, fontInfo, warpEffect, opts);
   }
 
   /** @private */
-  _createFloatingPaste(pixels, width, height, x, y, label, fontInfo = null, warpEffect = 'none') {
+  _createFloatingPaste(pixels, width, height, x, y, label, fontInfo = null, warpEffect = 'none', opts = null) {
     if (this.floatingPaste) this.endFloatingPaste();
 
     UndoRedo.beginAction(label);
@@ -711,6 +711,10 @@ class SelectionServiceClass {
       _warpEffect: warpEffect || 'none',
       fontInfo:   fontInfo,         // null for clipboard pastes, set for text stamps
     };
+    // Per-stamp settings the creator wants from the start (the Text tool's Background). Absent for every other stamp, so
+    // default stamps, saved stamps and project bytes stay exactly as they were.
+    const startOpts = LayerManager._readStampOpts(opts);
+    if (startOpts) this.floatingPaste.opts = startOpts;
 
     this._drawFloatingLayer();
     LayerManager.flushPendingCompose();
@@ -784,9 +788,16 @@ class SelectionServiceClass {
    * @param {number} [targetW] - New source width (0 = keep current)
    * @param {number} [targetH] - New source height (0 = keep current)
    */
-  refreshTextStamp(fontInfo, warpEffect, targetW = 0, targetH = 0) {
+  refreshTextStamp(fontInfo, warpEffect, targetW = 0, targetH = 0, optsPatch = null) {
     const fp = this.floatingPaste;
     if (!fp) return;
+    if (optsPatch) {
+      // The Text tool's Background: merged into the stamp's settings with NO undo entry (a tool option is not an edit).
+      const merged = { ...(fp.opts || {}), ...optsPatch };
+      if (merged.clearDots === 'transparent') delete merged.clearDots;
+      const clean = LayerManager._readStampOpts(merged);
+      if (clean) fp.opts = clean; else delete fp.opts;
+    }
     if (fontInfo != null)   fp.fontInfo    = { ...fontInfo };
     if (warpEffect != null) fp._warpEffect = warpEffect;
     if (targetW > 0) fp._srcWidth  = targetW;
@@ -2036,8 +2047,17 @@ class SelectionServiceClass {
       t.layer.stamp = next;
     }
     UndoRedo.endAction();
+    EventBus.emit(EVENTS.STAMP_OPTIONS_CHANGED, { layer: t.layer });
     EventBus.emit(EVENTS.CANVAS_RENDER);
     return true;
+  }
+
+  /**
+   * Whether Clear background would write anything with the draw mode in force (it does not in XOR, Ink only, Paper only).
+   * @returns {boolean}
+   */
+  clearDotsHasEffect() {
+    return this._overlapClearMode(PixelDrawRoutine.resolveUserMode(true), false) !== null;
   }
 
   /** One stamp colour byte as {ink, paper, bright, flash}. The one place the layout is written. */

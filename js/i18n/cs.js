@@ -435,6 +435,7 @@ const cs = {
     'menu.image.attrFlipV': 'Otočit svisle',
     'menu.image.attrNoCells': 'Tento režim obrazovky nemá barvy buněk.',
     'menu.image.attrStamp': 'Nejprve dokončete nebo zrušte razítko.',
+    'opt.textBackground': 'Pozadí',
     'opt.shadowDir': 'Směr stínu',
     'opt.shadowDir.downRight': 'Dolů vpravo',
     'opt.shadowDir.downLeft': 'Dolů vlevo',

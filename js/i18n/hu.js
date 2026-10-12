@@ -435,6 +435,7 @@ const hu = {
     'menu.image.attrFlipV': 'Függőleges tükrözés',
     'menu.image.attrNoCells': 'Ez a képernyőmód nem használ cellaszíneket.',
     'menu.image.attrStamp': 'Előbb fejezze be vagy vonja vissza a bélyeget.',
+    'opt.textBackground': 'Háttér',
     'opt.shadowDir': 'Árnyék iránya',
     'opt.shadowDir.downRight': 'Jobbra le',
     'opt.shadowDir.downLeft': 'Balra le',
