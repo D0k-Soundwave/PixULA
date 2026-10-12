@@ -682,3 +682,17 @@ about half a session); Layer 2 / LoRes imports keep Floyd-Steinberg only (the 31
 and palette-bench measurement, half to one session); the Timex hi-res import fix changes those imports; the Dither select
 drives only the Smooth pane (also Sharp: about an hour).
 Next: Batch 9 part 9A (plan review first).
+
+## Owner answers to the sign-off questions (2026-10-12, asked one at a time)
+Group B: (1) Escape on a pending figure: KEEP dropping it. (2) Palette tape row: Same. (3) Cursor keys Same, re-colour Partial
+(as now). (4) Knob turn also sets the Rotation option: KEEP. (5) 3-point parallelogram: BUILD (do it in group D, with its
+own plan review). (6) ASCII rule vs box-drawing comments: leave the existing style. (7) Reword the two commit messages that
+mention "Opus" before any merge (rebase on parity-a/b/c; keep a backup branch until confirmed).
+Group A leftovers: (b) Wiping tool row -> Partial with the reason; (c) rename Image > Invert Colors to "Invert Dots" in
+13 languages; (d) Fill Selection stays always ink; (e) reword the cell-tool "Click it again ... to stop" hint in 13 locales
+(test Escape first and promise only what works).
+Batch 8: (1) fill tiles stay square 8 / 16 / 32; (2) ADD the 31 dithers to the Layer 2 / LoRes imports (new nearest-two-colours
+quantiser, palette-bench); (3) keep the Timex hi-res fix; (4) the Dither select drives Sharp as well as Smooth.
+Batch 9: blocks start where you press (with Snap on the press drops to the snap cell first).
+To do from these answers (queued, in this order, each with tests): group A leftovers (b)-(e); Sharp + Dither; Layer 2 / LoRes
+dither; 3-point parallelogram (group D); commit rewording (end, before any merge).
