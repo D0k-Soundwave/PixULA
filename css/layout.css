@@ -472,6 +472,17 @@ body {
     transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
+.grid-step-select {
+    padding: var(--space-xs) var(--space-xs);
+    font-size: var(--font-size-sm);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    cursor: pointer;
+    max-width: 8em;
+}
+
 .grid-toggle:hover {
     background: var(--bg-hover);
 }

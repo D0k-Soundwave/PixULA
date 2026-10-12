@@ -34,4 +34,6 @@ marcate „întotdeauna” sunt acolo indiferent de restul.
 
 **Spray cu model.** Pune Distribuția sprayului pe **Model** și va așeza mici figuri întregi - cercuri, pătrate sau linii scurte - în loc de puncte. Alege figura, mărimea ei și dacă e plină sau doar contur; Debitul spune cât din zonă încearcă să acopere. În zona sprayului se așază doar figuri întregi, deci un spray prea mic pentru o figură nu desenează nimic.
 
+**Alinierea și pasul ei.** Alinierea (butonul de sub pânză sau Shift+S) face ca selecțiile, formele, punctele figurilor, textul și bucățile lipite să aterizeze pe o grilă; desenul de mână liberă nu este niciodată aliniat. Lista de lângă buton stabilește grila: celula de atribute a modului (8x8, sau 8x4, 8x2 ori 8x1 în modurile multicolor), 16x16, un ecran întreg de 256x192 (doar pe o pânză mai mare decât un ecran, ca Layer 2 320 și 640) sau pasul tău, a cărui lățime și înălțime le stabilești în Preferințe, la Desen. Alegerea unui pas pornește și alinierea. O bucată lipită aterizează cu colțul stânga-sus pe grilă. Cu alinierea pornită, săgețile mută cu un pas o figură în așteptare, o bucată plutitoare sau capătul gradientului; o selecție care își poartă culorile se mută cu pasul rotunjit la celule întregi. ZX Paintbrush mută de la tastatură pixel cu pixel oricare ar fi saltul lui de raster, deci aici diferă intenționat.
+
 {{tools}}

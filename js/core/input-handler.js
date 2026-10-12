@@ -849,7 +849,7 @@ class InputHandlerClass {
     if (SelectionService.isFloating()) {
       const current = LayerManager.getCurrentLayer();
       if (current && current.isStamp) {
-        SelectionService.moveStampPreview(point.x, point.y);
+        this._placeStamp(e, point);
       }
     }
 
@@ -894,7 +894,7 @@ class InputHandlerClass {
         const events = this._samplesOf(e);
         for (let i = 0; i < events.length; i++) {
           const cp = this._getCanvasPoint(events[i]);
-          SelectionService.moveStampPreview(cp.x, cp.y);
+          this._placeStamp(events[i], cp);
           if (this._stampMode === 'erase') {
             SelectionService.eraseAt(stamp);
           } else {
@@ -1136,7 +1136,7 @@ class InputHandlerClass {
       SelectionService.startComponentReposition(stamp);
     }
 
-    SelectionService.moveStampPreview(point.x, point.y);
+    this._placeStamp(e, point);
     PixelDrawRoutine.beginBatch();
     const erase = e.button === 2 || (e.buttons & 32) !== 0;
     if (erase) {
@@ -1687,10 +1687,9 @@ class InputHandlerClass {
     let py = Math.floor(fy);
 
     if (snap && StateManager.getGridSnap() && this._snapContextActive()) {
-      const cellW = ZX_SPECTRUM.CELL_WIDTH;
-      const cellH = ZX_SPECTRUM.CELL_HEIGHT;
-      px = Math.round(px / cellW) * cellW;
-      py = Math.round(py / cellH) * cellH;
+      const step = StateManager.getGridSnapSize();
+      px = SnapGrid.snap(px, step.w);
+      py = SnapGrid.snap(py, step.h);
     }
     return { x: px, y: py };
   }
@@ -1706,11 +1705,30 @@ class InputHandlerClass {
     if (window.SelectionService && SelectionService.isFloating()) return true;
     const tool = window.ToolManager && ToolManager.getCurrentTool();
     if (!tool) return false;
+    if (tool.snapsPointer === false) return false;
     return tool.id === TOOLS.SELECTION ||
            tool.id === TOOLS.RECTANGLE || // ShapeTool base — all shape variants
            tool.id === TOOLS.BEZIER ||    // anchor/handle placement
            tool.id === TOOLS.FIGURE ||    // figure points
            tool.id === TOOLS.TEXT;
+  }
+
+  /**
+   * Put the floating stamp where the pointer is. Without Snap the stamp is centred on the pointer. With Snap on, its
+   * top-left CORNER snaps to the step (a stamp centred on a snapped point would sit half a step off the grid: an 8x8 stamp
+   * at x = 8k - 4). `point` is the pointer already snapped by _getCanvasPoint.
+   * @private
+   */
+  _placeStamp(e, point) {
+    const fp = SelectionService.floatingPaste;
+    if (fp && StateManager.getGridSnap() && this._snapContextActive()) {
+      const raw = this._getCanvasPoint(e, false);
+      const step = StateManager.getGridSnapSize();
+      SelectionService.moveFloatingPaste(SnapGrid.snap(raw.x - Math.floor(fp.width / 2), step.w),
+        SnapGrid.snap(raw.y - Math.floor(fp.height / 2), step.h));
+      return;
+    }
+    SelectionService.moveStampPreview(point.x, point.y);
   }
 
   /** Record pen tilt; hand it to the brush engine where the hook exists. @private */
@@ -1939,14 +1957,18 @@ class InputHandlerClass {
     const move = (window.TransformPanel && TransformPanel.shiftMove)
         ? TransformPanel.shiftMove() : { content: 'both', locked: false };
     const snap = StateManager.getGridSnap();
-    const cellStep = move.locked || snap;
-    // A selection's content moves by what the Move choice says (stepX/stepY). A floating stamp and
-    // the gradient's endpoint are not content moves: the Move choice does not apply to them (it is
-    // greyed out while a stamp floats), so they keep the nudge distance, one cell only under snap.
-    const stepX = cellStep ? ZX_SPECTRUM.CELL_WIDTH : prefStep;
-    const stepY = cellStep ? ZX_SPECTRUM.CELL_HEIGHT : prefStep;
-    const fineX = snap ? ZX_SPECTRUM.CELL_WIDTH : prefStep;
-    const fineY = snap ? ZX_SPECTRUM.CELL_HEIGHT : prefStep;
+    // Snap on: the arrows step by the snap step (Cell, 16x16, Screen or the custom one). A selection's content that
+    // carries its colours only moves in whole cells, so the step is rounded to cells (at least one).
+    const snapSize = StateManager.getGridSnapSize();
+    const snapStep = { x: snapSize.w, y: snapSize.h };
+    const content = SnapGrid.nudgeStep(snapStep, { snap, wholeCells: move.locked, pref: prefStep });
+    const stepX = content.x;
+    const stepY = content.y;
+    // A floating stamp and the gradient's endpoint are not content moves: the Move choice does not apply to them (it is
+    // greyed out while a stamp floats), so they keep the nudge distance, or the snap step under snap.
+    const free = SnapGrid.nudgeStep(snapStep, { snap, wholeCells: false, pref: prefStep });
+    const fineX = free.x;
+    const fineY = free.y;
     const step = dir.dx !== 0 ? fineX : fineY;
 
     // Gradient tool, phase 2 (axis drag locked in): arrows nudge the axis
@@ -1973,8 +1995,8 @@ class InputHandlerClass {
     // inside a drawing-guide selection, and the arrows must move the figure, not the pixels under it. One pixel, or
     // one cell under grid snap; Shift moves a whole cell (CELL_WIDTH across, CELL_HEIGHT down).
     if (activeTool && typeof activeTool.nudgePending === 'function' && !e.ctrlKey && !e.altKey && !e.metaKey) {
-      const cx = e.shiftKey || snap ? ZX_SPECTRUM.CELL_WIDTH : 1;
-      const cy = e.shiftKey || snap ? ZX_SPECTRUM.CELL_HEIGHT : 1;
+      const cx = e.shiftKey ? ZX_SPECTRUM.CELL_WIDTH : snap ? snapStep.x : 1;
+      const cy = e.shiftKey ? ZX_SPECTRUM.CELL_HEIGHT : snap ? snapStep.y : 1;
       if (activeTool.nudgePending(dir.dx * cx, dir.dy * cy) === true) {
         e.preventDefault();
         return;

@@ -33,4 +33,6 @@ Mnoho volieb platí len v kombinácii s inou. Tabuľky nižšie majú stĺpec
 
 **Sprej so vzorom.** Nastavte pri spreji Rozloženie na **Vzor** a namiesto bodiek bude klásť malé celé obrazce - kolieska, štvorčeky alebo krátke čiarky. Vyberte obrazec, jeho veľkosť a či je plný, alebo len obrys; Prietok určuje, koľko plochy sa snažia pokryť. V oblasti spreja sa kladú len celé obrazce, takže príliš malý sprej nenakreslí nič.
 
+**Prichytávanie a jeho krok.** Prichytávanie (tlačidlo pod plátnom alebo Shift+S) spôsobí, že výbery, tvary, body obrazcov, text a vkladané kusy dosadnú na mriežku; kreslenie od ruky sa nikdy neprichytáva. Zoznam vedľa tlačidla určuje mriežku: atribútovú bunku režimu (8x8, alebo 8x4, 8x2 či 8x1 v multicolor režimoch), 16x16, celú obrazovku 256x192 (len na plátne väčšom ako jedna obrazovka, napr. Layer 2 320 a 640), alebo vlastný krok, ktorého vodorovnú a zvislú veľkosť nastavíte v Nastaveniach v časti Kreslenie. Voľba kroku tiež zapne prichytávanie. Vložený kus dosadne ľavým horným rohom na mriežku. Pri zapnutom prichytávaní šípky posúvajú čakajúci obrazec, plávajúci kus alebo koniec prechodu o jeden krok; výber nesúci svoje farby sa posúva o krok zaokrúhlený na celé bunky. ZX Paintbrush posúva klávesnicou po jednom bode bez ohľadu na rastr, takže sa to zámerne líši.
+
 {{tools}}

@@ -531,7 +531,42 @@ class StateManagerClass {
   /** @param {boolean} enabled */
   setGridSnap(enabled) {
     this.set('grid.snap', !!enabled);
-    EventBus.emit(EVENTS.GRID_SNAP_CHANGED, { snap: !!enabled });
+    EventBus.emit(EVENTS.GRID_SNAP_CHANGED, { snap: !!enabled, step: this.getGridSnapStep() });
+  }
+
+  /**
+   * The snap step as chosen: {kind: 'cell' | 'block16' | 'screen' | 'custom', x, y} (x, y are the custom step). The
+   * kind is kept as chosen; where it does not fit the canvas (Screen on a one-screen mode) getGridSnapSize() falls back.
+   * @returns {{kind: string, x: number, y: number}}
+   */
+  getGridSnapStep() {
+    const s = this.get('grid.snapStep');
+    const d = SnapGrid.DEFAULT_CUSTOM;
+    if (!s || typeof s !== 'object') return { kind: 'cell', x: d.x, y: d.y };
+    return { kind: SnapGrid.KINDS.includes(s.kind) ? s.kind : 'cell', x: Number.isFinite(s.x) ? s.x : d.x, y: Number.isFinite(s.y) ? s.y : d.y };
+  }
+
+  /**
+   * Choose the snap step. Whole numbers 1..256 for the custom x and y (the canvas clamps them when used).
+   * @param {{kind?: string, x?: number, y?: number}} step - fields left out keep their value
+   */
+  setGridSnapStep(step) {
+    const cur = this.getGridSnapStep();
+    const kind = step && SnapGrid.KINDS.includes(step.kind) ? step.kind : cur.kind;
+    const n = (v, fallback) => (Number.isFinite(Number(v)) ? Helpers.clamp(Math.round(Number(v)), 1, 1024) : fallback);
+    const next = { kind, x: n(step && step.x, cur.x), y: n(step && step.y, cur.y) };
+    this.set('grid.snapStep', next);
+    EventBus.emit(EVENTS.GRID_SNAP_CHANGED, { snap: this.getGridSnap(), step: next });
+  }
+
+  /**
+   * The snap step in pixels on the canvas that is open: Cell follows the mode (8x8, 8x4 ...), Screen falls back to the cell
+   * where a whole screen does not fit, a custom step is clamped to the canvas.
+   * @returns {{w: number, h: number}}
+   */
+  getGridSnapSize() {
+    const s = this.getGridSnapStep();
+    return SnapGrid.sizeOf(s.kind, { x: s.x, y: s.y });
   }
 
   /**

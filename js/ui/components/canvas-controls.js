@@ -255,11 +255,47 @@ class CanvasControlsClass {
         });
         host.appendChild(snapBtn);
 
+        // The snap step (Batch 9 part 9A): Cell (the mode's attribute cell), 16x16, a whole 256x192 screen (only where it
+        // fits inside the canvas) or the custom step from Preferences. The labels are the sizes themselves.
+        const stepSel = document.createElement('select');
+        stepSel.id = 'grid-snap-step';
+        stepSel.className = 'grid-step-select';
+        stepSel.dataset.i18nTitleName = 'view.snapStep';
+        stepSel.dataset.i18nTitle = 'view.snapStep.hint';
+        stepSel.title = Helpers.composeTitle(this._t('view.snapStep', 'Snap step'),
+            this._t('view.snapStep.hint', 'How far Snap jumps: the attribute cell, 16x16, a whole 256x192 screen (on a canvas bigger than one screen), or the custom step set in Preferences. Choosing one turns Snap on.'));
+        stepSel.setAttribute('aria-label', this._t('view.snapStep', 'Snap step'));
+        const labelOf = (kind) => { const z = kind === 'screen' ? { w: SnapGrid.screenSize().w, h: SnapGrid.screenSize().h } : SnapGrid.sizeOf(kind, StateManager.getGridSnapStep()); return z.w + 'x' + z.h; };
+        const fillStepSelect = () => {
+            const cur = StateManager.getGridSnapStep().kind;
+            stepSel.textContent = '';
+            for (const kind of SnapGrid.KINDS) {
+                const o = document.createElement('option');
+                o.value = kind;
+                o.textContent = labelOf(kind);
+                if (kind === 'screen' && !SnapGrid.screenFits()) {
+                    o.disabled = true;
+                    o.title = this._t('snap.screenOnlyBig', 'Needs a canvas bigger than one 256x192 screen.');
+                }
+                stepSel.appendChild(o);
+            }
+            stepSel.value = SnapGrid.cleanKind(cur);
+        };
+        fillStepSelect();
+        stepSel.addEventListener('change', () => {
+            StateManager.setGridSnapStep({ kind: stepSel.value });
+            StateManager.setGridSnap(true);
+        });
+        host.appendChild(stepSel);
+
         // Render from the fact (click here, Shift+S, or boot restore) + persist
         EventBus.on(EVENTS.GRID_SNAP_CHANGED, (data) => {
             snapBtn.setAttribute('aria-pressed', String(!!data.snap));
             Storage.set('gridSnap', !!data.snap).catch(() => {});
+            Storage.set('gridSnapStep', StateManager.getGridSnapStep()).catch(() => {});
+            fillStepSelect();
         });
+        EventBus.on(EVENTS.SCREEN_MODE_CHANGED, fillStepSelect);
     }
 
     // -- Status notice --------------------------------------------------------

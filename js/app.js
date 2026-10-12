@@ -36,6 +36,7 @@ const BOOT_MANIFEST = [
     ['PaletteOps',       'js/utils/palette-ops.js'],
     ['GigaQuant',        'js/utils/giga-quant.js'],
     ['Dither',           'js/utils/dither.js'],
+    ['SnapGrid',         'js/utils/snap-grid.js'],
     ['Storage',          'js/utils/storage.js'],
     ['BackupService',    'js/services/backup-service.js'],
     ['ProjectFormat',    'js/io/project-format.js'],
@@ -252,6 +253,8 @@ class AppClass {
             }
             // Grid snap persists under its own key (toggled outside the dialog)
             const snap = await Storage.get('gridSnap');
+            const snapStep = await Storage.get('gridSnapStep');
+            if (snapStep && typeof snapStep === 'object') StateManager.setGridSnapStep(snapStep);
             if (typeof snap === 'boolean') StateManager.setGridSnap(snap);
             // The display-only view switches (View menu). Raw state only here:
             // the compositor is not up yet, so _initManagers applies them.

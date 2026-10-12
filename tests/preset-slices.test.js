@@ -26,6 +26,7 @@ loadModule('js/utils/helpers.js');
 loadModule('js/utils/validators.js');
 loadModule('js/core/event-bus.js');
 loadModule('js/core/state-manager.js');
+loadModule('js/utils/snap-grid.js');
 loadModule('js/core/attribute-system.js');
 
 global.CanvasSystem = {
@@ -318,6 +319,35 @@ check('every slice has a label key for the dialogs',
   drawing.apply({ inverse: false });
   check('...and an older preset without Inverse leaves it alone, one with false clears it',
     global.StateManager.getInverse() === false);
+}
+
+// The snap step (Batch 9 part 9A) travels with the same slice.
+{
+  const SM = global.StateManager;
+  const drawing = global.PresetService.getSlice('drawing');
+  check('the default snap step is the cell', SM.getGridSnapStep().kind === 'cell');
+  SM.setGridSnapStep({ kind: 'custom', x: 12, y: 20 });
+  SM.setGridSnap(true);
+  const cap = drawing.capture();
+  check('the drawing slice captures the step', cap.snapStep && cap.snapStep.kind === 'custom' && cap.snapStep.x === 12 && cap.snapStep.y === 20, JSON.stringify(cap.snapStep));
+  SM.setGridSnapStep({ kind: 'cell' });
+  drawing.apply(cap);
+  check('...and applies it back', SM.getGridSnapStep().kind === 'custom' && SM.getGridSnapStep().y === 20);
+  SM.setGridSnapStep({ kind: 'block16' });
+  drawing.apply({ snap: true });
+  check('an older preset with Snap but no step gets the cell', SM.getGridSnapStep().kind === 'cell');
+  SM.setGridSnapStep({ kind: 'block16' });
+  drawing.apply({ drawMode: 'normal' });
+  check('a value with neither key leaves the step alone', SM.getGridSnapStep().kind === 'block16');
+  SM.setGridSnapStep({ kind: 'nonsense', x: 'no', y: 99999 });
+  const st = SM.getGridSnapStep();
+  check('junk kind keeps the old kind; junk numbers keep the old numbers or clamp', st.kind === 'block16' && st.x === 12 && st.y === 1024, JSON.stringify(st));
+  let got = null;
+  const off = global.EventBus.on(global.EVENTS.GRID_SNAP_CHANGED, (d) => { got = d; });
+  SM.setGridSnapStep({ kind: 'screen' });
+  check('changing the step emits GRID_SNAP_CHANGED with the step', got && got.step && got.step.kind === 'screen' && got.snap === true, JSON.stringify(got));
+  if (typeof off === 'function') off();
+  SM.setGridSnap(false);
 }
 
 summary();

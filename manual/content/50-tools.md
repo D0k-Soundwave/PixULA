@@ -33,4 +33,6 @@ marked "always" are there whatever else is set.
 
 **Spray Pattern.** Set the Spray tool's Distribution to **Pattern** and it lays small whole figures - circles, squares or short lines - instead of dots. Choose the figure, its size and whether it is filled or an outline; Flow sets how much of the area they try to cover. Only whole figures are laid inside the spray area, so a spray too small for one figure draws nothing.
 
+**Snap and its step.** Snap (the button under the canvas, or Shift+S) makes selections, shapes, figure points, text and pasted pieces land on a grid; freehand drawing is never snapped. The list beside the button sets the grid: the attribute cell of the mode (8x8, or 8x4, 8x2 or 8x1 in the multicolor modes), 16x16, a whole 256x192 screen (only on a canvas bigger than one screen, such as Layer 2 320 and 640), or your own step, whose across and down sizes you set in Preferences under Drawing. Choosing a step also turns Snap on. A pasted piece lands with its top-left corner on the grid. With Snap on, the arrow keys move a waiting figure, a floating piece or the gradient's end by one step; a selection that carries its colours moves by the step rounded to whole cells. ZX Paintbrush moves things pixel by pixel with the keyboard whatever its raster jump is, so this differs on purpose.
+
 {{tools}}
