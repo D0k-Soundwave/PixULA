@@ -16,6 +16,14 @@ Zapisuje je **Soubor > Uložit obrázek jako**. Obsahují jen obrázek a nic jin
 
 Při otevření fotky nebo jiného obrázku (PNG, JPG, GIF) se vedle sebe ukážou tři převody - Ostrý, Hladký a Plochý - a kliknete na ten, který se vám líbí. Hladký mění odstíny na tečky a seznam **Dithering** pod náhledy určuje jak: výchozí je vlastní Floyd-Steinberg importu a seznam nabízí i dalších 30 metod ZX Paintbrush - prahy, rozptyl chyby, Bayerovy matice, shlukové tečky a superbuňky. Výběr metody přepne na náhled Hladký. Uspořádané metody pokračují přes atributové buňky, takže vzor běží přes celý obrázek; rozptyl chyby zůstává uvnitř každé buňky, protože každá buňka má své dvě barvy. V režimech Layer 2 a LoRes je seznam zašedlý: tyto režimy mají vlastní barevný dithering.
 
+### Uložení části obrázku
+
+**Soubor > Uložit výběr jako** nabízí stejné formáty jako Uložit obrázek jako, každý jen tehdy, když se pro výběr hodí. PNG, BMP a JPEG vezmou libovolný obdélník. ZXP, SEV, ZED, ASM, C, BIN a ATR vezmou celé atributové buňky: výběr se nejdřív přizpůsobí buňkám a stavový řádek to oznámí. ColorTiles vezmou celé dlaždice 16x16. Formáty, které jsou výpisem jedné celé obrazovky (SCR, pásky, MLT a podobné), jsou otevřené jen tehdy, když výběr je celá obrazovka. ASM, C, BIN a ATR zapíší část po řádcích: bitmapu jako blok bajtů na řádek shora dolů a atributy po jednom bajtu na buňku; dělají to v klasických, multicolor a ULAplus režimech. Výběr od ruky nebo elipsa uloží svůj ohraničující obdélník. Zavřený formát řekne proč, když na něj ukážete. Uložit obrázek jako ukládá celý obrázek a výběr ignoruje.
+
+### Nový obrázek z výběru
+
+**Úpravy > Nový obrázek z výběru** udělá z výběru celý obrázek. Výběr se nejdřív přizpůsobí celým buňkám. Před akcí se zeptá a Ctrl+Z vrátí původní obrázek. Všechny vrstvy zůstanou a jsou oříznuty na ten blok, který se přesune vlevo nahoru; zbytek je prázdný a pozadí je tam bílý papír. Režim obrazovky zůstane stejný a obrázek se stane nepojmenovaným, takže další Uložit se zeptá na název.
+
 ### Automatické ukládání a zálohy
 
 PixULA umí každých pár minut ukládat vaši práci do úložiště prohlížeče a

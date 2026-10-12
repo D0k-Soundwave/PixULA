@@ -17,6 +17,14 @@ to, czego chcesz, jeśli zamierzasz dalej nad nim pracować.
 
 Otwarcie zdjęcia lub innego obrazu (PNG, JPG, GIF) pokazuje obok siebie trzy konwersje - Ostrą, Gładką i Płaską - a ty klikasz tę, która ci się podoba. Gładka zamienia odcienie na punkty, a lista **Dithering** pod podglądami wybiera jak: domyślnie jest to własny Floyd-Steinberg importu, a lista oferuje też pozostałe 30 metod ZX Paintbrush - progi, dyfuzję błędu, macierze Bayera, punkty skupione i superkomórki. Wybór metody przełącza na podgląd Gładki. Metody uporządkowane biegną dalej przez komórki atrybutów, więc wzór przebiega przez cały obraz; dyfuzja błędu zostaje wewnątrz każdej komórki, bo każda komórka ma swoje dwa kolory. W trybach Layer 2 i LoRes lista jest wyszarzona: te tryby zachowują własny dithering kolorów.
 
+### Zapisywanie części obrazu
+
+**Plik > Zapisz zaznaczenie jako** wylicza te same formaty co Zapisz obraz jako, każdy otwarty tylko wtedy, gdy zaznaczenie mu odpowiada. PNG, BMP i JPEG przyjmują dowolny prostokąt. ZXP, SEV, ZED, ASM, C, BIN i ATR przyjmują całe komórki atrybutów: zaznaczenie jest najpierw dopasowywane do komórek, o czym mówi pasek stanu. ColorTiles przyjmuje całe kafelki 16x16. Formaty będące zrzutem jednego całego ekranu (SCR, taśmy, MLT i podobne) są otwarte tylko wtedy, gdy zaznaczenie jest całym ekranem. ASM, C, BIN i ATR zapisują część wiersz po wierszu: bitmapę jako blok bajtów na wiersz od góry do dołu, a atrybuty po jednym bajcie na komórkę; robią to w trybach klasycznym, multicolor i ULAplus. Zaznaczenie odręczne lub eliptyczne zapisuje swój prostokąt obejmujący. Zamknięty format mówi dlaczego, gdy na niego wskażesz. Zapisz obraz jako zapisuje cały obraz i ignoruje zaznaczenie.
+
+### Nowy obraz z zaznaczenia
+
+**Edycja > Nowy obraz z zaznaczenia** zamienia zaznaczenie w cały obraz. Zaznaczenie jest najpierw dopasowywane do całych komórek. Pyta, zanim cokolwiek zrobi, a Ctrl+Z przywraca stary obraz. Wszystkie warstwy zostają i są przycięte do tego bloku, który przechodzi w lewy górny róg; reszta jest pusta, a tło tam to biały papier. Tryb ekranu pozostaje ten sam, a obraz staje się bez nazwy, więc następny Zapis zapyta o nazwę.
+
 ### Autozapis i kopie zapasowe
 
 PixULA może co kilka minut zapisywać pracę w pamięci przeglądarki i proponować

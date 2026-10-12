@@ -759,3 +759,13 @@ submenu with each leaf enabled by its rule and a reason in the title. 6 keys in 
 Tests: tests/selection-export.test.js (rules, crop, BMP crop equals full BMP rows, SEV/ZED/ZXP/DEV/ctile blocks), browser
 selection-export (3: leaves, PNG crop pixel for pixel, SEV fit + notice). Full suites pass (731 browser).
 Next: step 3, the Preview panel (9B2), then the manual for steps 1-3.
+
+## Batch 9 part 9B step 3 / 4 (Preview panel, manual) - 2026-10-12
+CanvasSystem.getVisibleRect / centreOn and EVENTS.CANVAS_SCROLL; PanelSection.create gains `visible`; js/ui/components/preview-panel.js:
+a sidebar map drawn from the live canvas (drawImage; agrees with the canvas in the spec), a frame for the visible part, click / drag /
+arrow keys scroll the canvas (the arrow keys stop at the map so they do not nudge a selection), redraws throttled to 32 ms with a
+trailing call, no work while hidden or collapsed, hidden until View > Preview (owner answer). 3 keys in 13 locales. Manual: 70-menus
+paragraph, 80-files "Saving part of a picture" and "A new picture from a selection", 13 languages. Comparison rows: Preview window
+Same; Export selection / new file from selection Partial (the character-set and CHX font exports of a selection are not covered).
+Tests: tests/browser/preview-panel.spec.js (7). FIGURES.md: draw cost and crop cost recorded.
+Still to do from the 9B owner answers: none (all five built). Batch 9 is complete; next Batch 10 part 10A (plan review first).

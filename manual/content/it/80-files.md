@@ -19,6 +19,14 @@ il risultato, e non ciò che vuoi se intendi continuare a lavorarci.
 
 Aprendo una foto o un'altra immagine (PNG, JPG, GIF) si vedono affiancate tre conversioni - Nitida, Morbida e Piatta - e si clicca su quella che piace. La Morbida è quella che trasforma le sfumature in punti, e l'elenco **Dithering** sotto le anteprime sceglie come: il predefinito è il Floyd-Steinberg proprio dell'importazione, e l'elenco offre anche gli altri 30 metodi di ZX Paintbrush - soglie, diffusione dell'errore, matrici di Bayer, punti raggruppati e supercelle. Scegliere un metodo passa all'anteprima Morbida. I metodi ordinati proseguono attraverso le celle di attributi, così il motivo corre su tutta l'immagine; la diffusione dell'errore resta dentro ogni cella, perché ogni cella ha i suoi due colori. Nelle modalità Layer 2 e LoRes l'elenco è disattivato: quelle modalità mantengono il proprio dithering a colori.
 
+### Salvare una parte di un'immagine
+
+**File > Salva selezione come** elenca gli stessi formati di Salva immagine come, ciascuno aperto solo se la selezione gli si addice. PNG, BMP e JPEG accettano qualunque rettangolo. ZXP, SEV, ZED, ASM, C, BIN e ATR accettano celle di attributi intere: la selezione viene prima adattata alle celle e la barra di stato lo dice. ColorTiles accetta tessere intere da 16x16. I formati che sono un dump di uno schermo intero (SCR, nastri, MLT e simili) sono aperti solo quando la selezione è lo schermo intero. ASM, C, BIN e ATR scrivono la parte riga per riga: la bitmap come blocco di byte per riga, dall'alto in basso, e gli attributi un byte per cella; lo fanno nelle modalità classica, multicolor e ULAplus. Una selezione a mano libera o ellittica salva il suo rettangolo di contenimento. Un formato chiuso dice perché quando lo indichi. Salva immagine come salva l'immagine intera e ignora la selezione.
+
+### Una nuova immagine da una selezione
+
+**Modifica > Nuova immagine dalla selezione** trasforma la selezione nell'immagine intera. La selezione viene prima adattata a celle intere. Chiede prima di fare qualcosa, e Ctrl+Z restituisce la vecchia immagine. Tutti i livelli restano, ritagliati a quel blocco, che passa in alto a sinistra; il resto è vuoto, e lo sfondo lì è carta bianca. La modalità schermo resta la stessa e l'immagine diventa senza titolo, così il Salva successivo chiede un nome.
+
 ### Salvataggio automatico e backup
 
 PixULA può salvare il lavoro nella memoria del browser ogni pochi minuti e

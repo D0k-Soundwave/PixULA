@@ -148,6 +148,12 @@ class CanvasSystemClass {
 
     this.canvas = this.iframeDoc.getElementById('main-canvas');
 
+    // Anything that shows where the viewport is (the Preview panel) hears about every scroll of it. Bound again on each
+    // load of the iframe's document.
+    if (this.iframeDoc.defaultView) {
+      this.iframeDoc.defaultView.addEventListener('scroll', () => EventBus.emit(EVENTS.CANVAS_SCROLL), { passive: true });
+    }
+
     if (!this.canvas) {
       Logger.error('CanvasSystem', 'Main canvas not found in iframe');
       if (this._initReject) {
@@ -949,6 +955,40 @@ class CanvasSystemClass {
       this.rectCacheTime = now;
     }
     return this.canvasRect;
+  }
+
+  /**
+   * The part of the picture the viewport shows, in picture pixels (fractions allowed): the canvas rectangle cut down to
+   * the iframe's visible area. Measured from the live rectangles, not from zoom and scroll arithmetic, so the scroll margin
+   * and a DPR-snapped scale are already in it.
+   * @returns {?{x:number,y:number,w:number,h:number}}
+   */
+  getVisibleRect() {
+    if (!this.canvas || !this.iframeDoc) return null;
+    const cr = this.canvas.getBoundingClientRect();
+    if (!cr.width || !cr.height) return null;
+    const win = this.iframeDoc.defaultView;
+    const vw = win ? win.innerWidth : cr.right, vh = win ? win.innerHeight : cr.bottom;
+    const sx = cr.width / ZX_SPECTRUM.WIDTH, sy = cr.height / ZX_SPECTRUM.HEIGHT;
+    const left = Helpers.clamp(-cr.left, 0, cr.width), top = Helpers.clamp(-cr.top, 0, cr.height);
+    const right = Helpers.clamp(vw - cr.left, 0, cr.width), bottom = Helpers.clamp(vh - cr.top, 0, cr.height);
+    return { x: left / sx, y: top / sy, w: (right - left) / sx, h: (bottom - top) / sy };
+  }
+
+  /**
+   * Scroll so that a picture pixel is in the middle of the viewport (as far as the scroll range allows).
+   * @param {number} px @param {number} py - picture pixel coordinates
+   */
+  centreOn(px, py) {
+    if (!this.canvas || !this.iframeDoc) return;
+    const s = this.iframeDoc.scrollingElement || this.iframeDoc.body;
+    const cr = this.canvas.getBoundingClientRect();
+    const sx = cr.width / ZX_SPECTRUM.WIDTH, sy = cr.height / ZX_SPECTRUM.HEIGHT;
+    // the canvas' place in the scrolled document, then the pixel's
+    const docLeft = cr.left + s.scrollLeft, docTop = cr.top + s.scrollTop;
+    s.scrollLeft = docLeft + px * sx - s.clientWidth / 2;
+    s.scrollTop = docTop + py * sy - s.clientHeight / 2;
+    this.invalidateRectCache();
   }
 
   /**

@@ -1240,6 +1240,7 @@ const EVENTS = Object.freeze({
     CANVAS_RENDER: 'canvas:render',
     CANVAS_DIRTY: 'canvas:dirty',
     CANVAS_ZOOM: 'canvas:zoom',
+    CANVAS_SCROLL: 'canvas:scroll',
     CANVAS_SCALE_CHANGED: 'canvas:scaleChanged',
     GRID_SNAP_CHANGED: 'grid:snapChanged',
     GRID_VISIBILITY: 'grid:visibility',
