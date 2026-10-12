@@ -387,7 +387,10 @@ class MenuSystemClass {
                     { id: 'delete', label: 'Delete', shortcut: 'Del', action: 'edit:delete' },
                     { type: 'separator' },
                     { id: 'select-all', label: 'Select All', shortcut: 'Ctrl+A', action: 'edit:selectAll' },
-                    { id: 'deselect', label: 'Deselect', shortcut: 'Ctrl+D', action: 'edit:deselect' }
+                    { id: 'deselect', label: 'Deselect', shortcut: 'Ctrl+D', action: 'edit:deselect' },
+                    { type: 'separator' },
+                    { id: 'selection-to-cells', label: 'Fit Selection to Cells', action: 'edit:selectionToCells', i18n: 'menu.edit.selectionToCells' },
+                    { id: 'new-from-selection', label: 'New Picture from Selection', action: 'edit:newFromSelection', i18n: 'menu.edit.newFromSelection' }
                 ]
             },
             {
@@ -839,6 +842,10 @@ class MenuSystemClass {
         // Clone Last Figure is open once a figure has been drawn.
         const hasFigure = !!(window.FigureHistory && FigureHistory.has());
         this.setItemEnabled('clone-figure', hasFigure);
+        // The selection becomes a new picture only when nothing is floating (a paste in flight would be lost).
+        const floating = !!(window.SelectionService && SelectionService.isFloating());
+        this.setItemEnabled('selection-to-cells', hasSel && !floating);
+        this.setItemEnabled('new-from-selection', hasSel && !floating);
         if (hasSel === this._lastHasSel && canPaste === this._lastHasClip) return;
         this._lastHasSel  = hasSel;
         this._lastHasClip = canPaste;
@@ -1059,6 +1066,12 @@ class MenuSystemClass {
             case 'edit:deselect':
                 SelectionService.clear();
                 CanvasSystem.requestRender();
+                break;
+            case 'edit:selectionToCells':
+                FileManager.fitSelectionToCells();
+                break;
+            case 'edit:newFromSelection':
+                FileManager.newFromSelection();
                 break;
 
             // View — zoom goes through the canvas-controls path

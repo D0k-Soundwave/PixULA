@@ -865,6 +865,50 @@ class LayerManagerClass {
    * Set the background paper color
    * @param {number} colorIndex - Color index (0-15, where 0-7 are normal, 8-15 are bright)
    */
+  /**
+   * Make the picture the part of it inside a block of whole cells (New picture from selection). Every layer keeps its
+   * cells for that block, moved to the top left; the cells that are left over are empty, or on the background layer
+   * Paper White, as File > New leaves them. The screen mode and the canvas size do not change. The caller wraps this in an
+   * undo action (the snapshot holds every layer), as ScreenModeService.switchMode does when it replaces the grids.
+   * @param {number} cx - first cell column
+   * @param {number} cy - first cell row
+   * @param {number} cols
+   * @param {number} rows
+   * @returns {boolean} false if the block is empty or outside the grid
+   */
+  cropToCells(cx, cy, cols, rows) {
+    if (!(cols > 0 && rows > 0) || cx < 0 || cy < 0 || cx + cols > ZX_SPECTRUM.GRID_COLS || cy + rows > ZX_SPECTRUM.GRID_ROWS) return false;
+    const cellW = ZX_SPECTRUM.CELL_WIDTH, cellH = ZX_SPECTRUM.CELL_HEIGHT;
+    const WHITE_PAPER = 7;
+    for (const layer of this.layers) {
+      const old = layer.attributeData;
+      layer._initializeAttributeData();
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) layer.attributeData[y][x] = old[cy + y][cx + x];
+      }
+      if (layer.isBackground) {
+        for (let y = 0; y < ZX_SPECTRUM.GRID_ROWS; y++) {
+          for (let x = 0; x < ZX_SPECTRUM.GRID_COLS; x++) {
+            if (x < cols && y < rows) continue;
+            const cell = layer.attributeData[y][x];
+            cell.paper = WHITE_PAPER;
+            cell.ink = 0;
+            cell.bright = false;
+            if (cell.indices) cell.indices.fill(Helpers.clamp(WHITE_PAPER, 0, ZX_SPECTRUM.PALETTE_SIZE - 1));
+          }
+        }
+      }
+      if (layer.isStamp && layer.stamp) {
+        layer.stamp.x -= cx * cellW;
+        layer.stamp.y -= cy * cellH;
+      }
+    }
+    if (window.AttributeSystem) AttributeSystem.clearAll();
+    this.composeToCanvas();
+    if (window.CanvasSystem && CanvasSystem.markAllDirty) CanvasSystem.markAllDirty();
+    return true;
+  }
+
   setBackgroundColor(colorIndex) {
     const bgLayer = this.layers[0];
     if (!bgLayer) return;
