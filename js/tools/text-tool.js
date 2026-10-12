@@ -40,6 +40,27 @@ class TextToolClass extends ToolBase {
     { id: 'right',  i18n: 'opt.align.right' }
   ];
 
+  /** Which way the shadow falls, relative to the letters. Down-right is the original shadow. */
+  static SHADOW_DIRS = [
+    { id: 'down-right', i18n: 'opt.shadowDir.downRight' },
+    { id: 'down-left',  i18n: 'opt.shadowDir.downLeft' },
+    { id: 'up-right',   i18n: 'opt.shadowDir.upRight' },
+    { id: 'up-left',    i18n: 'opt.shadowDir.upLeft' }
+  ];
+
+  /** Which point of the text block the click is: nine, Centre being where text has always landed. */
+  static ANCHORS = [
+    { id: 'top-left',     i18n: 'opt.anchor.topLeft' },
+    { id: 'top',          i18n: 'opt.anchor.top' },
+    { id: 'top-right',    i18n: 'opt.anchor.topRight' },
+    { id: 'left',         i18n: 'opt.anchor.left' },
+    { id: 'center',       i18n: 'opt.anchor.center' },
+    { id: 'right',        i18n: 'opt.anchor.right' },
+    { id: 'bottom-left',  i18n: 'opt.anchor.bottomLeft' },
+    { id: 'bottom',       i18n: 'opt.anchor.bottom' },
+    { id: 'bottom-right', i18n: 'opt.anchor.bottomRight' }
+  ];
+
   /**
    * Split typed text into lines, tolerating any line ending.
    *
@@ -93,6 +114,10 @@ class TextToolClass extends ToolBase {
     // column layouts these read as top/middle/bottom.
     { type: 'select', key: 'textAlign', i18n: 'opt.align', value: 'left',
       options: TextToolClass.ALIGNMENTS.map(a => ({ value: a.id, i18n: a.i18n })) },
+    // Which point of the finished text block the click is. Centre is where text has always landed; it is separate from
+    // Alignment, which only lines the lines up inside the block.
+    { type: 'select', key: 'textAnchor', i18n: 'opt.anchor', value: 'center',
+      options: TextToolClass.ANCHORS.map(a => ({ value: a.id, i18n: a.i18n })) },
     // Multiples of 90 are exact (MaskOps takes the transpose path); the
     // diagonals resample, so they are worth more pixels of text size.
     { type: 'select', key: 'textDirection', i18n: 'opt.direction', value: 0,
@@ -101,6 +126,10 @@ class TextToolClass extends ToolBase {
     { type: 'check', key: 'textMirrorH', i18n: 'opt.mirrorH', value: false },
     { type: 'check', key: 'textMirrorV', i18n: 'opt.mirrorV', value: false },
     { type: 'check', key: 'textShadow',  i18n: 'opt.shadow',  value: false },
+    // Which way the shadow falls, relative to the letters (it turns with Direction). Down-right is the original shadow.
+    { type: 'select', key: 'textShadowDir', i18n: 'opt.shadowDir', value: 'down-right',
+      showIf: { key: 'textShadow', equals: true },
+      options: TextToolClass.SHADOW_DIRS.map(d => ({ value: d.id, i18n: d.i18n })) },
     { type: 'check', key: 'textOutline', i18n: 'opt.outline', value: false },
     { type: 'hint', i18n: 'text.hint' }
   ];
@@ -119,6 +148,8 @@ class TextToolClass extends ToolBase {
     this._textMirrorH     = false;  // mirror left-right (MaskOps.flipH, exact)
     this._textMirrorV     = false;  // mirror top-bottom (MaskOps.flipV, exact)
     this._textShadow      = false;  // drop shadow (MaskOps offset-OR)
+    this._textShadowDir   = 'down-right';   // which way it falls (TextToolClass.SHADOW_DIRS)
+    this._textAnchor      = 'center';       // which point of the block the click is (ANCHORS)
     this._textOutline     = false;  // hollow contour (MaskOps dilate-minus-glyph)
     this._fixedSize       = 16;   // px height; always > 0 (selected from dropdown)
     this._cachedFonts     = null;
@@ -198,6 +229,18 @@ class TextToolClass extends ToolBase {
   getTextShadow()     { return this._textShadow; }
   setTextShadow(v)    { this._textShadow = !!v;  this._disengaged = false; this._updatePreviewIfActive(); }
 
+  getTextShadowDir()  { return this._textShadowDir; }
+  setTextShadowDir(v) {
+    if (!TextToolClass.SHADOW_DIRS.some(d => d.id === v)) return;
+    this._textShadowDir = v;  this._disengaged = false;  this._updatePreviewIfActive();
+  }
+
+  getTextAnchor()     { return this._textAnchor; }
+  setTextAnchor(v) {
+    if (!TextToolClass.ANCHORS.some(a => a.id === v)) return;
+    this._textAnchor = v;  this._disengaged = false;
+  }
+
   getTextOutline()    { return this._textOutline; }
   setTextOutline(v)   { this._textOutline = !!v; this._disengaged = false; this._updatePreviewIfActive(); }
 
@@ -223,6 +266,9 @@ class TextToolClass extends ToolBase {
       mirrorH:   this._textMirrorH,
       mirrorV:   this._textMirrorV,
       shadow:    this._textShadow,
+      shadowDir: this._textShadowDir,
+      // Where the click sits in the finished block: SelectionService keeps it when the stamp is re-rendered or moved.
+      anchor:    this._textAnchor,
       outline:   this._textOutline
     };
   }
@@ -359,9 +405,11 @@ class TextToolClass extends ToolBase {
     const width  = pixels[0] ? pixels[0].length : result.width;
     const height = pixels.length;
 
-    // Centre stamp on cursor position
-    const px = x - Math.floor(width  / 2);
-    const py = y - Math.floor(height / 2);
+    // Put the anchor point of the finished block on the cursor (Centre = the old centring)
+    const a = window.MaskOps ? MaskOps.anchorOffset(this._textAnchor, width, height)
+      : { x: Math.floor(width / 2), y: Math.floor(height / 2) };
+    const px = x - a.x;
+    const py = y - a.y;
 
     if (window.SelectionService) {
       SelectionService.startFloatingPasteFromMask(

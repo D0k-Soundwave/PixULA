@@ -1005,13 +1005,16 @@ class SelectionServiceClass {
     }
 
     // ── Update display pixels, preserving visual centre ───────────────────
-    const cx = fp.x + Math.floor(fp.width  / 2);
-    const cy = fp.y + Math.floor(fp.height / 2);
+    // (the anchor point: the middle for everything but text anchored elsewhere)
+    const oa = this.anchorOffset(fp, fp.width, fp.height);
+    const cx = fp.x + oa.x;
+    const cy = fp.y + oa.y;
     fp.pixels = srcPixels;
     fp.width  = srcW;
     fp.height = srcH;
-    fp.x = cx - Math.floor(srcW / 2);
-    fp.y = cy - Math.floor(srcH / 2);
+    const na = this.anchorOffset(fp, srcW, srcH);
+    fp.x = cx - na.x;
+    fp.y = cy - na.y;
 
     this._clearFloatingFootprint(fp.floatingLayer, oldX, oldY, oldWidth, oldHeight);
     this._drawFloatingLayer();
@@ -1446,6 +1449,19 @@ class SelectionServiceClass {
   }
 
   /**
+   * The pixel of a stamp's box that the pointer holds. Text stamps carry an anchor in their fontInfo (Text tool > Anchor);
+   * every other stamp, and a text stamp whose anchor is Centre, is held by its middle - the rule since stamps began.
+   * @param {Object} fp - the floating paste
+   * @param {number} w @param {number} h - the box to measure (so a resize can ask about the new size)
+   * @returns {{x:number,y:number}}
+   */
+  anchorOffset(fp, w, h) {
+    const anchor = fp && fp.fontInfo ? fp.fontInfo.anchor : null;
+    if (!anchor || anchor === 'center' || !window.MaskOps) return { x: Math.floor(w / 2), y: Math.floor(h / 2) };
+    return MaskOps.anchorOffset(anchor, w, h);
+  }
+
+  /**
    * Move the stamp preview so it is centred on the given cursor position.
    * Called on every pointer-move when a stamp layer is active.
    * @param {number} cursorX
@@ -1456,9 +1472,8 @@ class SelectionServiceClass {
     const fp = this.floatingPaste;
     // No clamp — the stamp is allowed to extend off-canvas so its on-canvas pixels
     // can reach all four edges. Off-canvas pixels are dropped at draw time.
-    const newX = cursorX - Math.floor(fp.width  / 2);
-    const newY = cursorY - Math.floor(fp.height / 2);
-    this.moveFloatingPaste(newX, newY);
+    const a = this.anchorOffset(fp, fp.width, fp.height);
+    this.moveFloatingPaste(cursorX - a.x, cursorY - a.y);
   }
 
   /**
@@ -1572,8 +1587,9 @@ class SelectionServiceClass {
         return;
     }
 
-    const cx = fp.x + Math.floor(w  / 2);
-    const cy = fp.y + Math.floor(h  / 2);
+    const oa = this.anchorOffset(fp, w, h);
+    const cx = fp.x + oa.x;
+    const cy = fp.y + oa.y;
     fp.pixels = newPixels;
     // Display grid only — _srcIndices stays the untransformed source, the
     // same contract fp.pixels/_srcPixels follow.
@@ -1582,8 +1598,9 @@ class SelectionServiceClass {
     fp.height = newH;
     // Preserve the visual centre after a transform — no canvas clamp, so the
     // stamp can stay where the user placed it even if partially off-canvas.
-    fp.x = cx - Math.floor(newW / 2);
-    fp.y = cy - Math.floor(newH / 2);
+    const na = this.anchorOffset(fp, newW, newH);
+    fp.x = cx - na.x;
+    fp.y = cy - na.y;
 
     this._clearFloatingFootprint(fp.floatingLayer, oldX, oldY, w, h);
     this._drawFloatingLayer();
