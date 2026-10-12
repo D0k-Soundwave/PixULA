@@ -735,3 +735,13 @@ Owner answers: (1) New picture from selection asks "are you sure?" first (Ctrl+Z
 (3) BUILD any-size ASM / C / BIN / ATR (and font formats where sensible) for Save Selection As; (4) Preview panel hidden until
 View > Preview; (5) Save Image As > .ctile saves the whole picture AND fix Ctrl+Z after File > New / Open (UndoRedo.clear in the new
 and project-load paths; failing test first).
+
+## Batch 9 part 9B step 1 (fit to cells, new picture from selection, Ctrl+Z after New) - 2026-10-12
+SelectionService.snapToCells; LayerManager.cropToCells (every layer cropped and moved, background outside Paper White, stamps shifted);
+FileManager.fitSelectionToCells / newFromSelection (asks first as the owner chose; selection fitted to cells first with a notice;
+one undo action; file untitled and marked changed); Edit > Fit Selection to Cells and New Picture from Selection (enabled with a
+selection and nothing floating). FIX: File > New and opening a project now clear the undo history (Ctrl+Z after New used to put a
+partial old snapshot onto the reset layers); failing browser test first. 4 keys in 13 locales.
+Tests: tests/new-from-selection.test.js (11 modes: cells, undo, stamp), browser new-from-selection (3) and undo-after-new (2).
+Not measured yet: cropToCells time at layer2_640 with 32 layers (FIGURES.md) - do with step 2.
+Next: step 2, Save Selection As (format rules in the registry; including the any-size ASM / C / BIN / ATR the owner asked for).

@@ -668,6 +668,9 @@ class AppClass {
      * @private
      */
     async _loadProjectData(data) {
+        // An opened project is a new document: nothing before it can be undone (a partial snapshot of the old
+        // document would be put back onto the project's layers).
+        if (window.UndoRedo) UndoRedo.clear();
         // Mode first (raw — the layer data below already matches its
         // geometry), then the ULAplus palette it may reference.
         if (data.screenMode && data.screenMode !== ScreenModeService.getModeId()) {

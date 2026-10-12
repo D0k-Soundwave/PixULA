@@ -228,6 +228,23 @@ class SelectionServiceClass {
   }
 
   /**
+   * Fit the selection to whole attribute cells (ZX Paintbrush's "Adjust selection to 8x8"; 8x4, 8x2 or 8x1 high in the
+   * multicolor modes). The result covers every cell the old selection touched and is a plain rectangle: a freehand or
+   * ellipse selection becomes its bounding cells.
+   * @returns {boolean} true if the selection changed
+   */
+  snapToCells() {
+    const s = this.selection;
+    if (!s) return false;
+    const cell = SnapGrid.sizeOf('cell');
+    const r = SnapGrid.blockRect({ x: s.x, y: s.y }, { x: s.x + s.width - 1, y: s.y + s.height - 1 }, cell);
+    const same = r.x === s.x && r.y === s.y && r.w === s.width && r.h === s.height && !s.mask;
+    if (same) return false;
+    this.setSelection({ x: r.x, y: r.y, width: r.w, height: r.h });
+    return true;
+  }
+
+  /**
    * Get the current selection
    * @returns {Object|null} Selection rectangle or null
    */

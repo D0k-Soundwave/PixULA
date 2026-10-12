@@ -223,11 +223,63 @@ class FileManagerClass {
     this.hasUnsavedChanges = false;
     this._fileHandle = null;
 
+    // A new document has no history: undoing into the old one restored a partial snapshot onto the reset stack.
+    if (window.UndoRedo) UndoRedo.clear();
+
     EventBus.emit(EVENTS.FILE_NEW);
     // Refresh the layer panel and any order-dependent UI (the reset rebuilt the stack).
     EventBus.emit(EVENTS.LAYER_ORDER);
     Logger.info('FileManager', 'New file created (Paper White, Ink Black)');
 
+    return true;
+  }
+
+  /**
+   * Fit the selection to whole attribute cells, telling the person when that changed it (ZX Paintbrush's "Adjust selection
+   * to 8x8 pixels"; 8x4, 8x2 or 8x1 high in the multicolor modes).
+   * @returns {boolean} true if the selection changed
+   */
+  fitSelectionToCells() {
+    if (!window.SelectionService || !SelectionService.hasSelection()) return false;
+    const changed = SelectionService.snapToCells();
+    if (changed) {
+      const s = SelectionService.getSelection();
+      EventBus.emit(EVENTS.STATUS_NOTICE, { text: Helpers.localizedMessage('msg.selectionSnapped',
+        'Selection fitted to whole cells: {w} x {h}.', { w: s.width, h: s.height }) });
+    }
+    return changed;
+  }
+
+  /**
+   * Make the selection the whole picture (Edit > New Picture from Selection). The selection is first fitted to whole
+   * cells. The screen mode stays; every layer is kept and cropped to the block, moved to the top left, and the rest is
+   * empty (the background Paper White, as File > New leaves it). It asks first, and one Ctrl+Z gives the old picture back.
+   * @returns {Promise<boolean>} true if the picture was replaced
+   */
+  async newFromSelection() {
+    if (!window.SelectionService || !SelectionService.hasSelection() || SelectionService.isFloating()) return false;
+    if (window.ToolManager) ToolManager.commitPending();
+    this.fitSelectionToCells();
+    const sel = SelectionService.getSelection();
+    if (!sel) return false;
+    const ok = confirm(this._t('msg.confirmNewFromSelection',
+      'Make the selection the whole picture? You can undo it with Ctrl+Z.'));
+    if (!ok) return false;
+
+    const cw = ZX_SPECTRUM.CELL_WIDTH, ch = ZX_SPECTRUM.CELL_HEIGHT;
+    UndoRedo.beginAction('New picture from selection');
+    const done = LayerManager.cropToCells(sel.x / cw, sel.y / ch, sel.width / cw, sel.height / ch);
+    SelectionService.clear();
+    UndoRedo.endAction();
+    if (!done) return false;
+
+    this.currentFilename = null;
+    this._fileHandle = null;
+    this.hasUnsavedChanges = true;
+    if (window.StateManager) StateManager.markModified();
+    EventBus.emit(EVENTS.FILE_NEW);
+    EventBus.emit(EVENTS.LAYER_ORDER);
+    Logger.info('FileManager', 'New picture from selection');
     return true;
   }
 
