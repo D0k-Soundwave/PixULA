@@ -186,7 +186,7 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | ZX Paintbrush | What it does | PixULA | Verdict |
 |---|---|---|---|
 | Capture ellipse, rectangle, polygon | Grab an area; move it, drag it (Shift) or copy it (Ctrl). | Select: rectangle, ellipse, lasso, cell grid; move or copy as a stamp. | Same |
-| Selectors: 8x8, 16x16, whole screen, user-defined size | Selections that snap to fixed sizes. | Cell Grid selection and Snap to the attribute grid. No 16x16, screen or custom-size selector. | Partial |
+| Selectors: 8x8, 16x16, whole screen, user-defined size | Selections that snap to fixed sizes. | The rectangle selection has a Size list (2026-10-12, Batch 9 part 9A2): Free, Cell, 16x16, Screen (256x192, only on a canvas bigger than one screen) and Custom (block width and height); a click picks one block, a drag whole blocks; Cell blocks sit on the cell grid, the others start where you press (or on the snap cell, with Snap on). Also fixed: a click in the right half of a cell selected the next cell under Snap, and a Free drag under Snap selected one pixel too many. | Same |
 | Adjust selection to 8x8 | Expands a selection to whole cells. | Snap (Shift+S). | Same |
 | Export selection; new file from selection | Save just the selection, or open it as a new picture. | Save Image As saves the whole picture; .ctile export can slice a selection. No new file from selection. | Partial |
 | Create, merge and delete overlay | Overlay from a selection; accept or throw away. | Copy and paste as a floating stamp; commit or cancel. | Same |
