@@ -134,8 +134,7 @@ class TextTyping {
         const lx = px - b.data.x - org.x, ly = py - b.data.y - org.y;
         const line = Helpers.clamp(Math.floor(ly / b.lay.pitch), 0, b.lay.lines.length - 1);
         const l = b.lay.lines[line];
-        let slot = Math.round((lx - l.x0) / b.lay.adv);
-        slot = Helpers.clamp(slot, 0, l.before[l.before.length - 1]);
+        const slot = Helpers.clamp(BitmapText.slotFromX(l, lx - l.x0), 0, l.before[l.before.length - 1]);
         // the column whose drawable-glyph count is slot (the first such column)
         let col = l.before.indexOf(slot);
         if (col < 0) col = l.text.length;
