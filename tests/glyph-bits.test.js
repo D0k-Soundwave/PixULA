@@ -94,4 +94,28 @@ check('autoShade: a blank Space right-aligned keeps the right column', G.autoSha
 check('autoShade: a blank with no advance still keeps one column', G.autoShade(null, 0, 24, 'centre').join() === '1,1');
 check('autoShade: a full-width letter shades nothing', G.autoShade({ left: 0, right: 31 }, 32, 32, 'left').join() === '0,0');
 check('autoShade never shades all columns', [[null, 0], [{ left: 31, right: 31 }, 1]].every(([e, adv]) => { const [l, r] = G.autoShade(e, adv, 32, 'left'); return l + r <= 3; }));
+
+// shadeAfterClick: every column of 1 to 4 column characters from four starting states
+{
+  const eq = (a, b) => a[0] === b[0] && a[1] === b[1];
+  let ok = true, why = '';
+  const want = (shade, cols, k, exp) => { const got = G.shadeAfterClick(shade, cols, k); if (!eq(got, exp)) { ok = false; why += ` [${shade}] cols${cols} k${k} -> ${got} wanted ${exp};`; } };
+  // cols 3, nothing shaded
+  want([0, 0], 3, 0, [1, 0]); want([0, 0], 3, 1, [0, 2]); want([0, 0], 3, 2, [0, 1]);
+  // cols 4, nothing shaded: nearer edge, tie to the right
+  want([0, 0], 4, 0, [1, 0]); want([0, 0], 4, 1, [2, 0]); want([0, 0], 4, 2, [0, 2]); want([0, 0], 4, 3, [0, 1]);
+  // cols 1, 2
+  want([0, 0], 1, 0, [0, 1]); want([0, 0], 2, 0, [1, 0]); want([0, 0], 2, 1, [0, 1]);
+  // clicking a shaded column un-shades it and everything outward of it
+  want([2, 0], 4, 0, [0, 0]); want([2, 0], 4, 1, [1, 0]); want([0, 2], 4, 2, [0, 1]); want([0, 2], 4, 3, [0, 0]);
+  want([1, 1], 3, 0, [0, 1]); want([1, 1], 3, 2, [1, 0]);
+  // a click in the middle with the other side already shaded never overlaps
+  want([1, 1], 4, 1, [2, 1]); want([1, 1], 4, 2, [1, 2]);
+  want([1, 2], 4, 1, [2, 2]);
+  check('shadeAfterClick table' + why, ok);
+  check('shadeAfterClick ignores a column outside the character', eq(G.shadeAfterClick([1, 0], 3, 5), [1, 0]) && eq(G.shadeAfterClick([1, 0], 3, -1), [1, 0]));
+  check('shadeAfterClick never shades more than the character', [1, 2, 3, 4].every(c => [[0, 0], [1, 0], [0, 1]].every(s0 => Array.from({ length: c }, (_, k) => G.shadeAfterClick(s0.map(v => Math.min(v, c)), c, k)).every(r => r[0] + r[1] <= c))));
+  check('shadeStep grows and shrinks one side', eq(G.shadeStep([0, 0], 3, 'left', 1), [1, 0]) && eq(G.shadeStep([1, 1], 3, 'right', -1), [1, 0]));
+  check('shadeStep refuses to go below 0 or past the width', G.shadeStep([0, 0], 3, 'left', -1) === null && G.shadeStep([2, 1], 3, 'right', 1) === null && G.shadeStep([3, 0], 3, 'left', 1) === null);
+}
 summary();

@@ -308,35 +308,68 @@ class FontFormatClass {
     return { success: true, font: { name: '', width, height, firstCode, glyphs, shade } };
   }
 
-  /** @private */
-  _exportChx(doc) {
+  /**
+   * What a CHX export of this document will contain: per glyph how many 8-pixel columns are written (`stored`, 0 = the
+   * character is left out). One place, so the export and the summary shown to the user cannot disagree.
+   * @private
+   */
+  _chxPlan(doc) {
     const height = doc.height === undefined ? 8 : doc.height;
     const cols = (doc.width + 7) >> 3;
     const rows = height >> 3;
-    const count = doc.glyphs.length;
-    const noSpace = () => new Error(Helpers.localizedMessage('err.chxNoSpace',
-        'A CHX file needs a Space character (code 32) that keeps at least one column'));
-    const spaceIndex = 32 - doc.firstCode;
-    if (spaceIndex < 0 || spaceIndex >= count) throw noSpace();
-
-    // Which columns of each glyph are written
-    const plan = [];
+    const entries = [];
     let size = 5 + 256 * 2;
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < doc.glyphs.length; i++) {
       const sh = doc.shade ? doc.shade[i] : null;
       const left = sh ? sh[0] : 0;
       const right = sh ? sh[1] : 0;
       const stored = cols - left - right;
-      plan.push({ left, stored });
+      entries.push({ left, right, stored });
       if (stored > 0) size += 3 + stored * rows * 8;
     }
-    if (plan[spaceIndex].stored <= 0) throw noSpace();
+    const spaceIndex = 32 - doc.firstCode;
+    const hasSpace = spaceIndex >= 0 && spaceIndex < entries.length && entries[spaceIndex].stored > 0;
+    return { cols, rows, entries, size, spaceIndex, hasSpace };
+  }
 
-    const out = new Uint8Array(size);
+  /**
+   * Counts for the message after a CHX export: how many characters are written narrower than the font, how many are left
+   * out, and how many have dots under the shading that the file will not hold.
+   * @returns {{narrowed:number, leftOut:number, hiddenInk:number}}
+   */
+  chxSummary(doc) {
+    const plan = this._chxPlan(doc);
+    const w = plan.cols * 8;
+    const h = plan.rows * 8;
+    let narrowed = 0, leftOut = 0, hiddenInk = 0;
+    plan.entries.forEach((e, i) => {
+      if (e.stored <= 0) leftOut++;
+      else if (e.stored < plan.cols) narrowed++;
+      if (e.left + e.right === 0) return;
+      const g = doc.glyphs[i];
+      const hidden = (x) => { for (let y = 0; y < h; y++) if (GlyphBits.getPixel(g, w, x, y)) return true; return false; };
+      for (let c = 0; c < e.left; c++) for (let x = c * 8; x < c * 8 + 8; x++) if (hidden(x)) { hiddenInk++; return; }
+      for (let c = plan.cols - e.right; c < plan.cols; c++) {
+        if (c < 0) continue;
+        for (let x = c * 8; x < c * 8 + 8; x++) if (hidden(x)) { hiddenInk++; return; }
+      }
+    });
+    return { narrowed, leftOut, hiddenInk };
+  }
+
+  /** @private */
+  _exportChx(doc) {
+    const plan = this._chxPlan(doc);
+    const { cols, rows, entries } = plan;
+    if (!plan.hasSpace) {
+      throw new Error(Helpers.localizedMessage('err.chxNoSpace',
+        'A CHX file needs a Space character (code 32) that keeps at least one column'));
+    }
+    const out = new Uint8Array(plan.size);
     out.set(this.CHX_MAGIC, 0);
     let offset = 5 + 256 * 2;
-    for (let i = 0; i < count; i++) {
-      const { left, stored } = plan[i];
+    for (let i = 0; i < entries.length; i++) {
+      const { left, stored } = entries[i];
       if (stored <= 0) continue;
       const code = doc.firstCode + i;
       out[5 + code * 2] = offset & 0xFF;

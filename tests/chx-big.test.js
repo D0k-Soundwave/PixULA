@@ -163,6 +163,25 @@ for (const ext of ['ch4', 'ch6', 'ch8', 'chr']) {
   check(`.${ext} export of a big font is refused`, msg.length > 0);
 }
 check('.ch8 export of an 8 x 8 font with shading still works (shading is a CHX idea)', F.exportFont({ ...bigDoc(1, 1, 32, 96), shade: Array.from({ length: 96 }, () => [0, 0]) }, 'ch8').length === 2048);
+// ── summary ──────────────────────────────────────────────────────────────────
+{
+  const none = F.chxSummary(bigDoc(3, 2, 32, 96));
+  check('summary of an unshaded font: nothing narrowed, left out or hidden', none.narrowed === 0 && none.leftOut === 0 && none.hiddenInk === 0);
+  const shade = Array.from({ length: 96 }, () => [0, 0]);
+  shade[65 - 32] = [1, 0]; shade[66 - 32] = [0, 1]; shade[67 - 32] = [1, 1]; shade[68 - 32] = [0, 3]; shade[69 - 32] = [3, 0];
+  const doc = bigDoc(3, 2, 32, 96, shade);
+  const sum = F.chxSummary(doc);
+  const out = F.exportFont(doc, 'chx');
+  let written = 0, narrow = 0;
+  for (let c = 0; c < 256; c++) { const o = out[5 + c * 2] | (out[6 + c * 2] << 8); if (o) { written++; if (out[o + 1] < 3) narrow++; } }
+  check('summary counts agree with the bytes: narrowed', sum.narrowed === narrow && sum.narrowed === 3);
+  check('summary counts agree with the bytes: left out', sum.leftOut === 96 - written && sum.leftOut === 2);
+  check('summary counts the characters whose hidden columns hold dots', sum.hiddenInk === 5, String(sum.hiddenInk));
+  const blank = bigDoc(3, 2, 32, 96, shade);
+  blank.glyphs[65 - 32].fill(0);
+  check('a shaded column with no dots is not "hidden ink"', F.chxSummary(blank).hiddenInk === 4);
+}
+
 for (const ext of ['asm', 'c', 'bin']) {
   let msg = '';
   try { DevFormat.generateFont(ext, 'x', bigDoc(2, 2, 32, 96)); } catch (e) { msg = e.message; }
