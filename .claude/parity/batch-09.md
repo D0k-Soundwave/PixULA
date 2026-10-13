@@ -116,3 +116,9 @@ format that suits its size, and the preview panel shows the whole picture.
 
 Batch 9 is done. Update the comparison doc rows, then hand off to Batch 10
 part 10A.
+
+## Owner decisions (asked 2026-10-12 / 10-13, recorded here 2026-10-13)
+
+Selection blocks start where you press (with Snap on the press drops to the snap cell first). 9B: ask "are you sure" first (New picture from selection;
+the question now comes BEFORE a waiting figure is drawn); keep all layers, cropped; build any-size ASM / C / BIN / ATR export of the selection; the Preview
+panel stays hidden until View > Preview; the whole-picture ctile and the Ctrl+Z fix are both built.

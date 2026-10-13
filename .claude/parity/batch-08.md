@@ -129,3 +129,10 @@ part 9A.
   the new method select adds the Dither methods beside them.
 - Side finding: `CLUSTERED_8` in brush-engine.js has two cells swapped against the help (row 4 col 3 reads 38, row 7 col 3 reads
   36; correct 36 and 38). Not part of 8A; not changed.
+
+## Owner decisions (asked 2026-10-12, recorded here 2026-10-13)
+
+Fill tiles stay square 8 / 16 / 32. The Layer 2 / LoRes imports take all 31 dithers (done 2026-10-13: Dither.paletteIndices over the whole picture).
+The Timex hi-res import fix stays. The Dither select drives Sharp as well as Smooth (done 2026-10-13: Sharp follows the method once one was chosen,
+so Sharp as first shown is unchanged). Side finding CLUSTERED_8 (two swapped cells in the fade brush's halftone matrix) is NOT changed: it alters the
+fade brush output; owner to decide at the sign-off.
