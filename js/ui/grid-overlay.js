@@ -1021,17 +1021,80 @@ class GridOverlayClass {
         const inkMode = PixelDrawRoutine.resolveUserMode(true);
         const paperMode = PixelDrawRoutine.resolveUserMode(false);
 
+        // The pending writes that fall inside each cell, in the tools' own
+        // terms: which pixel, and which button's mode.
+        const cellWrites = new Map();
+        for (const key of affectedCells) {
+            const comma = key.indexOf(',');
+            const cellX = parseInt(key.slice(0, comma), 10);
+            const cellY = parseInt(key.slice(comma + 1), 10);
+            const baseX = cellX * cellW;
+            const baseY = cellY * cellH;
+            const writes = [];
+            for (let row = 0; row < cellH; row++) {
+                for (let col = 0; col < cellW; col++) {
+                    const pixKey = (baseX + col) + ',' + (baseY + row);
+                    const wanted = inkSet.has(pixKey) ? inkMode : paperSet.has(pixKey) ? paperMode : null;
+                    if (!wanted) continue;
+                    // Under a colour core the pixels outside it keep their dot but
+                    // not their colours: the same rule the commit applies.
+                    const kept = PixelDrawRoutine.classifyCore(baseX + col, baseY + row, wanted, colorSelection);
+                    if (kept === null) continue;
+                    writes.push({ localX: col, localY: row, mode: kept.mode,
+                        sel: kept.sel !== colorSelection ? kept.sel : undefined });
+                }
+            }
+            cellWrites.set(key, writes);
+        }
+        this._paintCellWrites(ctx, cellWrites, layer, colorSelection);
+    }
+
+    /**
+     * Preview an explicit list of writes - the stamp write plan, with a mode (and maybe colours) of its own for each pixel -
+     * exactly as the commit would leave the picture. Used by Type on canvas, whose text is not a layer.
+     * @param {Array<{x:number,y:number,mode:number,sel:Object}>} writes - picture pixels
+     * @param {number} activeLayerIndex - the layer the writes would land on
+     */
+    drawWritesPreview(writes, activeLayerIndex) {
+        if (!this._initialized) return;
+        const ctx = this.compositePreviewCtx;
+        const canvas = this.compositePreviewCanvas;
+        if (!ctx || !canvas) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const layer = LayerManager.layers[activeLayerIndex];
+        if (!layer || !writes || !writes.length) return;
+        const cellW = ZX_SPECTRUM.CELL_WIDTH, cellH = ZX_SPECTRUM.CELL_HEIGHT;
+        const cellWrites = new Map();
+        for (const w of writes) {
+            const cx = Math.floor(w.x / cellW), cy = Math.floor(w.y / cellH);
+            const key = cx + ',' + cy;
+            let list = cellWrites.get(key);
+            if (!list) { list = []; cellWrites.set(key, list); }
+            list.push({ localX: w.x % cellW, localY: w.y % cellH, mode: w.mode, sel: w.sel });
+        }
+        this._paintCellWrites(ctx, cellWrites, layer, ColorManager.getCurrentSelection());
+    }
+
+    /**
+     * Paint the cells' result of simulating their writes: one buffer, one putImageData, whatever the pixel count.
+     * @param {Map<string, Array>} cellWrites - "cx,cy" -> [{localX, localY, mode, sel}]
+     * @private
+     */
+    _paintCellWrites(ctx, cellWrites, layer, colorSelection) {
+        const cellW = ZX_SPECTRUM.CELL_WIDTH;
+        const cellH = ZX_SPECTRUM.CELL_HEIGHT;
+
         // Every touched pixel is written straight into one RGBA buffer and
         // painted with a single putImageData, instead of a fillStyle+fillRect
         // pair per pixel. A full-canvas gradient preview used to issue tens
         // of thousands of canvas-API calls on every pointermove; this issues
         // one, regardless of how many pixels are affected. The buffer only
-        // spans the bounding box of affectedCells - cells inside the box but
+        // spans the bounding box of the cells - cells inside the box but
         // not in the set are left at alpha 0 (transparent), matching the old
         // behaviour of simply never drawing them (the clearRect above already
         // cleared that area).
         let minCX = Infinity, minCY = Infinity, maxCX = -Infinity, maxCY = -Infinity;
-        for (const key of affectedCells) {
+        for (const key of cellWrites.keys()) {
             const comma = key.indexOf(',');
             const cellX = parseInt(key.slice(0, comma), 10);
             const cellY = parseInt(key.slice(comma + 1), 10);
@@ -1048,29 +1111,12 @@ class GridOverlayClass {
         const imgData = ctx.createImageData(bboxW, bboxH);
         const buf = imgData.data;
 
-        for (const key of affectedCells) {
+        for (const [key, writes] of cellWrites) {
             const comma = key.indexOf(',');
             const cellX = parseInt(key.slice(0, comma), 10);
             const cellY = parseInt(key.slice(comma + 1), 10);
             const baseX = cellX * cellW;
             const baseY = cellY * cellH;
-
-            // The pending writes that fall inside this cell, in the tools' own
-            // terms: which pixel, and which button's mode.
-            const writes = [];
-            for (let row = 0; row < cellH; row++) {
-                for (let col = 0; col < cellW; col++) {
-                    const pixKey = (baseX + col) + ',' + (baseY + row);
-                    const wanted = inkSet.has(pixKey) ? inkMode : paperSet.has(pixKey) ? paperMode : null;
-                    if (!wanted) continue;
-                    // Under a colour core the pixels outside it keep their dot but
-                    // not their colours: the same rule the commit applies.
-                    const kept = PixelDrawRoutine.classifyCore(baseX + col, baseY + row, wanted, colorSelection);
-                    if (kept === null) continue;
-                    writes.push({ localX: col, localY: row, mode: kept.mode,
-                        sel: kept.sel !== colorSelection ? kept.sel : undefined });
-                }
-            }
 
             const simulated = PixelDrawRoutine.simulateCell(
                 layer, cellX, cellY, writes, colorSelection);

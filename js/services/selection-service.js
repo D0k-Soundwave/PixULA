@@ -1998,27 +1998,9 @@ class SelectionServiceClass {
       this.floatingPaste = null;
     }
 
-    const color = ColorManager.getCurrentSelection();
-    // The top-bar draw-mode selector governs the commit exactly as it would
-    // a brush stroke laying down the same ink.
-    const mode = PixelDrawRoutine.resolveUserMode(true);
-    // The commit bakes what the drag painted - see stampAt.
-
     UndoRedo.beginAction('Commit stamp');
     PixelDrawRoutine.beginBatch();
-
-    // Commits bake exactly the previewed stamp — never symmetry-mirrored
-    PixelDrawRoutine.suspendMirror(() => {
-      // Indexed modes (Phase 13): bake the previewed indices/mask directly,
-      // through the same resolved mode as the classic branch.
-      if (ZX_SPECTRUM.PIXEL_DEPTH > 1) {
-        this._paintIndexedStamp(data, target, color, mode);
-      } else {
-        this._forEachStampWrite(data, layer, target,
-          (px, py, sel, m) => PixelDrawRoutine.draw(px, py, sel, m, { layer: target }));
-      }
-    });
-
+    this._writeStampInto(data, layer, target);
     PixelDrawRoutine.endBatch();
 
     LayerManager.removeLayer(layer.index, false);
@@ -2033,6 +2015,74 @@ class SelectionServiceClass {
 
     LayerManager.composeToCanvas();
     EventBus.emit(EVENTS.LAYER_ORDER);
+    EventBus.emit(EVENTS.CANVAS_RENDER);
+    return true;
+  }
+
+  /**
+   * Write a stamp's data into a drawing layer through the shared write plan: the colour selection and draw mode in force, the
+   * stamp's own XOR box, Clear background, clear dots - the same walk the preview does. The caller opens the undo action and
+   * the batch. (Commits bake exactly the previewed stamp - never symmetry-mirrored.)
+   * @private
+   */
+  _writeStampInto(data, stampLayer, target) {
+    const color = ColorManager.getCurrentSelection();
+    // The top-bar draw-mode selector governs the commit exactly as it would a brush stroke laying down the same ink.
+    const mode = PixelDrawRoutine.resolveUserMode(true);
+    PixelDrawRoutine.suspendMirror(() => {
+      // Indexed modes (Phase 13): bake the previewed indices/mask directly, through the same resolved mode as the classic branch.
+      if (ZX_SPECTRUM.PIXEL_DEPTH > 1) {
+        this._paintIndexedStamp(data, target, color, mode);
+      } else {
+        this._forEachStampWrite(data, stampLayer, target,
+          (px, py, sel, m) => PixelDrawRoutine.draw(px, py, sel, m, { layer: target }));
+      }
+    });
+  }
+
+  /** The drawing layer a mask that is not a layer (Type on canvas) would be written to, or null (none selected, or locked). */
+  activeWriteTarget() {
+    const idx = LayerManager.activeDrawLayerIndex;
+    const l = idx >= 1 ? LayerManager.layers[idx] : null;
+    return l && !l.isStamp && !l.locked ? l : null;
+  }
+
+  /**
+   * The writes a mask would make, as a list - the stamp write plan without a stamp layer, for a preview that is not a layer.
+   * @param {Object} data - { mask, indices?, clearMask?, opts?, x, y, w, h }
+   * @param {?Layer} [target]
+   * @returns {Array<{x:number,y:number,sel:Object,mode:number}>}
+   */
+  maskWritePlan(data, target = null) {
+    const out = [];
+    const tgt = target || this.activeWriteTarget();
+    if (!tgt) return out;
+    const plain = { xorMode: false };
+    if (ZX_SPECTRUM.PIXEL_DEPTH > 1) {
+      this._forEachIndexedStampWrite(data, ColorManager.getCurrentSelection(), PixelDrawRoutine.resolveUserMode(true),
+        (x, y, sel, mode) => out.push({ x, y, sel, mode }));
+    } else {
+      this._forEachStampWrite(data, plain, tgt, (x, y, sel, mode) => out.push({ x, y, sel, mode }));
+    }
+    return out;
+  }
+
+  /**
+   * Draw a mask into the active drawing layer as ONE undo step, with no stamp layer in between (Type on canvas commits its
+   * text this way). Same writes as placing the same mask as a stamp and committing it.
+   * @param {Object} data - as maskWritePlan
+   * @param {string} [label] - the undo label
+   * @returns {boolean} false if there is no layer to write to (nothing was changed)
+   */
+  bakeMask(data, label = 'Text') {
+    const target = this.activeWriteTarget();
+    if (!target || !data) return false;
+    UndoRedo.beginAction(label);
+    PixelDrawRoutine.beginBatch();
+    this._writeStampInto(data, { xorMode: false }, target);
+    PixelDrawRoutine.endBatch();
+    UndoRedo.endAction();
+    LayerManager.composeToCanvas();
     EventBus.emit(EVENTS.CANVAS_RENDER);
     return true;
   }
