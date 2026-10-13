@@ -191,6 +191,11 @@ class CellGridEditor {
      * @private
      */
     _isErase(e) {
+        return CellGridEditor.isEraseEvent(e);
+    }
+
+    /** The same test without an instance, for other drawing surfaces (the Font Editor's map). */
+    static isEraseEvent(e) {
         return e.button === 2 || e.button === PEN_CONTROLS.ERASER.button ||
                (e.buttons & 2) !== 0 || (e.buttons & PEN_CONTROLS.ERASER.bit) !== 0;
     }

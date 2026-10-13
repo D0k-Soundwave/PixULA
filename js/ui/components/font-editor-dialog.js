@@ -9,7 +9,8 @@
  *   left  — the 256-glyph (or 96-glyph, charset-offset aware) grid
  *           picker rendered on one canvas, the coverage selector and the
  *           named-font library pane (save/load/delete).
- *   right — the glyph editing surface: the shared CellGridEditor (third
+ *   right — (All characters on: the whole font as one map you can draw across, with
+ *           the Shade and Move tools and zoom; see FontMapView) — the glyph editing surface: the shared CellGridEditor (third
  *           consumer, after the Pattern Creator and the map editor —
  *           this is the width ≠ height case it was built for), the
  *           glyph-ops toolbar (clear/copy/paste/flip/shift/invert), the
@@ -29,7 +30,10 @@ class FontEditorDialogClass {
         this._unsubscribes = [];
         this._selected = 65;           // current character code ('A')
         this._suppressGlyphCommit = false;
-        this._editorCommit = false;    // true while the cell editor writes back
+        this._commitSource = null;     // 'glyph' | 'map' while that surface writes back, so it is not reloaded over itself
+        this._mapMode = false;
+        this._mapView = null;
+        this._tool = 'brush';
         this._statusTimeout = null;
         this._glyphEditor = null;      // created lazily (shared CellGridEditor)
 
@@ -61,7 +65,7 @@ class FontEditorDialogClass {
         content.innerHTML = `
             <div class="fe-left">
                 <div class="me-section-title" data-i18n="font.glyphs">${this._t('font.glyphs', 'Glyphs')}</div>
-                <canvas class="fe-glyph-grid"></canvas>
+                <canvas class="fe-glyph-grid" tabindex="0" role="application" aria-label="${this._t('font.pickerLabel', 'Characters: arrow keys or a typed character choose one')}" data-i18n-aria-label="font.pickerLabel"></canvas>
                 <div class="fe-row">
                     <label><span data-i18n="font.coverage">${this._t('font.coverage', 'Charset')}</span>
                         <select class="fe-coverage" id="fe-coverage" name="fe-coverage">
@@ -86,6 +90,14 @@ class FontEditorDialogClass {
                         ${Helpers.miniToolButton('fill', 'F', 'tool.fill', 'Fill', 'tool.fill.hint', 'Flood the area under the cursor out to its edges')}
                     </div>
                     <div class="me-tool-group">
+                        <button type="button" class="pc-btn fe-map-toggle" aria-pressed="false" data-i18n="font.allCharacters">${this._t('font.allCharacters', 'All characters')}</button>
+                        <span class="fe-map-tools" hidden>
+                            <button type="button" class="pc-btn" data-tool="shade" data-i18n="font.tool.shade">${this._t('font.tool.shade', 'Shade')}</button>
+                            <button type="button" class="pc-btn" data-tool="move" data-i18n="font.tool.move">${this._t('font.tool.move', 'Move')}</button>
+                            <button type="button" class="pc-btn fe-zoom-out" data-i18n-aria-label="menu.view.zoomOut" aria-label="${this._t('menu.view.zoomOut', 'Zoom Out')}">&minus;</button>
+                            <button type="button" class="pc-btn fe-zoom-fit" data-i18n="font.zoomFit">${this._t('font.zoomFit', 'Fit')}</button>
+                            <button type="button" class="pc-btn fe-zoom-in" data-i18n-aria-label="menu.view.zoomIn" aria-label="${this._t('menu.view.zoomIn', 'Zoom In')}">+</button>
+                        </span>
                         <span class="fe-size-label" hidden></span>
                         <label class="fe-width-label"><span data-i18n="font.width">${this._t('font.width', 'Width')}</span>
                             <select class="fe-width" id="fe-width" name="fe-width">
@@ -216,6 +228,8 @@ class FontEditorDialogClass {
         this._unsubscribes = [];
         this._hist = null;
         this._cur = null;
+        this._mapView = null;
+        this._mapMode = false;
         this._root = null;
         this._glyphEditor = null;
         FontService.persist();
@@ -245,12 +259,13 @@ class FontEditorDialogClass {
 
         // Glyph mini-editor toolbar
         c.querySelectorAll('button[data-tool]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                c.querySelectorAll('button[data-tool]').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                this._glyphEditor.setTool(btn.dataset.tool);
-            });
+            btn.addEventListener('click', () => this._setTool(btn.dataset.tool));
         });
+        c.querySelector('.fe-map-toggle').addEventListener('click', () => this._setMapMode(!this._mapMode));
+        c.querySelector('.fe-zoom-in').addEventListener('click', () => this._mapView && this._mapView.zoomIn());
+        c.querySelector('.fe-zoom-out').addEventListener('click', () => this._mapView && this._mapView.zoomOut());
+        c.querySelector('.fe-zoom-fit').addEventListener('click', () => this._mapView && this._mapView.fit());
+        this._grid.addEventListener('keydown', e => this._navKey(e));
 
         // Width selector (re-shapes the whole font)
         c.querySelector('.fe-width').addEventListener('change', e => {
@@ -371,6 +386,10 @@ class FontEditorDialogClass {
 
     _selectGlyph(code) {
         this._selected = code;
+        if (this._mapView) {
+            this._mapView.setSelected(code - FontService.firstCode);
+            this._mapView.scrollToIndex(code - FontService.firstCode);
+        }
         this._syncControls();
         this._redrawGrid();
         this._loadGlyphIntoEditor();
@@ -406,9 +425,9 @@ class FontEditorDialogClass {
                 if (pixels[y * w + x]) GlyphBits.setPixel(bytes, w, x, y, true);
             }
         }
-        this._editorCommit = true;
+        this._commitSource = 'glyph';
         FontService.setGlyph(this._selected, bytes);
-        this._editorCommit = false;
+        this._commitSource = null;
     }
 
     /** FONT_CHANGED fact: re-sync everything that shows font state. */
@@ -417,8 +436,9 @@ class FontEditorDialogClass {
         this._syncControls();
         this._syncEditorGeometry();
         this._redrawGrid();
-        // Reload the editing surface unless the change came from it
-        if (!this._editorCommit) this._loadGlyphIntoEditor();
+        // Reload the editing surfaces unless the change came from them
+        if (this._commitSource !== 'glyph') this._loadGlyphIntoEditor();
+        if (this._mapMode && this._commitSource !== 'map') this._reloadMap();
     }
 
     /** Clamp the selection into coverage; sync width/coverage selects. */
@@ -851,6 +871,105 @@ class FontEditorDialogClass {
         }
     }
 
+    // ─── All-characters map ───────────────────────────────────────────────
+
+    /** The mini tool changed: the active surface uses it if it can. @private */
+    _setTool(tool) {
+        this._tool = tool;
+        this._applyTool();
+    }
+
+    _applyTool() {
+        const mapOnly = this._tool === 'shade' || this._tool === 'move';
+        const shown = this._mapMode || !mapOnly ? this._tool : 'brush';   // the one-character editor has no map-only tools
+        if (this._mapMode) this._mapView.setTool(shown);
+        else this._glyphEditor.setTool(shown);
+        this._root.querySelectorAll('button[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === shown));
+    }
+
+    /** Switch between the one-character editor and the whole-font map. @private */
+    _setMapMode(on) {
+        if (on === this._mapMode || !this._root) return;
+        this._mapMode = on;
+        const root = this._root;
+        const slot = root.querySelector('.fe-editor-slot');
+        root.querySelector('.fe-map-toggle').setAttribute('aria-pressed', String(on));
+        root.querySelector('.fe-map-tools').hidden = !on;
+        const dlg = root.closest('.font-editor-dialog');
+        if (dlg) dlg.classList.toggle('fe-wide', on);
+        if (on) {
+            if (!this._mapView) {
+                this._mapView = new FontMapView({
+                    onSelect: index => this._selectGlyph(FontService.firstCode + index),
+                    onCommit: (touched, map) => this._commitMap(touched, map),
+                    onShade: (index, col8) => this._shadeClick(FontService.firstCode + index, col8),
+                    getShade: index => FontService.getShade(FontService.firstCode + index)
+                });
+                this._mapView.element.setAttribute('aria-label', this._t('font.mapLabel', 'All characters: arrow keys or a typed character choose one'));
+                this._mapView.element.addEventListener('keydown', e => this._navKey(e));
+            }
+            slot.replaceChildren(this._mapView.element);
+            this._reloadMap();
+            this._applyTool();
+            requestAnimationFrame(() => { if (this._mapView) { this._mapView.fit(); this._mapView.scrollToIndex(this._selected - FontService.firstCode); } });
+        } else {
+            slot.replaceChildren(this._glyphEditor.element);
+            this._loadGlyphIntoEditor();
+            this._applyTool();
+        }
+    }
+
+    _reloadMap() {
+        if (!this._mapView) return;
+        const { w, h } = FontService.getGlyphSize();
+        this._mapView.setData(FontService.glyphs, w, h);
+        this._mapView.setSelected(this._selected - FontService.firstCode);
+    }
+
+    /** A stroke on the map ended: write the touched characters back in ONE change (one undo step). @private */
+    _commitMap(touched, map) {
+        const { w, h } = FontService.getGlyphSize();
+        const next = FontMap.decompose(map, FontService.glyphs, w, h, touched);
+        this._commitSource = 'map';
+        FontService.replaceGlyphs(next);
+        this._commitSource = null;
+        this._redrawGrid();
+    }
+
+    _shadeClick(code, col8) {
+        if (FontService.width % 8 !== 0) {
+            this._status(this._t('font.status.shadeNeeds8', 'Shading needs a font whose width is a whole number of 8-pixel columns.'));
+            return;
+        }
+        const cols = FontService.width >> 3;
+        const cur = FontService.getShade(code);
+        const next = GlyphBits.shadeAfterClick([cur.left, cur.right], cols, col8);
+        if (next[0] === cur.left && next[1] === cur.right) return;
+        if (!FontService.setShade(code, next[0], next[1])) {
+            this._status(this._t('font.status.spaceKeepsColumn', 'Space must keep at least one column.'));
+        }
+    }
+
+    /** Arrow keys, Home / End and a typed character choose a character (picker and map). @private */
+    _navKey(e) {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        const { firstCode, count } = FontService.getCoverage();
+        let code = this._selected;
+        switch (e.key) {
+            case 'ArrowLeft': code -= 1; break;
+            case 'ArrowRight': code += 1; break;
+            case 'ArrowUp': code -= this.GRID_COLS; break;
+            case 'ArrowDown': code += this.GRID_COLS; break;
+            case 'Home': code = firstCode; break;
+            case 'End': code = firstCode + count - 1; break;
+            default:
+                if (e.key.length === 1) code = e.key.charCodeAt(0);
+                else return;
+        }
+        e.preventDefault();
+        if (FontService.hasCode(code)) this._selectGlyph(code);
+    }
+
     // ─── Undo / redo ──────────────────────────────────────────────────────
 
     /** A stroke in the editing surface begins: all its changes are one undo step. @private */
@@ -997,6 +1116,7 @@ class FontEditorDialogClass {
         this._refreshLibrary();
         this._redrawGrid();
         this._loadGlyphIntoEditor();
+        if (this._mapMode) this._reloadMap();
     }
 
     /*

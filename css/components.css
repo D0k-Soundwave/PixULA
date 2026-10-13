@@ -3586,3 +3586,47 @@
     border: 1px solid var(--border-color);
     border-radius: 2px;
 }
+
+/* ── Font editor: all-characters map (Batch 10C2b) ────────────────────── */
+
+.font-editor-dialog.fe-wide {
+    width: min(1100px, 96vw);
+}
+
+.fe-map-tools {
+    display: inline-flex;
+    gap: var(--space-xs);
+    align-items: center;
+}
+
+.fe-map-viewport {
+    max-width: 100%;
+    max-height: 60vh;
+    max-height: 60dvh;
+    overflow: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--input-bg);
+}
+
+.fe-map-viewport:focus-visible {
+    outline: 2px solid var(--accent-color, #3b82f6);
+    outline-offset: 1px;
+}
+
+.fe-map-canvas {
+    display: block;
+    image-rendering: pixelated;
+    touch-action: none;
+}
+
+.fe-glyph-grid:focus-visible {
+    outline: 2px solid var(--accent-color, #3b82f6);
+    outline-offset: 1px;
+}
+
+.fe-shade-bar .fe-shade-title,
+.fe-shade-state {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
