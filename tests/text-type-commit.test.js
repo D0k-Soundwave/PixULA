@@ -278,8 +278,19 @@ for (const mode of MODES) {
   tool.commitPending();
   check('a locked layer: nothing written, no undo entry, the session stays open, and it says why',
     snap(t) === before && UndoRedo.getUndoCount() === undo && tool.hasPending && notices.some(n => /layer/i.test(n)));
+  // leaving the tool while the layer is locked cannot draw it: the session must not stay open behind another tool
+  closed = 0;
+  tool.deactivate();
+  check('leaving the tool with a locked layer closes the session (it is not left half open)', !tool.hasPending && closed >= 1);
   t.locked = false;
   tool.cancelPending();
+  // starting on a locked layer says so at once and opens nothing
+  t.locked = true;
+  notices.length = 0;
+  tool.activate();
+  tool.onPointerDown(8, 8, { button: 0 });
+  check('a click on a locked layer starts no session and says why', !tool.hasPending && notices.some(n => /layer/i.test(n)));
+  t.locked = false;
 }
 
 // -- characters the font does not have -------------------------------------------------------------------------------------------------------

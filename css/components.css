@@ -3630,3 +3630,35 @@
     font-size: var(--font-size-xs);
     color: var(--text-secondary);
 }
+
+/* New Big Font / Fill from font dialogs */
+.fe-fill-dialog {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    min-width: min(320px, 90vw);
+}
+
+.fe-fill-field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+}
+
+.fe-fill-field select,
+.fe-fill-field input[type="number"] {
+    min-width: 0;
+    max-width: 60%;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 2px 4px;
+}
+
+.fe-fill-dialog .panel-button {
+    align-self: flex-end;
+}

@@ -351,4 +351,28 @@ check('every slice has a label key for the dialogs',
   SM.setGridSnap(false);
 }
 
+// -- Text tool: the font is restored BEFORE the character size and Type on canvas (group C review) ------------------------------------
+{
+  const big = { name: 'P', width: 16, height: 16, firstCode: 32, glyphs: Array.from({ length: 96 }, () => new Uint8Array(32)), shade: null };
+  const savedFS = global.FontService;
+  global.FontService = { getLibraryFont: (n) => (n === 'P' ? big : null), listLibrary: () => ['P'] };
+  const tt = new global.TextTool();
+  const savedTM = global.ToolManager.getTool;
+  global.ToolManager.getTool = (id) => (id === 'text' ? tt : savedTM.call(global.ToolManager, id));
+  tt.setFontFamily('zxfont:P'); tt.setCharHeight(16); tt.setCharWidth(16); tt.setTypeOnCanvas(true);
+  const saved = PS.captureToolOptions('text');
+  check('text preset holds the big font, 16 x 16 and Type on canvas', saved.fontFamily === 'zxfont:P' && saved.charWidth === 16 && saved.charHeight === 16 && saved.typeOnCanvas === true);
+  tt.setTypeOnCanvas(false); tt.setFontFamily('ZX ROM'); tt.setCharHeight(8); tt.setCharWidth(8);
+  PS.applyToolOptions('text', saved);
+  check('restored over ZX ROM: 16 x 16 (not doubled to 32 x 32) with Type on canvas on', tt._charW === 16 && tt._charH === 16 && tt._typeOnCanvas === true, `${tt._charW}x${tt._charH}`);
+  tt.setTypeOnCanvas(false); tt.setFontFamily('Arial');
+  PS.applyToolOptions('text', saved);
+  check('restored over a system font: font, size and Type on canvas all come back', tt._fontFamily === 'zxfont:P' && tt._charW === 16 && tt._charH === 16 && tt._typeOnCanvas === true);
+  tt.setTypeOnCanvas(false); tt.setFontFamily('zxfont:P'); tt.setCharHeight(16); tt.setCharWidth(16);
+  tt.setFontFamily('Arial'); tt.setFontFamily('zxfont:P');
+  check('big font -> system font -> big font keeps 16 x 16', tt._charW === 16 && tt._charH === 16, `${tt._charW}x${tt._charH}`);
+  global.ToolManager.getTool = savedTM;
+  global.FontService = savedFS;
+}
+
 summary();

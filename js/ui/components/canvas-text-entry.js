@@ -93,6 +93,10 @@ class CanvasTextEntryClass {
         ta.addEventListener('focus', () => this._startBlink());
         ta.addEventListener('blur', () => this._stopBlink(false));
 
+        // A session is open but something else has the focus (a click on an option took it): typing must still go into the text, not act
+        // as tool shortcuts. The keystroke is handed back to the field before anything else sees it.
+        window.addEventListener('keydown', (e) => this._stolenKey(e), true);
+
         EventBus.on(EVENTS.TEXT_ENTRY_OPEN, (d) => this._onOpen(d));
         EventBus.on(EVENTS.TEXT_ENTRY_CLOSE, () => this._onClose());
     }
@@ -121,6 +125,25 @@ class CanvasTextEntryClass {
                 const again = () => { doc.removeEventListener('pointerup', again, true); if (this._open) this._focus(); };
                 doc.addEventListener('pointerup', again, true);
             }
+        }
+    }
+
+    /** @private */
+    _stolenKey(e) {
+        if (!this._open || e.target === this._ta || e.isComposing) return;
+        if (e.ctrlKey || e.metaKey || e.altKey || e.key === 'Tab') return;
+        const t = e.target;
+        const tag = t && t.tagName;
+        const textLike = ['text', 'number', 'search', 'email', 'url', 'password', 'tel'];
+        if ((tag === 'INPUT' && textLike.includes(t.type)) || tag === 'SELECT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return;
+        const k = e.key;
+        const editing = k.length === 1 || ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'Enter', 'Escape'].includes(k);
+        if (!editing) return;
+        e.stopImmediatePropagation();
+        this._focus();
+        if (k === 'Enter' || k === 'Escape' || k === 'ArrowUp' || k === 'ArrowDown') {
+            e.preventDefault();
+            this._onKey(e);
         }
     }
 
