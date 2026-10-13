@@ -37,7 +37,7 @@
  *   so coverage round-trips.
  *
  * CHX — ZX-Editor SE "big font set" (1..256 chars, each 1..4 × 1..4
- *   blocks of 8×8 pixels). Layout per RECOIL's DecodeChx, which matches every
+ *   blocks of 8x8 pixels). Layout per RECOIL's DecodeChx, which matches every
  *   ZX-Paintbrush loader error string, and the ZX-Blockeditor data block
  *   pages ("Transparent character map" 8*width*height bytes, "Colour
  *   character map" 9*width*height bytes):
@@ -46,7 +46,7 @@
  *     5..516  256 × u16le absolute file offset of each character's
  *             record, 0 = character not defined
  *     record  [transparent: 0|1][columns: 1..4][rows: 1..4] then
- *             rows×columns blocks, left to right then down, each block
+ *             rows*columns blocks, left to right then down, each block
  *             8 bitmap bytes (+1 ZX attribute byte when coloured, i.e.
  *             transparent=0)
  *   A space (code 32) must be defined ("Missing Space character").
@@ -57,7 +57,7 @@
  *   character shaded all the way across is not written (ZX-Paintbrush help,
  *   "Shader tool").
  *
- *   Import: the font is as large as the largest character (columns × rows).
+ *   Import: the font is as large as the largest character (columns x rows).
  *   A smaller character sits at the top-left and the rest is shaded on the
  *   right (so it saves back the same size); codes the file does not define
  *   come back fully shaded (so a sparse file stays sparse); attributes are
@@ -71,7 +71,7 @@
  *   (the file stores no position), so the guarantee is export, import,
  *   export = identical bytes.
  *
- *   UNVERIFIED against a file made by ZX-Paintbrush: only 1×1 files were ever
+ *   UNVERIFIED against a file made by ZX-Paintbrush: only 1x1 files were ever
  *   compared with the real program (owner, 2026-09-26). The block order, the
  *   columns-then-rows header order and the attribute byte after each block
  *   come from RECOIL and the datablocks manual; the owner declined to make

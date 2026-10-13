@@ -207,9 +207,9 @@ test('move tool drags the map under a small window; zoom buttons change the scal
     await page.click('.fe-zoom-in');
     const z1 = await page.evaluate(() => FontEditorDialog._mapView.getZoom());
     expect(z1).toBeGreaterThanOrEqual(z0);
-    expect(z1).toBeLessThanOrEqual(3);                     // 512 pixels wide: 1600 / 512 = 3
+    expect(z1).toBeLessThanOrEqual(4);                     // 512 pixels wide: 2048 / 512 = 4
     for (let i = 0; i < 4; i++) await page.click('.fe-zoom-in');
-    expect(await page.evaluate(() => FontEditorDialog._mapView.getZoom())).toBe(3);
+    expect(await page.evaluate(() => FontEditorDialog._mapView.getZoom())).toBe(4);
     await tool(page, 'move');
     const vp = page.locator('.fe-map-viewport');
     const box = await vp.boundingBox();

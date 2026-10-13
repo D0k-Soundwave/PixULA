@@ -43,7 +43,7 @@ check('splitLines tolerates every line ending', eq(BitmapText.splitLines('a\r\nb
   const f = BitmapText.filterTyped('Hié there\r\nZ€', glyphOf);
   check('filterTyped keeps drawable characters and line breaks, normalises \\r\\n', f.text === 'Hi there\nZ', JSON.stringify(f));
   check('...and reports each refused character once', eq(f.refused, ['é', '€']));
-  check('...ZX ROM has the pound sign', !!glyphOf('£') || true);
+  check('...and the ZX ROM table has no glyph for the pound sign (so it is refused too)', !glyphOf('£'));
 }
 
 // -- bridge: the Text tool's Size option -------------------------------------------------------------------------------------

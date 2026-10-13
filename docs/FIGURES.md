@@ -855,7 +855,8 @@ a 4 x 4-block 256-character font = 512 x 512 map).
 | One pointer move while drawing (handler only; the canvas is redrawn once per animation frame) | 0.008 ms mean over 200 moves | M |
 | `FontMapView.redraw` at zoom 1 and 3 | below 0.1 ms (the browser timer rounds to 0.1 ms; the drawing itself runs on the GPU) | M, a ceiling only |
 | Budget | 16.7 ms = one 60 fps frame | C: 1000 / 60 |
-| Map zoom cap | 1600 / 512 = 3 at the largest map; the canvas is at most 1,536 pixels a side | C |
+| Map canvas redraw at 1536 / 2048 / 3072 / 4096 pixels a side (512 x 512 picture) | 8.6 / 12.8 / 29.5 / 51.2 ms, median of 9 with readback | M, 2026-10-13 (replaces an untagged 1600-pixel guess) |
+| Map zoom cap | 2048 / 512 = 4 at the largest map: the largest canvas that redraws inside 16.7 ms | C from the row above |
 | Undo history cap | 2 MB; the heaviest snapshot 256 x (128 + 2) = 33,280 bytes, so about 63 steps | C: 2,097,152 / 33,280 |
 
 ### Type on canvas with a big proportional font - measured 2026-10-13
@@ -867,7 +868,7 @@ height 64, a line of 9 letters (496 x 64 pixels), `TextTyping.preview(true)` tim
 |---|---|---|
 | Preview per keystroke, median | 2.7 and 2.9 ms | M |
 | Preview per keystroke, worst of 15 | 8.8 and 9.6 ms | M |
-| Budget | 16.7 ms = one 60 fps frame | C: 1000 / 60 |
+| Budget | 16.7 ms = one 60 fps frame; the 7 ms `CoverageOps.LIVE_BUDGET_MS` is the stamp-preview budget, which the worst case here (8.8 and 9.6 ms) exceeds | C: 1000 / 60 |
 | Same measure with the 8 x 8 ROM font, full-width line, Clear background (Batch 10B) | median about 1 ms, worst about 4 ms | M, 2026-10-13 |
 
 The worst case is inside a frame but only by 1.7 times; nothing was optimised.

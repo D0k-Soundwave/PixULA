@@ -21,8 +21,9 @@ listings and had gone stale (it described an "Attributes only" draw mode and a
 Paintbrush never had).
 
 **Totals** [M, counted from the tables below]: 114 functions; PixULA is below
-parity on 33 (7 missing, 26 partial), level on
-69, ahead on 10, and 2 do not apply to a browser app (counted by .claude/parity/count-verdicts.js, 2026-10-10, after Batch 7).
+parity on 28 (6 missing, 22 partial), level on
+74, ahead on 10, and 2 do not apply to a browser app (counted by .claude/parity/count-verdicts.js, 2026-10-13, after Batch 10; it was 33 below parity,
+7 missing and 26 partial, on 2026-10-10 after Batch 7).
 Before Batch 1 (2026-10-08 morning) the count below parity was 69 (34 missing, 35
 partial). Before Batch 2 part 2B2 (2026-10-08) it was 64 (28 missing, 36 partial):
 the Dots menu and the Move choice moved four Missing rows to Partial.
