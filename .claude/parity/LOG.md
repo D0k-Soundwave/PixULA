@@ -816,3 +816,15 @@ Comparison row Sinclair text tool -> Same. Preview cost measured in docs/FIGURES
 Owner try-this list: does tapping the picture open the on-screen keyboard on a real touch device (unproven headless).
 Next: 10C (CHX fill from font + shader): Opus plan review first; ask the owner whether big CHX fonts should also work in the Text tool.
 
+
+## Batch 10C plan review and owner answers (2026-10-13)
+Opus: CHANGE. Font model is 8 rows x 1 byte everywhere (FontService, FontCodec, FontFormat CHX = top-left 8x8 only, FontRasterizer, editor,
+Text tool); CHX multi-cell block order / column-vs-row byte / shaded-column storage are NOT verified (only 1x1 files were ever checked;
+RECOIL source not in repo). Split: 10C (model + codec v2 + CHX read/write + guards + New big font + Fill), 10C2 (map view, shader,
+Proportional, autoShade), 10C3 (big fonts in Text tool / Type on canvas). Corrections: new js/utils/glyph-bits.js; per-glyph stored shade
+(never inferred from pixels; Space must keep a column, loader rejects a file without Space); undefined codes import fully shaded; replaceGlyphs
+for one-announcement fills; fix FontService.saveToLibrary ignoring a refused persist; freeze today's exports with checksum tests first; guards
+so CH4/CH6/CH8/CHR/ASM/C/BIN export and the Text tool refuse big fonts until 10C3; rasterizeCells with alignment; fill tested in Playwright.
+OWNER: (1) will NOT make ZX Paintbrush sample files -> build from help text and datablocks.chm; layout risk accepted (record it as unverified
+in font-format.js and on the owner's try-this list: open a PixULA big CHX in ZX Paintbrush). (2) Big fonts in Text tool + Type on canvas: YES (10C3).
+(3) Map view: draw across the whole map (Same, about half a session more). (4) Fill from font uses the Text tool's font list.
