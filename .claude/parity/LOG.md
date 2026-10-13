@@ -796,3 +796,14 @@ Manual: one 50-tools paragraph, 13 languages. Tests: text-defaults-pin, text-sha
 text-layers, stamp-clear-mask (Node); text-anchor-shadow-background, text-opposite-dots (Playwright; preview == committed picture).
 Comparison row Windows text tool -> Same. Next: 10B (type on canvas): Opus plan review first; owner questions to ask then: what happens to
 typed text on a click elsewhere / tool switch / mode change (recommended: commit).
+
+## Batch 10B plan review and owner answers (2026-10-13)
+Opus: go. Hidden textarea (canvas-text-entry.js) for keyboard capture (IME, accents, touch keyboards; shortcuts already suspend for textareas);
+overlay preview (not a floating stamp) via a shared write plan (SelectionService.maskWritePlan + GridOverlay.drawWritesPreview); pure
+js/utils/bitmap-text.js (stretch, spacing, caret, buffer helpers) and MaskOps.mapPoint; commit via SelectionService.bakeMask extracted
+from commitStamp (one undo entry); Type on canvas is one more 'pending' tool on the Shape/Figure/Bezier contract. Steps: (1) pure
+functions, (2) bakeMask + maskWritePlan + overlay, (3) tool session, (4) UI + options + i18n + Playwright, (5) manual/figures/log.
+OWNER: uncommitted typed text is DRAWN on click elsewhere / tool switch / save (New / Open drop it; a screen-mode change keeps it waiting);
+add the Draw / New line / Cancel buttons for touch devices (touch typing itself uses the device's on-screen keyboard via the hidden text
+field; whether a tap opens it is unproven here - on the owner's try-this list). Defaults taken: click = first letter's top-left (Anchor
+hidden while typing); direction / mirror / shadow / outline / dots / Background / bold / italic apply live.
