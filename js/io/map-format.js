@@ -6,10 +6,10 @@
  *
  * Our own map file format, documented here:
  *
- *   A .zxtm file is UTF-8 JSON — exactly the MapCodec version-1 payload:
+ *   A .zxtm file is UTF-8 JSON - exactly the MapCodec payload (version 2; version 1 files, written before elements existed, still load):
  *
  *     {
- *       "v": 1,                 // codec version (checked on import)
+ *       "v": 2,                 // codec version (checked on import)
  *       "k": "ula-cell",        // tile kind (Phase 13 adds Next bank kinds)
  *       "name": "...",          // document name (≤ 64 chars)
  *       "tiles": [              // ordered tileset; index = map cell value
@@ -18,7 +18,13 @@
  *       "map": {
  *         "w": width, "h": height,          // in tiles
  *         "cells": "<base64: w*h u16le, tileIndex+1, 0 = empty>"
- *       }
+ *       },
+ *       "elements": [           // version 2: the results of "find repeated elements"
+ *         { "n": name, "w": cells, "h": cells, "s": 1 or 2 screens, "gw": picture grid width, "gh": picture grid height,
+ *           "m": "exact" | "dots" | "visual",
+ *           "b": "<base64: s*w*h*cellH dot bytes>", "a": "<base64: s*w*h attribute bytes>",
+ *           "p": "<base64: x,y byte pairs, the places, in cells>" }
+ *       ]
  *     }
  *
  * JSON over binary: the payload already exists as the persistence codec

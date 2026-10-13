@@ -37,6 +37,11 @@ class MapServiceClass {
         /** @type {Array<{kind:string,bitmap:Uint8Array,attr:number}>} */
         this.tiles = [];
         this.map = this._blankMap(32, 24);
+        /**
+         * Elements found in the picture (Batch 11A): { name, w, h, screens, gridW, gridH, match, bitmap, attrs, positions }.
+         * Self-contained, stored with the map (MapCodec version 2).
+         */
+        this.elements = [];
 
         this._persistTimer = null;
     }
@@ -212,6 +217,7 @@ class MapServiceClass {
         if (clearTiles) {
             this.tiles = [];
             this._announceTileset();
+            if (this.elements.length) { this.elements = []; this._announceElements(); }
         }
         this._announceMap();
     }
@@ -300,8 +306,18 @@ class MapServiceClass {
             name: this.name,
             tileKind: this.tileKind,
             tiles: this.tiles,
-            map: this.map
+            map: this.map,
+            elements: this.elements
         };
+    }
+
+    /** Take a document's parts into the working state (the one place that does it). @private */
+    _adopt(doc) {
+        this.name = doc.name || '';
+        this.tileKind = doc.tileKind || this.TILE_KINDS.ULA_CELL;
+        this.tiles = doc.tiles;
+        this.map = doc.map;
+        this.elements = Array.isArray(doc.elements) ? doc.elements : [];
     }
 
     /**
@@ -310,13 +326,123 @@ class MapServiceClass {
      */
     loadDocument(doc) {
         if (!doc || !Array.isArray(doc.tiles) || !doc.map) return false;
-        this.name = doc.name || '';
-        this.tileKind = doc.tileKind || this.TILE_KINDS.ULA_CELL;
-        this.tiles = doc.tiles;
-        this.map = doc.map;
+        this._adopt(doc);
         this._emit(EVENTS.MAP_LOADED, { name: this.name });
         this._schedulePersist();
         return true;
+    }
+
+    // ── Elements: find repeated parts of the picture (Batch 11A) ───────────
+
+    /** The match modes that make sense in the active screen mode ([] where the find does not run). */
+    findModes() {
+        if (!window.ColorManager || !this.isCanvasCompatible()) return [];
+        // Timex hi-res has no cell attributes: the attribute bytes are invisible leftovers, so 'exact' would compare nothing real
+        return ColorManager.hasCellAttributes() ? ['exact', 'dots', 'visual'] : ['dots', 'visual'];
+    }
+
+    /** The composited visible picture as a MapFind screen (dots and attribute bytes of every screen), or null where the find does not run. */
+    captureScreen() {
+        if (!window.LayerManager || !this.findModes().length) return null;
+        const flat = LayerManager.flattenVisible();
+        const w = ZX_SPECTRUM.GRID_COLS, h = ZX_SPECTRUM.GRID_ROWS, cellH = ZX_SPECTRUM.CELL_HEIGHT;
+        const screens = ZX_SPECTRUM.SCREENS === 2 ? 2 : 1;
+        const scr = MapFind.make(w, h, cellH, screens);
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                const cell = flat.getCell(x, y);
+                if (!cell) continue;
+                const i = y * w + x;
+                scr.attrs[i] = this.attrByte(cell);
+                for (let r = 0; r < cellH; r++) scr.bitmap[i * cellH + r] = cell.pixels[r];
+                if (screens === 2 && cell.pixelsB) {
+                    const j = w * h + i;
+                    scr.attrs[j] = this.attrByte({ ink: cell.inkB, paper: cell.paperB, bright: cell.brightB, flash: cell.flashB });
+                    for (let r = 0; r < cellH; r++) scr.bitmap[j * cellH + r] = cell.pixelsB[r];
+                }
+            }
+        }
+        return scr;
+    }
+
+    /** The colours the active mode really shows, for 'visual' compare: built from the live palette, never from a display toggle. */
+    colourTable() {
+        const screens = ZX_SPECTRUM.SCREENS === 2 ? 2 : 1;
+        const pack = (rgb) => (rgb[0] << 16) | (rgb[1] << 8) | rgb[2];
+        return MapFind.tableFrom(screens, (plane, attr) => {
+            const t = ColorManager.attrToIndices(this.attrFields(attr), plane);
+            return { ink: pack(ColorManager.getRGB(t.ink)), paper: pack(ColorManager.getRGB(t.paper)), flashing: !!t.flashing };
+        });
+    }
+
+    /** The w x h cells at (x, y) of a captured screen, as a block. */
+    sliceBlock(screen, x, y, w, h) {
+        return MapFind.slice(screen, x, y, w, h);
+    }
+
+    /**
+     * Every place a block appears on the picture.
+     * @param {Object} block - from sliceBlock
+     * @param {string} mode - one of findModes()
+     * @param {Object} [screen] - captureScreen() result (taken now if left out)
+     * @param {Object} [table] - colourTable() result (taken now if left out)
+     * @returns {?{positions: {x:number,y:number}[]}} null when the mode is not available here
+     */
+    findElement(block, mode, screen, table) {
+        if (!this.findModes().includes(mode)) return null;
+        const scr = screen || this.captureScreen();
+        if (!scr) return null;
+        const found = MapFind.find(scr, block, mode, mode === 'visual' ? (table || this.colourTable()) : null);
+        return found ? { positions: found } : null;
+    }
+
+    /**
+     * Keep a found element with the map.
+     * @param {Object} block - the element's cells (MapFind block)
+     * @param {{x:number,y:number}[]} positions - where it was found, in cells of the picture grid
+     * @param {{match:string, name?:string, gridW:number, gridH:number}} info
+     * @returns {{ok:true, index:number}|{ok:false, reason:string}}
+     */
+    addElement(block, positions, info) {
+        const seen = new Set();
+        const list = [];
+        for (const p of (positions || []).slice().sort((a, b) => (a.y - b.y) || (a.x - b.x))) {
+            const k = p.x + ',' + p.y;
+            if (!seen.has(k)) { seen.add(k); list.push({ x: p.x, y: p.y }); }
+        }
+        const el = {
+            name: String((info && info.name) || '').slice(0, 64), w: block && block.w, h: block && block.h,
+            screens: block && block.screens, gridW: info && info.gridW, gridH: info && info.gridH, match: info && info.match,
+            bitmap: block && Uint8Array.from(block.bitmap), attrs: block && Uint8Array.from(block.attrs), positions: list
+        };
+        const trial = MapCodec.encode({ ...this.toDocument(), elements: [...this.elements, el] });
+        if (!trial) return { ok: false, reason: 'The element is not valid or the map would be too big to keep' };
+        this.elements.push(el);
+        this._announceElements();
+        return { ok: true, index: this.elements.length - 1 };
+    }
+
+    /** Copies of the elements (editing them changes nothing). */
+    getElements() {
+        return this.elements.map(e => ({ ...e, bitmap: Uint8Array.from(e.bitmap), attrs: Uint8Array.from(e.attrs), positions: e.positions.map(p => ({ ...p })) }));
+    }
+
+    removeElement(index) {
+        if (!Number.isInteger(index) || index < 0 || index >= this.elements.length) return false;
+        this.elements.splice(index, 1);
+        this._announceElements();
+        return true;
+    }
+
+    /** True while the picture's grid and mode are the ones the element's places belong to. */
+    elementFitsScreen(el) {
+        return !!el && this.isCanvasCompatible() && el.gridW === ZX_SPECTRUM.GRID_COLS && el.gridH === ZX_SPECTRUM.GRID_ROWS &&
+            el.screens === (ZX_SPECTRUM.SCREENS === 2 ? 2 : 1);
+    }
+
+    _announceElements() {
+        this._emit(EVENTS.MAP_ELEMENTS_CHANGED, { count: this.elements.length });
+        this._schedulePersist();
     }
 
     // ── Canvas bridges ─────────────────────────────────────────────────────
@@ -386,7 +512,8 @@ class MapServiceClass {
             if (payload) {
                 await Storage.set(this.STORAGE_KEY, payload, Storage.STORES.MAPS);
             } else {
-                await Storage.delete(this.STORAGE_KEY, Storage.STORES.MAPS);
+                // Not encodable (too big, or something invalid): keep the record that is there rather than delete the person's map
+                Logger.warn('MapService', 'The map cannot be encoded; the stored copy is left as it was');
             }
         } catch (error) {
             Logger.warn('MapService', 'Persist failed', error);
@@ -405,10 +532,7 @@ class MapServiceClass {
                 await Storage.delete(this.STORAGE_KEY, Storage.STORES.MAPS);
                 return;
             }
-            this.name = doc.name;
-            this.tileKind = doc.tileKind;
-            this.tiles = doc.tiles;
-            this.map = doc.map;
+            this._adopt(doc);
             this._emit(EVENTS.MAP_LOADED, { name: this.name, restored: true });
             Logger.info('MapService',
                 `Restored persisted map (${doc.tiles.length} tiles, ${doc.map.width}×${doc.map.height})`);
