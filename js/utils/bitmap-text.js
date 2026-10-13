@@ -13,6 +13,55 @@
  */
 const BitmapText = {
 
+    /**
+     * Where the SAVED part of a glyph lies in its cell. A big (CHX) font can shade 8-pixel columns on the left and right of a
+     * character; the file keeps only the rest, so that is what the Text tool draws and advances by. Unshaded, a glyph spans its whole
+     * cell (4, 6 or 8 wide for the classic sizes). Null when nothing is left - the character is not in the file.
+     * @param {number} width - cell width in pixels
+     * @param {?number[]} shade - [left, right] shaded 8-pixel columns, or null
+     * @returns {?{x0:number, w:number}}
+     */
+    span(width, shade) {
+        const l = shade ? shade[0] : 0;
+        const r = shade ? shade[1] : 0;
+        const w = width - 8 * (l + r);
+        return w > 0 ? { x0: 8 * l, w } : null;
+    },
+
+    /** Pixel (x, y) of a glyph whose rows are `fw` pixels wide, as 0 or 1 (rows are ceil(fw / 8) bytes, MSB = leftmost). */
+    bit(bits, fw, x, y) {
+        return (bits[y * ((fw + 7) >> 3) + (x >> 3)] >> (7 - (x & 7))) & 1;
+    },
+
+    /**
+     * Everything the layout needs to know about a decoded library font (FontCodec shape).
+     * glyphOf is null for a code the font does not have and for a character shaded all the way across, so typing refuses it
+     * and the Text tool gives it no space - the text matches what the .chx file holds.
+     * @returns {{glyphOf:function, spanOf:function, fw:number, w0:number, h0:number, proportional:boolean}}
+     */
+    fontSource(font) {
+        const width = font.width;
+        const index = (c) => c.charCodeAt(0) - font.firstCode;
+        const shadeOf = (i) => (font.shade ? font.shade[i] : null);
+        const glyphOf = (c) => {
+            const i = index(c);
+            if (!(i >= 0 && i < font.glyphs.length)) return null;
+            return BitmapText.span(width, shadeOf(i)) ? font.glyphs[i] : null;
+        };
+        const spanOf = (c) => {
+            const i = index(c);
+            return (i >= 0 && i < font.glyphs.length && BitmapText.span(width, shadeOf(i))) || { x0: 0, w: width };
+        };
+        let proportional = false;
+        if (font.shade) {
+            for (let i = 0; i < font.glyphs.length && !proportional; i++) {
+                const sp = BitmapText.span(width, font.shade[i]);
+                if (sp && sp.w < width) proportional = true;
+            }
+        }
+        return { glyphOf, spanOf, fw: width, w0: width, h0: font.height === undefined ? 8 : font.height, proportional };
+    },
+
     /** Typed text split into lines, tolerating any line ending (the Text tool's rule). */
     splitLines(text) {
         return String(text == null ? '' : text).split(/\r\n|\r|\n/);
