@@ -844,3 +844,14 @@ manual only; recorded in font-format.js; owner try-this list: open a PixULA big 
 Not done here (10C2): map view (draw across all characters, owner chose YES), shader tool, Proportional on an existing font from the map.
 10C3: big fonts in the Text tool and Type on canvas (owner chose YES).
 
+## Batch 10C2 plan review and owner answers (2026-10-13)
+Opus: CHANGE. CellGridEditor cannot carry a 512x512 map (per-pixel redraw each move, no pointer capture, fast strokes leave gaps, unbounded fill,
+no stroke hooks) -> new pure js/utils/font-map.js + new js/ui/components/font-map-view.js (virtual viewport like MapEditorDialog); one
+FontService.replaceGlyphs per stroke; _editorCommit boolean -> _commitSource; shade rules in GlyphBits (shadeAfterClick, shadeStep; tie goes
+right); _exportChx planning loop -> _chxPlan + chxSummary (bytes unchanged, pin tests prove it); summary via Helpers.localizedPlural;
+Shade/Move tools only in the map view (never pass them to CellGridEditor.setTool); keyboard for picker and map; 'Shade all to fit' carried over
+from 10C; Font Editor has NO undo today (InputHandler ignores keys in dialogs). Split at whole items: 10C2 = steps 1-5 (shader in the
+one-character view, summary, undo), 10C2b = steps 6-8 (the map view, map shader, manual, comparison row).
+OWNER: Font Editor Undo = YES. Map Fill stays inside the clicked letter. Defaults: shade tie goes right; shading offered only for fonts 8/16/24/32
+wide; Shade all to fit leaves blank characters out except Space.
+

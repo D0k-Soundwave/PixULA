@@ -128,3 +128,10 @@ the group C check-off (Opus): CHECKOFF.md, branch `parity-c`.
   the single-character editor, buttons for keyboard / touch, a save summary ("N narrowed, M left out").
 - 10C3: big and proportional fonts in the Text tool and Type on canvas (owner: yes): per-letter advance in BitmapText.layout / stretchLine and
   TextTool._buildLineMask; multi-byte rows; library labels such as "Name (16x16, proportional)".
+
+## Owner decisions for 10C / 10C2 (2026-10-13)
+
+Declined to make ZX Paintbrush sample files (layout unverified, on the try-this list). Big fonts in the Text tool: yes (10C3). Map view: draw across
+all characters. Fill from font uses the Text tool's list. Font Editor Undo: yes. Map fill: inside the clicked letter only.
+10C2 now = shader in the one-character view + export summary + Undo + Shade all to fit; 10C2b = the all-characters map view, map shader, manual.
+
