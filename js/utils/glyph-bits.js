@@ -162,7 +162,8 @@ const GlyphBits = {
             a = edges.left;
             b = edges.right + 1;
         } else {
-            const span = Math.max(1, Math.min(width, Math.round(advance)));
+            const want = Math.round(advance);
+            const span = want < 1 ? 1 : want > width ? width : want;
             a = align === 'right' ? width - span : align === 'centre' ? Math.floor((width - span) / 2) : 0;
             b = a + span;
         }
