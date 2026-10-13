@@ -807,3 +807,12 @@ OWNER: uncommitted typed text is DRAWN on click elsewhere / tool switch / save (
 add the Draw / New line / Cancel buttons for touch devices (touch typing itself uses the device's on-screen keyboard via the hidden text
 field; whether a tap opens it is unproven here - on the owner's try-this list). Defaults taken: click = first letter's top-left (Anchor
 hidden while typing); direction / mirror / shadow / outline / dots / Background / bold / italic apply live.
+
+## Batch 10B done (2026-10-13)
+Type on canvas built in 5 steps: pure BitmapText / MaskOps.mapPoint, SelectionService.bakeMask + maskWritePlan + overlay preview,
+TextTyping session, hidden-field keyboard (canvas-text-entry.js) with Draw / New line / Cancel buttons, 14 i18n keys x 13 locales.
+Tests: bitmap-text, mask-bake, text-type-commit (Node); text-type-on-canvas (Playwright, 11 specs). Manual paragraph in 13 languages.
+Comparison row Sinclair text tool -> Same. Preview cost measured in docs/FIGURES.md (median about 1 ms, worst about 4 ms at layer2_640).
+Owner try-this list: does tapping the picture open the on-screen keyboard on a real touch device (unproven headless).
+Next: 10C (CHX fill from font + shader): Opus plan review first; ask the owner whether big CHX fonts should also work in the Text tool.
+

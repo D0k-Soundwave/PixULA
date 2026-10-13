@@ -815,3 +815,18 @@ SelectionService.setStampScale, median of 15, two runs back to back [M]:
 
 Against the 7 ms live budget [P: CoverageOps.LIVE_BUDGET_MS] both fit by a wide margin at this size; the plan's estimate that opposite
 dots "double the coverage work" [A] did not show up in the total at this size (the effect chain is a small part of it).
+
+### Type on canvas preview cost - measured 2026-10-13
+
+Method: Playwright run in this machine's Chromium, mode layer2_640 (640 wide), Text tool, Type on canvas, Clear background on, one
+full-width line of 78 "M" characters at 8x8, `TextTyping.preview(true)` timed with `performance.now()` for 15 consecutive keystroke
+rebuilds; median and worst of the 15, run three times.
+
+| Path | Figure | Tag |
+|---|---|---|
+| Preview per keystroke, median | 0.7 to 1.0 ms | M |
+| Preview per keystroke, worst of 15 | 3.1 to 4.3 ms | M |
+| Budget | 7 ms (`CoverageOps.LIVE_BUDGET_MS`, half a 60 fps frame) | C: 1000/60/2 = 8.3, the code constant is 7 |
+
+Median is about 7 times inside the budget and the worst case about 1.6 times inside it; nothing was optimised.
+
