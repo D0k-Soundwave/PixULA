@@ -448,7 +448,7 @@ class TextToolClass extends ToolBase {
     if (window.SelectionService) {
       SelectionService.startFloatingPasteFromMask(
         pixels, width, height,
-        px, py, 'Text', fontInfo, 'none', this._stampOpts()
+        px, py, 'Text', fontInfo, 'none', this._stampOpts(), { w: result.width, h: result.height }
       );
       this._textStampActive = true;
     }
