@@ -802,3 +802,16 @@ it agrees with the canvas pixel for pixel in the spec; the getImageData alternat
 `node tools/crop-bench.js`: LayerManager.cropToCells at layer2_640 (80 x 32 cells a layer) with 32 drawing layers, median of 7,
 two runs: 56.1 / 31.7 ms [M, Node v24.19.0, repo test stubs]. The undo entry holds every layer [P: about 6.8 MB, undo-redo.js comment
 of 2026-08-07]. A one-off action, not a per-frame cost.
+
+### Text stamp re-render with opposite dots - measured 2026-10-13 (Batch 10A2)
+
+`node tools/text-layers-bench.js`, Node v24.19.0: "Hello world", ZX ROM 16 px, shadow and outline on, re-rendered at scale 1.5 by
+SelectionService.setStampScale, median of 15, two runs back to back [M]:
+
+| Dots | Run 1 / 2 | Tag |
+|---|---|---|
+| Same | 1.6 / 1.4 ms | M |
+| Opposite (a second coverage chain for the clear dots) | 1.6 / 1.5 ms | M |
+
+Against the 7 ms live budget [P: CoverageOps.LIVE_BUDGET_MS] both fit by a wide margin at this size; the plan's estimate that opposite
+dots "double the coverage work" [A] did not show up in the total at this size (the effect chain is a small part of it).

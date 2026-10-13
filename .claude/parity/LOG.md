@@ -779,3 +779,20 @@ OWNER: add ZX Paintbrush-style opposite-dot shadow and contour NOW (a third stam
 10A2 after commit 3, with a focused Opus design consult first (it touches the stamp write plans).
 For later: 10B and 10C owner questions (uncommitted typed text on click elsewhere; big CHX fonts usable in the Text tool / library)
 to be asked when those parts start.
+
+## Batch 10A / 10A2 (text: shadow direction, anchor, background, opposite dots) - 2026-10-13, branch parity-c
+Commits: pin of the old text options (576 combinations, digest f6d5874e...); shadow direction (MaskOps.shadowVector, CoverageOps too);
+nine-way Anchor (MaskOps.anchorOffset; SelectionService.anchorOffset used by creation, moveStampPreview, re-render, transformStamp
+and the Snap placement); Background (the stamp's clearDots 'overlap' set from the Text tool, EVENTS.STAMP_OPTIONS_CHANGED keeps the Transform
+panel in step, hint row via a clearDotsNoEffect leaf); FIX (found by the Opus 10A2 review): a new text stamp with shadow / outline grew
+on its first re-render (its source size was the post-effect size) - the Text tool now passes the bare letters' size; opposite dots:
+MaskOps/CoverageOps.processLayers, a stamp clearMask (+ _srcClearMask) carried through creation, parking, undo copy, re-engage, flips,
+quarter turns, Outline, Invert (drops it), scale / rotate / warp (two coverage chains), the classic and indexed write plans (written as the
+opposite of the draw mode: cleared in Normal / Pixels only, SET under Inverse, nothing in XOR / Ink only / Paper only) and the saved form
+(key only when present). Owner chose a SEPARATE switch for shadow and for contour (textShadowDots, textOutlineDots); the other detail
+decisions took the recommended ZX-like defaults (Opposite + Clear background merges; Invert drops; right-button stamping ignores).
+Keys: opt.shadowDir(+4), opt.anchor(+9), opt.textBackground, opt.shadowDots, opt.outlineDots, opt.effectDots.same / opposite.
+Manual: one 50-tools paragraph, 13 languages. Tests: text-defaults-pin, text-shadow-dir, text-anchor, text-background, text-stamp-rerender,
+text-layers, stamp-clear-mask (Node); text-anchor-shadow-background, text-opposite-dots (Playwright; preview == committed picture).
+Comparison row Windows text tool -> Same. Next: 10B (type on canvas): Opus plan review first; owner questions to ask then: what happens to
+typed text on a click elsewhere / tool switch / mode change (recommended: commit).
