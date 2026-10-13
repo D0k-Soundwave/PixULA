@@ -842,3 +842,19 @@ Median is about 7 times inside the budget and the worst case about 1.6 times ins
 | Same, all coloured (9 bytes a block, not written by PixULA) | 517 + 256 x (3 + 16 x 9) = 38,149 bytes, under the 65,535 reach of the 2-byte offsets | C |
 | Glyph grid repaint for 256 glyphs of 32 x 32 | 256 x 32 x 32 = 262,144 pixel tests | C |
 
+### Font Editor map and undo - measured 2026-10-13
+
+Method: Node (tests/font-map.test.js, `FONTMAP_TIME=1`, two runs back to back) and Playwright in this machine's Chromium (tests/browser/font-editor-map.spec.js,
+a 4 x 4-block 256-character font = 512 x 512 map).
+
+| Path | Figure | Tag |
+|---|---|---|
+| `FontMap.compose` of 256 glyphs of 32 x 32 | 0.26 / 0.21 ms | M |
+| `FontMap.decompose` of all 256 | 0.89 / 0.88 ms | M |
+| `FontMapView.setData` (compose + paint the image + size the canvas) | 1.9 ms | M |
+| One pointer move while drawing (handler only; the canvas is redrawn once per animation frame) | 0.008 ms mean over 200 moves | M |
+| `FontMapView.redraw` at zoom 1 and 3 | below 0.1 ms (the browser timer rounds to 0.1 ms; the drawing itself runs on the GPU) | M, a ceiling only |
+| Budget | 16.7 ms = one 60 fps frame | C: 1000 / 60 |
+| Map zoom cap | 1600 / 512 = 3 at the largest map; the canvas is at most 1,536 pixels a side | C |
+| Undo history cap | 2 MB; the heaviest snapshot 256 x (128 + 2) = 33,280 bytes, so about 63 steps | C: 2,097,152 / 33,280 |
+

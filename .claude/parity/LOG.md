@@ -864,3 +864,14 @@ Tests: font-history, glyph-bits, chx-big, font-service-big (Node); font-editor-s
 NOT done (10C2b): the all-characters MAP view (draw across every character, fill inside the clicked letter), map shading, keyboard for the picker,
 font-map.js / font-map-view.js, comparison row 203 -> Same. Row 202's 'press a key to find its character' claim is still unbuilt (Opus found it).
 
+## Batch 10C2b done (2026-10-13)
+Built: js/utils/font-map.js (pure: layout, cellAt, compose / decompose, bounded fill, line), js/ui/components/font-map-view.js (own surface:
+dirty-rectangle painting, one redraw per animation frame, pointer capture, strokes joined by lines, Brush / Eraser / Line / Fill inside the clicked
+letter / Shade / Move, whole-number zoom capped at 3 for the 512 map), Font Editor: All characters toggle, wider dialog in map mode, map tools, - Fit +,
+one replaceGlyphs per stroke (= one undo step), keyboard on the picker and the map (arrows, Home / End, typed character), 7 i18n keys x 13, manual
+paragraph x 13. Comparison rows 202 (the 'press a key' claim is now true) and 203 -> Same, with the unverified-layout sentence kept.
+Tests: font-map (Node), font-editor-map (Playwright, 12). Measurements in docs/FIGURES.md.
+Known limits: drawing pixels with the keyboard alone is not possible (also true before); the map's pixel grid shows only at zoom 8+, which the
+512 map never reaches, so a classic 8 x 8 font (128 px map) is the one that shows it.
+Next: 10C3 (big fonts in the Text tool and Type on canvas): Opus plan review first.
+
