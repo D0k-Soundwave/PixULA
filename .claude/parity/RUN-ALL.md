@@ -36,7 +36,7 @@ order, the review points and the stops.
 | 5 | 6A (STOP: ask the owner), 6B | parity-b |
 | 6 | 7A, 7B, 7C | parity-b |
 | 7 | Group B end-of-build Opus review | parity-b |
-| 8 | 8A, 8B, 9A, 9B, 10A, 10B, 10C | parity-c |
+| 8 | 8A, 8B, 9A, 9B, 10A, 10B, 10C, 10C2, 10C3 | parity-c |
 | 9 | Group C end-of-build Opus review | parity-c |
 | 10 | 11A, 11B | parity-d |
 | 11 | 12A (STOP: ask the owner, one item at a time), then 12B onwards | parity-d |
