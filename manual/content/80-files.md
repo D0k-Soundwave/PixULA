@@ -16,7 +16,7 @@ if you intend to keep working on it.
 
 ### Importing a picture
 
-Opening a photo or other picture (PNG, JPG, GIF) shows three conversions side by side - Sharp, Smooth and Flat - and you click the one you like. Smooth is the one that turns shades into dots, and the **Dither** list under the previews chooses how: Floyd-Steinberg is the importer's own and is the default, and the list also offers the 30 other methods of ZX Paintbrush - thresholds, error diffusion, Bayer matrices, cluster dots and supercells. Choosing a method switches to the Smooth preview. Ordered methods carry on across attribute cells, so a pattern runs over the whole picture; error diffusion stays inside each cell, because each cell has its own two colours. In the Layer 2 and LoRes modes the list is greyed out: those modes keep their own colour dithering.
+Opening a photo or other picture (PNG, JPG, GIF) shows three conversions side by side - Sharp, Smooth and Flat - and you click the one you like. Smooth is the one that turns shades into dots, and the **Dither** list under the previews chooses how: Floyd-Steinberg is the importer's own and is the default, and the list also offers the 30 other methods of ZX Paintbrush - thresholds, error diffusion, Bayer matrices, cluster dots and supercells. Choosing a method redraws Smooth, and Sharp too once you have chosen one (Flat never dithers). Ordered methods carry on across attribute cells, so a pattern runs over the whole picture; error diffusion stays inside each cell, because each cell has its own two colours. In the Layer 2 and LoRes modes the list works too: every pixel is placed between its two nearest palette colours, and the whole picture is one block, so error diffusion runs across all of it.
 
 ### Saving part of a picture
 

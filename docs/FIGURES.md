@@ -872,3 +872,17 @@ height 64, a line of 9 letters (496 x 64 pixels), `TextTyping.preview(true)` tim
 
 The worst case is inside a frame but only by 1.7 times; nothing was optimised.
 
+### Dither methods in the indexed imports - measured 2026-10-13
+
+Method: Playwright in this machine's Chromium, `PNGFormat._quantizeIndices` on a full-screen noise picture (every pixel a different colour), median of 3,
+two runs back to back; the palette is the one the importer builds for the picture.
+
+| Mode (screen, palette) | Floyd-Steinberg | Bayer 8 | Atkinson | Tag |
+|---|---|---|---|---|
+| Layer 2 256 (256 x 192, 256 colours) | 17 and 20 ms | 8 ms | 9 ms | M |
+| Layer 2 640 (640 x 256, 16 colours) | 8 and 9 ms | 13 ms | 15 and 16 ms | M |
+| LoRes (128 x 96, 256 colours) | 5 ms | 7 and 8 ms | 8 and 12 ms | M |
+
+Each is well under the 100 ms a person starts to notice a pause at [P: Nielsen, response times, widely cited]; nothing was optimised beyond a table of
+already-seen colours in `Dither.paletteIndices` (palettes of more than 16 colours only, same answer).
+

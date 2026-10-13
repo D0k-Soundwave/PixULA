@@ -901,3 +901,16 @@ Playwright text-big-font (4). Manual: Font Editor paragraph and the Type on canv
 Defaults recorded: dots under shading are not drawn; Character width = a full-width letter; per-letter rounding; caret bar one source pixel wide.
 Batch 10 is complete. Next: group C end-of-build Opus review, then group D.
 
+## Group C review (Opus) and the fixes (2026-10-13)
+Opus found 18 items (full text in the task transcript). Fixed with a failing test first: (2) typing lost the keyboard after any option was touched ->
+CanvasTextEntry takes the keystroke back (Playwright); (3) system font round trip doubled the character size and (4) presets restored the size/Type
+on canvas before the font -> applyFirst on the font row (preset-slices.test.js); (5) locked layer: the click says so at once, leaving the tool closes
+the session; (6) New Big Font / Fill dialog CSS; (15) manual arrow-key sentence x13; (13) IME field position: checked, it was already right (a Playwright
+test now pins it - the review's report did not reproduce here). Owner-approved queue that had been skipped, now done: Wiping tool row Partial; Image >
+Invert Dots (13 languages); cell-tool hint reworded x13 (Escape does NOT stop a cell tool - the hint now lists right-click, None, a tool or a draw mode);
+Dither drives Sharp (once a method is chosen, so default Sharp is unchanged - say this at the sign-off); Layer 2 / LoRes imports take all 31 dithers
+(Dither.paletteIndices over the whole picture; timings in FIGURES.md; the old 'select shut in indexed modes' Playwright test REWRITTEN on purpose).
+Still open from the review: (7) Font Editor at 390 px desktop width (pre-existing), (8) comparison totals, (9)(10) untagged / mismatched figure premises,
+(11) gradient preview timing at Layer 2 640, (12) two weak tests, (14) Draw / New line / Cancel row covers the picture on short screens, (16) Fill from
+font default font, (17) nits, (18) process: owner answers into batch files, CLUSTERED_8, commit rewording before any merge.
+

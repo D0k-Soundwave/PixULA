@@ -14,7 +14,7 @@ to chcete, keď výsledok odovzdávate, nie keď na ňom chcete ďalej pracovať
 
 ### Import obrázka
 
-Pri otvorení fotky alebo iného obrázka (PNG, JPG, GIF) sa vedľa seba ukážu tri prevody - Ostrý, Hladký a Plochý - a kliknete na ten, ktorý sa vám páči. Hladký mení odtiene na bodky a zoznam **Dithering** pod náhľadmi určuje ako: predvolený je vlastný Floyd-Steinberg importu a zoznam ponúka aj ďalších 30 metód ZX Paintbrush - prahy, rozptyl chyby, Bayerove matice, zhlukové bodky a superbunky. Výber metódy prepne na náhľad Hladký. Usporiadané metódy pokračujú cez atribútové bunky, takže vzor beží cez celý obrázok; rozptyl chyby zostáva vnútri každej bunky, pretože každá bunka má svoje dve farby. V režimoch Layer 2 a LoRes je zoznam zosivený: tieto režimy majú vlastný farebný dithering.
+Pri otvorení fotky alebo iného obrázka (PNG, JPG, GIF) sa vedľa seba ukážu tri prevody - Ostrý, Hladký a Plochý - a kliknete na ten, ktorý sa vám páči. Hladký mení odtiene na bodky a zoznam **Dithering** pod náhľadmi určuje ako: predvolený je vlastný Floyd-Steinberg importu a zoznam ponúka aj ďalších 30 metód ZX Paintbrush - prahy, rozptyl chyby, Bayerove matice, zhlukové bodky a superbunky. Výber metódy prekreslí Hladký a tiež Ostrý, keď ste nejakú vybrali (Plochý nikdy nerastruje). Usporiadané metódy pokračujú cez atribútové bunky, takže vzor beží cez celý obrázok; rozptyl chyby zostáva vnútri každej bunky, pretože každá bunka má svoje dve farby. V režimoch Layer 2 a LoRes zoznam funguje tiež: každý bod sa umiestni medzi svoje dve najbližšie farby palety a celý obrázok je jeden blok, takže rozptyl chyby beží cez celý obrázok.
 
 ### Uloženie časti obrázka
 

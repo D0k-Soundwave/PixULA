@@ -43,7 +43,10 @@ class ImportDialogClass {
         // are three is written up there.
         const METHODS = PNGFormat.IMPORT_METHODS;
 
-        const state = { brightness: 0, contrast: 0, scaling: 'fit', dither: 'floyd-steinberg' };
+        const state = { brightness: 0, contrast: 0, scaling: 'fit', dither: 'floyd-steinberg', ditherTouched: false };
+        // The Dither method drives Smooth always, and Sharp once the person has chosen one (until then Sharp is shown, and imported, exactly
+        // as it always was: no dither). Flat never dithers.
+        const ditherFor = (id) => (id === 'smooth' ? state.dither : (id === 'sharp' && state.ditherTouched ? state.dither : undefined));
         let chosen = METHODS[0];
 
         return new Promise((resolve) => {
@@ -130,10 +133,10 @@ class ImportDialogClass {
                     rendererKey = key;
                 }
                 for (const p of panes) {
-                    // Only the Smooth conversion dithers dots; its pane also depends on the chosen Dither method
-                    const paneKey = p.spec.id === 'smooth' ? `${key}|${state.dither}` : key;
+                    // Smooth (and Sharp, once a method was chosen) dither dots; their panes also depend on the chosen Dither method
+                    const paneKey = ditherFor(p.spec.id) ? `${key}|${ditherFor(p.spec.id)}` : key;
                     if (!ids.includes(p.spec.id) || drawnKey.get(p.spec.id) === paneKey) continue;
-                    const q = renderer(p.spec.id, p.spec.id === 'smooth' ? state.dither : undefined);
+                    const q = renderer(p.spec.id, ditherFor(p.spec.id));
                     p.ctx.putImageData(new ImageData(q.data, q.width, q.height), 0, 0);
                     drawnKey.set(p.spec.id, paneKey);
                 }
@@ -250,18 +253,14 @@ class ImportDialogClass {
                     }
                     dsel.appendChild(og);
                 }
-                const indexed = ZX_SPECTRUM.PIXEL_DEPTH > 1;
-                if (indexed) {
-                    dsel.disabled = true;
-                    row.title = this._t('import.ditherIndexed', 'This mode keeps its own colour dither.');
-                    row.dataset.i18nTitle = 'import.ditherIndexed';
-                } else {
-                    row.title = this._t('import.dither.hint', 'How the Smooth conversion turns shades into dots.');
-                    row.dataset.i18nTitle = 'import.dither.hint';
-                }
+                row.title = this._t('import.dither.hint', 'How the Smooth conversion turns shades into dots.');
+                row.dataset.i18nTitle = 'import.dither.hint';
                 dsel.addEventListener('change', () => {
                     state.dither = dsel.value;
-                    select(METHODS.find((m) => m.id === 'smooth'));
+                    state.ditherTouched = true;
+                    // Flat does not dither: look at a conversion that does
+                    if (chosen.id === 'flat') select(METHODS.find((m) => m.id === 'smooth'));
+                    catchUp(0);
                     refresh();
                 });
                 row.appendChild(label);
@@ -291,7 +290,7 @@ class ImportDialogClass {
                       onClick: () => settle({
                           ...state,
                           method: chosen.method,
-                          dithering: chosen.id === 'smooth' ? state.dither : chosen.dithering,
+                          dithering: ditherFor(chosen.id) || chosen.dithering,
                           choice: chosen.id
                       }) }
                 ],

@@ -15,7 +15,7 @@ ama üzerinde çalışmaya devam etmek istiyorsanız değil.
 
 ### Resim içe aktarma
 
-Bir fotoğraf veya başka bir resim (PNG, JPG, GIF) açıldığında üç dönüşüm yan yana gösterilir - Keskin, Yumuşak ve Düz - ve beğendiğinize tıklarsınız. Tonları noktalara çeviren Yumuşak dönüşümdür; önizlemelerin altındaki **Tarama** listesi bunun nasıl yapılacağını seçer: varsayılan içe aktarmanın kendi Floyd-Steinberg'idir ve liste ZX Paintbrush'ın diğer 30 yöntemini de sunar - eşikler, hata yayılımı, Bayer matrisleri, küme noktaları ve süperhücreler. Bir yöntem seçmek Yumuşak önizlemeye geçirir. Sıralı yöntemler öznitelik hücreleri boyunca devam eder, böylece desen tüm resimde akar; hata yayılımı her hücrenin içinde kalır, çünkü her hücrenin kendi iki rengi vardır. Layer 2 ve LoRes kiplerinde liste soluktur: bu kipler kendi renk taramalarını korur.
+Bir fotoğraf veya başka bir resim (PNG, JPG, GIF) açıldığında üç dönüşüm yan yana gösterilir - Keskin, Yumuşak ve Düz - ve beğendiğinize tıklarsınız. Tonları noktalara çeviren Yumuşak dönüşümdür; önizlemelerin altındaki **Tarama** listesi bunun nasıl yapılacağını seçer: varsayılan içe aktarmanın kendi Floyd-Steinberg'idir ve liste ZX Paintbrush'ın diğer 30 yöntemini de sunar - eşikler, hata yayılımı, Bayer matrisleri, küme noktaları ve süperhücreler. Bir yöntem seçmek Yumuşak'ı, bir tane seçtiyseniz Keskin'i de yeniden çizer (Düz hiç tarama yapmaz). Sıralı yöntemler öznitelik hücreleri boyunca devam eder, böylece desen tüm resimde akar; hata yayılımı her hücrenin içinde kalır, çünkü her hücrenin kendi iki rengi vardır. Layer 2 ve LoRes kiplerinde liste de çalışır: her nokta en yakın iki palet rengi arasına konur ve tüm resim tek bir bloktur, bu yüzden hata yayılımı tüm resimde akar.
 
 ### Resmin bir bölümünü kaydetme
 
