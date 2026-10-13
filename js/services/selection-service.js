@@ -658,12 +658,12 @@ class SelectionServiceClass {
    *   { text, fontFamily, fontSize, bold, italic }
    * @param {string} [warpEffect] - Initial warp effect name (or 'none')
    */
-  startFloatingPasteFromMask(pixels, width, height, x = 0, y = 0, label = 'Place', fontInfo = null, warpEffect = 'none', opts = null) {
-    this._createFloatingPaste(pixels, width, height, x, y, label, fontInfo, warpEffect, opts);
+  startFloatingPasteFromMask(pixels, width, height, x = 0, y = 0, label = 'Place', fontInfo = null, warpEffect = 'none', opts = null, srcSize = null) {
+    this._createFloatingPaste(pixels, width, height, x, y, label, fontInfo, warpEffect, opts, srcSize);
   }
 
   /** @private */
-  _createFloatingPaste(pixels, width, height, x, y, label, fontInfo = null, warpEffect = 'none', opts = null) {
+  _createFloatingPaste(pixels, width, height, x, y, label, fontInfo = null, warpEffect = 'none', opts = null, srcSize = null) {
     if (this.floatingPaste) this.endFloatingPaste();
 
     UndoRedo.beginAction(label);
@@ -703,8 +703,10 @@ class SelectionServiceClass {
       floatingLayer,
       // Source tracking for live transforms
       _srcPixels: pixels,
-      _srcWidth:  width,
-      _srcHeight: height,
+      // The size the stamp is SCALED from. A text stamp passes the bare letters' size here: its pixels already carry the
+      // effects (shadow, outline), which a re-render applies again, so scaling from the larger size grew it on first touch.
+      _srcWidth:  srcSize ? srcSize.w : width,
+      _srcHeight: srcSize ? srcSize.h : height,
       _scaleX:    1,
       _scaleY:    1,
       _rotation:  0,
