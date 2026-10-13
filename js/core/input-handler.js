@@ -1801,6 +1801,15 @@ class InputHandlerClass {
   /** @private */
   _attachKeyboardEvents(doc) {
     doc.addEventListener('keydown', (e) => {
+      // Type on canvas keeps the focus in a hidden text field, which switches every shortcut off - except the file commands,
+      // which would otherwise open the browser's own Save page / Open file.
+      if (e.target && e.target.dataset && e.target.dataset.canvasText && (e.ctrlKey || e.metaKey) &&
+          ['s', 'o'].includes(String(e.key).toLowerCase())) {
+        this.keysDown.add(e.key);
+        this._updateModifiers(e);
+        this._handleKeyboardShortcut(e);
+        return;
+      }
       if (this._isTypingTarget(e.target)) return;
       this.keysDown.add(e.key);
       this._updateModifiers(e);

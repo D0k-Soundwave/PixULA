@@ -132,6 +132,7 @@ const BOOT_MANIFEST = [
     ['LayerPanel',       'js/ui/components/layer-panel.js'],
     ['TransformPanel',   'js/ui/components/transform-panel.js'],
     ['PreviewPanel',     'js/ui/components/preview-panel.js'],
+    ['CanvasTextEntry',  'js/ui/components/canvas-text-entry.js'],
     ['AppSettings',      'js/ui/components/app-settings.js'],
     ['CanvasControls',   'js/ui/components/canvas-controls.js'],
     ['BorderControl',    'js/ui/border-control.js'],
@@ -408,6 +409,7 @@ class AppClass {
         ToolPresetBar.init();  // save/load row at the foot of the tool options
         PatternPanel.init();   // dedicated Patterns panel (shown only for the brush's pattern type)
         TransformPanel.init();
+        CanvasTextEntry.init();   // the hidden text field Type on canvas types into
         PreviewPanel.init();    // the map of the whole picture, hidden until View > Preview
         ToolPresetPanel.init(); // the Presets panel, last and preference-gated
         PanelSection.restore(); // persisted collapse states (async)

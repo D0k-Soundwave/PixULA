@@ -619,3 +619,22 @@ input:focus-visible,
     outline: 2px solid var(--accent-primary);
     outline-offset: 2px;
 }
+
+/* Type on canvas: the Draw / New line / Cancel buttons shown while text is being typed (Batch 10B). */
+.canvas-text-buttons {
+    position: fixed;
+    left: 50%;
+    bottom: calc(var(--space-lg, 16px) + 32px);
+    transform: translateX(-50%);
+    display: flex;
+    gap: var(--space-sm, 8px);
+    padding: var(--space-xs, 4px) var(--space-sm, 8px);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    z-index: 50;
+}
+
+.canvas-text-buttons[hidden] {
+    display: none;
+}
