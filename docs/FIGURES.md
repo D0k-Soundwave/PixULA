@@ -887,3 +887,16 @@ two runs back to back; the palette is the one the importer builds for the pictur
 Each is well under the 100 ms a person starts to notice a pause at [P: Nielsen, response times, widely cited]; nothing was optimised beyond a table of
 already-seen colours in `Dither.paletteIndices` (palettes of more than 16 colours only, same answer).
 
+### Gradient preview with a Dither method at Layer 2 640 - measured 2026-10-13 (group C review)
+
+Method: Playwright in Chromium on this machine, full-canvas gradient `_updatePreview`, median of 7, two runs back to back (taken by the reviewer).
+
+| Grain | Run 1 | Run 2 | Tag |
+|---|---|---|---|
+| Bayer 8 (the gradient's own) | 34.6 ms | 28.7 ms | M |
+| Floyd-Steinberg | 35.1 ms | 38.0 ms | M |
+| Stevenson-Arce | 36.0 ms | 45.0 ms | M |
+
+All are above the 7 ms live budget (`CoverageOps.LIVE_BUDGET_MS`) - the preview was already about four times over it before the dither methods (Bayer 8, 28.7 to 34.6 ms),
+and the methods add 0 to 16 ms on top. This replaces the earlier 'nothing was measured' note; no change was made on the strength of it.
+

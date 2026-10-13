@@ -547,7 +547,7 @@ class StateManagerClass {
   }
 
   /**
-   * Choose the snap step. Whole numbers 1..256 for the custom x and y (the canvas clamps them when used).
+   * Choose the snap step. Whole numbers 1..1024 for the custom x and y (the canvas clamps them when used).
    * @param {{kind?: string, x?: number, y?: number}} step - fields left out keep their value
    */
   setGridSnapStep(step) {

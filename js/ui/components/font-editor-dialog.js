@@ -799,6 +799,9 @@ class FontEditorDialogClass {
         const fonts = (window.FontProbe ? FontProbe.detect() : []);
         const families = fonts.length ? fonts : ['sans-serif', 'serif', 'monospace'];
         const famEl = select('fe-fill-family', families.map(f => [f, f]));
+        // Not the alphabetically first font (often a condensed display face): a plain, common one if the machine has it
+        const plain = ['Arial', 'Segoe UI', 'Verdana', 'Tahoma', 'Helvetica', 'DejaVu Sans', 'Liberation Sans'].find(f => families.includes(f));
+        if (plain) famEl.value = plain;
         const pctEl = document.createElement('input');
         pctEl.type = 'number';
         pctEl.id = 'fe-fill-percent';

@@ -258,13 +258,14 @@ class FileManagerClass {
    */
   async newFromSelection() {
     if (!window.SelectionService || !SelectionService.hasSelection() || SelectionService.isFloating()) return false;
+    // Ask FIRST: answering No must leave everything as it was (a waiting figure included), not already drawn
+    const ok = confirm(this._t('msg.confirmNewFromSelection',
+      'Make the selection the whole picture? You can undo it with Ctrl+Z.'));
+    if (!ok) return false;
     if (window.ToolManager) ToolManager.commitPending();
     this.fitSelectionToCells();
     const sel = SelectionService.getSelection();
     if (!sel) return false;
-    const ok = confirm(this._t('msg.confirmNewFromSelection',
-      'Make the selection the whole picture? You can undo it with Ctrl+Z.'));
-    if (!ok) return false;
 
     const cw = ZX_SPECTRUM.CELL_WIDTH, ch = ZX_SPECTRUM.CELL_HEIGHT;
     UndoRedo.beginAction('New picture from selection');
