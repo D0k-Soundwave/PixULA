@@ -641,6 +641,12 @@ class OptionControlsClass {
         if (Array.isArray(cond.all)) return cond.all.every(c => this._evalShowIf(c));
         // { cells: true }: the screen mode, not another option - cells have colours.
         // { screenFits: true }: a whole 256x192 screen is smaller than the canvas (Layer 2 320 and 640).
+        // { bitmapFont: true }: the font in force is a bitmap font (ZX ROM or a saved one) - what Type on canvas needs.
+        if ('bitmapFont' in cond) {
+            const fam = this._values.fontFamily;
+            const bitmap = fam === 'ZX ROM' || (typeof fam === 'string' && fam.startsWith('zxfont:'));
+            return bitmap === !!cond.bitmapFont;
+        }
         // { clearDotsNoEffect: true }: Clear background would write nothing with the draw mode in force.
         if ('clearDotsNoEffect' in cond) return (window.SelectionService ? !SelectionService.clearDotsHasEffect() : false) === !!cond.clearDotsNoEffect;
         if ('screenFits' in cond) return SnapGrid.screenFits() === !!cond.screenFits;

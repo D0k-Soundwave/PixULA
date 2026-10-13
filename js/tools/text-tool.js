@@ -100,12 +100,27 @@ class TextToolClass extends ToolBase {
     // `preset: false` — the typed string is CONTENT, not a setting. A preset
     // restores how you were working, and nobody wants yesterday's caption back
     // along with their font and their outline settings.
+    // Type on canvas (Batch 10B): click the picture, type on it, Enter draws it. Bitmap fonts only.
+    { type: 'check', key: 'typeOnCanvas', i18n: 'opt.typeOnCanvas', value: false, syncEvent: EVENTS.TOOL_OPTIONS },
+    { type: 'hint', i18n: 'text.typeHint', showIf: { key: 'typeOnCanvas', equals: true } },
+    { type: 'hint', i18n: 'text.typeBitmapOnly',
+      showIf: { all: [ { key: 'typeOnCanvas', equals: true }, { bitmapFont: false } ] } },
+    { type: 'range', key: 'charWidth', i18n: 'opt.charWidth', min: 1, max: 64, value: 8, unit: 'px',
+      showIf: { all: [ { key: 'typeOnCanvas', equals: true }, { bitmapFont: true } ] } },
+    { type: 'range', key: 'charHeight', i18n: 'opt.charHeight', min: 1, max: 64, value: 8, unit: 'px',
+      showIf: { all: [ { key: 'typeOnCanvas', equals: true }, { bitmapFont: true } ] } },
+    { type: 'range', key: 'charSpacing', i18n: 'opt.charSpacing', min: -8, max: 32, value: 0, unit: 'px',
+      showIf: { all: [ { key: 'typeOnCanvas', equals: true }, { bitmapFont: true } ] } },
+    { type: 'range', key: 'lineSpacing', i18n: 'opt.lineSpacing', min: -8, max: 32, value: 0, unit: 'px',
+      showIf: { all: [ { key: 'typeOnCanvas', equals: true }, { bitmapFont: true } ] } },
     { type: 'textarea', key: 'textContent', setter: 'setText', i18n: 'opt.text',
-      placeholderI18n: 'opt.textPlaceholder', rows: 3, value: '', preset: false },
+      placeholderI18n: 'opt.textPlaceholder', rows: 3, value: '', preset: false,
+      showIf: { key: 'typeOnCanvas', equals: false } },
     { type: 'select', key: 'fontFamily', setter: 'setFontFamily', i18n: 'opt.font', value: 'ZX ROM',
       options: [{ value: 'ZX ROM', i18n: 'opt.font.zxRom', label: 'ZX ROM (8\u00d78 bitmap)' }],
       dynamic: '_enumerateFonts' },
     { type: 'select', key: 'textSize', setter: 'setTextSize', i18n: 'opt.size', value: 16,
+      showIf: { key: 'typeOnCanvas', equals: false },
       options: [8, 16, 24, 32, 48, 64].map(s => ({ value: s, label: s + 'px' })),
       dynamic: 'getSizesForFont' },
     { type: 'check', key: 'fontBold',   i18n: 'opt.bold',   value: false },
@@ -115,6 +130,7 @@ class TextToolClass extends ToolBase {
     // sides, which is not what "vertical text" means on a sign - and no
     // amount of rotating gets you a column of upright letters.
     { type: 'select', key: 'textLayout', i18n: 'opt.layout', value: 'horizontal',
+      showIf: { key: 'typeOnCanvas', equals: false },
       options: TextToolClass.LAYOUTS.map(l => ({ value: l.id, i18n: l.i18n })) },
     // Alignment moves a line along the axis it RUNS on, so under the two
     // column layouts these read as top/middle/bottom.
@@ -123,6 +139,7 @@ class TextToolClass extends ToolBase {
     // Which point of the finished text block the click is. Centre is where text has always landed; it is separate from
     // Alignment, which only lines the lines up inside the block.
     { type: 'select', key: 'textAnchor', i18n: 'opt.anchor', value: 'center',
+      showIf: { key: 'typeOnCanvas', equals: false },
       options: TextToolClass.ANCHORS.map(a => ({ value: a.id, i18n: a.i18n })) },
     // Multiples of 90 are exact (MaskOps takes the transpose path); the
     // diagonals resample, so they are worth more pixels of text size.
@@ -179,6 +196,13 @@ class TextToolClass extends ToolBase {
     this._textShadowDir   = 'down-right';   // which way it falls (TextToolClass.SHADOW_DIRS)
     this._textAnchor      = 'center';       // which point of the block the click is (ANCHORS)
     this._textOutline     = false;  // hollow contour (MaskOps dilate-minus-glyph)
+    this._typeOnCanvas    = false;  // Type on canvas (Batch 10B)
+    this._charW           = 8;      // typed text: character cell width and height in picture pixels
+    this._charH           = 8;
+    this._charSpacing     = 0;
+    this._lineSpacing     = 0;
+    // (a quiet stand-in where the typing module is not loaded, as in tests of other things)
+    this._typing          = window.TextTyping ? new TextTyping(this) : { active: false, preview() {}, cancel() {}, commit() { return true; } };
     this._textBackground  = 'transparent';  // 'overlap' = Clear background: the box's clear dots are written too
     this._fixedSize       = 16;   // px height; always > 0 (selected from dropdown)
     this._cachedFonts     = null;
@@ -191,6 +215,22 @@ class TextToolClass extends ToolBase {
     // Saved bitmap fonts feed the font list — drop the cache when the
     // font editor's library changes so the next open re-enumerates.
     EventBus.on(EVENTS.FONT_LIBRARY_CHANGED, () => { this._cachedFonts = null; });
+
+    // Type on canvas: the hidden text field (canvas-text-entry.js) reports what it holds; the picture it would leave is
+    // redrawn whenever something it depends on changes.
+    EventBus.on(EVENTS.TEXT_ENTRY_CHANGED, (d) => this._onEntryChanged(d));
+    EventBus.on(EVENTS.TEXT_ENTRY_COMMIT, () => this._onEntryCommit());
+    EventBus.on(EVENTS.TEXT_ENTRY_CANCEL, () => this.cancelPending());
+    EventBus.on(EVENTS.TEXT_ENTRY_NEWLINE, () => this._typeNewline());
+    const redrawTyping = () => { if (this._typing.active) this._typing.preview(); };
+    for (const name of ['COLOR_INK', 'COLOR_PAPER', 'COLOR_BRIGHT', 'COLOR_FLASH', 'PALETTE_CHANGED', 'PALETTE_SLOT_CHANGED',
+      'DRAW_MODE_CHANGED', 'INVERSE_CHANGED', 'SYMMETRY_CHANGED', 'CLIP_CHANGED', 'LAYER_SELECTED', 'LAYER_VISIBILITY',
+      'HISTORY_UNDO', 'HISTORY_REDO', 'CANVAS_ZOOM', 'SCREEN_MODE_CHANGED']) {
+      if (EVENTS[name]) EventBus.on(EVENTS[name], redrawTyping);
+    }
+    for (const name of ['FILE_NEW', 'FILE_OPEN']) {
+      if (EVENTS[name]) EventBus.on(EVENTS[name], () => { if (this._typing.active) this.cancelPending(); });
+    }
 
     // The Transform panel's Clear dots changes the very same setting of the waiting stamp: follow it, so the two controls
     // never disagree. (Only for the stamp this tool made - fontInfo is set by no one else.)
@@ -223,7 +263,14 @@ class TextToolClass extends ToolBase {
   setText(v)       { this._text = v || '';             this._disengaged = false; this._updatePreviewIfActive(); }
 
   getFontFamily()  { return this._fontFamily; }
-  setFontFamily(v) { this._fontFamily = v || 'ZX ROM'; this._disengaged = false; this._updatePreviewIfActive(); }
+  setFontFamily(v) {
+    this._fontFamily = v || 'ZX ROM';
+    this._disengaged = false;
+    // A font with other-width glyphs keeps the typed letters' proportions: width follows height / 8
+    const g = this._glyphSource();
+    if (g) this._charW = Helpers.clamp(Math.round(g.w0 * this._charH / 8), 1, 64);
+    this._updatePreviewIfActive();
+  }
 
   getFontSize()    { return this._fontSize; }
   setFontSize(v)   { this._fontSize = clamp(parseInt(v, 10) || 16, 4, 128); }
@@ -283,6 +330,158 @@ class TextToolClass extends ToolBase {
   setTextShadowDir(v) {
     if (!TextToolClass.SHADOW_DIRS.some(d => d.id === v)) return;
     this._textShadowDir = v;  this._disengaged = false;  this._updatePreviewIfActive();
+  }
+
+  // ── Type on canvas (Batch 10B) ────────────────────────────────────────────
+
+  getTypeOnCanvas() { return this._typeOnCanvas; }
+  /** Turning it on needs a bitmap font and takes the tool's own waiting stamp away; turning it off draws what is typed. */
+  setTypeOnCanvas(v) {
+    const on = !!v;
+    if (on === this._typeOnCanvas) return;
+    if (on) {
+      if (!this.isBitmapFont(this._fontFamily)) {
+        EventBus.emit(EVENTS.STATUS_NOTICE, { text: Helpers.localizedMessage('text.typeBitmapOnly',
+          'Type on canvas needs a bitmap font (ZX ROM or a saved font).') });
+        EventBus.emit(EVENTS.TOOL_OPTIONS);
+        return;
+      }
+      if (this._ownStampFloating()) SelectionService.cancelFloatingPaste();
+      this._textStampActive = false;
+      this._typeOnCanvas = true;
+    } else {
+      this.commitPending();
+      this._typeOnCanvas = false;
+    }
+    this._disengaged = false;
+  }
+
+  getCharWidth()  { return this._charW; }
+  setCharWidth(v)  { this._charW = Helpers.clamp(Math.round(Number(v)) || 1, 1, 64); this._updatePreviewIfActive(); }
+  getCharHeight() { return this._charH; }
+  setCharHeight(v) { this._charH = Helpers.clamp(Math.round(Number(v)) || 1, 1, 64); this._updatePreviewIfActive(); }
+  getCharSpacing() { return this._charSpacing; }
+  setCharSpacing(v) { const n = Math.round(Number(v)); this._charSpacing = Helpers.clamp(Number.isFinite(n) ? n : 0, -8, 32); this._updatePreviewIfActive(); }
+  getLineSpacing() { return this._lineSpacing; }
+  setLineSpacing(v) { const n = Math.round(Number(v)); this._lineSpacing = Helpers.clamp(Number.isFinite(n) ? n : 0, -8, 32); this._updatePreviewIfActive(); }
+
+  /** The glyph source of the current bitmap font: { glyphOf(char) -> row bytes | null, w0, h0 }, or null. @private */
+  _glyphSource() {
+    const family = this._fontFamily;
+    if (family === 'ZX ROM') {
+      return { glyphOf: (c) => this.charBitmaps[c] || null, w0: 8, h0: 8 };
+    }
+    if (!String(family).startsWith('zxfont:')) return null;
+    const font = window.FontService ? FontService.getLibraryFont(family.slice('zxfont:'.length)) : null;
+    if (!font) return null;
+    return { glyphOf: (c) => { const i = c.charCodeAt(0) - font.firstCode; return i >= 0 && i < font.glyphs.length ? font.glyphs[i] : null; },
+             w0: font.width, h0: 8 };
+  }
+
+  /** Everything BitmapText.layout needs for the text being typed. @private */
+  _typeLayoutOptions() {
+    const g = this._glyphSource() || { glyphOf: () => null, w0: 8, h0: 8 };
+    return {
+      glyphOf: g.glyphOf, w0: g.w0, h0: g.h0, W: this._charW, H: this._charH, sx: this._charSpacing, sy: this._lineSpacing,
+      align: this._textAlign, bold: this._fontBold, italic: this._fontItalic,
+      style: (p, w, h, b, i) => this._styleBitmapMask(p, w, h, b, i)
+    };
+  }
+
+  /** Whether a typing session is open. */
+  get hasPending() { return !!(this._typing && this._typing.active); }
+
+  /** The pointer is not pre-rounded to the snap step while typing: the tool floors the press itself. */
+  get snapsPointer() { return !this._typeOnCanvas; }
+
+  /** Open a typing session at a picture point (the press, dropped to the snap cell when Snap is on). @private */
+  _startTyping(x, y) {
+    if (window.StateManager && StateManager.getGridSnap()) {
+      const st = StateManager.getGridSnapSize();
+      x = SnapGrid.floor(x, st.w);
+      y = SnapGrid.floor(y, st.h);
+    }
+    this._typing.open(x, y);
+    EventBus.emit(EVENTS.TEXT_ENTRY_OPEN, { text: '', caret: 0, x, y, refocus: true });
+    this._typing.preview();
+  }
+
+  /** The text field changed. @private */
+  _onEntryChanged(d) {
+    if (!this._typing.active || !d) return;
+    const g = this._glyphSource();
+    let text = d.text, caret = d.caret;
+    if (g) {
+      const f = BitmapText.filterTyped(text, g.glyphOf);
+      if (f.text !== text) {
+        // characters the font cannot draw are refused, and the person is told which
+        caret = Helpers.clamp(caret - (text.length - f.text.length), 0, f.text.length);
+        text = f.text;
+        EventBus.emit(EVENTS.STATUS_NOTICE, { text: Helpers.localizedMessage('text.noGlyph',
+          'This font has no {char}.', { char: f.refused.join(' ') }) });
+        EventBus.emit(EVENTS.TEXT_ENTRY_OPEN, { text, caret, x: this._typing.x, y: this._typing.y, refocus: false });
+      }
+    }
+    this._typing.setBuffer(text, caret);
+    this._typing.preview();
+  }
+
+  /** Enter in the text field, or the Draw button. @private */
+  _onEntryCommit() {
+    if (!this._typing.active) return;
+    this.commitPending();
+  }
+
+  /** The New line button. @private */
+  _typeNewline() {
+    if (!this._typing.active) return;
+    this._typing.insert('\n');
+    EventBus.emit(EVENTS.TEXT_ENTRY_OPEN, { text: this._typing.text, caret: this._typing.caret, x: this._typing.x, y: this._typing.y, refocus: true });
+    this._typing.preview();
+  }
+
+  /** Draw what is typed (save, tool switch, click elsewhere, Draw). A session that cannot be drawn says why and stays open. */
+  commitPending() {
+    if (!this._typing.active) return;
+    if (this._typing.commit()) {
+      EventBus.emit(EVENTS.TEXT_ENTRY_CLOSE);
+    } else {
+      EventBus.emit(EVENTS.STATUS_NOTICE, { text: Helpers.localizedMessage('text.cannotDraw',
+        'There is no unlocked drawing layer to draw the text on.') });
+    }
+  }
+
+  /** Escape / Cancel: throw the typed text away. */
+  cancelPending() {
+    if (!this._typing.active) return;
+    this._typing.cancel();
+    EventBus.emit(EVENTS.TEXT_ENTRY_CLOSE);
+  }
+
+  /** The keys the tool may claim when the text field does not hold the keyboard (it is the fallback: the field handles them itself). */
+  handleKey(key) {
+    if (!this._typing.active) return false;
+    if (key === 'Enter') { this.commitPending(); return true; }
+    if (key === 'Backspace') { this.undoPending(); return true; }
+    return false;
+  }
+
+  /** Edit > Undo while typing and the field is not focused: take back the last character. */
+  undoPending() {
+    if (!this._typing.active) return false;
+    this._typing.backspace();
+    if (!this._typing.text) { this.cancelPending(); return true; }
+    EventBus.emit(EVENTS.TEXT_ENTRY_OPEN, { text: this._typing.text, caret: this._typing.caret, x: this._typing.x, y: this._typing.y, refocus: false });
+    this._typing.preview();
+    return true;
+  }
+
+  /** Cursor keys while the field is not focused: move the whole text. */
+  nudgePending(dx, dy) {
+    if (!this._typing.active) return false;
+    this._typing.nudge(dx, dy);
+    this._typing.preview();
+    return true;
   }
 
   getTextBackground() { return this._textBackground; }
@@ -403,6 +602,27 @@ class TextToolClass extends ToolBase {
   // ── Canvas interaction ────────────────────────────────────────────────────
 
   onPointerDown(pixelX, pixelY, e) {
+    if (this._typeOnCanvas) {
+      if (e && e.button === 2) { this.cancelPending(); return; }
+      // A press on the text already typed moves the caret to it; a press anywhere else draws the text and starts a new one.
+      if (this._typing.active) {
+        const slot = this._typing.slotAt(pixelX, pixelY);
+        if (slot !== null) {
+          this._typing.caret = slot;
+          EventBus.emit(EVENTS.TEXT_ENTRY_OPEN, { text: this._typing.text, caret: slot, x: this._typing.x, y: this._typing.y, refocus: true });
+          this._typing.preview();
+          return;
+        }
+        if (!this._typing.commit()) {
+          EventBus.emit(EVENTS.STATUS_NOTICE, { text: Helpers.localizedMessage('text.cannotDraw',
+            'There is no unlocked drawing layer to draw the text on.') });
+          return;
+        }
+        EventBus.emit(EVENTS.TEXT_ENTRY_CLOSE);
+      }
+      this._startTyping(pixelX, pixelY);
+      return;
+    }
     // When the text tool's OWN stamp is the current stamp, pointer-down is
     // handled entirely by input-handler and this method is NOT called. We
     // reach here either with no stamp engaged, or with some OTHER tool's
@@ -443,6 +663,8 @@ class TextToolClass extends ToolBase {
   }
 
   deactivate() {
+    // Typed text is drawn when you leave the tool (as a waiting figure is), not lost
+    if (this._typing && this._typing.active) this.commitPending();
     this._textStampActive = false;
     super.deactivate();
   }
@@ -490,6 +712,7 @@ class TextToolClass extends ToolBase {
   // ── Live option preview ───────────────────────────────────────────────────
 
   _updatePreviewIfActive() {
+    if (this._typing && this._typing.active) { this._typing.preview(); return; }
     if (!this._textStampActive) return;
     if (!window.SelectionService || !SelectionService.isFloating()) {
       this._textStampActive = false;
