@@ -6,6 +6,7 @@ const { installStubs, loadModule, check, summary } = require('./helpers/zx-stubs
 // values were recorded from the code BEFORE that work.
 installStubs({ FontService: {}, SCRFormat: {} });
 loadModule('js/io/font-format.js');
+loadModule('js/utils/glyph-bits.js');
 loadModule('js/utils/font-codec.js');
 
 function makeDoc(width, firstCode, count) {
