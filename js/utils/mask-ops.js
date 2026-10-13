@@ -291,6 +291,37 @@ const MaskOps = {
      * @returns {boolean[][]}
      */
     /**
+     * Where a point of the raw mask ends up after `process` / `processLayers` (mirror, contour padding, the shadow's glyph
+     * shift, then the turn), and how big the finished box is. Quarter turns are exact; other angles use the forward map of
+     * `rotateFree` (pixel centres), good to a pixel. Used to put a text caret on the finished text.
+     * @returns {{x:number, y:number, w:number, h:number}}
+     */
+    mapPoint(x, y, w, h, opts = {}) {
+        const h0 = h;
+        if (opts.mirrorH) x = w - 1 - x;
+        if (opts.mirrorV) y = h - 1 - y;
+        if (opts.outline) { x += 1; y += 1; w += 2; h += 2; }
+        if (opts.shadow) {
+            const off = opts.shadowOffset || Math.max(1, Math.round(h0 / 8));
+            const v = MaskOps.shadowVector(opts.shadowDir, off);
+            x += Math.max(0, -v.dx); y += Math.max(0, -v.dy);
+            w += Math.abs(v.dx); h += Math.abs(v.dy);
+        }
+        const deg = (((opts.direction || 0) % 360) + 360) % 360;
+        if (deg === 0) return { x, y, w, h };
+        if (deg % 90 === 0) {
+            let px = x, py = y, pw = w, ph = h;
+            for (let s = 0; s < deg / 90; s++) { const nx = ph - 1 - py, ny = px; px = nx; py = ny; const t = pw; pw = ph; ph = t; }
+            return { x: px, y: py, w: pw, h: ph };
+        }
+        const rad = deg * Math.PI / 180, cos = Math.cos(rad), sin = Math.sin(rad);
+        const dstW = Math.ceil(w * Math.abs(cos) + h * Math.abs(sin));
+        const dstH = Math.ceil(w * Math.abs(sin) + h * Math.abs(cos));
+        const u = x + 0.5 - w / 2, v = y + 0.5 - h / 2;
+        return { x: Math.floor(u * cos - v * sin + dstW / 2), y: Math.floor(u * sin + v * cos + dstH / 2), w: dstW, h: dstH };
+    },
+
+    /**
      * `process` for text whose shadow and/or contour are drawn in the OPPOSITE dot state to the letters (ZX Paintbrush's
      * shading and contour). Returns the dots to SET and the dots to CLEAR as two masks of the same size, never overlapping
      * (set wins), or `clearMask: null` when nothing is opposite - then `pixels` is exactly `process(mask, opts)`.
