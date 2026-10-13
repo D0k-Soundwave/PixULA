@@ -1,7 +1,7 @@
 # Batch 10 - Text and fonts
 
-Group C, branch `parity-c`. Parts: 10A, 10B, 10C (one session each). After
-10C comes the group C check-off (Opus).
+Group C, branch `parity-c`. Parts: 10A, 10B, 10C, 10C2, 10C3 (one session each; 10C was split by the Opus
+plan review on 2026-10-13). After 10C3 comes the group C check-off (Opus).
 Read `RUNBOOK.md` first. Figures from the ZX Paintbrush help are
 [P, ZX Paintbrush 2.6.4 help, read 2026-10-08].
 
@@ -119,3 +119,12 @@ proportional widths.
 
 Batch 10 and group C are done. Update the comparison doc rows. Hand off to
 the group C check-off (Opus): CHECKOFF.md, branch `parity-c`.
+
+## Split of 10C (Opus plan review, 2026-10-13; owner answers in LOG.md)
+
+- 10C (DONE): big-font data model, FontCodec v2, CHX read/write of whole characters with shading, guards, New Big Font, Fill from font.
+- 10C2: the all-characters MAP view in which you can DRAW across every character (owner: yes), the SHADER tool (shade 8-pixel columns on the
+  left / right of a character; saved narrower; a fully shaded character is not written; Space keeps a column), shading shown in the map and
+  the single-character editor, buttons for keyboard / touch, a save summary ("N narrowed, M left out").
+- 10C3: big and proportional fonts in the Text tool and Type on canvas (owner: yes): per-letter advance in BitmapText.layout / stretchLine and
+  TextTool._buildLineMask; multi-byte rows; library labels such as "Name (16x16, proportional)".
