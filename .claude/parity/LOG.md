@@ -855,3 +855,12 @@ one-character view, summary, undo), 10C2b = steps 6-8 (the map view, map shader,
 OWNER: Font Editor Undo = YES. Map Fill stays inside the clicked letter. Defaults: shade tie goes right; shading offered only for fonts 8/16/24/32
 wide; Shade all to fit leaves blank characters out except Space.
 
+## Batch 10C2 done (2026-10-13)
+Built: GlyphBits.shadeAfterClick / shadeStep (table-tested, tie goes right); FontFormat._chxPlan + chxSummary (export bytes unchanged, pin tests pass);
+FontHistory (byte-capped, 2 MB) + FontService.snapshot / restore; Font Editor: four Shade buttons, Shade all to fit (one change), hatched shading in
+the editing surface (CellGridEditor drawOverlay hook) and dimmed in the picker, Undo / Redo (buttons, Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z; one stroke =
+one step via onStrokeStart hook; the typed name is kept), CHX export summary via Helpers.localizedPlural. 19 i18n keys x 13. Manual paragraph in 13.
+Tests: font-history, glyph-bits, chx-big, font-service-big (Node); font-editor-shade-undo (Playwright, 9). Browser suite 778 passed.
+NOT done (10C2b): the all-characters MAP view (draw across every character, fill inside the clicked letter), map shading, keyboard for the picker,
+font-map.js / font-map-view.js, comparison row 203 -> Same. Row 202's 'press a key to find its character' claim is still unbuilt (Opus found it).
+

@@ -144,6 +144,17 @@ class FontEditorDialogClass {
                 <div class="me-toolbar">
                     <button type="button" class="pc-btn fe-new-big" data-i18n="font.newBig">${this._t('font.newBig', 'New Big Font...')}</button>
                     <button type="button" class="pc-btn fe-fill" data-i18n="font.fillFromFont">${this._t('font.fillFromFont', 'Fill from font...')}</button>
+                    <button type="button" class="pc-btn fe-undo" data-i18n="font.undo" disabled>${this._t('font.undo', 'Undo')}</button>
+                    <button type="button" class="pc-btn fe-redo" data-i18n="font.redo" disabled>${this._t('font.redo', 'Redo')}</button>
+                </div>
+                <div class="me-toolbar fe-shade-bar">
+                    <span class="fe-shade-title" data-i18n="font.shade.title">${this._t('font.shade.title', 'Shading (saved narrower)')}</span>
+                    <button type="button" class="pc-btn" data-shade="left-more" data-i18n="font.shade.leftMore">${this._t('font.shade.leftMore', 'Shade left column')}</button>
+                    <button type="button" class="pc-btn" data-shade="left-less" data-i18n="font.shade.leftLess">${this._t('font.shade.leftLess', 'Unshade left column')}</button>
+                    <button type="button" class="pc-btn" data-shade="right-more" data-i18n="font.shade.rightMore">${this._t('font.shade.rightMore', 'Shade right column')}</button>
+                    <button type="button" class="pc-btn" data-shade="right-less" data-i18n="font.shade.rightLess">${this._t('font.shade.rightLess', 'Unshade right column')}</button>
+                    <button type="button" class="pc-btn" data-shade="fit" data-i18n="font.shade.fit">${this._t('font.shade.fit', 'Shade all to fit')}</button>
+                    <span class="fe-shade-state"></span>
                 </div>
                 <div class="me-toolbar">
                     <button type="button" class="pc-btn fe-system-font font-editor-system-font-btn" data-i18n="font.fromSystemFont">${this._t('font.fromSystemFont', 'From System Font...')}</button>
@@ -175,16 +186,26 @@ class FontEditorDialogClass {
             canvasWidth: w * zoom,
             canvasHeight: h * zoom,
             onChange: () => this._commitGlyphEdit(),
+            drawOverlay: (ctx, sx, sy) => this._paintShade(ctx, sx, sy),
+            onStrokeStart: () => this._strokeStart(),
             className: 'fe-glyph-canvas'
         });
         content.querySelector('.fe-editor-slot').appendChild(this._glyphEditor.element);
 
         this._attachEvents(content);
 
+        // Undo history (Batch 10C2): the dialog watches the same facts it repaints from, and stores the state before each change
+        this._hist = new FontHistory();
+        this._cur = FontService.snapshot();
+        this._curDirty = false;
+        this._restoring = false;
+        this._strokeOpen = false;
+        this._strokePushed = false;
+
         // Repaint from facts only
         this._unsubscribes = [
-            EventBus.on(EVENTS.FONT_CHANGED, () => this._onFontChanged()),
-            EventBus.on(EVENTS.FONT_LOADED, () => this._refreshAll()),
+            EventBus.on(EVENTS.FONT_CHANGED, () => { this._recordChange(); this._onFontChanged(); }),
+            EventBus.on(EVENTS.FONT_LOADED, () => { this._recordChange(); this._refreshAll(); }),
             EventBus.on(EVENTS.FONT_LIBRARY_CHANGED, () => this._refreshLibrary()),
             EventBus.on(EVENTS.THEME_CHANGED, () => this._redrawGrid())
         ];
@@ -193,6 +214,8 @@ class FontEditorDialogClass {
     _onClose() {
         this._unsubscribes.forEach(u => u());
         this._unsubscribes = [];
+        this._hist = null;
+        this._cur = null;
         this._root = null;
         this._glyphEditor = null;
         FontService.persist();
@@ -304,6 +327,19 @@ class FontEditorDialogClass {
             () => this._export(c.querySelector('.fe-export-format').value));
 
         c.querySelector('.fe-system-font').addEventListener('click', () => this._openSystemFontPicker());
+        c.querySelector('.fe-undo').addEventListener('click', () => this._undo());
+        c.querySelector('.fe-redo').addEventListener('click', () => this._redo());
+        c.querySelector('.fe-shade-bar').addEventListener('click', e => {
+            const btn = e.target.closest('button[data-shade]');
+            if (btn) this._runShade(btn.dataset.shade);
+        });
+        c.addEventListener('keydown', e => {
+            if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+            if (e.target.closest && e.target.closest('input, textarea, select')) return;
+            const key = e.key.toLowerCase();
+            if (key === 'z' && !e.shiftKey) { e.preventDefault(); this._undo(); }
+            else if (key === 'y' || (key === 'z' && e.shiftKey)) { e.preventDefault(); this._redo(); }
+        });
         c.querySelector('.fe-new-big').addEventListener('click', () => this._openFillDialog('new'));
         c.querySelector('.fe-fill').addEventListener('click', () => this._openFillDialog('fill'));
     }
@@ -335,6 +371,7 @@ class FontEditorDialogClass {
 
     _selectGlyph(code) {
         this._selected = code;
+        this._syncControls();
         this._redrawGrid();
         this._loadGlyphIntoEditor();
         this._updateCurrentLabel();
@@ -406,6 +443,15 @@ class FontEditorDialogClass {
         this._root.querySelector('.fe-capture').disabled = big;
         this._root.querySelector('.fe-system-font').disabled = big;
         this._root.querySelector('.fe-fill').disabled = FontService.width % 8 !== 0;
+        // Shading is in whole 8-pixel columns: only for fonts that are a whole number of them wide
+        const shadeOk = FontService.width % 8 === 0;
+        this._root.querySelectorAll('button[data-shade]').forEach(b => { b.disabled = !shadeOk; });
+        const sh = FontService.getShade(this._selected);
+        const stateEl = this._root.querySelector('.fe-shade-state');
+        stateEl.dataset.i18nParamLeft = sh.left;
+        stateEl.dataset.i18nParamRight = sh.right;
+        stateEl.textContent = (sh.left || sh.right)
+            ? this._t('font.shade.state', 'Shaded: {left} left, {right} right', { left: sh.left, right: sh.right }) : '';
         this._updateCurrentLabel();
     }
 
@@ -475,6 +521,20 @@ class FontEditorDialogClass {
             }
         }
 
+        // Shaded columns dimmed (a character shaded all the way across is left out of a CHX file)
+        if (FontService.hasShading()) {
+            const cols = FontService.width >> 3;
+            ctx.fillStyle = 'rgba(110,110,110,0.6)';
+            for (let i = 0; i < count; i++) {
+                const sh = FontService.getShade(firstCode + i);
+                if (!sh.left && !sh.right) continue;
+                const cx0 = (i % this.GRID_COLS) * cs + (cs - gw * k) / 2;
+                const cy0 = Math.floor(i / this.GRID_COLS) * cs + (cs - gh * k) / 2;
+                if (sh.left) ctx.fillRect(cx0, cy0, sh.left * 8 * k, gh * k);
+                if (sh.right) ctx.fillRect(cx0 + (cols - sh.right) * 8 * k, cy0, sh.right * 8 * k, gh * k);
+            }
+        }
+
         // Cell grid
         ctx.strokeStyle = 'rgba(128,128,128,0.4)';
         ctx.lineWidth = 0.5;
@@ -530,7 +590,18 @@ class FontEditorDialogClass {
                 const mime = format === 'bin' ? 'application/octet-stream' : 'text/plain';
                 saved = await FormatRegistry.download(data, `${base}_font.${format}`, mime);
             }
-            if (saved !== false) this._status(this._t('font.status.exported', 'Font exported.'));
+            if (saved !== false) {
+                let msg = this._t('font.status.exported', 'Font exported.');
+                if (format === 'chx') {
+                    const sum = FontFormat.chxSummary(FontService.toDocument());
+                    const part = (key, n, fallback) => (n ? ' ' + Helpers.localizedPlural(key, n, fallback) : '');
+                    msg += part('plural.fontNarrowed', sum.narrowed, 'one: {n} character saved narrower | other: {n} characters saved narrower') +
+                        part('plural.fontLeftOut', sum.leftOut, 'one: {n} character left out | other: {n} characters left out') +
+                        part('plural.fontHiddenInk', sum.hiddenInk,
+                            'one: {n} character has dots under the shading that were not saved | other: {n} characters have dots under the shading that were not saved');
+                }
+                this._status(msg, Math.max(3000, (msg.split(/\s+/).length / 5 + 1) * 1000)); // [P] about 5 words a second + 1 s to notice it
+            }
         } catch (err) {
             this._status(err.message);
         }
@@ -780,6 +851,128 @@ class FontEditorDialogClass {
         }
     }
 
+    // ─── Undo / redo ──────────────────────────────────────────────────────
+
+    /** A stroke in the editing surface begins: all its changes are one undo step. @private */
+    _strokeStart() {
+        this._strokeOpen = true;
+        this._strokePushed = false;
+        const end = () => {
+            window.removeEventListener('pointerup', end, true);
+            window.removeEventListener('pointercancel', end, true);
+            this._strokeOpen = false;
+            if (this._curDirty && this._hist) { this._cur = FontService.snapshot(); this._curDirty = false; }
+            this._syncHistoryButtons();
+        };
+        window.addEventListener('pointerup', end, true);
+        window.addEventListener('pointercancel', end, true);
+    }
+
+    /** A FONT_* fact arrived: remember the state before it, unless it is the result of undo / redo or another move of the same stroke. @private */
+    _recordChange() {
+        if (!this._hist) return;
+        if (this._restoring) { this._cur = FontService.snapshot(); this._curDirty = false; return; }
+        if (this._strokeOpen && this._strokePushed) { this._curDirty = true; return; }
+        this._hist.push(this._cur);
+        if (this._strokeOpen) this._strokePushed = true;
+        this._cur = FontService.snapshot();
+        this._curDirty = false;
+        this._syncHistoryButtons();
+    }
+
+    _syncHistoryButtons() {
+        if (!this._root || !this._hist) return;
+        this._root.querySelector('.fe-undo').disabled = !this._hist.canUndo();
+        this._root.querySelector('.fe-redo').disabled = !this._hist.canRedo();
+    }
+
+    _stepHistory(redo) {
+        if (!this._hist || this._strokeOpen) return;
+        const now = FontService.snapshot();
+        const target = redo ? this._hist.redo(now) : this._hist.undo(now);
+        if (!target) {
+            this._status(this._t(redo ? 'font.status.nothingToRedo' : 'font.status.nothingToUndo',
+                redo ? 'Nothing to redo.' : 'Nothing to undo.'));
+            return;
+        }
+        this._restoring = true;
+        FontService.restore(target);
+        this._restoring = false;
+        this._syncHistoryButtons();
+        this._status(this._t(redo ? 'font.status.redone' : 'font.status.undone', redo ? 'Redone.' : 'Undone.'));
+    }
+
+    _undo() { this._stepHistory(false); }
+    _redo() { this._stepHistory(true); }
+
+    // ─── Shading ──────────────────────────────────────────────────────────
+
+    /** Hatch the shaded columns of the selected glyph over the editing surface (CellGridEditor overlay hook). @private */
+    _paintShade(ctx, sx, sy) {
+        const sh = FontService.getShade(this._selected);
+        if (!sh.left && !sh.right) return;
+        const { w, h } = FontService.getGlyphSize();
+        const cols = w >> 3;
+        const bands = [];
+        if (sh.left) bands.push([0, sh.left * 8]);
+        if (sh.right) bands.push([(cols - sh.right) * 8, sh.right * 8]);
+        for (const [x0, bw] of bands) {
+            const px = x0 * sx, pw = bw * sx, ph = h * sy;
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(px, 0, pw, ph);
+            ctx.clip();
+            ctx.fillStyle = 'rgba(110,110,110,0.55)';
+            ctx.fillRect(px, 0, pw, ph);
+            ctx.strokeStyle = 'rgba(40,40,40,0.55)';
+            ctx.lineWidth = 1;
+            for (let d = -ph; d < pw; d += 8) {
+                ctx.beginPath();
+                ctx.moveTo(px + d, ph);
+                ctx.lineTo(px + d + ph, 0);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+    }
+
+    _runShade(what) {
+        if (what === 'fit') { this._shadeToFit(); return; }
+        const code = this._selected;
+        const cols = FontService.width >> 3;
+        const sh = FontService.getShade(code);
+        const [side, dir] = what.split('-');
+        const next = GlyphBits.shadeStep([sh.left, sh.right], cols, side, dir === 'more' ? 1 : -1);
+        if (!next) {
+            this._status(this._t('font.status.shadeLimit', 'There are no more columns to shade or unshade there.'));
+            return;
+        }
+        if (!FontService.setShade(code, next[0], next[1])) {
+            this._status(this._t('font.status.spaceKeepsColumn', 'Space must keep at least one column.'));
+        }
+    }
+
+    /**
+     * Shade every character to fit its dots (whole empty 8-pixel columns on each side); a blank Space keeps one column and any other
+     * blank character is left out. One change, so one undo step and one repaint.
+     * @private
+     */
+    _shadeToFit() {
+        const { w, h } = FontService.getGlyphSize();
+        const cols = w >> 3;
+        const cov = FontService.getCoverage();
+        const shade = [];
+        for (let i = 0; i < cov.count; i++) {
+            const code = cov.firstCode + i;
+            const edges = GlyphBits.inkEdges(FontService.getGlyph(code), w, h);
+            if (edges) shade.push(GlyphBits.autoShade(edges, 0, w, 'left'));
+            else shade.push(code === 32 ? [0, cols - 1] : [0, cols]);
+        }
+        if (FontService.replaceGlyphs(FontService.glyphs.map(g => Uint8Array.from(g)), shade)) {
+            this._status(this._t('font.status.shadeFitted', 'Every character shaded to fit.'));
+        }
+    }
+
     // ─── Shared refresh / status ──────────────────────────────────────────
 
     _refreshLibrary() {
@@ -814,13 +1007,13 @@ class FontEditorDialogClass {
      * line appear before starting to read it. Short enough that a stale
      * message never outlives the action that caused it.
      */
-    _status(msg) {
+    _status(msg, ms = 3000) {
         if (!this._statusMsg) return;
         this._statusMsg.textContent = msg;
         clearTimeout(this._statusTimeout);
         this._statusTimeout = setTimeout(() => {
             if (this._statusMsg) this._statusMsg.textContent = '';
-        }, 3000);
+        }, ms);
     }
 }
 
