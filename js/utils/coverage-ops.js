@@ -406,6 +406,58 @@ const CoverageOps = {
     },
 
     /**
+     * `process` for opposite-dot shadow / contour: the coverage of the dots to SET and of the dots to CLEAR. The same rules
+     * as `MaskOps.processLayers` (see there), in the coverage domain; stops before the turn exactly as `process` does.
+     * `clear` is null when nothing is opposite (then `set` is exactly `process`'s result). The caller thresholds both and
+     * lets the set dots win where they meet.
+     * @returns {{set: Object, clear: ?Object}}
+     */
+    processLayers(cov, opts = {}) {
+        const oppOutline = !!opts.outline && opts.outlineDots === 'opposite';
+        const oppShadow = !!opts.shadow && opts.shadowDots === 'opposite';
+        if (!oppOutline && !oppShadow) return { set: CoverageOps.process(cov, opts), clear: null };
+
+        const place = (c, w, h, sx, sy) => {
+            const out = CoverageOps.create(w, h);
+            for (let y = 0; y < c.h; y++) for (let x = 0; x < c.w; x++) out.data[(y + sy) * w + x + sx] = c.data[y * c.w + x];
+            return out;
+        };
+        let S = cov;
+        if (opts.mirrorH) S = CoverageOps.flipH(S);
+        if (opts.mirrorV) S = CoverageOps.flipV(S);
+        let C = CoverageOps.create(S.w, S.h);
+        if (opts.outline) {
+            const ring = CoverageOps.outline(S);
+            if (oppOutline) { S = place(S, ring.w, ring.h, 1, 1); C = ring; }
+            else { S = ring; C = CoverageOps.create(ring.w, ring.h); }
+        }
+        if (opts.shadow) {
+            const off = opts.shadowOffset || Math.max(1, Math.round(cov.h / 8));
+            const left = opts.shadowDir === 'down-left' || opts.shadowDir === 'up-left';
+            const up = opts.shadowDir === 'up-right' || opts.shadowDir === 'up-left';
+            const dx = left ? -off : off, dy = up ? -off : off;
+            const ox = Math.max(0, dx), oy = Math.max(0, dy), gx = Math.max(0, -dx), gy = Math.max(0, -dy);
+            const w = S.w + Math.abs(dx), h = S.h + Math.abs(dy);
+            const Sg = place(S, w, h, gx, gy), Ss = place(S, w, h, ox, oy);
+            const Cg = place(C, w, h, gx, gy), Cs = place(C, w, h, ox, oy);
+            const S2 = CoverageOps.create(w, h), C2 = CoverageOps.create(w, h);
+            for (let i = 0; i < w * h; i++) {
+                if (oppShadow) {
+                    S2.data[i] = Sg.data[i];
+                    C2.data[i] = Math.max(Cg.data[i], Ss.data[i], Cs.data[i]) * (1 - Sg.data[i]);
+                } else {
+                    S2.data[i] = Math.max(Sg.data[i], Ss.data[i]);
+                    C2.data[i] = Cg.data[i] * (1 - S2.data[i]);
+                }
+            }
+            S = S2; C = C2;
+        }
+        let any = false;
+        for (let i = 0; i < C.data.length; i++) if (C.data[i] > 0) { any = true; break; }
+        return { set: S, clear: any ? C : null };
+    },
+
+    /**
      * The warp inverse maps, evaluated at subsample positions instead of once
      * per output pixel - a coverage twin of
      * `SelectionService._applyWarpEffect`, deliberately mirroring it line for

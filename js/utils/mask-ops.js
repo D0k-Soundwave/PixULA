@@ -290,6 +290,72 @@ const MaskOps = {
      *   shadowDir     'down-right' (default) | 'down-left' | 'up-right' | 'up-left' - relative to the letters
      * @returns {boolean[][]}
      */
+    /**
+     * `process` for text whose shadow and/or contour are drawn in the OPPOSITE dot state to the letters (ZX Paintbrush's
+     * shading and contour). Returns the dots to SET and the dots to CLEAR as two masks of the same size, never overlapping
+     * (set wins), or `clearMask: null` when nothing is opposite - then `pixels` is exactly `process(mask, opts)`.
+     *
+     * Each effect has its own switch (opts.shadowDots, opts.outlineDots: 'same' | 'opposite'):
+     *   contour, same      the hollow ring replaces the letters (today's Outline)
+     *   contour, opposite  the letters stay set, a ring of clear dots surrounds them
+     *   shadow, same       the letters and a set copy of them
+     *   shadow, opposite   the letters stay set; a copy of everything drawn so far (letters and ring) is CLEARED behind them
+     * The box is the same size as with Same dots, so placement and anchors do not change.
+     * @param {boolean[][]} mask
+     * @param {Object} opts - as `process`, plus shadowDots / outlineDots
+     * @returns {{pixels: boolean[][], clearMask: ?boolean[][]}}
+     */
+    processLayers(mask, opts = {}) {
+        const oppOutline = !!opts.outline && opts.outlineDots === 'opposite';
+        const oppShadow = !!opts.shadow && opts.shadowDots === 'opposite';
+        if (!oppOutline && !oppShadow) return { pixels: MaskOps.process(mask, opts), clearMask: null };
+
+        const blank = (w, h) => Array.from({ length: h }, () => new Array(w).fill(false));
+        const place = (m, w, h, sx, sy) => {
+            const out = blank(w, h);
+            for (let y = 0; y < m.length; y++) for (let x = 0; x < m[0].length; x++) if (m[y][x]) out[y + sy][x + sx] = true;
+            return out;
+        };
+        let S = mask;
+        if (opts.mirrorH) S = MaskOps.flipH(S);
+        if (opts.mirrorV) S = MaskOps.flipV(S);
+        let C = blank(S[0].length, S.length);
+        const preHeight = MaskOps.size(mask).h;
+
+        if (opts.outline) {
+            const ring = MaskOps.outline(S);
+            const w = ring[0].length, h = ring.length;
+            if (oppOutline) { S = place(S, w, h, 1, 1); C = ring; }
+            else { S = ring; C = blank(w, h); }
+        }
+        if (opts.shadow) {
+            const off = opts.shadowOffset || Math.max(1, Math.round(preHeight / 8));
+            const v = MaskOps.shadowVector(opts.shadowDir, off);
+            const ox = Math.max(0, v.dx), oy = Math.max(0, v.dy), gx = Math.max(0, -v.dx), gy = Math.max(0, -v.dy);
+            const w = S[0].length + Math.abs(v.dx), h = S.length + Math.abs(v.dy);
+            const Sg = place(S, w, h, gx, gy), Ss = place(S, w, h, ox, oy);
+            const Cg = place(C, w, h, gx, gy), Cs = place(C, w, h, ox, oy);
+            const S2 = blank(w, h), C2 = blank(w, h);
+            for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+                if (oppShadow) {
+                    S2[y][x] = Sg[y][x];
+                    C2[y][x] = !Sg[y][x] && (Cg[y][x] || Ss[y][x] || Cs[y][x]);
+                } else {
+                    S2[y][x] = Sg[y][x] || Ss[y][x];
+                    C2[y][x] = !S2[y][x] && Cg[y][x];
+                }
+            }
+            S = S2; C = C2;
+        }
+        if (opts.direction) { S = MaskOps.rotate(S, opts.direction); C = MaskOps.rotate(C, opts.direction); }
+        let any = false;
+        for (let y = 0; y < C.length; y++) for (let x = 0; x < C[0].length; x++) {
+            if (C[y][x] && S[y][x]) C[y][x] = false;       // a turned layer can overlap by resampling: set wins
+            else if (C[y][x]) any = true;
+        }
+        return { pixels: S, clearMask: any ? C : null };
+    },
+
     process(mask, opts = {}) {
         let out = mask;
         if (opts.mirrorH) out = MaskOps.flipH(out);
