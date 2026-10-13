@@ -94,6 +94,7 @@ loadModule('js/tools/figure-editor.js');
 loadModule('js/tools/figure-tool.js');
 loadModule('js/tools/fill-tool.js');
 loadModule('js/tools/gradient-tool.js');
+loadModule('js/utils/bitmap-text.js');
 loadModule('js/tools/text-tool.js');
 loadModule('js/tools/selection-tool.js');
 loadModule('js/tools/zoom-tool.js');

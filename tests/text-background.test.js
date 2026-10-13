@@ -28,6 +28,7 @@ loadModule('js/core/pixel-draw-routine.js');
 loadModule('js/services/undo-redo.js');
 loadModule('js/services/selection-service.js');
 loadModule('js/tools/tool-base.js');
+loadModule('js/utils/bitmap-text.js');
 loadModule('js/tools/text-tool.js');
 
 ColorManager.initialize();

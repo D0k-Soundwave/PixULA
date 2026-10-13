@@ -59,6 +59,7 @@ loadModule('js/core/pixel-draw-routine.js');
 loadModule('js/services/pattern-service.js');
 loadModule('js/services/selection-service.js');
 loadModule('js/data/zx-rom-font.js');
+loadModule('js/utils/bitmap-text.js');
 loadModule('js/tools/tool-base.js');
 loadModule('js/tools/tool-manager.js');
 loadModule('js/utils/brush-shapes.js');
