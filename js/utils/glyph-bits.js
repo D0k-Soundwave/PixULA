@@ -144,6 +144,35 @@ const GlyphBits = {
         return out;
     },
 
+    /**
+     * How many whole 8-pixel columns a proportional character leaves empty on each side (the shader's result).
+     *
+     * The character occupies a span of the cell: the extent of its ink, or - for a blank character such as Space, which has no
+     * ink - its advance width, placed where the alignment puts it. Whole 8-pixel columns entirely outside that span are
+     * shaded. The span is never empty, so at least one column always remains.
+     * @param {{left:number, right:number}|null} edges - ink edges from inkEdges() (inclusive), null if blank
+     * @param {number} advance - the character's advance width in pixels (used when blank)
+     * @param {number} width - cell width in pixels (a multiple of 8)
+     * @param {string} align - 'left' | 'centre' | 'right'
+     * @returns {number[]} [left, right] shaded columns
+     */
+    autoShade(edges, advance, width, align) {
+        let a, b;            // used span [a, b) in pixels
+        if (edges) {
+            a = edges.left;
+            b = edges.right + 1;
+        } else {
+            const span = Math.max(1, Math.min(width, Math.round(advance)));
+            a = align === 'right' ? width - span : align === 'centre' ? Math.floor((width - span) / 2) : 0;
+            b = a + span;
+        }
+        const cols = width >> 3;
+        let left = Math.floor(a / 8);
+        let right = Math.floor((width - b) / 8);
+        if (left + right > cols - 1) right = Math.max(0, cols - 1 - left);
+        return [Math.max(0, left), Math.max(0, right)];
+    },
+
     /** The leftmost and rightmost columns with ink ({left, right}), or null for a blank glyph. */
     inkEdges(g, width, height) {
         let left = -1, right = -1;
