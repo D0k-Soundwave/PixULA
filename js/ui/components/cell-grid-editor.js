@@ -46,6 +46,10 @@ class CellGridEditor {
         this._getInk = opts.getInk || (() => ZX_PALETTE[0]);
         this._getPaper = opts.getPaper || (() => ZX_PALETTE[7]);
         this._onChange = opts.onChange || null;
+        // Optional hooks (Batch 10C2): paint over the finished picture (the Font Editor's shading), and learn that a stroke begins
+        // (its undo history). Hosts that pass neither are unaffected.
+        this._drawOverlay = opts.drawOverlay || null;
+        this._onStrokeStart = opts.onStrokeStart || null;
         // Indexed mode (Phase 13): values are palette indices
         this._indexed = !!opts.indexed;
         this._getColor = opts.getColor || null;
@@ -152,6 +156,8 @@ class CellGridEditor {
         for (let i = 0; i <= this._h; i++) {
             ctx.beginPath(); ctx.moveTo(0, i * sy); ctx.lineTo(this._canvasW, i * sy); ctx.stroke();
         }
+
+        if (this._drawOverlay) this._drawOverlay(ctx, sx, sy);
     }
 
     // ── Event wiring ───────────────────────────────────────────────────────
@@ -191,6 +197,7 @@ class CellGridEditor {
 
     _onPointerDown(e) {
         e.preventDefault();
+        if (this._onStrokeStart) this._onStrokeStart();
         this._isDrawing = true;
         const { x, y } = this._pixelCoord(e);
         if (this._tool === 'line') {
