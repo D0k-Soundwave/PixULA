@@ -24,7 +24,7 @@ const BitmapText = {
      */
     lineCol(text, index) {
         const t = String(text);
-        const i = Math.max(0, Math.min(index, t.length));
+        const i = Helpers.clamp(index, 0, t.length);
         const before = BitmapText.splitLines(t.slice(0, i));
         return { line: before.length - 1, col: before[before.length - 1].length };
     },
@@ -32,11 +32,11 @@ const BitmapText = {
     /** The buffer index of (line, col), the column clamped to the line's length. */
     indexOf(text, line, col) {
         const lines = BitmapText.splitLines(text);
-        const l = Math.max(0, Math.min(line, lines.length - 1));
+        const l = Helpers.clamp(line, 0, lines.length - 1);
         let idx = 0;
         const seps = String(text).match(/\r\n|\r|\n/g) || [];
         for (let i = 0; i < l; i++) idx += lines[i].length + seps[i].length;
-        return idx + Math.max(0, Math.min(col, lines[l].length));
+        return idx + Helpers.clamp(col, 0, lines[l].length);
     },
 
     /** Move the caret one line up (-1) or down (+1), keeping its column where the line is long enough. @returns {number} new index */
@@ -185,8 +185,8 @@ const BitmapText = {
         const adv = Math.max(1, o.W + o.sx);
         const pitch = Math.max(1, o.H + o.sy);
         if (!lay) return { x: 0, y: line * pitch, w: barW, h: o.H };
-        const l = lay.lines[Math.max(0, Math.min(line, lay.lines.length - 1))];
-        const c = Math.max(0, Math.min(col, l.before.length - 1));
+        const l = lay.lines[Helpers.clamp(line, 0, lay.lines.length - 1)];
+        const c = Helpers.clamp(col, 0, l.before.length - 1);
         return { x: l.x0 + l.before[c] * adv, y: l.y0, w: barW, h: o.H };
     }
 };
