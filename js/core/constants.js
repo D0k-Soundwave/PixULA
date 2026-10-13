@@ -1241,6 +1241,14 @@ const EVENTS = Object.freeze({
     CANVAS_DIRTY: 'canvas:dirty',
     CANVAS_ZOOM: 'canvas:zoom',
     STAMP_OPTIONS_CHANGED: 'stamp:optionsChanged',
+    // Type on canvas (Batch 10B): the Text tool and the hidden text field that holds the keyboard talk through these.
+    TEXT_ENTRY_OPEN: 'textEntry:open',         // tool -> field: { text, caret, x, y }  focus it
+    TEXT_ENTRY_CLOSE: 'textEntry:close',       // tool -> field: let go of the keyboard
+    TEXT_ENTRY_CHANGED: 'textEntry:changed',   // field -> tool: { text, caret }
+    TEXT_ENTRY_COMMIT: 'textEntry:commit',     // field / button -> tool: draw it
+    TEXT_ENTRY_CANCEL: 'textEntry:cancel',     // field / button -> tool: throw it away
+    TEXT_ENTRY_NEWLINE: 'textEntry:newline',   // button -> tool: a line break at the caret
+    TEXT_ENTRY_CARET: 'textEntry:caret',       // tool -> field: { x, y } where the caret is on the picture (for the IME window)
     CANVAS_SCROLL: 'canvas:scroll',
     CANVAS_SCALE_CHANGED: 'canvas:scaleChanged',
     GRID_SNAP_CHANGED: 'grid:snapChanged',

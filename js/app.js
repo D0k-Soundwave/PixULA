@@ -99,6 +99,7 @@ const BOOT_MANIFEST = [
     ['EyedropperTool',   'js/tools/eyedropper-tool.js'],
     ['SelectionTool',    'js/tools/selection-tool.js'],
     ['GradientTool',     'js/tools/gradient-tool.js'],
+    ['TextTyping',       'js/tools/text-typing.js'],
     ['TextTool',         'js/tools/text-tool.js'],
     ['MoveTool',         'js/tools/move-tool.js'],
     ['ZoomTool',         'js/tools/zoom-tool.js'],

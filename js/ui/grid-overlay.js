@@ -621,6 +621,28 @@ class GridOverlayClass {
         }
     }
 
+    /**
+     * Draw the text caret (Type on canvas) on the cursor layer: the given picture pixels, in the overlay outline colour with a
+     * dark edge, so it can be seen on any colour. An empty list just takes it down (the blink's off half).
+     * @param {Array<{x:number,y:number}>} pixels
+     */
+    drawCaret(pixels) {
+        if (!this._initialized || !this.cursorCtx || !this.cursorCanvas) return;
+        const ctx = this.cursorCtx;
+        ctx.clearRect(0, 0, this.cursorCanvas.width, this.cursorCanvas.height);
+        if (!pixels || !pixels.length) return;
+        ctx.fillStyle = '#000';
+        for (const p of pixels) {
+            if (p.x < 0 || p.y < 0 || p.x >= ZX_SPECTRUM.WIDTH || p.y >= ZX_SPECTRUM.HEIGHT) continue;
+            ctx.fillRect(p.x - 0.25, p.y - 0.25, 1.5, 1.5);
+        }
+        ctx.fillStyle = '#fff';
+        for (const p of pixels) {
+            if (p.x < 0 || p.y < 0 || p.x >= ZX_SPECTRUM.WIDTH || p.y >= ZX_SPECTRUM.HEIGHT) continue;
+            ctx.fillRect(p.x, p.y, 1, 1);
+        }
+    }
+
     /** Clear the cursor-layer canvas (tool chrome: handles). */
     clearCursorOverlay() {
         if (this.cursorCtx && this.cursorCanvas) {
