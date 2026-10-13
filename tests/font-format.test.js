@@ -5,6 +5,7 @@ const { installStubs, loadModule, check, summary } = require('./helpers/zx-stubs
 // byte math under test (parseFont/exportFont) is pure. DevFormat needs
 // SCRFormat only for screen exports, not for generateFont.
 installStubs({ FontService: {}, SCRFormat: {} });
+loadModule('js/utils/glyph-bits.js');
 loadModule('js/io/font-format.js');
 loadModule('js/io/dev-format.js');
 
@@ -89,8 +90,10 @@ check('ch4 import masks stray low-nibble bits', (() => {
   const r = FontFormat.parseFont(bytes, 'ch4');
   return r.success && r.font.glyphs.every(g => g.every(b => b === 0xF0));
 })());
-check('chx import takes the top-left cell of a multi-cell coloured char', (() => {
-  // One 2×2 coloured char at code 65: blocks of 9 bytes (8 bitmap + attr)
+// Batch 10C: a multi-cell character is kept whole (it used to be cut down to its top-left cell). Deliberate change,
+// recorded in .claude/parity/LOG.md; the attribute bytes are still ignored.
+check('chx import keeps a multi-cell coloured char whole and ignores attributes', (() => {
+  // One 2x2 coloured char at code 65: blocks of 9 bytes (8 bitmap + attr)
   const record = [0, 2, 2];
   for (let cell = 0; cell < 4; cell++) {
     for (let y = 0; y < 8; y++) record.push(cell * 16 + y);
@@ -102,8 +105,9 @@ check('chx import takes the top-left cell of a multi-cell coloured char', (() =>
   bytes[6 + 65 * 2] = (5 + 512) >> 8;
   bytes.set(record, 5 + 512);
   const r = FontFormat.parseFont(bytes, 'chx');
-  return r.success && r.font.getGlyph === undefined &&
-    r.font.glyphs[65 - 32][0] === 0 && r.font.glyphs[65 - 32][7] === 7 &&
+  const g = r.success ? r.font.glyphs[65 - 32] : null;
+  return r.success && r.font.width === 16 && r.font.height === 16 && g.length === 32 &&
+    g[0] === 0 && g[1] === 16 && g[14] === 7 && g[15] === 23 && g[16] === 32 && g[17] === 48 &&
     r.font.firstCode === 32; // 65 is inside 32..127 -> ASCII coverage
 })());
 check('chx import with a code below 32 selects full coverage', (() => {

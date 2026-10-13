@@ -1667,6 +1667,8 @@ const hu = {
     'err.chxEmpty': 'A CHX fájl nem határoz meg karaktereket',
     'err.chxMissingHeader': 'Hiányzó CHX-fejléc',
     'err.chxBadVersion': 'Hibás CHX-verziószám',
+    'err.chxNoSpace': 'A CHX fájlnak kell egy Szóköz karakter (32-es kód), amely legalább egy oszlopot megtart',
+    'err.fontTooBig': 'Ez a betűtípus túl nagy egy .{ext} fájlhoz (azok 8 x 8-as karaktereket tartalmaznak). Mentsd .chx-ként.',
     'err.zxp.noIdent': 'Hiányzó ZXP-azonosító',
     'err.zxp.pixels': 'Érvénytelen pixeldefiníció',
     'err.zxp.pixelWidth': 'Pixelszélesség-hiba',

@@ -1668,6 +1668,8 @@ const es = {
     'err.chxEmpty': 'El archivo CHX no define ningún carácter',
     'err.chxMissingHeader': 'Falta la cabecera CHX',
     'err.chxBadVersion': 'Número de versión CHX incorrecto',
+    'err.chxNoSpace': 'Un archivo CHX necesita un carácter Espacio (código 32) que conserve al menos una columna',
+    'err.fontTooBig': 'Esta fuente es demasiado grande para un archivo .{ext} (guardan caracteres de 8 x 8). Guárdala como .chx.',
     'err.zxp.noIdent': 'Falta el identificador ZXP',
     'err.zxp.pixels': 'Definición de píxeles no válida',
     'err.zxp.pixelWidth': 'Error de ancho de píxeles',

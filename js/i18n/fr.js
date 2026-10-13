@@ -1667,6 +1667,8 @@ const fr = {
     'err.chxEmpty': 'Le fichier CHX ne définit aucun caractère',
     'err.chxMissingHeader': 'En-tête CHX manquant',
     'err.chxBadVersion': 'Numéro de version CHX incorrect',
+    'err.chxNoSpace': 'Un fichier CHX a besoin d\\\'un caractère Espace (code 32) qui garde au moins une colonne',
+    'err.fontTooBig': 'Cette police est trop grande pour un fichier .{ext} (ils contiennent des caractères de 8 x 8). Enregistrez-la en .chx.',
     'err.zxp.noIdent': 'Identifiant ZXP manquant',
     'err.zxp.pixels': 'Définition de pixels invalide',
     'err.zxp.pixelWidth': 'Erreur de largeur de pixels',

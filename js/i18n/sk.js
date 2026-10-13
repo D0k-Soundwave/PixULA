@@ -1667,6 +1667,8 @@ const sk = {
     'err.chxEmpty': 'Súbor CHX nedefinuje žiadne znaky',
     'err.chxMissingHeader': 'Chýba hlavička CHX',
     'err.chxBadVersion': 'Nesprávne číslo verzie CHX',
+    'err.chxNoSpace': 'Súbor CHX potrebuje znak Medzera (kód 32), ktorý si zachová aspoň jeden stĺpec',
+    'err.fontTooBig': 'Toto písmo je príliš veľké pre súbor .{ext} (tie obsahujú znaky 8 x 8). Uložte ho ako .chx.',
     'err.zxp.noIdent': 'Chýba identifikátor ZXP',
     'err.zxp.pixels': 'Neplatná definícia pixelov',
     'err.zxp.pixelWidth': 'Chyba šírky pixelov',

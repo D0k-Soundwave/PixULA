@@ -37,26 +37,46 @@
  *   so coverage round-trips.
  *
  * CHX — ZX-Editor SE "big font set" (1..256 chars, each 1..4 × 1..4
- *   cells of 8×8). Layout per RECOIL's DecodeChx, which matches every
- *   ZX-Paintbrush loader error string:
+ *   blocks of 8×8 pixels). Layout per RECOIL's DecodeChx, which matches every
+ *   ZX-Paintbrush loader error string, and the ZX-Blockeditor data block
+ *   pages ("Transparent character map" 8*width*height bytes, "Colour
+ *   character map" 9*width*height bytes):
  *     0..4    'C','H','X',0,0   (bytes 3..4 = version, must be 0 —
  *                                "Wrong CHX version number!")
  *     5..516  256 × u16le absolute file offset of each character's
  *             record, 0 = character not defined
  *     record  [transparent: 0|1][columns: 1..4][rows: 1..4] then
- *             rows×columns cell blocks row-major, each block 8 bitmap
- *             bytes (+1 ZX attribute byte when coloured, i.e.
+ *             rows×columns blocks, left to right then down, each block
+ *             8 bitmap bytes (+1 ZX attribute byte when coloured, i.e.
  *             transparent=0)
  *   A space (code 32) must be defined ("Missing Space character").
- *   Import takes each character's TOP-LEFT cell (our glyphs are one
- *   cell) and ignores attributes; coverage becomes the 96-char window
- *   when every defined code lies in 32..127, else full 256. Export
- *   writes every code of the coverage window as a 1×1 transparent char
- *   map (our fonts are 1-bit). ASSUMPTIONS: multi-cell characters are
- *   cropped to the top-left cell on import; glyph width (4/6/8) is not
- *   representable in CHX — 4/6-wide fonts export as 8-wide cells with
- *   blank right columns (ZX-Editor SE's proportional trick is per-8px
- *   shading, not sub-cell widths).
+ *
+ *   Every character has its OWN size. "Proportional" fonts are narrower
+ *   characters: the shader tool shades 8-pixel columns on the left and/or
+ *   right of a character and the saved character is that much narrower; a
+ *   character shaded all the way across is not written (ZX-Paintbrush help,
+ *   "Shader tool").
+ *
+ *   Import: the font is as large as the largest character (columns × rows).
+ *   A smaller character sits at the top-left and the rest is shaded on the
+ *   right (so it saves back the same size); codes the file does not define
+ *   come back fully shaded (so a sparse file stays sparse); attributes are
+ *   ignored. If the file has no Space, one is added as a blank, unshaded
+ *   column. Coverage becomes the 96-char window when every defined code
+ *   lies in 32..127, else full 256.
+ *
+ *   Export: every code of the coverage is written at its size minus its
+ *   shading, except fully shaded ones. Reading the file back gives the same
+ *   pixels, but a character shaded on the LEFT comes back shaded on the right
+ *   (the file stores no position), so the guarantee is export, import,
+ *   export = identical bytes.
+ *
+ *   UNVERIFIED against a file made by ZX-Paintbrush: only 1×1 files were ever
+ *   compared with the real program (owner, 2026-09-26). The block order, the
+ *   columns-then-rows header order and the attribute byte after each block
+ *   come from RECOIL and the datablocks manual; the owner declined to make
+ *   sample files on 2026-10-13 (LOG, Batch 10C), so open a PixULA big CHX in
+ *   ZX-Paintbrush before relying on it.
  *
  * The pure byte math is on this handler (parseFont/exportFont) so Node
  * tests can drive it without FontService; parse()/export() are the
@@ -154,6 +174,10 @@ class FontFormatClass {
    * @returns {Uint8Array}
    */
   exportFont(doc, ext) {
+    if (ext !== 'chx' && ((doc.height !== undefined && doc.height > 8) || doc.width > 8)) {
+      throw new Error(Helpers.localizedMessage('err.fontTooBig',
+        'This font is too big for a .{ext} file (they hold 8 x 8 characters). Save it as .chx.', { ext }));
+    }
     switch (ext) {
       case 'ch4': return this._exportRaw(doc, 4, 256);
       case 'ch6': return this._exportRaw(doc, 6, 256);
@@ -207,9 +231,8 @@ class FontFormatClass {
    * @private
    */
   _parseChx(bytes) {
-    const cellH = SCREEN_MODES.STANDARD_ULA.attrCellH; // glyphs are 8-row, mode-independent
     const tableEnd = 5 + 256 * 2;
-    if (bytes.length < tableEnd + 1 + 2 + cellH) {
+    if (bytes.length < tableEnd + 1 + 2 + 8) {
       return { success: false, error: Helpers.localizedMessage('err.chxNoHeader',
           'Missing CHX header (file too short)') };
     }
@@ -221,7 +244,7 @@ class FontFormatClass {
       }
     }
 
-    const defined = new Map(); // code -> glyph
+    const defined = new Map(); // code -> { cols, rows, bitmap }
     for (let code = 0; code < 256; code++) {
       const offset = bytes[5 + code * 2] | (bytes[6 + code * 2] << 8);
       if (offset === 0) continue;
@@ -240,49 +263,95 @@ class FontFormatClass {
         return { success: false, error: Helpers.localizedMessage('err.chxBadSize',
             'Illegal character size (code {code})', { code }) };
       }
-      const blockSize = cellH + (transparent ? 0 : 1);
+      const blockSize = 8 + (transparent ? 0 : 1);
       if (offset + 3 + rows * columns * blockSize > bytes.length) {
         return { success: false, error: Helpers.localizedMessage('err.chxEnd',
             'Unexpected end of file (code {code})', { code }) };
       }
-      // Top-left cell only — our glyphs are one attribute cell
-      const g = new Uint8Array(cellH);
-      g.set(bytes.subarray(offset + 3, offset + 3 + cellH));
-      defined.set(code, g);
+      // Whole character: the 8 bitmap bytes of each block (the attribute byte, if any, is dropped)
+      const blocks = new Uint8Array(columns * rows * 8);
+      for (let b = 0; b < columns * rows; b++) {
+        blocks.set(bytes.subarray(offset + 3 + b * blockSize, offset + 3 + b * blockSize + 8), b * 8);
+      }
+      defined.set(code, { cols: columns, rows, bitmap: GlyphBits.fromBlocks(blocks, columns, rows) });
     }
     if (defined.size === 0) {
       return { success: false, error: Helpers.localizedMessage('err.chxEmpty',
           'CHX file defines no characters') };
     }
 
+    let maxCols = 1, maxRows = 1;
+    for (const c of defined.values()) {
+      if (c.cols > maxCols) maxCols = c.cols;
+      if (c.rows > maxRows) maxRows = c.rows;
+    }
+    const width = maxCols * 8, height = maxRows * 8;
+
     const codes = [...defined.keys()];
     const ascii = codes.every(c => c >= 32 && c < 128);
     const firstCode = ascii ? 32 : 0;
     const count = ascii ? 96 : 256;
     const glyphs = [];
+    const shade = [];
     for (let i = 0; i < count; i++) {
-      glyphs.push(defined.get(firstCode + i) || new Uint8Array(cellH));
+      const code = firstCode + i;
+      const c = defined.get(code);
+      if (c) {
+        glyphs.push(GlyphBits.resize(c.bitmap, c.cols * 8, c.rows * 8, width, height));
+        shade.push([0, maxCols - c.cols]);
+      } else {
+        glyphs.push(GlyphBits.create(width, height));
+        // ZX-Paintbrush needs a Space: add a blank one; everything else the file left out stays left out
+        shade.push([0, code === 32 ? 0 : maxCols]);
+      }
     }
-    return { success: true, font: { name: '', width: 8, firstCode, glyphs } };
+    return { success: true, font: { name: '', width, height, firstCode, glyphs, shade } };
   }
 
   /** @private */
   _exportChx(doc) {
-    const cellH = SCREEN_MODES.STANDARD_ULA.attrCellH; // glyphs are 8-row, mode-independent
+    const height = doc.height === undefined ? 8 : doc.height;
+    const cols = (doc.width + 7) >> 3;
+    const rows = height >> 3;
     const count = doc.glyphs.length;
-    const recordSize = 3 + cellH; // 1×1 transparent char map
-    const out = new Uint8Array(5 + 256 * 2 + count * recordSize);
+    const noSpace = () => new Error(Helpers.localizedMessage('err.chxNoSpace',
+        'A CHX file needs a Space character (code 32) that keeps at least one column'));
+    const spaceIndex = 32 - doc.firstCode;
+    if (spaceIndex < 0 || spaceIndex >= count) throw noSpace();
+
+    // Which columns of each glyph are written
+    const plan = [];
+    let size = 5 + 256 * 2;
+    for (let i = 0; i < count; i++) {
+      const sh = doc.shade ? doc.shade[i] : null;
+      const left = sh ? sh[0] : 0;
+      const right = sh ? sh[1] : 0;
+      const stored = cols - left - right;
+      plan.push({ left, stored });
+      if (stored > 0) size += 3 + stored * rows * 8;
+    }
+    if (plan[spaceIndex].stored <= 0) throw noSpace();
+
+    const out = new Uint8Array(size);
     out.set(this.CHX_MAGIC, 0);
     let offset = 5 + 256 * 2;
     for (let i = 0; i < count; i++) {
+      const { left, stored } = plan[i];
+      if (stored <= 0) continue;
       const code = doc.firstCode + i;
       out[5 + code * 2] = offset & 0xFF;
       out[6 + code * 2] = (offset >> 8) & 0xFF;
-      out[offset] = 1;     // transparent (no attribute byte)
-      out[offset + 1] = 1; // columns
-      out[offset + 2] = 1; // rows
-      out.set(doc.glyphs[i].subarray(0, cellH), offset + 3);
-      offset += recordSize;
+      out[offset] = 1;       // transparent (no attribute byte)
+      out[offset + 1] = stored;
+      out[offset + 2] = rows;
+      let o = offset + 3;
+      const g = doc.glyphs[i];
+      for (let by = 0; by < rows; by++) {
+        for (let bx = left; bx < left + stored; bx++) {
+          for (let r = 0; r < 8; r++) out[o++] = g[(by * 8 + r) * cols + bx];
+        }
+      }
+      offset = o;
     }
     return out;
   }

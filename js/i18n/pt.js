@@ -1667,6 +1667,8 @@ const pt = {
     'err.chxEmpty': 'O ficheiro CHX não define nenhum carácter',
     'err.chxMissingHeader': 'Cabeçalho CHX em falta',
     'err.chxBadVersion': 'Número de versão CHX errado',
+    'err.chxNoSpace': 'Um ficheiro CHX precisa de um carácter Espaço (código 32) que mantenha pelo menos uma coluna',
+    'err.fontTooBig': 'Esta fonte é demasiado grande para um ficheiro .{ext} (têm caracteres de 8 x 8). Guarde-a como .chx.',
     'err.zxp.noIdent': 'Identificador ZXP em falta',
     'err.zxp.pixels': 'Definição de píxeis inválida',
     'err.zxp.pixelWidth': 'Erro de largura de píxeis',
