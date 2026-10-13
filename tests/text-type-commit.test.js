@@ -275,7 +275,7 @@ for (const mode of MODES) {
   tool._createPreviewStamp(40, 40);
   check('(a text stamp of the tool is waiting)', tool._ownStampFloating());
   tool.setTypeOnCanvas(true);
-  check('turning Type on canvas on takes the tool's own waiting stamp away', !SelectionService.isFloating());
+  check("turning Type on canvas on takes the tool's own waiting stamp away", !SelectionService.isFloating());
   tool.setTypeOnCanvas(false);
 }
 
