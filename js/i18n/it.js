@@ -1667,6 +1667,8 @@ const it = {
     'err.chxEmpty': 'Il file CHX non definisce alcun carattere',
     'err.chxMissingHeader': 'Intestazione CHX mancante',
     'err.chxBadVersion': 'Numero di versione CHX errato',
+    'err.chxNoSpace': 'Un file CHX richiede un carattere Spazio (codice 32) che mantenga almeno una colonna',
+    'err.fontTooBig': 'Questo font è troppo grande per un file .{ext} (contengono caratteri 8 x 8). Salvalo come .chx.',
     'err.zxp.noIdent': 'Identificatore ZXP mancante',
     'err.zxp.pixels': 'Definizione dei pixel non valida',
     'err.zxp.pixelWidth': 'Errore nella larghezza dei pixel',

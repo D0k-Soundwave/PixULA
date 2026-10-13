@@ -474,6 +474,11 @@ class DevFormatClass {
    */
   generateFont(ext, name, doc) {
     const cellH = SCREEN_MODES.STANDARD_ULA.attrCellH; // ula-cell tiles / 8-row glyphs are mode-independent
+    if ((doc.height !== undefined && doc.height > cellH) || doc.width > 8) {
+      // big (CHX) fonts do not fit these 8-byte-per-glyph listings
+      throw new Error(Helpers.localizedMessage('err.fontTooBig',
+        'This font is too big for a .{ext} file (they hold 8 x 8 characters). Save it as .chx.', { ext }));
+    }
     const label = this._identifier(name);
     const bytes = new Uint8Array(doc.glyphs.length * cellH);
     doc.glyphs.forEach((g, i) => bytes.set(g.subarray(0, cellH), i * cellH));

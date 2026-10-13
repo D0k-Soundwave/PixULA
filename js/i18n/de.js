@@ -1667,6 +1667,8 @@ const de = {
     'err.chxEmpty': 'Die CHX-Datei definiert keine Zeichen',
     'err.chxMissingHeader': 'CHX-Header fehlt',
     'err.chxBadVersion': 'Falsche CHX-Versionsnummer',
+    'err.chxNoSpace': 'Eine CHX-Datei braucht ein Leerzeichen (Code 32), das mindestens eine Spalte behält',
+    'err.fontTooBig': 'Diese Schrift ist zu groß für eine .{ext}-Datei (sie enthalten 8 x 8 Zeichen). Speichern Sie sie als .chx.',
     'err.zxp.noIdent': 'ZXP-Kennung fehlt',
     'err.zxp.pixels': 'Ungültige Pixeldefinition(en)',
     'err.zxp.pixelWidth': 'Fehler in der Pixelbreite',

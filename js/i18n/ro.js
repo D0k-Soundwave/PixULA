@@ -1667,6 +1667,8 @@ const ro = {
     'err.chxEmpty': 'Fișierul CHX nu definește niciun caracter',
     'err.chxMissingHeader': 'Lipsește antetul CHX',
     'err.chxBadVersion': 'Număr de versiune CHX greșit',
+    'err.chxNoSpace': 'Un fișier CHX are nevoie de un caracter Spațiu (cod 32) care păstrează cel puțin o coloană',
+    'err.fontTooBig': 'Acest font este prea mare pentru un fișier .{ext} (acestea conțin caractere de 8 x 8). Salvează-l ca .chx.',
     'err.zxp.noIdent': 'Lipsește identificatorul ZXP',
     'err.zxp.pixels': 'Definiție de pixeli invalidă',
     'err.zxp.pixelWidth': 'Eroare de lățime a pixelilor',

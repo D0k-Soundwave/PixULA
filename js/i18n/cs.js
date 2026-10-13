@@ -1667,6 +1667,8 @@ const cs = {
     'err.chxEmpty': 'Soubor CHX nedefinuje žádné znaky',
     'err.chxMissingHeader': 'Chybí hlavička CHX',
     'err.chxBadVersion': 'Chybné číslo verze CHX',
+    'err.chxNoSpace': 'Soubor CHX potřebuje znak Mezera (kód 32), který si zachová alespoň jeden sloupec',
+    'err.fontTooBig': 'Toto písmo je příliš velké pro soubor .{ext} (ty obsahují znaky 8 x 8). Uložte ho jako .chx.',
     'err.zxp.noIdent': 'Chybí identifikátor ZXP',
     'err.zxp.pixels': 'Neplatná definice pixelů',
     'err.zxp.pixelWidth': 'Chyba šířky pixelů',

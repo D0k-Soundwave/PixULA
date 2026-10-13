@@ -1667,6 +1667,8 @@ const tr = {
     'err.chxEmpty': 'CHX dosyası hiç karakter tanımlamıyor',
     'err.chxMissingHeader': 'CHX başlığı eksik',
     'err.chxBadVersion': 'Yanlış CHX sürüm numarası',
+    'err.chxNoSpace': 'Bir CHX dosyası, en az bir sütununu koruyan bir Boşluk karakterine (kod 32) ihtiyaç duyar',
+    'err.fontTooBig': 'Bu yazı tipi bir .{ext} dosyası için çok büyük (onlar 8 x 8 karakter taşır). .chx olarak kaydedin.',
     'err.zxp.noIdent': 'ZXP tanımlayıcısı eksik',
     'err.zxp.pixels': 'Geçersiz piksel tanımı',
     'err.zxp.pixelWidth': 'Piksel genişliği hatası',

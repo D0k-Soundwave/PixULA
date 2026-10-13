@@ -1667,6 +1667,8 @@ const pl = {
     'err.chxEmpty': 'Plik CHX nie definiuje żadnych znaków',
     'err.chxMissingHeader': 'Brak nagłówka CHX',
     'err.chxBadVersion': 'Nieprawidłowy numer wersji CHX',
+    'err.chxNoSpace': 'Plik CHX potrzebuje znaku Spacja (kod 32), który zachowuje co najmniej jedną kolumnę',
+    'err.fontTooBig': 'Ta czcionka jest za duża na plik .{ext} (zawierają znaki 8 x 8). Zapisz ją jako .chx.',
     'err.zxp.noIdent': 'Brak identyfikatora ZXP',
     'err.zxp.pixels': 'Nieprawidłowa definicja pikseli',
     'err.zxp.pixelWidth': 'Błąd szerokości pikseli',

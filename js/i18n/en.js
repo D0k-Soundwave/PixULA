@@ -1690,6 +1690,8 @@ const en = {
     'err.chxEmpty': 'CHX file defines no characters',
     'err.chxMissingHeader': 'Missing CHX header',
     'err.chxBadVersion': 'Wrong CHX version number',
+    'err.chxNoSpace': 'A CHX file needs a Space character (code 32) that keeps at least one column',
+    'err.fontTooBig': 'This font is too big for a .{ext} file (they hold 8 x 8 characters). Save it as .chx.',
     'err.zxp.noIdent': 'Missing ZXP identifier',
     'err.zxp.pixels': 'Invalid pixel definition(s)',
     'err.zxp.pixelWidth': 'Pixel width error',
