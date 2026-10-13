@@ -2943,6 +2943,13 @@ class LayerManagerClass {
     };
     // Written only when set, so a stamp without settings saves as it always did.
     if (s.attrGrid) out.attrGrid = { ...s.attrGrid };
+    // The dots a text stamp CLEARS (its opposite-dot shade / contour). Only when there is one, and only if it has the
+    // mask's shape, so every other stamp saves byte for byte as before.
+    if (Array.isArray(s.clearMask) && s.clearMask.length === s.mask.length &&
+        s.clearMask.every((row, i) => row && row.length === s.mask[i].length) &&
+        s.clearMask.some(row => Array.from(row).some(Boolean))) {
+      out.clearMask = s.clearMask.map(row => Array.from(row, Boolean));
+    }
     if (s.opts) {
       out.opts = { ...s.opts };
       if (s.opts.showThrough) out.opts.showThrough = { ...s.opts.showThrough };
@@ -3006,7 +3013,8 @@ class LayerManagerClass {
       indices: rowsOk(s.indices) ? s.indices : null,
       attrs: Array.isArray(s.attrs) ? s.attrs : null,
       attrGrid: this._readStampAttrGrid(s.attrGrid, s.attrs),
-      opts: this._readStampOpts(s.opts)
+      opts: this._readStampOpts(s.opts),
+      clearMask: rowsOk(s.clearMask) ? s.clearMask : null
     });
   }
 

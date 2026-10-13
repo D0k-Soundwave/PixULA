@@ -48,6 +48,12 @@ class TextToolClass extends ToolBase {
     { id: 'up-left',    i18n: 'opt.shadowDir.upLeft' }
   ];
 
+  /** How a shadow or contour is drawn: in the letters' own dot state (the original), or the opposite (ZX Paintbrush's). */
+  static EFFECT_DOTS = [
+    { id: 'same',     i18n: 'opt.effectDots.same' },
+    { id: 'opposite', i18n: 'opt.effectDots.opposite' }
+  ];
+
   /** Which point of the text block the click is: nine, Centre being where text has always landed. */
   static ANCHORS = [
     { id: 'top-left',     i18n: 'opt.anchor.topLeft' },
@@ -130,7 +136,19 @@ class TextToolClass extends ToolBase {
     { type: 'select', key: 'textShadowDir', i18n: 'opt.shadowDir', value: 'down-right',
       showIf: { key: 'textShadow', equals: true },
       options: TextToolClass.SHADOW_DIRS.map(d => ({ value: d.id, i18n: d.i18n })) },
+    // ZX Paintbrush draws shading and contour in the OPPOSITE dot state to the letters (a white shade behind black text).
+    // Same dots is PixULA's original behaviour. Each effect has its own switch.
+    { type: 'select', key: 'textShadowDots', i18n: 'opt.shadowDots', value: 'same',
+      showIf: { key: 'textShadow', equals: true }, options: TextToolClass.EFFECT_DOTS.map(d => ({ value: d.id, i18n: d.i18n })) },
     { type: 'check', key: 'textOutline', i18n: 'opt.outline', value: false },
+    { type: 'select', key: 'textOutlineDots', i18n: 'opt.outlineDots', value: 'same',
+      showIf: { key: 'textOutline', equals: true }, options: TextToolClass.EFFECT_DOTS.map(d => ({ value: d.id, i18n: d.i18n })) },
+    // The opposite dots are written like Clear background: the opposite of the draw mode in force, nothing in the modes
+    // that have no opposite (XOR, Ink only, Paper only) - say so there instead of silently drawing nothing.
+    { type: 'hint', i18n: 'transform.clearDots.noEffectHint',
+      showIf: { all: [ { any: [ { all: [ { key: 'textShadow', equals: true }, { key: 'textShadowDots', equals: 'opposite' } ] },
+                                { all: [ { key: 'textOutline', equals: true }, { key: 'textOutlineDots', equals: 'opposite' } ] } ] },
+                       { clearDotsNoEffect: true } ] } },
     // Clear background = the stamp's Clear dots (Transform panel): the box's clear dots are written as well as the
     // letters, so the text sits on a cleared patch. Inverse gives reset-dot text in the same way.
     { type: 'select', key: 'textBackground', i18n: 'opt.textBackground', value: 'transparent',
@@ -156,6 +174,8 @@ class TextToolClass extends ToolBase {
     this._textMirrorH     = false;  // mirror left-right (MaskOps.flipH, exact)
     this._textMirrorV     = false;  // mirror top-bottom (MaskOps.flipV, exact)
     this._textShadow      = false;  // drop shadow (MaskOps offset-OR)
+    this._textShadowDots  = 'same';         // 'same' | 'opposite' (EFFECT_DOTS)
+    this._textOutlineDots = 'same';
     this._textShadowDir   = 'down-right';   // which way it falls (TextToolClass.SHADOW_DIRS)
     this._textAnchor      = 'center';       // which point of the block the click is (ANCHORS)
     this._textOutline     = false;  // hollow contour (MaskOps dilate-minus-glyph)
@@ -247,6 +267,18 @@ class TextToolClass extends ToolBase {
   getTextShadow()     { return this._textShadow; }
   setTextShadow(v)    { this._textShadow = !!v;  this._disengaged = false; this._updatePreviewIfActive(); }
 
+  getTextShadowDots()  { return this._textShadowDots; }
+  setTextShadowDots(v) {
+    if (!TextToolClass.EFFECT_DOTS.some(d => d.id === v)) return;
+    this._textShadowDots = v;  this._disengaged = false;  this._updatePreviewIfActive();
+  }
+
+  getTextOutlineDots()  { return this._textOutlineDots; }
+  setTextOutlineDots(v) {
+    if (!TextToolClass.EFFECT_DOTS.some(d => d.id === v)) return;
+    this._textOutlineDots = v;  this._disengaged = false;  this._updatePreviewIfActive();
+  }
+
   getTextShadowDir()  { return this._textShadowDir; }
   setTextShadowDir(v) {
     if (!TextToolClass.SHADOW_DIRS.some(d => d.id === v)) return;
@@ -301,6 +333,8 @@ class TextToolClass extends ToolBase {
       mirrorV:   this._textMirrorV,
       shadow:    this._textShadow,
       shadowDir: this._textShadowDir,
+      shadowDots: this._textShadowDots,
+      outlineDots: this._textOutlineDots,
       // Where the click sits in the finished block: SelectionService keeps it when the stamp is re-rendered or moved.
       anchor:    this._textAnchor,
       outline:   this._textOutline
@@ -433,9 +467,8 @@ class TextToolClass extends ToolBase {
 
     // Direction + shadow/contour as pure mask post-processing, BEFORE the
     // stamp is created — the floating preview is exactly the committed result.
-    const pixels = window.MaskOps
-      ? MaskOps.process(result.pixels, fontInfo)
-      : result.pixels;
+    const layers = window.MaskOps ? MaskOps.processLayers(result.pixels, fontInfo) : { pixels: result.pixels, clearMask: null };
+    const pixels = layers.pixels;
     const width  = pixels[0] ? pixels[0].length : result.width;
     const height = pixels.length;
 
@@ -448,7 +481,7 @@ class TextToolClass extends ToolBase {
     if (window.SelectionService) {
       SelectionService.startFloatingPasteFromMask(
         pixels, width, height,
-        px, py, 'Text', fontInfo, 'none', this._stampOpts(), { w: result.width, h: result.height }
+        px, py, 'Text', fontInfo, 'none', this._stampOpts(), { w: result.width, h: result.height }, layers.clearMask
       );
       this._textStampActive = true;
     }

@@ -115,7 +115,9 @@ class SelectionServiceClass {
       _srcIndices: fp._srcIndices ? fp._srcIndices.map(r => [...r]) : null,
       attrs:       fp.attrs ? [...fp.attrs] : null,
       attrGrid:    fp.attrGrid ? { ...fp.attrGrid } : null,
-      opts:        this._copyStampOpts(fp.opts)
+      opts:        this._copyStampOpts(fp.opts),
+      clearMask:   fp.clearMask ? fp.clearMask.map(r => [...r]) : null,
+      _srcClearMask: fp._srcClearMask ? fp._srcClearMask.map(r => [...r]) : null
     };
   }
 
@@ -174,6 +176,8 @@ class SelectionServiceClass {
       attrGrid:    state.attrGrid ? { ...state.attrGrid } : null,
       opts:        this._copyStampOpts(state.opts)
     };
+    if (state.clearMask) this.floatingPaste.clearMask = state.clearMask.map(r => [...r]);
+    if (state._srcClearMask) this.floatingPaste._srcClearMask = state._srcClearMask.map(r => [...r]);
 
     // Rebuild the derived preview from the mask. restoreAllLayersState may have
     // recreated the stamp layer with stale preview cells; clear them and redraw
@@ -658,12 +662,12 @@ class SelectionServiceClass {
    *   { text, fontFamily, fontSize, bold, italic }
    * @param {string} [warpEffect] - Initial warp effect name (or 'none')
    */
-  startFloatingPasteFromMask(pixels, width, height, x = 0, y = 0, label = 'Place', fontInfo = null, warpEffect = 'none', opts = null, srcSize = null) {
-    this._createFloatingPaste(pixels, width, height, x, y, label, fontInfo, warpEffect, opts, srcSize);
+  startFloatingPasteFromMask(pixels, width, height, x = 0, y = 0, label = 'Place', fontInfo = null, warpEffect = 'none', opts = null, srcSize = null, clearMask = null) {
+    this._createFloatingPaste(pixels, width, height, x, y, label, fontInfo, warpEffect, opts, srcSize, clearMask);
   }
 
   /** @private */
-  _createFloatingPaste(pixels, width, height, x, y, label, fontInfo = null, warpEffect = 'none', opts = null, srcSize = null) {
+  _createFloatingPaste(pixels, width, height, x, y, label, fontInfo = null, warpEffect = 'none', opts = null, srcSize = null, clearMask = null) {
     if (this.floatingPaste) this.endFloatingPaste();
 
     UndoRedo.beginAction(label);
@@ -717,6 +721,11 @@ class SelectionServiceClass {
     // default stamps, saved stamps and project bytes stay exactly as they were.
     const startOpts = LayerManager._readStampOpts(opts);
     if (startOpts) this.floatingPaste.opts = startOpts;
+    // The dots this stamp CLEARS (a text stamp's opposite-dot shade / contour): absent unless there are some.
+    if (clearMask && clearMask.some(row => row.some(Boolean))) {
+      this.floatingPaste.clearMask = clearMask.map(r => [...r]);
+      this.floatingPaste._srcClearMask = clearMask.map(r => [...r]);
+    }
 
     this._drawFloatingLayer();
     LayerManager.flushPendingCompose();
@@ -950,6 +959,7 @@ class SelectionServiceClass {
     const wantsDirection = !!(fInfo && fInfo.direction && !rotationApplied);
     const wantsWarp = !!(fp._warpEffect && fp._warpEffect !== 'none');
     const wantsSpin = fp._rotation !== 0 && !rotationApplied;
+    let outClear = null;       // the stamp's clear dots after this pass (null: none)
 
     if (pendingScale || srcCov || wantsEffects || wantsDirection || wantsWarp || wantsSpin) {
       // Time the first pass of a gesture. One overrun is enough to decide -
@@ -960,6 +970,9 @@ class SelectionServiceClass {
       const ss = this._coverageSS();
 
       let cov;
+      // The coverage of the dots this stamp CLEARS (a text stamp's opposite-dot shade / contour), carried through the same
+      // chain as the dots so the two stay registered; null for every stamp that has none.
+      let ccov = null;
       let spinDone = false;
       if (pendingScale) {
         // COMPOSE where nothing sits between the scale and the rotation. The
@@ -974,19 +987,31 @@ class SelectionServiceClass {
           ? CoverageOps.boxFor(pendingScale.w, pendingScale.h, opts)
           : { w: srcW, h: srcH };
         cov = CoverageOps.transform(CoverageOps.fromMask(pendingScale.mask), opts, box, ss);
+        if (!fInfo && fp._srcClearMask && fp._srcClearMask.length === pendingScale.h) {
+          ccov = CoverageOps.transform(CoverageOps.fromMask(fp._srcClearMask), opts, box, ss);
+        }
         spinDone = compose;
       } else {
         cov = srcCov || CoverageOps.fromMask(srcPixels);
       }
-      if (wantsEffects) cov = CoverageOps.process(cov, fInfo);
-      if (wantsDirection) {
-        cov = CoverageOps.transform(cov, { degrees: fInfo.direction },
-          CoverageOps.boxFor(cov.w, cov.h, { degrees: fInfo.direction }), ss);
+      if (wantsEffects) {
+        const layers = CoverageOps.processLayers(cov, fInfo);
+        cov = layers.set;
+        ccov = layers.clear;
       }
-      if (wantsWarp) cov = CoverageOps.warp(cov, fp._warpEffect, 0.5, ss);
+      if (wantsDirection) {
+        const box = CoverageOps.boxFor(cov.w, cov.h, { degrees: fInfo.direction });
+        if (ccov) ccov = CoverageOps.transform(ccov, { degrees: fInfo.direction }, box, ss);
+        cov = CoverageOps.transform(cov, { degrees: fInfo.direction }, box, ss);
+      }
+      if (wantsWarp) {
+        if (ccov) ccov = CoverageOps.warp(ccov, fp._warpEffect, 0.5, ss);
+        cov = CoverageOps.warp(cov, fp._warpEffect, 0.5, ss);
+      }
       if (wantsSpin && !spinDone) {
-        cov = CoverageOps.transform(cov, { degrees: fp._rotation },
-          CoverageOps.boxFor(cov.w, cov.h, { degrees: fp._rotation }), ss);
+        const box = CoverageOps.boxFor(cov.w, cov.h, { degrees: fp._rotation });
+        if (ccov) ccov = CoverageOps.transform(ccov, { degrees: fp._rotation }, box, ss);
+        cov = CoverageOps.transform(cov, { degrees: fp._rotation }, box, ss);
       }
 
       // toMaskToned, never plain toMask: a sparse dither field thresholds to
@@ -996,9 +1021,22 @@ class SelectionServiceClass {
       // At ss = 1 the map is binary, so there is no tone for the rule to put
       // back and the window scan would be pure cost - the cheap path takes the
       // plain threshold.
-      srcPixels = ss === 1 ? CoverageOps.toMask(cov) : CoverageOps.toMaskToned(cov);
+      const thr = (c) => (ss === 1 ? CoverageOps.toMask(c) : CoverageOps.toMaskToned(c));
+      srcPixels = thr(cov);
       srcW = cov.w;
       srcH = cov.h;
+      if (ccov) {
+        // Where the two meet (resampling can make them) the set dot wins
+        const cm = thr(ccov);
+        let any = false;
+        for (let r = 0; r < cm.length; r++) {
+          for (let c = 0; c < cm[r].length; c++) {
+            if (cm[r][c] && srcPixels[r][c]) cm[r][c] = false;
+            else if (cm[r][c]) any = true;
+          }
+        }
+        if (any) outClear = cm;
+      }
 
       if (timing && performance.now() - t0 > CoverageOps.LIVE_BUDGET_MS) {
         this._gestureCheap = true;
@@ -1023,6 +1061,7 @@ class SelectionServiceClass {
     const cx = fp.x + oa.x;
     const cy = fp.y + oa.y;
     fp.pixels = srcPixels;
+    if (outClear) fp.clearMask = outClear; else delete fp.clearMask;
     fp.width  = srcW;
     fp.height = srcH;
     const na = this.anchorOffset(fp, srcW, srcH);
@@ -1328,6 +1367,7 @@ class SelectionServiceClass {
         h: fp.height,
         colorSelection: fp.colorSelection
       };
+      if (fp.clearMask) fp.floatingLayer.stamp.clearMask = fp.clearMask.map(r => [...r]);
 
       // A disengaged stamp must not leave frozen pixels masking the canvas.
       // Clear the floating layer's cells and recompose so the region it was
@@ -1417,6 +1457,10 @@ class SelectionServiceClass {
       attrGrid: c.attrGrid ? { ...c.attrGrid } : null,
       opts: this._copyStampOpts(c.opts),
     };
+    if (c.clearMask) {
+      this.floatingPaste.clearMask = c.clearMask.map(r => [...r]);
+      this.floatingPaste._srcClearMask = c.clearMask.map(r => [...r]);
+    }
 
     // XOR preview depends on the live target-layer state, so re-render rather
     // than relying on the static committed stamp pixels.
@@ -1600,10 +1644,38 @@ class SelectionServiceClass {
         return;
     }
 
+    // A text stamp's clear dots (opposite-dot shade / contour) move with its dots through flips and quarter turns, grow
+    // with Outline (the ring is drawn around what was there, over the clear dots too), and are dropped by Invert (its
+    // set dots swap with everything else, so the shade has no meaning left).
+    let newClear = null;
+    const clr = fp.clearMask;
+    if (clr) {
+      const rev = (g) => g.map(row => [...row].reverse());
+      switch (type) {
+        case 'flipH': newClear = rev(clr); break;
+        case 'flipV': newClear = [...clr].reverse(); break;
+        case 'rotate180': newClear = [...clr].reverse().map(row => [...row].reverse()); break;
+        case 'rotate90CW':
+          newClear = Array.from({ length: newH }, (_, r) => Array.from({ length: newW }, (_, c) => clr[h - 1 - c][r])); break;
+        case 'rotate90CCW':
+          newClear = Array.from({ length: newH }, (_, r) => Array.from({ length: newW }, (_, c) => clr[c][w - 1 - r])); break;
+        case 'outline': {
+          const pad = outlineGap + outlineSize;
+          newClear = Array.from({ length: newH }, (_, ry) => Array.from({ length: newW }, (_, rx) => {
+            const oy = ry - pad, ox = rx - pad;
+            return oy >= 0 && oy < h && ox >= 0 && ox < w && clr[oy][ox] && !newPixels[ry][rx];
+          }));
+          break;
+        }
+        default: newClear = null;
+      }
+    }
+
     const oa = this.anchorOffset(fp, w, h);
     const cx = fp.x + oa.x;
     const cy = fp.y + oa.y;
     fp.pixels = newPixels;
+    if (newClear) fp.clearMask = newClear; else delete fp.clearMask;
     // Display grid only — _srcIndices stays the untransformed source, the
     // same contract fp.pixels/_srcPixels follow.
     fp.indices = newIndices;
@@ -1695,7 +1767,8 @@ class SelectionServiceClass {
               const stampX = px - x;
               if (stampX < 0 || stampX >= w) continue;
               if (!Validators.isValidPixelCoord(px, py)) continue;
-              visit(px, py, sel, row && row[stampX] ? setMode : clearMode);
+              const own = !overlap && data.clearMask && data.clearMask[stampY] && data.clearMask[stampY][stampX];
+              visit(px, py, sel, row && row[stampX] ? setMode : (own ? (inverse ? DRAW_MODE.NORMAL : DRAW_MODE.NORMAL_ERASE) : clearMode));
             }
           }
         }
@@ -1706,7 +1779,10 @@ class SelectionServiceClass {
     const color = ColorManager.getCurrentSelection();
     const mode = PixelDrawRoutine.resolveUserMode(true);
     const xorBox = !!stampLayer.xorMode;
-    const clearMode = overlap ? this._overlapClearMode(mode, xorBox) : null;
+    // The stamp's own clear dots (a text stamp's opposite-dot shade / contour) are written like Clear background, but
+    // only where the stamp says so: the opposite of the mode in force, and nothing in the modes with no opposite.
+    const cm = !overlap && data.clearMask && data.clearMask.length === h ? data.clearMask : null;
+    const clearMode = (overlap || cm) ? this._overlapClearMode(mode, xorBox) : null;
     for (let py = 0; py < h; py++) {
       const row = mask[py];
       if (!row && !clearMode) continue;
@@ -1725,7 +1801,7 @@ class SelectionServiceClass {
           } else {
             visit(cx, cy, color, mode);
           }
-        } else if (clearMode && Validators.isValidPixelCoord(cx, cy)) {
+        } else if (clearMode && (overlap || (cm[py] && cm[py][px])) && Validators.isValidPixelCoord(cx, cy)) {
           visit(cx, cy, color, clearMode);
         }
       }
@@ -1832,7 +1908,8 @@ class SelectionServiceClass {
   _forEachIndexedStampWrite(data, color, mode, visit) {
     const { mask, indices, x, y, w, h } = data;
     const overlap = this.stampOptions(data).clearDots === 'overlap';
-    const clearMode = overlap ? this._overlapClearMode(mode, false) : null;
+    const cm = !overlap && data.clearMask && data.clearMask.length === h ? data.clearMask : null;
+    const clearMode = (overlap || cm) ? this._overlapClearMode(mode, false) : null;
     for (let py = 0; py < h; py++) {
       const maskRow = mask ? mask[py] : null;
       const idxRow = indices ? indices[py] : null;
@@ -1845,7 +1922,7 @@ class SelectionServiceClass {
         else set = false;
         if (!Validators.isValidPixelCoord(cx, cy)) continue;
         if (set) visit(cx, cy, idx != null ? { ...color, index: idx } : color, mode);
-        else if (clearMode) visit(cx, cy, color, clearMode);
+        else if (clearMode && (overlap || (cm[py] && cm[py][px]))) visit(cx, cy, color, clearMode);
       }
     }
   }
@@ -2240,6 +2317,7 @@ class SelectionServiceClass {
     if (fp && fp.floatingLayer === layer) {
       return { mask: fp.pixels, indices: fp.indices || null, attrs: fp.attrs || null,
                attrGrid: fp.attrGrid || null, opts: fp.opts || null,
+               clearMask: fp.clearMask || null,
                x: fp.x, y: fp.y, w: fp.width, h: fp.height,
                colorSelection: fp.colorSelection };
     }
@@ -2430,7 +2508,7 @@ class SelectionServiceClass {
     // direct per-pixel preview below cannot show it. Walk the same write
     // plan the placement walks, simulate each cell on the layer the stamp
     // would land on, and show the composite - as the classic preview does.
-    if (this.stampOptions(this.floatingPaste).clearDots === 'overlap') {
+    if (this.stampOptions(this.floatingPaste).clearDots === 'overlap' || this.floatingPaste.clearMask) {
       this._drawFloatingLayerIndexedOverlap(mode);
       return;
     }
