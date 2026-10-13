@@ -152,7 +152,8 @@ test('exporting a big font as CH8 says why not and writes nothing', async ({ pag
     expect(msg).toContain('.chx');
 });
 
-test('a big font in the library is not offered by the Text tool', async ({ page }) => {
+// REWRITTEN on purpose in Batch 10C3 (it used to say the Text tool does NOT offer a big font; the owner asked for it to work).
+test('a big font in the library is offered by the Text tool with its size', async ({ page }) => {
     await boot(page);
     await openEditor(page);
     await newBig(page, { cols: 2, rows: 2 });
@@ -163,7 +164,9 @@ test('a big font in the library is not offered by the Text tool', async ({ page 
         const tool = ToolManager.getTool(TOOLS.TEXT);
         return tool._libraryFontOptions().map(o => o.value);
     });
-    expect(offered).not.toContain('zxfont:Giant');
+    expect(offered).toContain('zxfont:Giant');
+    const label = await page.evaluate(() => ToolManager.getTool(TOOLS.TEXT)._libraryFontOptions().find(o => o.value === 'zxfont:Giant').label);
+    expect(label).toBe('Giant (16x16)');
 });
 
 test('Load ROM Font brings back the classic editor', async ({ page }) => {

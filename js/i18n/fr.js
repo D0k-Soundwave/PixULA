@@ -443,6 +443,8 @@ const fr = {
     'text.typeHint': 'Cliquez sur l\'image et tapez. Entrée dessine le texte, Maj+Entrée commence une nouvelle ligne, Échap le jette. Cliquer ailleurs le dessine d\'abord.',
     'text.typeBitmapOnly': 'La saisie sur la toile demande une police bitmap (ZX ROM ou une police enregistrée).',
     'text.noGlyph': 'Cette police n\'a pas de {char}.',
+    'text.fontLabel': '{name} ({w}x{h})',
+    'text.fontLabelProportional': '{name} ({w}x{h}, proportionnelle)',
     'text.cannotDraw': 'Il n\'y a aucun calque de dessin déverrouillé où dessiner le texte.',
     'a11y.canvasText': 'Texte tapé sur l\'image',
     'text.entry.draw': 'Dessiner',

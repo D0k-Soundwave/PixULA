@@ -885,3 +885,19 @@ font-editor-big-font spec 'not offered by the Text tool'.
 OWNER: switching font height keeps the zoom; left-out characters are refused like missing ones; FIX the existing size-jump bug (two-line / vertical
 text at Size 16 lands at half size then jumps) and re-record the 10A pin on purpose. Defaults: dots under shading not drawn; Character width = a
 full-width letter; per-letter rounding; caret bar one source pixel wide.
+
+## Batch 10C3 done (2026-10-13)
+Built in the order Opus set: (0) text-bitmap-pin (text rendering of saved 4/6/8 wide fonts, recorded BEFORE any change); (1) BitmapText.span / bit /
+fontSource (span checked against FontFormat._chxPlan for every glyph: the Text tool draws exactly what the .chx holds); (2) per-letter advance in
+nativeLine / stretchLine / layout (xs slot starts) / caretRect (bar width max(1, round(W / max(8, w0)))) / slotFromX (equals Math.round for classic);
+(3) TextTool: _glyphSourceFor, glyph spans in _buildLineMask / _stackGlyphs, Size list in steps of the font height, keep-zoom on font change,
+_fontCellHeight; library list shows 'Name (WxH)' / 'Name (WxH, proportional)' (2 i18n keys x 13) and refreshes on a language change.
+SIZE-JUMP FIX (owner asked): the stamp scale is Size / the font's cell height, not Size / block height. tests/text-defaults-pin.test.js RE-RECORDED
+on purpose (old digest f6d5874e..., new 01e53e50...; the Size 8 cases alone are identical before and after, only Size 16 moved); the 8*k*lines
+workaround in tests/bitmap-text.test.js removed. font-editor-big-font spec 'not offered by the Text tool' REWRITTEN to 'offered with its size'.
+13 test files that load the Text tool now also load bitmap-text.js. Left-out characters are refused like missing ones (8x8 sparse CHX too).
+Tests: bitmap-text-big, text-big-font, text-bitmap-pin, text-type-commit extended (big proportional font, 7 modes x 5 variants, commit == stamp),
+Playwright text-big-font (4). Manual: Font Editor paragraph and the Type on canvas paragraph in 13 languages. Preview timing in docs/FIGURES.md.
+Defaults recorded: dots under shading are not drawn; Character width = a full-width letter; per-letter rounding; caret bar one source pixel wide.
+Batch 10 is complete. Next: group C end-of-build Opus review, then group D.
+

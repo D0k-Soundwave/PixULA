@@ -443,6 +443,8 @@ const pt = {
     'text.typeHint': 'Clique na imagem e escreva. Enter desenha o texto, Shift+Enter começa uma linha nova, Esc deita-o fora. Clicar noutro sítio desenha-o primeiro.',
     'text.typeBitmapOnly': 'Escrever na tela precisa de uma fonte bitmap (ZX ROM ou uma fonte guardada).',
     'text.noGlyph': 'Esta fonte não tem {char}.',
+    'text.fontLabel': '{name} ({w}x{h})',
+    'text.fontLabelProportional': '{name} ({w}x{h}, proporcional)',
     'text.cannotDraw': 'Não há nenhuma camada de desenho desbloqueada onde desenhar o texto.',
     'a11y.canvasText': 'Texto escrito na imagem',
     'text.entry.draw': 'Desenhar',

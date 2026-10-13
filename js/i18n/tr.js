@@ -443,6 +443,8 @@ const tr = {
     'text.typeHint': 'Resme tıklayın ve yazın. Enter metni çizer, Shift+Enter yeni satır başlatır, Esc atar. Başka bir yere tıklamak önce onu çizer.',
     'text.typeBitmapOnly': 'Tuvale yazmak için bit eşlemli bir yazı tipi gerekir (ZX ROM veya kayıtlı bir yazı tipi).',
     'text.noGlyph': 'Bu yazı tipinde {char} yok.',
+    'text.fontLabel': '{name} ({w}x{h})',
+    'text.fontLabelProportional': '{name} ({w}x{h}, orantılı)',
     'text.cannotDraw': 'Metnin çizileceği kilitsiz bir çizim katmanı yok.',
     'a11y.canvasText': 'Resme yazılan metin',
     'text.entry.draw': 'Çiz',

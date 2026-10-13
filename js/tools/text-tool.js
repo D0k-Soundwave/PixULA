@@ -216,6 +216,7 @@ class TextToolClass extends ToolBase {
     // Saved bitmap fonts feed the font list — drop the cache when the
     // font editor's library changes so the next open re-enumerates.
     EventBus.on(EVENTS.FONT_LIBRARY_CHANGED, () => { this._cachedFonts = null; });
+    EventBus.on(EVENTS.UI_LANGUAGE_CHANGE, () => { this._cachedFonts = null; });
 
     // Type on canvas: the hidden text field (canvas-text-entry.js) reports what it holds; the picture it would leave is
     // redrawn whenever something it depends on changes.

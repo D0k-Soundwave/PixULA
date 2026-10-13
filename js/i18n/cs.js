@@ -443,6 +443,8 @@ const cs = {
     'text.typeHint': 'Klikněte do obrázku a pište. Enter text nakreslí, Shift+Enter začne nový řádek, Esc ho zahodí. Klik jinam ho nejdřív nakreslí.',
     'text.typeBitmapOnly': 'Psaní na plátno potřebuje bitmapové písmo (ZX ROM nebo uložené písmo).',
     'text.noGlyph': 'Toto písmo nemá {char}.',
+    'text.fontLabel': '{name} ({w}x{h})',
+    'text.fontLabelProportional': '{name} ({w}x{h}, proporcionální)',
     'text.cannotDraw': 'Není žádná odemčená kreslicí vrstva, na kterou by se text nakreslil.',
     'a11y.canvasText': 'Text napsaný do obrázku',
     'text.entry.draw': 'Nakreslit',
