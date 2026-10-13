@@ -86,6 +86,11 @@ class TextToolClass extends ToolBase {
     return String(text == null ? '' : text).replace(/\r\n?/g, '\n').split('\n');
   }
 
+  /** True for a saved font bigger than 8 x 8 (CHX big font): the Text tool cannot draw it yet. @private */
+  static _isBigFont(font) {
+    return !!font && (font.width > 8 || (font.height !== undefined && font.height > 8));
+  }
+
   /** True for the layouts that stack glyphs into a column. @private */
   static _isVertical(layout) {
     return layout === 'vertical-down' || layout === 'vertical-up';
@@ -373,7 +378,7 @@ class TextToolClass extends ToolBase {
     }
     if (!String(family).startsWith('zxfont:')) return null;
     const font = window.FontService ? FontService.getLibraryFont(family.slice('zxfont:'.length)) : null;
-    if (!font) return null;
+    if (!font || TextToolClass._isBigFont(font)) return null;
     return { glyphOf: (c) => { const i = c.charCodeAt(0) - font.firstCode; return i >= 0 && i < font.glyphs.length ? font.glyphs[i] : null; },
              w0: font.width, h0: 8 };
   }
@@ -557,7 +562,8 @@ class TextToolClass extends ToolBase {
   /** Saved-font select entries ({ value, label }). @private */
   _libraryFontOptions() {
     if (!window.FontService) return [];
-    return FontService.listLibrary().map(name => {
+    // Big (CHX, wider or taller than 8) fonts are for the Font Editor and .chx export until the Text tool learns them
+    return FontService.listLibrary().filter(name => !TextToolClass._isBigFont(FontService.getLibraryFont(name))).map(name => {
       const font = FontService.getLibraryFont(name);
       return {
         value: 'zxfont:' + name,
@@ -870,7 +876,7 @@ class TextToolClass extends ToolBase {
       const font = window.FontService
         ? FontService.getLibraryFont(family.slice('zxfont:'.length))
         : null;
-      if (!font) return null;
+      if (!font || TextToolClass._isBigFont(font)) return null;
       charW = font.width;
       glyphOf = (c) => {
         const i = c.charCodeAt(0) - font.firstCode;
