@@ -21,6 +21,8 @@ Spectrum aracından `.ch4`, `.ch6`, `.ch8`, `.chr` veya `.chx` karakter seti
 yükleyebilirsiniz. Bir yazı tipine ad vermek onu kitaplığınıza ekler ve Yazı
 aracı onu yerleşik ROM yazı tipinin yanında sunar.
 
+**Büyük yazı tipleri.** Yeni büyük yazı tipi... ZX-Editor Second Edition'ın kullandığı türden bir CHX büyük yazı tipi takımı oluşturur: her karakter 8, 16, 24 veya 32 piksel genişliğinde ve yüksekliğindedir (genişlik ve yükseklik ayrı seçilir) ve düzenleyici genişlik listesinin yerinde boyutu gösterir. Metin aracının kullandığı aynı listeden herhangi bir yazı tipini, harflerin karakter yüksekliğinin ne kadarını kaplayacağını (yüzde olarak) ve solda, ortada ya da sağda durup durmayacağını seçmek için Bir yazı tipiyle doldur kutusunu işaretleyin. Orantılı kutusunu işaretlerseniz her harf yalnızca gereken genişlikte, tam 8 piksellik sütunlar halinde kaydedilir; böylece i, W'dan daha az yer kaplar; Boşluk karakteri her zaman en az bir sütun korur. Yazı tipinden doldur... aynı şeyi elinizdeki büyük bir yazı tipine tek adımda yapar. Büyük bir yazı tipi yalnızca `.chx` olarak kaydedilebilir (diğer biçimler ile birleştirici, C ve ikili listeler 8'e 8 karakter taşır), tuvalden hücre yakalayamaz ve Metin aracı onu henüz sunmaz. Büyük bir `.chx` açmak her karakteri kendi boyutunda tutar ve dosyanın atladığı bir karakter yeniden kaydederken de atlanmış kalır. Birkaç 8'e 8 bloktan oluşan bir karakterin dosyada nasıl dizildiği biçimin yayımlanmış tanımını izler ve ZX Paintbrush'ın kendisinin kaydettiği bir dosyayla denetlenmemiştir; bu yüzden burada yapılmış büyük bir yazı tipine güvenmeden önce onu ZX Paintbrush'ta açın.
+
 ### Harita düzenleyici
 
 Harita bir karo ızgarasıdır; bir karo, 8×8'lik bir hücredir – sekiz bit eşlem

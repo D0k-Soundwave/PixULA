@@ -828,3 +828,19 @@ so CH4/CH6/CH8/CHR/ASM/C/BIN export and the Text tool refuse big fonts until 10C
 OWNER: (1) will NOT make ZX Paintbrush sample files -> build from help text and datablocks.chm; layout risk accepted (record it as unverified
 in font-format.js and on the owner's try-this list: open a PixULA big CHX in ZX Paintbrush). (2) Big fonts in Text tool + Type on canvas: YES (10C3).
 (3) Map view: draw across the whole map (Same, about half a session more). (4) Fill from font uses the Text tool's font list.
+
+## Batch 10C done (2026-10-13)
+Built in the order Opus set: (1) pin test of classic font bytes (tests/font-output-pin.test.js); (2) js/utils/glyph-bits.js (pure bit access,
+CHX blocks, autoShade); (3) FontCodec v2 (big sizes + shading; classic stays v1) and FontService (height, shade, newBigFont, replaceGlyphs,
+setShade, clipboard across sizes, saveToLibrary now reports a refused write); (5) CHX read/write of whole characters with shading (left out =
+offset 0), Space rules, export-import-export identical; the old test 'chx import takes the top-left cell' was REWRITTEN on purpose (a
+multi-block character is now kept whole), not weakened; (6) guards: raw formats and ASM/C/BIN refuse big fonts, the Text tool does not list
+them; (7) FontRasterizer.rasterizeCells (family name or bytes; height percent; alignment; proportional); (8) Font Editor: New Big Font...,
+Fill from font..., big editing surface, size label, CHX-only export, capture off. Owner answer used: fill uses the Text tool's font list.
+Tests: glyph-bits, font-codec-big, font-service-big, chx-big (Node); font-editor-big-font (Playwright, 11). Manual paragraph in 13 languages.
+Found and fixed on the way: fr and it strings written in batch 10B / 10C had a literal backslash before apostrophes (28 strings).
+Layout risk (owner declined sample files): block order, columns-then-rows header and the attribute byte are from RECOIL and the datablocks
+manual only; recorded in font-format.js; owner try-this list: open a PixULA big CHX in ZX Paintbrush.
+Not done here (10C2): map view (draw across all characters, owner chose YES), shader tool, Proportional on an existing font from the map.
+10C3: big fonts in the Text tool and Type on canvas (owner chose YES).
+

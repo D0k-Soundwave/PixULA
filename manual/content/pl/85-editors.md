@@ -21,6 +21,8 @@ Możesz zacząć od czcionki ZX ROM, przechwycić glif z płótna albo wczytać 
 Nadanie czcionce nazwy dodaje ją do Twojej biblioteki, a narzędzie Tekst oferuje
 ją wtedy obok wbudowanej czcionki ROM.
 
+**Duże czcionki.** Nowa duża czcionka... tworzy duży zestaw czcionek CHX, taki jakiego używa ZX-Editor Second Edition: każdy znak ma 8, 16, 24 lub 32 piksele szerokości i wysokości (szerokość i wysokość wybiera się osobno), a edytor pokazuje rozmiar w miejscu listy szerokości. Zaznacz Wypełnij czcionką, aby wybrać dowolną czcionkę z tej samej listy, której używa narzędzie Tekst, jaką część wysokości znaku mają zajmować litery (w procentach) oraz czy mają leżeć z lewej, na środku czy z prawej. Zaznacz Proporcjonalna, a każda litera zostanie zapisana tylko tak szeroka, jak potrzeba, w pełnych kolumnach po 8 pikseli, więc i zajmuje mniej miejsca niż W; znak Spacja zawsze zachowuje co najmniej jedną kolumnę. Wypełnij z czcionki... robi to samo jednym krokiem z dużą czcionką, którą już masz. Dużą czcionkę można zapisać tylko jako `.chx` (pozostałe formaty oraz listingi asemblerowe, C i binarne zawierają znaki 8 na 8), nie można z niej przechwycić komórki z płótna, a narzędzie Tekst jeszcze jej nie oferuje. Otwarcie dużego `.chx` zachowuje każdy znak w jego własnym rozmiarze, a znak, który plik pomija, pozostaje pominięty przy kolejnym zapisie. Sposób ułożenia w pliku znaku z kilku bloków 8 na 8 wynika z opublikowanego opisu formatu i nie został sprawdzony na pliku zapisanym przez sam ZX Paintbrush, więc otwórz dużą czcionkę zrobioną tutaj w ZX Paintbrush, zanim jej zaufasz.
+
 ### Edytor map
 
 Mapa to siatka kafli, a kafel to jedna komórka 8 na 8 – osiem bajtów bitmapy i
