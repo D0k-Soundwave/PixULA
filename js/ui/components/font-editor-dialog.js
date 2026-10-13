@@ -13,7 +13,10 @@
  *           consumer, after the Pattern Creator and the map editor —
  *           this is the width ≠ height case it was built for), the
  *           glyph-ops toolbar (clear/copy/paste/flip/shift/invert), the
- *           width selector (4/6/8), load-from-ROM, capture-from-canvas
+ *           width selector (4/6/8; a BIG font - CHX big font set, 8 to 32 pixels
+ *           each way - shows its size instead, and is made with New Big Font...
+ *           and filled from an installed font with Fill from font...),
+ *           load-from-ROM, capture-from-canvas
  *           and import/export for CH4/CH6/CH8/CHR/CHX + the DevFormat
  *           asm/c/bin font dumps.
  *
@@ -83,7 +86,8 @@ class FontEditorDialogClass {
                         ${Helpers.miniToolButton('fill', 'F', 'tool.fill', 'Fill', 'tool.fill.hint', 'Flood the area under the cursor out to its edges')}
                     </div>
                     <div class="me-tool-group">
-                        <label><span data-i18n="font.width">${this._t('font.width', 'Width')}</span>
+                        <span class="fe-size-label" hidden></span>
+                        <label class="fe-width-label"><span data-i18n="font.width">${this._t('font.width', 'Width')}</span>
                             <select class="fe-width" id="fe-width" name="fe-width">
                                 <option value="4">4×8</option>
                                 <option value="6">6×8</option>
@@ -138,6 +142,10 @@ class FontEditorDialogClass {
                     <input type="file" class="fe-file-input" id="fe-file-input" name="fe-file-input" accept=".ch4,.ch6,.ch8,.chr,.chx" hidden>
                 </div>
                 <div class="me-toolbar">
+                    <button type="button" class="pc-btn fe-new-big" data-i18n="font.newBig">${this._t('font.newBig', 'New Big Font...')}</button>
+                    <button type="button" class="pc-btn fe-fill" data-i18n="font.fillFromFont">${this._t('font.fillFromFont', 'Fill from font...')}</button>
+                </div>
+                <div class="me-toolbar">
                     <button type="button" class="pc-btn fe-system-font font-editor-system-font-btn" data-i18n="font.fromSystemFont">${this._t('font.fromSystemFont', 'From System Font...')}</button>
                 </div>
                 <div class="fe-status pc-status font-editor-status"></div>
@@ -160,11 +168,12 @@ class FontEditorDialogClass {
 
         // Shared cell editor (canvas height fixed, width follows the font)
         const { w, h } = FontService.getGlyphSize();
+        const zoom = this._zoom(w, h);
         this._glyphEditor = new CellGridEditor({
             width: w,
             height: h,
-            canvasWidth: w * 24,
-            canvasHeight: h * 24,
+            canvasWidth: w * zoom,
+            canvasHeight: h * zoom,
             onChange: () => this._commitGlyphEdit(),
             className: 'fe-glyph-canvas'
         });
@@ -237,6 +246,10 @@ class FontEditorDialogClass {
             this._status(this._t('font.status.romLoaded', 'ROM font loaded.'));
         });
         c.querySelector('.fe-capture').addEventListener('click', () => {
+            if (FontService.isBig()) {
+                this._status(this._t('font.captureNotBig', 'Capture needs an 8x8 font.'));
+                return;
+            }
             // Glyphs are 8-row 1-bit cells — capture is gated in screen modes
             // with other cell geometry (12a) or indexed pixels (13)
             if (ZX_SPECTRUM.CELL_HEIGHT !== FontService.getGlyphSize().h
@@ -291,6 +304,8 @@ class FontEditorDialogClass {
             () => this._export(c.querySelector('.fe-export-format').value));
 
         c.querySelector('.fe-system-font').addEventListener('click', () => this._openSystemFontPicker());
+        c.querySelector('.fe-new-big').addEventListener('click', () => this._openFillDialog('new'));
+        c.querySelector('.fe-fill').addEventListener('click', () => this._openFillDialog('fill'));
     }
 
     _runOp(op) {
@@ -334,7 +349,7 @@ class FontEditorDialogClass {
         if (glyph) {
             for (let y = 0; y < h; y++) {
                 for (let x = 0; x < w; x++) {
-                    pixels[y * w + x] = (glyph[y] >> (7 - x)) & 1;
+                    pixels[y * w + x] = GlyphBits.getPixel(glyph, w, x, y) ? 1 : 0;
                 }
             }
         }
@@ -348,13 +363,11 @@ class FontEditorDialogClass {
         if (this._suppressGlyphCommit) return;
         const { w, h } = FontService.getGlyphSize();
         const pixels = this._glyphEditor.getPixels();
-        const bytes = new Uint8Array(h);
+        const bytes = GlyphBits.create(w, h);
         for (let y = 0; y < h; y++) {
-            let byte = 0;
             for (let x = 0; x < w; x++) {
-                if (pixels[y * w + x]) byte |= 0x80 >> x;
+                if (pixels[y * w + x]) GlyphBits.setPixel(bytes, w, x, y, true);
             }
-            bytes[y] = byte;
         }
         this._editorCommit = true;
         FontService.setGlyph(this._selected, bytes);
@@ -375,16 +388,40 @@ class FontEditorDialogClass {
     _syncControls() {
         const { firstCode, count } = FontService.getCoverage();
         this._selected = clamp(this._selected, firstCode, firstCode + count - 1);
+        const big = FontService.isBig();
         this._root.querySelector('.fe-width').value = String(FontService.width);
+        this._root.querySelector('.fe-width-label').hidden = big;
+        const sizeLabel = this._root.querySelector('.fe-size-label');
+        sizeLabel.hidden = !big;
+        sizeLabel.dataset.i18nParamW = FontService.width;
+        sizeLabel.dataset.i18nParamH = FontService.height;
+        sizeLabel.textContent = this._t('font.sizeLabel', 'Character size {w}x{h}',
+            { w: FontService.width, h: FontService.height });
         this._root.querySelector('.fe-coverage').value = count === 96 ? 'ASCII' : 'FULL';
+        // Big fonts: only CHX can hold them, canvas capture and the byte-font picker are 8x8 ideas
+        const fmt = this._root.querySelector('.fe-export-format');
+        for (const opt of fmt.options) opt.disabled = big && opt.value !== 'chx';
+        fmt.title = big ? this._t('font.bigOnlyChx', 'Big fonts can only be saved as CHX.') : '';
+        if (big && fmt.value !== 'chx') fmt.value = 'chx';
+        this._root.querySelector('.fe-capture').disabled = big;
+        this._root.querySelector('.fe-system-font').disabled = big;
+        this._root.querySelector('.fe-fill').disabled = FontService.width % 8 !== 0;
         this._updateCurrentLabel();
+    }
+
+    /** Pixels per font pixel in the editing surface: 24 for the classic sizes, less for big glyphs so it fits. @private */
+    _zoom(w, h) {
+        const big = w > 8 || h > 8;
+        return big ? Math.max(6, Math.floor(384 / Math.max(w, h))) : 24;
     }
 
     /** Resize the cell editor when the font width changed. */
     _syncEditorGeometry() {
         const { w, h } = FontService.getGlyphSize();
-        if (this._glyphEditor.getSize().width === w) return;
-        this._glyphEditor.setSize(w, h, w * 24, h * 24); // resets contents — reloaded below
+        const now = this._glyphEditor.getSize();
+        if (now.width === w && now.height === h) return;
+        const zoom = this._zoom(w, h);
+        this._glyphEditor.setSize(w, h, w * zoom, h * zoom); // resets contents — reloaded below
         this._loadGlyphIntoEditor();
     }
 
@@ -423,16 +460,17 @@ class FontEditorDialogClass {
         ctx.fillStyle = ZX_PALETTE[7];
         ctx.fillRect(0, 0, this._grid.width, this._grid.height);
 
-        // Glyphs at 2×, centred in their cells
+        // Glyphs at 2x (classic) or scaled to fit the cell (big), centred in their cells
+        const k = (gw > 8 || gh > 8) ? (cs - 2) / Math.max(gw, gh) : 2;
         ctx.fillStyle = ZX_PALETTE[0];
         for (let i = 0; i < count; i++) {
             const glyph = FontService.getGlyph(firstCode + i);
             if (!glyph) continue;
-            const ox = (i % this.GRID_COLS) * cs + Math.floor((cs - gw * 2) / 2);
-            const oy = Math.floor(i / this.GRID_COLS) * cs + (cs - gh * 2) / 2;
+            const ox = (i % this.GRID_COLS) * cs + (cs - gw * k) / 2;
+            const oy = Math.floor(i / this.GRID_COLS) * cs + (cs - gh * k) / 2;
             for (let y = 0; y < gh; y++) {
                 for (let x = 0; x < gw; x++) {
-                    if ((glyph[y] >> (7 - x)) & 1) ctx.fillRect(ox + x * 2, oy + y * 2, 2, 2);
+                    if (GlyphBits.getPixel(glyph, gw, x, y)) ctx.fillRect(ox + x * k, oy + y * k, k, k);
                 }
             }
         }
@@ -608,6 +646,138 @@ class FontEditorDialogClass {
             title: 'Choose System Font',
             content: wrap
         });
+    }
+
+    // ─── New big font / fill from a font ─────────────────────────────────
+
+    /**
+     * New Big Font... ('new') asks for the character size (blocks of 8 x 8 pixels, 1 to 4 each way), the charset and
+     * optionally a font to fill from; Fill from font... ('fill') fills the working font, whatever its size, from an installed
+     * font. The font list is the Text tool's (FontProbe), so the choice is the same in both places and needs no permission.
+     * The picture of each letter is made by FontRasterizer.rasterizeCells.
+     * @param {string} mode - 'new' | 'fill'
+     * @private
+     */
+    _openFillDialog(mode) {
+        const isNew = mode === 'new';
+        const wrap = document.createElement('div');
+        wrap.className = 'fe-fill-dialog';
+        const field = (key, fallback, control) => {
+            const label = document.createElement('label');
+            label.className = 'fe-fill-field';
+            const span = document.createElement('span');
+            span.dataset.i18n = key;
+            span.textContent = this._t(key, fallback);
+            label.append(span, control);
+            return label;
+        };
+        const select = (id, options) => {
+            const el = document.createElement('select');
+            el.id = id;
+            el.name = id;
+            for (const [value, text, i18n] of options) {
+                const opt = document.createElement('option');
+                opt.value = String(value);
+                opt.textContent = text;
+                if (i18n) opt.dataset.i18n = i18n;
+                el.appendChild(opt);
+            }
+            return el;
+        };
+        const sizes = [1, 2, 3, 4].map(n => [n, `${n * 8} px`]);
+
+        let colsEl, rowsEl, covEl, withFont;
+        if (isNew) {
+            colsEl = select('fe-new-cols', sizes);
+            rowsEl = select('fe-new-rows', sizes);
+            covEl = select('fe-new-cov', [
+                ['ASCII', this._t('font.coverageAscii', '96 chars (32-127)'), 'font.coverageAscii'],
+                ['FULL', this._t('font.coverageFull', '256 chars (0-255)'), 'font.coverageFull']]);
+            withFont = document.createElement('input');
+            withFont.type = 'checkbox';
+            withFont.id = 'fe-new-fill';
+            withFont.name = 'fe-new-fill';
+            withFont.checked = true;
+            wrap.append(
+                field('font.bigWidth', 'Character width', colsEl),
+                field('font.bigHeight', 'Character height', rowsEl),
+                field('font.coverage', 'Charset', covEl),
+                field('font.fillWith', 'Fill with a font', withFont));
+        }
+
+        const fonts = (window.FontProbe ? FontProbe.detect() : []);
+        const families = fonts.length ? fonts : ['sans-serif', 'serif', 'monospace'];
+        const famEl = select('fe-fill-family', families.map(f => [f, f]));
+        const pctEl = document.createElement('input');
+        pctEl.type = 'number';
+        pctEl.id = 'fe-fill-percent';
+        pctEl.name = 'fe-fill-percent';
+        pctEl.min = '10'; pctEl.max = '100'; pctEl.value = '100';
+        const alignEl = select('fe-fill-align', [
+            ['left', this._t('font.alignLeft', 'Left'), 'font.alignLeft'],
+            ['centre', this._t('font.alignCentre', 'Centre'), 'font.alignCentre'],
+            ['right', this._t('font.alignRight', 'Right'), 'font.alignRight']]);
+        const propEl = document.createElement('input');
+        propEl.type = 'checkbox';
+        propEl.id = 'fe-fill-proportional';
+        propEl.name = 'fe-fill-proportional';
+        wrap.append(
+            field('font.fillFont', 'Font', famEl),
+            field('font.fillPercent', 'Height (%)', pctEl),
+            field('font.fillAlign', 'Alignment', alignEl),
+            field('font.fillProportional', 'Proportional (narrower letters)', propEl));
+
+        const go = document.createElement('button');
+        go.type = 'button';
+        go.id = 'fe-fill-go';
+        go.className = 'panel-button primary';
+        go.dataset.i18n = isNew ? 'font.create' : 'font.fill';
+        go.textContent = isNew ? this._t('font.create', 'Create') : this._t('font.fill', 'Fill');
+        go.addEventListener('click', async () => {
+            if (isNew) {
+                const made = FontService.newBigFont({
+                    cols: parseInt(colsEl.value, 10), rows: parseInt(rowsEl.value, 10), coverage: covEl.value });
+                if (!made) return;
+                this._status(this._t('font.status.bigCreated', 'New big font {w}x{h} created.',
+                    { w: FontService.width, h: FontService.height }));
+                if (!withFont.checked) { Dialog.close('font-editor-fill'); return; }
+            }
+            go.disabled = true;
+            const ok = await this._fillFromFont(famEl.value, Number(pctEl.value), alignEl.value, propEl.checked);
+            go.disabled = false;
+            if (ok) Dialog.close('font-editor-fill');
+        });
+        wrap.appendChild(go);
+
+        Dialog.open({
+            id: 'font-editor-fill',
+            titleI18n: isNew ? 'font.newBigTitle' : 'font.fillTitle',
+            title: isNew ? 'New Big Font' : 'Fill from Font',
+            content: wrap
+        });
+    }
+
+    /**
+     * Rasterize an installed font into every glyph of the working font (one change, so the editor repaints once).
+     * @returns {Promise<boolean>}
+     * @private
+     */
+    async _fillFromFont(family, percent, align, proportional) {
+        const { w, h } = FontService.getGlyphSize();
+        const cov = FontService.getCoverage();
+        try {
+            const r = await FontRasterizer.rasterizeCells({ family }, {
+                cellWidth: w, cellHeight: h, heightPercent: percent, align,
+                firstCode: cov.firstCode, count: cov.count, proportional });
+            const shade = r.shade || r.glyphs.map(() => [0, 0]);
+            if (!FontService.replaceGlyphs(r.glyphs, shade)) throw new Error('replaceGlyphs');
+            this._status(this._t('font.status.filled', 'Filled from {family}.', { family }));
+            return true;
+        } catch (error) {
+            Logger.warn('FontEditorDialog', 'Fill from font failed', error);
+            this._status(this._t('font.status.fillFailed', 'Could not fill from the font: {error}', { error: error.message }));
+            return false;
+        }
     }
 
     // ─── Shared refresh / status ──────────────────────────────────────────
