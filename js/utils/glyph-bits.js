@@ -174,6 +174,37 @@ const GlyphBits = {
         return [Math.max(0, left), Math.max(0, right)];
     },
 
+    /**
+     * What a click on 8-pixel column `k` does to a character's shading [left, right] (the shader tool):
+     * a click on a shaded column un-shades it and everything between it and the character's edge; a click on an unshaded column
+     * shades from the NEARER edge through that column (a tie goes right, because proportional letters are usually left-aligned).
+     * @param {number[]} shade - [left, right]
+     * @param {number} cols - columns of 8 pixels in the character
+     * @param {number} k - clicked column, 0-based
+     * @returns {number[]} the new [left, right]
+     */
+    shadeAfterClick(shade, cols, k) {
+        const L = shade[0], R = shade[1];
+        if (k < 0 || k >= cols) return [L, R];
+        if (k < L) return [k, R];
+        if (k >= cols - R) return [L, cols - 1 - k];
+        return k < cols - 1 - k ? [k + 1, R] : [L, cols - k];
+    },
+
+    /**
+     * Grow or shrink one side of the shading by `delta` columns (the buttons).
+     * @param {number[]} shade - [left, right]
+     * @param {number} cols
+     * @param {string} side - 'left' | 'right'
+     * @param {number} delta - +1 or -1
+     * @returns {number[]|null} the new [left, right], or null if that is not possible
+     */
+    shadeStep(shade, cols, side, delta) {
+        const next = side === 'left' ? [shade[0] + delta, shade[1]] : [shade[0], shade[1] + delta];
+        if (next[0] < 0 || next[1] < 0 || next[0] + next[1] > cols) return null;
+        return next;
+    },
+
     /** The leftmost and rightmost columns with ink ({left, right}), or null for a blank glyph. */
     inkEdges(g, width, height) {
         let left = -1, right = -1;
