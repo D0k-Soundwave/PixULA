@@ -21,6 +21,8 @@ caricare un set `.ch4`, `.ch6`, `.ch8`, `.chr` o `.chx` da un altro strumento
 Spectrum. Dare un nome a un carattere lo aggiunge alla tua libreria, e lo
 strumento Testo lo offre allora accanto al carattere ROM integrato.
 
+**Font grandi.** Nuovo font grande... crea un set di font grandi CHX, come quello usato da ZX-Editor Second Edition: ogni carattere è largo e alto 8, 16, 24 o 32 pixel (larghezza e altezza si scelgono separatamente), e l'editor mostra la dimensione al posto dell'elenco delle larghezze. Spunta Riempi con un font per scegliere un qualsiasi font dallo stesso elenco dello strumento Testo, quanta parte dell'altezza del carattere devono coprire le lettere (in percentuale) e se stanno a sinistra, al centro o a destra. Spunta Proporzionale e ogni lettera viene salvata solo larga quanto serve, in colonne intere di 8 pixel, così una i occupa meno spazio di una W; il carattere Spazio mantiene sempre almeno una colonna. Riempi da font... fa lo stesso in un solo passo su un font grande che hai già. Un font grande si può salvare solo come `.chx` (gli altri formati e gli elenchi in assembly, C e binario contengono caratteri 8 per 8), non può catturare una cella dalla tela e lo strumento Testo non lo offre ancora. Aprendo un `.chx` grande ogni carattere resta della propria dimensione, e un carattere che il file omette resta omesso quando salvi di nuovo. Il modo in cui un carattere di più blocchi 8 per 8 è disposto nel file segue la descrizione pubblicata del formato e non è stato verificato con un file salvato da ZX Paintbrush stesso, quindi apri in ZX Paintbrush un font grande fatto qui prima di fidartene.
+
 ### L’editor di mappe
 
 Una mappa è una griglia di tessere, dove una tessera è una cella 8 per 8: otto

@@ -21,6 +21,8 @@ conjunto `.ch4`, `.ch6`, `.ch8`, `.chr` ou `.chx` de outra ferramenta de
 Spectrum. Dar um nome a um tipo de letra acrescenta-o à sua biblioteca, e a
 ferramenta Texto passa a oferecê-lo ao lado do tipo de letra ROM incorporado.
 
+**Fontes grandes.** Nova fonte grande... cria um conjunto de fontes grandes CHX, como o que o ZX-Editor Second Edition usa: cada carácter tem 8, 16, 24 ou 32 pixéis de largura e de altura (largura e altura escolhem-se em separado), e o editor mostra o tamanho no lugar da lista de larguras. Marque Preencher com uma fonte para escolher qualquer fonte da mesma lista que a ferramenta Texto usa, quanta altura do carácter as letras ocupam (em percentagem) e se ficam à esquerda, ao centro ou à direita. Marque Proporcional e cada letra é guardada apenas com a largura de que precisa, em colunas inteiras de 8 pixéis, de modo que um i ocupa menos espaço do que um W; o carácter Espaço mantém sempre pelo menos uma coluna. Preencher a partir de fonte... faz o mesmo num só passo a uma fonte grande que já tenha. Uma fonte grande só pode ser guardada como `.chx` (os outros formatos e as listagens em assembly, C e binário têm caracteres de 8 por 8), não pode capturar uma célula da tela e a ferramenta Texto ainda não a oferece. Abrir um `.chx` grande mantém cada carácter com o seu tamanho, e um carácter que o ficheiro omite continua omitido ao guardar de novo. A forma como um carácter de vários blocos de 8 por 8 está disposto no ficheiro segue a descrição publicada do formato e não foi verificada com um ficheiro guardado pelo próprio ZX Paintbrush, por isso abra no ZX Paintbrush uma fonte grande feita aqui antes de confiar nela.
+
 ### O editor de mapas
 
 Um mapa é uma grelha de mosaicos, em que um mosaico é uma célula de 8 por 8 –

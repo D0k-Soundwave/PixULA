@@ -830,3 +830,15 @@ rebuilds; median and worst of the 15, run three times.
 
 Median is about 7 times inside the budget and the worst case about 1.6 times inside it; nothing was optimised.
 
+### Big font (CHX) sizes - computed 2026-10-13
+
+| Figure | Value | Tag |
+|---|---|---|
+| Heaviest big font record in the library: 256 glyphs of 32 x 32 | 256 x 128 = 32,768 bytes; base64 = ceil(32,768 / 3) x 4 = 43,692 characters | C |
+| Its shading list | 256 x 2 = 512 bytes; base64 = 684 characters | C |
+| Encoded total against `FontCodec.MAX_JSON_BYTES` | about 44.5 KB of 64 KB (65,536) | C: 43,692 + 684 + about 100 for the other fields |
+| Big fonts that fit the 2 MB library cap in the worst case | 2,097,152 / 44,500 = 47 | C |
+| Heaviest CHX file: 256 characters of 4 x 4 blocks, transparent | 517 + 256 x (3 + 16 x 8) = 33,653 bytes | C |
+| Same, all coloured (9 bytes a block, not written by PixULA) | 517 + 256 x (3 + 16 x 9) = 38,149 bytes, under the 65,535 reach of the 2-byte offsets | C |
+| Glyph grid repaint for 256 glyphs of 32 x 32 | 256 x 32 x 32 = 262,144 pixel tests | C |
+

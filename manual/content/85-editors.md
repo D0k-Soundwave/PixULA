@@ -21,6 +21,8 @@ You can start from the ZX ROM font, capture a glyph from the canvas, or load a
 tool. Naming a font adds it to your library, and the text tool then offers it
 alongside the built-in ROM font.
 
+**Big fonts.** New Big Font... makes a CHX big font set, the kind ZX-Editor Second Edition uses: every character is 8, 16, 24 or 32 pixels wide and tall (width and height are chosen separately), and the editor shows the size where the width list was. Tick Fill with a font to pick any font from the same list the Text tool uses, how much of the character's height the letters cover (as a percentage) and whether they sit to the left, in the centre or to the right. Tick Proportional and each letter is saved only as wide as it needs to be, in whole 8-pixel columns, so an i takes less room than a W; the Space character always keeps at least one column. Fill from font... does the same to a big font you already have, in one step. A big font can only be saved as `.chx` (the other formats and the assembly, C and binary listings hold 8 by 8 characters), cannot capture a cell from the canvas, and is not offered by the Text tool yet. Opening a big `.chx` keeps every character at its own size, and a character the file leaves out stays left out when you save again. The way a character of several 8 by 8 blocks is laid out in the file follows the published description of the format and has not been checked against a file saved by ZX Paintbrush itself, so open a big font made here in ZX Paintbrush before relying on it.
+
 ### The Map Editor
 
 A map is a grid of tiles, where a tile is one 8 by 8 cell - eight bitmap bytes

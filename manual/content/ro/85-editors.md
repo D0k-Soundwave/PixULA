@@ -21,6 +21,8 @@ Puteți porni de la fontul ZX ROM, captura o glifă de pe pânză sau încărca 
 Denumirea unui font îl adaugă în biblioteca dvs., iar instrumentul Text îl oferă
 apoi alături de fontul ROM încorporat.
 
+**Fonturi mari.** Font mare nou... creează un set de fonturi mari CHX, de felul celui folosit de ZX-Editor Second Edition: fiecare caracter are 8, 16, 24 sau 32 de pixeli în lățime și în înălțime (lățimea și înălțimea se aleg separat), iar editorul arată dimensiunea în locul listei de lățimi. Bifează Umple cu un font ca să alegi orice font din aceeași listă pe care o folosește instrumentul Text, cât din înălțimea caracterului acoperă literele (în procente) și dacă stau la stânga, la mijloc sau la dreapta. Bifează Proporțional și fiecare literă se salvează doar atât de lată cât are nevoie, în coloane întregi de 8 pixeli, astfel încât un i ocupă mai puțin loc decât un W; caracterul Spațiu păstrează mereu cel puțin o coloană. Umple dintr-un font... face același lucru într-un singur pas cu un font mare pe care îl ai deja. Un font mare poate fi salvat doar ca `.chx` (celelalte formate și listările în asamblare, C și binar conțin caractere de 8 pe 8), nu poate captura o celulă din pânză și instrumentul Text nu îl oferă încă. Deschiderea unui `.chx` mare păstrează fiecare caracter la dimensiunea lui, iar un caracter pe care fișierul îl omite rămâne omis la salvarea următoare. Felul în care un caracter din mai multe blocuri de 8 pe 8 este așezat în fișier urmează descrierea publicată a formatului și nu a fost verificat cu un fișier salvat de ZX Paintbrush însuși, așa că deschide în ZX Paintbrush un font mare făcut aici înainte să te bazezi pe el.
+
 ### Editorul de hărți
 
 O hartă este o grilă de plăci, unde o placă este o celulă de 8 pe 8 – opt octeți

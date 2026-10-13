@@ -21,6 +21,8 @@ Môžete začať písmom ZX ROM, prevziať znak z plátna alebo načítať sadu 
 písma ho pridáte do svojej knižnice a nástroj Text ho potom ponúkne vedľa
 vstavaného písma ROM.
 
+**Veľké písma.** Nové veľké písmo... vytvorí veľkú sadu CHX, akú používa ZX-Editor Second Edition: každý znak je široký aj vysoký 8, 16, 24 alebo 32 pixelov (šírka a výška sa volia osobitne) a editor namiesto zoznamu šírok ukazuje veľkosť. Zaškrtnutím Vyplniť písmom vyberiete ľubovoľné písmo z rovnakého zoznamu, aký používa nástroj Text, koľko výšky znaku majú písmená zaberať (v percentách) a či ležia vľavo, v strede alebo vpravo. Ak zaškrtnete Proporcionálne, každé písmeno sa uloží len takto široké, ako potrebuje, v celých stĺpcoch po 8 pixelov, takže i zaberie menej miesta ako W; znak Medzera si vždy ponechá aspoň jeden stĺpec. Vyplniť z písma... urobí to isté jedným krokom s veľkým písmom, ktoré už máte. Veľké písmo sa dá uložiť len ako `.chx` (ostatné formáty a výpisy v assembleri, C a binárne obsahujú znaky 8 × 8), nedá sa z neho zachytiť bunka z plátna a nástroj Text ho zatiaľ neponúka. Otvorenie veľkého `.chx` ponechá každý znak v jeho vlastnej veľkosti a znak, ktorý súbor vynecháva, zostane pri ďalšom uložení vynechaný. Usporiadanie znaku z viacerých blokov 8 × 8 v súbore vychádza zo zverejneného popisu formátu a nebolo overené na súbore uloženom samotným ZX Paintbrush, preto veľké písmo vytvorené tu otvorte v ZX Paintbrush, než sa naň spoľahnete.
+
 ### Editor máp
 
 Mapa je mriežka dlaždíc, kde dlaždica je jedna bunka 8 × 8 – osem bajtov bitmapy
