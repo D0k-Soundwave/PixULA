@@ -10,7 +10,7 @@
  *           picker rendered on one canvas, the coverage selector and the
  *           named-font library pane (save/load/delete).
  *   right — (All characters on: the whole font as one map you can draw across, with
- *           the Shade and Move tools and zoom; see FontMapView) — the glyph editing surface: the shared CellGridEditor (third
+ *           the Shade and Move tools and zoom; see FontMapView) - the glyph editing surface: the shared CellGridEditor (third
  *           consumer, after the Pattern Creator and the map editor —
  *           this is the width ≠ height case it was built for), the
  *           glyph-ops toolbar (clear/copy/paste/flip/shift/invert), the
@@ -487,7 +487,7 @@ class FontEditorDialogClass {
         const now = this._glyphEditor.getSize();
         if (now.width === w && now.height === h) return;
         const zoom = this._zoom(w, h);
-        this._glyphEditor.setSize(w, h, w * zoom, h * zoom); // resets contents — reloaded below
+        this._glyphEditor.setSize(w, h, w * zoom, h * zoom); // resets contents - reloaded below
         this._loadGlyphIntoEditor();
     }
 

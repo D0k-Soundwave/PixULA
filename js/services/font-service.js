@@ -10,11 +10,11 @@
  * named-font library).
  *
  * Model:
- *   glyph — one character bitmap: Uint8Array of row bytes, MSB = leftmost
+ *   glyph - one character bitmap: Uint8Array of row bytes, MSB = leftmost
  *           pixel (for a classic font one byte per row, the same layout as
  *           layer cell.pixels and MapService tiles). Row bits beyond the font
  *           width are always zero (every mutation masks).
- *   font  — { name, width, height, firstCode, glyphs[], shade[] }. A classic
+ *   font  - { name, width, height, firstCode, glyphs[], shade[] }. A classic
  *           font is 4, 6 or 8 wide and 8 high. A BIG font (Batch 10C, the CHX
  *           big font sets) is 8, 16, 24 or 32 wide and 8, 16, 24 or 32 high;
  *           its glyphs are height * ceil(width / 8) bytes (see GlyphBits).
@@ -503,7 +503,7 @@ class FontServiceClass {
                     this._adopt(doc);
                     this._emit(EVENTS.FONT_LOADED, { name: this.name, restored: true });
                     Logger.info('FontService',
-                        `Restored persisted font (${doc.glyphs.length} glyphs, ${doc.width}×${doc.height})`);
+                        `Restored persisted font (${doc.glyphs.length} glyphs, ${doc.width}x${doc.height})`);
                 } else {
                     Logger.warn('FontService', 'Discarding unreadable persisted font');
                     await Storage.delete(this.STORAGE_KEY, Storage.STORES.FONTS);

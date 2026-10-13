@@ -94,10 +94,15 @@ class FontMapView {
         this._scheduleRedraw();
     }
 
-    /** Largest whole-number zoom keeping the canvas under 1600 pixels a side (a canvas bigger than that is slow and may not allocate). */
+    /**
+     * Largest whole-number zoom keeping the canvas to 2048 pixels a side. [M] 2026-10-13, Chromium on this machine: redrawing a 512 x 512
+     * picture to a canvas of 1536 / 2048 / 3072 / 4096 pixels a side took 8.6 / 12.8 / 29.5 / 51.2 ms (median of 9, readback included, so
+     * the work is finished); a frame is 16.7 ms [C: 1000 / 60], so 2048 is the largest that stays inside one.
+     */
     maxZoom() {
         const side = Math.max(this._w, this._h, 1);
-        return Math.max(1, Math.floor(1600 / side));
+        const cap = Math.floor(2048 / side);
+        return cap < 1 ? 1 : cap;
     }
 
     getZoom() { return this._zoom; }
