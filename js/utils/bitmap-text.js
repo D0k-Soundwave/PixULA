@@ -120,19 +120,32 @@ const BitmapText = {
 
     /**
      * One line of glyph-byte text at the font's own size, as the Text tool builds it (glyphs side by side, then the
-     * bold / italic styling). Characters with no glyph take no space.
-     * @returns {?{pixels:boolean[][], width:number, height:number, count:number}} null when nothing is drawable
+     * bold / italic styling). Characters with no glyph take no space. Each letter is as wide as its saved span (a proportional
+     * big font has letters of different widths; every other font has full cells), so `spans[i]` tells where letter i starts and
+     * how wide it is in the line.
+     * @param {string} text
+     * @param {Object} o - { glyphOf, spanOf?, fw?, w0, h0, reverse?, bold, italic, style }
+     * @returns {?{pixels:boolean[][], width:number, height:number, count:number, spans:{x:number,w:number}[]}}
+     *   null when nothing is drawable
      */
     nativeLine(text, o) {
-        const glyphs = [];
-        for (let u = 0; u < text.length; u++) { const g = o.glyphOf(text[u]); if (g) glyphs.push(g); }
-        if (!glyphs.length) return null;
-        const total = glyphs.length * o.w0;
+        const fw = o.fw || o.w0;
+        const recs = [];
+        for (let u = 0; u < text.length; u++) {
+            const g = o.glyphOf(text[u]);
+            if (!g) continue;
+            const sp = (o.spanOf && o.spanOf(text[u])) || { x0: 0, w: o.w0 };
+            recs.push({ g, x0: sp.x0, w: sp.w });
+        }
+        if (!recs.length) return null;
+        if (o.reverse) recs.reverse();
+        let total = 0;
+        const spans = recs.map(r => { const sp = { x: total, w: r.w }; total += r.w; return sp; });
         let pixels = Array.from({ length: o.h0 }, () => new Array(total).fill(false));
-        glyphs.forEach((bitmap, i) => {
+        recs.forEach((r, i) => {
             for (let row = 0; row < o.h0; row++) {
-                for (let col = 0; col < o.w0; col++) {
-                    if ((bitmap[row] >> (7 - col)) & 1) pixels[row][i * o.w0 + col] = true;
+                for (let col = 0; col < r.w; col++) {
+                    if (BitmapText.bit(r.g, fw, r.x0 + col, row)) pixels[row][spans[i].x + col] = true;
                 }
             }
         });
@@ -141,37 +154,45 @@ const BitmapText = {
             const s = o.style(pixels, total, o.h0, !!o.bold, !!o.italic);
             pixels = s.pixels; width = s.width; height = s.height;
         }
-        return { pixels, width, height, count: glyphs.length };
+        return { pixels, width, height, count: recs.length, spans };
     },
 
     /**
-     * Stretch a native line to character size W x H with spacing sx (see the header).
-     * @param {{pixels:boolean[][], width:number, height:number, count:number}} native
+     * Stretch a native line to character size W x H with spacing sx (see the header). W is the stretched width of a FULL cell
+     * (`w0` wide); a narrower letter of width wi gets a slot of round(wi * W / w0) columns, each letter rounded on its own so it has
+     * the same shape wherever it stands. Slots start `slot + sx` apart (at least 1). With every letter w0 wide this is exactly the
+     * fixed-slot layout the Type on canvas feature has always had.
+     * @param {{pixels:boolean[][], width:number, height:number, count:number, spans?:{x:number,w:number}[]}} native
      * @param {number} w0 - the font's glyph width
      * @param {number} h0 - the font's glyph height
-     * @returns {{pixels:boolean[][], width:number, height:number}}
+     * @returns {{pixels:boolean[][], width:number, height:number, xs:number[]}} xs = where each slot starts (count + 1 entries,
+     *   the last being where the next letter would start)
      */
     stretchLine(native, w0, h0, W, H, sx) {
-        const adv = Math.max(1, W + sx);
         const n = native.count;
+        const spans = native.spans || Array.from({ length: n }, (_, i) => ({ x: i * w0, w: w0 }));
+        const slot = spans.map(sp => Math.max(1, Math.round(sp.w * W / w0)));
+        const xs = [0];
+        for (let i = 0; i < n; i++) xs.push(xs[i] + Math.max(1, slot[i] + sx));
         // The last slot also carries whatever the styling spilled to the right of the glyph cells (italic, bold).
-        const lastSrcCols = native.width - (n - 1) * w0;
-        const lastSlot = Math.max(1, Math.ceil(lastSrcCols * W / w0));
-        const width = (n - 1) * adv + lastSlot;
+        const lastSrcCols = native.width - spans[n - 1].x;
+        const lastSlot = Math.max(1, Math.ceil(lastSrcCols * slot[n - 1] / spans[n - 1].w));
+        const width = xs[n - 1] + lastSlot;
         const out = Array.from({ length: H }, () => new Array(width).fill(false));
         for (let i = 0; i < n; i++) {
-            const slotW = i === n - 1 ? lastSlot : W;
+            const slotW = i === n - 1 ? lastSlot : slot[i];
             for (let c = 0; c < slotW; c++) {
-                const srcX = i * w0 + Math.floor(c * w0 / W);
+                const srcX = spans[i].x + Math.floor(c * spans[i].w / slot[i]);
                 if (srcX >= native.width) continue;
-                const x = i * adv + c;
+                const x = xs[i] + c;
+                if (x >= width) continue;
                 for (let y = 0; y < H; y++) {
                     const srcY = Math.min(native.height - 1, Math.floor(y * h0 / H));
                     if (native.pixels[srcY][srcX]) out[y][x] = true;
                 }
             }
         }
-        return { pixels: out, width, height: H };
+        return { pixels: out, width, height: H, xs };
     },
 
     /**
@@ -194,7 +215,7 @@ const BitmapText = {
             const before = [0];
             let k = 0;
             for (let u = 0; u < line.length; u++) { if (o.glyphOf(line[u])) k++; before.push(k); }
-            return { text: line, mask, before, y0: i * pitch, x0: 0 };
+            return { text: line, mask, before, y0: i * pitch, x0: 0, xs: mask ? mask.xs : [0] };
         });
         let crossMax = 0, total = 0;
         for (const l of lines) {
@@ -230,13 +251,31 @@ const BitmapText = {
      * @returns {{x:number, y:number, w:number, h:number}}
      */
     caretRect(lay, line, col, o) {
-        const barW = Math.max(1, Math.round(o.W / 8));
+        const wide = o.w0 > 8 ? o.w0 : 8;
+        const barW = Math.max(1, Math.round(o.W / wide));
         const adv = Math.max(1, o.W + o.sx);
         const pitch = Math.max(1, o.H + o.sy);
         if (!lay) return { x: 0, y: line * pitch, w: barW, h: o.H };
         const l = lay.lines[Helpers.clamp(line, 0, lay.lines.length - 1)];
         const c = Helpers.clamp(col, 0, l.before.length - 1);
-        return { x: l.x0 + l.before[c] * adv, y: l.y0, w: barW, h: o.H };
+        const slot = l.before[c];
+        return { x: l.x0 + (l.xs && l.xs[slot] !== undefined ? l.xs[slot] : slot * adv), y: l.y0, w: barW, h: o.H };
+    },
+
+    /**
+     * Which caret slot (0 .. the line's drawable-glyph count) a point `x` columns from the start of a line is nearest to; a point
+     * half way between two slots goes to the right one. With equal advances this is Math.round(x / adv), clamped.
+     * @param {{xs:number[]}} line - a layout line
+     * @param {number} x - relative to the line's own start
+     */
+    slotFromX(line, x) {
+        const xs = line.xs;
+        let best = 0, bestD = Infinity;
+        for (let k = 0; k < xs.length; k++) {
+            const d = Math.abs(x - xs[k]);
+            if (d <= bestD) { best = k; bestD = d; }
+        }
+        return best;
     }
 };
 
