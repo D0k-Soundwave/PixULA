@@ -135,3 +135,5 @@ Declined to make ZX Paintbrush sample files (layout unverified, on the try-this 
 all characters. Fill from font uses the Text tool's list. Font Editor Undo: yes. Map fill: inside the clicked letter only.
 10C2 now = shader in the one-character view + export summary + Undo + Shade all to fit; 10C2b = the all-characters map view, map shader, manual.
 
+10C3 owner decisions (2026-10-13): keep the zoom when the font height changes; refuse left-out characters; fix the size-jump bug. 10C3 = engine, 10C3b =
+exposure (font list, labels, docs).

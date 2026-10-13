@@ -875,3 +875,13 @@ Known limits: drawing pixels with the keyboard alone is not possible (also true 
 512 map never reaches, so a classic 8 x 8 font (128 px map) is the one that shows it.
 Next: 10C3 (big fonts in the Text tool and Type on canvas): Opus plan review first.
 
+## Batch 10C3 plan review and owner answers (2026-10-13)
+Opus (second try; the first hit the session limit): CHANGE then go; split 10C3 (engine, invisible) / 10C3b (exposure). Corrections: advance =
+width - 8*(left+right), x0 = 8*left (NOT (cols-l-r)*8, which breaks 4/6-wide classic fonts); span helper in BitmapText not GlyphBits; glyphOf keeps its
+contract and returns null for a fully shaded character; spanOf / fw options; one multi-byte pixel reader; _buildLineMask calls nativeLine;
+layout gets per-line xs (slot starts) + slotFromX; stretch per letter Wi = max(1, round(wi*W/w0)); pin text rendering of saved 4/6/8 fonts FIRST
+(only ZX ROM is pinned today); _updatePreviewIfActive divides by h0 not 8; Size list = k*h0; labels via Helpers.localizedMessage; rewrite
+font-editor-big-font spec 'not offered by the Text tool'.
+OWNER: switching font height keeps the zoom; left-out characters are refused like missing ones; FIX the existing size-jump bug (two-line / vertical
+text at Size 16 lands at half size then jumps) and re-record the 10A pin on purpose. Defaults: dots under shading not drawn; Character width = a
+full-width letter; per-letter rounding; caret bar one source pixel wide.
