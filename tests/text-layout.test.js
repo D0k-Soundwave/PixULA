@@ -46,6 +46,7 @@ loadModule('js/data/zx-rom-font.js');
 loadModule('js/utils/mask-ops.js');
 loadModule('js/tools/tool-base.js');
 loadModule('js/tools/tool-manager.js');
+loadModule('js/utils/bitmap-text.js');
 loadModule('js/tools/text-tool.js');
 
 const tt = new global.TextTool();

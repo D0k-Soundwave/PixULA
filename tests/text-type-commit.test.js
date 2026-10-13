@@ -23,6 +23,7 @@ loadModule('js/data/zx-rom-font.js');
 loadModule('js/utils/mask-ops.js');
 loadModule('js/utils/coverage-ops.js');
 loadModule('js/utils/snap-grid.js');
+loadModule('js/utils/glyph-bits.js');
 loadModule('js/utils/bitmap-text.js');
 loadModule('js/core/color-manager.js');
 loadModule('js/core/layer-manager.js');
@@ -124,6 +125,64 @@ for (const mode of MODES) {
     check(`${mode} / ${label}: ...in one undo step, session closed`, UndoRedo.getUndoCount() === undoBefore + 1 && !tool.hasPending);
     StateManager.setInverse(false); StateManager.setDrawMode('normal');
   }
+}
+
+// -- a BIG PROPORTIONAL library font: commit == stamp (Batch 10C3) --------------------------------------------------------------------
+{
+  const G = GlyphBits;
+  const glyphs = Array.from({ length: 96 }, () => new Uint8Array(32));
+  const px = (code, x, y) => G.setPixel(glyphs[code - 32], 16, x, y, true);
+  for (let y = 0; y < 16; y++) { px(65, 0, y); px(65, 15, y); px(87, 7, y); px(87, 8, y); px(105, 8, y); px(105, 11, y); px(105, 3, y); }
+  for (let x = 0; x < 16; x++) { px(65, x, 0); px(65, x, 15); }
+  const shade = glyphs.map(() => [0, 0]);
+  shade[105 - 32] = [1, 0];
+  const bigFont = { name: 'P', width: 16, height: 16, firstCode: 32, glyphs, shade };
+  global.FontService = { getLibraryFont: (n) => (n === 'P' ? bigFont : null), listLibrary: () => ['P'] };
+  for (const mode of MODES) {
+    for (const [label, opts, setup] of VARIANTS) {
+      // Size 16 on a 16 high font is 1x: the stamp. 16 x 16 characters, no spacing, is the same picture typed.
+      reset(opts);
+      tool.setFontFamily('zxfont:P');
+      tool.setText('AiW'); tool.setTextSize(16); tool.setTextAnchor('top-left');
+      let t = enter(mode, true); setup();
+      tool._createPreviewStamp(10, 6);
+      SelectionService.commitActiveStamp();
+      const viaStamp = snap(LayerManager.layers[1]);
+
+      reset(opts);
+      tool.setFontFamily('zxfont:P');
+      tool.setTypeOnCanvas(true); tool.setCharWidth(16); tool.setCharHeight(16); tool.setCharSpacing(0); tool.setLineSpacing(0);
+      t = enter(mode, true); setup();
+      const undoBefore = UndoRedo.getUndoCount();
+      tool.onPointerDown(10, 6, { button: 0 });
+      type('AiW');
+      tool.commitPending();
+      check(`big proportional font, ${mode} / ${label}: Enter leaves what the committed stamp leaves`, snap(LayerManager.layers[1]) === viaStamp);
+      check(`big proportional font, ${mode} / ${label}: one undo step`, UndoRedo.getUndoCount() === undoBefore + 1 && !tool.hasPending);
+      StateManager.setInverse(false); StateManager.setDrawMode('normal');
+    }
+  }
+  // typing: a narrow letter's slot, the caret and a press on the text
+  reset();
+  tool.setFontFamily('zxfont:P');
+  tool.setTypeOnCanvas(true); tool.setCharWidth(16); tool.setCharHeight(16); tool.setCharSpacing(0); tool.setLineSpacing(0);
+  enter('standard_ula', false);
+  tool.onPointerDown(10, 6, { button: 0 });
+  type('AiW');
+  const b = tool._typing.build();
+  check('Ai W: 16 + 8 + 16 = 40 wide, 16 high', b.lay.width === 40 && b.lay.height === 16, `${b.lay.width}x${b.lay.height}`);
+  check('the caret sits after W (x 40)', b.caret.x === 40 && b.caret.h === 16);
+  check('a press in the middle of the narrow i (picture x 10 + 16 + 4) puts the caret between i and W or at i, the nearer edge',
+    [1, 2].includes(BitmapText.lineCol('AiW', tool._typing.slotAt(10 + 16 + 3, 8)).col));
+  check('a press at the far right edge is after the last letter', tool._typing.slotAt(10 + 39, 8) === 3);
+  const before = notices.length;
+  type('A\u00e9i');
+  check('typing a character the font lacks is refused with a notice', tool._typing.text === 'Ai' && notices.length === before + 1);
+  tool.cancelPending();
+  tool.setTypeOnCanvas(false);
+  reset();
+  tool.setFontFamily('ZX ROM');
+  global.FontService = undefined;
 }
 
 // -- stretched size, spacing, two lines ---------------------------------------------------------------------------------------------

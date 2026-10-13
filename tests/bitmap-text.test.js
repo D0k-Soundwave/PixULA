@@ -52,7 +52,7 @@ for (const [label, text, bold, italic] of [['plain', 'Hi', false, false], ['bold
     tool.setText(text);
     tool._fontBold = bold; tool._fontItalic = italic;
     tool.setFontFamily('ZX ROM');
-    const old = tool._rasterizeAtFixedSize(text, 8 * k * text.split('\n').length);
+    const old = tool._rasterizeAtFixedSize(text, 8 * k);
     const lay = BitmapText.layout(text, O({ W: 8 * k, H: 8 * k, bold, italic }));
     check(`${label}, k=${k}: layout equals the Size option's stretch`, lay && old && lay.width === old.width && lay.height === old.height && bits(lay) === bits(old),
       `${lay && lay.width}x${lay && lay.height} vs ${old && old.width}x${old && old.height}`);

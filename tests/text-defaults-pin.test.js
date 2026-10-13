@@ -24,6 +24,7 @@ global.document = {
   }
 };
 loadModule('js/tools/tool-base.js');
+loadModule('js/utils/bitmap-text.js');
 loadModule('js/tools/text-tool.js');
 
 let last = null;
@@ -54,7 +55,11 @@ for (const size of [8, 16]) for (const layout of ['horizontal', 'vertical-down']
   }
 }
 const got = digest.digest('hex');
-const EXPECTED = 'f6d5874efdfd3abb83c09306d3bea5e2c8df94d0';
+// RE-RECORDED on purpose in Batch 10C3 (owner asked for the size-jump bug to be fixed). It was 'f6d5874efdfd3abb83c09306d3bea5e2c8df94d0'.
+// Why it changed: at Size 16 the first stamp of TWO-LINE or VERTICAL text was made at half size (the scale was Size / block height, so
+// every extra line halved it) and only jumped to full size when any option changed. The scale is now Size / the font's cell height.
+// Checked: the Size 8 cases alone give the same digest (07e1584a9d5f1f993ff2fff0c4a4636cf24fead7) before and after; only Size 16 moved.
+const EXPECTED = '01e53e50d76416759f83c4c26a6921d85f3725fb';
 check('576 combinations of the old options still make the same masks at the same places', got === EXPECTED, got);
 check('there were 576 of them', lines.length === 576);
 

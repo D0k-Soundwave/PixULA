@@ -86,11 +86,6 @@ class TextToolClass extends ToolBase {
     return String(text == null ? '' : text).replace(/\r\n?/g, '\n').split('\n');
   }
 
-  /** True for a saved font bigger than 8 x 8 (CHX big font): the Text tool cannot draw it yet. @private */
-  static _isBigFont(font) {
-    return !!font && (font.width > 8 || (font.height !== undefined && font.height > 8));
-  }
-
   /** True for the layouts that stack glyphs into a column. @private */
   static _isVertical(layout) {
     return layout === 'vertical-down' || layout === 'vertical-up';
@@ -208,6 +203,7 @@ class TextToolClass extends ToolBase {
     this._lineSpacing     = 0;
     // (a quiet stand-in where the typing module is not loaded, as in tests of other things)
     this._typing          = window.TextTyping ? new TextTyping(this) : { active: false, preview() {}, cancel() {}, commit() { return true; } };
+    this._fontH0          = 8;           // cell height of the font the character size was set for (keeps the zoom on a font change)
     this._textBackground  = 'transparent';  // 'overlap' = Clear background: the box's clear dots are written too
     this._fixedSize       = 16;   // px height; always > 0 (selected from dropdown)
     this._cachedFonts     = null;
@@ -271,9 +267,16 @@ class TextToolClass extends ToolBase {
   setFontFamily(v) {
     this._fontFamily = v || 'ZX ROM';
     this._disengaged = false;
-    // A font with other-width glyphs keeps the typed letters' proportions: width follows height / 8
+    // Keep the zoom: the character size is a multiple of the font's own cell, so a switch to a font of another height carries the
+    // same multiple (ZX ROM stretched to 16 high is 2x; a 16 high font then comes up 32 high). A font with other-width glyphs keeps
+    // the letters' proportions: width follows height * w0 / h0.
     const g = this._glyphSource();
-    if (g) this._charW = Helpers.clamp(Math.round(g.w0 * this._charH / 8), 1, 64);
+    if (g) {
+      const zoom = this._charH / (this._fontH0 || 8);
+      this._charH = Helpers.clamp(Math.round(zoom * g.h0), 1, 64);
+      this._charW = Helpers.clamp(Math.round(g.w0 * this._charH / g.h0), 1, 64);
+    }
+    this._fontH0 = g ? g.h0 : 8;
     this._updatePreviewIfActive();
   }
 
@@ -370,24 +373,30 @@ class TextToolClass extends ToolBase {
   getLineSpacing() { return this._lineSpacing; }
   setLineSpacing(v) { const n = Math.round(Number(v)); this._lineSpacing = Helpers.clamp(Number.isFinite(n) ? n : 0, -8, 32); this._updatePreviewIfActive(); }
 
-  /** The glyph source of the current bitmap font: { glyphOf(char) -> row bytes | null, w0, h0 }, or null. @private */
-  _glyphSource() {
-    const family = this._fontFamily;
+  /**
+   * The glyph source of a bitmap font family: { glyphOf(char) -> row bytes | null, spanOf, fw, w0, h0, proportional }, or null
+   * (ZX ROM has full 8 x 8 cells; a library font brings its own size and, if it has shading, its letters' saved widths).
+   * @private
+   */
+  _glyphSourceFor(family) {
     if (family === 'ZX ROM') {
-      return { glyphOf: (c) => this.charBitmaps[c] || null, w0: 8, h0: 8 };
+      return { glyphOf: (c) => this.charBitmaps[c] || null, spanOf: null, fw: 8, w0: 8, h0: 8, proportional: false };
     }
     if (!String(family).startsWith('zxfont:')) return null;
     const font = window.FontService ? FontService.getLibraryFont(family.slice('zxfont:'.length)) : null;
-    if (!font || TextToolClass._isBigFont(font)) return null;
-    return { glyphOf: (c) => { const i = c.charCodeAt(0) - font.firstCode; return i >= 0 && i < font.glyphs.length ? font.glyphs[i] : null; },
-             w0: font.width, h0: 8 };
+    return font ? BitmapText.fontSource(font) : null;
+  }
+
+  /** The glyph source of the current bitmap font. @private */
+  _glyphSource() {
+    return this._glyphSourceFor(this._fontFamily);
   }
 
   /** Everything BitmapText.layout needs for the text being typed. @private */
   _typeLayoutOptions() {
     const g = this._glyphSource() || { glyphOf: () => null, w0: 8, h0: 8 };
     return {
-      glyphOf: g.glyphOf, w0: g.w0, h0: g.h0, W: this._charW, H: this._charH, sx: this._charSpacing, sy: this._lineSpacing,
+      glyphOf: g.glyphOf, spanOf: g.spanOf || null, fw: g.fw || g.w0, w0: g.w0, h0: g.h0, W: this._charW, H: this._charH, sx: this._charSpacing, sy: this._lineSpacing,
       align: this._textAlign, bold: this._fontBold, italic: this._fontItalic,
       style: (p, w, h, b, i) => this._styleBitmapMask(p, w, h, b, i)
     };
@@ -559,15 +568,18 @@ class TextToolClass extends ToolBase {
            (typeof family === 'string' && family.startsWith('zxfont:'));
   }
 
-  /** Saved-font select entries ({ value, label }). @private */
+  /** Saved-font select entries ({ value, label }): "Name (16x16)" or "Name (16x16, proportional)". @private */
   _libraryFontOptions() {
     if (!window.FontService) return [];
-    // Big (CHX, wider or taller than 8) fonts are for the Font Editor and .chx export until the Text tool learns them
-    return FontService.listLibrary().filter(name => !TextToolClass._isBigFont(FontService.getLibraryFont(name))).map(name => {
+    return FontService.listLibrary().map(name => {
       const font = FontService.getLibraryFont(name);
+      if (!font) return { value: 'zxfont:' + name, label: name };
+      const h = font.height === undefined ? 8 : font.height;
+      const prop = BitmapText.fontSource(font).proportional;
       return {
         value: 'zxfont:' + name,
-        label: font ? `${name} (${font.width}×8)` : name
+        label: Helpers.localizedMessage(prop ? 'text.fontLabelProportional' : 'text.fontLabel',
+          prop ? '{name} ({w}x{h}, proportional)' : '{name} ({w}x{h})', { name, w: font.width, h })
       };
     });
   }
@@ -741,7 +753,7 @@ class TextToolClass extends ToolBase {
     if (this._fixedSize > 0) {
       if (this.isBitmapFont(this._fontFamily)) {
         const src = this._buildTextMask(text, this._fontFamily);
-        const scale = Math.max(1, Math.round(this._fixedSize / 8));
+        const scale = Math.max(1, Math.round(this._fixedSize / this._fontCellHeight(this._fontFamily)));
         if (src) {
           targetW = src.width * scale;
           targetH = src.height * scale;
@@ -761,11 +773,19 @@ class TextToolClass extends ToolBase {
     if (this.isBitmapFont(this._fontFamily)) {
       const src = this._buildTextMask(text, this._fontFamily);
       if (!src) return null;
-      const scale = Math.max(1, Math.round(targetHeight / src.height));
+      // The Size is a multiple of the font's own cell height - NOT of the block's height, which grows with every extra line (or
+      // letter, in a column): that made two-line and vertical text land at half size and jump when any option changed.
+      const scale = Math.max(1, Math.round(targetHeight / this._fontCellHeight(this._fontFamily)));
       return this._scaleToFit(src.pixels, src.width, src.height,
         src.width * scale, src.height * scale);
     }
     return this._rasterizeWithFont(text, this._fontFamily, targetHeight, this._fontBold, this._fontItalic);
+  }
+
+  /** Height of one cell of a bitmap font (8 for ZX ROM and the classic sizes). @private */
+  _fontCellHeight(family) {
+    const g = this._glyphSourceFor(family);
+    return g ? g.h0 : 8;
   }
 
   _scaleToFit(pixels, srcW, srcH, maxW, maxH) {
@@ -866,27 +886,16 @@ class TextToolClass extends ToolBase {
   _buildTextMask(text, family = this._fontFamily, bold = this._fontBold,
                  italic = this._fontItalic, layout = this._textLayout,
                  align = this._textAlign) {
-    const charH = 8;
-    let charW = 8;
-    let glyphOf; // char -> row byte array (MSB = left), or null
-
-    if (family === 'ZX ROM' || !family.startsWith('zxfont:')) {
-      glyphOf = (c) => this.charBitmaps[c] || null;
-    } else {
-      const font = window.FontService
-        ? FontService.getLibraryFont(family.slice('zxfont:'.length))
-        : null;
-      if (!font || TextToolClass._isBigFont(font)) return null;
-      charW = font.width;
-      glyphOf = (c) => {
-        const i = c.charCodeAt(0) - font.firstCode;
-        return i >= 0 && i < font.glyphs.length ? font.glyphs[i] : null;
-      };
-    }
+    const src = (family === 'ZX ROM' || !family.startsWith('zxfont:'))
+      ? this._glyphSourceFor('ZX ROM')
+      : this._glyphSourceFor(family);
+    if (!src) return null;
+    const charH = src.h0;
+    const charW = src.w0;
 
     const vertical = TextToolClass._isVertical(layout);
     const masks = TextToolClass._splitLines(text)
-      .map((line) => this._buildLineMask(line, glyphOf, charW, charH, bold, italic, layout));
+      .map((line) => this._buildLineMask(line, src, bold, italic, layout));
 
     // Rows advance by the cell height exactly - ZX ROM cells already carry
     // their own spacing, and this is how the Spectrum stacks its text rows.
@@ -905,36 +914,28 @@ class TextToolClass extends ToolBase {
    *   null when the line has no drawable glyph
    * @private
    */
-  _buildLineMask(text, glyphOf, charW, charH, bold, italic, layout) {
-    // The glyphs that will actually be drawn, in PLACEMENT order.
-    const glyphs = [];
-    for (let i = 0; i < text.length; i++) {
-      const bitmap = glyphOf(text[i]);
-      if (bitmap) glyphs.push(bitmap);
-    }
-    if (!glyphs.length) return null;
-    // Both backwards layouts are the same operation on the ORDER of the
-    // glyphs; the letterforms themselves are never touched, which is what
-    // separates 'reversed' from a mirror.
-    if (layout === 'reversed' || layout === 'vertical-up') glyphs.reverse();
-
+  _buildLineMask(text, src, bold, italic, layout) {
+    // Both backwards layouts are the same operation on the ORDER of the glyphs; the letterforms themselves are never touched,
+    // which is what separates 'reversed' from a mirror.
+    const reverse = layout === 'reversed' || layout === 'vertical-up';
     if (TextToolClass._isVertical(layout)) {
-      return this._stackGlyphs(glyphs, charW, charH, bold, italic);
-    }
-
-    const totalWidth = glyphs.length * charW;
-    const pixels = Array.from({ length: charH }, () => new Array(totalWidth).fill(false));
-    let curX = 0;
-    for (const bitmap of glyphs) {
-      for (let row = 0; row < charH; row++) {
-        for (let col = 0; col < charW; col++) {
-          if ((bitmap[row] >> (7 - col)) & 1) pixels[row][curX + col] = true;
-        }
+      // the glyphs that will actually be drawn, in PLACEMENT order
+      const recs = [];
+      for (let i = 0; i < text.length; i++) {
+        const g = src.glyphOf(text[i]);
+        if (!g) continue;
+        const sp = (src.spanOf && src.spanOf(text[i])) || { x0: 0, w: src.w0 };
+        recs.push({ g, x0: sp.x0, w: sp.w });
       }
-      curX += charW;
+      if (!recs.length) return null;
+      if (reverse) recs.reverse();
+      return this._stackGlyphs(recs, src.fw || src.w0, src.h0, bold, italic);
     }
-    if (!bold && !italic) return { pixels, width: totalWidth, height: charH };
-    return this._styleBitmapMask(pixels, totalWidth, charH, bold, italic);
+    const native = BitmapText.nativeLine(text, {
+      glyphOf: src.glyphOf, spanOf: src.spanOf, fw: src.fw || src.w0, w0: src.w0, h0: src.h0, reverse,
+      bold, italic, style: (p, w, h, b, it) => this._styleBitmapMask(p, w, h, b, it)
+    });
+    return native ? { pixels: native.pixels, width: native.width, height: native.height } : null;
   }
 
   /**
@@ -947,21 +948,21 @@ class TextToolClass extends ToolBase {
    * shears it by up to 13px and smears the whole thing into a diagonal streak
    * instead of slanting each letter by 2px. Pinned by tests/text-layout.test.js.
    *
-   * @param {Array<Uint8Array|number[]>} glyphs - row bytes, MSB = left
-   * @param {number} charW
+   * @param {Array<{g: Uint8Array, x0: number, w: number}>} recs - glyph bytes and the saved span of each letter
+   * @param {number} fw - row width of the glyph bytes
    * @param {number} charH
    * @param {boolean} bold
    * @param {boolean} italic
    * @returns {{ pixels: boolean[][], width: number, height: number }}
    * @private
    */
-  _stackGlyphs(glyphs, charW, charH, bold, italic) {
-    const cells = glyphs.map((bitmap) => {
+  _stackGlyphs(recs, fw, charH, bold, italic) {
+    const cells = recs.map((r) => {
       const pixels = Array.from({ length: charH }, (_, row) =>
-        Array.from({ length: charW }, (_, col) => !!((bitmap[row] >> (7 - col)) & 1)));
+        Array.from({ length: r.w }, (_, col) => !!BitmapText.bit(r.g, fw, r.x0 + col, row)));
       return (bold || italic)
-        ? this._styleBitmapMask(pixels, charW, charH, bold, italic)
-        : { pixels, width: charW, height: charH };
+        ? this._styleBitmapMask(pixels, r.w, charH, bold, italic)
+        : { pixels, width: r.w, height: charH };
     });
 
     const width = cells.reduce((w, c) => Math.max(w, c.width), 0);
@@ -1294,7 +1295,10 @@ class TextToolClass extends ToolBase {
    * @returns {Promise<number[]>}
    */
   async getSizesForFont(fontFamily = this._fontFamily) {
-    if (this.isBitmapFont(fontFamily)) return [8, 16, 24, 32, 48, 64];
+    if (this.isBitmapFont(fontFamily)) {
+      const h0 = this._fontCellHeight(fontFamily);
+      return h0 === 8 ? [8, 16, 24, 32, 48, 64] : [1, 2, 3, 4].map(k => k * h0);
+    }
     if (this._sizeCache.has(fontFamily)) return this._sizeCache.get(fontFamily);
     const sizes = this._qualityScan(fontFamily);
     this._sizeCache.set(fontFamily, sizes);
