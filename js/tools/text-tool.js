@@ -116,7 +116,7 @@ class TextToolClass extends ToolBase {
     { type: 'textarea', key: 'textContent', setter: 'setText', i18n: 'opt.text',
       placeholderI18n: 'opt.textPlaceholder', rows: 3, value: '', preset: false,
       showIf: { key: 'typeOnCanvas', equals: false } },
-    { type: 'select', key: 'fontFamily', setter: 'setFontFamily', i18n: 'opt.font', value: 'ZX ROM',
+    { type: 'select', key: 'fontFamily', setter: 'setFontFamily', i18n: 'opt.font', value: 'ZX ROM', applyFirst: true,
       options: [{ value: 'ZX ROM', i18n: 'opt.font.zxRom', label: 'ZX ROM (8\u00d78 bitmap)' }],
       dynamic: '_enumerateFonts' },
     { type: 'select', key: 'textSize', setter: 'setTextSize', i18n: 'opt.size', value: 16,
@@ -277,7 +277,7 @@ class TextToolClass extends ToolBase {
       this._charH = Helpers.clamp(Math.round(zoom * g.h0), 1, 64);
       this._charW = Helpers.clamp(Math.round(g.w0 * this._charH / g.h0), 1, 64);
     }
-    this._fontH0 = g ? g.h0 : 8;
+    if (g) this._fontH0 = g.h0;   // a system font has no cell: the zoom is remembered for the bitmap font you come back to
     this._updatePreviewIfActive();
   }
 
@@ -411,6 +411,12 @@ class TextToolClass extends ToolBase {
 
   /** Open a typing session at a picture point (the press, dropped to the snap cell when Snap is on). @private */
   _startTyping(x, y) {
+    // Nowhere to draw (no layer chosen, or it is locked): say so now, not after the text has been typed
+    if (window.SelectionService && SelectionService.activeWriteTarget && !SelectionService.activeWriteTarget()) {
+      EventBus.emit(EVENTS.STATUS_NOTICE, { text: Helpers.localizedMessage('text.cannotDraw',
+        'There is no unlocked drawing layer to draw the text on.') });
+      return;
+    }
     if (window.StateManager && StateManager.getGridSnap()) {
       const st = StateManager.getGridSnapSize();
       x = SnapGrid.floor(x, st.w);
@@ -683,7 +689,11 @@ class TextToolClass extends ToolBase {
 
   deactivate() {
     // Typed text is drawn when you leave the tool (as a waiting figure is), not lost
-    if (this._typing && this._typing.active) this.commitPending();
+    if (this._typing && this._typing.active) {
+      this.commitPending();
+      // It could not be drawn (the layer is locked): the tool is going away, so the session cannot stay open behind it
+      if (this._typing.active) this.cancelPending();
+    }
     this._textStampActive = false;
     super.deactivate();
   }

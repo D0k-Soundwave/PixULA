@@ -182,3 +182,22 @@ test('Ctrl+S while typing is the app\'s Save, not the browser\'s', async ({ page
     expect(saved).toBeGreaterThanOrEqual(0);
     expect(await page.evaluate(() => ToolManager.getCurrentTool().hasPending), 'the typed text was drawn before saving').toBe(false);
 });
+
+test('letters typed after touching an option still go into the text (not tool shortcuts)', async ({ page }) => {
+    await setUp(page);
+    await clickAt(page, 40, 40);
+    await page.keyboard.type('abc');
+    await page.locator('#opt-charWidth').focus();          // an option takes the focus
+    await page.keyboard.type('d');
+    expect(await page.evaluate(() => ToolManager.getCurrentTool().id), 'still the Text tool').toBe('text');
+    expect(await page.evaluate(() => ToolManager.getCurrentTool()._typing.text)).toBe('abcd');
+});
+
+test('the hidden field sits where the text starts, in page coordinates (for the IME window)', async ({ page }) => {
+    await setUp(page);
+    await clickAt(page, 60, 50);
+    const want = await pixelPoint(page, 60, 50);
+    const got = await page.evaluate(() => { const r = document.getElementById('canvas-text-entry').getBoundingClientRect(); return { x: r.x, y: r.y }; });
+    expect(Math.abs(got.x - want.x)).toBeLessThan(8);
+    expect(Math.abs(got.y - want.y)).toBeLessThan(8);
+});

@@ -1572,7 +1572,10 @@ PresetServiceClass.applyToolOptions = function(toolId, values) {
     const schema = tool && tool.constructor ? tool.constructor.optionsSchema : null;
     if (!tool || !schema || !values) return;
 
-    for (const entry of schema) {
+    // A row marked `applyFirst` is restored before the others (the Text tool's font: its setter rescales the character size and
+    // refuses Type on canvas for a non-bitmap font, so both must see the font the preset was saved with).
+    const ordered = [...schema.filter(e => e && e.applyFirst), ...schema.filter(e => !(e && e.applyFirst))];
+    for (const entry of ordered) {
         if (!entry || !entry.key || entry.preset === false) continue;
         if (!Object.prototype.hasOwnProperty.call(values, entry.key)) continue;
 
