@@ -2,6 +2,7 @@
 const { installStubs, loadModule, check, summary } = require('./helpers/zx-stubs');
 
 installStubs();
+loadModule('js/utils/glyph-bits.js');
 loadModule('js/utils/font-codec.js');
 
 function makeDoc(width, firstCode, count, name = 'test') {
