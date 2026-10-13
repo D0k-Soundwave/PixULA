@@ -190,6 +190,114 @@ const FontRasterizer = {
     },
 
     /**
+     * Big-font fill (Batch 10C): rasterize a character set into cells of any size from 8 x 8 up to 32 x 32 (multiples of 8),
+     * from an installed font by NAME (what the Text tool's font list gives) or from font file bytes.
+     *
+     * Same method as rasterize() - supersampled coverage, one shared baseline - with these differences: the set's ink block
+     * is scaled to `heightPercent` of the cell height (ZX Paintbrush: "the height in percent the letters of the font shall
+     * cover the character fields"), up as well as down; and each glyph is placed by `align` (left / centre / right) instead of
+     * always centred. With `proportional`, also work out how many whole 8-pixel columns each character leaves empty on the
+     * left and right (GlyphBits.autoShade), so a narrow 'i' is saved narrower than a 'W'.
+     * @param {{family?:string, bytes?:ArrayBuffer}} source
+     * @param {{cellWidth:number, cellHeight:number, heightPercent?:number, align?:string, firstCode:number, count:number, proportional?:boolean}} o
+     * @returns {Promise<{glyphs:Uint8Array[], shade:(number[][]|null)}>}
+     */
+    async rasterizeCells(source, o) {
+        const W = o.cellWidth, H = o.cellHeight;
+        const sizeOk = (n) => n === 8 || n === 16 || n === 24 || n === 32;
+        if (!sizeOk(W) || !sizeOk(H)) throw new Error('FontRasterizer: cell size must be 8, 16, 24 or 32');
+        if (!(o.count >= 0)) throw new Error('FontRasterizer: count must be >= 0');
+        const percent = Helpers.clamp(Number(o.heightPercent) || 100, 10, 100);
+        const align = o.align === 'right' ? 'right' : o.align === 'centre' ? 'centre' : 'left';
+
+        let face = null;
+        let fam;
+        if (source && source.bytes) {
+            face = new FontFace(FAMILY, source.bytes);
+            await face.load();
+            document.fonts.add(face);
+            fam = FAMILY;
+        } else if (source && typeof source.family === 'string' && source.family) {
+            fam = '"' + source.family.split('"').join('').split(String.fromCharCode(92)).join('') + '"';
+        } else {
+            throw new Error('FontRasterizer: a font family or font bytes are needed');
+        }
+
+        try {
+            const ss = SUPERSAMPLE;
+            const width = W * ss, height = H * ss;
+            const canvas = Helpers.createCanvas(width, height);
+            const ctx = canvas.getContext('2d');
+            ctx.textBaseline = 'alphabetic';
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#000';
+
+            const chars = [];
+            for (let i = 0; i < o.count; i++) chars.push(String.fromCharCode(o.firstCode + i));
+
+            // Scale so the whole set's ink block is `percent` of the cell height (re-measured, as rasterize() does)
+            let renderSize = height * percent / 100;
+            let bounds = this._setBounds(ctx, chars, renderSize, fam);
+            const inkHeight = bounds.ascent + bounds.descent;
+            const target = height * percent / 100;
+            if (inkHeight > 0) {
+                renderSize *= target / inkHeight;
+                bounds = this._setBounds(ctx, chars, renderSize, fam);
+            }
+            ctx.font = `${renderSize}px ${fam}`;
+
+            const slack = Math.max(0, height - (bounds.ascent + bounds.descent));
+            const baseline = Helpers.clamp(ss * Math.round((slack / 2 + bounds.ascent) / ss), 0, height);
+
+            const fullyCovered = ss * ss * 255;
+            const glyphs = [];
+            const shade = o.proportional ? [] : null;
+            for (const ch of chars) {
+                ctx.clearRect(0, 0, width, height);
+                const m = this._metrics(ctx, ch, renderSize);
+                const inkWidth = m.right - m.left;
+                let inkLeft;
+                if (align === 'right') inkLeft = Math.max(0, width - inkWidth);
+                else if (align === 'centre') inkLeft = Math.max(0, (width - inkWidth) / 2);
+                else inkLeft = 0;
+                inkLeft = ss * Math.round(inkLeft / ss);
+                ctx.fillText(ch, inkLeft - m.left, baseline);
+
+                const { data } = ctx.getImageData(0, 0, width, height);
+                const cov = new Float64Array(W * H);
+                for (let cy = 0; cy < H; cy++) {
+                    for (let cx = 0; cx < W; cx++) {
+                        let sum = 0;
+                        for (let sy = 0; sy < ss; sy++) {
+                            let idx = (((cy * ss + sy) * width) + cx * ss) * 4 + 3;
+                            for (let sx = 0; sx < ss; sx++, idx += 4) sum += data[idx];
+                        }
+                        cov[cy * W + cx] = sum / fullyCovered;
+                    }
+                }
+                const inked = new Uint8Array(cov.length);
+                for (let i = 0; i < cov.length; i++) inked[i] = cov[i] >= INK_COVERAGE ? 1 : 0;
+                this._rescueDropouts(cov, inked, W, H);
+
+                const glyph = GlyphBits.create(W, H);
+                for (let cy = 0; cy < H; cy++) {
+                    for (let cx = 0; cx < W; cx++) {
+                        if (inked[cy * W + cx]) GlyphBits.setPixel(glyph, W, cx, cy, true);
+                    }
+                }
+                glyphs.push(glyph);
+                if (shade) {
+                    const advance = (typeof ctx.measureText === 'function' ? ctx.measureText(ch).width : 0) / ss;
+                    shade.push(GlyphBits.autoShade(GlyphBits.inkEdges(glyph, W, H), advance, W, align));
+                }
+            }
+            return { glyphs, shade };
+        } finally {
+            if (face) document.fonts.delete(face);
+        }
+    },
+
+    /**
      * Put back a stroke the threshold dropped entirely.
      *
      * Snapping fixes a stem the glyph's own left edge lines up with ('i',
@@ -234,8 +342,8 @@ const FontRasterizer = {
      * input to both the fit decision and the shared baseline.
      * @private
      */
-    _setBounds(ctx, chars, sizePx) {
-        ctx.font = `${sizePx}px ${FAMILY}`;
+    _setBounds(ctx, chars, sizePx, fam = FAMILY) {
+        ctx.font = `${sizePx}px ${fam}`;
         let ascent = 0;
         let descent = 0;
         for (const ch of chars) {

@@ -82,4 +82,16 @@ const ink = G.create(16, 8); G.setPixel(ink, 16, 3, 2, true); G.setPixel(ink, 16
 const e = G.inkEdges(ink, 16, 8);
 check('inkEdges: leftmost 3, rightmost 10', e.left === 3 && e.right === 10);
 check('inkEdges of a blank glyph is null', G.inkEdges(G.create(16, 8), 16, 8) === null);
+
+// autoShade: whole empty 8-pixel columns on each side of the used span
+check('autoShade: ink in the first 5 pixels of a 32-wide cell shades 3 columns on the right', G.autoShade({ left: 0, right: 4 }, 6, 32, 'left').join() === '0,3');
+check('autoShade: ink exactly 8 wide leaves 3 columns', G.autoShade({ left: 0, right: 7 }, 8, 32, 'left').join() === '0,3');
+check('autoShade: ink 9 wide needs 2 columns', G.autoShade({ left: 0, right: 8 }, 9, 32, 'left').join() === '0,2');
+check('autoShade: a centred narrow letter shades both sides', G.autoShade({ left: 12, right: 19 }, 8, 32, 'centre').join() === '1,1');
+check('autoShade: a right-aligned letter shades the left', G.autoShade({ left: 27, right: 31 }, 6, 32, 'right').join() === '3,0');
+check('autoShade: a blank Space uses its advance width (left): 6 px -> one column kept', G.autoShade(null, 6, 32, 'left').join() === '0,3');
+check('autoShade: a blank Space right-aligned keeps the right column', G.autoShade(null, 6, 32, 'right').join() === '3,0');
+check('autoShade: a blank with no advance still keeps one column', G.autoShade(null, 0, 24, 'centre').join() === '1,1');
+check('autoShade: a full-width letter shades nothing', G.autoShade({ left: 0, right: 31 }, 32, 32, 'left').join() === '0,0');
+check('autoShade never shades all columns', [[null, 0], [{ left: 31, right: 31 }, 1]].every(([e, adv]) => { const [l, r] = G.autoShade(e, adv, 32, 'left'); return l + r <= 3; }));
 summary();
