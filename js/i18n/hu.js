@@ -443,6 +443,8 @@ const hu = {
     'text.typeHint': 'Kattints a képre és gépelj. Az Enter megrajzolja a szöveget, a Shift+Enter új sort kezd, az Esc eldobja. Máshová kattintva előbb megrajzolja.',
     'text.typeBitmapOnly': 'A vászonra gépeléshez bittérképes betűtípus kell (ZX ROM vagy mentett betűtípus).',
     'text.noGlyph': 'Ebben a betűtípusban nincs {char}.',
+    'text.fontLabel': '{name} ({w}x{h})',
+    'text.fontLabelProportional': '{name} ({w}x{h}, arányos)',
     'text.cannotDraw': 'Nincs feloldott rajzréteg, amelyre a szöveg rajzolható volna.',
     'a11y.canvasText': 'A képre gépelt szöveg',
     'text.entry.draw': 'Rajzol',

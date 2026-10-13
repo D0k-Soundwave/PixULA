@@ -443,6 +443,8 @@ const es = {
     'text.typeHint': 'Haz clic en la imagen y escribe. Intro dibuja el texto, Mayús+Intro empieza una línea nueva, Esc lo descarta. Hacer clic en otro sitio lo dibuja antes.',
     'text.typeBitmapOnly': 'Escribir en el lienzo necesita una fuente de mapa de bits (ZX ROM o una fuente guardada).',
     'text.noGlyph': 'Esta fuente no tiene {char}.',
+    'text.fontLabel': '{name} ({w}x{h})',
+    'text.fontLabelProportional': '{name} ({w}x{h}, proporcional)',
     'text.cannotDraw': 'No hay ninguna capa de dibujo desbloqueada donde dibujar el texto.',
     'a11y.canvasText': 'Texto escrito en la imagen',
     'text.entry.draw': 'Dibujar',

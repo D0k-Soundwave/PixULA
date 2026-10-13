@@ -443,6 +443,8 @@ const pl = {
     'text.typeHint': 'Kliknij obraz i pisz. Enter rysuje tekst, Shift+Enter zaczyna nowy wiersz, Esc go odrzuca. Kliknięcie gdzie indziej najpierw go rysuje.',
     'text.typeBitmapOnly': 'Pisanie na płótnie wymaga czcionki bitmapowej (ZX ROM lub zapisanej czcionki).',
     'text.noGlyph': 'Ta czcionka nie ma {char}.',
+    'text.fontLabel': '{name} ({w}x{h})',
+    'text.fontLabelProportional': '{name} ({w}x{h}, proporcjonalna)',
     'text.cannotDraw': 'Brak odblokowanej warstwy rysunkowej, na której można narysować tekst.',
     'a11y.canvasText': 'Tekst wpisany na obrazie',
     'text.entry.draw': 'Rysuj',

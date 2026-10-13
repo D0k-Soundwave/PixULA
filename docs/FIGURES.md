@@ -858,3 +858,17 @@ a 4 x 4-block 256-character font = 512 x 512 map).
 | Map zoom cap | 1600 / 512 = 3 at the largest map; the canvas is at most 1,536 pixels a side | C |
 | Undo history cap | 2 MB; the heaviest snapshot 256 x (128 + 2) = 33,280 bytes, so about 63 steps | C: 2,097,152 / 33,280 |
 
+### Type on canvas with a big proportional font - measured 2026-10-13
+
+Method: Playwright in this machine's Chromium, mode layer2_640, a 32 x 32 font (256-glyph class, shaded on alternate letters), Character width and
+height 64, a line of 9 letters (496 x 64 pixels), `TextTyping.preview(true)` timed for 15 keystroke rebuilds, two runs back to back.
+
+| Path | Figure | Tag |
+|---|---|---|
+| Preview per keystroke, median | 2.7 and 2.9 ms | M |
+| Preview per keystroke, worst of 15 | 8.8 and 9.6 ms | M |
+| Budget | 16.7 ms = one 60 fps frame | C: 1000 / 60 |
+| Same measure with the 8 x 8 ROM font, full-width line, Clear background (Batch 10B) | median about 1 ms, worst about 4 ms | M, 2026-10-13 |
+
+The worst case is inside a frame but only by 1.7 times; nothing was optimised.
+

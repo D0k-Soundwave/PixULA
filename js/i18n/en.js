@@ -84,6 +84,8 @@ const en = {
     'text.typeHint': 'Click the picture and type. Enter draws the text, Shift+Enter starts a new line, Escape throws it away. Clicking another place draws it first.',
     'text.typeBitmapOnly': 'Type on canvas needs a bitmap font (ZX ROM or a saved font).',
     'text.noGlyph': 'This font has no {char}.',
+    'text.fontLabel': '{name} ({w}x{h})',
+    'text.fontLabelProportional': '{name} ({w}x{h}, proportional)',
     'text.cannotDraw': 'There is no unlocked drawing layer to draw the text on.',
     'a11y.canvasText': 'Text typed onto the picture',
     'text.entry.draw': 'Draw',

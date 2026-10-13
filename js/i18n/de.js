@@ -443,6 +443,8 @@ const de = {
     'text.typeHint': 'Klicken Sie ins Bild und tippen Sie. Enter zeichnet den Text, Umschalt+Enter beginnt eine neue Zeile, Esc verwirft ihn. Ein Klick an eine andere Stelle zeichnet ihn zuerst.',
     'text.typeBitmapOnly': 'Auf die Leinwand tippen braucht eine Bitmap-Schrift (ZX ROM oder eine gespeicherte Schrift).',
     'text.noGlyph': 'Diese Schrift hat kein {char}.',
+    'text.fontLabel': '{name} ({w}x{h})',
+    'text.fontLabelProportional': '{name} ({w}x{h}, proportional)',
     'text.cannotDraw': 'Es gibt keine entsperrte Zeichenebene, auf die der Text gezeichnet werden kann.',
     'a11y.canvasText': 'In das Bild getippter Text',
     'text.entry.draw': 'Zeichnen',

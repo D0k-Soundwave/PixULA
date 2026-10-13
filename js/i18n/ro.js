@@ -443,6 +443,8 @@ const ro = {
     'text.typeHint': 'Fă clic pe imagine și scrie. Enter desenează textul, Shift+Enter începe un rând nou, Esc îl aruncă. Un clic în alt loc îl desenează mai întâi.',
     'text.typeBitmapOnly': 'Scrierea pe pânză cere un font bitmap (ZX ROM sau un font salvat).',
     'text.noGlyph': 'Acest font nu are {char}.',
+    'text.fontLabel': '{name} ({w}x{h})',
+    'text.fontLabelProportional': '{name} ({w}x{h}, proporțional)',
     'text.cannotDraw': 'Nu există niciun strat de desen deblocat pe care să se deseneze textul.',
     'a11y.canvasText': 'Text scris pe imagine',
     'text.entry.draw': 'Desenează',

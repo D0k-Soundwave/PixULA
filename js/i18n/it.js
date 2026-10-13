@@ -443,6 +443,8 @@ const it = {
     'text.typeHint': 'Clicca sull\'immagine e scrivi. Invio disegna il testo, Maiusc+Invio va a capo, Esc lo scarta. Cliccare altrove lo disegna prima.',
     'text.typeBitmapOnly': 'Scrivere sulla tela richiede un font bitmap (ZX ROM o un font salvato).',
     'text.noGlyph': 'Questo font non ha {char}.',
+    'text.fontLabel': '{name} ({w}x{h})',
+    'text.fontLabelProportional': '{name} ({w}x{h}, proporzionale)',
     'text.cannotDraw': 'Non c\'è nessun livello di disegno sbloccato su cui disegnare il testo.',
     'a11y.canvasText': 'Testo scritto sull\'immagine',
     'text.entry.draw': 'Disegna',
