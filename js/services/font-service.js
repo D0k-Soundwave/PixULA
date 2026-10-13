@@ -410,6 +410,41 @@ class FontServiceClass {
         };
     }
 
+    /**
+     * A deep copy of the working font for the Font Editor's undo history (see FontHistory).
+     * @returns {{name:string,width:number,height:number,firstCode:number,glyphs:Uint8Array[],shade:number[][],bytes:number}}
+     */
+    snapshot() {
+        const glyphs = this.glyphs.map(g => Uint8Array.from(g));
+        return {
+            name: this.name,
+            width: this.width,
+            height: this.height,
+            firstCode: this.firstCode,
+            glyphs,
+            shade: this.shade.map(p => [p[0], p[1]]),
+            bytes: glyphs.length * (this.glyphBytes() + 2)
+        };
+    }
+
+    /**
+     * Put a snapshot back as the working font (announces FONT_LOADED). The name currently typed is kept unless asked otherwise:
+     * undo is for the pictures, not for what the font is called.
+     * @returns {boolean}
+     */
+    restore(snap, keepName = true) {
+        if (!snap || !FontCodec.validSize(snap.width, snap.height) || !Array.isArray(snap.glyphs) || !snap.glyphs.length) return false;
+        const name = this.name;
+        this._adopt({
+            name: snap.name, width: snap.width, height: snap.height, firstCode: snap.firstCode,
+            glyphs: snap.glyphs.map(g => Uint8Array.from(g)), shade: snap.shade
+        });
+        if (keepName) this.name = name;
+        this._emit(EVENTS.FONT_LOADED, { name: this.name });
+        this._schedulePersist();
+        return true;
+    }
+
     /** Take a decoded document's geometry and shading into the working font. @private */
     _adopt(doc) {
         this.name = doc.name || '';
