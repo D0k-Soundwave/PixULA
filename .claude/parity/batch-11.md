@@ -90,3 +90,28 @@ comparison row reads Same.
 
 Batch 11 is done. Update the comparison doc row, then hand off to Batch 12
 part 12A.
+
+## Batch 11A plan review (Opus, 2026-10-13; this also served as the mandatory codec consult)
+
+CHANGE then go. Corrections that replace the wording above:
+- Visual compare = each dot's colour as the pair (colour in the normal flash phase, colour in the inverted phase), canonical per cell by first
+  appearance; independent of Colours off, Colour grid, Stop flashing and the GigaScreen view; live palette (standard colours, ULAplus CLUT, ULANext
+  palette, Timex scheme). "An unset dot's ink does not matter" is FALSE for FLASH cells. GigaScreen blends per dot and per phase with (c1+c2)>>1 (so
+  red-over-blue matches magenta-over-black; pin it in a test).
+- Modes: MapService.isCanvasCompatible() (standard_ula, ula_plus, ulanext, gigascreen, timex_hires, timex_hires_giga). 'exact' is refused when
+  !ColorManager.hasCellAttributes() (Timex). Multicolor / 8x1, MultiGiga, Layer 2, LoRes are refused. MapService.findModes() feeds the 11B select.
+- Pure core in a new js/utils/map-find.js (MapFind.cellIds / search / disjoint); MapService gets colourTable(), captureScreen(), sliceBlock(),
+  findElement(block, mode, screen, table) -> {positions}|null. Source = LayerManager.flattenVisible(), not captureCanvasRegion (which adds tiles and drops
+  GigaScreen screen B). addElement(block, positions, {match, name, gridW, gridH}) validates, sorts, de-duplicates, trial-encodes, emits
+  EVENTS.MAP_ELEMENTS_CHANGED; also getElements, removeElement, elementFitsScreen.
+- MapCodec VERSION 2 (decode 1 and 2; v1 -> elements []); element record {name,w,h,s,gw,gh,m,b,a,p}; restorePersisted/loadDocument through one _adopt;
+  persist() must not delete the stored map when encode returns null (keep the old record, log a warning); MAX_ELEMENTS guard only, the real limit is the
+  trial encode. Elements are not in undo.
+- Overlapping places: findElement returns all; Accept uses MapFind.disjoint (source first, then reading order).
+- ZXM: with doc.elements a .zxm export would silently drop them: 11B must write them or warn. The row reads "Same in 8x8-cell modes" unless the owner
+  accepts Partial. Drop the help page `blockbasedediting` from the list.
+OWNER questions for 11B (none block 11A): find key (Ctrl+F recommended, costs the browser find bar; or Ctrl+Shift+F); where placeholders show (main
+picture -> M is the Selection tool so Shift+M plus a View item; or only inside the Map Editor); a place already covered by an earlier element (skip =
+default); drawing over covered places (default: allowed; blocking needs a change to the one write gate); New / Open with elements present (ask?);
+GigaScreen blended compare (confirm); multicolor / 8x1 modes refused (row "Same in 8x8-cell modes").
+Build order: 0 pin the v1 payload; 1 capture + exact + dots; 2 visual (+ oracle test against the compositor); 3 elements + codec v2; 4 timings.
