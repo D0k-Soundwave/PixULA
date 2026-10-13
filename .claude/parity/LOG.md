@@ -914,3 +914,15 @@ Still open from the review: (7) Font Editor at 390 px desktop width (pre-existin
 (11) gradient preview timing at Layer 2 640, (12) two weak tests, (14) Draw / New line / Cancel row covers the picture on short screens, (16) Fill from
 font default font, (17) nits, (18) process: owner answers into batch files, CLUSTERED_8, commit rewording before any merge.
 
+## Batch 11A done (2026-10-13), branch parity-d
+Plan review (Opus) in batch-11.md; it also served as the mandatory codec consult. Built in the order set: (0) literal version-1 map payload pinned; (1)(2) js/utils/map-find.js
+(pure: make / slice / tableFrom / ids / search / find / disjoint; modes exact, dots, visual; visual = each dot's colour pair over both flash phases, GigaScreen blended
+per dot and phase with (a+b)>>1, independent of every display toggle); tests/map-find.test.js (the help's circle picture, 2 x 2 blocks, edges, FLASH trio, red-over-blue =
+magenta-over-black) and tests/map-find-oracle.test.js (a screen painted by the real compositor in both flash phases in six modes; MapFind's partition equals the
+compositor's; the display toggles do not change it; 5 refused modes; a mutation that drops the flash swap makes it fail); (3) MapService: findModes, captureScreen,
+colourTable, sliceBlock, findElement, addElement (trial encode against the size cap), getElements, removeElement, elementFitsScreen, one _adopt for load and restore, persist()
+no longer deletes the stored map when a document cannot be encoded; MapCodec VERSION 2 with elements (v1 still loads), MAX_ELEMENTS guard; EVENTS.MAP_ELEMENTS_CHANGED;
+the .zxtm header documents the elements and a test carries them through a file; (4) tools/map-find-bench.js and docs/FIGURES.md.
+The comparison row stays Partial until 11B (no UI yet). Note for 11B: ZXM export drops elements unless 11B writes them.
+Next: 11B (Opus plan review first; owner questions: find key, where placeholders show, covered places, New/Open with elements, GigaScreen blended compare, 8x1 modes refused).
+

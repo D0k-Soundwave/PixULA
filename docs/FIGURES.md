@@ -900,3 +900,25 @@ Method: Playwright in Chromium on this machine, full-canvas gradient `_updatePre
 All are above the 7 ms live budget (`CoverageOps.LIVE_BUDGET_MS`) - the preview was already about four times over it before the dither methods (Bayer 8, 28.7 to 34.6 ms),
 and the methods add 0 to 16 ms on top. This replaces the earlier 'nothing was measured' note; no change was made on the strength of it.
 
+### Map elements: find speed and record size - measured 2026-10-13
+
+Method: `node tools/map-find-bench.js` (Node, this machine), a screen of the mode filled with four dot patterns and varied attributes, `captureScreen` and
+`findElement` with a 1 x 1 and a 4 x 4 block, median of 7, two runs back to back (the ranges are the two runs).
+
+| Mode (cells) | Capture the picture | exact / dots, either block | visual, either block | Tag |
+|---|---|---|---|---|
+| Standard ULA (32 x 24) | 0.1 to 0.4 ms | 0.2 to 0.4 ms | 2.9 to 3.3 ms | M |
+| GigaScreen (32 x 24, two screens) | 0.2 to 0.4 ms | 0.3 to 0.4 ms | 3.2 to 3.6 ms | M |
+| Timex hi-res pair (64 x 24, two screens; no exact) | 0.4 to 1.0 ms | 0.5 to 0.8 ms (dots) | 7.7 to 7.8 ms | M |
+
+A find is a few milliseconds even on the biggest grid, so it runs synchronously (the earlier estimate was [A] until this measurement). The slowest, the Timex pair
+with Visual compare, is 7.8 ms against a 16.7 ms frame [C: 1000 / 60].
+
+| Figure | Value | Tag |
+|---|---|---|
+| Smallest element record as stored (1 x 1, one screen, one place) | 95 bytes | M |
+| Room left beside the largest map | 1,048,576 - 291,879 = 756,697 bytes | C: `MapCodec.MAX_JSON_BYTES` less the largest-map row measured 2026-08-07 |
+| Smallest elements that fit there | 756,697 / (95 + 1) = 7,882 | C |
+| `MapCodec.MAX_ELEMENTS` | 4,096, below 7,882, so it never binds before the size limit does | C |
+| Full-screen two-screen elements beside the largest map | 40 fit; the largest document then encodes to 1,032,628 bytes | M (tests/map-elements.test.js) |
+
