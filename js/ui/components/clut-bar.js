@@ -1111,15 +1111,15 @@ class ClutBarClass {
             T('attr-none', 'icon-attr-tools', 'attr.none', 'None', 'attr.none.hint',
               'Switches the cell tool off, so strokes go back to the tool and draw mode you chose', 'none'),
             T('attr-transpose', 'icon-attr-swap', 'attr.transpose', 'Swap', 'attr.transpose.hint',
-              'Swaps the ink and paper colours of each whole cell you click or drag over, ignoring brush size and Mirror. Click it again, or pick a tool or a draw mode, to stop', 'swap'),
+              'Swaps the ink and paper colours of each whole cell you click or drag over, ignoring brush size and Mirror. Right-click the picture, choose None in the cell-tool list, or pick a tool or a draw mode, to stop', 'swap'),
             T('attr-apply', 'icon-attr-apply', 'attr.apply', 'Recolour', 'attr.apply.hint',
-              'Gives each whole cell you click or drag over your ink, paper, bright and flash, without touching a dot and ignoring brush size and Mirror. Click it again, or pick a tool or a draw mode, to stop. With Bright or Flash on "use existing", each cell keeps its own', 'apply'),
+              'Gives each whole cell you click or drag over your ink, paper, bright and flash, without touching a dot and ignoring brush size and Mirror. Right-click the picture, choose None in the cell-tool list, or pick a tool or a draw mode, to stop. With Bright or Flash on "use existing", each cell keeps its own', 'apply'),
             T('attr-copy', 'icon-attr-copy', 'attr.copy', 'Copy colours', 'attr.copy.hint',
-              'Click a cell to pick up the colours it shows, then drag over other cells to give them those colours. Dots stay as they are and the colour rail is not changed. Click it again, or pick a tool or a draw mode, to stop', 'copy'),
+              'Click a cell to pick up the colours it shows, then drag over other cells to give them those colours. Dots stay as they are and the colour rail is not changed. Right-click the picture, choose None in the cell-tool list, or pick a tool or a draw mode, to stop', 'copy'),
             T('attr-invert-dots', 'icon-attr-invert-dots', 'attr.invertDots', 'Invert dots', 'attr.invertDots.hint',
-              'Inverts the dots of each whole cell you click or drag over - set dots clear, clear dots set - and leaves the colours. Click it again, or pick a tool or a draw mode, to stop', 'invertDots'),
+              'Inverts the dots of each whole cell you click or drag over - set dots clear, clear dots set - and leaves the colours. Right-click the picture, choose None in the cell-tool list, or pick a tool or a draw mode, to stop', 'invertDots'),
             T('attr-invert-both', 'icon-attr-invert-both', 'attr.invertBoth', 'Invert dots and colours', 'attr.invertBoth.hint',
-              'Inverts the dots and swaps ink and paper in each whole cell you click or drag over, so the cell looks the same - for tidying an import. Not in ULAplus or ULANext. Click it again, or pick a tool or a draw mode, to stop', 'invertBoth')
+              'Inverts the dots and swaps ink and paper in each whole cell you click or drag over, so the cell looks the same - for tidying an import. Not in ULAplus or ULANext. Right-click the picture, choose None in the cell-tool list, or pick a tool or a draw mode, to stop', 'invertBoth')
         ];
         const armed = () => (window.InputHandler && InputHandler._attrPaintMode) || 'none';
         this._cellSelector = new StripSelector({

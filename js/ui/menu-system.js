@@ -283,7 +283,7 @@ class MenuSystemClass {
         this.setItemEnabled('dots-flip-h', !b.flip);
         this.setItemEnabled('dots-flip-v', !b.flip);
         this.setItemEnabled('dots-invert', !b.invert);
-        // Image > Flip / Rotate / Invert Colors act on the picture, or on a floating stamp; a
+        // Image > Flip / Rotate / Invert Dots act on the picture, or on a floating stamp; a
         // stamp that carries its own cell colours cannot be reshaped, and a stamp layer is not
         // the picture. Greyed out with the reason as a tooltip (the rows are pointer-reachable).
         const stampBlock = (b.flip === 'stampAttrs' || b.flip === 'stamp') ? b.flip : null;
@@ -499,7 +499,7 @@ class MenuSystemClass {
                     { id: 'rotate-90ccw', label: 'Rotate 90 CCW', action: 'image:rotate90ccw' },
                     { id: 'rotate-180', label: 'Rotate 180', action: 'image:rotate180' },
                     { type: 'separator' },
-                    { id: 'invert', label: 'Invert Colors', action: 'image:invert' },
+                    { id: 'invert', label: 'Invert Dots', action: 'image:invert' },
                     { id: 'clear', label: 'Clear Canvas', action: 'image:clear' },
                     { type: 'separator' },
                     // Cell colours only (dots stay). Each row is greyed out where
