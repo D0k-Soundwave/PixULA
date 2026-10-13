@@ -539,7 +539,9 @@ class PNGFormatClass {
     const prepared = this._preparePreview(imageData, scaling);
     return (id, dithering) => {
       const spec = IMPORT_METHODS.find((m) => m.id === id);
-      return this._quantizePrepared(prepared, dithering && spec.dithering !== 'none' ? { ...spec, dithering } : spec);
+      // The chosen Dither method drives Smooth and Sharp; Flat is "no dither" by definition. (The dialog hands Sharp a method only once one
+      // was chosen, so Sharp as first shown is unchanged.)
+      return this._quantizePrepared(prepared, dithering && id !== 'flat' ? { ...spec, dithering } : spec);
     };
   }
 
@@ -675,12 +677,23 @@ class PNGFormatClass {
    * @returns {Int16Array} width*height palette indices
    */
   _quantizeIndices(imageData, dithering, paletteOverride = null) {
-    // The indexed modes keep their own colour diffusion: any other Dither method is Floyd-Steinberg here.
-    if (dithering !== 'none' && dithering !== 'floyd-steinberg') dithering = 'floyd-steinberg';
     const W = ZX_SPECTRUM.WIDTH, H = ZX_SPECTRUM.HEIGHT;
     const paletteRGB = paletteOverride ||
       Array.from({ length: ZX_SPECTRUM.PALETTE_SIZE }, (_, i) => ColorManager.getRGB(i));
     const n = paletteRGB.length;
+    // Any Dither method (all 31 of ZX Paintbrush's) places each pixel between its two nearest palette colours, over the whole screen as
+    // one block - Dither.paletteIndices. The importer's own Floyd-Steinberg diffusion (the default) is kept exactly as it was, and a name
+    // that is no method falls back to it.
+    if (this._isDitherMethod(dithering)) {
+      const rgb = new Float32Array(W * H * 3);
+      for (let i = 0; i < W * H; i++) {
+        rgb[i * 3] = imageData.data[i * 4];
+        rgb[i * 3 + 1] = imageData.data[i * 4 + 1];
+        rgb[i * 3 + 2] = imageData.data[i * 4 + 2];
+      }
+      return Int16Array.from(Dither.paletteIndices(rgb, paletteRGB, dithering, W, H, 0, 0));
+    }
+    if (dithering !== 'none') dithering = 'floyd-steinberg';
 
     // Float working copy for error diffusion
     const work = new Float32Array(W * H * 3);

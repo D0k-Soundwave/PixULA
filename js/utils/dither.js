@@ -230,8 +230,17 @@ class DitherClass {
         const luma = colours.map(c => this.luma(c[0], c[1], c[2]));
         const gray = new Float64Array(w * h);
         const lo = new Int16Array(w * h), hi = new Int16Array(w * h);
+        // A picture repeats its colours, and a 256-colour palette makes the two-nearest search the cost of the whole import: whole-number
+        // colours are looked up once (the same arithmetic, so the same answer). Cells with fractional colours do not use the table.
+        const memo = colours.length > 16 ? new Map() : null;
         for (let i = 0; i < w * h; i++) {
             const r = rgb[i * 3], g = rgb[i * 3 + 1], b = rgb[i * 3 + 2];
+            let key = -1;
+            if (memo && Number.isInteger(r) && Number.isInteger(g) && Number.isInteger(b) && r >= 0 && g >= 0 && b >= 0 && r < 256 && g < 256 && b < 256) {
+                key = (r << 16) | (g << 8) | b;
+                const hit = memo.get(key);
+                if (hit) { gray[i] = hit[0]; lo[i] = hit[1]; hi[i] = hit[2]; continue; }
+            }
             let n1 = -1, d1 = Infinity, n2 = -1, d2 = Infinity;
             for (let k = 0; k < colours.length; k++) {
                 const c = colours[k], dr = r - c[0], dg = g - c[1], db = b - c[2];
@@ -245,6 +254,7 @@ class DitherClass {
             const s = den > 0 ? ((r - D[0]) * lr * 0.299 + (g - D[1]) * lg * 0.587 + (b - D[2]) * lb * 0.114) / den : 0;
             gray[i] = 255 * Helpers.clamp(s, 0, 1);
             lo[i] = dark; hi[i] = light;
+            if (key >= 0) memo.set(key, [gray[i], dark, light]);
         }
         const ink = this.apply(gray, w, h, id, { originX: ox, originY: oy });
         for (let i = 0; i < w * h; i++) out[i] = ink[i] === 1 ? lo[i] : hi[i];

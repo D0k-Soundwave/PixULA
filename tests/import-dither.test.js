@@ -129,8 +129,49 @@ const bits = (rows, w) => { const out = []; for (const r of rows) for (let x = 0
   check('Smooth with no method is Floyd-Steinberg, byte for byte', eq(smoothDefault, smoothFS));
   check('Smooth with Bayer 8 differs from Floyd-Steinberg', !eq(smoothFS, smoothBayer));
   check('Flat ignores the method (no dithering)', eq(render('flat'), render('flat', 'bayer-8')));
-  check('Sharp ignores the method', eq(render('sharp'), render('sharp', 'atkinson')));
+  // Owner decision 2026-10-12: the Dither select drives Sharp as well as Smooth (the dialog hands Sharp a method only once one was chosen,
+  // so the default Sharp import is unchanged: no dither)
+  check('Sharp with no method is unchanged (no dither)', eq(render('sharp'), render('sharp', undefined)));
+  check('Sharp with a method differs from Sharp with none', !eq(render('sharp'), render('sharp', 'bayer-8')));
+  check('Sharp with a method is deterministic and follows the method', eq(render('sharp', 'bayer-8'), render('sharp', 'bayer-8')) && !eq(render('sharp', 'bayer-8'), render('sharp', 'atkinson')));
   check('the preview with a method is deterministic', eq(smoothBayer, render('smooth', 'bayer-8')));
+}
+
+// -- indexed modes (Layer 2 / LoRes): every Dither method works on the whole screen with the mode's palette (owner decision 2026-10-12) ----------------
+{
+  const W = ZX_SPECTRUM.WIDTH, H = ZX_SPECTRUM.HEIGHT;
+  const img = { width: W, height: H, data: new Uint8ClampedArray(W * H * 4) };
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const o = (y * W + x) * 4, v = Math.round(x / (W - 1) * 255);
+    img.data[o] = v; img.data[o + 1] = v; img.data[o + 2] = v; img.data[o + 3] = 255;
+  }
+  const bw = [[0, 0, 0], [255, 255, 255]];
+  const none = PNGFormat._quantizeIndices(img, 'none', bw);
+  const fs = PNGFormat._quantizeIndices(img, 'floyd-steinberg', bw);
+  const bayer = PNGFormat._quantizeIndices(img, 'bayer-8', bw);
+  const atk = PNGFormat._quantizeIndices(img, 'atkinson', bw);
+  const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
+  check('a Dither method gives indices into the palette only', bayer.every(v => v === 0 || v === 1) && atk.every(v => v === 0 || v === 1));
+  check('Bayer 8 differs from none and from Floyd-Steinberg', !same(bayer, none) && !same(bayer, fs));
+  check('Atkinson differs from Bayer 8', !same(atk, bayer));
+  check('...and is deterministic', same(bayer, PNGFormat._quantizeIndices(img, 'bayer-8', bw)));
+  const frac = (idx, x0, x1) => { let n = 0, t = 0; for (let y = 0; y < H; y++) for (let x = x0; x < x1; x++) { t++; if (idx[y * W + x] === 1) n++; } return n / t; };
+  check('a ramp from black to white: the left quarter is mostly black, the right quarter mostly white, the middle about half',
+    frac(bayer, 0, 64) < 0.3 && frac(bayer, 192, 256) > 0.7 && Math.abs(frac(bayer, 112, 144) - 0.5) < 0.15, [frac(bayer, 0, 64), frac(bayer, 112, 144), frac(bayer, 192, 256)].join(' '));
+  check('a threshold method gives a hard edge (no dither)', (() => { const t = PNGFormat._quantizeIndices(img, 'threshold-50', bw); return frac(t, 0, 120) === 0 && frac(t, 136, 256) === 1; })());
+
+  // a palette of five greys: each pixel lands on one of its two nearest
+  const greys = [0, 64, 128, 192, 255].map(v => [v, v, v]);
+  const g5 = PNGFormat._quantizeIndices(img, 'bayer-4', greys);
+  let ok = true;
+  for (let x = 0; x < W && ok; x += 7) {
+    const v = Math.round(x / (W - 1) * 255);
+    const order = greys.map((c, i) => [Math.abs(c[0] - v), i]).sort((a, b) => a[0] - b[0]);
+    const near2 = [order[0][1], order[1][1]];
+    for (let y = 0; y < H; y += 17) if (!near2.includes(g5[y * W + x])) { ok = false; break; }
+  }
+  check('with five greys every pixel takes one of its two nearest', ok);
+  check('an unknown method name still falls back to Floyd-Steinberg', same(PNGFormat._quantizeIndices(img, 'no-such-method', bw), fs));
 }
 
 summary();
