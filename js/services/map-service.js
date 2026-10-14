@@ -415,11 +415,63 @@ class MapServiceClass {
             screens: block && block.screens, gridW: info && info.gridW, gridH: info && info.gridH, match: info && info.match,
             bitmap: block && Uint8Array.from(block.bitmap), attrs: block && Uint8Array.from(block.attrs), positions: list
         };
+        // 'invalid' = the element itself is wrong; 'tooBig' = it is fine but the document would no longer fit the size limit (the UI translates the code)
+        if (!MapCodec._encodeElement(el)) return { ok: false, reason: 'invalid' };
         const trial = MapCodec.encode({ ...this.toDocument(), elements: [...this.elements, el] });
-        if (!trial) return { ok: false, reason: 'The element is not valid or the map would be too big to keep' };
+        if (!trial) return { ok: false, reason: 'tooBig' };
         this.elements.push(el);
         this._announceElements();
         return { ok: true, index: this.elements.length - 1 };
+    }
+
+    /**
+     * A pixel rectangle (a selection) as a block of whole cells of the picture, or null if it is not whole cells or lies outside the picture.
+     * @param {{x:number,y:number,width:number,height:number}} rect
+     * @returns {?{x:number,y:number,w:number,h:number}}
+     */
+    blockAt(rect) {
+        if (!rect) return null;
+        const cw = ZX_SPECTRUM.CELL_WIDTH, ch = ZX_SPECTRUM.CELL_HEIGHT;
+        const { x, y, width, height } = rect;
+        if (![x, y, width, height].every(Number.isInteger) || width < 1 || height < 1) return null;
+        if (x % cw || y % ch || width % cw || height % ch || x < 0 || y < 0) return null;
+        const b = { x: x / cw, y: y / ch, w: width / cw, h: height / ch };
+        return (b.x + b.w <= ZX_SPECTRUM.GRID_COLS && b.y + b.h <= ZX_SPECTRUM.GRID_ROWS) ? b : null;
+    }
+
+    /** The cells ("x,y") the elements that fit the current picture already cover. */
+    coveredCells() {
+        const out = new Set();
+        for (const el of this.elements) {
+            if (!this.elementFitsScreen(el)) continue;
+            for (const p of el.positions) {
+                for (let dy = 0; dy < el.h; dy++) for (let dx = 0; dx < el.w; dx++) out.add((p.x + dx) + ',' + (p.y + dy));
+            }
+        }
+        return out;
+    }
+
+    /**
+     * From everything a find returned, the places an Accept will keep: places touching a cell an earlier element covers are left out, then places
+     * that overlap each other are resolved with the source first. (The source itself is always kept: you chose it.)
+     * @returns {{kept:{x:number,y:number}[], covered:number, overlapping:number}}
+     */
+    placesFrom(positions, w, h, source) {
+        const covered = this.coveredCells();
+        const free = positions.filter(p => {
+            if (source && p.x === source.x && p.y === source.y) return true;
+            for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) if (covered.has((p.x + dx) + ',' + (p.y + dy))) return false;
+            return true;
+        });
+        const kept = MapFind.disjoint(free, w, h, source);
+        return { kept, covered: positions.length - free.length, overlapping: free.length - kept.length };
+    }
+
+    /** Remove every element. */
+    clearElements() {
+        if (!this.elements.length) return;
+        this.elements = [];
+        this._announceElements();
     }
 
     /** Copies of the elements (editing them changes nothing). */
