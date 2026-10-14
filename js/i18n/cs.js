@@ -484,7 +484,7 @@ const cs = {
     'menu.edit.newFromSelection': 'Nový obrázek z výběru',
     'err.zxm.placesAdjusted': 'Místa prvků mapy: {rounded} posunuto na buňku, {dropped} mimo obrázek vynecháno.',
     'mode.zxmNeedsStandard': 'ZXM obsahuje obrázek Standard ULA - nejprve přepněte na tento režim obrazovky.',
-    'mapel.zxmLeftOut': '{n} prvků mapy je z jiného režimu obrazovky a v souboru nejsou.',
+    'mapel.zxmLeftOut': 'Prvky mapy z jiného režimu obrazovky nejsou v souboru: {n}.',
     'mapel.item': '{name}: {w} x {h} buněk',
     'plural.mapelItemPlaces': 'one: {n} místo | few: {n} místa | other: {n} míst',
     'mapel.show': 'Ukázat',

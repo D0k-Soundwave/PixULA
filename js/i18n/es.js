@@ -484,7 +484,7 @@ const es = {
     'menu.edit.newFromSelection': 'Nueva imagen desde la selección',
     'err.zxm.placesAdjusted': 'Lugares de elementos del mapa: {rounded} movidos a una celda, {dropped} fuera de la imagen omitidos.',
     'mode.zxmNeedsStandard': 'ZXM contiene una imagen Standard ULA: cambia primero a ese modo de pantalla.',
-    'mapel.zxmLeftOut': '{n} elementos del mapa son de otro modo de pantalla y no están en el archivo.',
+    'mapel.zxmLeftOut': 'Elementos del mapa de otro modo de pantalla que no están en el archivo: {n}.',
     'mapel.item': '{name}: {w} x {h} celdas',
     'plural.mapelItemPlaces': 'one: {n} lugar | other: {n} lugares',
     'mapel.show': 'Mostrar',

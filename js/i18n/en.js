@@ -125,7 +125,7 @@ const en = {
     'menu.edit.newFromSelection': 'New Picture from Selection',
     'err.zxm.placesAdjusted': 'Map element places: {rounded} moved to a cell, {dropped} off the picture left out.',
     'mode.zxmNeedsStandard': 'ZXM holds a Standard ULA picture - switch to that screen mode first.',
-    'mapel.zxmLeftOut': '{n} map elements are from another screen mode and are not in the file.',
+    'mapel.zxmLeftOut': 'Map elements from another screen mode are not in the file: {n}.',
     'mapel.item': '{name}: {w} x {h} cells',
     'plural.mapelItemPlaces': 'one: {n} place | other: {n} places',
     'mapel.show': 'Show',

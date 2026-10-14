@@ -66,7 +66,12 @@ class MapFormatClass {
           'Not a valid {format} file (unknown version or corrupt data)', { format: '.zxtm' }) };
     }
     // A version 1 file predates elements: it must not wipe the ones the picture has
-    if (payload.v < 2) delete doc.elements;
+    // and a file with no elements leaves them alone; a file WITH elements asks first when the picture already has some (owner decision 2026-10-14)
+    if (payload.v < 2 || !doc.elements.length) {
+      delete doc.elements;
+    } else if (MapService.elements.length && window.FileManager && typeof FileManager._askDropElements === 'function' && !FileManager._askDropElements()) {
+      delete doc.elements;
+    }
     MapService.loadDocument(doc);
     EventBus.emit(EVENTS.FILE_IMPORT, { format: 'zxtm' });
     Logger.info('MapFormat', 'ZXTM map loaded successfully');

@@ -484,7 +484,7 @@ const ro = {
     'menu.edit.newFromSelection': 'Imagine nouă din selecție',
     'err.zxm.placesAdjusted': 'Locurile elementelor de hartă: {rounded} mutate pe o celulă, {dropped} din afara imaginii lăsate deoparte.',
     'mode.zxmNeedsStandard': 'ZXM conține o imagine Standard ULA - treceți mai întâi la acel mod de ecran.',
-    'mapel.zxmLeftOut': '{n} elemente de hartă sunt din alt mod de ecran și nu sunt în fișier.',
+    'mapel.zxmLeftOut': 'Elemente de hartă din alt mod de ecran care nu sunt în fișier: {n}.',
     'mapel.item': '{name}: {w} x {h} celule',
     'plural.mapelItemPlaces': 'one: {n} loc | few: {n} locuri | other: {n} de locuri',
     'mapel.show': 'Arată',

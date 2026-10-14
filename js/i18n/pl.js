@@ -484,7 +484,7 @@ const pl = {
     'menu.edit.newFromSelection': 'Nowy obraz z zaznaczenia',
     'err.zxm.placesAdjusted': 'Miejsca elementów mapy: {rounded} przesunięto na komórkę, {dropped} poza obrazem pominięto.',
     'mode.zxmNeedsStandard': 'ZXM zawiera obraz Standard ULA - najpierw przełącz na ten tryb ekranu.',
-    'mapel.zxmLeftOut': '{n} elementów mapy pochodzi z innego trybu ekranu i nie ma ich w pliku.',
+    'mapel.zxmLeftOut': 'Elementy mapy z innego trybu ekranu, których nie ma w pliku: {n}.',
     'mapel.item': '{name}: {w} x {h} komórek',
     'plural.mapelItemPlaces': 'one: {n} miejsce | few: {n} miejsca | many: {n} miejsc | other: {n} miejsca',
     'mapel.show': 'Pokaż',

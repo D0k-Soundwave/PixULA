@@ -8,6 +8,9 @@
  * previews, the selection and the pointer. Each place of each element that fits the current screen is covered by a hatched box carrying the
  * element's number; a find in progress outlines its places, the current one heavier.
  */
+/** The digits 0 to 9, 3 wide and 5 high, one row per byte (bit 4 = left). */
+const DIGITS_3X5 = [[7, 5, 5, 5, 7], [2, 6, 2, 2, 7], [7, 1, 7, 4, 7], [7, 1, 7, 1, 7], [5, 5, 7, 1, 1], [7, 4, 7, 1, 7], [7, 4, 7, 5, 7], [7, 1, 1, 1, 1], [7, 5, 7, 5, 7], [7, 5, 7, 1, 7]];
+
 class MapElementOverlayClass {
     constructor() {
         this.ID = 'map-element-canvas';
@@ -48,7 +51,7 @@ class MapElementOverlayClass {
 
     /** Shift+M / View > Map Element Pictures. With no elements it says so instead of doing nothing. */
     togglePictures() {
-        if (!window.MapService || !MapService.elements.length) {
+        if (!window.MapService || !MapService.elements.some(e => MapService.elementFitsScreen(e))) {
             EventBus.emit(EVENTS.STATUS_NOTICE, { text: Helpers.localizedMessage('mapel.none', 'No map elements on this picture.') });
             return;
         }
@@ -67,7 +70,7 @@ class MapElementOverlayClass {
         const els = window.MapService ? MapService.elements : [];
         els.forEach((el, i) => {
             if (!MapService.elementFitsScreen(el)) return;
-            el.positions.forEach(p => covers.push({ n: i + 1, x: p.x, y: p.y, w: el.w, h: el.h }));
+            el.positions.forEach(p => covers.push({ n: el.number || (i + 1), x: p.x, y: p.y, w: el.w, h: el.h }));
         });
         return { covers, highlight: this._highlight, pictures: this._pictures };
     }
@@ -82,7 +85,7 @@ class MapElementOverlayClass {
         if (this._pictures) {
             const table = MapService.colourTable();
             const images = new Map();
-            MapService.elements.forEach((el, i) => { if (MapService.elementFitsScreen(el)) images.set(i + 1, this.renderElement(ctx, el, table)); });
+            MapService.elements.forEach((el, i) => { if (MapService.elementFitsScreen(el)) images.set(el.number || (i + 1), this.renderElement(ctx, el, table)); });
             for (const c of d.covers) ctx.putImageData(images.get(c.n), c.x * cw, c.y * ch);
         } else {
             for (const c of d.covers) this._cover(ctx, c.x * cw, c.y * ch, c.w * cw, c.h * ch, c.n);
@@ -145,14 +148,22 @@ class MapElementOverlayClass {
         ctx.fillRect(x, y, w, h);
         ctx.fillStyle = '#fff';
         const s = String(n);
-        // digits are 8 x 8 ROM glyphs: put them top-left, one cell wide each, clipped to the box
+        // small 3 x 5 digits, four columns apart, so two digits fit in the one cell of the narrowest element (10, 11 ... are not read as 1)
         ctx.save();
         ctx.beginPath();
         ctx.rect(x, y, w, h);
         ctx.clip();
-        for (let k = 0; k < s.length; k++) this._glyph(ctx, s.charCodeAt(k), x + k * 8, y, '#000', 1);
-        for (let k = 0; k < s.length; k++) this._glyph(ctx, s.charCodeAt(k), x + k * 8, y, '#fff', 0);
+        for (let k = 0; k < s.length; k++) this._digit(ctx, s.charCodeAt(k) - 48, x + 1 + k * 4, y + 1, '#000', 1);
+        for (let k = 0; k < s.length; k++) this._digit(ctx, s.charCodeAt(k) - 48, x + 1 + k * 4, y + 1, '#fff', 0);
         ctx.restore();
+    }
+
+    /** One 3 x 5 digit at (x, y) (shadow offset by `off`). @private */
+    _digit(ctx, d, x, y, colour, off) {
+        if (d < 0 || d > 9) return;
+        ctx.fillStyle = colour;
+        const rows = DIGITS_3X5[d];
+        for (let r = 0; r < 5; r++) for (let b = 0; b < 3; b++) if (rows[r] & (4 >> b)) ctx.fillRect(x + b + off, y + r + off, 1, 1);
     }
 
     /** One ROM glyph at (x, y) (shadow offset by `off`). @private */
@@ -167,7 +178,8 @@ class MapElementOverlayClass {
 
     /** A black and white outline (readable on any colour). @private */
     _outline(ctx, x, y, w, h, current) {
-        ctx.lineWidth = current ? 2 : 1;
+        // one dark pixel outside, one light pixel inside: a single cell keeps a 4 x 4 centre visible so what was found can still be seen
+        ctx.lineWidth = 1;
         ctx.strokeStyle = '#000';
         ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
         ctx.strokeStyle = current ? '#ff0' : '#fff';

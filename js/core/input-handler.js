@@ -1892,6 +1892,8 @@ class InputHandlerClass {
     //    (switching tools commits a pending figure).
     const held = window.ToolManager && ToolManager.getCurrentTool();
     if (held && typeof held.cancelPending === 'function') held.cancelPending();
+    // An open Find Map Element, or the outlines Show left on the picture, go away too
+    if (window.MapElementsPanel) MapElementsPanel.dismiss();
 
     // 1. End any in-progress stroke (close open batches so undo stays sound)
     if (this.isDrawing) {

@@ -99,6 +99,7 @@ const MapCodec = {
             p[i * 2] = q.x; p[i * 2 + 1] = q.y;
         }
         return {
+            ...(Number.isInteger(el.number) && el.number > 0 ? { k: el.number } : {}),
             n: typeof el.name === 'string' ? el.name.slice(0, 64) : '',
             w: el.w, h: el.h, s: el.screens, gw: el.gridW, gh: el.gridH, m: el.match,
             b: Helpers.encodeBase64(Uint8Array.from(el.bitmap)),
@@ -126,6 +127,7 @@ const MapCodec = {
             positions.push({ x: p[i], y: p[i + 1] });
         }
         return {
+            number: Number.isInteger(r.k) && r.k > 0 ? r.k : 0,
             name: typeof r.n === 'string' ? r.n : '', w: r.w, h: r.h, screens: r.s, gridW: r.gw, gridH: r.gh, match: r.m,
             bitmap, attrs, positions
         };

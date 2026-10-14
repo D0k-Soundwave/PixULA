@@ -484,7 +484,7 @@ const tr = {
     'menu.edit.newFromSelection': 'Seçimden yeni resim',
     'err.zxm.placesAdjusted': 'Harita öğesi yerleri: {rounded} bir hücreye taşındı, {dropped} resmin dışında olanlar atlandı.',
     'mode.zxmNeedsStandard': 'ZXM bir Standard ULA resmi içerir - önce o ekran moduna geçin.',
-    'mapel.zxmLeftOut': '{n} harita öğesi başka bir ekran modundandır ve dosyada yoktur.',
+    'mapel.zxmLeftOut': 'Başka bir ekran modundaki ve dosyada olmayan harita öğeleri: {n}.',
     'mapel.item': '{name}: {w} x {h} hücre',
     'plural.mapelItemPlaces': 'one: {n} yer | other: {n} yer',
     'mapel.show': 'Göster',

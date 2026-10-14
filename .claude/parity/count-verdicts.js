@@ -15,9 +15,11 @@ for (const line of fs.readFileSync(doc, 'utf8').split('\n')) {
   else if (/^## Part 2\b/.test(line)) part = 2;
   else if (/^## /.test(line)) part = 0;
   const m = line.match(/\|\s*([^|]+?)\s*\|\s*$/);
-  if (!part || !m || !VERDICTS.includes(m[1])) continue;
-  n[m[1]]++;
-  perPart[part][m[1]]++;
+  // the verdict is the first word(s) of the last cell; a note after it ("Same in Standard ULA", "Missing (left out by choice ...)") is allowed
+  const word = m && VERDICTS.find((v) => m[1] === v || m[1].startsWith(v + ' ') || m[1].startsWith(v + ','));
+  if (!part || !word) continue;
+  n[word]++;
+  perPart[part][word]++;
 }
 
 const total = VERDICTS.reduce((s, v) => s + n[v], 0);

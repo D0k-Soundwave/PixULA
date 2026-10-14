@@ -108,22 +108,37 @@ const meta = (o = {}) => ({ match: 'exact', name: 'Elem', gridW: 32, gridH: 24, 
   S.addElement(b1, [{ x: 1, y: 1 }], meta({ name: 'Kept' }));
   await S.persist();
   const stored = JSON.stringify(fakeStore['maps/current']);
-  check('persist stores the elements', fakeStore['maps/current'] && fakeStore['maps/current'].elements.length === 1);
-  // make the document unencodable and persist again: the old record must stay
-  const saved = S.elements;
-  S.elements = [{ ...saved[0], match: 'fuzzy' }];
+  check('the map store keeps TILES only: elements belong to the picture (owner decision 2026-10-14)', fakeStore['maps/current'] && fakeStore['maps/current'].elements.length === 0);
+  // make the map unencodable and persist again: the old record must stay
+  S.addTile(S.createTile(new Uint8Array(8), 0x38));
+  const goodTiles = S.tiles;
+  S.tiles = goodTiles.map((t, k) => (k === 0 ? { ...t, attr: 999 } : t));
   await S.persist();
-  check('a document that cannot be encoded does NOT delete the stored map', JSON.stringify(fakeStore['maps/current']) === stored);
-  S.elements = saved;
+  check('a map that cannot be encoded does NOT delete the stored map', JSON.stringify(fakeStore['maps/current']) === stored);
+  S.tiles = goodTiles;
   S.newMap(32, 24, true);
   S.elements = [];
   await S.restorePersisted();
-  check('restorePersisted brings the elements back', S.getElements().length === 1 && S.getElements()[0].name === 'Kept');
+  check('restorePersisted brings back the map and NO elements', S.getElements().length === 0 && S.tiles.length >= 0);
+  S.addElement(b1, [{ x: 1, y: 1 }], meta({ name: 'Kept' }));
   check('...and loadDocument takes elements from a document', (() => { const d = S.toDocument(); S.elements = []; S.loadDocument(d); return S.getElements().length === 1; })());
   check('loadDocument of a document with no elements field keeps the current elements (a tile-only import must not wipe them)', (() => { const d = S.toDocument(); delete d.elements; S.loadDocument(d); return S.getElements().length === 1; })());
   check('...and a document with an empty list clears them', (() => { const d = S.toDocument(); d.elements = []; S.loadDocument(d); return S.getElements().length === 0; })());
 
   // -- setElements: what a project file or the autosave hands back --------------------------------------------------------------------
+  S.newMap(32, 24, true);
+  // element numbers are stable: they do not shift when an earlier element is deleted
+  S.clearElements();
+  S.addElement(b1, [{ x: 1, y: 1 }], meta({ name: 'One' })); S.addElement(b1, [{ x: 2, y: 2 }], meta({ name: 'Two' })); S.addElement(b1, [{ x: 3, y: 3 }], meta({ name: 'Three' }));
+  check('elements are numbered 1, 2, 3', S.getElements().map(e => e.number).join() === '1,2,3');
+  S.removeElement(1);
+  check('after deleting 2 the others keep their numbers (1, 3)', S.getElements().map(e => e.number).join() === '1,3');
+  S.addElement(b1, [{ x: 4, y: 4 }], meta({ name: 'Four' }));
+  check('a new element takes the next number, never a used one: 4', S.getElements().map(e => e.number).join() === '1,3,4' && S.nextElementNumber() === 5);
+  const rt = MapCodec.decode(JSON.parse(JSON.stringify(MapCodec.encode(S.toDocument()))));
+  check('numbers survive the codec', rt.elements.map(e => e.number).join() === '1,3,4');
+  S.setElements(S.getElements().map(e => ({ ...e, number: 0 })));
+  check('elements without numbers (an older file) are numbered in order', S.getElements().map(e => e.number).join() === '1,2,3');
   S.newMap(32, 24, true);
   const keep = S.addElement(b1, [{ x: 2, y: 2 }], meta({ name: 'P' }));
   const asProject = JSON.parse(JSON.stringify(S.getElements(), (k, v) => (ArrayBuffer.isView(v) ? Array.from(v) : v)));
