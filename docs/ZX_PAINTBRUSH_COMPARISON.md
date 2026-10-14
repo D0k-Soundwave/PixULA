@@ -226,18 +226,18 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | ZX Paintbrush | What it does | PixULA | Verdict |
 |---|---|---|---|
 | SCR, ZXP, MLT, SEV, CTILE, ZED | Read and write. | Read and write all of these. | Same |
-| TAP/BLK, TZX, PZX with loaders | Tape files with a choice of loaders; turbo for TZX and PZX. | TAP and TZX with a BASIC loader that shows the screen. No PZX, no turbo loaders. | Partial |
-| Disk images | DSK, TRD/SCL, MGT/IMG, with disk formats and loaders. | No. | Missing |
-| Nirvana tiles (.btile) | 8x2-attribute tiles. | No. | Missing |
-| Archives and Warajevo tapes | Reads zip, rar and 28 other archive formats, and Warajevo TAP. | No. | Missing |
+| TAP/BLK, TZX, PZX with loaders | Tape files with a choice of loaders; turbo for TZX and PZX. | TAP and TZX with a BASIC loader that shows the screen. No PZX, no turbo loaders. | Partial (left out by choice, 2026-10-14: not attribute work) |
+| Disk images | DSK, TRD/SCL, MGT/IMG, with disk formats and loaders. | No. | Missing (left out by choice, 2026-10-14: not attribute work) |
+| Nirvana tiles (.btile) | 8x2-attribute tiles. | No. | Missing (left out by choice, 2026-10-14: not attribute work) |
+| Archives and Warajevo tapes | Reads zip, rar and 28 other archive formats, and Warajevo TAP. | No. | Missing (left out by choice, 2026-10-14: not attribute work) |
 | ZXB meta files | ZX-Blockeditor's container. | Left out on purpose; the Tape Blocks dialog covers tape blocks. | N/A |
 | BMP, GIF, JPG, PNG | Read and write. | Read and write; GIF can animate Flash. | PixULA further |
 | Picture converter | Brightness, contrast, size, crop, 31 dithers, black-and-white, colour, Timex, ULAplus via Image2ULAPlus, GIF frame picker. | Import dialog: brightness, contrast, fit/stretch/crop, Dither select with the 31 methods for the Smooth and Sharp conversions, in every mode (8B, 2026-10-13), live preview; ULAplus palette built in; GIF first frame only. | Partial |
 | File window | Edit each SCREEN$ block in a tape or disk file; add, delete, move blocks. | Tape Blocks dialog for tapes. | Same |
-| Data block composer, memory and pulse editors, header changer | Build and edit any tape block byte by byte. | No. | Missing |
+| Data block composer, memory and pulse editors, header changer | Build and edit any tape block byte by byte. | No. | Missing (left out by choice, 2026-10-14: not attribute work) |
 | ASM and BIN export settings | Number base, prefixes, bytes per line, line or block layout, attributes mixed in. | .asm, .c, .bin and .atr with a fixed layout. | Partial |
-| Change picture size | Add or remove space around the picture. | No; the canvas size comes from the screen mode. | Missing |
-| Print with preview | Print at any size over several pages. | No. | Missing |
+| Change picture size | Add or remove space around the picture. | No; the canvas size comes from the screen mode. | Missing (left out by choice, 2026-10-14: not attribute work) |
+| Print with preview | Print at any size over several pages. | No. | Missing (left out by choice, 2026-10-14: not attribute work) |
 | Run file; send to ZX-Editor or ZX-Blockeditor; command line | Windows integrations. | Not applicable to a browser app. | N/A |
 
 ### Clipboard and program
