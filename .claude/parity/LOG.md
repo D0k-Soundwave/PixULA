@@ -926,3 +926,8 @@ the .zxtm header documents the elements and a test carries them through a file; 
 The comparison row stays Partial until 11B (no UI yet). Note for 11B: ZXM export drops elements unless 11B writes them.
 Next: 11B (Opus plan review first; owner questions: find key, where placeholders show, covered places, New/Open with elements, GigaScreen blended compare, 8x1 modes refused).
 
+## Batch 11B owner answers (2026-10-14)
+Find key: Ctrl+F. Covered look: numbered boxes (Shift+M switches to the element picture). A place already covered by an earlier element: left out. GigaScreen Visual compare:
+the owner chose to compare BOTH SCREENS EXACTLY, not the blended colour (reversing the 11A default): MapFind visual now keys each screen on its own; red over blue no longer
+matches magenta over black; the oracle test judges screens A and B separately. Modes without 8x8 colour cells stay refused (row: Same in 8x8-cell modes).
+Still to ask: before 11B2 drawing on a covered place, New/Open with elements; before 11B3 the .zxm File-menu behaviour, and project/autosave carry.
