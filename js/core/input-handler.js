@@ -2071,6 +2071,9 @@ class InputHandlerClass {
     // Ctrl+F finds repeated map elements (ZX Paintbrush's key). Claimed, so the browser's own find does not open over the picture; it always answers, with a reason when it cannot start.
     if (ctrl && key === 'f' && !e.shiftKey && !e.altKey) { e.preventDefault(); if (window.MapElementsPanel) MapElementsPanel.startFind(); return; }
 
+    // Shift+M switches the map elements between numbered boxes and their own pictures (ZX Paintbrush uses M, which is the Selection tool here)
+    if (!ctrl && e.shiftKey && !e.altKey && key === 'm') { e.preventDefault(); if (window.MapElementOverlay) MapElementOverlay.togglePictures(); return; }
+
     // ── Ctrl combos ──
     if (ctrl && key === 'z' && !e.shiftKey) { e.preventDefault(); ToolManager.undo(); return; }
     if (ctrl && (key === 'y' || (key === 'z' && e.shiftKey))) { e.preventDefault(); UndoRedo.redo(); return; }

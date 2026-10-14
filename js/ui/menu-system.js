@@ -473,6 +473,7 @@ class MenuSystemClass {
                     { id: 'panel-tools', label: 'Tool Options', action: 'view:toggleToolOptions', toggle: true },
                     { id: 'panel-preview', label: 'Preview', action: 'view:togglePreview', toggle: true, i18n: 'panels.preview' },
                     { id: 'panel-map-elements', label: 'Map Elements', action: 'view:toggleMapElements', toggle: true, i18n: 'panels.mapElements' },
+                    { id: 'map-element-pictures', label: 'Map Element Pictures', shortcut: 'Shift+M', action: 'view:toggleMapElementPictures', toggle: true, i18n: 'menu.view.mapElementPictures' },
                     { id: 'panel-presets', label: 'Tool Presets', action: 'view:toggleToolPresets', toggle: true, i18n: 'panels.presets' }
                 ]
             },
@@ -782,6 +783,7 @@ class MenuSystemClass {
         EventBus.on(EVENTS.SYMMETRY_CHANGED, ({ mode }) => this._updateMirrorToggles(mode));
         EventBus.on(EVENTS.GRID_SNAP_CHANGED, ({ snap }) => this._updateToggleState('grid-snap', !!snap));
         EventBus.on(EVENTS.DISPLAY_VIEW_CHANGED, () => this._updateDisplayViewMenuState());
+        EventBus.on(EVENTS.MAP_ELEMENT_DISPLAY_CHANGED, ({ pictures }) => this._updateToggleState('map-element-pictures', !!pictures));
         // The greyed-out reasons are written into tooltips; follow the language.
         EventBus.on(EVENTS.UI_LANGUAGE_CHANGE, () => {
             this._updateDisplayViewMenuState();
@@ -1171,6 +1173,7 @@ class MenuSystemClass {
             case 'view:toggleReference':   PanelSection.toggleVisibility('reference-panel');    break;
             case 'view:togglePreview':     PanelSection.toggleVisibility('preview-panel');      break;
             case 'view:toggleMapElements': PanelSection.toggleVisibility('map-elements-panel'); break;
+            case 'view:toggleMapElementPictures': MapElementOverlay.togglePictures(); break;
             case 'view:toggleToolOptions': PanelSection.toggleVisibility('tool-options-panel'); break;
             case 'view:toggleLayers':      PanelSection.toggleVisibility('layer-panel');        break;
             case 'view:toggleTransform':   PanelSection.toggleVisibility('transform-panel');    break;

@@ -941,4 +941,14 @@ only); js/ui/components/map-elements-panel.js (non-modal sidebar panel: Match se
 keyboard flow, Ctrl+F claimed, covered places left out, Escape returns the tool keys, refusals with reasons, menu rows, modes, landscape phone 844x390). shell.spec panel order updated.
 Not done (11B2): the element list (rows, delete, show places), picture display + Shift+M, New/Open guard for elements, comparison rows. (11B3): .zxm picture + elements, project/autosave carry.
 Browser suite: 805 passed; one timing spec (undo-partial-capture) flaked under load as before.
+OWNER (2026-10-14, before 11B2): drawing on a covered place is ALLOWED and stays hidden under the cover (no change to the write gate); New / Open / New Picture from Selection ASK before abandoning map elements.
+
+## Batch 11B2 done (2026-10-14)
+Element list in the Map Elements panel (Show walks the places and selects each; Delete asks first, picture unchanged); MapElementOverlay picture display (steady-phase colours from the same
+colour table Visual compare reads; GigaScreen pair blended as the Average view shows it; test: the element picture at a place equals the canvas at the source cell, standard_ula and gigascreen),
+Shift+M and View > Map Element Pictures (EVENTS.MAP_ELEMENT_DISPLAY_CHANGED keeps the tick); FileManager._confirmDropElements asks in New, Open (when the picture is replaced) and New Picture from Selection;
+.zxtm and .zxm imports no longer count as replacing the picture (importsDocument = false) and a tile-only import no longer wipes the elements. 10 i18n keys x 13; manual paragraph x13.
+Comparison rows: Find and create map elements -> Same in 8x8-cell modes; Map element list -> Partial (gaps listed). Playwright map-elements-list (6). Simplification vs the Opus plan: the picture display
+uses the steady flash phase and does not follow Colours off / Colour grid; recorded here.
+Next: 11B3 (owner questions first: .zxm from the File menu, project/autosave carry).
 

@@ -207,8 +207,8 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 
 | ZX Paintbrush | What it does | PixULA | Verdict |
 |---|---|---|---|
-| Find and create map elements | Turns a selection into an element and finds every copy on screen, matching dots and colours, dots only, or by look. | Map Editor captures the canvas into 8x8 tiles and stores identical cells once (exact match only). | Partial |
-| Map element list | Elements and their positions; import, export, placeholders (M key). | Map Editor with a tile palette and maps bigger than one screen. | PixULA further |
+| Find and create map elements | Turns a selection into an element and finds every copy on screen, matching dots and colours, dots only, or by look. | Edit > Find Map Element (Ctrl+F) copies the selected block of whole cells and finds every copy: Dots and colours, Dots only, or Looks the same (both flash phases; each GigaScreen screen on its own); places outlined and stepped through, Accept stores the element with the map and covers its places with numbered boxes (display only, not an undo step); covered places and overlaps are left out of a later find (2026-10-14, Batch 11B). Works in 8x8-cell modes (Standard, ULAplus, ULANext, GigaScreen, Timex hi-res); refused with a reason elsewhere. | Same in 8x8-cell modes |
+| Map element list | Elements and their positions; import, export, placeholders (M key). | Map Elements panel: list with Show and Delete, numbered boxes or the elements' own pictures (Shift+M, since M is the Selection tool), elements saved with the map (.zxtm, project file pending), New / Open ask before abandoning them; drawing on a covered place is allowed and stays hidden. Not built: merge-into-picture on delete, moving or adding a place, importing or exporting one element as .zxp, and .zxm files do not yet carry elements (Batch 11B3). The Map Editor's tile palette and maps bigger than one screen are further. | Partial |
 | ZXM files | Screen plus map elements. | .zxm, plus PixULA's own .zxtm. | Same |
 
 ### View and positioning

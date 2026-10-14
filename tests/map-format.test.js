@@ -83,14 +83,15 @@ clearTimeout(MapService._persistTimer); // let Node exit
   MapService.loadDocument(makeDoc());
   MapService.addElement(b, [{ x: 4, y: 2 }, { x: 10, y: 7 }], { match: 'visual', name: 'Pair', gridW: 32, gridH: 24 });
   const bytes = MapFormat.export();
-  MapService.loadDocument(makeDoc());
+  MapService.loadDocument({ ...makeDoc(), elements: [] });
   check('(the working document has no elements now)', MapService.getElements().length === 0);
   const r = MapFormat.parse(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
   const e = MapService.getElements()[0];
   check('a .zxtm file carries the elements back', r.success && MapService.getElements().length === 1 && e.name === 'Pair' && e.match === 'visual' && e.w === 2 && e.positions.length === 2);
   const v1 = new TextEncoder().encode(JSON.stringify({ v: 1, k: 'ula-cell', name: 'old', tiles: [{ b: 'AQIDBAUGBwg=', a: 56 }], map: { w: 1, h: 1, cells: 'AQA=' } }));
   const r1 = MapFormat.parse(v1.buffer.slice(v1.byteOffset, v1.byteOffset + v1.byteLength));
-  check('a version 1 .zxtm file (written before elements) still imports, with no elements', r1.success && MapService.getElements().length === 0);
+  check('a version 1 .zxtm file (written before elements) imports and does NOT wipe the elements', r1.success && MapService.getElements().length === 1);
+  check('map files never replace the picture (no discard question, the picture keeps its name)', MapFormat.importsDocument === false);
 }
 
 summary();

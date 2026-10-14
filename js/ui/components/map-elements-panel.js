@@ -52,9 +52,10 @@ class MapElementsPanelClass {
                     <button type="button" class="panel-button mapel-cancel" data-i18n="mapel.cancel">${this._t('mapel.cancel', 'Cancel')}</button>
                 </div>
             </div>
+            <ul class="mapel-list" aria-label="${this._t('panels.mapElements', 'Map Elements')}"></ul>
             <p class="mapel-idle" data-i18n="mapel.idle">${this._t('mapel.idle', 'Select a block of the picture and choose Edit > Find Map Element (Ctrl+F).')}</p>`;
         const q = (s) => panel.content.querySelector(s);
-        this._els = { find: q('.mapel-find'), idle: q('.mapel-idle'), mode: q('.mapel-mode'), count: q('.mapel-count'), place: q('.mapel-place') };
+        this._els = { find: q('.mapel-find'), idle: q('.mapel-idle'), mode: q('.mapel-mode'), count: q('.mapel-count'), place: q('.mapel-place'), list: q('.mapel-list') };
         q('.mapel-prev').addEventListener('click', () => this.step(-1));
         q('.mapel-next').addEventListener('click', () => this.step(1));
         q('.mapel-accept').addEventListener('click', () => this.accept());
@@ -63,8 +64,68 @@ class MapElementsPanelClass {
         this._root.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this._session) { e.preventDefault(); e.stopPropagation(); this.cancel(); }
         });
-        EventBus.on(EVENTS.SCREEN_MODE_CHANGED, () => { if (this._session) this.cancel(); });
+        EventBus.on(EVENTS.MAP_ELEMENTS_CHANGED, () => this.renderList());
+        EventBus.on(EVENTS.MAP_LOADED, () => this.renderList());
+        EventBus.on(EVENTS.UI_LANGUAGE_CHANGE, () => this.renderList());
+        this.renderList();
+        EventBus.on(EVENTS.SCREEN_MODE_CHANGED, () => { this.renderList(); if (this._session) this.cancel(); });
         EventBus.on(EVENTS.FILE_NEW, () => { if (this._session) this.cancel(); });
+    }
+
+    /** The element list: one row each, with Show (outline its places, centre on the next one) and Delete. */
+    renderList() {
+        if (!this._els) return;
+        const ul = this._els.list;
+        ul.textContent = '';
+        MapService.elements.forEach((el, i) => {
+            const li = document.createElement('li');
+            li.className = 'mapel-item';
+            const fits = MapService.elementFitsScreen(el);
+            const label = document.createElement('span');
+            label.className = 'mapel-item-label';
+            label.textContent = this._t('mapel.item', '{name}: {w} x {h} cells', { name: el.name || ('#' + (i + 1)), w: el.w, h: el.h }) + ', ' +
+                Helpers.localizedPlural('plural.mapelItemPlaces', el.positions.length, 'one: {n} place | other: {n} places');
+            if (!fits) { li.classList.add('mapel-item-off'); li.title = this._t('mapel.noFit', 'This element belongs to another screen mode.'); }
+            const show = document.createElement('button');
+            show.type = 'button';
+            show.className = 'panel-button mapel-show';
+            show.textContent = this._t('mapel.show', 'Show');
+            show.disabled = !fits;
+            show.addEventListener('click', () => this.show(i));
+            const del = document.createElement('button');
+            del.type = 'button';
+            del.className = 'panel-button mapel-delete';
+            del.textContent = this._t('mapel.delete', 'Delete');
+            del.addEventListener('click', () => this.remove(i));
+            li.append(label, show, del);
+            ul.appendChild(li);
+        });
+    }
+
+    /** Outline all places of element `index`, and centre on the next one each time (so repeated clicks walk through them). */
+    show(index) {
+        const el = MapService.elements[index];
+        if (!el || !MapService.elementFitsScreen(el)) return;
+        this._shown = (this._shown && this._shown.index === index) ? { index, at: (this._shown.at + 1) % el.positions.length } : { index, at: 0 };
+        MapElementOverlay.setHighlight({ places: el.positions, w: el.w, h: el.h, current: this._shown.at });
+        const p = el.positions[this._shown.at];
+        const cw = ZX_SPECTRUM.CELL_WIDTH, ch = ZX_SPECTRUM.CELL_HEIGHT;
+        if (CanvasSystem.centreOn) CanvasSystem.centreOn((p.x + el.w / 2) * cw, (p.y + el.h / 2) * ch);
+        // the selection goes to the place, as in ZX Paintbrush
+        SelectionService.setSelection({ x: p.x * cw, y: p.y * ch, width: el.w * cw, height: el.h * ch });
+        CanvasSystem.requestRender();
+    }
+
+    /** Delete an element after asking; the picture is not changed. */
+    remove(index) {
+        const el = MapService.elements[index];
+        if (!el) return false;
+        if (!confirm(this._t('mapel.confirmDelete', 'Delete {name}? The picture is not changed.', { name: el.name || ('#' + (index + 1)) }))) return false;
+        MapService.removeElement(index);
+        this._shown = null;
+        MapElementOverlay.setHighlight(null);
+        this._notice('mapel.deleted', 'Element deleted.');
+        return true;
     }
 
     /** True while a find is open. */

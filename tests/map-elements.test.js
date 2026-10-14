@@ -120,7 +120,8 @@ const meta = (o = {}) => ({ match: 'exact', name: 'Elem', gridW: 32, gridH: 24, 
   await S.restorePersisted();
   check('restorePersisted brings the elements back', S.getElements().length === 1 && S.getElements()[0].name === 'Kept');
   check('...and loadDocument takes elements from a document', (() => { const d = S.toDocument(); S.elements = []; S.loadDocument(d); return S.getElements().length === 1; })());
-  check('loadDocument of an old document (no elements) gives an empty list', (() => { const d = S.toDocument(); delete d.elements; S.loadDocument(d); return S.getElements().length === 0; })());
+  check('loadDocument of a document with no elements field keeps the current elements (a tile-only import must not wipe them)', (() => { const d = S.toDocument(); delete d.elements; S.loadDocument(d); return S.getElements().length === 1; })());
+  check('...and a document with an empty list clears them', (() => { const d = S.toDocument(); d.elements = []; S.loadDocument(d); return S.getElements().length === 0; })());
 
   // -- removeElement and the new-map reset ----------------------------------------------------------------------------------------------
   S.addElement(b1, [{ x: 0, y: 0 }], meta({ name: 'A' }));
