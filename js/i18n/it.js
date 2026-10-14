@@ -484,7 +484,7 @@ const it = {
     'menu.edit.newFromSelection': 'Nuova immagine dalla selezione',
     'err.zxm.placesAdjusted': 'Posizioni degli elementi della mappa: {rounded} spostate su una cella, {dropped} fuori dall’immagine escluse.',
     'mode.zxmNeedsStandard': 'ZXM contiene un’immagine Standard ULA: passa prima a quella modalità schermo.',
-    'mapel.zxmLeftOut': '{n} elementi della mappa vengono da un’altra modalità schermo e non sono nel file.',
+    'mapel.zxmLeftOut': 'Elementi della mappa di un’altra modalità schermo non presenti nel file: {n}.',
     'mapel.item': '{name}: {w} x {h} celle',
     'plural.mapelItemPlaces': 'one: {n} posizione | other: {n} posizioni',
     'mapel.show': 'Mostra',

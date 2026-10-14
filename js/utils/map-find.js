@@ -11,9 +11,9 @@
  *   'exact'   the dots and the attribute bytes of every screen are equal;
  *   'dots'    the dots are equal, whatever the colours;
  *   'visual'  every dot shows the same colour in BOTH flash phases. A dot's colour is the pair (colour in the steady phase, colour in the inverted
- *             phase), taken from a COLOUR TABLE built from the live palette; with two screens the two dots are blended per phase,
- *             (a + b) >> 1 per channel, as the compositor does. Two cells match when their dots' colour pairs are equal up to renaming, which
- *             is what a canonical key by first appearance gives. It is independent of every display toggle on purpose.
+ *             phase), taken from a COLOUR TABLE built from the live palette; with two screens each screen is compared on its own, never
+ *             blended (owner decision 2026-10-14). Two cells match when their dots' colour pairs are equal up to renaming, which is what a
+ *             canonical key by first appearance gives. It is independent of every display toggle on purpose.
  */
 const MapFind = {
     MODES: Object.freeze(['exact', 'dots', 'visual']),

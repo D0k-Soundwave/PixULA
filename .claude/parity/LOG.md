@@ -969,3 +969,15 @@ moves), FIGURE_TYPES.PARALLELOGRAM, option lists in figure-tool.js now derived f
 every Shape icon has a symbol), i18n x13 (label, hint, tool hint), manual sentence x13, Node and Playwright tests. Default taken: the third point is the corner after the second (reading (a)); the help picture was
 not checked - owner try-this. Row 'Rectangle, square, rounded rectangle, parallelogram' -> Same.
 
+## Group D review (Opus) and the fixes (2026-10-14)
+Found 17 items. Fixed with a test first (tests/browser/map-elements-review.spec.js, map-elements, zxm-picture): (1) a cancelled or failed Open no longer loses elements (FileManager._askDropElements asks, elements are cleared only
+after the file was read, except .zxm / .pixula which bring their own); (2) a .zxtm that brings elements asks when the picture has some (owner: ask first), a file with none leaves them alone; (3) elements belong to the
+picture: the map store keeps tiles only and restorePersisted brings back no elements (owner decision); (4) Accept and Delete mark the picture modified; (5)(6) box numbers are the element's own stable number (never reused after
+a delete, saved in the codec as an optional field, older files numbered in order), drawn with small 3 x 5 digits so two digits fit one cell; (7) outlines are one dark and one light pixel so a single cell stays visible;
+(8)(9) Escape anywhere, hiding the panel, a new or opened picture put away an open find and the Show outlines (MapElementsPanel.dismiss); (10) a collapsed panel opens for a find; (11) Ctrl+F and Shift+M are in the F1
+list; (12) Shift+M counts only elements that fit the mode; (13) the .zxm reader drops a negative place instead of refusing the file, counts an element with no places, and validates through setElements; (14) the left-out message
+has no plural noun; (15) count-verdicts now reads a verdict with a note after it - the true totals are 114 functions: 76 same, 9 further, 21 partial, 6 missing, 2 n/a (27 below parity); ASM/BIN, converter and Options rows marked
+left out by choice; (16) stale comments / batch-11 decisions / FIGURES updated (GigaScreen visual now 4.2 to 4.3 ms [M]); (17) ASCII in new comments.
+Not changed: Ctrl+Z after opening a .zxm restores the old picture but keeps the file's elements; a find started from an already covered block keeps that block (the source is always kept); elements stay visible after converting
+Standard to ULAplus/ULANext (same grid) - all three listed for the owner.
+

@@ -922,3 +922,15 @@ with Visual compare, is 7.8 ms against a 16.7 ms frame [C: 1000 / 60].
 | `MapCodec.MAX_ELEMENTS` | 4,096, below 7,882, so it never binds before the size limit does | C |
 | Full-screen two-screen elements beside the largest map | 40 fit; the largest document then encodes to 1,032,628 bytes | M (tests/map-elements.test.js) |
 
+### Map elements: Visual compare after each GigaScreen screen is compared on its own - measured 2026-10-14
+
+`node tools/map-find-bench.js`, two runs back to back. This replaces the GigaScreen and Timex-pair "visual" rows above (3.2 to 3.6 ms and 7.7 to 7.8 ms [M, 2026-10-13], measured when the two screens were blended).
+
+| Mode | Visual compare, 1x1 or 4x4 block (before -> now) | Tag |
+|---|---|---|
+| GigaScreen (32 x 24, two screens) | 3.2 to 3.6 ms -> 4.2 to 4.3 ms | M |
+| Timex hi-res pair (64 x 24, two screens) | 7.7 to 7.8 ms -> 6.8 to 6.9 ms | M |
+| Standard ULA | 2.7 to 2.8 ms (unchanged) | M |
+
+All are well under a 16.7 ms frame [C: 1000 / 60], so the find still runs straight away.
+

@@ -326,8 +326,7 @@ class ZXMFormatClass {
     if (loaded && loaded.success === false) return loaded;
     MapService.loadDocument(result.doc);
     const els = this.elementsFromParsed(result.elements);
-    MapService.elements = els.elements;
-    MapService._announceElements();
+    MapService.setElements(els.elements);
     if (els.rounded || els.dropped) {
       EventBus.emit(EVENTS.STATUS_NOTICE, { text: Helpers.localizedMessage('err.zxm.placesAdjusted',
         'Map element places: {rounded} moved to a cell, {dropped} off the picture left out.', { rounded: els.rounded, dropped: els.dropped }) });
@@ -354,7 +353,7 @@ class ZXMFormatClass {
         if (x < 0 || y < 0 || x + w > cols || y + h > rows) { dropped++; continue; }
         if (!places.some(q => q.x === x && q.y === y)) places.push({ x, y });
       }
-      if (!places.length) return;
+      if (!places.length) { if (!e.positions.length) dropped++; return; }
       places.sort((a, b) => (a.y - b.y) || (a.x - b.x));
       const bitmap = new Uint8Array(w * h * 8);
       for (let cy = 0; cy < h; cy++) for (let cx = 0; cx < w; cx++) for (let r = 0; r < 8; r++) {
@@ -572,8 +571,6 @@ class ZXMFormatClass {
           if (!m) return { success: false, error: Helpers.localizedMessage('err.zxm.badPosition',
               'Bad map element position') };
           const x = parseInt(m[1], 10), y = parseInt(m[2], 10);
-          if (x < 0 || y < 0) return { success: false, error: Helpers.localizedMessage('err.zxm.badPosition',
-              'Bad map element position') };
           el.positions.push({ x, y });
           i++;
         }

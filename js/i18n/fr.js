@@ -484,7 +484,7 @@ const fr = {
     'menu.edit.newFromSelection': 'Nouvelle image depuis la sélection',
     'err.zxm.placesAdjusted': 'Emplacements des éléments de carte : {rounded} déplacés sur une cellule, {dropped} hors de l’image écartés.',
     'mode.zxmNeedsStandard': 'ZXM contient une image Standard ULA : passez d’abord à ce mode d’écran.',
-    'mapel.zxmLeftOut': '{n} éléments de carte viennent d’un autre mode d’écran et ne sont pas dans le fichier.',
+    'mapel.zxmLeftOut': 'Éléments de carte d’un autre mode d’écran absents du fichier : {n}.',
     'mapel.item': '{name} : {w} x {h} cellules',
     'plural.mapelItemPlaces': 'one: {n} emplacement | other: {n} emplacements',
     'mapel.show': 'Afficher',

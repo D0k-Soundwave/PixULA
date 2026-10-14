@@ -66,7 +66,7 @@ test('elements from another screen mode are left out of a .zxm with a notice', a
         MapService.elements.push({ ...e, name: 'Other', gridW: 64 });
         FormatRegistry.getExportHandler('zxm').export();
     });
-    expect(await notice).toContain('1 map elements');
+    expect(await notice).toMatch(/another screen mode.*: 1./);
 });
 
 test('a project and the autosave carry the elements; a project without them loads with none', async ({ page }) => {

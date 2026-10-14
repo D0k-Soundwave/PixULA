@@ -181,12 +181,17 @@ class FileManagerClass {
    * @private
    */
   _confirmDropElements() {
+    const ok = this._askDropElements();
+    if (ok && window.MapService) MapService.clearElements();
+    return ok;
+  }
+
+  /** Ask whether the picture's map elements can be abandoned, WITHOUT clearing them (a cancelled or failed Open must lose nothing). @returns {boolean} */
+  _askDropElements() {
     const n = window.MapService ? MapService.elements.length : 0;
     if (!n) return true;
-    const ok = confirm(Helpers.localizedPlural('plural.confirmDropElements', n,
+    return confirm(Helpers.localizedPlural('plural.confirmDropElements', n,
       'one: This picture has {n} map element. Abandon it? | other: This picture has {n} map elements. Abandon them?'));
-    if (ok) MapService.clearElements();
-    return ok;
   }
 
   /**
@@ -411,7 +416,8 @@ class FileManagerClass {
       const confirmed = await this._confirmDiscard();
       if (!confirmed) return false;
     }
-    if (replacesDocument && !this._confirmDropElements()) return false;
+    // Ask now, clear only once the file has really been read: cancelling the import dialog or a broken file must lose nothing
+    if (replacesDocument && !this._askDropElements()) return false;
 
     try {
       const buffer = preRead || await file.arrayBuffer();
@@ -435,6 +441,9 @@ class FileManagerClass {
         EventBus.emit(EVENTS.FILE_ERROR, { message: result.error });
         return false;
       }
+
+      // The picture was replaced: its elements go, except where the file brings its own (.zxm, project)
+      if (replacesDocument && window.MapService && !['zxm', 'pixula'].includes(extension)) MapService.clearElements();
 
       // A picture that is not a project has no palette slots: it opens on slot 1, slots 2-4
       // copies of its palette. A project restores its own in App._loadProjectData.

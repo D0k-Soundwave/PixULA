@@ -484,7 +484,7 @@ const hu = {
     'menu.edit.newFromSelection': 'Új kép a kijelölésből',
     'err.zxm.placesAdjusted': 'Térképelem-helyek: {rounded} cellára igazítva, {dropped} a képen kívüli kihagyva.',
     'mode.zxmNeedsStandard': 'A ZXM Standard ULA képet tartalmaz - előbb váltson erre a képernyőmódra.',
-    'mapel.zxmLeftOut': '{n} térképelem másik képernyőmódból való, és nincs a fájlban.',
+    'mapel.zxmLeftOut': 'Másik képernyőmód térképelemei, amelyek nincsenek a fájlban: {n}.',
     'mapel.item': '{name}: {w} x {h} cella',
     'plural.mapelItemPlaces': 'one: {n} hely | other: {n} hely',
     'mapel.show': 'Mutat',

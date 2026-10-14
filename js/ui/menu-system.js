@@ -1401,6 +1401,8 @@ class MenuSystemClass {
         shortcuts.push([CLUT_SHORTCUTS.keys, this._t(CLUT_SHORTCUTS.i18n, CLUT_SHORTCUTS.en)]);
         shortcuts.push(['X / Y', this._t('help.axisLock', 'Hold while drawing: keep to a horizontal (X) or vertical (Y) line. Tap X: swap ink and paper')]);
         shortcuts.push(['Shift+C', this._t('menu.edit.cloneFigure', 'Clone Last Figure')]);
+        shortcuts.push(['Ctrl+F', this._t('menu.edit.findMapElement', 'Find Map Element')]);
+        shortcuts.push(['Shift+M', this._t('menu.view.mapElementPictures', 'Map Element Pictures')]);
         shortcuts.push(['Enter / Shift+Enter / Esc', this._t('help.typeOnCanvas', 'Type on canvas: Enter draws, Shift+Enter new line, Esc cancels')]);
         // Inverse - one list with the key handler
         for (const s of MODE_SHORTCUTS) shortcuts.push([s.keys, this._t(s.i18n, s.en)]);

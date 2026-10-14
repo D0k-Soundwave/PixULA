@@ -57,4 +57,18 @@ check('an element with no place left is not kept', none.elements.length === 0 &&
 check('the stored elements encode', !!MapCodec.encode({ name: '', tileKind: 'ula-cell', tiles: [], map: { width: 1, height: 1, cells: Int16Array.of(-1) }, elements: els.elements }));
 check('a picture with no elements writes just the base', !F.buildPictureText(scr, []).text.includes('[Map ZXP picture]'));
 check('the tile-map writer is still the one the Map Editor uses', typeof F.exportTileMap === 'function' && typeof F.parseTileMap === 'function');
+
+// odd inputs (group D review): a negative place is dropped (not a refusal of the whole file); an element with no places is counted
+{
+  const mk = (positions) => ({ img: back.elements[0].img, positions });
+  const neg = F.elementsFromParsed([mk([{ x: -8, y: 0 }, { x: 24, y: 32 }])]);
+  check('a negative place is dropped and counted, the others stay', neg.elements.length === 1 && neg.dropped === 1 && neg.elements[0].positions.length === 1);
+  const empty = F.elementsFromParsed([mk([])]);
+  check('an element with an empty place list is not kept and is counted', empty.elements.length === 0 && empty.dropped === 1);
+  const wide = F.elementsFromParsed([{ img: { width: 264, height: 8, bits: new Uint8Array(264 * 8), attrs: new Uint8Array(33) }, positions: [{ x: 0, y: 0 }] }]);
+  check('an element wider than the picture is dropped', wide.elements.length === 0 && wide.dropped === 1);
+  const txt = text.replace('[80,32]', '[-8,32]');
+  check('a file with a negative place still reads', F.parseText(txt).success === true);
+}
+
 summary();

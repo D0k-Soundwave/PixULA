@@ -21,9 +21,10 @@ listings and had gone stale (it described an "Attributes only" draw mode and a
 Paintbrush never had).
 
 **Totals** [M, counted from the tables below]: 114 functions; PixULA is below
-parity on 28 (6 missing, 22 partial), level on
-74, ahead on 10, and 2 do not apply to a browser app (counted by .claude/parity/count-verdicts.js, 2026-10-13, after Batch 10; it was 33 below parity,
-7 missing and 26 partial, on 2026-10-10 after Batch 7).
+parity on 27 (6 missing, 21 partial), level on 76, ahead on 9, and 2 do not apply to a browser app
+(counted by .claude/parity/count-verdicts.js, 2026-10-14, after Batch 11; the counter now reads a verdict that has a note after it, so rows such as
+"Same in Standard ULA" or "Missing (left out by choice ...)" are counted - before today it silently skipped 9 rows). On 2026-10-10, after Batch 7, it was
+33 below parity (7 missing, 26 partial).
 Before Batch 1 (2026-10-08 morning) the count below parity was 69 (34 missing, 35
 partial). Before Batch 2 part 2B2 (2026-10-08) it was 64 (28 missing, 36 partial):
 the Dots menu and the Move choice moved four Missing rows to Partial.
@@ -232,10 +233,10 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | Archives and Warajevo tapes | Reads zip, rar and 28 other archive formats, and Warajevo TAP. | No. | Missing (left out by choice, 2026-10-14: not attribute work) |
 | ZXB meta files | ZX-Blockeditor's container. | Left out on purpose; the Tape Blocks dialog covers tape blocks. | N/A |
 | BMP, GIF, JPG, PNG | Read and write. | Read and write; GIF can animate Flash. | PixULA further |
-| Picture converter | Brightness, contrast, size, crop, 31 dithers, black-and-white, colour, Timex, ULAplus via Image2ULAPlus, GIF frame picker. | Import dialog: brightness, contrast, fit/stretch/crop, Dither select with the 31 methods for the Smooth and Sharp conversions, in every mode (8B, 2026-10-13), live preview; ULAplus palette built in; GIF first frame only. | Partial |
+| Picture converter | Brightness, contrast, size, crop, 31 dithers, black-and-white, colour, Timex, ULAplus via Image2ULAPlus, GIF frame picker. | Import dialog: brightness, contrast, fit/stretch/crop, Dither select with the 31 methods for the Smooth and Sharp conversions, in every mode (8B, 2026-10-13), live preview; ULAplus palette built in; GIF first frame only. | Partial (left out by choice, 2026-10-14: not attribute work) |
 | File window | Edit each SCREEN$ block in a tape or disk file; add, delete, move blocks. | Tape Blocks dialog for tapes. | Same |
 | Data block composer, memory and pulse editors, header changer | Build and edit any tape block byte by byte. | No. | Missing (left out by choice, 2026-10-14: not attribute work) |
-| ASM and BIN export settings | Number base, prefixes, bytes per line, line or block layout, attributes mixed in. | .asm, .c, .bin and .atr with a fixed layout. | Partial |
+| ASM and BIN export settings | Number base, prefixes, bytes per line, line or block layout, attributes mixed in. | .asm, .c, .bin and .atr with a fixed layout. | Partial (left out by choice, 2026-10-14: not attribute work) |
 | Change picture size | Add or remove space around the picture. | No; the canvas size comes from the screen mode. | Missing (left out by choice, 2026-10-14: not attribute work) |
 | Print with preview | Print at any size over several pages. | No. | Missing (left out by choice, 2026-10-14: not attribute work) |
 | Run file; send to ZX-Editor or ZX-Blockeditor; command line | Windows integrations. | Not applicable to a browser app. | N/A |
@@ -247,7 +248,7 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | Internal clipboard | Text-based ZXP format, shared between program windows. | Internal clipboard that survives a reload. | Same |
 | Paste Windows graphic | Through the import converter. | System clipboard paste through the converter. | Same |
 | Undo and redo | Configurable depth. | 500 steps with a memory cap. | Same |
-| Options | Grid colours, three display sizes, info bar formats, PLOT coordinate range. | Interface size, themes, languages. Grid colours (Preferences, per grid, with Reset to the theme) and PLOT coordinates (Preferences > Y counts from; the readout only) added 2026-10-09. The rest of this row stays with Batch 12. | Partial |
+| Options | Grid colours, three display sizes, info bar formats, PLOT coordinate range. | Interface size, themes, languages. Grid colours (Preferences, per grid, with Reset to the theme) and PLOT coordinates (Preferences > Y counts from; the readout only) added 2026-10-09. The rest of this row stays with Batch 12. | Partial (left out by choice, 2026-10-14: not attribute work) |
 | Context help and hotkey list | Click-for-help and a shortcuts page. | Two-stage tooltips, a built-in manual in 13 languages, a shortcuts dialog. | PixULA further |
 
 ## PixULA functions with no ZX Paintbrush counterpart

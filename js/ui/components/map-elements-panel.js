@@ -69,7 +69,9 @@ class MapElementsPanelClass {
         EventBus.on(EVENTS.UI_LANGUAGE_CHANGE, () => this.renderList());
         this.renderList();
         EventBus.on(EVENTS.SCREEN_MODE_CHANGED, () => { this.renderList(); if (this._session) this.cancel(); });
-        EventBus.on(EVENTS.FILE_NEW, () => { if (this._session) this.cancel(); });
+        EventBus.on(EVENTS.FILE_NEW, () => { this.dismiss(); });
+        EventBus.on(EVENTS.FILE_IMPORT, () => { this.dismiss(); });
+        EventBus.on(EVENTS.PANEL_VISIBILITY_CHANGED, ({ id, visible }) => { if (id === this.ID && !visible) this.dismiss(); });
     }
 
     /** The element list: one row each, with Show (outline its places, centre on the next one) and Delete. */
@@ -92,6 +94,7 @@ class MapElementsPanelClass {
             show.textContent = this._t('mapel.show', 'Show');
             show.disabled = !fits;
             show.addEventListener('click', () => this.show(i));
+            label.textContent = (el.number ? '#' + el.number + ' ' : '') + label.textContent;
             const del = document.createElement('button');
             del.type = 'button';
             del.className = 'panel-button mapel-delete';
@@ -122,10 +125,23 @@ class MapElementsPanelClass {
         if (!el) return false;
         if (!confirm(this._t('mapel.confirmDelete', 'Delete {name}? The picture is not changed.', { name: el.name || ('#' + (index + 1)) }))) return false;
         MapService.removeElement(index);
+        if (window.FileManager && FileManager.markModified) FileManager.markModified();
         this._shown = null;
         MapElementOverlay.setHighlight(null);
         this._notice('mapel.deleted', 'Element deleted.');
         return true;
+    }
+
+    /**
+     * Put away whatever the panel is showing on the picture: an open find (cancelled) and the outlines Show left. Escape anywhere, hiding the panel, and
+     * a new or opened picture all come here. @returns {boolean} true if there was something to put away
+     */
+    dismiss() {
+        const had = !!this._session || !!this._shown;
+        if (this._session) this.cancel();
+        this._shown = null;
+        if (window.MapElementOverlay) MapElementOverlay.setHighlight(null);
+        return had;
     }
 
     /** True while a find is open. */
@@ -162,6 +178,7 @@ class MapElementsPanelClass {
         this._session = { block, source: { x: rect.x, y: rect.y }, rect, kept: [], current: 0, mode: null, found: null };
 
         PanelSection.setVisible(this.ID, true);
+        if (PanelSection.isCollapsed(this.ID)) PanelSection.setCollapsed(this.ID, false);   // the find must be seen
         const modes = MapService.findModes();
         this._els.mode.textContent = '';
         for (const m of modes) {
@@ -228,7 +245,7 @@ class MapElementsPanelClass {
         const screen = MapService.captureScreen();
         const found = screen ? MapService.findElement(s.block, s.mode, screen) : null;
         const r = found ? MapService.placesFrom(found.positions, s.block.w, s.block.h, s.source) : { kept: s.kept };
-        const number = MapService.elements.length + 1;
+        const number = MapService.nextElementNumber();
         const res = MapService.addElement(s.block, r.kept, {
             match: s.mode, name: this._t('mapel.name', 'Element {n}', { n: number }),
             gridW: ZX_SPECTRUM.GRID_COLS, gridH: ZX_SPECTRUM.GRID_ROWS
@@ -240,8 +257,9 @@ class MapElementsPanelClass {
         }
         const places = r.kept.length;
         this._end();
+        if (window.FileManager && FileManager.markModified) FileManager.markModified();   // the picture has new content to keep (autosave, unsaved-changes warning)
         this._notice('mapel.accepted', 'Element {n} stored with {places} places. Undo does not take it back; delete it in the Map Elements panel.',
-            { n: res.index + 1, places });
+            { n: MapService.elements[res.index].number, places });
         this._focusCanvas();
         return true;
     }

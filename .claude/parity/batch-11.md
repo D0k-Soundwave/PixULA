@@ -128,3 +128,10 @@ project/autosave carry). Overlay = two canvases (picture-resolution cover layer,
 (fixed toolbar+panel 408 px); real phone test is 844x390.
 OWNER questions in order: 1 find key (Ctrl+F recommended); 2 covered look (numbered boxes); 3 place already covered (left out); 4 GigaScreen blended compare; 5 modes refused;
 before 11B2: 6 drawing on covered place (allowed, hidden); 7 New/Open with elements (ask); before 11B3: 8 .zxm from File menu (picture+elements); 9 project/autosave keep elements (yes).
+
+## Owner decisions recorded (2026-10-14; group D review)
+- GigaScreen and the Timex pair: Visual compare compares EACH SCREEN ON ITS OWN, not the blended colour (this replaces "GigaScreen compares the blended result" in Decisions above).
+- Find key Ctrl+F; covered places shown as numbered boxes (Shift+M switches to the element's own picture); a place already covered by an earlier element is left out; modes without 8x8 colour cells are refused with a reason.
+- Drawing on a covered place is allowed and stays hidden; New / Open / New Picture from Selection ask before abandoning elements; a .zxtm that brings elements asks too when the picture has some.
+- .zxm from the File menu = picture plus elements (Standard ULA only); the project and the autosave keep elements; elements belong to the picture and are NOT restored from the map store at start-up.
+

@@ -484,7 +484,7 @@ const de = {
     'menu.edit.newFromSelection': 'Neues Bild aus Auswahl',
     'err.zxm.placesAdjusted': 'Stellen der Kartenelemente: {rounded} auf eine Zelle verschoben, {dropped} außerhalb des Bildes weggelassen.',
     'mode.zxmNeedsStandard': 'ZXM enthält ein Standard-ULA-Bild - wechseln Sie zuerst in diesen Bildschirmmodus.',
-    'mapel.zxmLeftOut': '{n} Kartenelemente stammen aus einem anderen Bildschirmmodus und sind nicht in der Datei.',
+    'mapel.zxmLeftOut': 'Kartenelemente aus einem anderen Bildschirmmodus sind nicht in der Datei: {n}.',
     'mapel.item': '{name}: {w} x {h} Zellen',
     'plural.mapelItemPlaces': 'one: {n} Stelle | other: {n} Stellen',
     'mapel.show': 'Zeigen',

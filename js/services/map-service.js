@@ -318,7 +318,7 @@ class MapServiceClass {
         this.tiles = doc.tiles;
         this.map = doc.map;
         // A document with no elements field (a tile-only import) leaves the picture's elements alone
-        if (Array.isArray(doc.elements)) this.elements = doc.elements;
+        if (Array.isArray(doc.elements)) { this.elements = doc.elements; this._renumber(); }
     }
 
     /**
@@ -333,7 +333,7 @@ class MapServiceClass {
         return true;
     }
 
-    // ── Elements: find repeated parts of the picture (Batch 11A) ───────────
+    // -- Elements: find repeated parts of the picture (Batch 11A) ───────────
 
     /** The match modes that make sense in the active screen mode ([] where the find does not run). */
     findModes() {
@@ -412,6 +412,7 @@ class MapServiceClass {
             if (!seen.has(k)) { seen.add(k); list.push({ x: p.x, y: p.y }); }
         }
         const el = {
+            number: this.nextElementNumber(),
             name: String((info && info.name) || '').slice(0, 64), w: block && block.w, h: block && block.h,
             screens: block && block.screens, gridW: info && info.gridW, gridH: info && info.gridH, match: info && info.match,
             bitmap: block && Uint8Array.from(block.bitmap), attrs: block && Uint8Array.from(block.attrs), positions: list
@@ -468,6 +469,16 @@ class MapServiceClass {
         return { kept, covered: positions.length - free.length, overlapping: free.length - kept.length };
     }
 
+    /** The number the next element gets: one more than the highest in use, so a number is never reused after a delete. */
+    nextElementNumber() {
+        return this.elements.reduce((m, e) => (e.number > m ? e.number : m), 0) + 1;
+    }
+
+    /** Give every element without a number the next free one, in order (files written before elements were numbered). @private */
+    _renumber() {
+        for (const e of this.elements) if (!(e.number > 0)) e.number = this.nextElementNumber();
+    }
+
     /** Remove every element. */
     clearElements() {
         if (!this.elements.length) return;
@@ -485,6 +496,7 @@ class MapServiceClass {
             if (el && MapCodec._encodeElement(el)) ok.push(el);
         }
         this.elements = ok;
+        this._renumber();
         this._announceElements();
     }
 
@@ -573,7 +585,8 @@ class MapServiceClass {
     /** Persist the working document (debounced by the callers via _schedulePersist). */
     async persist() {
         if (!window.Storage || !Storage.STORES || !Storage.STORES.MAPS) return;
-        const payload = MapCodec.encode(this.toDocument());
+        // The map store keeps the TILE map only: elements belong to the picture (project, autosave, .zxm), never restored on their own
+        const payload = MapCodec.encode({ ...this.toDocument(), elements: [] });
         try {
             if (payload) {
                 await Storage.set(this.STORAGE_KEY, payload, Storage.STORES.MAPS);
@@ -599,6 +612,7 @@ class MapServiceClass {
                 return;
             }
             this._adopt(doc);
+            this.elements = [];     // whatever an older build stored here is not restored
             this._emit(EVENTS.MAP_LOADED, { name: this.name, restored: true });
             Logger.info('MapService',
                 `Restored persisted map (${doc.tiles.length} tiles, ${doc.map.width}×${doc.map.height})`);

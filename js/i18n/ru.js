@@ -484,7 +484,7 @@ const ru = {
     'menu.edit.newFromSelection': 'Новая картинка из выделения',
     'err.zxm.placesAdjusted': 'Места элементов карты: {rounded} сдвинуто на ячейку, {dropped} за пределами картинки пропущено.',
     'mode.zxmNeedsStandard': 'ZXM хранит картинку Standard ULA - сначала переключитесь на этот режим экрана.',
-    'mapel.zxmLeftOut': 'Элементов карты из другого режима экрана: {n}; в файле их нет.',
+    'mapel.zxmLeftOut': 'Элементы карты из другого режима экрана, которых нет в файле: {n}.',
     'mapel.item': '{name}: {w} x {h} ячеек',
     'plural.mapelItemPlaces': 'one: {n} место | few: {n} места | many: {n} мест | other: {n} места',
     'mapel.show': 'Показать',
