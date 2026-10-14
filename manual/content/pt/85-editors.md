@@ -39,12 +39,15 @@ cenário maior do que um único ecrã.
 
 Pinte com o botão esquerdo e apague com o direito, ou use o preenchimento para
 substituir uma área ligada de mosaicos iguais. Os mosaicos vêm do padrão e das
-cores atuais, ou diretamente da tela. Pode passar um mapa de volta para a tela,
-e um único anular reverte tudo.
+cores atuais, ou diretamente da tela.
 
 Guarde como `.zxtm` para continuar a trabalhar – é o formato próprio do PixULA e
 guarda tudo – ou como `.zxm`, ou como assembly, C ou binário em bruto para
 incluir num programa.
+
+### Elementos do mapa
+
+**Encontrar partes repetidas.** Selecione um bloco da imagem (células inteiras; a seleção é primeiro ajustada a células) e escolha Editar > Procurar elemento do mapa, ou prima Ctrl+F como no ZX Paintbrush. O painel Elementos do mapa abre-se e cada lugar onde o bloco aparece fica contornado na imagem; Anterior e Seguinte percorrem-nos e levam a imagem a cada um. A lista **Correspondência** diz o que quer dizer «igual»: Pontos e cores (os pontos e os bytes de cor são iguais), Só pontos (as cores são ignoradas) ou Parece igual (as células mostrariam as mesmas cores nas duas fases do piscar - uma célula vazia corresponde a qualquer célula vazia do mesmo papel, e uma célula com os pontos invertidos e tinta e papel trocados corresponde à original; no GigaScreen e no par Timex cada ecrã é comparado à parte). O Timex hi-res não tem cores de célula e por isso oferece só as duas últimas. Os lugares que se sobrepõem e os que um elemento anterior já cobre ficam de fora, e a contagem diz quantos. **Aceitar** guarda o elemento com o mapa e cobre os seus lugares com caixas numeradas. Aceitar nunca muda a imagem e não é um passo de anular - Ctrl+Z deixa o elemento em paz; apague-o no painel. A procura funciona onde as células são de 8 por 8 com cores: Standard, ULAplus, ULANext, GigaScreen e Timex hi-res; noutros sítios diz porque não. Ctrl+F já não abre a procura própria do navegador enquanto trabalha na imagem (o menu do navegador sim).
 
 ### O editor de sprites
 

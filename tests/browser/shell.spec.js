@@ -493,7 +493,9 @@ test('right sidebar order: Reference -> Layers -> Tool Options -> Patterns -> Tr
     await boot(page);
     const panels = await page.$$eval('#panels > section', els => els.map(e => e.id));
     expect(panels).toEqual(['reference-panel', 'layer-panel', 'tool-options-panel',
-        'patterns-panel', 'transform-panel', 'preview-panel', 'tool-preset-panel']);
+        'patterns-panel', 'transform-panel', 'preview-panel', 'map-elements-panel', 'tool-preset-panel']);
+    // The Map Elements panel (Batch 11B) is in the DOM but hidden until a find starts or View > Map Elements
+    expect(await page.evaluate(() => getComputedStyle(document.getElementById('map-elements-panel')).display)).toBe('none');
     // The Preview map is in the DOM but hidden until View > Preview (Batch 9 part 9B)
     expect(await page.evaluate(() => getComputedStyle(document.getElementById('preview-panel')).display)).toBe('none');
     const refCollapsed = await page.evaluate(() =>

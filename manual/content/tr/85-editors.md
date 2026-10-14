@@ -39,12 +39,15 @@ kurmanızı sağlar.
 
 Sol düğmeyle boyayın, sağ düğmeyle silin ya da aynı karolardan oluşan bitişik bir
 alanı doldurma ile değiştirin. Karolar geçerli desen ve renklerden ya da
-doğrudan tuvalden gelir. Bir haritayı tuvale geri işleyebilirsiniz ve tek bir
-geri alma hepsini geri alır.
+doğrudan tuvalden gelir.
 
 Çalışmaya devam etmek için `.zxtm` olarak kaydedin – PixULA'nın kendi biçimidir
 ve her şeyi korur – ya da `.zxm` olarak veya bir programa eklemek için assembly,
 C ya da ham ikili olarak.
+
+### Harita öğeleri
+
+**Tekrar eden parçaları bulma.** Resimden bir blok seçin (tam hücreler; seçim önce hücrelere uydurulur) ve Düzen > Harita öğesi bul komutunu seçin ya da ZX Paintbrush’taki gibi Ctrl+F’ye basın. Harita öğeleri paneli açılır ve bloğun göründüğü her yer resimde çerçevelenir; Önceki ve Sonraki onları dolaşır ve resmi her birine kaydırır. **Eşleşme** listesi “aynı”nın ne demek olduğunu söyler: Noktalar ve renkler (noktalar ve renk baytları eşit), Yalnızca noktalar (renkler yok sayılır) ya da Aynı görünür (hücreler yanıp sönmenin her iki evresinde aynı renkleri gösterir - boş bir hücre aynı kâğıtlı her boş hücreyle eşleşir, noktaları ters çevrilmiş ve mürekkebi ile kâğıdı değiştirilmiş hücre aslıyla eşleşir; GigaScreen’de ve Timex çiftinde her ekran ayrı karşılaştırılır). Timex hi-res’in hücre renkleri yoktur, bu yüzden yalnızca son ikisini sunar. Birbiriyle çakışan yerler ve önceki bir öğenin zaten kapattığı yerler dışarıda bırakılır, sayı kaç tane olduğunu söyler. **Kabul et** öğeyi haritayla birlikte saklar ve yerlerini numaralı kutularla kapatır. Kabul etmek resmi asla değiştirmez ve bir geri alma adımı değildir - Ctrl+Z öğeye dokunmaz; onu panelden silin. Arama hücrelerin renkli 8’e 8 olduğu yerde çalışır: Standard, ULAplus, ULANext, GigaScreen ve Timex hi-res; başka yerde nedenini söyler. Ctrl+F, resim üzerinde çalışırken artık tarayıcının kendi aramasını açmaz (tarayıcı menüsü açar).
 
 ### Sprite düzenleyici
 

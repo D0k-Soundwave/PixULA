@@ -39,11 +39,15 @@ obrazovka.
 
 Maľujte ľavým tlačidlom a mažte pravým, alebo vyplnením nahraďte súvislú oblasť
 rovnakých dlaždíc. Dlaždice pochádzajú z aktuálneho vzoru a farieb, alebo priamo
-z plátna. Mapu môžete vykresliť späť na plátno a jediné späť vráti všetko.
+z plátna.
 
 Uložte ako `.zxtm`, ak chcete pokračovať v práci – je to vlastný formát PixULA a
 uchová všetko –, alebo ako `.zxm`, alebo ako assembler, C či surové binárne dáta
 na vloženie do programu.
+
+### Prvky mapy
+
+**Hľadanie opakujúcich sa častí.** Vyberte blok obrázka (celé bunky; výber sa najprv upraví na bunky) a zvoľte Úpravy > Nájsť prvok mapy, alebo stlačte Ctrl+F ako v ZX Paintbrush. Otvorí sa panel Prvky mapy a každé miesto, kde sa blok objavuje, je na obrázku orámované; Predchádzajúce a Ďalšie nimi prechádzajú a posúvajú obrázok. Zoznam **Zhoda** hovorí, čo znamená „rovnaké“: Body a farby (body aj bajty farieb sú rovnaké), Len body (farby sa ignorujú) alebo Vyzerá rovnako (bunky by ukazovali rovnaké farby v oboch fázach blikania - prázdna bunka sa zhoduje s každou prázdnou bunkou toho istého papiera a bunka s obrátenými bodmi a vymenenými atramentom a papierom sa zhoduje s originálom; v GigaScreen a páre Timex sa každá obrazovka porovnáva osobitne). Timex hi-res nemá farby buniek, a preto ponúka len posledné dve. Miesta, ktoré sa navzájom prekrývajú, a miesta, ktoré už zakrýva skorší prvok, sa vynechajú a počet hovorí koľko. **Prijať** uloží prvok s mapou a zakryje jeho miesta číslovanými poľami. Prijatie obrázok nikdy nemení a nie je krokom Späť - Ctrl+Z prvok ponechá; zmažte ho v paneli. Hľadanie funguje tam, kde sú bunky 8 × 8 s farbami: Standard, ULAplus, ULANext, GigaScreen a Timex hi-res; inde povie prečo nie. Ctrl+F už pri práci s obrázkom neotvára vlastné hľadanie prehliadača (ponuka prehliadača áno).
 
 ### Editor spritov
 

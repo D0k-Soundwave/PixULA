@@ -39,12 +39,15 @@ joc mai mare decât un singur ecran.
 
 Pictați cu butonul stâng și ștergeți cu cel drept sau folosiți umplerea ca să
 înlocuiți o zonă conectată de plăci identice. Plăcile provin din modelul și
-culorile curente sau direct de pe pânză. Puteți reda o hartă înapoi pe pânză, iar
-o singură anulare inversează totul.
+culorile curente sau direct de pe pânză.
 
 Salvați ca `.zxtm` ca să lucrați mai departe – este formatul propriu PixULA și
 păstrează tot – sau ca `.zxm`, sau ca asamblare, C ori binar brut de inclus într-un
 program.
+
+### Elemente de hartă
+
+**Găsirea părților repetate.** Selectați un bloc din imagine (celule întregi; selecția este mai întâi ajustată la celule) și alegeți Editare > Găsește element de hartă sau apăsați Ctrl+F ca în ZX Paintbrush. Se deschide panoul Elemente de hartă, iar fiecare loc în care apare blocul este încadrat pe imagine; Anterior și Următor le parcurg și derulează imaginea la fiecare. Lista **Potrivire** spune ce înseamnă „la fel”: Puncte și culori (punctele și octeții de culoare sunt egali), Doar puncte (culorile sunt ignorate) sau Arată la fel (celulele ar arăta aceleași culori în ambele faze ale clipirii - o celulă goală se potrivește cu orice celulă goală cu aceeași hârtie, iar o celulă cu punctele inversate și cerneala cu hârtia schimbate se potrivește cu originalul; în GigaScreen și în perechea Timex fiecare ecran se compară separat). Timex hi-res nu are culori de celulă și oferă deci doar ultimele două. Locurile care se suprapun și cele pe care un element anterior le acoperă deja sunt lăsate deoparte, iar numărul spune câte. **Acceptă** salvează elementul cu harta și acoperă locurile lui cu casete numerotate. Acceptarea nu schimbă niciodată imaginea și nu este un pas de anulare - Ctrl+Z lasă elementul în pace; ștergeți-l în panou. Căutarea funcționează unde celulele sunt de 8 pe 8 cu culori: Standard, ULAplus, ULANext, GigaScreen și Timex hi-res; în alte părți spune de ce nu. Ctrl+F nu mai deschide căutarea proprie a browserului cât lucrați la imagine (meniul browserului, da).
 
 ### Editorul de sprite-uri
 

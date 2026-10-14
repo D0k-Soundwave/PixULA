@@ -40,12 +40,15 @@ construire un terrain de jeu plus grand qu’un seul écran.
 Peignez avec le bouton gauche et effacez avec le droit, ou utilisez le
 remplissage pour remplacer une zone connexe de tuiles identiques. Les tuiles
 viennent du motif et des couleurs en cours, ou directement de la zone de
-dessin. Vous pouvez rendre une carte sur la zone de dessin, et une seule
-annulation défait le tout.
+dessin.
 
 Enregistrez en `.zxtm` pour continuer à travailler – c’est le format propre à
 PixULA et il garde tout –, ou en `.zxm`, ou en assembleur, C ou binaire brut à
 intégrer dans un programme.
+
+### Éléments de carte
+
+**Trouver les parties répétées.** Sélectionnez un bloc de l’image (cellules entières ; la sélection est d’abord ajustée aux cellules) et choisissez Édition > Trouver un élément de carte, ou appuyez sur Ctrl+F comme dans ZX Paintbrush. Le panneau Éléments de carte s’ouvre et chaque endroit où le bloc apparaît est entouré sur l’image ; Précédent et Suivant les parcourent et font défiler l’image jusqu’à chacun. La liste **Correspondance** dit ce que « pareil » veut dire : Points et couleurs (les points et les octets de couleur sont égaux), Points seulement (les couleurs sont ignorées) ou Semble identique (les cellules montreraient les mêmes couleurs dans les deux phases du clignotement - une cellule vide correspond à toute cellule vide du même papier, et une cellule aux points inversés avec encre et papier échangés correspond à l’original ; en GigaScreen et dans la paire Timex chaque écran est comparé séparément). Le Timex hi-res n’a pas de couleurs de cellule et ne propose donc que les deux derniers. Les endroits qui se chevauchent et ceux qu’un élément précédent couvre déjà sont écartés, et le compte dit combien. **Accepter** enregistre l’élément avec la carte et couvre ses endroits de cases numérotées. Accepter ne change jamais l’image et n’est pas une étape d’annulation - Ctrl+Z laisse l’élément tranquille ; supprimez-le dans le panneau. La recherche fonctionne là où les cellules sont de 8 sur 8 avec des couleurs : Standard, ULAplus, ULANext, GigaScreen et Timex hi-res ; ailleurs elle dit pourquoi pas. Ctrl+F n’ouvre plus la recherche propre du navigateur pendant que vous travaillez sur l’image (le menu du navigateur, si).
 
 ### L’éditeur de sprites
 

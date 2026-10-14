@@ -38,12 +38,15 @@ jeden bajt atrybutu. Mapy pozwalają zbudować planszę większą niż jeden ekr
 
 Maluj lewym przyciskiem i wymazuj prawym albo zastąp wypełnieniem spójny obszar
 takich samych kafli. Kafle pochodzą z bieżącego wzoru i kolorów albo prosto z
-płótna. Mapę można przenieść z powrotem na płótno, a jedno cofnięcie odwraca
-całość.
+płótna.
 
 Zapisz jako `.zxtm`, żeby dalej pracować – to własny format PixULA i zachowuje
 wszystko – albo jako `.zxm`, albo jako asembler, C lub surowe dane binarne do
 wstawienia w program.
+
+### Elementy mapy
+
+**Znajdowanie powtarzających się części.** Zaznacz blok obrazu (całe komórki; zaznaczenie jest najpierw dopasowywane do komórek) i wybierz Edycja > Znajdź element mapy albo naciśnij Ctrl+F jak w ZX Paintbrush. Otwiera się panel Elementy mapy, a każde miejsce, w którym blok występuje, jest obrysowane na obrazie; Poprzednie i Następne przechodzą po nich i przewijają obraz do każdego. Lista **Dopasowanie** mówi, co znaczy „takie samo”: Punkty i kolory (punkty i bajty kolorów są równe), Tylko punkty (kolory są pomijane) albo Wygląda tak samo (komórki pokazywałyby te same kolory w obu fazach migania - pusta komórka pasuje do każdej pustej komórki tego samego papieru, a komórka z odwróconymi punktami i zamienionym tuszem i papierem pasuje do oryginału; w GigaScreen i parze Timex każdy ekran jest porównywany osobno). Timex hi-res nie ma kolorów komórek, więc oferuje tylko dwa ostatnie. Miejsca nakładające się na siebie i miejsca, które zakrywa już wcześniejszy element, są pomijane, a licznik mówi ile. **Zatwierdź** zapisuje element z mapą i zakrywa jego miejsca ponumerowanymi polami. Zatwierdzenie nigdy nie zmienia obrazu i nie jest krokiem cofania - Ctrl+Z zostawia element w spokoju; usuń go w panelu. Wyszukiwanie działa tam, gdzie komórki mają 8 na 8 z kolorami: Standard, ULAplus, ULANext, GigaScreen i Timex hi-res; gdzie indziej mówi dlaczego nie. Ctrl+F nie otwiera już własnego wyszukiwania przeglądarki podczas pracy nad obrazem (menu przeglądarki tak).
 
 ### Edytor sprite’ów
 
