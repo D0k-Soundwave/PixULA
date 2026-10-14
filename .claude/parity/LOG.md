@@ -961,3 +961,11 @@ saves the whole picture with its elements). MapService.setElements validates a l
 13 locales: 3 keys. Manual: an "In files" paragraph x13. Rows: ZXM files -> Same in Standard ULA (not checked against a file saved by ZX Paintbrush itself - owner try-this); Map element list Partial.
 Tests: zxm-picture, map-elements (setElements), export-mode-matrix (zxm column) and selection-export updated on purpose; Playwright map-elements-files (5).
 
+## Scope change and the 3-point parallelogram (2026-10-14)
+OWNER: parity was asked for the ATTRIBUTE tools; the series had grown to the whole program. Instruction: continue only with what is directly tied to attribute parity. Batch 12 file items are left out
+by choice (rows marked); answers on palette keys (leave menu only), stamp flip / shift gaps (leave as recorded differences) and ASM/BIN settings (leave out) are in batch-12.md / the rows. The owner chose to
+BUILD the 3-point parallelogram. Opus plan review: go. Built: FigureModel type figure-parallelogram (D = A + C - B, never stored; pivot = centre of all four corners; fourth corner follows when the third point
+moves), FIGURE_TYPES.PARALLELOGRAM, option lists in figure-tool.js now derived from the model (a new closed / three-point figure cannot be missed again; guard test), Shape list entry with its icon (guard test:
+every Shape icon has a symbol), i18n x13 (label, hint, tool hint), manual sentence x13, Node and Playwright tests. Default taken: the third point is the corner after the second (reading (a)); the help picture was
+not checked - owner try-this. Row 'Rectangle, square, rounded rectangle, parallelogram' -> Same.
+

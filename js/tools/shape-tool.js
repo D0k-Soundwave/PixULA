@@ -52,6 +52,7 @@ const SHAPE_TYPE_OPTS = Object.freeze([
     { value: 'figure-polyline',   i18n: 'figure.polyline',   hintI18n: 'figure.polyline.hint',   tool: TOOLS.FIGURE, icon: 'icon-fig-polyline' },
     { value: 'figure-polygon',    i18n: 'figure.polygon',    hintI18n: 'figure.polygon.hint',    tool: TOOLS.FIGURE, icon: 'icon-fig-polygon' },
     { value: 'figure-triangle',   i18n: 'figure.triangle',   hintI18n: 'figure.triangle.hint',   tool: TOOLS.FIGURE, icon: 'icon-fig-triangle' },
+    { value: 'figure-parallelogram', i18n: 'figure.parallelogram', hintI18n: 'figure.parallelogram.hint', tool: TOOLS.FIGURE, icon: 'icon-fig-parallelogram' },
     { value: 'figure-rays',       i18n: 'figure.rays',       hintI18n: 'figure.rays.hint',       tool: TOOLS.FIGURE, icon: 'icon-fig-rays' },
     { value: 'figure-orthogonal', i18n: 'figure.orthogonal', hintI18n: 'figure.orthogonal.hint', tool: TOOLS.FIGURE, icon: 'icon-fig-orthogonal' },
     { value: 'figure-parallel',   i18n: 'figure.parallel',   hintI18n: 'figure.parallel.hint',   tool: TOOLS.FIGURE, icon: 'icon-fig-parallel' }

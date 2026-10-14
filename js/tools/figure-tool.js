@@ -31,40 +31,47 @@ const FIGURE_GRAB_RADIUS = 4;
 /** Marker half-size on screen in CSS pixels, as the Bezier tool's. */
 const FIGURE_HANDLE_SCREEN_RADIUS = 4;
 
+/**
+ * The figure kinds the option rows depend on, read from the model so a new kind cannot be missed: the closed ones (they have an inside, so the Filled box
+ * and the thickness rules apply) and the ones that finish by themselves at their third point.
+ */
+const FILLABLE_FIGURES = Object.keys(FigureModel.TYPES).filter(t => FigureModel.TYPES[t].fillable);
+const THREE_POINT_FIGURES = Object.keys(FigureModel.TYPES).filter(t => FigureModel.TYPES[t].maxPoints === 3);
+
 class FigureToolClass extends ToolBase {
   /** Declarative options - rendered by OptionControls (contract in tool-base.js). */
   static optionsSchema = [
     SHAPE_TYPE_ROW,
     // Fill: only the closed figures have an inside.
     { type: 'check', key: 'filled', i18n: 'opt.filled', value: false,
-      showIf: { key: 'shapeType', in: ['figure-polygon', 'figure-triangle'] } },
+      showIf: { key: 'shapeType', in: FILLABLE_FIGURES } },
     { type: 'range', key: 'thickness', i18n: 'opt.thickness', min: 1, max: 8, value: 1,
       showIf: { any: [ { key: 'filled', equals: false },
-                       { key: 'shapeType', notIn: ['figure-polygon', 'figure-triangle'] } ] } },
+                       { key: 'shapeType', notIn: FILLABLE_FIGURES } ] } },
     // Colour core: only the cells under the figure's centre lines take the colours.
     { type: 'select', key: 'colourCore', i18n: 'opt.colourCore', value: 'whole',
       options: ToolBase.COLOUR_CORE_OPTS,
       showIf: { all: [
         { any: [ { key: 'filled', equals: false },
-                 { key: 'shapeType', notIn: ['figure-polygon', 'figure-triangle'] } ] },
+                 { key: 'shapeType', notIn: FILLABLE_FIGURES } ] },
         { cells: true } ] } },
     // Line style: the dash styles need a one-pixel line (a filled figure counts as one).
     ToolBase.lineStyleRow({ thickWhen: { all: [
       { any: [ { key: 'filled', equals: false },
-               { key: 'shapeType', notIn: ['figure-polygon', 'figure-triangle'] } ] },
+               { key: 'shapeType', notIn: FILLABLE_FIGURES } ] },
       { key: 'thickness', gt: 1 } ] } }),
     { type: 'hint', i18n: 'lineStyle.thinOnly', showIf: { all: [
       { any: [ { key: 'filled', equals: false },
-               { key: 'shapeType', notIn: ['figure-polygon', 'figure-triangle'] } ] },
+               { key: 'shapeType', notIn: FILLABLE_FIGURES } ] },
       { key: 'thickness', gt: 1 } ] } },
     { type: 'hint', i18n: 'lineStyle.clearHint', showIf: { all: [
       { key: 'lineStyle', equals: 'clear' },
       { any: [ { key: 'filled', equals: false },
-               { key: 'shapeType', notIn: ['figure-polygon', 'figure-triangle'] } ] } ] } },
+               { key: 'shapeType', notIn: FILLABLE_FIGURES } ] } ] } },
     { type: 'hint', i18n: 'figure.usage.open',
       showIf: { key: 'shapeType', in: ['figure-polyline', 'figure-polygon', 'figure-rays'] } },
     { type: 'hint', i18n: 'figure.usage.fixed',
-      showIf: { key: 'shapeType', in: ['figure-triangle', 'figure-orthogonal', 'figure-parallel'] } }
+      showIf: { key: 'shapeType', in: THREE_POINT_FIGURES } }
   ];
 
   constructor() {
