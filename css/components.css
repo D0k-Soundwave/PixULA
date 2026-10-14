@@ -3662,3 +3662,10 @@
 .fe-fill-dialog .panel-button {
     align-self: flex-end;
 }
+
+/* Map Elements panel (Batch 11B) */
+.mapel-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); font-size: var(--font-size-xs); color: var(--text-secondary); }
+.mapel-row select { min-width: 0; max-width: 65%; background: var(--input-bg); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: var(--font-size-xs); padding: 2px 4px; }
+.mapel-count, .mapel-place, .mapel-idle { margin: var(--space-xs) 0; font-size: var(--font-size-xs); color: var(--text-secondary); }
+.mapel-buttons { display: flex; gap: var(--space-xs); margin-top: var(--space-xs); }
+.mapel-buttons .panel-button { flex: 1 1 0; min-width: 0; }

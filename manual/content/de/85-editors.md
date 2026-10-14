@@ -41,12 +41,15 @@ größer als ein einzelner Bildschirm sind.
 Malen Sie mit der linken Taste und radieren Sie mit der rechten, oder ersetzen
 Sie mit dem Füllen einen zusammenhängenden Bereich gleicher Kacheln. Kacheln
 stammen aus dem aktuellen Muster und den aktuellen Farben oder direkt von der
-Zeichenfläche. Sie können eine Karte zurück auf die Zeichenfläche übertragen,
-und ein einziges Rückgängig macht das Ganze rückgängig.
+Zeichenfläche.
 
 Speichern Sie als `.zxtm`, um weiterzuarbeiten – das ist PixULAs eigenes Format
 und bewahrt alles –, oder als `.zxm` oder als Assembler, C oder Rohdaten zum
 Einbinden in ein Programm.
+
+### Kartenelemente
+
+**Wiederkehrende Teile finden.** Wählen Sie einen Bildblock (ganze Zellen; eine Auswahl wird zuerst an Zellen angepasst) und wählen Sie Bearbeiten > Kartenelement suchen oder drücken Sie wie in ZX Paintbrush Strg+F. Das Fenster Kartenelemente öffnet sich, und jede Stelle, an der der Block vorkommt, wird im Bild umrandet; Zurück und Weiter gehen sie durch und rollen das Bild zu jeder. Die Liste **Vergleich** sagt, was „gleich“ heißt: Punkte und Farben (Punkte und Farbbytes sind gleich), Nur Punkte (Farben werden ignoriert) oder Sieht gleich aus (die Zellen würden in beiden Blinkphasen dieselben Farben zeigen - eine leere Zelle passt zu jeder leeren Zelle desselben Papiers, und eine Zelle mit invertierten Punkten und vertauschter Tinte und Papier passt zum Original; bei GigaScreen und dem Timex-Paar wird jeder Bildschirm für sich verglichen). Timex hi-res hat keine Zellfarben und bietet deshalb nur die letzten beiden. Stellen, die sich überlappen, und Stellen, die ein früheres Element schon bedeckt, bleiben weg, und die Zahl sagt, wie viele. **Übernehmen** speichert das Element mit der Karte und bedeckt seine Stellen mit nummerierten Feldern. Übernehmen ändert das Bild nie und ist kein Rückgängig-Schritt - Strg+Z lässt das Element in Ruhe; löschen Sie es im Fenster. Das Suchen funktioniert, wo Zellen 8 mal 8 mit Farben sind: Standard, ULAplus, ULANext, GigaScreen und Timex hi-res; sonst sagt es, warum nicht. Strg+F öffnet beim Arbeiten am Bild nicht mehr die eigene Suche des Browsers (das Browsermenü schon).
 
 ### Der Sprite-Editor
 

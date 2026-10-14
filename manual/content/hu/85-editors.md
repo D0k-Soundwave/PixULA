@@ -38,12 +38,15 @@ egy attribútumbájt. A térképekkel egy képernyőnél nagyobb játékteret é
 
 Fess a bal gombbal, radírozz a jobbal, vagy a kitöltéssel cseréld le az azonos
 csempék összefüggő területét. A csempék az aktuális mintából és színekből vagy
-közvetlenül a vászonról származnak. A térképet visszarajzolhatod a vászonra, és
-egyetlen visszavonás az egészet visszafordítja.
+közvetlenül a vászonról származnak.
 
 Ments `.zxtm` formátumba, ha tovább akarsz dolgozni – ez a PixULA saját
 formátuma, és mindent megőriz –, vagy `.zxm`-be, vagy assembly, C vagy nyers
 bináris formában, hogy egy programba illeszd.
+
+### Térképelemek
+
+**Ismétlődő részek keresése.** Jelölj ki egy képrészt (egész cellák; a kijelölést előbb cellákhoz igazítja), és válaszd a Szerkesztés > Térképelem keresése parancsot, vagy nyomd meg a Ctrl+F-et, mint a ZX Paintbrushban. Megnyílik a Térképelemek panel, és a kép minden helyét, ahol a blokk előfordul, keret jelöli; az Előző és a Következő végigmegy rajtuk, és a képet is odagörgeti. Az **Egyezés** lista megmondja, mit jelent az „ugyanaz”: Pontok és színek (a pontok és a színbájtok egyenlők), Csak pontok (a színeket figyelmen kívül hagyja) vagy Ugyanúgy néz ki (a cellák a villogás mindkét fázisában ugyanazokat a színeket mutatnák - az üres cella minden azonos papírú üres cellával egyezik, a megfordított pontú, felcserélt tintájú és papírú cella pedig az eredetivel; a GigaScreenben és a Timex-párban minden képernyőt külön hasonlít). A Timex hi-res nem ismer cellaszíneket, ezért csak az utolsó kettőt kínálja. Az egymást átfedő helyek és azok, amelyeket egy korábbi elem már fed, kimaradnak, a szám pedig megmondja, hányról van szó. Az **Elfogad** az elemet a térképpel együtt elmenti, és a helyeit számozott dobozokkal fedi. Az elfogadás sosem módosítja a képet, és nem visszavonási lépés - a Ctrl+Z békén hagyja az elemet; a panelen töröld. A keresés ott működik, ahol a cellák 8x8-asak színekkel: Standard, ULAplus, ULANext, GigaScreen és Timex hi-res; máshol megmondja, miért nem. A Ctrl+F a kép szerkesztése közben már nem nyitja meg a böngésző saját keresőjét (a böngészőmenü igen).
 
 ### A sprite-szerkesztő
 

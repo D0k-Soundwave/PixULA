@@ -39,12 +39,15 @@ construir un escenario más grande que una sola pantalla.
 
 Pinta con el botón izquierdo y borra con el derecho, o usa el relleno para
 sustituir una zona conectada de mosaicos iguales. Los mosaicos salen del patrón
-y los colores actuales, o directamente del lienzo. Puedes volcar un mapa en el
-lienzo, y un solo deshacer revierte todo.
+y los colores actuales, o directamente del lienzo.
 
 Guarda como `.zxtm` para seguir trabajando (es el formato propio de PixULA y lo
 conserva todo), o como `.zxm`, o como ensamblador, C o binario en bruto para
 incluirlo en un programa.
+
+### Elementos del mapa
+
+**Buscar partes repetidas.** Selecciona un bloque de la imagen (celdas enteras; la selección se ajusta primero a celdas) y elige Edición > Buscar elemento de mapa, o pulsa Ctrl+F como en ZX Paintbrush. Se abre el panel Elementos del mapa y cada lugar donde aparece el bloque queda enmarcado en la imagen; Anterior y Siguiente los recorren y desplazan la imagen hasta cada uno. La lista **Coincidencia** dice qué significa «igual»: Puntos y colores (los puntos y los bytes de color son iguales), Solo puntos (se ignoran los colores) o Se ve igual (las celdas mostrarían los mismos colores en las dos fases del parpadeo: una celda vacía coincide con cualquier celda vacía del mismo papel, y una celda con los puntos invertidos y tinta y papel intercambiados coincide con la original; en GigaScreen y el par Timex cada pantalla se compara por separado). Timex hi-res no tiene colores de celda y por eso ofrece solo las dos últimas. Los lugares que se solapan entre sí y los que un elemento anterior ya cubre se dejan fuera, y el recuento dice cuántos. **Aceptar** guarda el elemento con el mapa y cubre sus lugares con cajas numeradas. Aceptar nunca cambia la imagen y no es un paso de deshacer: Ctrl+Z deja el elemento en paz; bórralo en el panel. La búsqueda funciona donde las celdas son de 8 por 8 con colores: Estándar, ULAplus, ULANext, GigaScreen y Timex hi-res; en otros sitios dice por qué no. Ctrl+F ya no abre la búsqueda propia del navegador mientras trabajas en la imagen (el menú del navegador sí).
 
 ### El editor de sprites
 

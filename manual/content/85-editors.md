@@ -39,12 +39,15 @@ screen.
 
 Paint with the left button and erase with the right, or use the fill to replace
 a connected area of matching tiles. Tiles come from the current pattern and
-colours, or straight from the canvas. You can render a map back onto the canvas,
-and one undo reverses the whole thing.
+colours, or straight from the canvas.
 
 Save as `.zxtm` to carry on working - it is PixULA's own format and keeps
 everything - or as `.zxm`, or as assembly, C or raw binary to drop into a
 program.
+
+### Map elements
+
+**Find repeated parts.** Select a block of the picture (whole cells; a selection is fitted to cells first) and choose Edit > Find Map Element, or press Ctrl+F as in ZX Paintbrush. The Map Elements panel opens and every place where the block appears is outlined on the picture; Previous and Next step through them and scroll the picture to each. The **Match** list says what "the same" means: Dots and colours (the dots and the colour bytes are equal), Dots only (the colours are ignored), or Looks the same (the cells would show the same colours, in both phases of flashing - an empty cell matches any empty cell of the same paper, and a cell with its dots inverted and ink and paper swapped matches the original; in GigaScreen and the Timex pair each screen is compared on its own). Timex hi-res has no cell colours, so it offers only the last two. Places that overlap each other, and places an earlier element already covers, are left out, and the count says how many. **Accept** stores the element with the map and covers its places with numbered boxes. Accepting never changes the picture and is not an undo step - Ctrl+Z leaves the element alone; delete it in the panel. Find works where cells are 8 by 8 with colours: Standard, ULAplus, ULANext, GigaScreen and Timex hi-res; elsewhere it says why not. Ctrl+F no longer opens the browser's own find bar while you work on the picture (the browser menu still does).
 
 ### The Sprite Editor
 

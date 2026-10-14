@@ -2068,6 +2068,9 @@ class InputHandlerClass {
       }
     }
 
+    // Ctrl+F finds repeated map elements (ZX Paintbrush's key). Claimed, so the browser's own find does not open over the picture; it always answers, with a reason when it cannot start.
+    if (ctrl && key === 'f' && !e.shiftKey && !e.altKey) { e.preventDefault(); if (window.MapElementsPanel) MapElementsPanel.startFind(); return; }
+
     // ── Ctrl combos ──
     if (ctrl && key === 'z' && !e.shiftKey) { e.preventDefault(); ToolManager.undo(); return; }
     if (ctrl && (key === 'y' || (key === 'z' && e.shiftKey))) { e.preventDefault(); UndoRedo.redo(); return; }

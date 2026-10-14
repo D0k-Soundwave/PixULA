@@ -132,6 +132,8 @@ const BOOT_MANIFEST = [
     ['LayerPanel',       'js/ui/components/layer-panel.js'],
     ['TransformPanel',   'js/ui/components/transform-panel.js'],
     ['PreviewPanel',     'js/ui/components/preview-panel.js'],
+    ['MapElementOverlay', 'js/ui/map-element-overlay.js'],
+    ['MapElementsPanel', 'js/ui/components/map-elements-panel.js'],
     ['CanvasTextEntry',  'js/ui/components/canvas-text-entry.js'],
     ['AppSettings',      'js/ui/components/app-settings.js'],
     ['CanvasControls',   'js/ui/components/canvas-controls.js'],
@@ -411,6 +413,8 @@ class AppClass {
         TransformPanel.init();
         CanvasTextEntry.init();   // the hidden text field Type on canvas types into
         PreviewPanel.init();    // the map of the whole picture, hidden until View > Preview
+        MapElementOverlay.init();   // numbered covers over the places of the map elements
+        MapElementsPanel.init();    // find repeated elements (Edit > Find Map Element), hidden until used
         ToolPresetPanel.init(); // the Presets panel, last and preference-gated
         PanelSection.restore(); // persisted collapse states (async)
 

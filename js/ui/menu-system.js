@@ -84,6 +84,7 @@ class MenuSystemClass {
             'layer-panel':        'panel-layers',
             'transform-panel':    'panel-transform',
             'preview-panel':      'panel-preview',
+            'map-elements-panel': 'panel-map-elements',
             'tool-preset-panel':  'panel-presets'
         };
     }
@@ -424,7 +425,8 @@ class MenuSystemClass {
                     { id: 'deselect', label: 'Deselect', shortcut: 'Ctrl+D', action: 'edit:deselect' },
                     { type: 'separator' },
                     { id: 'selection-to-cells', label: 'Fit Selection to Cells', action: 'edit:selectionToCells', i18n: 'menu.edit.selectionToCells' },
-                    { id: 'new-from-selection', label: 'New Picture from Selection', action: 'edit:newFromSelection', i18n: 'menu.edit.newFromSelection' }
+                    { id: 'new-from-selection', label: 'New Picture from Selection', action: 'edit:newFromSelection', i18n: 'menu.edit.newFromSelection' },
+                    { id: 'find-map-element', label: 'Find Map Element', shortcut: 'Ctrl+F', action: 'edit:findMapElement', i18n: 'menu.edit.findMapElement' }
                 ]
             },
             {
@@ -470,6 +472,7 @@ class MenuSystemClass {
                     { id: 'panel-reference', label: 'Reference Panel', action: 'view:toggleReference', toggle: true },
                     { id: 'panel-tools', label: 'Tool Options', action: 'view:toggleToolOptions', toggle: true },
                     { id: 'panel-preview', label: 'Preview', action: 'view:togglePreview', toggle: true, i18n: 'panels.preview' },
+                    { id: 'panel-map-elements', label: 'Map Elements', action: 'view:toggleMapElements', toggle: true, i18n: 'panels.mapElements' },
                     { id: 'panel-presets', label: 'Tool Presets', action: 'view:toggleToolPresets', toggle: true, i18n: 'panels.presets' }
                 ]
             },
@@ -1113,6 +1116,9 @@ class MenuSystemClass {
             case 'edit:newFromSelection':
                 FileManager.newFromSelection();
                 break;
+            case 'edit:findMapElement':
+                MapElementsPanel.startFind();
+                break;
 
             // View — zoom goes through the canvas-controls path
             case 'view:zoomIn':  CanvasControls.stepZoom(1);  break;
@@ -1164,6 +1170,7 @@ class MenuSystemClass {
             // the two paths can never disagree.
             case 'view:toggleReference':   PanelSection.toggleVisibility('reference-panel');    break;
             case 'view:togglePreview':     PanelSection.toggleVisibility('preview-panel');      break;
+            case 'view:toggleMapElements': PanelSection.toggleVisibility('map-elements-panel'); break;
             case 'view:toggleToolOptions': PanelSection.toggleVisibility('tool-options-panel'); break;
             case 'view:toggleLayers':      PanelSection.toggleVisibility('layer-panel');        break;
             case 'view:toggleTransform':   PanelSection.toggleVisibility('transform-panel');    break;

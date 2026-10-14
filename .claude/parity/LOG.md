@@ -931,3 +931,14 @@ Find key: Ctrl+F. Covered look: numbered boxes (Shift+M switches to the element 
 the owner chose to compare BOTH SCREENS EXACTLY, not the blended colour (reversing the 11A default): MapFind visual now keys each screen on its own; red over blue no longer
 matches magenta over black; the oracle test judges screens A and B separately. Modes without 8x8 colour cells stay refused (row: Same in 8x8-cell modes).
 Still to ask: before 11B2 drawing on a covered place, New/Open with elements; before 11B3 the .zxm File-menu behaviour, and project/autosave carry.
+
+## Batch 11B (find; stop A) done (2026-10-14), branch parity-d
+Built: MapService.blockAt / coveredCells / placesFrom (covered places left out, overlaps resolved source-first) / clearElements, addElement reason codes ('invalid', 'tooBig');
+js/ui/map-element-overlay.js (one picture-size canvas via CanvasSystem.createOverlayCanvas, z 120: hatched numbered boxes in the ZX ROM font, outlines for a find in progress; display
+only); js/ui/components/map-elements-panel.js (non-modal sidebar panel: Match select, count line with aria-live, Previous / Next, Accept, Cancel, Escape); Edit > Find Map Element
+(Ctrl+F, claimed with preventDefault) and View > Map Elements; every refusal says why (no selection, floating piece, mode without 8x8 colour cells). 23 i18n keys x 13. Manual: a
+"Map elements" section in 85-editors.md x13 and the stale "render a map back onto the canvas" sentence removed x13. Tests: map-places (Node), map-elements-find (Playwright, 9: mouse and
+keyboard flow, Ctrl+F claimed, covered places left out, Escape returns the tool keys, refusals with reasons, menu rows, modes, landscape phone 844x390). shell.spec panel order updated.
+Not done (11B2): the element list (rows, delete, show places), picture display + Shift+M, New/Open guard for elements, comparison rows. (11B3): .zxm picture + elements, project/autosave carry.
+Browser suite: 805 passed; one timing spec (undo-partial-capture) flaked under load as before.
+

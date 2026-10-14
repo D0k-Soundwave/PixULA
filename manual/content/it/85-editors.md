@@ -40,12 +40,15 @@ campo di gioco più grande di un singolo schermo.
 Dipingi con il tasto sinistro e cancella con il destro, oppure usa il
 riempimento per sostituire un’area connessa di tessere uguali. Le tessere
 provengono dal motivo e dai colori correnti, o direttamente dall’area di
-disegno. Puoi riportare una mappa sull’area di disegno, e un solo annullamento
-inverte il tutto.
+disegno.
 
 Salva come `.zxtm` per continuare a lavorare – è il formato proprio di PixULA e
 conserva tutto – oppure come `.zxm`, o come assembly, C o binario grezzo da
 inserire in un programma.
+
+### Elementi della mappa
+
+**Trovare le parti ripetute.** Seleziona un blocco dell’immagine (celle intere; la selezione viene prima adattata alle celle) e scegli Modifica > Trova elemento della mappa, oppure premi Ctrl+F come in ZX Paintbrush. Si apre il pannello Elementi della mappa e ogni posizione in cui il blocco compare è evidenziata sull’immagine; Precedente e Successivo le scorrono e portano l’immagine a ciascuna. L’elenco **Corrispondenza** dice che cosa vuol dire «uguale»: Punti e colori (i punti e i byte di colore sono uguali), Solo punti (i colori sono ignorati) o Sembra uguale (le celle mostrerebbero gli stessi colori in entrambe le fasi del lampeggio - una cella vuota corrisponde a ogni cella vuota della stessa carta, e una cella con i punti invertiti e inchiostro e carta scambiati corrisponde all’originale; in GigaScreen e nella coppia Timex ogni schermo è confrontato a parte). Il Timex hi-res non ha colori di cella e offre quindi solo gli ultimi due. Le posizioni che si sovrappongono e quelle che un elemento precedente copre già vengono escluse, e il conteggio dice quante. **Accetta** salva l’elemento con la mappa e copre le sue posizioni con riquadri numerati. Accettare non cambia mai l’immagine e non è un passo di annullamento - Ctrl+Z lascia in pace l’elemento; eliminalo nel pannello. La ricerca funziona dove le celle sono 8 per 8 con colori: Standard, ULAplus, ULANext, GigaScreen e Timex hi-res; altrove dice perché no. Ctrl+F non apre più la ricerca propria del browser mentre lavori sull’immagine (il menu del browser sì).
 
 ### L’editor di sprite
 
