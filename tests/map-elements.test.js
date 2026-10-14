@@ -123,6 +123,19 @@ const meta = (o = {}) => ({ match: 'exact', name: 'Elem', gridW: 32, gridH: 24, 
   check('loadDocument of a document with no elements field keeps the current elements (a tile-only import must not wipe them)', (() => { const d = S.toDocument(); delete d.elements; S.loadDocument(d); return S.getElements().length === 1; })());
   check('...and a document with an empty list clears them', (() => { const d = S.toDocument(); d.elements = []; S.loadDocument(d); return S.getElements().length === 0; })());
 
+  // -- setElements: what a project file or the autosave hands back --------------------------------------------------------------------
+  S.newMap(32, 24, true);
+  const keep = S.addElement(b1, [{ x: 2, y: 2 }], meta({ name: 'P' }));
+  const asProject = JSON.parse(JSON.stringify(S.getElements(), (k, v) => (ArrayBuffer.isView(v) ? Array.from(v) : v)));
+  S.clearElements();
+  S.setElements(asProject);
+  check('setElements takes elements back from JSON (plain arrays for the bytes)', S.getElements().length === 1 && S.getElements()[0].name === 'P' && S.getElements()[0].bitmap instanceof Uint8Array);
+  S.setElements([asProject[0], { nonsense: true }, { ...asProject[0], match: 'fuzzy' }]);
+  check('setElements keeps only the valid ones', S.getElements().length === 1);
+  S.setElements(undefined);
+  check('no list means no elements (a project from before elements)', S.getElements().length === 0);
+  void keep;
+
   // -- removeElement and the new-map reset ----------------------------------------------------------------------------------------------
   S.addElement(b1, [{ x: 0, y: 0 }], meta({ name: 'A' }));
   S.addElement(b2, [{ x: 0, y: 0 }], meta({ name: 'B' }));

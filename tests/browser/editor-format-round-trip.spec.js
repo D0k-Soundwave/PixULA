@@ -114,7 +114,7 @@ test('the editor formats survive their own files, and do not change with the scr
                 };
                 const MAP_RUNS = [
                     ['zxtm', () => MapFormat.exportAndDownload('m.zxtm')],
-                    ['zxm', () => ZXMFormat.exportAndDownload('m.zxm')]
+                    ['zxm', () => ZXMFormat.exportTileMapAndDownload('m.zxm')]   // the Map Editor's tile-map .zxm (File > Open reads the picture, Batch 11B3)
                 ];
                 for (const [ext, run] of MAP_RUNS) {
                     // 40x30 - larger than a screen, so .zxm's documented
@@ -124,7 +124,7 @@ test('the editor formats survive their own files, and do not change with the scr
                     let bytes = null, ok = false, why = null;
                     try {
                         bytes = await grab(run);
-                        const res = FormatRegistry.getImportHandler(ext).parse(bufOf(bytes));
+                        const res = ext === 'zxm' ? ZXMFormat.parseTileMap(bufOf(bytes)) : FormatRegistry.getImportHandler(ext).parse(bufOf(bytes));
                         ok = !!(res && res.success);
                         if (!ok) why = res && res.error;
                     } catch (e) { why = String((e && e.message) || e); }

@@ -58,6 +58,7 @@ loadModule('js/io/jpg-format.js');
 const CATALOGUE = {
   scr:   () => SCRFormat.canExport(),
   zxp:   () => ZXMFormat.canExportZxp(),
+  zxm:   () => ZXMFormat.canExportPicture(),
   mlt:   () => MulticolorFormat.canExport('mlt'),
   ifl:   () => MulticolorFormat.canExport('ifl'),
   hrg:   () => TimexFormat.canExport(),
@@ -98,24 +99,24 @@ const CATALOGUE = {
 
 const T = true, F = false;
 const MATRIX = {
-  standard_ula:    { scr: T, zxp: T, mlt: T, ifl: T, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: F, sl2: F, slr: F, ctile: F, tap: T, tzx: T, png: T, bmp: T, jpg: T, zed: T, sev: T, pal: F, npl: F, asm: T, c: T, bin: T, atr: T },
-  multicolor_8x4:  { scr: F, zxp: T, mlt: T, ifl: T, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: F, sl2: F, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: F, npl: F, asm: F, c: F, bin: F, atr: F },
-  multicolor_8x2:  { scr: F, zxp: T, mlt: T, ifl: T, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: F, sl2: F, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: F, npl: F, asm: F, c: F, bin: F, atr: F },
-  multicolor_8x1:  { scr: T, zxp: T, mlt: T, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: F, sl2: F, slr: F, ctile: T, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: F, npl: F, asm: T, c: T, bin: T, atr: T },
-  ula_plus:        { scr: T, zxp: T, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: F, sl2: F, slr: F, ctile: F, tap: T, tzx: T, png: T, bmp: T, jpg: T, zed: T, sev: T, pal: T, npl: T, asm: T, c: T, bin: T, atr: T },
-  ula_plus_8x1:    { scr: T, zxp: T, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: F, sl2: F, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: T, npl: T, asm: T, c: T, bin: T, atr: T },
-  timex_hires:     { scr: T, zxp: F, mlt: F, ifl: F, hrg: T, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: F, sl2: F, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: F, npl: F, asm: T, c: T, bin: T, atr: F },
-  gigascreen:      { scr: F, zxp: F, mlt: F, ifl: F, hrg: F, img: T, mg8: T, mg4: F, mg2: F, mg1: F, nxi: F, sl2: F, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: F, npl: F, asm: F, c: F, bin: F, atr: F },
-  multigiga_8x4:   { scr: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: T, mg2: F, mg1: F, nxi: F, sl2: F, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: F, npl: F, asm: F, c: F, bin: F, atr: F },
-  multigiga_8x2:   { scr: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: T, mg1: F, nxi: F, sl2: F, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: F, npl: F, asm: F, c: F, bin: F, atr: F },
-  multigiga_8x1:   { scr: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: T, nxi: F, sl2: F, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: F, npl: F, asm: F, c: F, bin: F, atr: F },
-  timex_hires_giga:{ scr: F, zxp: F, mlt: F, ifl: F, hrg: T, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: F, sl2: F, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: F, npl: F, asm: F, c: F, bin: F, atr: F },
-  ulanext:         { scr: T, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: F, sl2: F, slr: F, ctile: F, tap: T, tzx: T, png: T, bmp: T, jpg: T, zed: T, sev: T, pal: T, npl: T, asm: T, c: T, bin: T, atr: T },
-  layer2_256:      { scr: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: T, sl2: T, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: T, npl: T, asm: F, c: F, bin: F, atr: F },
-  layer2_320:      { scr: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: T, sl2: T, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: T, npl: T, asm: F, c: F, bin: F, atr: F },
-  layer2_640:      { scr: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: T, sl2: T, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: T, npl: T, asm: F, c: F, bin: F, atr: F },
-  lores:           { scr: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: T, sl2: F, slr: T, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: T, npl: T, asm: F, c: F, bin: F, atr: F },
-  lores_radastan:  { scr: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: T, sl2: F, slr: T, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: T, npl: T, asm: F, c: F, bin: F, atr: F }
+  standard_ula:    { scr: T, zxm: T, zxp: T, mlt: T, ifl: T, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: F, sl2: F, slr: F, ctile: F, tap: T, tzx: T, png: T, bmp: T, jpg: T, zed: T, sev: T, pal: F, npl: F, asm: T, c: T, bin: T, atr: T },
+  multicolor_8x4:  { scr: F, zxm: F, zxp: T, mlt: T, ifl: T, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: F, sl2: F, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: F, npl: F, asm: F, c: F, bin: F, atr: F },
+  multicolor_8x2:  { scr: F, zxm: F, zxp: T, mlt: T, ifl: T, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: F, sl2: F, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: F, npl: F, asm: F, c: F, bin: F, atr: F },
+  multicolor_8x1:  { scr: T, zxm: F, zxp: T, mlt: T, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: F, sl2: F, slr: F, ctile: T, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: F, npl: F, asm: T, c: T, bin: T, atr: T },
+  ula_plus:        { scr: T, zxm: F, zxp: T, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: F, sl2: F, slr: F, ctile: F, tap: T, tzx: T, png: T, bmp: T, jpg: T, zed: T, sev: T, pal: T, npl: T, asm: T, c: T, bin: T, atr: T },
+  ula_plus_8x1:    { scr: T, zxm: F, zxp: T, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: F, sl2: F, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: T, npl: T, asm: T, c: T, bin: T, atr: T },
+  timex_hires:     { scr: T, zxm: F, zxp: F, mlt: F, ifl: F, hrg: T, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: F, sl2: F, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: F, npl: F, asm: T, c: T, bin: T, atr: F },
+  gigascreen:      { scr: F, zxm: F, zxp: F, mlt: F, ifl: F, hrg: F, img: T, mg8: T, mg4: F, mg2: F, mg1: F, nxi: F, sl2: F, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: F, npl: F, asm: F, c: F, bin: F, atr: F },
+  multigiga_8x4:   { scr: F, zxm: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: T, mg2: F, mg1: F, nxi: F, sl2: F, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: F, npl: F, asm: F, c: F, bin: F, atr: F },
+  multigiga_8x2:   { scr: F, zxm: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: T, mg1: F, nxi: F, sl2: F, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: F, npl: F, asm: F, c: F, bin: F, atr: F },
+  multigiga_8x1:   { scr: F, zxm: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: T, nxi: F, sl2: F, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: F, npl: F, asm: F, c: F, bin: F, atr: F },
+  timex_hires_giga:{ scr: F, zxm: F, zxp: F, mlt: F, ifl: F, hrg: T, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: F, sl2: F, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: F, npl: F, asm: F, c: F, bin: F, atr: F },
+  ulanext:         { scr: T, zxm: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: F, sl2: F, slr: F, ctile: F, tap: T, tzx: T, png: T, bmp: T, jpg: T, zed: T, sev: T, pal: T, npl: T, asm: T, c: T, bin: T, atr: T },
+  layer2_256:      { scr: F, zxm: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: T, sl2: T, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: T, npl: T, asm: F, c: F, bin: F, atr: F },
+  layer2_320:      { scr: F, zxm: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: T, sl2: T, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: T, npl: T, asm: F, c: F, bin: F, atr: F },
+  layer2_640:      { scr: F, zxm: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: T, sl2: T, slr: F, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: T, npl: T, asm: F, c: F, bin: F, atr: F },
+  lores:           { scr: F, zxm: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: T, sl2: F, slr: T, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: T, npl: T, asm: F, c: F, bin: F, atr: F },
+  lores_radastan:  { scr: F, zxm: F, zxp: F, mlt: F, ifl: F, hrg: F, img: F, mg8: F, mg4: F, mg2: F, mg1: F, nxi: T, sl2: F, slr: T, ctile: F, tap: F, tzx: F, png: T, bmp: T, jpg: T, zed: F, sev: F, pal: T, npl: T, asm: F, c: F, bin: F, atr: F }
 };
 
 check('matrix covers every SCREEN_MODES entry',
@@ -149,7 +150,7 @@ const exportFormatsBody = catalogueMatch ? catalogueMatch[1] : '';
 const listedExts = Array.from(exportFormatsBody.matchAll(/\['(\w+)'/g), (m) => m[1]);
 
 check('EXPORT_FORMATS lists no gif entry', !listedExts.includes('gif'));
-check('EXPORT_FORMATS matches the catalogue this test audits (27 formats)',
+check('EXPORT_FORMATS matches the catalogue this test audits (28 formats)',
   listedExts.slice().sort().join(',') === Object.keys(CATALOGUE).sort().join(','),
   `got [${listedExts.sort().join(',')}]`);
 
