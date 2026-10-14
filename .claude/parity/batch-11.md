@@ -115,3 +115,16 @@ picture -> M is the Selection tool so Shift+M plus a View item; or only inside t
 default); drawing over covered places (default: allowed; blocking needs a change to the one write gate); New / Open with elements present (ask?);
 GigaScreen blended compare (confirm); multicolor / 8x1 modes refused (row "Same in 8x8-cell modes").
 Build order: 0 pin the v1 payload; 1 capture + exact + dots; 2 visual (+ oracle test against the compositor); 3 elements + codec v2; 4 timings.
+
+## Batch 11B plan review (Opus, 2026-10-14)
+
+CHANGE then go. ZX Paintbrush: Accept stores the element and COVERS its places (display only, the picture is not written); numbered placeholders, M toggles to the
+element picture; elements are not in undo; New/Open asks whether to abandon them; list can delete (optionally merge into the picture), import/export .zxp. Changes to
+the plan: the find and the element list live in ONE non-modal sidebar panel (the Map Editor is modal and hides the picture), not in the Map Editor; addElement returns
+reason codes; Map Editor tile imports must keep elements; the tile .zxm writer is renamed exportTileMap and a picture-plus-elements .zxm writer takes the 'zxm' export;
+.zxtm load must not count as replacing the picture; fix the stale "render a map back onto the canvas" manual sentence; two comparison rows (Map element list, ZXM files)
+are rated too high. Split: 11B (find: panel, overlay, Edit row, Ctrl+F, manual), 11B2 (element list, picture display Shift+M, New/Open guard, rows), 11B3 (ZXM picture+elements,
+project/autosave carry). Overlay = two canvases (picture-resolution cover layer, screen-resolution numbers/outlines). 390x844 portrait is not a drawable layout today
+(fixed toolbar+panel 408 px); real phone test is 844x390.
+OWNER questions in order: 1 find key (Ctrl+F recommended); 2 covered look (numbered boxes); 3 place already covered (left out); 4 GigaScreen blended compare; 5 modes refused;
+before 11B2: 6 drawing on covered place (allowed, hidden); 7 New/Open with elements (ask); before 11B3: 8 .zxm from File menu (picture+elements); 9 project/autosave keep elements (yes).
