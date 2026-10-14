@@ -44,7 +44,9 @@ class FigureModel {
     pivot() {
         if (this.points.length === 0) return { x: 0, y: 0 };
         let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
-        for (const p of this.points) {
+        // a figure whose outline has corners that are not stored (the parallelogram) turns about the middle of ALL its corners
+        const corners = (this.fillable && this.points.length >= 3) ? this.def.polygon(this.points) : this.points;
+        for (const p of corners) {
             if (p.x < x0) x0 = p.x; if (p.x > x1) x1 = p.x;
             if (p.y < y0) y0 = p.y; if (p.y > y1) y1 = p.y;
         }
@@ -266,6 +268,12 @@ function chain(points, close) {
     return out;
 }
 
+/** The three stored points of a parallelogram and the fourth corner they imply: with A, B, C in order, D = A + C - B. */
+function parallelogramCorners(p) {
+    if (p.length < 3) return p;
+    return [p[0], p[1], p[2], { x: p[0].x + p[2].x - p[1].x, y: p[0].y + p[2].y - p[1].y }];
+}
+
 FigureModel.TYPES = Object.freeze({
     'figure-polyline': Object.freeze({
         maxPoints: Infinity, closed: false, fillable: false,
@@ -280,6 +288,12 @@ FigureModel.TYPES = Object.freeze({
         maxPoints: 3, closed: true, fillable: true,
         segments: (p) => chain(p, true),
         polygon: (p) => p
+    }),
+    // Parallelogram (3 points): point 3 is the corner after point 2; the fourth corner is worked out, never stored
+    'figure-parallelogram': Object.freeze({
+        maxPoints: 3, closed: true, fillable: true,
+        segments: (p) => chain(parallelogramCorners(p), true),
+        polygon: (p) => parallelogramCorners(p)
     }),
     'figure-rays': Object.freeze({
         maxPoints: Infinity, closed: false, fillable: false,

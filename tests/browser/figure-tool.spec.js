@@ -1,7 +1,7 @@
 'use strict';
 /**
  * Batch 7 part 7A in a real browser: the Figure tool, picked from the Shape list. Geometry is pinned in Node
- * (tests/figure-model.test.js, tests/figure-tool.test.js); here: the six entries are really there, each figure is drawn
+ * (tests/figure-model.test.js, tests/figure-tool.test.js); here: the seven entries are really there, each figure is drawn
  * by mouse, stays pending until Enter, Backspace and Escape do their jobs, and one Ctrl+Z removes a drawn figure.
  */
 const { test, expect } = require('@playwright/test');
@@ -50,10 +50,10 @@ const dotAt = (page, x, y) => page.evaluate(([px, py]) => {
     return !!c && ((c.pixels[py % 8] >> (7 - (px % 8))) & 1) === 1;
 }, [x, y]);
 
-test('the six figures are in the Shape list and each one selects the Figure tool with the Shape button still lit', async ({ page }) => {
+test('the seven figures are in the Shape list and each one selects the Figure tool with the Shape button still lit', async ({ page }) => {
     await boot(page);
     await page.click('.tool-btn[data-tool="shape"]');
-    for (const v of ['polyline', 'polygon', 'triangle', 'rays', 'orthogonal', 'parallel']) {
+    for (const v of ['polyline', 'polygon', 'triangle', 'parallelogram', 'rays', 'orthogonal', 'parallel']) {
         await expect(page.locator(`#tool-options-panel .tool-btn[data-value="figure-${v}"]`)).toHaveCount(1);
     }
     await pick(page, 'figure-rays');
@@ -168,4 +168,19 @@ test('a figure draws in an indexed mode and in GigaScreen too', async ({ page })
         expect(drawn, mode).toBe(true);
         await page.keyboard.press('Control+z');
     }
+});
+
+test('a parallelogram: drag the first side, click the third corner, Enter draws four corners; Ctrl+Z takes it back', async ({ page }) => {
+    await boot(page);
+    await pick(page, 'figure-parallelogram');
+    await drag(page, 20, 100, 100, 100);
+    await click(page, 130, 50);
+    await page.keyboard.press('Enter');
+    // A(20,100) B(100,100) C(130,50): D = (50,50)
+    expect(await dotAt(page, 50, 50)).toBe(true);
+    expect(await dotAt(page, 130, 50)).toBe(true);
+    expect(await dotAt(page, 20, 100)).toBe(true);
+    expect(await dotAt(page, 75, 75), 'unfilled: the inside is empty').toBe(false);
+    await page.keyboard.press('Control+z');
+    expect(await dotCount(page), 'one undo takes it all back').toBe(0);
 });

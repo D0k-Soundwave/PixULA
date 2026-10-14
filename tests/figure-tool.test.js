@@ -176,6 +176,23 @@ tool.setShapeType(T.TRIANGLE);
   check('the third point finishes it by itself', tool._phase === 'pending' && tool._model.points.length === 3);
 }
 fresh();
+tool.setShapeType(T.PARALLELOGRAM);
+{
+  clock += 1000;
+  const e = { button: 0, timeStamp: clock };
+  tool.onPointerDown(10, 10, e);
+  tool.onPointerMove(40, 10, e);
+  tool.onPointerUp(40, 10, e);
+  check('a parallelogram has two points after its first side', tool._model.points.length === 2 && tool._phase === 'drawing');
+  click(50, 30);
+  check('the third point finishes it by itself', tool._phase === 'pending' && tool._model.points.length === 3);
+  tool.handleKey('Enter');
+  const d = dots();
+  // A(10,10) B(40,10) C(50,30): D = (20,30)
+  check('Enter draws the whole outline: all four corners are set', [[10, 10], [40, 10], [50, 30], [20, 30]].every(([x, y]) => d.has(y * W + x)));
+  check('...and nothing outside the corner box', !d.has(10 * W + 9) && !d.has(30 * W + 51));
+}
+fresh();
 tool.setShapeType(T.ORTHOGONAL);
 {
   clock += 1000;
@@ -370,5 +387,21 @@ ToolManager.selectTool(TOOLS.FIGURE);
 pending(L);
 ToolManager.commitPending();
 check('ToolManager.commitPending (before a save) draws the pending figure', dots().size > 0 && !tool.hasPending);
+
+// --- the option rows follow the model: a new closed or three-point figure cannot be missed ---------------------------------------------------------
+{
+  const schema = global.FigureTool.optionsSchema;
+  const filledRow = schema.find(r => r.key === 'filled');
+  const fixedHint = schema.find(r => r.i18n === 'figure.usage.fixed');
+  const fillable = Object.keys(FigureModel.TYPES).filter(t => FigureModel.TYPES[t].fillable);
+  const three = Object.keys(FigureModel.TYPES).filter(t => FigureModel.TYPES[t].maxPoints === 3);
+  check('every closed figure shows the Filled box (including the parallelogram)', fillable.includes(T.PARALLELOGRAM) && fillable.every(t => filledRow.showIf.in.includes(t)));
+  check('every three-point figure shows the "finishes at the third point" hint', three.includes(T.PARALLELOGRAM) && three.every(t => fixedHint.showIf.in.includes(t)));
+  const fs = require('fs'), path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'tools', 'shape-tool.js'), 'utf8');
+  const icons = [...src.matchAll(/icon: '(icon-[\w-]+)'/g)].map(m => m[1]);
+  check('every icon named in the Shape list has a symbol in index.html', icons.length > 5 && icons.every(id => html.includes('id="' + id + '"')), icons.filter(id => !html.includes('id="' + id + '"')).join());
+}
 
 summary();

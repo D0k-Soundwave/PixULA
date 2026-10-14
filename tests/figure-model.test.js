@@ -190,4 +190,30 @@ const same = (a, b) => a.size === b.size && [...a].every(k => b.has(k));
   check('dashed at thickness 3 is solid', same(t3, s3));
 }
 
+// --- parallelogram (3 points: the fourth corner is D = A + C - B) --------------------------------------------------------------
+{
+  // A(0,0) B(6,0) C(9,3): D = (3,3). Outline: top 7 + bottom 7 + two slanted sides of 4 each, minus the 4 corners counted twice = 18
+  const m = make(T.PARALLELOGRAM, pts([0, 0], [6, 0], [9, 3]));
+  const px = set(m.rasterise().pixels);
+  check('parallelogram: 18 outline pixels', px.size === 18, String(px.size));
+  check('...the fourth corner is A + C - B', px.has('3,3') && px.has('9,3') && px.has('0,0') && px.has('6,0'));
+  const poly = make(T.POLYGON, pts([0, 0], [6, 0], [9, 3], [3, 3]));
+  check('...the same pixels as the polygon through the four corners', same(px, set(poly.rasterise().pixels)));
+  const f = { filled: true, thickness: 1 };
+  check('...filled it is the polygon filled', same(set(make(T.PARALLELOGRAM, pts([0, 0], [6, 0], [9, 3]), f).rasterise().pixels), set(make(T.POLYGON, pts([0, 0], [6, 0], [9, 3], [3, 3]), f).rasterise().pixels)));
+  check('...filled: four rows of seven = 28 pixels', make(T.PARALLELOGRAM, pts([0, 0], [6, 0], [9, 3]), f).rasterise().pixels.length === 28);
+  const two = make(T.PARALLELOGRAM, pts([0, 0], [6, 0]));
+  check('two points draw just the base (7 pixels)', two.rasterise().pixels.length === 7);
+  check('it is complete at 3 points and takes no fourth', make(T.PARALLELOGRAM, pts([0, 0], [6, 0], [9, 3])).isComplete() && !two.isComplete()
+    && (() => { const m3 = make(T.PARALLELOGRAM, pts([0, 0], [6, 0], [9, 3])); return m3.addPoint({ x: 1, y: 1 }) === false || m3.points.length === 3; })());
+  const wide = make(T.PARALLELOGRAM, pts([20, 0], [30, 0], [15, 10]));          // D = (5,10)
+  check('containsPoint sees inside the whole parallelogram, not just triangle ABC', wide.containsPoint(8, 9) === true);
+  const pv = wide.pivot();
+  check('the pivot is the centre of all four corners: (17.5, 5)', pv.x === 17.5 && pv.y === 5, JSON.stringify(pv));
+  check('Triangle and Polygon pivots are unchanged (box of the stored points)', make(T.TRIANGLE, pts([0, 0], [10, 0], [0, 10])).pivot().x === 5);
+  const mv = make(T.PARALLELOGRAM, pts([0, 0], [6, 0], [9, 3]));
+  mv.movePoint(2, { x: 12, y: 4 });
+  check('moving the third point moves the fourth with it: D = A + q - B', set(mv.rasterise().pixels).has('6,4') && mv.points.length === 3);
+}
+
 summary();

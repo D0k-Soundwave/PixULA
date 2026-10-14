@@ -1634,6 +1634,7 @@ const FIGURE_TYPES = Object.freeze({
     POLYLINE: 'figure-polyline',
     POLYGON: 'figure-polygon',
     TRIANGLE: 'figure-triangle',
+    PARALLELOGRAM: 'figure-parallelogram',
     RAYS: 'figure-rays',
     ORTHOGONAL: 'figure-orthogonal',
     PARALLEL: 'figure-parallel'
