@@ -97,3 +97,8 @@ Written by 12A.
 
 Batch 12 and group D are done. Update the comparison doc rows. Hand off to
 the group D check-off (Opus): CHECKOFF.md, branch `parity-d`.
+
+## Scope decision (owner, 2026-10-14)
+The owner asked for parity with the ATTRIBUTE tools; the series had grown to the whole program. Instruction: continue only with what is directly tied to attribute parity.
+Left out by choice: PZX, turbo loaders, disk images, Nirvana tiles, archives, tape block tools, change picture size, print, converter extras, remaining Options.
+(Earlier answers choosing PZX, TRD/SCL/DSK, Nirvana and zip are superseded; costs stay in docs/BATCH12_COSTS.md.) ASM/BIN export settings: asked separately (attributes mixed in).
