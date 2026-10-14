@@ -74,9 +74,6 @@
  *   tile model is 1-bit + attr and has no per-pixel transparency.
  */
 class ZXMFormatClass {
-  /** Until the picture itself is read from a .zxm (Batch 11B3) it fills the map only, never the picture. */
-  importsDocument = false;
-
   constructor() {
     this.IDENTIFIER = 'ZX-Paintbrush image';
     this.IDENTIFIER_EXT = 'ZX-Paintbrush extended image';
@@ -91,8 +88,14 @@ class ZXMFormatClass {
    * Initialize and register with FormatRegistry
    */
   initialize() {
+    // File > Open / Save Image As: a .zxm is a PICTURE with its map elements, as in ZX Paintbrush (Batch 11B3). The Map Editor reads and writes the
+    // tile map through parseTileMap / exportTileMap instead.
     FormatRegistry.registerImport('zxm', this);
-    FormatRegistry.registerExport('zxm', this);
+    FormatRegistry.registerExport('zxm', {
+      export: () => this.exportPicture(),
+      canExport: () => this.canExportPicture(),
+      exportAndDownload: (filename, options, handle) => this.exportPictureAndDownload(filename, handle)
+    });
     // Standalone .zxp pictures (RECOIL parity — DecodeZxp): classic and
     // extended (8×1 per-line attribute) forms, optional trailing ULAplus
     // palette block. Handled here because the .zxm grammar embeds the
@@ -300,11 +303,124 @@ class ZXMFormatClass {
   }
 
   /**
-   * Parse ZXM file data (import) into the working map document.
+   * File > Open of a .zxm: the base picture becomes the picture (Standard ULA), the map elements and their places become the picture's map
+   * elements, and the tile map is filled too, for the Map Editor.
    * @param {ArrayBuffer} buffer - File data
    * @returns {Object} { success: true } or { success: false, error: string }
    */
   parse(buffer) {
+    const result = this.parseText(new TextDecoder().decode(new Uint8Array(buffer)));
+    if (!result.success) return result;
+    const std = SCREEN_MODES.STANDARD_ULA;
+    const pic = result.picture;
+    const bitmap = new Uint8Array(std.bitmapSize);
+    for (let y = 0; y < std.height; y++) {
+      const base = AttributeSystem._lineOffset(y);
+      for (let col = 0; col < std.width / 8; col++) {
+        let byte = 0;
+        for (let b = 0; b < 8; b++) if (pic.bits[y * pic.width + col * 8 + b]) byte |= 0x80 >> b;
+        bitmap[base + col] = byte;
+      }
+    }
+    const loaded = SCRFormat.importScreen(bitmap, Uint8Array.from(pic.attrs), std.id, 'Load ZXM');
+    if (loaded && loaded.success === false) return loaded;
+    MapService.loadDocument(result.doc);
+    const els = this.elementsFromParsed(result.elements);
+    MapService.elements = els.elements;
+    MapService._announceElements();
+    if (els.rounded || els.dropped) {
+      EventBus.emit(EVENTS.STATUS_NOTICE, { text: Helpers.localizedMessage('err.zxm.placesAdjusted',
+        'Map element places: {rounded} moved to a cell, {dropped} off the picture left out.', { rounded: els.rounded, dropped: els.dropped }) });
+    }
+    EventBus.emit(EVENTS.FILE_IMPORT, { format: 'zxm' });
+    return { success: true };
+  }
+
+  /**
+   * Parsed .zxm elements ({ img, positions in pixels }) as stored map elements: exact match (the file has no mode), places in cells.
+   * Places not on a cell are moved to the cell they start in; places off the picture are dropped; an element with no place left is not kept.
+   * @returns {{elements:Object[], rounded:number, dropped:number}}
+   */
+  elementsFromParsed(list) {
+    const cols = SCREEN_MODES.STANDARD_ULA.width / 8, rows = SCREEN_MODES.STANDARD_ULA.height / 8;
+    const out = [];
+    let rounded = 0, dropped = 0;
+    list.forEach((e) => {
+      const w = e.img.width / 8, h = e.img.height / 8;
+      const places = [];
+      for (const p of e.positions) {
+        if (p.x % 8 || p.y % 8) rounded++;
+        const x = Math.floor(p.x / 8), y = Math.floor(p.y / 8);
+        if (x < 0 || y < 0 || x + w > cols || y + h > rows) { dropped++; continue; }
+        if (!places.some(q => q.x === x && q.y === y)) places.push({ x, y });
+      }
+      if (!places.length) return;
+      places.sort((a, b) => (a.y - b.y) || (a.x - b.x));
+      const bitmap = new Uint8Array(w * h * 8);
+      for (let cy = 0; cy < h; cy++) for (let cx = 0; cx < w; cx++) for (let r = 0; r < 8; r++) {
+        let byte = 0;
+        for (let b = 0; b < 8; b++) if (e.img.bits[(cy * 8 + r) * e.img.width + cx * 8 + b]) byte |= 0x80 >> b;
+        bitmap[(cy * w + cx) * 8 + r] = byte;
+      }
+      out.push({ name: Helpers.localizedMessage('mapel.name', 'Element {n}', { n: out.length + 1 }), w, h, screens: 1, gridW: cols, gridH: rows, match: 'exact',
+        bitmap, attrs: Uint8Array.from(e.img.attrs), positions: places });
+    });
+    return { elements: out, rounded, dropped };
+  }
+
+  /** Whether the active mode can be saved as a .zxm picture: Standard ULA only. */
+  canExportPicture() {
+    return ACTIVE_SCREEN_MODE.id === SCREEN_MODES.STANDARD_ULA.id;
+  }
+
+  /**
+   * The picture and its map elements as .zxm text. Elements from another screen mode or grid cannot be in a standard picture and are counted as left out.
+   * @param {Object} screen - MapFind screen, 32 x 24 cells, one screen
+   * @param {Object[]} elements - MapService elements
+   * @returns {{text:string, written:number, leftOut:number}}
+   */
+  buildPictureText(screen, elements) {
+    const lines = [this.SEC_BASE];
+    this._pushZxpImage(lines, screen.w * 8, screen.h * 8,
+      (px, py) => (screen.bitmap[((py >> 3) * screen.w + (px >> 3)) * 8 + (py & 7)] >> (7 - (px & 7))) & 1,
+      (cx, cy) => screen.attrs[cy * screen.w + cx]);
+    let written = 0, leftOut = 0;
+    for (const el of elements) {
+      if (el.screens !== 1 || el.gridW !== screen.w || el.gridH !== screen.h) { leftOut++; continue; }
+      lines.push(this.SEC_ELEMENT);
+      this._pushZxpImage(lines, el.w * 8, el.h * 8,
+        (px, py) => (el.bitmap[((py >> 3) * el.w + (px >> 3)) * 8 + (py & 7)] >> (7 - (px & 7))) & 1,
+        (cx, cy) => el.attrs[cy * el.w + cx]);
+      lines.push(this.SEC_POSITIONS);
+      for (const p of el.positions) lines.push('[' + (p.x * 8) + ',' + (p.y * 8) + ']');
+      written++;
+    }
+    lines.push(this.SEC_EOF);
+    return { text: lines.join('\r\n') + '\r\n', written, leftOut };
+  }
+
+  exportPicture() {
+    const screen = MapService.captureScreen();
+    if (!screen) throw new Error(Helpers.localizedMessage('mode.zxmNeedsStandard', 'ZXM holds a Standard ULA picture - switch to that screen mode first.'));
+    const r = this.buildPictureText(screen, MapService.elements);
+    if (r.leftOut) {
+      EventBus.emit(EVENTS.STATUS_NOTICE, { text: Helpers.localizedMessage('mapel.zxmLeftOut',
+        '{n} map elements are from another screen mode and are not in the file.', { n: r.leftOut }) });
+    }
+    return new TextEncoder().encode(r.text);
+  }
+
+  async exportPictureAndDownload(filename = 'picture.zxm', handle = null) {
+    const name = filename.toLowerCase().endsWith('.zxm') ? filename : `${filename}.zxm`;
+    return FormatRegistry.download(this.exportPicture(), name, 'text/plain', handle);
+  }
+
+  /**
+   * Parse ZXM file data (import) into the working TILE map only (the Map Editor's Import).
+   * @param {ArrayBuffer} buffer - File data
+   * @returns {Object} { success: true } or { success: false, error: string }
+   */
+  parseTileMap(buffer) {
     const result = this.parseText(new TextDecoder().decode(new Uint8Array(buffer)));
     if (!result.success) return result;
     MapService.loadDocument(result.doc);
@@ -318,7 +434,7 @@ class ZXMFormatClass {
    * Export the working map document as ZXM bytes.
    * @returns {Uint8Array} Complete ZXM document (UTF-8/ASCII text)
    */
-  export() {
+  exportTileMap() {
     return new TextEncoder().encode(this.buildText(MapService.toDocument()));
   }
 
@@ -326,9 +442,9 @@ class ZXMFormatClass {
    * Export and trigger browser download (via the one FormatRegistry path)
    * @param {string} filename - Target filename
    */
-  async exportAndDownload(filename = 'map.zxm', options = {}, handle = null) {
+  async exportTileMapAndDownload(filename = 'map.zxm', options = {}, handle = null) {
     const name = filename.endsWith('.zxm') ? filename : `${filename}.zxm`;
-    return FormatRegistry.download(this.export(), name, 'text/plain', handle);
+    return FormatRegistry.download(this.exportTileMap(), name, 'text/plain', handle);
   }
 
   // ── Pure text codec (Node-tested against synthetic documents) ───────────
@@ -434,6 +550,7 @@ class ZXMFormatClass {
           cellsW: img.width / tw,
           cellsH: img.height / th,
           tiles: this._sliceToTiles(img, tw, th),
+          img,
           positions: null
         });
         continue;
@@ -476,7 +593,7 @@ class ZXMFormatClass {
           'Missing position list') };
     }
 
-    return { success: true, doc: this._composeDocument(elements, tw, th) };
+    return { success: true, doc: this._composeDocument(elements, tw, th), picture: base, elements: elements.map(e => ({ img: e.img, positions: e.positions })) };
   }
 
   // ── Internals ────────────────────────────────────────────────────────────

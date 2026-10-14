@@ -664,6 +664,8 @@ class AppClass {
             timexHiresInk: ColorManager.getTimexHiresInk(),
             timexHiresInkB: ColorManager.getTimexHiresInkB(),
             layers: LayerManager.getAllLayers({ packed }),
+            // the picture's map elements travel with the project and the autosave (owner decision 2026-10-14)
+            ...(window.MapService && MapService.elements.length ? { mapElements: MapService.getElements() } : {}),
             slices
         };
     }
@@ -734,6 +736,9 @@ class AppClass {
             if (data.state.border !== undefined) ColorManager.setBorder(data.state.border);
             if (data.state.zoom) CanvasSystem.setZoom(data.state.zoom);
         }
+
+        // Map elements come back with the picture (a project from before elements has none)
+        if (window.MapService) MapService.setElements(data.mapElements);
 
         // The restored document is still unsaved work
         FileManager.markModified();

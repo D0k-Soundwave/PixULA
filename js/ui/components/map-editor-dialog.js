@@ -667,7 +667,8 @@ class MapEditorDialogClass {
         if (!handler) return;
         try {
             const buffer = await Helpers.readFileAsArrayBuffer(file);
-            const result = handler.parse(buffer);
+            // a .zxm here is read as the TILE map (File > Open reads the whole picture with its elements)
+            const result = ext === 'zxm' ? ZXMFormat.parseTileMap(buffer) : handler.parse(buffer);
             if (result && result.success) {
                 this._status(this._t('map.status.imported', 'Map imported.'));
             } else {
@@ -687,7 +688,7 @@ class MapEditorDialogClass {
             if (format === 'zxtm') {
                 saved = await MapFormat.exportAndDownload(`${base}.zxtm`);
             } else if (format === 'zxm') {
-                saved = await ZXMFormat.exportAndDownload(`${base}.zxm`);
+                saved = await ZXMFormat.exportTileMapAndDownload(`${base}.zxm`);
             } else if (format.startsWith('next-')) {
                 // ZX Spectrum Next tilemap export (Phase 13): ula-cell tiles
                 // convert to 4bpp Next tile definitions at export time

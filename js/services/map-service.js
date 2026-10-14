@@ -475,6 +475,19 @@ class MapServiceClass {
         this._announceElements();
     }
 
+    /**
+     * Replace the elements with a list from a saved project or the autosave. Anything that is not a valid element is left out; no list means none.
+     */
+    setElements(list) {
+        const ok = [];
+        for (const e of (Array.isArray(list) ? list : [])) {
+            const el = e && { ...e, bitmap: Uint8Array.from(e.bitmap || []), attrs: Uint8Array.from(e.attrs || []), positions: (e.positions || []).map(p => ({ x: p.x, y: p.y })) };
+            if (el && MapCodec._encodeElement(el)) ok.push(el);
+        }
+        this.elements = ok;
+        this._announceElements();
+    }
+
     /** Copies of the elements (editing them changes nothing). */
     getElements() {
         return this.elements.map(e => ({ ...e, bitmap: Uint8Array.from(e.bitmap), attrs: Uint8Array.from(e.attrs), positions: e.positions.map(p => ({ ...p })) }));

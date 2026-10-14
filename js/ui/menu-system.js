@@ -22,6 +22,7 @@
 const EXPORT_FORMATS = Object.freeze([
     ['scr',   'ZX Spectrum Screen (.scr)'],
     ['zxp',   'ZX-Paintbrush Image (.zxp)'],
+    ['zxm',   'ZX-Paintbrush Map (.zxm)'],
     ['mlt',   'Timex/Multicolor Screen 8\u00d71 (.mlt)'],
     ['ifl',   'Multicolor Screen 8\u00d72 (.ifl)'],
     ['hrg',   'Timex Hi-res Screen (.hrg)'],

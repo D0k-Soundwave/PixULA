@@ -951,4 +951,13 @@ Shift+M and View > Map Element Pictures (EVENTS.MAP_ELEMENT_DISPLAY_CHANGED keep
 Comparison rows: Find and create map elements -> Same in 8x8-cell modes; Map element list -> Partial (gaps listed). Playwright map-elements-list (6). Simplification vs the Opus plan: the picture display
 uses the steady flash phase and does not follow Colours off / Colour grid; recorded here.
 Next: 11B3 (owner questions first: .zxm from the File menu, project/autosave carry).
+OWNER (2026-10-14, before 11B3): .zxm from the File menu = picture plus elements (Save Image As > ZXM, Standard ULA only; File > Open reads both; Map Editor .zxm stays tiles); .pixula project and the autosave KEEP map elements.
+
+## Batch 11B3 done (2026-10-14) - Batch 11 complete
+ZXMFormat: parse = File > Open reads the base picture (Standard ULA, through SCRFormat.importScreen) and the elements (exact match, places in cells; off-grid places dropped, misaligned ones moved to a cell, both
+counted in a notice); parseTileMap / exportTileMap / exportTileMapAndDownload are the Map Editor's (renamed from parse / export / exportAndDownload; the dialog calls them); the registered 'zxm' export is the picture
+writer (buildPictureText, Standard ULA only via canExportPicture, other-mode elements counted and left out with a notice); Save Image As lists ZX-Paintbrush Map (.zxm) (no Save Selection As rule on purpose: it
+saves the whole picture with its elements). MapService.setElements validates a list from a project; App._getProjectData / _loadProjectData carry mapElements (autosave too); a project without them loads with none.
+13 locales: 3 keys. Manual: an "In files" paragraph x13. Rows: ZXM files -> Same in Standard ULA (not checked against a file saved by ZX Paintbrush itself - owner try-this); Map element list Partial.
+Tests: zxm-picture, map-elements (setElements), export-mode-matrix (zxm column) and selection-export updated on purpose; Playwright map-elements-files (5).
 
