@@ -1306,6 +1306,7 @@ const EVENTS = Object.freeze({
     MAP_TILESET_CHANGED: 'map:tilesetChanged',
     MAP_LOADED: 'map:loaded',
     MAP_ELEMENTS_CHANGED: 'map:elementsChanged',
+    MAP_ELEMENT_DISPLAY_CHANGED: 'map:elementDisplayChanged',   // { pictures: boolean }
 
     // Font editor events (facts from FontService)
     FONT_CHANGED: 'font:changed',

@@ -317,7 +317,8 @@ class MapServiceClass {
         this.tileKind = doc.tileKind || this.TILE_KINDS.ULA_CELL;
         this.tiles = doc.tiles;
         this.map = doc.map;
-        this.elements = Array.isArray(doc.elements) ? doc.elements : [];
+        // A document with no elements field (a tile-only import) leaves the picture's elements alone
+        if (Array.isArray(doc.elements)) this.elements = doc.elements;
     }
 
     /**

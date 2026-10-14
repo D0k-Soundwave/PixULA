@@ -74,6 +74,9 @@
  *   tile model is 1-bit + attr and has no per-pixel transparency.
  */
 class ZXMFormatClass {
+  /** Until the picture itself is read from a .zxm (Batch 11B3) it fills the map only, never the picture. */
+  importsDocument = false;
+
   constructor() {
     this.IDENTIFIER = 'ZX-Paintbrush image';
     this.IDENTIFIER_EXT = 'ZX-Paintbrush extended image';

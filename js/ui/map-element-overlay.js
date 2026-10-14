@@ -14,6 +14,7 @@ class MapElementOverlayClass {
         this._canvas = null;
         this._highlight = null;     // { places: [{x,y}], w, h, current }
         this._hatch = null;
+        this._pictures = false;     // false = numbered boxes, true = the elements' own pictures (Shift+M)
         this.drawCount = 0;         // redraws done, for the tests
     }
 
@@ -34,6 +35,26 @@ class MapElementOverlayClass {
         return this._canvas;
     }
 
+    /** True while the elements show their own pictures instead of numbered boxes. */
+    get pictures() { return this._pictures; }
+
+    setPictures(on) {
+        on = !!on;
+        if (on === this._pictures) return;
+        this._pictures = on;
+        this.draw();
+        EventBus.emit(EVENTS.MAP_ELEMENT_DISPLAY_CHANGED, { pictures: on });
+    }
+
+    /** Shift+M / View > Map Element Pictures. With no elements it says so instead of doing nothing. */
+    togglePictures() {
+        if (!window.MapService || !MapService.elements.length) {
+            EventBus.emit(EVENTS.STATUS_NOTICE, { text: Helpers.localizedMessage('mapel.none', 'No map elements on this picture.') });
+            return;
+        }
+        this.setPictures(!this._pictures);
+    }
+
     /** Outline the places of a find in progress. Pass null to take the outline away. */
     setHighlight(h) {
         this._highlight = h;
@@ -48,7 +69,7 @@ class MapElementOverlayClass {
             if (!MapService.elementFitsScreen(el)) return;
             el.positions.forEach(p => covers.push({ n: i + 1, x: p.x, y: p.y, w: el.w, h: el.h }));
         });
-        return { covers, highlight: this._highlight };
+        return { covers, highlight: this._highlight, pictures: this._pictures };
     }
 
     draw() {
@@ -58,12 +79,51 @@ class MapElementOverlayClass {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         const cw = ZX_SPECTRUM.CELL_WIDTH, ch = ZX_SPECTRUM.CELL_HEIGHT;
         const d = this.describe();
-        for (const c of d.covers) this._cover(ctx, c.x * cw, c.y * ch, c.w * cw, c.h * ch, c.n);
+        if (this._pictures) {
+            const table = MapService.colourTable();
+            const images = new Map();
+            MapService.elements.forEach((el, i) => { if (MapService.elementFitsScreen(el)) images.set(i + 1, this.renderElement(ctx, el, table)); });
+            for (const c of d.covers) ctx.putImageData(images.get(c.n), c.x * cw, c.y * ch);
+        } else {
+            for (const c of d.covers) this._cover(ctx, c.x * cw, c.y * ch, c.w * cw, c.h * ch, c.n);
+        }
         const h = d.highlight;
         if (h && h.places) {
             h.places.forEach((p, i) => this._outline(ctx, p.x * cw, p.y * ch, h.w * cw, h.h * ch, i === h.current));
         }
         this.drawCount++;
+    }
+
+    /**
+     * An element's own picture as ImageData, in the colours it shows in the steady phase of the live palette (the GigaScreen pair is blended, as
+     * the Average view shows it). The colour table is the one Visual compare reads, so the picture and the find agree.
+     * @returns {ImageData}
+     */
+    renderElement(ctx, el, table) {
+        const cw = ZX_SPECTRUM.CELL_WIDTH, H = el.bitmap.length / (el.screens * el.w * el.h);
+        const W = el.w * cw, Hh = el.h * H;
+        const img = ctx.createImageData(W, Hh);
+        const cells = el.w * el.h;
+        for (let cy = 0; cy < el.h; cy++) {
+            for (let cx = 0; cx < el.w; cx++) {
+                const c = cy * el.w + cx;
+                for (let r = 0; r < H; r++) {
+                    for (let b = 0; b < 8; b++) {
+                        let rgb;
+                        const bitA = (el.bitmap[c * H + r] >> (7 - b)) & 1;
+                        if (el.screens === 1) {
+                            rgb = table.at(0, el.attrs[c], bitA, 0);
+                        } else {
+                            const bitB = (el.bitmap[(cells + c) * H + r] >> (7 - b)) & 1;
+                            rgb = MapFind.blend(table.at(0, el.attrs[c], bitA, 0), table.at(1, el.attrs[cells + c], bitB, 0));
+                        }
+                        const o = ((cy * H + r) * W + cx * cw + b) * 4;
+                        img.data[o] = (rgb >> 16) & 255; img.data[o + 1] = (rgb >> 8) & 255; img.data[o + 2] = rgb & 255; img.data[o + 3] = 255;
+                    }
+                }
+            }
+        }
+        return img;
     }
 
     /** @private */

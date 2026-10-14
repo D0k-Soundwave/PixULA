@@ -175,6 +175,21 @@ class FileManagerClass {
   }
 
   /**
+   * Map elements (Edit > Find Map Element) belong to the picture they were found in. Before the picture is replaced, ask whether they can be
+   * abandoned (ZX Paintbrush does the same). Yes clears them; No cancels the whole action.
+   * @returns {boolean} true to carry on
+   * @private
+   */
+  _confirmDropElements() {
+    const n = window.MapService ? MapService.elements.length : 0;
+    if (!n) return true;
+    const ok = confirm(Helpers.localizedPlural('plural.confirmDropElements', n,
+      'one: This picture has {n} map element. Abandon it? | other: This picture has {n} map elements. Abandon them?'));
+    if (ok) MapService.clearElements();
+    return ok;
+  }
+
+  /**
    * Create a new file
    * @returns {Promise<boolean>} True if new file created
    */
@@ -183,6 +198,7 @@ class FileManagerClass {
       const confirmed = await this._confirmDiscard();
       if (!confirmed) return false;
     }
+    if (!this._confirmDropElements()) return false;
 
     // New always produces a blank canvas with no further prompts, mirroring a
     // fresh page reload — Paper White, Ink Black. WHITE_PAPER is the
@@ -262,6 +278,7 @@ class FileManagerClass {
     const ok = confirm(this._t('msg.confirmNewFromSelection',
       'Make the selection the whole picture? You can undo it with Ctrl+Z.'));
     if (!ok) return false;
+    if (!this._confirmDropElements()) return false;
     if (window.ToolManager) ToolManager.commitPending();
     this.fitSelectionToCells();
     const sel = SelectionService.getSelection();
@@ -394,6 +411,7 @@ class FileManagerClass {
       const confirmed = await this._confirmDiscard();
       if (!confirmed) return false;
     }
+    if (replacesDocument && !this._confirmDropElements()) return false;
 
     try {
       const buffer = preRead || await file.arrayBuffer();

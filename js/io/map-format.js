@@ -35,6 +35,9 @@
  * handler is the FormatRegistry plumbing.
  */
 class MapFormatClass {
+  /** A map file fills the map, never the picture: no discard question, and the picture keeps its name (FileManager reads this). */
+  importsDocument = false;
+
   /**
    * Initialize and register with FormatRegistry
    */
@@ -62,6 +65,8 @@ class MapFormatClass {
       return { success: false, error: Helpers.localizedMessage('err.notValidVersion',
           'Not a valid {format} file (unknown version or corrupt data)', { format: '.zxtm' }) };
     }
+    // A version 1 file predates elements: it must not wipe the ones the picture has
+    if (payload.v < 2) delete doc.elements;
     MapService.loadDocument(doc);
     EventBus.emit(EVENTS.FILE_IMPORT, { format: 'zxtm' });
     Logger.info('MapFormat', 'ZXTM map loaded successfully');
