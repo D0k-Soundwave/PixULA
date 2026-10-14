@@ -107,7 +107,7 @@ const put = (scr, cx, cy, rows, attr, plane = 0) => {
   check('visual: a flashing cell whose ink equals its paper matches a steady solid cell', matches(4, 1, 'visual').has('5,1'));
 }
 
-// -- GigaScreen: the two screens are blended per dot -----------------------------------------------------------------------------------------
+// -- GigaScreen: the two screens are compared one by one, never blended -----------------------------------------------------------------------------------------
 {
   const RGB = { red: 0xD70000, blue: 0x0000D7, magenta: 0xD700D7, black: 0x000000, white: 0xD7D7D7 };
   const attrs = { rb: 1, mk: 2, plain: 3 };
@@ -126,7 +126,7 @@ const put = (scr, cx, cy, rows, attr, plane = 0) => {
   put(scr, 2, 0, EMPTY, 3, 0); put(scr, 2, 0, EMPTY, 3, 1);
   put(scr, 3, 0, FULL, 1, 0); put(scr, 3, 0, EMPTY, 1, 1);    // red on A, white on B
   const found = F.find(scr, F.slice(scr, 0, 0, 1, 1), 'visual', table).map(p => p.x).join();
-  check('GigaScreen visual: red over blue matches magenta over black (both blend to the same colour), and not the others', found === '0,1', found);
+  check('GigaScreen visual compares each screen on its own: red over blue does NOT match magenta over black (owner decision 2026-10-14)', found === '0', found);
   check('...but they differ exactly (the second screen is part of the cell)', F.find(scr, F.slice(scr, 0, 0, 1, 1), 'exact', table).map(p => p.x).join() === '0');
 }
 

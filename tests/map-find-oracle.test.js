@@ -134,7 +134,14 @@ for (const mode of MODES) {
       if (c.pixelsB) fillCell(c, PATS[(cx * 3 + cy * 5 + 1) % PATS.length], ATTRS[(cx * 13 + cy * 7 + 2) % ATTRS.length], true);
     }
   }
-  const shots = paint();
+  // two-screen modes: the judge looks at screen A and screen B on their own (no blending), in both flash phases
+  const shots = [];
+  if (ZX_SPECTRUM.SCREENS === 2) {
+    for (const v of ['a', 'b']) { LayerManager.setGigaView(v); shots.push(...paint()); }
+    LayerManager.setGigaView('average');
+  } else {
+    shots.push(...paint());
+  }
   // the judge: a cell's look = its dots' RGB in both phases
   const look = (cx, cy) => {
     let k = '';

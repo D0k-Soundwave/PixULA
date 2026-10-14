@@ -61,7 +61,7 @@ const MapFind = {
         return { planes, data, at: (plane, attr, bit, phase) => data[(plane * 256 + attr) * 4 + bit * 2 + phase] };
     },
 
-    /** (a + b) >> 1 per channel of two 24-bit colours (the GigaScreen blend). */
+    /** (a + b) >> 1 per channel (kept for callers; Visual compare no longer blends). */
     blend(a, b) {
         return ((((a >> 16) & 255) + ((b >> 16) & 255)) >> 1) << 16 | ((((a >> 8) & 255) + ((b >> 8) & 255)) >> 1) << 8 | (((a & 255) + (b & 255)) >> 1);
     },
@@ -77,29 +77,24 @@ const MapFind = {
         for (let c = 0; c < cells; c++) {
             let key;
             if (mode === 'visual') {
-                const labels = {};
-                let next = 0, codes = '', pairs = '';
-                for (let r = 0; r < H; r++) {
-                    for (let b = 7; b >= 0; b--) {
-                        let c0, c1;
-                        if (S === 1) {
-                            const bit = (data.bitmap[c * H + r] >> b) & 1;
-                            const a = data.attrs[c];
-                            c0 = table.at(0, a, bit, 0); c1 = table.at(0, a, bit, 1);
-                        } else {
-                            const bitA = (data.bitmap[c * H + r] >> b) & 1;
-                            const bitB = (data.bitmap[(cells + c) * H + r] >> b) & 1;
-                            const aA = data.attrs[c], aB = data.attrs[cells + c];
-                            c0 = this.blend(table.at(0, aA, bitA, 0), table.at(1, aB, bitB, 0));
-                            c1 = this.blend(table.at(0, aA, bitA, 1), table.at(1, aB, bitB, 1));
+                // Each screen on its own (owner decision 2026-10-14: no blending): a cell matches when, on every screen, every dot shows the same
+                // colour pair (steady phase, inverted phase), up to renaming.
+                key = '';
+                for (let p = 0; p < S; p++) {
+                    const labels = {};
+                    let next = 0, codes = '', pairs = '';
+                    for (let r = 0; r < H; r++) {
+                        for (let b = 7; b >= 0; b--) {
+                            const bit = (data.bitmap[(p * cells + c) * H + r] >> b) & 1;
+                            const a = data.attrs[p * cells + c];
+                            const pk = table.at(p, a, bit, 0) * 16777216 + table.at(p, a, bit, 1);
+                            let l = labels[pk];
+                            if (l === undefined) { l = next++; labels[pk] = l; pairs += pk + ','; }
+                            codes += String.fromCharCode(97 + l);
                         }
-                        const pk = c0 * 16777216 + c1;
-                        let l = labels[pk];
-                        if (l === undefined) { l = next++; labels[pk] = l; pairs += pk + ','; }
-                        codes += String.fromCharCode(97 + l);
                     }
+                    key += codes + '|' + pairs + '#';
                 }
-                key = codes + '|' + pairs;
             } else {
                 let parts = '';
                 for (let p = 0; p < S; p++) {
