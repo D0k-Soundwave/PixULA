@@ -495,6 +495,7 @@ const de = {
     'mapel.none': 'Dieses Bild hat keine Kartenelemente.',
     'menu.view.mapElementPictures': 'Bilder der Kartenelemente',
     'plural.confirmDropElements': 'one: Dieses Bild hat {n} Kartenelement. Verwerfen? | other: Dieses Bild hat {n} Kartenelemente. Verwerfen?',
+    'plural.confirmDiscardWithElements': 'one: Sie haben ungespeicherte Änderungen, und dieses Bild hat {n} Kartenelement. Alles verwerfen? | other: Sie haben ungespeicherte Änderungen, und dieses Bild hat {n} Kartenelemente. Alles verwerfen?',
     'panels.mapElements': 'Kartenelemente',
     'panels.mapElements.hint': 'Wiederkehrende Bildteile, gefunden mit Bearbeiten > Kartenelement suchen. Rechtsklick auf diese Kopfzeile verschiebt das ganze Fenster nach oben oder unten',
     'menu.edit.findMapElement': 'Kartenelement suchen',

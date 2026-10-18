@@ -136,6 +136,7 @@ const en = {
     'mapel.none': 'No map elements on this picture.',
     'menu.view.mapElementPictures': 'Map Element Pictures',
     'plural.confirmDropElements': 'one: This picture has {n} map element. Abandon it? | other: This picture has {n} map elements. Abandon them?',
+    'plural.confirmDiscardWithElements': 'one: You have unsaved changes, and this picture has {n} map element. Discard them all? | other: You have unsaved changes, and this picture has {n} map elements. Discard them all?',
     'panels.mapElements': 'Map Elements',
     'panels.mapElements.hint': 'Repeated parts of the picture found with Edit > Find Map Element. Right-click this header to move the whole panel up or down',
     'menu.edit.findMapElement': 'Find Map Element',

@@ -495,6 +495,7 @@ const hu = {
     'mapel.none': 'Ezen a képen nincs térképelem.',
     'menu.view.mapElementPictures': 'Térképelemek képei',
     'plural.confirmDropElements': 'one: Ezen a képen {n} térképelem van. Eldobod? | other: Ezen a képen {n} térképelem van. Eldobod őket?',
+    'plural.confirmDiscardWithElements': 'one: Mentetlen módosítások vannak, és ezen a képen {n} térképelem van. Mindet elveti? | other: Mentetlen módosítások vannak, és ezen a képen {n} térképelem van. Mindet elveti?',
     'panels.mapElements': 'Térképelemek',
     'panels.mapElements.hint': 'A képen ismétlődő részek, amelyeket a Szerkesztés > Térképelem keresése talált. Jobb kattintás ezen a fejlécen: a teljes panel feljebb vagy lejjebb kerül',
     'menu.edit.findMapElement': 'Térképelem keresése',

@@ -495,6 +495,7 @@ const ro = {
     'mapel.none': 'Această imagine nu are elemente de hartă.',
     'menu.view.mapElementPictures': 'Imaginile elementelor de hartă',
     'plural.confirmDropElements': 'one: Această imagine are {n} element de hartă. Îl abandonați? | few: Această imagine are {n} elemente de hartă. Le abandonați? | other: Această imagine are {n} de elemente de hartă. Le abandonați?',
+    'plural.confirmDiscardWithElements': 'one: Aveți modificări nesalvate, iar această imagine are {n} element de hartă. Renunțați la tot? | few: Aveți modificări nesalvate, iar această imagine are {n} elemente de hartă. Renunțați la tot? | other: Aveți modificări nesalvate, iar această imagine are {n} de elemente de hartă. Renunțați la tot?',
     'panels.mapElements': 'Elemente de hartă',
     'panels.mapElements.hint': 'Părți repetate ale imaginii găsite cu Editare > Găsește element de hartă. Clic dreapta pe acest antet pentru a muta tot panoul în sus sau în jos',
     'menu.edit.findMapElement': 'Găsește element de hartă',

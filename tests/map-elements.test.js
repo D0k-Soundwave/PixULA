@@ -116,10 +116,27 @@ const meta = (o = {}) => ({ match: 'exact', name: 'Elem', gridW: 32, gridH: 24, 
   await S.persist();
   check('a map that cannot be encoded does NOT delete the stored map', JSON.stringify(fakeStore['maps/current']) === stored);
   S.tiles = goodTiles;
+  // a record an older build stored: tiles AND elements
+  S.newMap(32, 24, true);
+  S.addTile(S.createTile(new Uint8Array(8), 0x38)); S.addTile(S.createTile(new Uint8Array(8).fill(255), 0x07));
+  const tileCount = S.tiles.length;
+  S.addElement(b1, [{ x: 1, y: 1 }], meta({ name: 'Old' }));
+  fakeStore['maps/current'] = MapCodec.encode(S.toDocument());
+  check('(the old-style record holds an element)', fakeStore['maps/current'].elements.length === 1);
   S.newMap(32, 24, true);
   S.elements = [];
   await S.restorePersisted();
-  check('restorePersisted brings back the map and NO elements', S.getElements().length === 0 && S.tiles.length >= 0);
+  check('restorePersisted brings back the tiles of an old record', S.tiles.length === tileCount, String(S.tiles.length));
+  check('...and NOT its elements', S.getElements().length === 0);
+  // element changes do not rewrite the tile map store (it holds no elements)
+  let persists = 0;
+  const realSchedule = S._schedulePersist;
+  S._schedulePersist = () => { persists++; };
+  S.addElement(b1, [{ x: 1, y: 1 }], meta({ name: 'Kept' }));
+  S.removeElement(0);
+  S.setElements([]);
+  S._schedulePersist = realSchedule;
+  check('adding, deleting and replacing elements does not rewrite the map store', persists === 0, String(persists));
   S.addElement(b1, [{ x: 1, y: 1 }], meta({ name: 'Kept' }));
   check('...and loadDocument takes elements from a document', (() => { const d = S.toDocument(); S.elements = []; S.loadDocument(d); return S.getElements().length === 1; })());
   check('loadDocument of a document with no elements field keeps the current elements (a tile-only import must not wipe them)', (() => { const d = S.toDocument(); delete d.elements; S.loadDocument(d); return S.getElements().length === 1; })());
@@ -137,8 +154,18 @@ const meta = (o = {}) => ({ match: 'exact', name: 'Elem', gridW: 32, gridH: 24, 
   check('a new element takes the next number, never a used one: 4', S.getElements().map(e => e.number).join() === '1,3,4' && S.nextElementNumber() === 5);
   const rt = MapCodec.decode(JSON.parse(JSON.stringify(MapCodec.encode(S.toDocument()))));
   check('numbers survive the codec', rt.elements.map(e => e.number).join() === '1,3,4');
+  S.removeElement(2);
+  S.addElement(b1, [{ x: 5, y: 5 }], meta({ name: 'Five' }));
+  check('deleting the HIGHEST number does not hand it out again: 1, 3, 5', S.getElements().map(e => e.number).join() === '1,3,5');
   S.setElements(S.getElements().map(e => ({ ...e, number: 0 })));
   check('elements without numbers (an older file) are numbered in order', S.getElements().map(e => e.number).join() === '1,2,3');
+  S.setElements(S.getElements().map((e, k) => ({ ...e, number: ['5', 3, 3][k] })));
+  check('a number that is not a whole number, or one used twice, is replaced by a free one', (() => {
+    const ns = S.getElements().map(e => e.number);
+    return ns.every(n => Number.isSafeInteger(n) && n > 0) && new Set(ns).size === 3 && ns[1] === 3;
+  })(), S.getElements().map(e => e.number).join());
+  S.setElements(S.getElements().map((e, k) => ({ ...e, number: k === 0 ? 1e300 : k + 1 })));
+  check('a huge number is replaced too (it cannot be counted on from there)', S.getElements().every(e => Number.isSafeInteger(e.number)) && S.nextElementNumber() < 100);
   S.newMap(32, 24, true);
   const keep = S.addElement(b1, [{ x: 2, y: 2 }], meta({ name: 'P' }));
   const asProject = JSON.parse(JSON.stringify(S.getElements(), (k, v) => (ArrayBuffer.isView(v) ? Array.from(v) : v)));

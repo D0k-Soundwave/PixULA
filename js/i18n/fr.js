@@ -495,6 +495,7 @@ const fr = {
     'mapel.none': 'Cette image n\'a aucun élément de carte.',
     'menu.view.mapElementPictures': 'Images des éléments de carte',
     'plural.confirmDropElements': 'one: Cette image a {n} élément de carte. L’abandonner ? | other: Cette image a {n} éléments de carte. Les abandonner ?',
+    'plural.confirmDiscardWithElements': 'one: Vous avez des modifications non enregistrées et cette image a {n} élément de carte. Tout abandonner ? | other: Vous avez des modifications non enregistrées et cette image a {n} éléments de carte. Tout abandonner ?',
     'panels.mapElements': 'Éléments de carte',
     'panels.mapElements.hint': 'Parties répétées de l\'image trouvées avec Édition > Trouver un élément de carte. Clic droit sur cet en-tête pour déplacer tout le panneau vers le haut ou le bas',
     'menu.edit.findMapElement': 'Trouver un élément de carte',

@@ -495,6 +495,7 @@ const es = {
     'mapel.none': 'Esta imagen no tiene elementos de mapa.',
     'menu.view.mapElementPictures': 'Imágenes de los elementos del mapa',
     'plural.confirmDropElements': 'one: Esta imagen tiene {n} elemento de mapa. ¿Abandonarlo? | other: Esta imagen tiene {n} elementos de mapa. ¿Abandonarlos?',
+    'plural.confirmDiscardWithElements': 'one: Tiene cambios sin guardar y esta imagen tiene {n} elemento de mapa. ¿Descartarlo todo? | other: Tiene cambios sin guardar y esta imagen tiene {n} elementos de mapa. ¿Descartarlo todo?',
     'panels.mapElements': 'Elementos del mapa',
     'panels.mapElements.hint': 'Partes repetidas de la imagen halladas con Edición > Buscar elemento de mapa. Clic derecho en este encabezado para mover todo el panel arriba o abajo',
     'menu.edit.findMapElement': 'Buscar elemento de mapa',

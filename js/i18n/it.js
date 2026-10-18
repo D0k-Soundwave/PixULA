@@ -495,6 +495,7 @@ const it = {
     'mapel.none': 'Questa immagine non ha elementi della mappa.',
     'menu.view.mapElementPictures': 'Immagini degli elementi della mappa',
     'plural.confirmDropElements': 'one: Questa immagine ha {n} elemento della mappa. Abbandonarlo? | other: Questa immagine ha {n} elementi della mappa. Abbandonarli?',
+    'plural.confirmDiscardWithElements': 'one: Hai modifiche non salvate e questa immagine ha {n} elemento della mappa. Abbandonare tutto? | other: Hai modifiche non salvate e questa immagine ha {n} elementi della mappa. Abbandonare tutto?',
     'panels.mapElements': 'Elementi della mappa',
     'panels.mapElements.hint': 'Parti ripetute dell\'immagine trovate con Modifica > Trova elemento della mappa. Clic destro su questa intestazione per spostare tutto il pannello su o giù',
     'menu.edit.findMapElement': 'Trova elemento della mappa',
