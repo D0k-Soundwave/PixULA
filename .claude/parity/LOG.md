@@ -994,3 +994,10 @@ Two code reviews of commit 81a6728. Fixed with a test first (map-elements, zxm-p
 - the .zxm left-out fallback text matches en.js; the unused ROM-glyph drawer is gone; ASCII comment fixes, and a stray control character that 81a6728 left in a tests/map-codec.test.js comment.
 Still for the owner: .zxm does not store element numbers (ZX Paintbrush's format), so they are renumbered 1, 2, 3 ... when a .zxm is opened; Ctrl+Z after New Picture from Selection or opening a .zxm gives the old picture back but not its elements.
 Suites (M, 2026-10-18): run-all ALL TEST FILES PASSED; test:browser 833 passed; check:manual up to date.
+
+## Owner answers 2026-10-18 (open items after the second group D review)
+1. .zxm element numbers: renumber on open; the file stays exactly ZX Paintbrush's format.
+2. Undo: Ctrl+Z after New Picture from Selection or opening a .zxm must restore the elements too (and Ctrl+Y redo them). To build.
+3. A find started on a block an earlier element already covers: refuse, with a notice naming that element. To build.
+4. Elements stay after converting Standard ULA to ULAplus / ULANext (same grid). No change.
+5. Fade brush CLUSTERED_8: correct the two swapped cells to match ZX Paintbrush's help (row 4 col 3 = 36, row 7 col 3 = 38). To build.
