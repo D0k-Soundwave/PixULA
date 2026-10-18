@@ -186,6 +186,19 @@ class UndoRedoManagerClass {
     return true;
   }
 
+  /**
+   * Let an entry also put back the map elements (Edit > Find Map Element) as they were before it. Only the steps that replace the
+   * picture carry them - opening a file, New Picture from Selection - because Accept and Delete of an element are not undo steps
+   * (owner decision): an ordinary stroke must never bring back or take away an element. The list is shared, not copied: element
+   * objects are never changed in place, and one picture's list is bounded by MapCodec.MAX_JSON_BYTES.
+   * @param {Object} entry - the entry the step landed (peekLast() right after it)
+   * @param {Object[]} list - MapService.elements as it was before the step
+   */
+  attachMapElements(entry, list) {
+    if (!entry || entry !== this.peekLast() || !entry.before || !Array.isArray(list)) return;
+    entry.before.mapElements = list.slice();
+  }
+
   /** True if currently inside an open action. */
   isActionOpen() {
     return this._actionDepth > 0;
@@ -337,6 +350,8 @@ class UndoRedoManagerClass {
       const bg = LayerManager.getBackgroundLayer();
       if (bg && !(partial && !restoring.background)) snap.background = bg.packAttributeData();
     }
+    // The counterpart of a step that carries the map elements carries them too, so redo puts them back as undo found them
+    if (restoring && restoring.mapElements && window.MapService) snap.mapElements = MapService.elements.slice();
     if (window.SelectionService) {
       if (typeof SelectionService.captureFloatingState === 'function') {
         snap.floatingPaste = SelectionService.captureFloatingState();
@@ -396,6 +411,7 @@ class UndoRedoManagerClass {
       }
       LayerManager.restoreAllLayersState(snap.layers);
     }
+    if (snap.mapElements && window.MapService) MapService.restoreElements(snap.mapElements);
     if (window.SelectionService) {
       if (typeof SelectionService.restoreFloatingState === 'function') {
         SelectionService.restoreFloatingState(snap.floatingPaste);

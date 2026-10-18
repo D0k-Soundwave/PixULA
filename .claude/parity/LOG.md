@@ -1001,3 +1001,12 @@ Suites (M, 2026-10-18): run-all ALL TEST FILES PASSED; test:browser 833 passed; 
 3. A find started on a block an earlier element already covers: refuse, with a notice naming that element. To build.
 4. Elements stay after converting Standard ULA to ULAplus / ULANext (same grid). No change.
 5. Fade brush CLUSTERED_8: correct the two swapped cells to match ZX Paintbrush's help (row 4 col 3 = 36, row 7 col 3 = 38). To build.
+
+## Owner answers 2026-10-18 built
+- 5: fade brush halftone (CLUSTERED_8) now matches ZX Paintbrush's table and Dither's cluster-8 (row 4 col 3 = 36, row 7 col 3 = 38); test in fade-dither.test.js.
+- 3: a find cannot start on a block an earlier element covers (MapService.elementCovering; notice mapel.alreadyCovered, 13 languages; manual x13). Two older browser tests that re-found a covered block now start from a free one.
+- 2: Ctrl+Z after opening ANY picture (not only .zxm) or after New Picture from Selection brings back the old picture with its elements; Ctrl+Y redoes both. UndoRedo.attachMapElements puts the old list on the step the open lands;
+  only those steps carry elements, so Accept and Delete stay outside undo and an ordinary stroke never changes the elements (browser test). A project open still clears the history, as before. Manual x13.
+- undo-partial-capture.spec.js:67 timing (M, 2026-10-18, 8 runs each, undo / redo time against packing every layer, limit 1.5): with this change 0.87-1.24 / 0.84-1.13, without it 0.84-1.18 / 0.73-1.09.
+  Same spread, so the occasional failure is the known flake, not this change. The test's comment says 0.65x (2026-09-28); on this machine today it is about 1.1x, so the margin to 1.5x is smaller than it was.
+Suites (M, 2026-10-18): run-all ALL TEST FILES PASSED; check:manual up to date; test:browser 837 passed, 1 failed (that timing test; passed 6 of 8 runs alone).
