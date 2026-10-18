@@ -495,6 +495,7 @@ const sk = {
     'mapel.none': 'Na tomto obrázku nie sú žiadne prvky mapy.',
     'menu.view.mapElementPictures': 'Obrázky prvkov mapy',
     'plural.confirmDropElements': 'one: Tento obrázok má {n} prvok mapy. Opustiť ho? | few: Tento obrázok má {n} prvky mapy. Opustiť ich? | other: Tento obrázok má {n} prvkov mapy. Opustiť ich?',
+    'plural.confirmDiscardWithElements': 'one: Máte neuložené zmeny a tento obrázok má {n} prvok mapy. Zahodiť všetko? | few: Máte neuložené zmeny a tento obrázok má {n} prvky mapy. Zahodiť všetko? | other: Máte neuložené zmeny a tento obrázok má {n} prvkov mapy. Zahodiť všetko?',
     'panels.mapElements': 'Prvky mapy',
     'panels.mapElements.hint': 'Opakujúce sa časti obrázka nájdené príkazom Úpravy > Nájsť prvok mapy. Pravým kliknutím na túto hlavičku posuniete celý panel nahor alebo nadol',
     'menu.edit.findMapElement': 'Nájsť prvok mapy',

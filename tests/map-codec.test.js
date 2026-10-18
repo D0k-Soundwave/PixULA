@@ -65,7 +65,7 @@ for (const [t, w, h] of [[1, 1, 1], [4, 32, 24], [17, 100, 3], [64, 256, 256]]) 
     enc.v === MapCodec.VERSION && enc.k === MapCodec.TILE_KINDS.ULA_CELL);
 }
 
-// -- a literal version-1 payload 
+// -- a literal version-1 payload (recorded from the encoder BEFORE elements, Batch 11A) must keep decoding forever
 {
   const v1 = {"v":1,"k":"ula-cell","name":"pin","tiles":[{"b":"AQIDBAUGBwg=","a":56},{"b":"/wD/AP8A/wA=","a":70}],"map":{"w":3,"h":2,"cells":"AQACAAAAAgABAAEA"}};
   const dec = MapCodec.decode(JSON.parse(JSON.stringify(v1)));

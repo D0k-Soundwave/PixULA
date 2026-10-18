@@ -65,12 +65,14 @@ class MapElementsPanelClass {
             if (e.key === 'Escape' && this._session) { e.preventDefault(); e.stopPropagation(); this.cancel(); }
         });
         EventBus.on(EVENTS.MAP_ELEMENTS_CHANGED, () => this.renderList());
-        EventBus.on(EVENTS.MAP_LOADED, () => this.renderList());
+        // a map file can replace the elements: outlines Show left would point at a different element now
+        EventBus.on(EVENTS.MAP_LOADED, () => { this.renderList(); if (this._shown) { this._shown = null; MapElementOverlay.setHighlight(null); } });
         EventBus.on(EVENTS.UI_LANGUAGE_CHANGE, () => this.renderList());
         this.renderList();
-        EventBus.on(EVENTS.SCREEN_MODE_CHANGED, () => { this.renderList(); if (this._session) this.cancel(); });
+        // a new mode, a new picture or an opened one (a project too): the find and the Show outlines belonged to the picture that was there
+        EventBus.on(EVENTS.SCREEN_MODE_CHANGED, () => { this.renderList(); this.dismiss(); });
         EventBus.on(EVENTS.FILE_NEW, () => { this.dismiss(); });
-        EventBus.on(EVENTS.FILE_IMPORT, () => { this.dismiss(); });
+        EventBus.on(EVENTS.FILE_OPEN, () => { this.dismiss(); });
         EventBus.on(EVENTS.PANEL_VISIBILITY_CHANGED, ({ id, visible }) => { if (id === this.ID && !visible) this.dismiss(); });
     }
 
@@ -85,7 +87,7 @@ class MapElementsPanelClass {
             const fits = MapService.elementFitsScreen(el);
             const label = document.createElement('span');
             label.className = 'mapel-item-label';
-            label.textContent = this._t('mapel.item', '{name}: {w} x {h} cells', { name: el.name || ('#' + (i + 1)), w: el.w, h: el.h }) + ', ' +
+            label.textContent = this._t('mapel.item', '{name}: {w} x {h} cells', { name: el.name || ('#' + el.number), w: el.w, h: el.h }) + ', ' +
                 Helpers.localizedPlural('plural.mapelItemPlaces', el.positions.length, 'one: {n} place | other: {n} places');
             if (!fits) { li.classList.add('mapel-item-off'); li.title = this._t('mapel.noFit', 'This element belongs to another screen mode.'); }
             const show = document.createElement('button');
@@ -94,7 +96,7 @@ class MapElementsPanelClass {
             show.textContent = this._t('mapel.show', 'Show');
             show.disabled = !fits;
             show.addEventListener('click', () => this.show(i));
-            label.textContent = (el.number ? '#' + el.number + ' ' : '') + label.textContent;
+            if (el.name) label.textContent = '#' + el.number + ' ' + label.textContent;
             const del = document.createElement('button');
             del.type = 'button';
             del.className = 'panel-button mapel-delete';
@@ -123,7 +125,7 @@ class MapElementsPanelClass {
     remove(index) {
         const el = MapService.elements[index];
         if (!el) return false;
-        if (!confirm(this._t('mapel.confirmDelete', 'Delete {name}? The picture is not changed.', { name: el.name || ('#' + (index + 1)) }))) return false;
+        if (!confirm(this._t('mapel.confirmDelete', 'Delete {name}? The picture is not changed.', { name: el.name || ('#' + el.number) }))) return false;
         MapService.removeElement(index);
         if (window.FileManager && FileManager.markModified) FileManager.markModified();
         this._shown = null;
@@ -138,10 +140,11 @@ class MapElementsPanelClass {
      */
     dismiss() {
         const had = !!this._session || !!this._shown;
+        if (!had) return false;     // nothing to put away: no redraw (Escape is pressed a lot)
         if (this._session) this.cancel();
         this._shown = null;
         if (window.MapElementOverlay) MapElementOverlay.setHighlight(null);
-        return had;
+        return true;
     }
 
     /** True while a find is open. */

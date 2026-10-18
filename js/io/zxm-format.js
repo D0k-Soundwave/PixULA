@@ -76,6 +76,8 @@
 class ZXMFormatClass {
   constructor() {
     this.IDENTIFIER = 'ZX-Paintbrush image';
+    // File > Open of a .zxm brings the picture's map elements with it (FileManager does not clear them after the read)
+    this.importsElements = true;
     this.IDENTIFIER_EXT = 'ZX-Paintbrush extended image';
     this.SEC_BASE = '[Base ZXP picture]';
     this.SEC_ELEMENT = '[Map ZXP picture]';
@@ -348,9 +350,9 @@ class ZXMFormatClass {
       const w = e.img.width / 8, h = e.img.height / 8;
       const places = [];
       for (const p of e.positions) {
-        if (p.x % 8 || p.y % 8) rounded++;
         const x = Math.floor(p.x / 8), y = Math.floor(p.y / 8);
         if (x < 0 || y < 0 || x + w > cols || y + h > rows) { dropped++; continue; }
+        if (p.x % 8 || p.y % 8) rounded++;
         if (!places.some(q => q.x === x && q.y === y)) places.push({ x, y });
       }
       if (!places.length) { if (!e.positions.length) dropped++; return; }
@@ -404,7 +406,7 @@ class ZXMFormatClass {
     const r = this.buildPictureText(screen, MapService.elements);
     if (r.leftOut) {
       EventBus.emit(EVENTS.STATUS_NOTICE, { text: Helpers.localizedMessage('mapel.zxmLeftOut',
-        '{n} map elements are from another screen mode and are not in the file.', { n: r.leftOut }) });
+        'Map elements from another screen mode are not in the file: {n}.', { n: r.leftOut }) });
     }
     return new TextEncoder().encode(r.text);
   }
@@ -794,7 +796,7 @@ class ZXMFormatClass {
         for (let sy = 0; sy < el.cellsH; sy++) {
           for (let sx = 0; sx < el.cellsW; sx++) {
             const mx = cellX + sx, my = cellY + sy;
-            if (mx >= MapCodec.MAX_DIM || my >= MapCodec.MAX_DIM) continue;
+            if (mx < 0 || my < 0 || mx >= MapCodec.MAX_DIM || my >= MapCodec.MAX_DIM) continue;
             placements.push({ mapX: mx, mapY: my, tileIndex: indices[sy * el.cellsW + sx] });
             if (mx > maxX) maxX = mx;
             if (my > maxY) maxY = my;

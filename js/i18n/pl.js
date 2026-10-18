@@ -495,6 +495,7 @@ const pl = {
     'mapel.none': 'Ten obraz nie ma elementów mapy.',
     'menu.view.mapElementPictures': 'Obrazy elementów mapy',
     'plural.confirmDropElements': 'one: Ten obraz ma {n} element mapy. Porzucić go? | few: Ten obraz ma {n} elementy mapy. Porzucić je? | many: Ten obraz ma {n} elementów mapy. Porzucić je? | other: Ten obraz ma {n} elementu mapy. Porzucić je?',
+    'plural.confirmDiscardWithElements': 'one: Masz niezapisane zmiany, a ten obraz ma {n} element mapy. Odrzucić wszystko? | few: Masz niezapisane zmiany, a ten obraz ma {n} elementy mapy. Odrzucić wszystko? | many: Masz niezapisane zmiany, a ten obraz ma {n} elementów mapy. Odrzucić wszystko? | other: Masz niezapisane zmiany, a ten obraz ma {n} elementu mapy. Odrzucić wszystko?',
     'panels.mapElements': 'Elementy mapy',
     'panels.mapElements.hint': 'Powtarzające się części obrazu znalezione poleceniem Edycja > Znajdź element mapy. Kliknij prawym przyciskiem ten nagłówek, aby przesunąć cały panel w górę lub w dół',
     'menu.edit.findMapElement': 'Znajdź element mapy',

@@ -4,7 +4,7 @@
  * find and the Show outlines away; a collapsed panel opens for a find; box numbers stay with their element; elements are not restored from the map store.
  */
 const { test, expect } = require('@playwright/test');
-const { boot } = require('./helpers');
+const { boot, selectMode } = require('./helpers');
 
 const CIRCLE = [0x3C, 0x42, 0x81, 0x81, 0x81, 0x81, 0x42, 0x3C];
 async function setup(page) {
@@ -111,4 +111,90 @@ test('elements are not restored from the map store at start-up', async ({ page }
     await page.evaluate(async () => { await MapService.persist(); });
     await page.evaluate(async () => { MapService.elements = []; await MapService.restorePersisted(); });
     expect(await page.evaluate(() => MapService.getElements().length)).toBe(0);
+});
+
+// -- second review (2026-10-18) ------------------------------------------------------------------------------------------------------------
+
+test('opening a project puts away an open find and the Show outlines; a font import does not cancel a find', async ({ page }) => {
+    await setup(page);
+    const project = await page.evaluate(async () => Array.from(new Uint8Array(await ProjectFormat.export())));
+    await page.locator('.mapel-show').click();
+    expect(await page.evaluate(() => !!MapElementOverlay.describe().highlight)).toBe(true);
+    await page.evaluate(() => { FileManager.hasUnsavedChanges = false; });
+    page.on('dialog', (d) => d.accept());
+    await page.evaluate(async (b) => FileManager.loadFile(new File([new Uint8Array(b)], 'p.pixula')), project);
+    expect(await page.evaluate(() => MapElementOverlay.describe().highlight), 'Show outlines gone after a project open').toBeNull();
+    await page.evaluate(() => SelectionService.setSelection({ x: 24, y: 32, width: 8, height: 8 }));
+    await page.keyboard.press('Control+f');
+    await page.evaluate(async (b) => FileManager.loadFile(new File([new Uint8Array(b)], 'p.pixula')), project);
+    expect(await page.evaluate(() => MapElementsPanel.active), 'an open find ends when a project is opened').toBe(false);
+    await page.evaluate(() => SelectionService.setSelection({ x: 24, y: 32, width: 8, height: 8 }));
+    await page.keyboard.press('Control+f');
+    await page.evaluate(() => EventBus.emit(EVENTS.FILE_IMPORT, { format: 'font' }));
+    expect(await page.evaluate(() => MapElementsPanel.active), 'a font import leaves the find alone').toBe(true);
+});
+
+test('a screen mode change takes the Show outlines away', async ({ page }) => {
+    await setup(page);
+    await page.locator('.mapel-show').click();
+    await selectMode(page, 'timex_hires');
+    expect(await page.evaluate(() => MapElementOverlay.describe().highlight)).toBeNull();
+});
+
+test('Shift+M turns pictures off even where no element fits', async ({ page }) => {
+    await setup(page);
+    await page.evaluate(() => CanvasSystem.getCanvasElement('main-canvas').focus());
+    await page.keyboard.press('Shift+M');
+    expect(await page.evaluate(() => MapElementOverlay.pictures)).toBe(true);
+    page.on('dialog', (d) => d.accept());
+    await selectMode(page, 'timex_hires');
+    expect(await page.evaluate(() => MapService.getElements().some(e => MapService.elementFitsScreen(e))), 'no element fits here').toBe(false);
+    await page.keyboard.press('Shift+M');
+    expect(await page.evaluate(() => MapElementOverlay.pictures)).toBe(false);
+});
+
+test('a .zxtm that replaces the elements counts as unsaved work', async ({ page }) => {
+    await setup(page);
+    const bytes = await page.evaluate(() => Array.from(MapFormat.export()));
+    await page.evaluate(() => { MapService.clearElements(); FileManager.hasUnsavedChanges = false; });
+    await page.evaluate((b) => MapFormat.parse(new Uint8Array(b).buffer), bytes);
+    expect(await page.evaluate(() => MapService.getElements().length)).toBe(1);
+    expect(await page.evaluate(() => FileManager.hasChanges())).toBe(true);
+});
+
+test('unsaved work plus elements: ONE question, and No keeps both', async ({ page }) => {
+    await setup(page);
+    await page.evaluate(() => FileManager.markModified());
+    const asked = [];
+    page.on('dialog', (d) => { asked.push(d.message()); d.dismiss(); });
+    await page.evaluate(async () => FileManager.newFile());
+    expect(asked.length).toBe(1);
+    expect(asked[0]).toMatch(/unsaved changes.*1 map element/);
+    expect(await page.evaluate(() => MapService.getElements().length)).toBe(1);
+});
+
+test('New Picture from Selection keeps the elements when the crop is refused', async ({ page }) => {
+    await setup(page);
+    page.on('dialog', (d) => d.accept());
+    await page.evaluate(() => { SelectionService.setSelection({ x: 24, y: 32, width: 8, height: 8 }); LayerManager.cropToCells = () => false; });
+    const ok = await page.evaluate(async () => FileManager.newFromSelection());
+    expect(ok).toBe(false);
+    expect(await page.evaluate(() => MapService.getElements().length)).toBe(1);
+});
+
+test('a three-digit number on a one-cell element is drawn in full, past the box', async ({ page }) => {
+    await setup(page);
+    await page.evaluate(() => {
+        MapService.setElements(MapService.getElements().map(e => ({ ...e, number: 123, positions: [{ x: 0, y: 0 }] })));
+        MapElementOverlay.setPictures(false);
+        MapElementOverlay.draw();
+    });
+    const lit = await page.evaluate(() => {
+        const c = MapElementOverlay._ensure();
+        const d = c.getContext('2d').getImageData(8, 0, 6, 8).data;
+        let n = 0;
+        for (let i = 0; i < d.length; i += 4) if (d[i] > 200 && d[i + 3] > 0) n++;
+        return n;
+    });
+    expect(lit, 'the third digit shows in the next cell').toBeGreaterThan(3);
 });

@@ -68,7 +68,13 @@ check('the tile-map writer is still the one the Map Editor uses', typeof F.expor
   const wide = F.elementsFromParsed([{ img: { width: 264, height: 8, bits: new Uint8Array(264 * 8), attrs: new Uint8Array(33) }, positions: [{ x: 0, y: 0 }] }]);
   check('an element wider than the picture is dropped', wide.elements.length === 0 && wide.dropped === 1);
   const txt = text.replace('[80,32]', '[-8,32]');
-  check('a file with a negative place still reads', F.parseText(txt).success === true);
+  const negRead = F.parseText(txt);
+  check('a file with a negative place still reads', negRead.success === true);
+  const mw = back.doc.map.width;
+  check('...and the negative place puts no tile in the tile map (it used to wrap into the last column of the row above)',
+    negRead.doc.map.cells[3 * mw + 31] === back.doc.map.cells[3 * mw + 31] && negRead.doc.map.width === mw);
+  const mis = F.elementsFromParsed([mk([{ x: -3, y: 0 }])]);
+  check('a place that is both off the cell grid and off the picture counts as left out only', mis.dropped === 1 && mis.rounded === 0);
 }
 
 summary();

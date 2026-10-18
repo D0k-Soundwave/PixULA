@@ -31,6 +31,9 @@ class MapServiceClass {
         this.MAX_DIM = MapCodec.MAX_DIM;
         this.MAX_TILES = MapCodec.MAX_TILES;
         this.STORAGE_KEY = 'current';
+        // element numbers above this are treated as damaged and replaced (far more than MapCodec.MAX_ELEMENTS accepts can ever reach)
+        this.MAX_ELEMENT_NUMBER = 999999;
+        this._nextNumber = 1;
 
         this.name = '';
         this.tileKind = this.TILE_KINDS.ULA_CELL;
@@ -333,7 +336,7 @@ class MapServiceClass {
         return true;
     }
 
-    // -- Elements: find repeated parts of the picture (Batch 11A) ───────────
+    // -- Elements: find repeated parts of the picture (Batch 11A)
 
     /** The match modes that make sense in the active screen mode ([] where the find does not run). */
     findModes() {
@@ -422,6 +425,7 @@ class MapServiceClass {
         const trial = MapCodec.encode({ ...this.toDocument(), elements: [...this.elements, el] });
         if (!trial) return { ok: false, reason: 'tooBig' };
         this.elements.push(el);
+        this._nextNumber = el.number + 1;
         this._announceElements();
         return { ok: true, index: this.elements.length - 1 };
     }
@@ -469,18 +473,35 @@ class MapServiceClass {
         return { kept, covered: positions.length - free.length, overlapping: free.length - kept.length };
     }
 
-    /** The number the next element gets: one more than the highest in use, so a number is never reused after a delete. */
+    /**
+     * The number the next element gets: one more than the highest handed out for this picture, so a number is not reused after a delete
+     * (not even the highest one). A new picture starts again at 1.
+     */
     nextElementNumber() {
-        return this.elements.reduce((m, e) => (e.number > m ? e.number : m), 0) + 1;
+        const inUse = this.elements.reduce((m, e) => (e.number > m ? e.number : m), 0) + 1;
+        return this._nextNumber > inUse ? this._nextNumber : inUse;
     }
 
-    /** Give every element without a number the next free one, in order (files written before elements were numbered). @private */
+    /**
+     * Give every element a usable number: a whole number above zero, not too big to count on from, and not used twice. Anything else (a
+     * file written before elements were numbered, a damaged one) gets the next free one, in order. @private
+     */
     _renumber() {
-        for (const e of this.elements) if (!(e.number > 0)) e.number = this.nextElementNumber();
+        const seen = new Set();
+        const ok = (n) => Number.isSafeInteger(n) && n > 0 && n <= this.MAX_ELEMENT_NUMBER && !seen.has(n);
+        let next = 1;
+        for (const e of this.elements) if (ok(e.number)) { seen.add(e.number); if (e.number >= next) next = e.number + 1; }
+        seen.clear();
+        for (const e of this.elements) {
+            if (ok(e.number)) seen.add(e.number);
+            else { e.number = next++; seen.add(e.number); }
+        }
+        this._nextNumber = next;
     }
 
-    /** Remove every element. */
+    /** Remove every element (a new picture: numbering starts again at 1). */
     clearElements() {
+        this._nextNumber = 1;
         if (!this.elements.length) return;
         this.elements = [];
         this._announceElements();
@@ -518,9 +539,9 @@ class MapServiceClass {
             el.screens === (ZX_SPECTRUM.SCREENS === 2 ? 2 : 1);
     }
 
+    // The map store keeps no elements (they belong to the picture), so a change to them does not rewrite it
     _announceElements() {
         this._emit(EVENTS.MAP_ELEMENTS_CHANGED, { count: this.elements.length });
-        this._schedulePersist();
     }
 
     // ── Canvas bridges ─────────────────────────────────────────────────────

@@ -51,7 +51,8 @@ class MapElementOverlayClass {
 
     /** Shift+M / View > Map Element Pictures. With no elements it says so instead of doing nothing. */
     togglePictures() {
-        if (!window.MapService || !MapService.elements.some(e => MapService.elementFitsScreen(e))) {
+        // turning them OFF always works (pictures may be on from a mode the elements fitted); turning them on needs an element that fits
+        if (!this._pictures && (!window.MapService || !MapService.elements.some(e => MapService.elementFitsScreen(e)))) {
             EventBus.emit(EVENTS.STATUS_NOTICE, { text: Helpers.localizedMessage('mapel.none', 'No map elements on this picture.') });
             return;
         }
@@ -70,7 +71,7 @@ class MapElementOverlayClass {
         const els = window.MapService ? MapService.elements : [];
         els.forEach((el, i) => {
             if (!MapService.elementFitsScreen(el)) return;
-            el.positions.forEach(p => covers.push({ n: el.number || (i + 1), x: p.x, y: p.y, w: el.w, h: el.h }));
+            el.positions.forEach(p => covers.push({ n: el.number, index: i, x: p.x, y: p.y, w: el.w, h: el.h }));
         });
         return { covers, highlight: this._highlight, pictures: this._pictures };
     }
@@ -85,10 +86,13 @@ class MapElementOverlayClass {
         if (this._pictures) {
             const table = MapService.colourTable();
             const images = new Map();
-            MapService.elements.forEach((el, i) => { if (MapService.elementFitsScreen(el)) images.set(el.number || (i + 1), this.renderElement(ctx, el, table)); });
-            for (const c of d.covers) ctx.putImageData(images.get(c.n), c.x * cw, c.y * ch);
+            // keyed by list position, not number: two elements can never share a picture, even if a file gave them the same number
+            MapService.elements.forEach((el, i) => { if (MapService.elementFitsScreen(el)) images.set(i, this.renderElement(ctx, el, table)); });
+            for (const c of d.covers) ctx.putImageData(images.get(c.index), c.x * cw, c.y * ch);
         } else {
-            for (const c of d.covers) this._cover(ctx, c.x * cw, c.y * ch, c.w * cw, c.h * ch, c.n);
+            for (const c of d.covers) this._cover(ctx, c.x * cw, c.y * ch, c.w * cw, c.h * ch);
+            // the numbers go on after every box, so a number wider than its box is not painted over by the next box
+            for (const c of d.covers) this._label(ctx, c.x * cw, c.y * ch, c.w * cw, c.h * ch, c.n);
         }
         const h = d.highlight;
         if (h && h.places) {
@@ -142,20 +146,25 @@ class MapElementOverlayClass {
         return this._hatch;
     }
 
-    /** A hatched box with the element's number in the ZX ROM font. @private */
-    _cover(ctx, x, y, w, h, n) {
+    /** A hatched box. @private */
+    _cover(ctx, x, y, w, h) {
         ctx.fillStyle = this._pattern(ctx);
         ctx.fillRect(x, y, w, h);
-        ctx.fillStyle = '#fff';
+    }
+
+    /**
+     * The element's number, top left of its box, in small 3 x 5 digits four columns apart: two digits fit the one cell of the narrowest
+     * element (10, 11 ... are not read as 1). A longer number is never cut short - it runs on past the box on a dark strip. @private
+     */
+    _label(ctx, x, y, w, h, n) {
         const s = String(n);
-        // small 3 x 5 digits, four columns apart, so two digits fit in the one cell of the narrowest element (10, 11 ... are not read as 1)
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(x, y, w, h);
-        ctx.clip();
+        const width = 1 + s.length * 4;
+        if (width > w) {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(x, y, width + 1, h < 7 ? h : 7);
+        }
         for (let k = 0; k < s.length; k++) this._digit(ctx, s.charCodeAt(k) - 48, x + 1 + k * 4, y + 1, '#000', 1);
         for (let k = 0; k < s.length; k++) this._digit(ctx, s.charCodeAt(k) - 48, x + 1 + k * 4, y + 1, '#fff', 0);
-        ctx.restore();
     }
 
     /** One 3 x 5 digit at (x, y) (shadow offset by `off`). @private */
@@ -164,16 +173,6 @@ class MapElementOverlayClass {
         ctx.fillStyle = colour;
         const rows = DIGITS_3X5[d];
         for (let r = 0; r < 5; r++) for (let b = 0; b < 3; b++) if (rows[r] & (4 >> b)) ctx.fillRect(x + b + off, y + r + off, 1, 1);
-    }
-
-    /** One ROM glyph at (x, y) (shadow offset by `off`). @private */
-    _glyph(ctx, code, x, y, colour, off) {
-        if (code < 32 || code > 127) return;
-        ctx.fillStyle = colour;
-        for (let r = 0; r < 8; r++) {
-            const bits = ZX_ROM_FONT[(code - 32) * 8 + r];
-            for (let b = 0; b < 8; b++) if (bits & (0x80 >> b)) ctx.fillRect(x + b + off, y + r + off, 1, 1);
-        }
     }
 
     /** A black and white outline (readable on any colour). @private */

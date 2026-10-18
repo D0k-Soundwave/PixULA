@@ -981,3 +981,16 @@ left out by choice; (16) stale comments / batch-11 decisions / FIGURES updated (
 Not changed: Ctrl+Z after opening a .zxm restores the old picture but keeps the file's elements; a find started from an already covered block keeps that block (the source is always kept); elements stay visible after converting
 Standard to ULAplus/ULANext (same grid) - all three listed for the owner.
 
+## Second review of the group D fixes (2026-10-18)
+Two code reviews of commit 81a6728. Fixed with a test first (map-elements, zxm-picture, map-elements-review.spec.js: 7 new browser tests, each seen failing without the fix):
+- a negative .zxm place no longer wraps into the tile map (it put a tile in the last column of the row above); a place both off the grid and off the picture counts once, as left out;
+- opening a project ends an open find and takes the Show outlines away (FILE_OPEN, not FILE_IMPORT - a font import no longer cancels a find); a screen mode change takes the Show outlines away too;
+- Shift+M can always turn pictures OFF, even in a mode no element fits;
+- a .zxtm that replaces the elements marks the picture modified;
+- unsaved work plus elements is ONE question (new key plural.confirmDiscardWithElements, 13 languages), not two in a row; New Picture from Selection clears elements only after the crop worked;
+- element numbers: the highest is not handed out again after a delete; a number that is not a whole number, is used twice or is huge is replaced; pictures are keyed by list position;
+- a number wider than its box (three digits on a one-cell element) is drawn in full on a dark strip instead of being cut short; the numbers go on after all boxes;
+- element changes no longer rewrite the map store; Escape with nothing to put away does no redraw; which formats bring their own elements is a handler flag (importsElements);
+- the .zxm left-out fallback text matches en.js; the unused ROM-glyph drawer is gone; ASCII comment fixes, and a stray control character that 81a6728 left in a tests/map-codec.test.js comment.
+Still for the owner: .zxm does not store element numbers (ZX Paintbrush's format), so they are renumbered 1, 2, 3 ... when a .zxm is opened; Ctrl+Z after New Picture from Selection or opening a .zxm gives the old picture back but not its elements.
+Suites (M, 2026-10-18): run-all ALL TEST FILES PASSED; test:browser 833 passed; check:manual up to date.

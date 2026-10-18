@@ -176,14 +176,18 @@ class FileManagerClass {
 
   /**
    * Map elements (Edit > Find Map Element) belong to the picture they were found in. Before the picture is replaced, ask whether they can be
-   * abandoned (ZX Paintbrush does the same). Yes clears them; No cancels the whole action.
-   * @returns {boolean} true to carry on
-   * @private
+   * abandoned (ZX Paintbrush does the same); the caller clears them only once the replacement has really happened.
+   * Before the picture is replaced: ONE question covering unsaved work and the map elements (never two in a row), clearing nothing.
+   * @returns {Promise<boolean>} true to go ahead
    */
-  _confirmDropElements() {
-    const ok = this._askDropElements();
-    if (ok && window.MapService) MapService.clearElements();
-    return ok;
+  async _confirmReplace() {
+    const n = window.MapService ? MapService.elements.length : 0;
+    if (this.hasUnsavedChanges && n) {
+      return confirm(Helpers.localizedPlural('plural.confirmDiscardWithElements', n,
+        'one: You have unsaved changes, and this picture has {n} map element. Discard them all? | other: You have unsaved changes, and this picture has {n} map elements. Discard them all?'));
+    }
+    if (this.hasUnsavedChanges) return this._confirmDiscard();
+    return this._askDropElements();
   }
 
   /** Ask whether the picture's map elements can be abandoned, WITHOUT clearing them (a cancelled or failed Open must lose nothing). @returns {boolean} */
@@ -199,11 +203,8 @@ class FileManagerClass {
    * @returns {Promise<boolean>} True if new file created
    */
   async newFile() {
-    if (this.hasUnsavedChanges) {
-      const confirmed = await this._confirmDiscard();
-      if (!confirmed) return false;
-    }
-    if (!this._confirmDropElements()) return false;
+    if (!(await this._confirmReplace())) return false;
+    if (window.MapService) MapService.clearElements();
 
     // New always produces a blank canvas with no further prompts, mirroring a
     // fresh page reload — Paper White, Ink Black. WHITE_PAPER is the
@@ -283,7 +284,8 @@ class FileManagerClass {
     const ok = confirm(this._t('msg.confirmNewFromSelection',
       'Make the selection the whole picture? You can undo it with Ctrl+Z.'));
     if (!ok) return false;
-    if (!this._confirmDropElements()) return false;
+    // ask, but clear only once the crop has worked (a refused crop must lose nothing)
+    if (!this._askDropElements()) return false;
     if (window.ToolManager) ToolManager.commitPending();
     this.fitSelectionToCells();
     const sel = SelectionService.getSelection();
@@ -295,6 +297,7 @@ class FileManagerClass {
     SelectionService.clear();
     UndoRedo.endAction();
     if (!done) return false;
+    if (window.MapService) MapService.clearElements();
 
     this.currentFilename = null;
     this._fileHandle = null;
@@ -412,12 +415,8 @@ class FileManagerClass {
       }
     }
 
-    if (replacesDocument && this.hasUnsavedChanges) {
-      const confirmed = await this._confirmDiscard();
-      if (!confirmed) return false;
-    }
     // Ask now, clear only once the file has really been read: cancelling the import dialog or a broken file must lose nothing
-    if (replacesDocument && !this._askDropElements()) return false;
+    if (replacesDocument && !(await this._confirmReplace())) return false;
 
     try {
       const buffer = preRead || await file.arrayBuffer();
@@ -442,8 +441,8 @@ class FileManagerClass {
         return false;
       }
 
-      // The picture was replaced: its elements go, except where the file brings its own (.zxm, project)
-      if (replacesDocument && window.MapService && !['zxm', 'pixula'].includes(extension)) MapService.clearElements();
+      // The picture was replaced: its elements go, unless the handler brings its own (importsElements: .zxm, project)
+      if (replacesDocument && window.MapService && !handler.importsElements) MapService.clearElements();
 
       // A picture that is not a project has no palette slots: it opens on slot 1, slots 2-4
       // copies of its palette. A project restores its own in App._loadProjectData.

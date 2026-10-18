@@ -495,6 +495,7 @@ const tr = {
     'mapel.none': 'Bu resimde harita öğesi yok.',
     'menu.view.mapElementPictures': 'Harita öğesi resimleri',
     'plural.confirmDropElements': 'one: Bu resimde {n} harita öğesi var. Vazgeçilsin mi? | other: Bu resimde {n} harita öğesi var. Vazgeçilsin mi?',
+    'plural.confirmDiscardWithElements': 'one: Kaydedilmemiş değişiklikleriniz var ve bu resimde {n} harita öğesi var. Hepsinden vazgeçilsin mi? | other: Kaydedilmemiş değişiklikleriniz var ve bu resimde {n} harita öğesi var. Hepsinden vazgeçilsin mi?',
     'panels.mapElements': 'Harita öğeleri',
     'panels.mapElements.hint': 'Düzen > Harita öğesi bul ile bulunan, resimde tekrar eden parçalar. Tüm paneli yukarı veya aşağı taşımak için bu başlığa sağ tıklayın',
     'menu.edit.findMapElement': 'Harita öğesi bul',

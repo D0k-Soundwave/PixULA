@@ -73,6 +73,8 @@ class MapFormatClass {
       delete doc.elements;
     }
     MapService.loadDocument(doc);
+    // the picture's elements were replaced: that is unsaved work (autosave, the warning on closing the tab)
+    if (doc.elements && window.FileManager && FileManager.markModified) FileManager.markModified();
     EventBus.emit(EVENTS.FILE_IMPORT, { format: 'zxtm' });
     Logger.info('MapFormat', 'ZXTM map loaded successfully');
     return { success: true };
