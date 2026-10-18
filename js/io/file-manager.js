@@ -292,12 +292,14 @@ class FileManagerClass {
     if (!sel) return false;
 
     const cw = ZX_SPECTRUM.CELL_WIDTH, ch = ZX_SPECTRUM.CELL_HEIGHT;
+    const elementsBefore = window.MapService ? MapService.elements.slice() : [];
     UndoRedo.beginAction('New picture from selection');
     const done = LayerManager.cropToCells(sel.x / cw, sel.y / ch, sel.width / cw, sel.height / ch);
     SelectionService.clear();
     UndoRedo.endAction();
     if (!done) return false;
     if (window.MapService) MapService.clearElements();
+    UndoRedo.attachMapElements(UndoRedo.peekLast(), elementsBefore);   // Ctrl+Z puts them back with the picture
 
     this.currentFilename = null;
     this._fileHandle = null;
@@ -433,6 +435,9 @@ class FileManagerClass {
         }
       }
 
+      // the step the open lands also puts the old picture's elements back on Ctrl+Z (owner decision 2026-10-18)
+      const stepBefore = window.UndoRedo ? UndoRedo.peekLast() : null;
+      const elementsBefore = window.MapService ? MapService.elements.slice() : [];
       const result = await handler.parse(buffer, parseOptions);
 
       if (!result.success) {
@@ -443,6 +448,7 @@ class FileManagerClass {
 
       // The picture was replaced: its elements go, unless the handler brings its own (importsElements: .zxm, project)
       if (replacesDocument && window.MapService && !handler.importsElements) MapService.clearElements();
+      if (replacesDocument && window.UndoRedo && UndoRedo.peekLast() !== stepBefore) UndoRedo.attachMapElements(UndoRedo.peekLast(), elementsBefore);
 
       // A picture that is not a project has no palette slots: it opens on slot 1, slots 2-4
       // copies of its palette. A project restores its own in App._loadProjectData.

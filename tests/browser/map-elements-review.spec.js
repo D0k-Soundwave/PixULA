@@ -209,3 +209,69 @@ test('a find on a block an earlier element covers is refused with a notice namin
     expect(await notice).toMatch(/already covered.*Element 1/);
     expect(await page.evaluate(() => MapService.getElements().length)).toBe(1);
 });
+
+// -- undo brings the elements back (owner decision 2026-10-18) -------------------------------------------------------------------------------
+
+const count = (page) => page.evaluate(() => MapService.getElements().length);
+const cellInk = (page) => page.evaluate(() => LayerManager.getCurrentLayer().getCell(3, 4).ink);
+
+test('Ctrl+Z after opening a picture brings back the old picture AND its elements; Ctrl+Y opens it again', async ({ page }) => {
+    await setup(page);
+    await page.evaluate(() => { FileManager.hasUnsavedChanges = false; });
+    page.on('dialog', (d) => d.accept());
+    expect(await page.evaluate(async () => FileManager.loadFile(new File([new Uint8Array(6912)], 'blank.scr')))).toBe(true);
+    expect(await count(page)).toBe(0);
+    await page.evaluate(() => UndoRedo.undo());
+    expect(await count(page), 'the elements are back').toBe(1);
+    expect(await cellInk(page), 'and so is the picture').toBe(2);
+    await page.evaluate(() => UndoRedo.redo());
+    expect(await count(page), 'redo opens the file again, without them').toBe(0);
+});
+
+test('Ctrl+Z after opening a .zxm gives back the old elements, Ctrl+Y the file\'s', async ({ page }) => {
+    await setup(page);
+    const zxm = await page.evaluate(() => Array.from(FormatRegistry.getExportHandler('zxm').export()));
+    // the picture gets a second element, so the old list (2) and the file's (1) differ
+    await page.evaluate(() => {
+        const l = LayerManager.getCurrentLayer();
+        const c = l.getCell(1, 1); c.pixels.set([1, 2, 4, 8, 16, 32, 64, 128]); Object.assign(c, { ink: 5, paper: 7, altered: true });
+        SelectionService.setSelection({ x: 8, y: 8, width: 8, height: 8 });
+        MapElementsPanel.startFind(); MapElementsPanel.accept();
+        FileManager.hasUnsavedChanges = false;
+    });
+    expect(await count(page)).toBe(2);
+    page.on('dialog', (d) => d.accept());
+    expect(await page.evaluate(async (b) => FileManager.loadFile(new File([new Uint8Array(b)], 'p.zxm')), zxm)).toBe(true);
+    expect(await count(page)).toBe(1);
+    await page.evaluate(() => UndoRedo.undo());
+    expect(await count(page)).toBe(2);
+    await page.evaluate(() => UndoRedo.redo());
+    expect(await count(page)).toBe(1);
+});
+
+test('Ctrl+Z after New Picture from Selection brings the elements back', async ({ page }) => {
+    await setup(page);
+    page.on('dialog', (d) => d.accept());
+    await page.evaluate(() => SelectionService.setSelection({ x: 0, y: 0, width: 64, height: 64 }));
+    expect(await page.evaluate(async () => FileManager.newFromSelection())).toBe(true);
+    expect(await count(page)).toBe(0);
+    await page.evaluate(() => UndoRedo.undo());
+    expect(await count(page)).toBe(1);
+    await page.evaluate(() => UndoRedo.redo());
+    expect(await count(page)).toBe(0);
+});
+
+test('Accept is still not an undo step: undoing an earlier stroke keeps a newer element', async ({ page }) => {
+    await boot(page);
+    await page.evaluate((rows) => {
+        UndoRedo.beginAction('stroke');
+        const c = LayerManager.getCurrentLayer().getCell(3, 4);
+        c.pixels.set(rows); Object.assign(c, { ink: 2, paper: 7, altered: true });
+        UndoRedo.endAction();
+        LayerManager.composeToCanvas();
+        SelectionService.setSelection({ x: 24, y: 32, width: 8, height: 8 });
+        MapElementsPanel.startFind(); MapElementsPanel.accept();
+        UndoRedo.undo();
+    }, CIRCLE);
+    expect(await count(page)).toBe(1);
+});

@@ -537,6 +537,12 @@ class MapServiceClass {
         this._announceElements();
     }
 
+    /** Put back a list undo or redo kept (already valid: it was this picture's list). Numbers handed out since stay used. */
+    restoreElements(list) {
+        this.elements = list.slice();
+        this._announceElements();
+    }
+
     /** Copies of the elements (editing them changes nothing). */
     getElements() {
         return this.elements.map(e => ({ ...e, bitmap: Uint8Array.from(e.bitmap), attrs: Uint8Array.from(e.attrs), positions: e.positions.map(p => ({ ...p })) }));
