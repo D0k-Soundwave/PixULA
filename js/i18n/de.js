@@ -514,6 +514,7 @@ const de = {
     'mapel.accepted': 'Element {n} mit {places} Stellen gespeichert. Rückgängig nimmt es nicht zurück; löschen Sie es im Fenster Kartenelemente.',
     'mapel.name': 'Element {n}',
     'mapel.noSelection': 'Wählen Sie zuerst einen Bildblock aus.',
+    'mapel.alreadyCovered': 'Dieser Block ist schon von {name} bedeckt. Löschen Sie zuerst dieses Element, um ihn neu zu suchen.',
     'mapel.floating': 'Setzen Sie das schwebende Stück zuerst ab oder verwerfen Sie es.',
     'mapel.badMode': 'Das Suchen braucht 8x8-Farbzellen: Standard, ULAplus, ULANext, GigaScreen oder Timex hi-res.',
     'mapel.fitted': 'Die Auswahl wurde auf ganze Zellen angepasst.',

@@ -514,6 +514,7 @@ const pl = {
     'mapel.accepted': 'Element {n} zapisany z {places} miejscami. Cofnij go nie cofa; usuń go w panelu Elementy mapy.',
     'mapel.name': 'Element {n}',
     'mapel.noSelection': 'Najpierw zaznacz blok obrazu.',
+    'mapel.alreadyCovered': 'Ten blok jest już pokryty przez {name}. Aby znaleźć go ponownie, najpierw usuń ten element.',
     'mapel.floating': 'Najpierw połóż lub anuluj unoszący się fragment.',
     'mapel.badMode': 'Wyszukiwanie wymaga kolorowych komórek 8x8: Standard, ULAplus, ULANext, GigaScreen lub Timex hi-res.',
     'mapel.fitted': 'Zaznaczenie dopasowano do całych komórek.',

@@ -514,6 +514,7 @@ const es = {
     'mapel.accepted': 'Elemento {n} guardado con {places} lugares. Deshacer no lo quita; bórralo en el panel Elementos del mapa.',
     'mapel.name': 'Elemento {n}',
     'mapel.noSelection': 'Primero selecciona un bloque de la imagen.',
+    'mapel.alreadyCovered': 'Este bloque ya lo cubre {name}. Borra primero ese elemento para buscarlo de nuevo.',
     'mapel.floating': 'Primero coloca o cancela la pieza flotante.',
     'mapel.badMode': 'Buscar necesita celdas de color de 8x8: Estándar, ULAplus, ULANext, GigaScreen o Timex hi-res.',
     'mapel.fitted': 'La selección se ajustó a celdas enteras.',

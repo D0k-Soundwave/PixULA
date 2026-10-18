@@ -514,6 +514,7 @@ const hu = {
     'mapel.accepted': 'A(z) {n}. elem {places} hellyel elmentve. A Visszavonás nem veszi vissza; töröld a Térképelemek panelen.',
     'mapel.name': '{n}. elem',
     'mapel.noSelection': 'Előbb jelölj ki egy képrészt.',
+    'mapel.alreadyCovered': 'Ezt a blokkot már lefedi: {name}. Előbb töröld azt az elemet, ha újra meg akarod keresni.',
     'mapel.floating': 'Előbb helyezd le vagy vesd el a lebegő darabot.',
     'mapel.badMode': 'A kereséshez 8x8-as színes cellák kellenek: Standard, ULAplus, ULANext, GigaScreen vagy Timex hi-res.',
     'mapel.fitted': 'A kijelölés egész cellákra lett igazítva.',

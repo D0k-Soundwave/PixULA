@@ -187,5 +187,17 @@ const meta = (o = {}) => ({ match: 'exact', name: 'Elem', gridW: 32, gridH: 24, 
   check('a new map that keeps the tileset keeps the elements', S.getElements().length === 1);
   S.newMap(32, 24, true);
   check('clearing everything clears the elements too', S.getElements().length === 0);
-  summary();
+  
+// -- a find may not start on a block an earlier element covers (owner decision 2026-10-18) ------------------------------------------------
+{
+  S.newMap(32, 24, true);
+  S.clearElements();
+  S.addElement(b1, [{ x: 4, y: 4 }], meta({ name: 'Cov' }));
+  const hit = S.elementCovering({ x: 4, y: 4, w: 1, h: 1 });
+  check('a block on a covered cell names the element that covers it', !!hit && hit.name === 'Cov' && hit.number === S.getElements()[0].number);
+  check('a block that only touches a covered cell is refused too', !!S.elementCovering({ x: 3, y: 3, w: 2, h: 2 }));
+  check('a block next to it is free', S.elementCovering({ x: 5, y: 4, w: 1, h: 1 }) === null && S.elementCovering({ x: 0, y: 0, w: 4, h: 4 }) === null);
+}
+
+summary();
 })();

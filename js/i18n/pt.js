@@ -514,6 +514,7 @@ const pt = {
     'mapel.accepted': 'Elemento {n} guardado com {places} lugares. Anular não o tira; apague-o no painel Elementos do mapa.',
     'mapel.name': 'Elemento {n}',
     'mapel.noSelection': 'Primeiro selecione um bloco da imagem.',
+    'mapel.alreadyCovered': 'Este bloco já está coberto por {name}. Apague primeiro esse elemento para o procurar de novo.',
     'mapel.floating': 'Primeiro pouse ou cancele a peça flutuante.',
     'mapel.badMode': 'Procurar precisa de células de cor 8x8: Standard, ULAplus, ULANext, GigaScreen ou Timex hi-res.',
     'mapel.fitted': 'A seleção foi ajustada a células inteiras.',

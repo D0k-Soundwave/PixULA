@@ -155,6 +155,7 @@ const en = {
     'mapel.accepted': 'Element {n} stored with {places} places. Undo does not take it back; delete it in the Map Elements panel.',
     'mapel.name': 'Element {n}',
     'mapel.noSelection': 'Select a block of the picture first.',
+    'mapel.alreadyCovered': 'This block is already covered by {name}. Delete that element first to find it again.',
     'mapel.floating': 'Place or cancel the floating piece first.',
     'mapel.badMode': 'Finding needs 8x8 colour cells: Standard, ULAplus, ULANext, GigaScreen or Timex hi-res.',
     'mapel.fitted': 'The selection was fitted to whole cells.',

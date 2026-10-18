@@ -514,6 +514,7 @@ const it = {
     'mapel.accepted': 'Elemento {n} salvato con {places} posizioni. Annulla non lo toglie; eliminalo nel pannello Elementi della mappa.',
     'mapel.name': 'Elemento {n}',
     'mapel.noSelection': 'Prima seleziona un blocco dell\'immagine.',
+    'mapel.alreadyCovered': 'Questo blocco è già coperto da {name}. Elimina prima quell’elemento per cercarlo di nuovo.',
     'mapel.floating': 'Prima posa o annulla il pezzo fluttuante.',
     'mapel.badMode': 'La ricerca richiede celle colore 8x8: Standard, ULAplus, ULANext, GigaScreen o Timex hi-res.',
     'mapel.fitted': 'La selezione è stata adattata a celle intere.',
