@@ -458,6 +458,22 @@ class MapServiceClass {
     }
 
     /**
+     * The first element (of this screen) that covers any cell of the block, or null. A find may not start there: the block already belongs
+     * to that element (owner decision 2026-10-18), so two boxes can never sit on the same cells.
+     * @param {{x:number,y:number,w:number,h:number}} b - a block in cells
+     * @returns {?Object} a copy-free reference to the element; read only
+     */
+    elementCovering(b) {
+        for (const el of this.elements) {
+            if (!this.elementFitsScreen(el)) continue;
+            for (const p of el.positions) {
+                if (p.x < b.x + b.w && b.x < p.x + el.w && p.y < b.y + b.h && b.y < p.y + el.h) return el;
+            }
+        }
+        return null;
+    }
+
+    /**
      * From everything a find returned, the places an Accept will keep: places touching a cell an earlier element covers are left out, then places
      * that overlap each other are resolved with the source first. (The source itself is always kept: you chose it.)
      * @returns {{kept:{x:number,y:number}[], covered:number, overlapping:number}}

@@ -82,11 +82,13 @@ test('a place already covered by an earlier element is left out of the next find
     await select(page, 3, 4);
     await page.keyboard.press('Control+f');
     await panel(page).locator('.mapel-accept').click();
+    // keep element 1 on one place only, (20, 15), so (3, 4) is free to start a find from
+    await page.evaluate(() => MapService.setElements(MapService.getElements().map(e => ({ ...e, positions: [{ x: 20, y: 15 }] }))));
     await select(page, 3, 4);
     await page.keyboard.press('Control+f');
-    // the source is itself covered, and stays; the other two are covered and left out
-    await expect(panel(page).locator('.mapel-count')).toContainText('1 place found');
-    await expect(panel(page).locator('.mapel-count')).toContainText('2 already covered');
+    // (3, 4) and (10, 4) are found; (20, 15) is covered and left out
+    await expect(panel(page).locator('.mapel-count')).toContainText('2 places found');
+    await expect(panel(page).locator('.mapel-count')).toContainText('1 already covered');
     await panel(page).locator('.mapel-cancel').click();
 });
 

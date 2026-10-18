@@ -175,6 +175,12 @@ class MapElementsPanelClass {
         if (before && sel && (before.x !== sel.x || before.y !== sel.y || before.width !== sel.width || before.height !== sel.height)) {
             this._notice('mapel.fitted', 'The selection was fitted to whole cells.');
         }
+        const owner = MapService.elementCovering(rect);
+        if (owner) {
+            this._notice('mapel.alreadyCovered', 'This block is already covered by {name}. Delete that element first to find it again.',
+                { name: owner.name || ('#' + owner.number) });
+            return false;
+        }
         const screen = MapService.captureScreen();
         if (!screen) { this._notice('mapel.badMode', 'Finding needs 8x8 colour cells: Standard, ULAplus, ULANext, GigaScreen or Timex hi-res.'); return false; }
         const block = MapService.sliceBlock(screen, rect.x, rect.y, rect.w, rect.h);

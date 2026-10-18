@@ -514,6 +514,7 @@ const sk = {
     'mapel.accepted': 'Prvok {n} uložený s {places} miestami. Späť ho nevráti; zmažte ho v paneli Prvky mapy.',
     'mapel.name': 'Prvok {n}',
     'mapel.noSelection': 'Najprv vyberte blok obrázka.',
+    'mapel.alreadyCovered': 'Tento blok už pokrýva {name}. Ak ho chcete nájsť znova, najprv ten prvok odstráňte.',
     'mapel.floating': 'Najprv umiestnite alebo zrušte plávajúci kus.',
     'mapel.badMode': 'Hľadanie potrebuje farebné bunky 8x8: Standard, ULAplus, ULANext, GigaScreen alebo Timex hi-res.',
     'mapel.fitted': 'Výber bol upravený na celé bunky.',

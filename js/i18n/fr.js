@@ -514,6 +514,7 @@ const fr = {
     'mapel.accepted': 'Élément {n} enregistré avec {places} emplacements. Annuler ne le retire pas ; supprimez-le dans le panneau Éléments de carte.',
     'mapel.name': 'Élément {n}',
     'mapel.noSelection': 'Sélectionnez d\'abord un bloc de l\'image.',
+    'mapel.alreadyCovered': 'Ce bloc est déjà couvert par {name}. Supprimez d’abord cet élément pour le rechercher à nouveau.',
     'mapel.floating': 'Posez ou annulez d\'abord la pièce flottante.',
     'mapel.badMode': 'La recherche demande des cellules de couleur 8x8 : Standard, ULAplus, ULANext, GigaScreen ou Timex hi-res.',
     'mapel.fitted': 'La sélection a été ajustée à des cellules entières.',

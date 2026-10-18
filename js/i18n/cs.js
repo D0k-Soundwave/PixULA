@@ -514,6 +514,7 @@ const cs = {
     'mapel.accepted': 'Prvek {n} uložen s {places} místy. Zpět ho nevrátí; smažte ho v panelu Prvky mapy.',
     'mapel.name': 'Prvek {n}',
     'mapel.noSelection': 'Nejdřív vyberte blok obrázku.',
+    'mapel.alreadyCovered': 'Tento blok už pokrývá {name}. Chcete-li ho najít znovu, nejdřív ten prvek smažte.',
     'mapel.floating': 'Nejdřív umístěte nebo zrušte plovoucí kus.',
     'mapel.badMode': 'Hledání potřebuje barevné buňky 8x8: Standard, ULAplus, ULANext, GigaScreen nebo Timex hi-res.',
     'mapel.fitted': 'Výběr byl upraven na celé buňky.',

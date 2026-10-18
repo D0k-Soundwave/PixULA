@@ -514,6 +514,7 @@ const tr = {
     'mapel.accepted': '{n}. öğe {places} yerle kaydedildi. Geri al onu kaldırmaz; Harita öğeleri panelinden silin.',
     'mapel.name': '{n}. öğe',
     'mapel.noSelection': 'Önce resimden bir blok seçin.',
+    'mapel.alreadyCovered': 'Bu blok zaten {name} tarafından kaplanıyor. Yeniden bulmak için önce o öğeyi silin.',
     'mapel.floating': 'Önce yüzen parçayı yerleştirin veya iptal edin.',
     'mapel.badMode': 'Arama 8x8 renk hücreleri ister: Standard, ULAplus, ULANext, GigaScreen veya Timex hi-res.',
     'mapel.fitted': 'Seçim tam hücrelere uyduruldu.',

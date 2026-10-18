@@ -514,6 +514,7 @@ const ro = {
     'mapel.accepted': 'Elementul {n} salvat cu {places} locuri. Anularea nu îl scoate; șterge-l în panoul Elemente de hartă.',
     'mapel.name': 'Elementul {n}',
     'mapel.noSelection': 'Mai întâi selectează un bloc din imagine.',
+    'mapel.alreadyCovered': 'Acest bloc este deja acoperit de {name}. Ștergeți mai întâi acel element pentru a-l căuta din nou.',
     'mapel.floating': 'Mai întâi pune jos sau anulează bucata plutitoare.',
     'mapel.badMode': 'Căutarea cere celule color 8x8: Standard, ULAplus, ULANext, GigaScreen sau Timex hi-res.',
     'mapel.fitted': 'Selecția a fost ajustată la celule întregi.',

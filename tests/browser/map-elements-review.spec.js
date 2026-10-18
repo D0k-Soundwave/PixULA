@@ -59,7 +59,7 @@ test('Accept and Delete count as unsaved work', async ({ page }) => {
 
 test('Escape with the picture focused cancels an open find; hiding the panel too', async ({ page }) => {
     await setup(page);
-    await page.evaluate(() => SelectionService.setSelection({ x: 24, y: 32, width: 8, height: 8 }));
+    await page.evaluate(() => SelectionService.setSelection({ x: 0, y: 0, width: 8, height: 8 }));   // a free block: (3, 4) belongs to element 1
     await page.keyboard.press('Control+f');
     expect(await page.evaluate(() => MapElementsPanel.active)).toBe(true);
     await page.evaluate(() => CanvasSystem.getCanvasElement('main-canvas').focus());
@@ -78,7 +78,7 @@ test('Escape with the picture focused cancels an open find; hiding the panel too
 test('a collapsed panel opens when a find starts', async ({ page }) => {
     await setup(page);
     await page.evaluate(() => PanelSection.setCollapsed('map-elements-panel', true));
-    await page.evaluate(() => SelectionService.setSelection({ x: 24, y: 32, width: 8, height: 8 }));
+    await page.evaluate(() => SelectionService.setSelection({ x: 0, y: 0, width: 8, height: 8 }));   // a free block: (3, 4) belongs to element 1
     await page.keyboard.press('Control+f');
     expect(await page.evaluate(() => PanelSection.isCollapsed('map-elements-panel'))).toBe(false);
     await expect(page.locator('.mapel-accept')).toBeVisible();
@@ -100,7 +100,7 @@ test('box numbers stay with their element after a delete; new names do not repea
     page.once('dialog', (d) => d.accept());
     await page.locator('.mapel-delete').nth(1).click();
     expect(await page.evaluate(() => MapElementOverlay.describe().covers.map(c => c.n).filter((v, i, a) => a.indexOf(v) === i).join())).toBe('1,3');
-    await page.evaluate(() => SelectionService.setSelection({ x: 24, y: 32, width: 8, height: 8 }));
+    await page.evaluate(() => SelectionService.setSelection({ x: 0, y: 0, width: 8, height: 8 }));   // a free block: (3, 4) belongs to element 1
     await page.evaluate(() => { const e = MapService.elements[0]; MapService.removeElement(0); void e; });
     const names = await page.evaluate(() => { SelectionService.setSelection({ x: 8, y: 8, width: 8, height: 8 }); MapElementsPanel.startFind(); MapElementsPanel.accept(); return MapService.getElements().map(e => e.name + '#' + e.number); });
     expect(new Set(names).size).toBe(names.length);
@@ -124,11 +124,11 @@ test('opening a project puts away an open find and the Show outlines; a font imp
     page.on('dialog', (d) => d.accept());
     await page.evaluate(async (b) => FileManager.loadFile(new File([new Uint8Array(b)], 'p.pixula')), project);
     expect(await page.evaluate(() => MapElementOverlay.describe().highlight), 'Show outlines gone after a project open').toBeNull();
-    await page.evaluate(() => SelectionService.setSelection({ x: 24, y: 32, width: 8, height: 8 }));
+    await page.evaluate(() => SelectionService.setSelection({ x: 0, y: 0, width: 8, height: 8 }));   // a free block: (3, 4) belongs to element 1
     await page.keyboard.press('Control+f');
     await page.evaluate(async (b) => FileManager.loadFile(new File([new Uint8Array(b)], 'p.pixula')), project);
     expect(await page.evaluate(() => MapElementsPanel.active), 'an open find ends when a project is opened').toBe(false);
-    await page.evaluate(() => SelectionService.setSelection({ x: 24, y: 32, width: 8, height: 8 }));
+    await page.evaluate(() => SelectionService.setSelection({ x: 0, y: 0, width: 8, height: 8 }));   // a free block: (3, 4) belongs to element 1
     await page.keyboard.press('Control+f');
     await page.evaluate(() => EventBus.emit(EVENTS.FILE_IMPORT, { format: 'font' }));
     expect(await page.evaluate(() => MapElementsPanel.active), 'a font import leaves the find alone').toBe(true);
@@ -197,4 +197,15 @@ test('a three-digit number on a one-cell element is drawn in full, past the box'
         return n;
     });
     expect(lit, 'the third digit shows in the next cell').toBeGreaterThan(3);
+});
+
+test('a find on a block an earlier element covers is refused with a notice naming it', async ({ page }) => {
+    await setup(page);
+    const notice = page.evaluate(() => new Promise((r) => { EventBus.on(EVENTS.STATUS_NOTICE, (d) => r(d.text)); setTimeout(() => r(null), 3000); }));
+    await page.waitForTimeout(50);
+    await page.evaluate(() => SelectionService.setSelection({ x: 80, y: 32, width: 8, height: 8 }));   // cell (10, 4): one of element 1's places
+    await page.keyboard.press('Control+f');
+    expect(await page.evaluate(() => MapElementsPanel.active), 'no find starts').toBe(false);
+    expect(await notice).toMatch(/already covered.*Element 1/);
+    expect(await page.evaluate(() => MapService.getElements().length)).toBe(1);
 });
