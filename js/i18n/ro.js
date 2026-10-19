@@ -971,7 +971,7 @@ const ro = {
     'view.mirrorOff.hint': 'Oglinda este oprită - trăsăturile desenează doar unde desenezi',
     'strip.choose': 'Fă clic pentru a alege altul',
     'pref.inverse': 'Invers: schimbă butoanele mouse-ului',
-    'pref.inverseHint': 'Butonul stâng desenează pixeli de hârtie, cel drept desenează pixeli de cerneală, ca INVERSE 1 din BASIC. Shift+I îl comută de la tastatură, iar bara de stare spune când este pornit. Nu schimbă nimic în modurile de desen Recolorează cerneala, Recolorează hârtia și XOR.',
+    'pref.inverseHint': 'Butonul stâng desenează pixeli de hârtie, cel drept desenează pixeli de cerneală, ca INVERSE 1 din BASIC. Shift+I îl comută de la tastatură, iar bara de stare spune când este pornit. Nu schimbă nimic în modurile de desen Recolorează cerneala, Recolorează hârtia, Doar atribute și XOR.',
     'attr.copy': 'Copiază atributele',
     'attr.copy.hint': 'Fă clic pe o celulă ca să iei atributele pe care le arată, apoi trage peste alte celule ca să le dai acele atribute. Pixelii rămân cum sunt, iar bara de culori nu se schimbă. Ca să te oprești, fă clic dreapta pe imagine, alege Niciuna în lista uneltelor de celulă sau alege o unealtă ori un mod de desen',
     'attr.invertDots': 'Inversează pixelii',

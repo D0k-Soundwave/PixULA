@@ -1063,3 +1063,19 @@ fallback to Normal.
   is two icons wide, so Attributes Only sits alone on a fourth row under Ink Recolour.
 - Suites (M, 2026-10-19): run-all ALL TEST FILES PASSED; check:manual up to date; test:browser 865 passed, 2 failed -
   strip-selector.spec.js and draw-mode-tooltip.spec.js still counted six draw modes; updated to seven, both pass.
+
+## Attributes Only draw mode - independent check (2026-10-19)
+Probed in the running app (temporary Playwright specs, deleted after): brush 1 and 32, right button, rectangle,
+ellipse, line, pixel fill, gradient (both phases), pattern brush, filled Figure polygon, spray and type on canvas, in
+Standard ULA, multicolour 8x4/8x2/8x1, ULAplus and ULAplus 8x1, GigaScreen and MultiGiga 8x4/8x2/8x1 and ULANext. In
+each, Attributes Only gave every cell exactly Ink Recolour's ink, bright and flash plus Paper Recolour's paper (both
+screens in the two-screen modes), changed no pixel on either screen, and one undo restored the seed and one redo the
+stroke. Inverse with both buttons and each of the four "use existing" boxes, the status line in three languages, the
+rubber-band preview, and withdrawal with fallback to Normal in Timex hi-res (both), Layer 2 (256/320/640), LoRes and
+Radastan all behaved as specified.
+- Defect: Preferences > Inverse still said it changes nothing in "the Ink Recolour, Paper Recolour and XOR draw
+  modes", leaving Attributes Only out, in all 13 languages and the English fallback; the comparison doc's Inverse mode
+  row had the same omission. Fixed; tests/attributes-inverse-hint.test.js (13 failed checks before the fix) keeps every
+  locale's hint naming the mode by its own label. Manual rebuilt (the Preferences picture shows the hint).
+- Not changed (owner's call): the draw-mode pop-up is two icons wide, so Attributes Only sits on its own row under Ink
+  Recolour rather than beside both recolour buttons.

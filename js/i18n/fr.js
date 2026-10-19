@@ -971,7 +971,7 @@ const fr = {
     'view.mirrorOff.hint': 'Le miroir est désactivé - les traits ne dessinent que là où vous dessinez',
     'strip.choose': 'Cliquez pour en choisir un autre',
     'pref.inverse': 'Inverse : échanger les boutons de la souris',
-    'pref.inverseHint': 'Le bouton gauche dessine des pixels de papier et le droit des pixels d\'encre, comme INVERSE 1 en BASIC. Maj+I le bascule au clavier, et la barre d\'état indique quand il est activé. Il ne change rien dans les modes de dessin Recolorer l\'encre, Recolorer le papier et XOR.',
+    'pref.inverseHint': 'Le bouton gauche dessine des pixels de papier et le droit des pixels d\'encre, comme INVERSE 1 en BASIC. Maj+I le bascule au clavier, et la barre d\'état indique quand il est activé. Il ne change rien dans les modes de dessin Recolorer l\'encre, Recolorer le papier, Attributs seulement et XOR.',
     'attr.copy': 'Copier les attributs',
     'attr.copy.hint': 'Cliquez sur une cellule pour prendre les attributs qu\'elle montre, puis faites glisser sur d\'autres cellules pour les leur donner. Les pixels restent tels quels et la barre de couleurs ne change pas. Pour arrêter, faites un clic droit sur l\'image, choisissez Aucun dans la liste des outils de cellule, ou choisissez un outil ou un mode de dessin',
     'attr.invertDots': 'Inverser les pixels',

@@ -971,7 +971,7 @@ const sk = {
     'view.mirrorOff.hint': 'Zrkadlenie je vypnuté - ťahy kreslia len tam, kde kreslíte',
     'strip.choose': 'Kliknutím vyberiete iný',
     'pref.inverse': 'Inverzia: vymeniť tlačidlá myši',
-    'pref.inverseHint': 'Ľavé tlačidlo kreslí pixely papiera a pravé pixely atramentu, ako INVERSE 1 v BASICu. Shift+I ju prepína z klávesnice a stavový riadok hlási, keď je zapnutá. V režimoch kreslenia Prefarbiť Atrament, Prefarbiť Papier a XOR nič nemení.',
+    'pref.inverseHint': 'Ľavé tlačidlo kreslí pixely papiera a pravé pixely atramentu, ako INVERSE 1 v BASICu. Shift+I ju prepína z klávesnice a stavový riadok hlási, keď je zapnutá. V režimoch kreslenia Prefarbiť Atrament, Prefarbiť Papier, Iba atribúty a XOR nič nemení.',
     'attr.copy': 'Kopírovať atribúty',
     'attr.copy.hint': 'Kliknite na bunku, aby ste prevzali atribúty, ktoré ukazuje, a potom pretiahnutím cez ďalšie bunky im ich dajte. Pixely zostanú, ako sú, a paleta farieb sa nezmení. Ukončíte to pravým kliknutím do obrázka, voľbou Žiadny v zozname bunkových nástrojov alebo výberom nástroja či režimu kreslenia',
     'attr.invertDots': 'Invertovať pixely',
