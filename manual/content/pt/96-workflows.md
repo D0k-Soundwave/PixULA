@@ -7,9 +7,10 @@ Algumas tarefas comuns, do princípio ao fim.
 1. Abra `PixULA.html`. Começa em ULA padrão com um ecrã vazio de 256 por 192.
 2. Ative a grelha de células, junto aos controlos de zoom, para ver os blocos
    de 8 por 8 em que a cor é guardada.
-3. Escolha uma cor de tinta na barra de cores ou com as teclas 1 a 8, e uma cor
-   de papel com um clique direito numa amostra.
-4. Desenhe com o **Pincel**. Botão esquerdo para tinta, direito para papel.
+3. Escolha uma cor de Tinta na barra de cores ou com as teclas 1 a 8, e uma cor
+   de Papel com um clique direito numa amostra.
+4. Desenhe com o **Pincel**. Botão esquerdo para píxeis de tinta, direito para
+   píxeis de papel.
 5. Faça zoom com `+` e `-`. Mantenha a barra de espaço premida e arraste para
    se deslocar, ou use a ferramenta **Deslocar vista**.
 6. `Ctrl+Z` anula. `Ctrl+S` guarda um projeto `.pixula`, que mantém as camadas

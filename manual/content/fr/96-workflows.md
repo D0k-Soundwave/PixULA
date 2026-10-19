@@ -8,10 +8,10 @@ Quelques tâches courantes, du début à la fin.
    de 256 sur 192.
 2. Activez la grille de cellules, à côté des commandes de zoom, pour voir les
    blocs de 8 sur 8 dans lesquels la couleur est stockée.
-3. Choisissez une couleur d’encre dans la barre de couleurs ou avec les
-   touches 1 à 8, et une couleur de papier par un clic droit sur une pastille.
-4. Dessinez avec le **Pinceau**. Bouton gauche pour l’encre, droit pour le
-   papier.
+3. Choisissez une couleur d’Encre dans la barre de couleurs ou avec les
+   touches 1 à 8, et une couleur de Papier par un clic droit sur une pastille.
+4. Dessinez avec le **Pinceau**. Bouton gauche pour les pixels d’encre, droit pour
+   les pixels de papier.
 5. Zoomez avec `+` et `-`. Maintenez la barre d’espace et faites glisser pour
    vous déplacer, ou utilisez l’outil **Déplacer la vue**.
 6. `Ctrl+Z` annule. `Ctrl+S` enregistre un projet `.pixula`, qui garde vos

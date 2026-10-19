@@ -17,7 +17,7 @@ il risultato, e non ciò che vuoi se intendi continuare a lavorarci.
 
 ### Importare un'immagine
 
-Aprendo una foto o un'altra immagine (PNG, JPG, GIF) si vedono affiancate tre conversioni - Nitida, Morbida e Piatta - e si clicca su quella che piace. La Morbida è quella che trasforma le sfumature in punti, e l'elenco **Dithering** sotto le anteprime sceglie come: il predefinito è il Floyd-Steinberg proprio dell'importazione, e l'elenco offre anche gli altri 30 metodi di ZX Paintbrush - soglie, diffusione dell'errore, matrici di Bayer, punti raggruppati e supercelle. Scegliere un metodo ridisegna Morbida, e anche Nitida una volta scelto un metodo (Piatta non fa mai dithering). I metodi ordinati proseguono attraverso le celle di attributi, così il motivo corre su tutta l'immagine; la diffusione dell'errore resta dentro ogni cella, perché ogni cella ha i suoi due colori. Nelle modalità Layer 2 e LoRes l'elenco funziona anch'esso: ogni punto è messo tra i suoi due colori di tavolozza più vicini e tutta l'immagine è un unico blocco, quindi la diffusione dell'errore corre su tutta l'immagine.
+Aprendo una foto o un'altra immagine (PNG, JPG, GIF) si vedono affiancate tre conversioni - Nitida, Morbida e Piatta - e si clicca su quella che piace. La Morbida è quella che trasforma le sfumature in pixel d'inchiostro e di carta, e l'elenco **Dithering** sotto le anteprime sceglie come: il predefinito è il Floyd-Steinberg proprio dell'importazione, e l'elenco offre anche gli altri 30 metodi di ZX Paintbrush - soglie, diffusione dell'errore, matrici di Bayer, punti raggruppati e supercelle. Scegliere un metodo ridisegna Morbida, e anche Nitida una volta scelto un metodo (Piatta non fa mai dithering). I metodi ordinati proseguono attraverso le celle di attributi, così il motivo corre su tutta l'immagine; la diffusione dell'errore resta dentro ogni cella, perché ogni cella ha i suoi due colori. Nelle modalità Layer 2 e LoRes l'elenco funziona anch'esso: ogni pixel è messo tra i suoi due colori di tavolozza più vicini e tutta l'immagine è un unico blocco, quindi la diffusione dell'errore corre su tutta l'immagine.
 
 ### Salvare una parte di un'immagine
 
@@ -25,7 +25,7 @@ Aprendo una foto o un'altra immagine (PNG, JPG, GIF) si vedono affiancate tre co
 
 ### Una nuova immagine da una selezione
 
-**Modifica > Nuova immagine dalla selezione** trasforma la selezione nell'immagine intera. La selezione viene prima adattata a celle intere. Chiede prima di fare qualcosa, e Ctrl+Z restituisce la vecchia immagine. Tutti i livelli restano, ritagliati a quel blocco, che passa in alto a sinistra; il resto è vuoto, e lo sfondo lì è carta bianca. La modalità schermo resta la stessa e l'immagine diventa senza titolo, così il Salva successivo chiede un nome.
+**Modifica > Nuova immagine dalla selezione** trasforma la selezione nell'immagine intera. La selezione viene prima adattata a celle intere. Chiede prima di fare qualcosa, e Ctrl+Z restituisce la vecchia immagine. Tutti i livelli restano, ritagliati a quel blocco, che passa in alto a sinistra; il resto è vuoto, e lo sfondo lì è Carta bianca. La modalità schermo resta la stessa e l'immagine diventa senza titolo, così il Salva successivo chiede un nome.
 
 ### Salvataggio automatico e backup
 

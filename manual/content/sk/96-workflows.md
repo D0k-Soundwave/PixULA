@@ -8,9 +8,9 @@ Niekoľko bežných úloh od začiatku do konca.
    256 × 192.
 2. Zapnite bunkovú mriežku vedľa ovládania priblíženia, aby ste videli bloky
    8 × 8, v ktorých sa ukladá farba.
-3. Vyberte farbu atramentu vo farebnej lište alebo klávesmi 1 až 8 a farbu
-   papiera pravým kliknutím na vzorku.
-4. Kreslite **Štetcom**. Ľavé tlačidlo pre atrament, pravé pre papier.
+3. Vyberte farbu Atramentu vo farebnej lište alebo klávesmi 1 až 8 a farbu
+   Papiera pravým kliknutím na vzorku.
+4. Kreslite **Štetcom**. Ľavé tlačidlo pre pixely atramentu, pravé pre pixely papiera.
 5. Približujte klávesmi `+` a `-`. Podržte medzerník a ťahajte, aby ste sa
    posunuli, alebo použite nástroj **Posun zobrazenia**.
 6. `Ctrl+Z` vracia späť. `Ctrl+S` uloží projekt `.pixula`, ktorý okrem obrázka

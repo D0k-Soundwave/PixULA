@@ -2,23 +2,23 @@
 
 Spectrum păstrează o imagine în două părți separate.
 
-Prima este un bitmap: 256 pe 192 de puncte, câte un bit fiecare, aprins sau
-stins. A doua este o grilă de culoare, câte un octet pentru fiecare bloc de 8 pe
-8 din aceste puncte – 32 de octeți pe lățime și 24 pe înălțime. Fiecare octet
-spune ce culoare să aibă **cerneala** (punctele aprinse), ce culoare
-**hârtia** (punctele stinse), dacă perechea este **luminoasă** și dacă trebuie
-să **clipească**.
+Prima este un bitmap: 256 pe 192 de pixeli, câte un bit fiecare, un pixel de
+cerneală sau un pixel de hârtie. A doua este o grilă de atribute, câte un octet
+pentru fiecare bloc de 8 pe 8 din acești pixeli – 32 de octeți pe lățime și 24
+pe înălțime. Fiecare octet spune ce culoare să aibă **Cerneala** (culoarea
+pixelilor de cerneală), ce culoare **Hârtia** (culoarea pixelilor de hârtie),
+dacă perechea are **Luminos** și dacă are **Clipire**.
 
 Așadar forma imaginii are o rezoluție de 256 pe 192, iar culoarea ei una de 32
-pe 24. Fiecare celulă de 8 pe 8 poate arăta două culori, iar fiecare punct din
+pe 24. Fiecare celulă de 8 pe 8 poate arăta două culori, iar fiecare pixel din
 ea are una sau cealaltă.
 
 ![Două linii diagonale care se încrucișează pe o pânză mărită, cu grila de celule afișată. Linia albastră devine roșie în fiecare celulă prin care trece și linia roșie](img/attribute-clash.png)
 
 *O linie albastră și una roșie care se încrucișează, la 800% cu grila de celule.
 Unde linia roșie trece printr-o celulă, linia albastră din acea celulă e și ea
-roșie. Trăsătura roșie a venit a doua și a stabilit culoarea cernelii pentru
-toată celula, inclusiv pentru punctele puse deja de trăsătura albastră.*
+roșie. Trăsătura roșie a venit a doua și a stabilit Cerneala pentru
+toată celula, inclusiv pentru pixelii de cerneală puși deja de trăsătura albastră.*
 
 Asta înseamnă „conflictul de atribute” (*attribute clash*). Desenul într-o parte
 a unei celule schimbă culoarea a tot ce e în ea, și nicio setare nu îl oprește –
@@ -37,35 +37,36 @@ PixULA vă ajută în trei moduri.
 **Grila de celule.** Activați-o lângă comenzile de zoom și veți vedea exact unde
 o schimbare de culoare e gratuită și unde vă va costa.
 
-**Modurile de desen.** O trăsătură nu trebuie să schimbe deodată și punctele, și
-culorile. Puteți pune puncte fără să atingeți culorile sau recolora o celulă fără
-să atingeți vreun punct. Capitolul despre culoare le enumeră.
+**Modurile de desen.** O trăsătură nu trebuie să schimbe deodată și pixelii, și
+atributele. Puteți desena pixeli de cerneală fără să atingeți atributele sau
+recolora o celulă fără să atingeți vreun pixel. Capitolul despre culoare le enumeră.
 
-**Biblioteca de modele.** Nucleul ei este un set de plăci cu densități de
-cerneală măsurate – la ele apelați când o celulă are nevoie de un gri pe care nu
+**Biblioteca de modele.** Nucleul ei este un set de plăci cu densități
+măsurate de pixeli de cerneală – la ele apelați când o celulă are nevoie de un gri pe care nu
 îl poate ține.
 
-### Vizualizarea punctelor
+### Vizualizarea pixelilor
 
 Trei comutatoare din meniul Vizualizare schimbă ceea ce arată ecranul, fără să
-schimbe imaginea. **Culori oprite** arată punctele în negru pe alb, ca să vezi
-care puncte sunt cu adevărat setate. **Grilă de culori** face același lucru și
+schimbe imaginea. **Atribute oprite** arată pixelii de cerneală în negru și pixelii
+de hârtie în alb, ca să vezi care pixeli sunt cu adevărat de cerneală. **Grilă de culori** face același lucru și
 colorează în plus celulele ca o tablă de șah, ca limitele celulelor să se vadă
-bine; ea și Culori oprite se opresc una pe alta. **Oprește clipirea** păstrează
+bine; ea și Atribute oprite se opresc una pe alta. **Oprește clipirea** păstrează
 fiecare celulă care clipește în culorile ei normale. Niciunul nu atinge
 imaginea, anularea sau o exportare: o imagine salvată arată la fel, fie că sunt
 pornite sau nu. Browserul le reține, iar un comutator care nu poate funcționa în
 modul de ecran curent este gri – treci cu mouse-ul peste el ca să vezi de ce. În
-GigaScreen și MultiGiga, Culori oprite arată patru niveluri de gri: alb unde
-niciun ecran nu are punct, gri deschis pentru un punct doar pe ecranul A, un gri
+GigaScreen și MultiGiga, Atribute oprite arată patru niveluri de gri: alb unde
+niciun ecran nu are pixel de cerneală, gri deschis pentru un pixel de cerneală
+doar pe ecranul A, un gri
 mai închis doar pe ecranul B și negru pentru ambele.
 
 ### Citirea cursorului
 
 Banda de sub imagine și bara de stare spun unde este cursorul. În
 **Preferințe**, *Citirea cursorului arată* adaugă atributul de sub cursor
-(numărul lui în zecimal și în hexazecimal, apoi cerneală, hârtie, luminos și
-clipire; CLUT în ULAplus; ambele ecrane în GigaScreen) și adresa de memorie a
+(numărul lui în zecimal și în hexazecimal, apoi Cerneală, Hârtie, Luminos și
+Clipire; CLUT în ULAplus; ambele ecrane în GigaScreen) și adresa de memorie a
 octetului pixelului și a octetului lui de atribut. Adresele există acolo unde
 mașina reală are o dispunere fixă: ULA standard și ULAplus (fișierul de afișare
 de la $4000, atributele de la $5800), Timex hi-colour (atributele în al doilea
@@ -89,7 +90,7 @@ bifat *Culoarea temei*, grila urmează tema.
 ### Unde regulile sunt altele
 
 Hardware-ul de mai târziu a relaxat constrângerea în diverse feluri, iar PixULA
-poate lucra cu toate. Calculatoarele Timex au făcut grila de culoare mai fină.
+poate lucra cu toate. Calculatoarele Timex au făcut grila de atribute mai fină.
 ULAplus a înlocuit cele șaisprezece culori fixe cu o paletă aleasă de dvs.
 GigaScreen alternează două imagini suficient de repede încât să sugereze culori
 pe care niciuna nu le conține. ZX Spectrum Next renunță complet la schemă în

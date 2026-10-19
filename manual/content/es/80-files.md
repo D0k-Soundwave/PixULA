@@ -17,7 +17,7 @@ y no lo que quieres si piensas seguir trabajando en ella.
 
 ### Importar una imagen
 
-Al abrir una foto u otra imagen (PNG, JPG, GIF) se muestran tres conversiones una junto a otra - Nítida, Suave y Plana - y haces clic en la que prefieras. Suave es la que convierte los tonos en puntos, y la lista **Tramado** bajo las vistas previas elige cómo: por defecto es el Floyd-Steinberg propio del importador, y la lista ofrece además los otros 30 métodos de ZX Paintbrush - umbrales, difusión de error, matrices de Bayer, puntos agrupados y superceldas. Elegir un método redibuja Suave, y también Nítida una vez elegido uno (Plana nunca tramea). Los métodos ordenados continúan a través de las celdas de atributos, de modo que el patrón recorre toda la imagen; la difusión de error se queda dentro de cada celda, porque cada celda tiene sus dos colores. En los modos Layer 2 y LoRes la lista también funciona: cada punto se coloca entre sus dos colores de paleta más cercanos y toda la imagen es un bloque, así que la difusión de error recorre toda la imagen.
+Al abrir una foto u otra imagen (PNG, JPG, GIF) se muestran tres conversiones una junto a otra - Nítida, Suave y Plana - y haces clic en la que prefieras. Suave es la que convierte los tonos en píxeles de tinta y de papel, y la lista **Tramado** bajo las vistas previas elige cómo: por defecto es el Floyd-Steinberg propio del importador, y la lista ofrece además los otros 30 métodos de ZX Paintbrush - umbrales, difusión de error, matrices de Bayer, puntos agrupados y superceldas. Elegir un método redibuja Suave, y también Nítida una vez elegido uno (Plana nunca tramea). Los métodos ordenados continúan a través de las celdas de atributos, de modo que el patrón recorre toda la imagen; la difusión de error se queda dentro de cada celda, porque cada celda tiene sus dos colores. En los modos Layer 2 y LoRes la lista también funciona: cada píxel se coloca entre sus dos colores de paleta más cercanos y toda la imagen es un bloque, así que la difusión de error recorre toda la imagen.
 
 ### Guardar parte de una imagen
 
@@ -25,7 +25,7 @@ Al abrir una foto u otra imagen (PNG, JPG, GIF) se muestran tres conversiones un
 
 ### Una imagen nueva desde una selección
 
-**Edición > Nueva imagen desde la selección** convierte la selección en la imagen entera. La selección se ajusta primero a celdas completas. Pregunta antes de hacer nada, y Ctrl+Z devuelve la imagen anterior. Se conservan todas las capas, recortadas a ese bloque, que pasa a la esquina superior izquierda; el resto queda vacío, y el fondo allí es papel blanco. El modo de pantalla sigue igual y la imagen queda sin título, así que el siguiente Guardar pide un nombre.
+**Edición > Nueva imagen desde la selección** convierte la selección en la imagen entera. La selección se ajusta primero a celdas completas. Pregunta antes de hacer nada, y Ctrl+Z devuelve la imagen anterior. Se conservan todas las capas, recortadas a ese bloque, que pasa a la esquina superior izquierda; el resto queda vacío, y el fondo allí es Papel blanco. El modo de pantalla sigue igual y la imagen queda sin título, así que el siguiente Guardar pide un nombre.
 
 ### Guardado automático y copias
 

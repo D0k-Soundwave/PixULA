@@ -2,7 +2,7 @@
 
 ### Maus
 
-Die linke Taste zeichnet mit Tinte, die rechte mit Papier. Umschalt und
+Die linke Taste zeichnet Tintenpixel, die rechte Papierpixel. Umschalt und
 Rechtsklick öffnen das Leinwandmenü – so erreichen Sie Ausschneiden, Kopieren
 und Einfügen, während ein Werkzeug die rechte Taste zum Zeichnen verwendet.
 
@@ -14,9 +14,9 @@ Die Stiftspitze zeichnet mit dem gewählten Werkzeug und lässt sich nicht
 umbelegen. Jedes andere Bedienelement des Stifts schon, unter
 **Einstellungen > Stift**.
 
-Ab Werk zeichnet die Seitentaste mit Papier, wie die rechte Maustaste, und das
+Ab Werk zeichnet die Seitentaste Papierpixel, wie die rechte Maustaste, und das
 Radierende radiert. Die Liste in den Einstellungen bietet außerdem Pipette,
-Ansicht verschieben, Rückgängig, Wiederholen, Farben tauschen, das Leinwandmenü
+Ansicht verschieben, Rückgängig, Wiederholen, Tinte und Papier tauschen, das Leinwandmenü
 und die Rückkehr zum vorigen Werkzeug.
 
 Der Druck verändert Pinselgröße und Fluss um ein Maß, das Sie festlegen. Die

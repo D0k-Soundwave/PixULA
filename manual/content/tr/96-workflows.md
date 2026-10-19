@@ -8,9 +8,10 @@ Başından sonuna bazı yaygın işler.
    başlarsınız.
 2. Rengin saklandığı 8×8 blokları görmek için yakınlaştırma denetimlerinin
    yanındaki hücre ızgarasını açın.
-3. Renk çubuğundan ya da 1–8 tuşlarıyla bir mürekkep rengi, bir örneğe sağ
-   tıklayarak da bir kâğıt rengi seçin.
-4. **Fırça** ile çizin. Sol düğme mürekkep, sağ düğme kâğıt içindir.
+3. Renk çubuğundan ya da 1–8 tuşlarıyla bir Mürekkep rengi, bir örneğe sağ
+   tıklayarak da bir Kâğıt rengi seçin.
+4. **Fırça** ile çizin. Sol düğme mürekkep pikselleri, sağ düğme kâğıt
+   pikselleri içindir.
 5. `+` ve `-` ile yakınlaştırın. Hareket etmek için boşluk çubuğunu basılı
    tutup sürükleyin ya da **Görünümü kaydır** aracını kullanın.
 6. `Ctrl+Z` geri alır. `Ctrl+S`, resmin yanı sıra katmanlarınızı ve

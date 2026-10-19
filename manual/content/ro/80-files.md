@@ -15,7 +15,7 @@ dacă intenționați să lucrați mai departe la ea.
 
 ### Importul unei imagini
 
-Deschiderea unei fotografii sau a altei imagini (PNG, JPG, GIF) arată trei conversii una lângă alta - Clară, Fină și Plată - iar tu o alegi cu un clic pe cea care îți place. Fină este cea care transformă nuanțele în puncte, iar lista **Dither** de sub previzualizări alege cum: implicit este Floyd-Steinberg propriu al importului, iar lista oferă și celelalte 30 de metode ZX Paintbrush - praguri, difuzia erorii, matrice Bayer, puncte grupate și supercelule. Alegerea unei metode redesenează Fină, și Clară după ce ai ales una (Plată nu face niciodată dither). Metodele ordonate continuă peste celulele de atribute, deci modelul străbate toată imaginea; difuzia erorii rămâne în interiorul fiecărei celule, fiindcă fiecare celulă are cele două culori ale ei. În modurile Layer 2 și LoRes lista funcționează și ea: fiecare punct este pus între cele mai apropiate două culori din paletă, iar toată imaginea este un singur bloc, deci difuzia erorii străbate toată imaginea.
+Deschiderea unei fotografii sau a altei imagini (PNG, JPG, GIF) arată trei conversii una lângă alta - Clară, Fină și Plată - iar tu o alegi cu un clic pe cea care îți place. Fină este cea care transformă nuanțele în pixeli de cerneală și de hârtie, iar lista **Dither** de sub previzualizări alege cum: implicit este Floyd-Steinberg propriu al importului, iar lista oferă și celelalte 30 de metode ZX Paintbrush - praguri, difuzia erorii, matrice Bayer, puncte grupate și supercelule. Alegerea unei metode redesenează Fină, și Clară după ce ai ales una (Plată nu face niciodată dither). Metodele ordonate continuă peste celulele de atribute, deci modelul străbate toată imaginea; difuzia erorii rămâne în interiorul fiecărei celule, fiindcă fiecare celulă are cele două culori ale ei. În modurile Layer 2 și LoRes lista funcționează și ea: fiecare pixel este pus între cele mai apropiate două culori din paletă, iar toată imaginea este un singur bloc, deci difuzia erorii străbate toată imaginea.
 
 ### Salvarea unei părți dintr-o imagine
 
@@ -23,7 +23,7 @@ Deschiderea unei fotografii sau a altei imagini (PNG, JPG, GIF) arată trei conv
 
 ### O imagine nouă dintr-o selecție
 
-**Editare > Imagine nouă din selecție** face din selecție întreaga imagine. Selecția este mai întâi potrivită la celule întregi. Întreabă înainte să facă ceva, iar Ctrl+Z aduce înapoi imaginea veche. Toate straturile rămân, tăiate la acel bloc, care trece în colțul stânga-sus; restul este gol, iar fundalul de acolo este hârtie albă. Modul de ecran rămâne același, iar imaginea devine fără nume, deci următorul Salvează cere un nume.
+**Editare > Imagine nouă din selecție** face din selecție întreaga imagine. Selecția este mai întâi potrivită la celule întregi. Întreabă înainte să facă ceva, iar Ctrl+Z aduce înapoi imaginea veche. Toate straturile rămân, tăiate la acel bloc, care trece în colțul stânga-sus; restul este gol, iar fundalul de acolo este Hârtie albă. Modul de ecran rămâne același, iar imaginea devine fără nume, deci următorul Salvează cere un nume.
 
 ### Salvare automată și copii de rezervă
 

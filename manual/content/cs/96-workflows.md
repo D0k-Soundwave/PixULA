@@ -8,9 +8,9 @@ Několik běžných úkolů od začátku do konce.
    256 × 192.
 2. Zapněte buňkovou mřížku vedle ovládání přiblížení, abyste viděli bloky 8 × 8,
    ve kterých se ukládá barva.
-3. Vyberte barvu inkoustu v barevné liště nebo klávesami 1 až 8 a barvu papíru
+3. Vyberte barvu Inkoustu v barevné liště nebo klávesami 1 až 8 a barvu Papíru
    pravým kliknutím na vzorek.
-4. Kreslete **Štětcem**. Levé tlačítko pro inkoust, pravé pro papír.
+4. Kreslete **Štětcem**. Levé tlačítko pro pixely inkoustu, pravé pro pixely papíru.
 5. Přibližujte klávesami `+` a `-`. Podržte mezerník a táhněte, abyste se
    posunuli, nebo použijte nástroj **Posun zobrazení**.
 6. `Ctrl+Z` vrací zpět. `Ctrl+S` uloží projekt `.pixula`, který kromě obrázku

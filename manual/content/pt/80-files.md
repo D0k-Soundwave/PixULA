@@ -16,7 +16,7 @@ que quer se tenciona continuar a trabalhar nela.
 
 ### Importar uma imagem
 
-Ao abrir uma foto ou outra imagem (PNG, JPG, GIF) aparecem três conversões lado a lado - Nítida, Suave e Plana - e clica-se na que se preferir. A Suave é a que transforma tons em pontos, e a lista **Pontilhado** por baixo das pré-visualizações escolhe como: por omissão é o Floyd-Steinberg próprio da importação, e a lista oferece ainda os outros 30 métodos do ZX Paintbrush - limiares, difusão de erro, matrizes de Bayer, pontos agrupados e supercélulas. Escolher um método redesenha a Suave, e também a Nítida depois de escolhido um (a Plana nunca pontilha). Os métodos ordenados continuam através das células de atributos, pelo que o padrão percorre a imagem toda; a difusão de erro fica dentro de cada célula, porque cada célula tem as suas duas cores. Nos modos Layer 2 e LoRes a lista também funciona: cada ponto é colocado entre as suas duas cores de paleta mais próximas e a imagem toda é um só bloco, pelo que a difusão de erro percorre a imagem toda.
+Ao abrir uma foto ou outra imagem (PNG, JPG, GIF) aparecem três conversões lado a lado - Nítida, Suave e Plana - e clica-se na que se preferir. A Suave é a que transforma tons em píxeis de tinta e de papel, e a lista **Pontilhado** por baixo das pré-visualizações escolhe como: por omissão é o Floyd-Steinberg próprio da importação, e a lista oferece ainda os outros 30 métodos do ZX Paintbrush - limiares, difusão de erro, matrizes de Bayer, pontos agrupados e supercélulas. Escolher um método redesenha a Suave, e também a Nítida depois de escolhido um (a Plana nunca pontilha). Os métodos ordenados continuam através das células de atributos, pelo que o padrão percorre a imagem toda; a difusão de erro fica dentro de cada célula, porque cada célula tem as suas duas cores. Nos modos Layer 2 e LoRes a lista também funciona: cada píxel é colocado entre as suas duas cores de paleta mais próximas e a imagem toda é um só bloco, pelo que a difusão de erro percorre a imagem toda.
 
 ### Guardar parte de uma imagem
 
@@ -24,7 +24,7 @@ Ao abrir uma foto ou outra imagem (PNG, JPG, GIF) aparecem três conversões lad
 
 ### Uma imagem nova a partir de uma seleção
 
-**Editar > Nova imagem a partir da seleção** transforma a seleção na imagem toda. A seleção é primeiro ajustada a células inteiras. Pergunta antes de fazer seja o que for, e Ctrl+Z devolve a imagem antiga. Todas as camadas ficam, cortadas a esse bloco, que passa para o canto superior esquerdo; o resto fica vazio, e o fundo aí é papel branco. O modo de ecrã mantém-se e a imagem fica sem título, pelo que o próximo Guardar pede um nome.
+**Editar > Nova imagem a partir da seleção** transforma a seleção na imagem toda. A seleção é primeiro ajustada a células inteiras. Pergunta antes de fazer seja o que for, e Ctrl+Z devolve a imagem antiga. Todas as camadas ficam, cortadas a esse bloco, que passa para o canto superior esquerdo; o resto fica vazio, e o fundo aí é Papel branco. O modo de ecrã mantém-se e a imagem fica sem título, pelo que o próximo Guardar pede um nome.
 
 ### Gravação automática e cópias
 

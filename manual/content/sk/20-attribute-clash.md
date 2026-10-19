@@ -2,21 +2,21 @@
 
 Spectrum ukladá obrázok v dvoch oddelených častiach.
 
-Prvá je bitmapa: 256 × 192 bodov, každý jeden bit, rozsvietený alebo zhasnutý.
-Druhá je mriežka farieb, jeden bajt na každý blok 8 × 8 týchto bodov – 32 bajtov
-na šírku a 24 na výšku. Každý z týchto bajtov určuje farbu **atramentu**
-(rozsvietené body), farbu **papiera** (zhasnuté body), či je dvojica **jasná** a
-či má **blikať**.
+Prvá je bitmapa: 256 × 192 pixelov, každý jeden bit, pixel atramentu alebo
+pixel papiera. Druhá je mriežka atribútov, jeden bajt na každý blok 8 × 8 týchto
+pixelov – 32 bajtov na šírku a 24 na výšku. Každý z týchto bajtov určuje farbu
+**Atramentu** (farbu pixelov atramentu), farbu **Papiera** (farbu pixelov
+papiera), či má dvojica **Jas** a či má **Blikanie**.
 
 Tvar obrázka má teda rozlíšenie 256 × 192, no jeho farba len 32 × 24. Každá
-bunka 8 × 8 môže zobraziť dve farby a každý bod v nej má jednu alebo druhú.
+bunka 8 × 8 môže zobraziť dve farby a každý pixel v nej má jednu alebo druhú.
 
 ![Dve uhlopriečne čiary sa križujú na zväčšenom plátne so zobrazenou mriežkou buniek. Modrá čiara sčervenie v každej bunke, cez ktorú prechádza aj červená](img/attribute-clash.png)
 
 *Modrá a červená čiara sa križujú, pri 800 % so zapnutou mriežkou buniek. Kde
 červená čiara prechádza bunkou, je modrá čiara v tejto bunke tiež červená.
-Červený ťah prišiel druhý a nastavil farbu atramentu pre celú bunku vrátane
-bodov, ktoré už položil modrý ťah.*
+Červený ťah prišiel druhý a nastavil Atrament pre celú bunku vrátane pixelov
+atramentu, ktoré už položil modrý ťah.*
 
 Tomu sa hovorí „konflikt atribútov“ (*attribute clash*). Kreslenie v jednej časti
 bunky zmení farbu všetkého ostatného v nej a žiadne nastavenie to nevypne – tak
@@ -34,32 +34,32 @@ PixULA s tým pomáha tromi spôsobmi.
 **Bunková mriežka.** Zapnite ju vedľa ovládania priblíženia a presne uvidíte,
 kde je zmena farby zadarmo a kde vás bude niečo stáť.
 
-**Režimy kreslenia.** Ťah nemusí meniť body aj farby naraz. Môžete kresliť body
-a farby nechať tak, alebo prefarbiť bunku bez toho, aby ste sa dotkli jediného
-bodu. Kapitola o farbe ich vymenúva.
+**Režimy kreslenia.** Ťah nemusí meniť pixely aj atribúty naraz. Môžete kresliť
+pixely atramentu a atribúty nechať tak, alebo prefarbiť bunku bez toho, aby ste
+sa dotkli jediného pixelu. Kapitola o farbe ich vymenúva.
 
-**Knižnica vzorov.** Jej jadrom je sada dlaždíc s nameranou hustotou atramentu –
+**Knižnica vzorov.** Jej jadrom je sada dlaždíc s nameranou hustotou pixelov atramentu –
 po nej siahnete, keď bunka potrebuje sivú, ktorú nepojme.
 
-### Vidieť body
+### Vidieť pixely
 
 Tri prepínače v ponuke Zobraziť menía to, čo obrazovka ukazuje, bez zmeny
-obrázka. **Farby vypnuté** zobrazí body čiernou na bielom, takže vidíte, ktoré
-body sú naozaj nastavené. **Farebná mriežka** urobí to isté a navyše zafarbí
-bunky ako šachovnicu, takže sú hranice buniek dobre vidieť; ona a Farby vypnuté
+obrázka. **Atribúty vypnuté** zobrazí pixely atramentu čiernou a pixely papiera
+bielou, takže vidíte, ktoré pixely sú naozaj atrament. **Farebná mriežka** urobí to isté a navyše zafarbí
+bunky ako šachovnicu, takže sú hranice buniek dobre vidieť; ona a Atribúty vypnuté
 sa navzájom vypínajú. **Zastaviť blikanie** nechá každú blikajúcu bunku v jej
 normálnych farbách. Žiadny z nich sa nedotýka obrázka, kroku späť ani exportu:
 uložený obrázok vyzerá rovnako, či sú zapnuté, alebo nie. Prehliadač si ich
 pamätá a prepínač, ktorý v aktuálnom režime obrazovky nemôže fungovať, je sivý –
-po prejdení myšou uvidíte prečo. V GigaScreen a MultiGiga ukazuje Farby vypnuté
-štyri úrovne sivej: bielu tam, kde nemá bod žiadna obrazovka, svetlosivú pre bod
-len na obrazovke A, tmavšiu sivú len pre obrazovku B a čierňu pre obe.
+po prejdení myšou uvidíte prečo. V GigaScreen a MultiGiga ukazuje Atribúty vypnuté
+štyri úrovne sivej: bielu tam, kde nemá pixel atramentu žiadna obrazovka, svetlosivú
+pre pixel atramentu len na obrazovke A, tmavšiu sivú len pre obrazovku B a čierňu pre obe.
 
 ### Údaje o ukazovateli
 
 Pás pod obrázkom a stavový riadok hovoria, kde je ukazovateľ. V **Nastaveniach**
 voľba *Údaje o ukazovateli zobrazujú* pridá atribút pod ukazovateľom (jeho číslo
-desiatkovo aj šestnástkovo, potom atrament, papier, jas a blikanie; v ULAplus
+desiatkovo aj šestnástkovo, potom Atrament, Papier, Jas a Blikanie; v ULAplus
 CLUT; v GigaScreen obe obrazovky) a pamäťovú adresu bajtu pixelu a jeho
 atribútového bajtu. Adresy existujú tam, kde má skutočný stroj pevné rozloženie:
 Standard ULA a ULAplus (zobrazovací súbor od $4000, atribúty od $5800), Timex
@@ -83,7 +83,7 @@ sleduje motív.
 ### Kde platia iné pravidlá
 
 Neskorší hardvér obmedzenie rôzne uvoľnil a PixULA vie pracovať so všetkými
-variantmi. Stroje Timex zjemnili mriežku farieb. ULAplus nahradil šestnásť
+variantmi. Stroje Timex zjemnili mriežku atribútov. ULAplus nahradil šestnásť
 pevných farieb paletou podľa vlastnej voľby. GigaScreen strieda dva obrázky tak
 rýchlo, že vznikajú farby, ktoré žiadny z nich neobsahuje. ZX Spectrum Next vo
 svojich režimoch Layer 2 a LoRes tento systém úplne opúšťa: tam má každý pixel

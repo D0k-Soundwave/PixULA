@@ -2,11 +2,11 @@
 
 ### Rato
 
-O botão esquerdo desenha com tinta e o direito com papel. Shift e clique
+O botão esquerdo desenha píxeis de tinta e o direito píxeis de papel. Shift e clique
 direito abrem o menu da tela, que é a forma de chegar a cortar, copiar e colar
 enquanto uma ferramenta usa o botão direito para desenhar.
 
-Mantenha **X** premido enquanto arrasta para manter o pincel, a borracha, a forma ou a figura numa linha horizontal, ou **Y** para uma vertical. A linha passa pelo ponto onde premiu o botão (ou a tecla); prima a outra tecla para virar a esquina e largue para desenhar livremente outra vez. Um toque em **X** sem arrastar continua a trocar tinta e papel, agora ao largar a tecla.
+Mantenha **X** premido enquanto arrasta para manter o pincel, a borracha, a forma ou a figura numa linha horizontal, ou **Y** para uma vertical. A linha passa pelo ponto onde premiu o botão (ou a tecla); prima a outra tecla para virar a esquina e largue para desenhar livremente outra vez. Um toque em **X** sem arrastar continua a trocar Tinta e Papel, agora ao largar a tecla.
 
 ### Caneta
 
@@ -14,9 +14,9 @@ A ponta da caneta desenha com a ferramenta selecionada e não pode ser
 reatribuída. Todos os outros controlos da caneta podem, em
 **Preferências > Caneta**.
 
-De origem, o botão lateral desenha com papel, como o botão direito do rato, e a
+De origem, o botão lateral desenha píxeis de papel, como o botão direito do rato, e a
 ponta borracha apaga. A lista das Preferências oferece também o conta-gotas,
-deslocar a vista, anular, refazer, trocar as cores, o menu da tela e voltar à
+deslocar a vista, anular, refazer, trocar Tinta e Papel, o menu da tela e voltar à
 ferramenta anterior.
 
 A pressão muda o tamanho e o fluxo do pincel na medida que definir. A

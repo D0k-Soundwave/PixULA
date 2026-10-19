@@ -14,7 +14,7 @@ Zapisuje je **Soubor > Uložit obrázek jako**. Obsahují jen obrázek a nic jin
 
 ### Import obrázku
 
-Při otevření fotky nebo jiného obrázku (PNG, JPG, GIF) se vedle sebe ukážou tři převody - Ostrý, Hladký a Plochý - a kliknete na ten, který se vám líbí. Hladký mění odstíny na tečky a seznam **Dithering** pod náhledy určuje jak: výchozí je vlastní Floyd-Steinberg importu a seznam nabízí i dalších 30 metod ZX Paintbrush - prahy, rozptyl chyby, Bayerovy matice, shlukové tečky a superbuňky. Výběr metody překreslí Hladký a také Ostrý, jakmile jste nějakou vybrali (Plochý nikdy nerastruje). Uspořádané metody pokračují přes atributové buňky, takže vzor běží přes celý obrázek; rozptyl chyby zůstává uvnitř každé buňky, protože každá buňka má své dvě barvy. V režimech Layer 2 a LoRes seznam funguje také: každý bod se umístí mezi své dvě nejbližší barvy palety a celý obrázek je jeden blok, takže rozptyl chyby běží přes celý obrázek.
+Při otevření fotky nebo jiného obrázku (PNG, JPG, GIF) se vedle sebe ukážou tři převody - Ostrý, Hladký a Plochý - a kliknete na ten, který se vám líbí. Hladký mění odstíny na pixely inkoustu a papíru a seznam **Dithering** pod náhledy určuje jak: výchozí je vlastní Floyd-Steinberg importu a seznam nabízí i dalších 30 metod ZX Paintbrush - prahy, rozptyl chyby, Bayerovy matice, shlukové tečky a superbuňky. Výběr metody překreslí Hladký a také Ostrý, jakmile jste nějakou vybrali (Plochý nikdy nerastruje). Uspořádané metody pokračují přes atributové buňky, takže vzor běží přes celý obrázek; rozptyl chyby zůstává uvnitř každé buňky, protože každá buňka má své dvě barvy. V režimech Layer 2 a LoRes seznam funguje také: každý pixel se umístí mezi své dvě nejbližší barvy palety a celý obrázek je jeden blok, takže rozptyl chyby běží přes celý obrázek.
 
 ### Uložení části obrázku
 
@@ -22,7 +22,7 @@ Při otevření fotky nebo jiného obrázku (PNG, JPG, GIF) se vedle sebe ukáž
 
 ### Nový obrázek z výběru
 
-**Úpravy > Nový obrázek z výběru** udělá z výběru celý obrázek. Výběr se nejdřív přizpůsobí celým buňkám. Před akcí se zeptá a Ctrl+Z vrátí původní obrázek. Všechny vrstvy zůstanou a jsou oříznuty na ten blok, který se přesune vlevo nahoru; zbytek je prázdný a pozadí je tam bílý papír. Režim obrazovky zůstane stejný a obrázek se stane nepojmenovaným, takže další Uložit se zeptá na název.
+**Úpravy > Nový obrázek z výběru** udělá z výběru celý obrázek. Výběr se nejdřív přizpůsobí celým buňkám. Před akcí se zeptá a Ctrl+Z vrátí původní obrázek. Všechny vrstvy zůstanou a jsou oříznuty na ten blok, který se přesune vlevo nahoru; zbytek je prázdný a pozadí je tam bílý Papír. Režim obrazovky zůstane stejný a obrázek se stane nepojmenovaným, takže další Uložit se zeptá na název.
 
 ### Automatické ukládání a zálohy
 
