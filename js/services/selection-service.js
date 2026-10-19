@@ -2105,15 +2105,18 @@ class SelectionServiceClass {
    * Commit every stamp layer in the stack into its resolved drawing layer.
    * Iterates top-down so each commitStamp removal leaves the remaining
    * (lower-index) layers' indices valid. Wrapped in a single undo action.
+   * @param {Object} [options]
+   * @param {boolean} [options.onlyVisible=false] - skip stamps hidden with
+   *   their Show/hide switch (Flatten: a hidden layer stays out of the picture)
    * @returns {number} count of stamps successfully committed
    */
-  commitAllStamps() {
+  commitAllStamps({ onlyVisible = false } = {}) {
     UndoRedo.beginAction('Commit all stamps');
     let count = 0;
     const startLen = LayerManager.layers.length;
     for (let i = startLen - 1; i >= 1; i--) {
       const layer = LayerManager.layers[i];
-      if (layer && layer.isStamp) {
+      if (layer && layer.isStamp && !(onlyVisible && layer.visible === false)) {
         if (this.commitStamp(layer)) count++;
       }
     }
