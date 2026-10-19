@@ -172,9 +172,14 @@ check('fill: attribute flood fill is an option, not a global draw mode',
   fillSchema.some(e => e.key === 'attributesOnly'));
 const diagShowIf = fillSchema.find(e => e.key === 'diagonal').showIf;
 const conds = (diagShowIf && diagShowIf.all) || [];
+// A pixel flood: Fill attributes off, or a mode with no cell colours (where
+// the option is not offered and counts as off).
+const pixelFlood = (c) => (c.key === 'attributesOnly' && c.equals === false) ||
+  (Array.isArray(c.any) && c.any.some(a => a.key === 'attributesOnly' && a.equals === false) &&
+   c.any.some(a => a.cells === false));
 check('fill: Allow diagonal needs contiguous, and a pixel flood',
   conds.some(c => c.key === 'contiguous' && c.equals === true) &&
-  conds.some(c => c.key === 'attributesOnly' && c.equals === false));
+  conds.some(pixelFlood));
 
 // ── Gradient: fillShape / ditherScale gated to the states that use them ─────
 const gradSchema = global.GradientTool.optionsSchema;
