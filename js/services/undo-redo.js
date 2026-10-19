@@ -264,6 +264,9 @@ class UndoRedoManagerClass {
 
     this._restoreSnapshot(entry.before);
     this._dropUnchangedFrom(counterpart);   // see undo(): same reason
+    // The depth can be lowered while steps wait on the redo side (Preferences >
+    // Undo steps), so a redo must hold the undo side to it as a new step does.
+    this._pruneStack();
     this._updateState();
     EventBus.emit(EVENTS.HISTORY_REDO);
   }

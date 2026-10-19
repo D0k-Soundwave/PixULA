@@ -107,6 +107,21 @@ function stroke() {
   await UndoRedo.setMaxStates(1);
   check('depth 1 keeps one step', UndoRedo.getUndoCount() === 1);
 
+  // Redo after lowering: every undone step can still be redone, but Undo may
+  // not then go back further than the depth now set.
+  UndoRedo.clear();
+  await UndoRedo.setMaxStates(2000);
+  for (let i = 0; i < 10; i++) stroke();
+  for (let i = 0; i < 10; i++) UndoRedo.undo();
+  await UndoRedo.setMaxStates(3);
+  check('lowering leaves the redo steps alone', UndoRedo.getRedoCount() === 10, UndoRedo.getRedoCount());
+  for (let i = 0; i < 10; i++) UndoRedo.redo();
+  check('all ten undone steps are redone', UndoRedo.getRedoCount() === 0, UndoRedo.getRedoCount());
+  check('after redoing, Undo keeps no more than the depth set',
+    UndoRedo.getUndoCount() === 3, UndoRedo.getUndoCount());
+  check('the undo count shown agrees', StateManager.get('history.undoCount') === 3,
+    StateManager.get('history.undoCount'));
+
   // ── The memory cap still applies on top of the depth ────────────────────
   UndoRedo.clear();
   await UndoRedo.setMaxStates(2000);
