@@ -971,7 +971,7 @@ const pt = {
     'view.mirrorOff.hint': 'O espelho está desligado - os traços desenham só onde desenhas',
     'strip.choose': 'Clica para escolher outro',
     'pref.inverse': 'Inverso: trocar os botões do rato',
-    'pref.inverseHint': 'O botão esquerdo desenha píxeis de papel e o direito desenha píxeis de tinta, como o INVERSE 1 do BASIC. Shift+I liga-o pelo teclado, e a barra de estado avisa quando está ligado. Não muda nada nos modos de desenho Recolorir tinta, Recolorir papel e XOR.',
+    'pref.inverseHint': 'O botão esquerdo desenha píxeis de papel e o direito desenha píxeis de tinta, como o INVERSE 1 do BASIC. Shift+I liga-o pelo teclado, e a barra de estado avisa quando está ligado. Não muda nada nos modos de desenho Recolorir tinta, Recolorir papel, Apenas atributos e XOR.',
     'attr.copy': 'Copiar atributos',
     'attr.copy.hint': 'Clica numa célula para apanhar os atributos que mostra e arrasta sobre outras células para lhes dar esses atributos. Os píxeis ficam como estão e a barra de cores não muda. Para parar, clica com o botão direito na imagem, escolhe Nenhuma na lista de ferramentas de célula ou escolhe uma ferramenta ou um modo de desenho',
     'attr.invertDots': 'Inverter píxeis',

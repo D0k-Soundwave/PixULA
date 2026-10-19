@@ -1046,7 +1046,7 @@ const en = {
     'view.mirrorOff.hint': 'Mirror drawing is off - strokes draw only where you draw',
     'strip.choose': 'Click to choose another',
     'pref.inverse': 'Inverse: swap the mouse buttons',
-    'pref.inverseHint': 'The left button draws paper pixels and the right button draws ink pixels, like BASIC\'s INVERSE 1. Shift+I switches it from the keyboard, and the status bar says when it is on. It changes nothing in the Ink Recolour, Paper Recolour and XOR draw modes.',
+    'pref.inverseHint': 'The left button draws paper pixels and the right button draws ink pixels, like BASIC\'s INVERSE 1. Shift+I switches it from the keyboard, and the status bar says when it is on. It changes nothing in the Ink Recolour, Paper Recolour, Attributes Only and XOR draw modes.',
     'attr.copy': 'Copy attributes',
     'attr.copy.hint': 'Click a cell to pick up the attributes it shows, then drag over other cells to give them those attributes. Pixels stay as they are and the colour rail is not changed. Right-click the picture, choose None in the cell-tool list, or pick a tool or a draw mode, to stop',
     'attr.invertDots': 'Invert pixels',

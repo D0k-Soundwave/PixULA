@@ -971,7 +971,7 @@ const pl = {
     'view.mirrorOff.hint': 'Lustro jest wyłączone - pociągnięcia rysują tylko tam, gdzie rysujesz',
     'strip.choose': 'Kliknij, aby wybrać inny',
     'pref.inverse': 'Odwróć: zamień przyciski myszy',
-    'pref.inverseHint': 'Lewy przycisk rysuje piksele papieru, a prawy piksele tuszu, jak INVERSE 1 w BASIC-u. Shift+I przełącza to z klawiatury, a pasek stanu mówi, kiedy jest włączone. Nie zmienia niczego w trybach rysowania Przekoloruj Tusz, Przekoloruj Papier i XOR.',
+    'pref.inverseHint': 'Lewy przycisk rysuje piksele papieru, a prawy piksele tuszu, jak INVERSE 1 w BASIC-u. Shift+I przełącza to z klawiatury, a pasek stanu mówi, kiedy jest włączone. Nie zmienia niczego w trybach rysowania Przekoloruj Tusz, Przekoloruj Papier, Tylko atrybuty i XOR.',
     'attr.copy': 'Kopiuj atrybuty',
     'attr.copy.hint': 'Kliknij komórkę, aby pobrać jej atrybuty, a potem przeciągnij po innych komórkach, aby je im nadać. Piksele zostają, jak są, a pasek kolorów się nie zmienia. Aby przestać, kliknij obraz prawym przyciskiem, wybierz Brak na liście narzędzi komórek albo wybierz narzędzie lub tryb rysowania',
     'attr.invertDots': 'Odwróć piksele',

@@ -971,7 +971,7 @@ const tr = {
     'view.mirrorOff.hint': 'Yansıtma kapalı - darbeler yalnızca sizin çizdiğiniz yere çizer',
     'strip.choose': 'Başka birini seçmek için tıklayın',
     'pref.inverse': 'Ters: fare düğmelerini değiştir',
-    'pref.inverseHint': 'Sol düğme kâğıt pikselleri, sağ düğme mürekkep pikselleri çizer, BASIC\'in INVERSE 1\'i gibi. Shift+I bunu klavyeden değiştirir ve durum çubuğu açıkken söyler. Mürekkebi Yeniden Renklendir, Kâğıdı Yeniden Renklendir ve XOR çizim modlarında hiçbir şeyi değiştirmez.',
+    'pref.inverseHint': 'Sol düğme kâğıt pikselleri, sağ düğme mürekkep pikselleri çizer, BASIC\'in INVERSE 1\'i gibi. Shift+I bunu klavyeden değiştirir ve durum çubuğu açıkken söyler. Mürekkebi Yeniden Renklendir, Kâğıdı Yeniden Renklendir, Yalnızca öznitelikler ve XOR çizim modlarında hiçbir şeyi değiştirmez.',
     'attr.copy': 'Öznitelikleri kopyala',
     'attr.copy.hint': 'Bir hücreye tıklayıp gösterdiği öznitelikleri alın, sonra başka hücrelerin üzerinden sürükleyerek onlara o öznitelikleri verin. Pikseller olduğu gibi kalır ve renk çubuğu değişmez. Durdurmak için resme sağ tıklayın, hücre araçları listesinde Yok\'u seçin ya da bir araç veya çizim modu seçin',
     'attr.invertDots': 'Pikselleri ters çevir',

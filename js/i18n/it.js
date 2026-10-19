@@ -971,7 +971,7 @@ const it = {
     'view.mirrorOff.hint': 'Lo specchio è disattivato - i tratti disegnano solo dove disegni',
     'strip.choose': 'Fai clic per sceglierne un altro',
     'pref.inverse': 'Inverso: scambia i pulsanti del mouse',
-    'pref.inverseHint': 'Il pulsante sinistro disegna pixel di carta e il destro pixel d\'inchiostro, come INVERSE 1 del BASIC. Maiusc+I lo attiva dalla tastiera, e la barra di stato avvisa quando è attivo. Non cambia nulla nelle modalità di disegno Ricolora inchiostro, Ricolora carta e XOR.',
+    'pref.inverseHint': 'Il pulsante sinistro disegna pixel di carta e il destro pixel d\'inchiostro, come INVERSE 1 del BASIC. Maiusc+I lo attiva dalla tastiera, e la barra di stato avvisa quando è attivo. Non cambia nulla nelle modalità di disegno Ricolora inchiostro, Ricolora carta, Solo attributi e XOR.',
     'attr.copy': 'Copia attributi',
     'attr.copy.hint': 'Fai clic su una cella per prendere gli attributi che mostra, poi trascina su altre celle per dar loro quegli attributi. I pixel restano come sono e la barra dei colori non cambia. Per fermarti, fai clic destro sull\'immagine, scegli Nessuno nell\'elenco degli strumenti di cella o scegli uno strumento o una modalità di disegno',
     'attr.invertDots': 'Inverti pixel',

@@ -971,7 +971,7 @@ const de = {
     'view.mirrorOff.hint': 'Spiegeln ist aus - Striche zeichnen nur dort, wo Sie zeichnen',
     'strip.choose': 'Klicken, um ein anderes zu wählen',
     'pref.inverse': 'Invers: Maustasten vertauschen',
-    'pref.inverseHint': 'Die linke Taste zeichnet Papierpixel, die rechte Tintenpixel, wie INVERSE 1 in BASIC. Mit Shift+I schalten Sie es per Tastatur um, und die Statusleiste sagt, wenn es an ist. In den Zeichenmodi Tinte umfärben, Papier umfärben und XOR ändert es nichts.',
+    'pref.inverseHint': 'Die linke Taste zeichnet Papierpixel, die rechte Tintenpixel, wie INVERSE 1 in BASIC. Mit Shift+I schalten Sie es per Tastatur um, und die Statusleiste sagt, wenn es an ist. In den Zeichenmodi Tinte umfärben, Papier umfärben, Nur Attribute und XOR ändert es nichts.',
     'attr.copy': 'Attribute kopieren',
     'attr.copy.hint': 'Klicken Sie auf eine Zelle, um ihre Attribute aufzunehmen, und ziehen Sie dann über andere Zellen, um sie ihnen zu geben. Die Pixel bleiben, wie sie sind, und die Farbleiste ändert sich nicht. Zum Aufhören ins Bild rechtsklicken, in der Liste der Zellenwerkzeuge Keines wählen oder ein Werkzeug oder einen Zeichenmodus wählen',
     'attr.invertDots': 'Pixel invertieren',

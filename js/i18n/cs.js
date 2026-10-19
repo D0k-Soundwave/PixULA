@@ -971,7 +971,7 @@ const cs = {
     'view.mirrorOff.hint': 'Zrcadlení je vypnuté - tahy kreslí jen tam, kde kreslíte',
     'strip.choose': 'Kliknutím vyberete jiný',
     'pref.inverse': 'Inverze: prohodit tlačítka myši',
-    'pref.inverseHint': 'Levé tlačítko kreslí pixely papíru a pravé pixely inkoustu, jako INVERSE 1 v BASICu. Klávesa Shift+I ji přepíná z klávesnice a stavový řádek hlásí, když je zapnutá. V režimech kreslení Přebarvit Inkoust, Přebarvit Papír a XOR nic nemění.',
+    'pref.inverseHint': 'Levé tlačítko kreslí pixely papíru a pravé pixely inkoustu, jako INVERSE 1 v BASICu. Klávesa Shift+I ji přepíná z klávesnice a stavový řádek hlásí, když je zapnutá. V režimech kreslení Přebarvit Inkoust, Přebarvit Papír, Pouze atributy a XOR nic nemění.',
     'attr.copy': 'Kopírovat atributy',
     'attr.copy.hint': 'Klikněte na buňku, abyste převzali atributy, které ukazuje, a pak přetažením přes další buňky jim je dejte. Pixely zůstanou, jak jsou, a paleta barev se nezmění. Ukončíte to pravým kliknutím do obrázku, volbou Žádný v seznamu buněčných nástrojů nebo výběrem nástroje či režimu kreslení',
     'attr.invertDots': 'Invertovat pixely',

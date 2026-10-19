@@ -971,7 +971,7 @@ const hu = {
     'view.mirrorOff.hint': 'A tükrözés ki van kapcsolva - a vonások csak oda rajzolnak, ahová te',
     'strip.choose': 'Kattints egy másik választásához',
     'pref.inverse': 'Fordított: az egérgombok felcserélése',
-    'pref.inverseHint': 'A bal gomb papírpixeleket rajzol, a jobb tintapixeleket, mint a BASIC INVERSE 1 utasítása. A Shift+I billentyűzetről kapcsolja, és az állapotsor kiírja, ha be van kapcsolva. A Tinta átszínezése, a Papír átszínezése és az XOR rajzmódban nem változtat semmit.',
+    'pref.inverseHint': 'A bal gomb papírpixeleket rajzol, a jobb tintapixeleket, mint a BASIC INVERSE 1 utasítása. A Shift+I billentyűzetről kapcsolja, és az állapotsor kiírja, ha be van kapcsolva. A Tinta átszínezése, a Papír átszínezése, a Csak attribútumok és az XOR rajzmódban nem változtat semmit.',
     'attr.copy': 'Attribútumok másolása',
     'attr.copy.hint': 'Kattints egy cellára, hogy felvedd a benne látható attribútumokat, majd húzd végig más cellákon, hogy megkapják azokat. A pixelek változatlanok maradnak, a színsáv nem változik. A leállításhoz kattints jobb gombbal a képen, válaszd a Nincs lehetőséget a cellaeszközök listájában, vagy válassz eszközt vagy rajzmódot',
     'attr.invertDots': 'Pixelek megfordítása',
