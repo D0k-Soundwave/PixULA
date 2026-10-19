@@ -95,7 +95,7 @@ PatternService._currentPatternData = TILE;
 
 const CX = 5, CY = 5;
 const PX = CX * 8 + 3, PY = CY * 8 + 3;
-const MODES = ['normal', 'ink', 'paper', 'pixel_only', 'xor', 'xor_pixel'];
+const MODES = ['normal', 'ink', 'paper', 'attributes', 'pixel_only', 'xor', 'xor_pixel'];
 
 const layer = () => LayerManager.getCurrentLayer();
 const cell = () => layer().getCell(CX, CY);
@@ -177,6 +177,13 @@ for (const [name, run] of Object.entries(STROKES)) {
   check(`${name} / Paper Recolour: no pixel moves`, !pixelsChanged(r.before, r.after));
   check(`${name} / Paper Recolour: paper, bright and flash change, ink does not`,
     r.after.paper === 4 && r.after.ink === r.before.ink &&
+    r.after.bright === true && r.after.flash === true);
+
+  // Attributes Only: all four attributes - never a pixel
+  r = withMode('attributes', run);
+  check(`${name} / Attributes Only: no pixel moves`, !pixelsChanged(r.before, r.after));
+  check(`${name} / Attributes Only: Ink, Paper, Bright and Flash all change`,
+    r.after.ink === 3 && r.after.paper === 4 &&
     r.after.bright === true && r.after.flash === true);
 
   // Pixels Only: the pixel, and not one colour
@@ -271,7 +278,7 @@ function tileSplit() {
     });
     return JSON.stringify(r.after);
   });
-  check('the eraser does the same thing in all six draw modes (it has its own)',
+  check('the eraser does the same thing in all seven draw modes (it has its own)',
     new Set(results).size === 1);
 }
 

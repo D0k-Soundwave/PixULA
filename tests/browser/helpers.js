@@ -164,7 +164,7 @@ async function pickFromStrip(page, selectId, itemId) {
     if ((await sel.getAttribute('aria-expanded')) !== 'true') await sel.click();
     await page.locator('.strip-popup #' + itemId).click();
 }
-/** @param {string} mode - 'normal' | 'pixel_only' | 'xor' | 'xor_pixel' | 'ink' | 'paper' */
+/** @param {string} mode - 'normal' | 'pixel_only' | 'xor' | 'xor_pixel' | 'ink' | 'paper' | 'attributes' */
 const pickDrawMode = (page, mode) => pickFromStrip(page, 'draw-mode-select', `draw-mode-${mode}`);
 /** @param {string} mode - 'off' | 'h' | 'v' | 'quad' */
 const pickMirror = (page, mode) => pickFromStrip(page, 'mirror-select', `symmetry-${mode}-toggle`);

@@ -29,8 +29,8 @@ test('Ink and Paper Recolour are withdrawn where cells have no attributes', asyn
     await boot(page);
     page.on('dialog', (d) => d.accept());
 
-    expect(await offered(page), 'all six are offered in Standard ULA')
-        .toEqual(['normal', 'pixel_only', 'xor', 'xor_pixel', 'ink', 'paper']);
+    expect(await offered(page), 'all seven are offered in Standard ULA')
+        .toEqual(['normal', 'pixel_only', 'xor', 'xor_pixel', 'ink', 'paper', 'attributes']);
 
     // Stand in Ink Recolour, then move to a mode that has no cell attributes.
     await page.evaluate(() => StateManager.setDrawMode('ink'));
@@ -78,7 +78,7 @@ test('the strip is three selectors, divided: draw mode, cell tool, Mirror', asyn
     expect(layout.popups).toEqual(['true', 'true', 'true']);
 
     // The order of the grid, and the name of the one the id kept (saved preferences carry xor_pixel).
-    expect(await offered(page)).toEqual(['normal', 'pixel_only', 'xor', 'xor_pixel', 'ink', 'paper']);
+    expect(await offered(page)).toEqual(['normal', 'pixel_only', 'xor', 'xor_pixel', 'ink', 'paper', 'attributes']);
     await page.click('#draw-mode-select');
     expect(await page.getAttribute('.strip-popup #draw-mode-xor_pixel', 'aria-label')).toBe('XOR / Every Pass');
     await page.keyboard.press('Escape');

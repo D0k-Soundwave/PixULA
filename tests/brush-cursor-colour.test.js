@@ -118,7 +118,7 @@ StateManager.setDrawMode('normal');
     return (c.pixels[4] & BIT) ? idx.ink : idx.paper;
   };
   let mismatches = 0;
-  for (const dm of ['normal', 'pixel_only', 'ink', 'paper', 'xor', 'xor_pixel']) {
+  for (const dm of ['normal', 'pixel_only', 'ink', 'paper', 'attributes', 'xor', 'xor_pixel']) {
     StateManager.setDrawMode(dm);
     for (const pixelSet of [false, true]) {
       for (const inkT of [false, true]) {

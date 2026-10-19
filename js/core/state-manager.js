@@ -702,7 +702,7 @@ class StateManagerClass {
    * tool combines its pixels with what is already on the layer. High-level
    * values (resolved to a DRAW_MODE constant per left/right button via
    * PixelDrawRoutine.resolveUserMode): 'normal', 'ink', 'paper',
-   * 'pixel_only', 'xor', 'xor_pixel'.
+   * 'attributes', 'pixel_only', 'xor', 'xor_pixel'.
    * @returns {string}
    */
   getDrawMode() {
@@ -736,10 +736,15 @@ class StateManagerClass {
    * op, and because the mode PERSISTS, a document left in it would otherwise
    * come back after the reload with no button to leave by — every stroke
    * writing attributes and no pixels, which reads as a broken app.
+   *
+   * 'attributes' (Attributes Only, 2026-10-19) brings that job back as a draw
+   * mode with its own button, under a NEW id: a preference or preset still
+   * holding the retired 'attributes_only' keeps coming back Normal rather than
+   * reviving a mode its owner left months ago.
    * @param {string} mode
    */
   setDrawMode(mode) {
-    const valid = ['normal', 'ink', 'paper', 'pixel_only', 'xor', 'xor_pixel'];
+    const valid = ['normal', 'ink', 'paper', 'attributes', 'pixel_only', 'xor', 'xor_pixel'];
     const next = valid.includes(mode) ? mode : 'normal';
     this.set('draw.mode', next);
     EventBus.emit(EVENTS.DRAW_MODE_CHANGED, { mode: next });

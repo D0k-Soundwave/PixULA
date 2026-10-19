@@ -72,6 +72,15 @@ erneut, klicken Sie mit rechts auf die Zeichenfläche oder wählen Sie ein
 Werkzeug oder einen Zeichenmodus - und die Statusleiste sagt es, solange es an
 ist.
 
+**Nur Attribute** ist der dritte dieser Zeichenmodi. Er gibt jeder Zelle, die
+das aktuelle Werkzeug berührt, Tinte, Papier, Helligkeit und Blinken auf einmal
+und zeichnet kein Pixel, so wie ZX Paintbrush mit ausgeschaltetem Pixelzeichnen.
+Jeder der vier Teile, der auf **vorhanden verwenden** steht, bleibt in jeder
+Zelle, wie er ist: Mit Papier auf vorhanden tut er dasselbe wie Tinte umfärben,
+mit Tinte auf vorhanden dasselbe wie Papier umfärben. Wie dort tun beide Tasten
+dasselbe, und er wird nur in Bildschirmmodi angeboten, deren Zellen Attribute
+haben.
+
 **Attribute kopieren, Pixel invertieren und Pixel und Attribute invertieren**
 sind drei weitere Zellwerkzeuge in derselben Schaltfläche Zellwerkzeug und
 funktionieren genauso: eines wählen, dann über Zellen klicken oder ziehen. Jedes
@@ -103,8 +112,8 @@ einziger Durchgang, damit liefern beide Modi dort dasselbe Ergebnis.
 
 **Invers** vertauscht, was die beiden Maustasten tun: Die linke Taste zeichnet
 Papierpixel, die rechte Tintenpixel, wie INVERSE 1 in BASIC. Sie wird in den Einstellungen eingeschaltet, oder mit Shift+I, und die Statusleiste sagt „Invers
-ist an“, solange es an ist. In Tinte umfärben, Papier umfärben und den beiden
-XOR-Modi ändert es nichts, weil beide Tasten dort dasselbe tun; die Statusleiste
+ist an“, solange es an ist. In Tinte umfärben, Papier umfärben, Nur Attribute und
+den beiden XOR-Modi ändert es nichts, weil beide Tasten dort dasselbe tun; die Statusleiste
 sagt das. Text und Stempel zeichnen ihre Buchstaben und Formen in Papierpixeln
 statt in Tintenpixeln, ein Muster legt seine Tintenpixel als Papierpixel und
 seine Papierpixel als Tintenpixel, und die Füllung füllt mit der linken Taste

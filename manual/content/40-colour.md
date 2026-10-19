@@ -66,6 +66,14 @@ Either one stays on until you switch it off - pick None, pick it again,
 right-click the canvas, or choose a tool or a draw mode - and the status bar
 says so while it is on.
 
+**Attributes Only** is the third of these draw modes. It gives every cell the
+current tool touches your Ink, Paper, Bright and Flash at once and draws no
+pixel, which is what ZX Paintbrush does with pixel drawing switched off. Each of
+the four parts on **use existing** stays in every cell as it is: with Paper on
+use existing it does what Ink Recolour does, with Ink on use existing what Paper
+Recolour does. As in those two, both buttons do the same, and it is offered only
+in the screen modes whose cells have attributes.
+
 **Copy attributes, Invert pixels and Invert pixels and attributes** are three
 more cell tools in the same Cell tool button, and work the same way: pick one,
 then click or drag over cells. Each drag undoes in one step, and the tool stays
@@ -92,7 +100,8 @@ pass, so with those the two modes give the same result.
 
 **Inverse** swaps what the two mouse buttons do: the left button draws paper
 pixels and the right button draws ink pixels, like BASIC's INVERSE 1. Switch it on in Preferences, or with Shift+I, and the status bar says "Inverse is on" while it is.
-It changes nothing in Ink Recolour, Paper Recolour and the two XOR modes, which
+It changes nothing in Ink Recolour, Paper Recolour, Attributes Only and the two
+XOR modes, which
 give both buttons the same job, and the status bar says so. Text and stamps
 draw their letters and shapes in paper pixels instead of ink pixels, a pattern
 lays its ink pixels as paper pixels and its paper pixels as ink, and the fill

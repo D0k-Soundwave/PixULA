@@ -69,6 +69,14 @@ troca a Tinta e o Papel de cada célula. Qualquer um continua ligado até o desl
 escolhe uma ferramenta ou um modo de desenho - e a barra de estado di-lo
 enquanto está ligado.
 
+**Apenas atributos** é o terceiro destes modos de desenho. Dá a todas as células
+que a ferramenta atual toca a Tinta, o Papel, o Brilho e o Piscar de uma vez e
+não desenha nenhum píxel, como o ZX Paintbrush com o desenho de píxeis
+desligado. Cada uma das quatro partes posta em **usar o existente** fica em cada
+célula como está: com o Papel em existente faz o mesmo que Recolorir tinta, com
+a Tinta em existente o mesmo que Recolorir papel. Como neles, os dois botões
+fazem o mesmo, e só é oferecido nos modos de ecrã cujas células têm atributos.
+
 **Copiar atributos, Inverter píxeis e Inverter píxeis e atributos** são mais três
 ferramentas de célula no mesmo botão Ferramenta de célula, e funcionam da mesma
 forma: escolhe uma e depois clica ou arrasta sobre células. Cada arrastamento
@@ -97,7 +105,8 @@ resultado.
 
 **Inverso** troca o que fazem os dois botões do rato: o esquerdo desenha píxeis de
 papel e o direito desenha píxeis de tinta, como o INVERSE 1 do BASIC. Liga-se nas Preferências, ou com Shift+I, e a barra de estado diz «Inverso ligado» enquanto
-estiver. Não muda nada em Recolorir tinta, Recolorir papel e nos dois modos XOR,
+estiver. Não muda nada em Recolorir tinta, Recolorir papel, Apenas atributos e nos dois
+modos XOR,
 onde os dois botões fazem o mesmo, e a barra de estado di-lo. O texto e os
 carimbos desenham as suas letras e formas em píxeis de papel em vez de píxeis
 de tinta, um padrão põe os seus píxeis de tinta como píxeis de papel e os seus

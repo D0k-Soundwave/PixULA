@@ -69,6 +69,15 @@ addig marad bekapcsolva, amíg ki nem kapcsolod - válaszd a Nincs lehetőséget
 válaszd újra, kattints jobb gombbal a vászonra, vagy válassz eszközt vagy
 rajzmódot - és az állapotsor kiírja, amíg be van kapcsolva.
 
+A **Csak attribútumok** a harmadik ilyen rajzmód. Minden cellának, amelyet az
+aktuális eszköz érint, egyszerre adja a Tintát, a Papírt, a Fényességet és a
+Villogást, és egyetlen pixelt sem rajzol, ahogy a ZX Paintbrush kikapcsolt
+pixelrajzolással. A négy rész közül amelyik **meglévő használata** állásban van,
+az minden cellában úgy marad, ahogy van: meglévő Papírral ugyanazt teszi, mint a
+Tinta átszínezése, meglévő Tintával ugyanazt, mint a Papír átszínezése. Ahogy
+azoknál, a két gomb itt is ugyanazt teszi, és csak olyan képernyőmódokban érhető
+el, amelyek celláinak vannak attribútumai.
+
 Az **Attribútumok másolása, a Pixelek megfordítása és a Pixelek és attribútumok
 megfordítása** három további celláeszköz ugyanabban a Celláeszköz gombban, és ugyanúgy
 működnek: válassz egyet, majd kattints vagy húzz cellákon. Minden húzás egy
@@ -99,8 +108,8 @@ adja.
 
 Az **Fordított** felcseréli, mit csinál a két egérgomb: a bal gomb
 papírpixeleket rajzol, a jobb tintapixeleket, mint a BASIC INVERSE 1 utasítása. A Beállításokban kapcsolható be, vagy a Shift+I-vel, és az állapotsor kiírja, hogy „A fordított
-mód be van kapcsolva”, amíg be van. A Tinta átszínezése, a Papír átszínezése és
-a két XOR mód esetében nem változtat semmit, mert ott a két gomb ugyanazt teszi;
+mód be van kapcsolva”, amíg be van. A Tinta átszínezése, a Papír átszínezése, a Csak
+attribútumok és a két XOR mód esetében nem változtat semmit, mert ott a két gomb ugyanazt teszi;
 az állapotsor ezt is kiírja. A szöveg és a bélyegek a betűiket és alakzataikat
 papírpixelekkel rajzolják tintapixelek helyett, a minta a tintapixeleit papírpixelként, a papírpixeleit tintaként rakja
 le, a kitöltés pedig a bal gombbal papírpixelekkel, a jobbal tintapixelekkel tölt. A radír, a

@@ -64,6 +64,14 @@ Papírem každé buňky. Obojí zůstává zapnuté, dokud je nevypnete - zvolte
 zvolte je znovu, klikněte pravým tlačítkem na plátno nebo vyberte nástroj či
 režim kreslení - a stavový řádek to hlásí, dokud je zapnuté.
 
+**Pouze atributy** je třetí z těchto režimů kreslení. Dá každé buňce, které se
+nástroj dotkne, zvolený Inkoust, Papír, Jas a Blikání najednou a nekreslí žádný
+pixel, jako ZX Paintbrush s vypnutým kreslením pixelů. Každá ze čtyř částí
+nastavená na **použít stávající** zůstane v každé buňce, jak je: s Papírem na
+stávajícím dělá totéž co Přebarvit Inkoust, s Inkoustem na stávajícím totéž co
+Přebarvit Papír. Stejně jako u nich obě tlačítka dělají totéž a nabízí se jen v
+režimech obrazovky, jejichž buňky mají atributy.
+
 **Kopírovat atributy, Invertovat pixely a Invertovat pixely a atributy** jsou další tři
 nástroje pro buňky ve stejném tlačítku Nástroj buněk a fungují stejně: vyberte
 jeden a klikejte nebo táhněte přes buňky. Každé tažení se vrací jedním krokem a
@@ -91,7 +99,8 @@ stejný výsledek.
 
 **Inverze** prohodí, co dělají obě tlačítka myši: levé tlačítko kreslí pixely papíru a
 pravé pixely inkoustu, jako INVERSE 1 v BASICu. Zapíná se v Předvolbách, nebo klávesou Shift+I, a stavový řádek hlásí „Inverze je zapnutá“, dokud trvá.
-V režimech Přebarvit Inkoust, Přebarvit Papír a ve dvou režimech XOR nic nemění,
+V režimech Přebarvit Inkoust, Přebarvit Papír, Pouze atributy a ve dvou
+režimech XOR nic nemění,
 protože obě tlačítka tam dělají totéž; stavový řádek to říká. Text a razítka
 kreslí svá písmena a tvary pixely papíru místo pixelů inkoustu, vzorek klade
 své pixely inkoustu jako pixely papíru a své pixely papíru jako inkoust, a výplň

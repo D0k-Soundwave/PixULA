@@ -69,6 +69,14 @@ komórce. Oba zostają włączone, dopóki ich nie wyłączysz - wybierz Brak, w
 je ponownie, kliknij prawym przyciskiem płótno albo wybierz narzędzie lub tryb
 rysowania - a pasek stanu mówi o tym, dopóki są włączone.
 
+**Tylko atrybuty** to trzeci z tych trybów rysowania. Nadaje każdej komórce,
+której dotyka bieżące narzędzie, Tusz, Papier, Jasność i Miganie naraz i nie
+rysuje żadnego piksela, jak ZX Paintbrush z wyłączonym rysowaniem pikseli. Każda
+z czterech części ustawiona na **użyj istniejącego** zostaje w każdej komórce
+bez zmian: z Papierem na istniejącym działa jak Przekoloruj Tusz, z Tuszem na
+istniejącym jak Przekoloruj Papier. Tak jak w nich oba przyciski robią to samo,
+a tryb jest dostępny tylko w trybach ekranu, których komórki mają atrybuty.
+
 **Kopiuj atrybuty, Odwróć piksele i Odwróć piksele i atrybuty** to trzy kolejne
 narzędzia komórki w tym samym przycisku Narzędzie komórki i działają tak samo:
 wybierz jedno, potem klikaj lub przeciągaj po komórkach. Każde przeciągnięcie
@@ -97,8 +105,8 @@ więc dla nich oba tryby dają ten sam wynik.
 
 **Odwróć** zamienia to, co robią dwa przyciski myszy: lewy rysuje piksele papieru, a
 prawy piksele tuszu, jak INVERSE 1 w BASIC-u. Włącza się go w Preferencjach albo klawiszami Shift+I, a pasek stanu mówi „Odwrócenie jest włączone”, dopóki
-trwa. Nie zmienia niczego w trybach Przekoloruj Tusz, Przekoloruj Papier i w
-dwóch trybach XOR, gdzie oba przyciski robią to samo, i pasek stanu to mówi.
+trwa. Nie zmienia niczego w trybach Przekoloruj Tusz, Przekoloruj Papier, Tylko
+atrybuty i w dwóch trybach XOR, gdzie oba przyciski robią to samo, i pasek stanu to mówi.
 Tekst i pieczątki rysują swoje litery i kształty pikselami papieru zamiast
 pikseli tuszu, wzór kładzie swoje piksele tuszu jako piksele papieru, a swoje
 piksele papieru jako tusz, a wypełnienie wypełnia pikselami papieru lewym

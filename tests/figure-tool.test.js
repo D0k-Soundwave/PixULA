@@ -232,6 +232,17 @@ StateManager.setDrawMode('paper');
 click(10, 10); click(30, 10); tool.handleKey('Enter'); tool.handleKey('Enter');
 check('Paper Recolour writes no dots (it only recolours)', dots().size === 0);
 fresh();
+StateManager.setDrawMode('attributes');
+ColorManager.setInk(4); ColorManager.setPaper(1); ColorManager.setBright(true); ColorManager.setFlash(true);
+click(10, 10); click(30, 10); tool.handleKey('Enter'); tool.handleKey('Enter');
+{
+  const c = LayerManager.layers[1].getCell(2, 1);
+  check('Attributes Only writes no pixels', dots().size === 0);
+  check('...and gives the cells on the line all four attributes',
+    c.altered && c.ink === 4 && c.paper === 1 && c.bright === true && c.flash === true,
+    JSON.stringify({ ink: c.ink, paper: c.paper, bright: c.bright, flash: c.flash }));
+}
+fresh();
 {
   // a cell with ink 5 on paper 1 in the line's path; "use existing" ink keeps ink 5
   LayerManager.layers[1].setCell(1, 1, { ink: 5, paper: 1, bright: false, flash: false, pixels: new Uint8Array(8) });

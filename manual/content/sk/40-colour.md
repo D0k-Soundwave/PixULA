@@ -66,6 +66,14 @@ s Papierom každej bunky. Oboje zostáva zapnuté, kým ho nevypnete - zvoľte
 Žiadny, zvoľte ho znova, kliknite pravým tlačidlom na plátno alebo vyberte
 nástroj či režim kreslenia - a stavový riadok to hlási, kým je zapnuté.
 
+**Iba atribúty** je tretí z týchto režimov kreslenia. Dá každej bunke, ktorej sa
+nástroj dotkne, Atrament, Papier, Jas a Blikanie naraz a nekreslí žiadny pixel,
+ako ZX Paintbrush s vypnutým kreslením pixelov. Každá zo štyroch častí nastavená
+na **použiť existujúce** zostane v každej bunke tak, ako je: s Papierom na
+existujúcom robí to isté ako Prefarbiť Atrament, s Atramentom na existujúcom to
+isté ako Prefarbiť Papier. Rovnako ako pri nich obe tlačidlá robia to isté a
+režim sa ponúka iba v režimoch obrazovky, ktorých bunky majú atribúty.
+
 **Kopírovať atribúty, Invertovať pixely a Invertovať pixely a atribúty** sú ďalšie tri
 nástroje pre bunky v tom istom tlačidle Nástroj buniek a fungujú rovnako:
 vyberte jeden a klikajte alebo ťahajte cez bunky. Každé ťahanie sa vracia jedným
@@ -93,7 +101,8 @@ rovnaký výsledok.
 
 **Inverzia** vymení, čo robia obe tlačidlá myši: ľavé tlačidlo kreslí pixely papiera a pravé
 pixely atramentu, ako INVERSE 1 v BASICu. Zapína sa v Nastaveniach, alebo klávesom Shift+I, a stavový riadok hlási „Inverzia je zapnutá“, kým
-trvá. V režimoch Prefarbiť Atrament, Prefarbiť Papier a v dvoch režimoch XOR nič
+trvá. V režimoch Prefarbiť Atrament, Prefarbiť Papier, Iba atribúty a v dvoch
+režimoch XOR nič
 nemení, lebo obe tlačidlá tam robia to isté; stavový riadok to hovorí. Text a
 pečiatky kreslia svoje písmená a tvary pixelmi papiera namiesto pixelov
 atramentu, vzor kladie svoje pixely atramentu ako pixely papiera a svoje pixely

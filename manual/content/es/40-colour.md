@@ -69,6 +69,15 @@ Cualquiera de los dos sigue activo hasta que lo apagues - elige Ninguna, elígel
 de nuevo, haz clic derecho en el lienzo o elige una herramienta o un modo de
 dibujo - y la barra de estado lo dice mientras está activo.
 
+**Solo atributos** es el tercero de estos modos de dibujo. Da a cada celda que
+toca la herramienta actual la Tinta, el Papel, el Brillo y el Parpadeo a la vez
+y no dibuja ningún píxel, como ZX Paintbrush con el dibujo de píxeles
+desactivado. Cada una de las cuatro partes puesta en **usar el existente** queda
+en cada celda como está: con el Papel en existente hace lo mismo que Recolorear
+tinta, con la Tinta en existente lo mismo que Recolorear papel. Como en ellos,
+ambos botones hacen lo mismo, y solo se ofrece en los modos de pantalla cuyas
+celdas tienen atributos.
+
 **Copiar atributos, Invertir píxeles e Invertir píxeles y atributos** son tres
 herramientas de celda más en el mismo botón Herramienta de celda, y funcionan
 igual: elige una y luego haz clic o arrastra sobre celdas. Cada arrastre se
@@ -98,8 +107,8 @@ con ellos los dos modos dan el mismo resultado.
 
 **Inverso** intercambia lo que hacen los dos botones del ratón: el izquierdo
 dibuja píxeles de papel y el derecho píxeles de tinta, como INVERSE 1 en BASIC. Se activa en Preferencias, o con Mayús+I, y la barra de estado dice «Inverso
-activado» mientras lo está. No cambia nada en Recolorear tinta, Recolorear papel
-ni en los dos modos XOR, que dan el mismo trabajo a ambos botones, y la barra de
+activado» mientras lo está. No cambia nada en Recolorear tinta, Recolorear papel,
+Solo atributos ni en los dos modos XOR, que dan el mismo trabajo a ambos botones, y la barra de
 estado lo dice. El texto y los sellos dibujan sus letras y formas en píxeles de papel en lugar
 de píxeles de tinta, un patrón pone sus píxeles de tinta como píxeles de papel y
 sus píxeles de papel como tinta, y el relleno rellena con píxeles de papel con

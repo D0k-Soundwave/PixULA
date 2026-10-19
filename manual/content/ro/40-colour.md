@@ -71,6 +71,15 @@ rămâne pornit până îl oprești - alege Niciuna, alege-l din nou, fă clic d
 pe pânză sau alege o unealtă ori un mod de desen - iar bara de stare spune asta
 cât timp este pornit.
 
+**Doar atribute** este al treilea dintre aceste moduri de desen. Dă fiecărei
+celule atinse de unealta curentă Cerneala, Hârtia, Luminos și Clipire deodată și
+nu desenează niciun pixel, ca ZX Paintbrush cu desenarea pixelilor oprită.
+Fiecare dintre cele patru părți pusă pe **folosește existentul** rămâne în
+fiecare celulă așa cum este: cu Hârtia pe existent face ce face Recolorează
+cerneala, cu Cerneala pe existent ce face Recolorează hârtia. Ca la ele, ambele
+butoane fac la fel, iar modul este oferit doar în modurile de ecran ale căror
+celule au atribute.
+
 **Copiază atributele, Inversează pixelii și Inversează pixelii și atributele**
 sunt încă trei unelte de celulă în același buton Unealtă de celulă și
 funcționează la fel: alege una, apoi fă clic sau trage peste celule. Fiecare
@@ -102,8 +111,8 @@ rezultat.
 
 **Invers** schimbă ce fac cele două butoane ale mouse-ului: cel stâng desenează
 pixeli de hârtie, cel drept pixeli de cerneală, ca INVERSE 1 din BASIC. Se pornește în Preferințe, sau cu Shift+I, iar bara de stare spune „Inversul este pornit”
-cât timp este. Nu schimbă nimic în Recolorează cerneala, Recolorează hârtia și
-în cele două moduri XOR, unde ambele butoane fac același lucru, iar bara de
+cât timp este. Nu schimbă nimic în Recolorează cerneala, Recolorează hârtia, Doar
+atribute și în cele două moduri XOR, unde ambele butoane fac același lucru, iar bara de
 stare o spune. Textul și ștampilele își desenează literele și formele în pixeli
 de hârtie în loc de pixeli de cerneală, un model își pune pixelii de cerneală ca
 pixeli de hârtie și pixelii de hârtie ca cerneală, iar umplerea umple cu pixeli

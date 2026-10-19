@@ -18,10 +18,9 @@ class FillToolClass extends ToolBase {
     /*
      * Attributes only: flood the CELLS that share the start cell's ink, paper,
      * bright and flash, recolouring them and touching no pixel — "make every
-     * cyan cell blue". It used to be reached by putting the whole app into the
-     * Attributes Only draw mode, which was retired for doing the same job as
-     * the Recolour attribute op; this is the one thing that mode could do and
-     * Recolour cannot, since Recolour paints only the cell under the pointer.
+     * cyan cell blue". The Attributes Only draw mode (back since 2026-10-19)
+     * is a different fill: with it the fill floods the PIXEL region and
+     * recolours every cell that region reaches, as Ink Recolour does.
      * The options below describe a PIXEL flood and have no effect here.
      * Offered only where cells have colours; elsewhere a value left on (by a
      * preset) counts as off, so the rows below show and the fill is a pixel
