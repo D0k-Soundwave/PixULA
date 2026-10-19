@@ -361,6 +361,9 @@ class ShapeGeneratorClass {
      * @returns {Array<{x: number, y: number}>}
      */
     generateShape(shapeType, bounds, options = {}) {
+        // A Filled setting left on from a box shape means nothing to a shape with no inside (its Filled box is hidden):
+        // it must not change the outline, its thickness or its line style.
+        if (options.filled && ShapeGeneratorClass.UNFILLABLE.has(shapeType)) options = { ...options, filled: false };
         const { filled = false } = options;
 
         if (!shapeType || !bounds) {
@@ -444,6 +447,16 @@ class ShapeGeneratorClass {
             return box ? { x: box.cx, y: box.cy } : null;
         }
         return null;
+    }
+
+    /** Shapes with no inside to fill (open or one-dimensional outlines): Filled does not apply to them. */
+    static get UNFILLABLE() {
+        return new Set(['line', 'arc', 'spiral', 'x']);
+    }
+
+    /** Whether a shape is drawn filled: Filled is on and the shape has an inside. */
+    static fillsInside(shapeType, filled) {
+        return !!filled && !ShapeGeneratorClass.UNFILLABLE.has(shapeType);
     }
 
     /** Shapes drawn from a box that turn round the box centre. */

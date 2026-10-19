@@ -121,7 +121,7 @@ const ROTATABLE_SHAPES = Object.freeze(['rectangle', 'square', 'rounded-rectangl
   'sector', 'triangle', 'diamond', 'pentagon', 'hexagon', 'heptagon', 'octagon', 'nonagon', 'decagon', 'dodecagon', 'polygon']);
 
 /** The shapes with no fillable interior (their Filled box is hidden and thickness always applies). */
-const UNFILLABLE_SHAPES = Object.freeze(['line', 'arc', 'spiral', 'x']);
+const UNFILLABLE_SHAPES = Object.freeze([...ShapeGenerator.constructor.UNFILLABLE]);
 
 /** True when the outline being drawn can be thicker than a pixel: unfilled, or a shape that cannot be filled. */
 const OUTLINE_SHOWN = Object.freeze({ any: [ { key: 'filled', equals: false },
@@ -418,6 +418,10 @@ class ShapeToolClass extends ToolBase {
     if (!this._pending) return;
     this._editor.commit('Shape');
     this._pending = false;
+    // Committed in the middle of a handle drag (Ctrl+S with the button held): the drag ends with it, or the release
+    // would count as a click away and open a stray one-pixel shape.
+    this._editing = null;
+    this.isDrawing = false;
     this.clearPreview();
   }
 
@@ -518,7 +522,7 @@ class ShapeToolClass extends ToolBase {
    */
   _coreFor(x1, y1, x2, y2) {
     const size = ToolBase.colourCoreSize(this._colourCore);
-    if (!size || this.filled || this._thickness <= size) return null;
+    if (!size || ShapeGenerator.constructor.fillsInside(this.shapeType, this.filled) || this._thickness <= size) return null;
     if (!window.ColorManager || !ColorManager.hasCellAttributes()) return null;
     const centre = this._getShapePixels(x1, y1, x2, y2, { thickness: 1, lineStyle: 'solid' });
     return ShapeGenerator.corePredicate(centre, size);

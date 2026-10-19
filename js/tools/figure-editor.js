@@ -70,7 +70,9 @@ class FigureEditor {
         let core = null;
         const size = ToolBase.colourCoreSize(this.host.colourCore());
         const t = model.options.thickness;
-        const filled = !!model.options.filled && (model.tool === 'shape' || (model.fillable && model.points.length >= 3));
+        const filled = model.tool === 'shape'
+            ? ShapeGenerator.constructor.fillsInside(model.shapeType, model.options.filled)
+            : !!model.options.filled && model.fillable && model.points.length >= 3;
         if (size && !filled && t > size && window.ColorManager && ColorManager.hasCellAttributes()) {
             core = ShapeGenerator.corePredicate(r.centre, size);
         }
@@ -205,7 +207,11 @@ class FigureEditor {
         if (!d || !m) return false;
         if (x === d.last.x && y === d.last.y) return false;
         if (d.mode === 'point') {
-            m.movePoint(d.index, { x, y });
+            // Each move starts again from the figure as it was when the drag began, so the rounding of one move cannot
+            // build on the last: on a turned box shape that walked the opposite corner away over a slow drag.
+            const from = d.snapshot.clone();
+            from.movePoint(d.index, { x, y });
+            this.model = from;
         } else if (d.mode === 'move') {
             m.translate(x - d.last.x, y - d.last.y);
         } else if (d.mode === 'rotate') {
@@ -238,6 +244,11 @@ class FigureEditor {
         this._pushEdit(this.model.clone());
         this.model.translate(dx, dy);
         return true;
+    }
+
+    /** Forget the edits (the figure went back to being drawn: a snapshot from before that is no longer one step back). */
+    forgetEdits() {
+        this.edits = [];
     }
 
     /** Take back the last edit. @returns {boolean} whether there was one */

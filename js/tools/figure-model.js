@@ -144,6 +144,9 @@ class FigureModel {
      */
     removeLastPoint() {
         if (this.points.length === 0) return false;
+        // A turned figure is baked first (as for moving a point): the pivot is the middle of the stored points, so
+        // removing one would move what is left, and later points must be placed where they are clicked.
+        this.bakeRotation();
         this.finished = false;
         if (this.kinds[this.kinds.length - 1] === 'r') {
             while (this.kinds.length && this.kinds[this.kinds.length - 1] === 'r') {
@@ -343,6 +346,23 @@ class ShapeFigure extends FigureModel {
         this.points = [{ x: start.x, y: start.y }, { x: end.x, y: end.y }];
         this.kinds = ['v', 'v'];
         this.finished = true;
+        this._squareUp();
+    }
+
+    /**
+     * A square is drawn from the top-left of its drag box with the longer side of the drag, so a drag that is not
+     * square has an end point that is not a corner. Store the corners it really has (each on its own side of the
+     * other, as dragged): the same square, its handles on its corners, and the centre it turns round halfway between
+     * them, which is what moving a handle relies on. @private
+     */
+    _squareUp() {
+        if (this.shapeType !== 'square') return;
+        const [a, b] = this.points;
+        const size = Math.max(Math.abs(b.x - a.x), Math.abs(b.y - a.y));
+        const left = Math.min(a.x, b.x), top = Math.min(a.y, b.y);
+        const ax = a.x <= b.x ? left : left + size, bx = a.x <= b.x ? left + size : left;
+        const ay = a.y <= b.y ? top : top + size, by = a.y <= b.y ? top + size : top;
+        this.points = [{ x: ax, y: ay }, { x: bx, y: by }];
     }
 
     get def() { return FigureModel.TYPES['figure-shape']; }
@@ -405,6 +425,7 @@ class ShapeFigure extends FigureModel {
             this.translate(p.x - a.x, p.y - a.y);
             return true;
         }
+        if (this.shapeType === 'square') return this._moveSquareCorner(i, p);
         if (deg === 0 || !this.turnable) {
             this.points[i] = { x: p.x, y: p.y };
             return true;
@@ -420,6 +441,29 @@ class ShapeFigure extends FigureModel {
             return true;
         }
         this.points[1] = back(p, a);          // drag end turned back round the start
+        return true;
+    }
+
+    /**
+     * A square's corner handle: the opposite corner stays where it is drawn and the square grows from it towards the
+     * pointer, its side the pointer's reach along the square's diagonal (measured in the square's own, unturned frame,
+     * so a turned square stays square). Worked from the unrounded corner, so moving a handle to where it is drawn
+     * changes nothing. @private
+     */
+    _moveSquareCorner(i, p) {
+        const G = ShapeGenerator.constructor;
+        const deg = this.getRotation();
+        const [a, b] = this.points;
+        const keep = this.points[1 - i];
+        const F = G._rotateXY(keep.x, keep.y, (a.x + b.x) / 2, (a.y + b.y) / 2, deg);
+        const q = G._rotateXY(p.x, p.y, F.x, F.y, -deg);
+        const dx = q.x - F.x, dy = q.y - F.y;
+        const side = Math.round((Math.abs(dx) + Math.abs(dy)) / 2);
+        const ex = (dx < 0 ? -1 : 1) * side, ey = (dy < 0 ? -1 : 1) * side;
+        const c = G._rotateXY(F.x + ex / 2, F.y + ey / 2, F.x, F.y, deg);   // the new centre, as drawn
+        const k = { x: Math.round(c.x - ex / 2), y: Math.round(c.y - ey / 2) };
+        this.points[1 - i] = k;
+        this.points[i] = { x: k.x + ex, y: k.y + ey };
         return true;
     }
 
