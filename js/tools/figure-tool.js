@@ -331,6 +331,9 @@ class FigureToolClass extends ToolBase {
     }
     if (key === 'Backspace') {
       this._model.removeLastPoint();
+      // Back to drawing: the edits of the pending figure are not steps of this one any more (Ctrl+Z would bring an
+      // old copy back and lose the points placed since).
+      this._editor.forgetEdits();
       if (this._model.points.length === 0) {
         this._reset();
         this.clearPreview();
@@ -379,6 +382,7 @@ class FigureToolClass extends ToolBase {
       return true;
     }
     this._model.removeLastPoint();
+    this._editor.forgetEdits();
     if (this._model.points.length === 0) { this._reset(); this.clearPreview(); } else this._renderPreview();
     return true;
   }

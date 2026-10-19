@@ -404,4 +404,141 @@ check('ToolManager.commitPending (before a save) draws the pending figure', dots
   check('every icon named in the Shape list has a symbol in index.html', icons.length > 5 && icons.every(id => html.includes('id="' + id + '"')), icons.filter(id => !html.includes('id="' + id + '"')).join());
 }
 
+// --- Backspace on a turned pending figure: what is left stays where it is drawn, and the next point lands where it is clicked
+fresh();
+tool.setShapeType(T.TRIANGLE);
+click(100, 100); click(140, 100); click(120, 60);
+{
+  const ok = tool._phase === 'pending';
+  tool._model.setRotation(90);
+  const shown = tool._model.rotatedPoints().map(p => ({ x: p.x, y: p.y }));
+  tool.handleKey('Backspace');
+  const left = tool._model.rotatedPoints();
+  check('Backspace on a turned figure leaves the two remaining points where they were drawn', ok && left.length === 2 &&
+    left.every((p, i) => p.x === shown[i].x && p.y === shown[i].y), JSON.stringify([shown, left]));
+  click(120, 60);
+  const c = tool._model.rotatedPoints()[2];
+  check('...and the new third point is drawn where it was clicked', !!c && c.x === 120 && c.y === 60, JSON.stringify(c));
+  tool.cancelPending();
+}
+// the same through Ctrl+Z (undoPending) on a turned figure being drawn
+fresh();
+tool.setShapeType(T.POLYLINE);
+click(10, 10); click(40, 10); click(40, 30);
+{
+  tool._model.setRotation(90);
+  const shown = tool._model.rotatedPoints().map(p => ({ x: p.x, y: p.y }));
+  tool.undoPending();
+  const left = tool._model.rotatedPoints();
+  check('Ctrl+Z on a turned figure being drawn leaves the remaining points where they were drawn', left.length === 2 &&
+    left.every((p, i) => p.x === shown[i].x && p.y === shown[i].y), JSON.stringify([shown, left]));
+  tool.cancelPending();
+}
+
+// --- edits made before a Backspace are forgotten: Ctrl+Z cannot bring back a figure from before it
+fresh();
+tool.setShapeType(T.TRIANGLE);
+click(100, 100); click(140, 100); click(120, 60);
+tool.nudgePending(1, 0);
+tool.handleKey('Backspace');
+click(130, 140);
+{
+  const before = tool._model.points.map(p => `${p.x},${p.y}`).join(' ');
+  check('the re-placed triangle is pending with the new point', tool._phase === 'pending' && before === '101,100 141,100 130,140', before);
+  tool.undoPending();
+  const back = tool.hasPending ? tool._model.points.map(p => `${p.x},${p.y}`).join(' ') : '';
+  check('Ctrl+Z after Backspace and a new point does not restore the old point or the move from before the Backspace',
+    !back.includes('120,60') && !back.includes('100,100'), back);
+  tool.cancelPending();
+}
+
+// --- Shape tool: a Filled tick left over from a box shape changes nothing for the shapes that cannot be filled
+{
+  const st = new ShapeTool();
+  fresh();
+  st.setShapeType('rectangle');
+  st.setFilled(true);
+  st.setShapeType('line');
+  st.setLineStyle('dashed');
+  st.setThickness(8);
+  st.setColourCore('1');
+  const withTick = st._getShapePixels(40, 40, 200, 120);
+  const coreWithTick = st._coreFor(40, 40, 200, 120);
+  st.setFilled(false);
+  const without = st._getShapePixels(40, 40, 200, 120);
+  check('a hidden Filled tick does not turn a thick line into a 1-pixel dashed one', withTick.length === without.length &&
+    withTick.length > 1000, `${withTick.length} vs ${without.length}`);
+  check('...and the colour core still applies', typeof coreWithTick === 'function');
+  let bad = [];
+  for (const shape of ['line', 'arc', 'spiral', 'x']) {
+    st.setShapeType(shape);
+    st.setFilled(true);
+    const a = st._getShapePixels(40, 40, 120, 100).length;
+    st.setFilled(false);
+    const b = st._getShapePixels(40, 40, 120, 100).length;
+    if (a !== b) bad.push(`${shape} ${a}/${b}`);
+  }
+  check('line, arc, spiral and x draw the same with or without the hidden tick', bad.length === 0, bad.join('; '));
+  // kept editable: the pending shape's preview and commit plan follow the same rule
+  st.setShapeType('line');
+  st.setFilled(true);
+  st.setPointMode(true);
+  st.onPointerDown(40, 40, { button: 0 });
+  st.onPointerUp(200, 120, { button: 0 });
+  const plan = st._editor.plan();
+  check('a kept-editable thick line with the hidden tick keeps its thickness and its colour core',
+    plan.pixels.length === without.length && typeof plan.core === 'function', `${plan.pixels.length} core ${typeof plan.core}`);
+  st.cancelPending();
+  st.setPointMode(false);
+  st.setFilled(false);
+  st.setLineStyle('solid');
+  st.setThickness(1);
+  st.setColourCore('whole');
+
+  // --- a pending shape committed in the middle of a handle drag (Ctrl+S with the button held) leaves nothing behind
+  fresh();
+  st.setShapeType('rectangle');
+  st.setPointMode(true);
+  st.onPointerDown(100, 100, { button: 0 });
+  st.onPointerUp(140, 130, { button: 0 });
+  const hit = st._editor.hitTest(100, 100);
+  st.onPointerDown(100, 100, { button: 0 });
+  const grabbed = !!st._editing;
+  st.commitPending();
+  st.onPointerMove(150, 130, { button: 0 });
+  st.onPointerUp(150, 130, { button: 0 });
+  check('commitPending during a handle drag: the release opens no stray shape', hit && hit.mode === 'point' && grabbed &&
+    st.hasPending === false && !st._editing && !st.isDrawing, `pending ${st.hasPending} editing ${!!st._editing}`);
+  st.cancelPending();
+  st.setPointMode(false);
+}
+
+// --- a slow drag of a turned shape's corner (many small moves) does not walk the opposite corner away
+{
+  const st = new ShapeTool();
+  const bad = [];
+  for (const shape of ['square', 'rectangle']) {
+    for (const deg of [30, -55]) {
+      fresh();
+      st.setShapeType(shape);
+      st.setRotation(deg);
+      st.setPointMode(true);
+      st.onPointerDown(60, 50, { button: 0 });
+      st.onPointerUp(120, 90, { button: 0 });
+      const m0 = st._editor.model;
+      const fixed = m0.handlePoint(0);
+      const h = m0.handlePoint(1);
+      st.onPointerDown(h.x, h.y, { button: 0 });
+      for (let k = 1; k <= 20; k++) st.onPointerMove(h.x + k, h.y + k, { button: 0 });
+      st.onPointerUp(h.x + 20, h.y + 20, { button: 0 });
+      const now = st._editor.model.handlePoint(0);
+      if (Math.abs(now.x - fixed.x) > 1 || Math.abs(now.y - fixed.y) > 1) bad.push(`${shape} ${deg}: ${JSON.stringify(fixed)} -> ${JSON.stringify(now)}`);
+      st.cancelPending();
+    }
+  }
+  st.setPointMode(false);
+  st.setRotation(0);
+  check('a slow 20-step corner drag of a turned square or rectangle leaves the opposite corner where it was drawn', bad.length === 0, bad.join('; '));
+}
+
 summary();

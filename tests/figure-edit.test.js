@@ -166,4 +166,46 @@ for (const type of Object.values(T)) {
   check('toJSON / fromJSON keep the shape', same(set(j.rasterise().pixels), set(inside.rasterise().pixels)));
 }
 
+// --- a square drawn from a drag that is not square: its handles sit on its corners, and dragging one leaves the opposite one put
+{
+  const gen = (o) => ({ filled: false, thickness: 1, lineStyle: 'solid', rotation: 0, rounding: 0.5, ...o });
+  const G = ShapeGenerator;
+  const px = (f) => set(f.rasterise().pixels);
+  const near = (p, q) => Math.abs(p.x - q.x) <= 1 && Math.abs(p.y - q.y) <= 1;
+  const drags = [[{ x: 60, y: 50 }, { x: 120, y: 90 }], [{ x: 120, y: 90 }, { x: 60, y: 50 }],
+    [{ x: 120, y: 50 }, { x: 60, y: 90 }], [{ x: 60, y: 90 }, { x: 120, y: 50 }]];
+  const problems = [];
+  for (const [a, b] of drags) {
+    const tag = `${a.x},${a.y}-${b.x},${b.y}`;
+    const plain = new ShapeFigure('square', a, b, gen());
+    for (const o of [{}, { filled: true }, { thickness: 3 }, { lineStyle: 'dashed' }, { rotation: 30 }, { rotation: -55, filled: true }]) {
+      if (!same(px(new ShapeFigure('square', a, b, gen(o))), set(G.generateShape('square', { x1: a.x, y1: a.y, x2: b.x, y2: b.y }, gen(o))))) {
+        problems.push(tag + ': not the one-drag square ' + JSON.stringify(o));
+      }
+    }
+    // the handles are two opposite corners of the square that is drawn
+    const [h0, h1] = plain.rotatedPoints();
+    if (Math.abs(h1.x - h0.x) !== 60 || Math.abs(h1.y - h0.y) !== 60) problems.push(tag + ': handles not on the corners ' + JSON.stringify([h0, h1]));
+    for (const deg of [0, 30, -55, 90]) {
+      // moving a handle to where it is drawn changes nothing, however often
+      const f = new ShapeFigure('square', a, b, gen({ rotation: deg }));
+      const before = px(f);
+      for (let n = 0; n < 20; n++) for (const i of [0, 1]) f.movePoint(i, f.handlePoint(i));
+      if (!same(px(f), before)) problems.push(`${tag} at ${deg}: 20 no-op drags changed the square`);
+      // dragging one corner leaves the opposite corner where it is drawn
+      for (const i of [0, 1]) {
+        const g = new ShapeFigure('square', a, b, gen({ rotation: deg }));
+        const fixed = g.handlePoint(1 - i);
+        const h = g.handlePoint(i);
+        g.movePoint(i, { x: h.x + 5, y: h.y + 5 });
+        if (!near(g.handlePoint(1 - i), fixed)) problems.push(`${tag} at ${deg}: moving handle ${i} moved the other from ${JSON.stringify(fixed)} to ${JSON.stringify(g.handlePoint(1 - i))}`);
+        const [p0, p1] = g.points;
+        if (Math.abs(p1.x - p0.x) !== Math.abs(p1.y - p0.y)) problems.push(`${tag} at ${deg}: the stored box is not square`);
+      }
+    }
+  }
+  check('square from a non-square drag: one-drag raster, handles on the corners, no-op drags change nothing, the opposite corner stays',
+    problems.length === 0, problems.slice(0, 4).join('; '));
+}
+
 summary();
