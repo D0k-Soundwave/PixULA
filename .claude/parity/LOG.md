@@ -1010,3 +1010,28 @@ Suites (M, 2026-10-18): run-all ALL TEST FILES PASSED; test:browser 833 passed; 
 - undo-partial-capture.spec.js:67 timing (M, 2026-10-18, 8 runs each, undo / redo time against packing every layer, limit 1.5): with this change 0.87-1.24 / 0.84-1.13, without it 0.84-1.18 / 0.73-1.09.
   Same spread, so the occasional failure is the known flake, not this change. The test's comment says 0.65x (2026-09-28); on this machine today it is about 1.1x, so the margin to 1.5x is smaller than it was.
 Suites (M, 2026-10-18): run-all ALL TEST FILES PASSED; check:manual up to date; test:browser 837 passed, 1 failed (that timing test; passed 6 of 8 runs alone).
+
+## Audit of parity-d against the comparison doc (2026-10-18, fixed 2026-10-19)
+Seven review groups (spec-p1a, spec-p1b, spec-p2a, spec-p2b, code-io, code-tools, code-ui; workflow wf_728ea4c3-722) checked the
+comparison rows and the changed code; each finding was confirmed by a second agent. 35 confirmed, 1 rejected (SVC-4: two questions
+for New Picture from Selection is the recorded owner rule). Full detail and a Status line per finding: .claude/parity/AUDIT-2026-10-18.md.
+All 35 are closed; each code fix has a test that was seen failing first.
+- Code fixes (22): Transform > Invert / Image > Invert Dots kept the rail's colours instead of each cell's (05c2851, high); an
+  own-colours stamp cell with no set dots left the background's ink (77380b2); Fill attributes wrapped across the picture edge and
+  was offered where cells have no colours (9e919b8); Layer > Flatten baked in a hidden stamp (b35f273); Zoom to Fit put Timex hi-res
+  under the colour rail (ddd60c9); opening a font or .spr wiped the map elements and renamed the document (high), a .zxm open
+  overwrote the Map Editor tile map, Tape Blocks Load skipped the replace question, Add current screen threw in the other modes
+  (e22e43f); 8x1-mode Save Selection As .asm/.c/.atr wrote the wrong attribute bytes (7c57ee6); six figure and shape editing
+  defects (13f5f58); Type on canvas brought back the hidden Text box's text as a stamp (db43cf5); Shift+M pictures ignored palette
+  changes, Copy colours pressed outside the picture still picked, deleting an element during a find lost its outlines, Accept after
+  the block had gone gave a wrong message (e8a4912).
+- Doc corrections (13, 4a0e7ca): seven rows judged too kindly are now Partial - Drawing (pixels) switch (ink and paper together
+  with no dots need two passes or a whole-cell tool; a new draw mode is the owner's call), Ring, Gradient fills, CHX big fonts,
+  BMP/GIF/JPG/PNG, Paste Windows graphic, Undo depth (no UI built). Wording fixed in Inverse (gradient), Invert dots and colours
+  (stamp), Invert attributes (bounding rectangle), Invert pixels (menu name), Freehand (seven engines), Zoom (Ctrl+wheel). Rows the
+  code fixes made out of date were brought up to date, and the new Partial rows are listed as Part 3 item 13 for the owner.
+- Totals [M, count-verdicts.js, 2026-10-19]: 114 functions, 34 below parity (6 missing, 28 partial), 70 same, 8 further, 2 n/a.
+  Before [M, same counter, 2026-10-14]: 27 below parity (6 missing, 21 partial), 76 same, 9 further. The per-part lines had been
+  stale since 2026-10-08 / 2026-10-09 and now carry the counter's figures.
+- For the owner: whether to build any of the new Partial items (Part 3 item 13); Transform > Invert acts on the bounding
+  rectangle of a lasso or ellipse selection, as the dot flips do (Batch 2 recorded that rule for the attribute commands and Flip only).
