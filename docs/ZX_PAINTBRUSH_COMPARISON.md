@@ -21,8 +21,10 @@ listings and had gone stale (it described an "Attributes only" draw mode and a
 Paintbrush never had).
 
 **Totals** [M, counted from the tables below by .claude/parity/count-verdicts.js, 2026-10-19, after the
-2026-10-18 audit corrections]: 114 functions; PixULA is below parity on 34 (6 missing, 28 partial), level on 70,
-ahead on 8, and 2 do not apply to a browser app. The audit found seven rows judged too kindly and moved them to
+Attributes Only draw mode was built]: 114 functions; PixULA is below parity on 33 (6 missing, 27 partial), level on 71,
+ahead on 8, and 2 do not apply to a browser app. The Attributes Only draw mode took Drawing (pixels) switch back to Same.
+Before it [M, same counter, 2026-10-19, after the 2026-10-18 audit corrections] it was 34 below parity (6 missing,
+28 partial), level on 70. The audit found seven rows judged too kindly and moved them to
 Partial: Drawing (pixels) switch, Ring, Gradient fills, CHX big fonts, Paste Windows graphic and Undo (from Same),
 and BMP, GIF, JPG, PNG (from PixULA further).
 Before the audit [M, same counter, 2026-10-14, after Batch 11] it was 27 below parity (6 missing, 21 partial),
@@ -45,7 +47,7 @@ Batch 4 part 4B (2026-10-09) took the four inverter, copy-attribute and wiping r
 
 ## Part 1 - Attributes, Bright and Flash
 
-50 functions: 40 same, 1 where PixULA goes further, 9 partial, 0 missing, 0 not applicable [M, count-verdicts.js, 2026-10-19].
+50 functions: 41 same, 1 where PixULA goes further, 8 partial, 0 missing, 0 not applicable [M, count-verdicts.js, 2026-10-19, after Attributes Only]. Before it: 40 same, 9 partial [M, same counter, same day].
 Before the 2026-10-18 audit the counter gave 41 same and 8 partial; this line still read 30 same, 14 partial and
 5 missing, its 2026-10-09 count, never updated since.
 
@@ -71,7 +73,7 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 
 | ZX Paintbrush | What it does | PixULA | Verdict |
 |---|---|---|---|
-| Drawing (pixels) switch | Turn pixel drawing off so any tool writes colours only. Combined with the per-colour transparency above, any mix is possible, e.g. paper and flash only. | Ink Recolour (Ink, Bright, Flash) and Paper Recolour (Paper, Bright, Flash), combined with the four "use existing" boxes, let every drawing tool write attributes without touching a pixel, e.g. Paper and Flash only (2026-10-08). Ink and Paper together without touching a pixel cannot be written by a drawing tool in one stroke: Ink Recolour never writes Paper and Paper Recolour never writes Ink. That takes the Recolour cell tool (whole cells), the Fill tool's Fill attributes only option (whole cells) or two passes. The draw mode that wrote all four was retired on purpose; bringing one back is the owner's call (audit 2026-10-18). Pixels Only is the other way round: pixels with no attributes. | Partial (Ink and Paper together without touching a pixel need two passes or a whole-cell tool) |
+| Drawing (pixels) switch | Turn pixel drawing off so any tool writes colours only. Combined with the per-colour transparency above, any mix is possible, e.g. paper and flash only. | The Attributes Only draw mode (2026-10-19, owner decision) is pixel drawing switched off: every drawing tool (brush, spray, pattern, shapes, curves, Figure, pixel fill, gradient, text and stamps) gives each cell it touches Ink, Paper, Bright and Flash and never changes a pixel, following the brush size, the shape or the fill area, with Mirror. Each of the four "use existing" boxes keeps that one attribute, so any mix is possible, e.g. Paper and Flash only. Ink Recolour and Paper Recolour stay beside it as one-click presets of the same idea. Both buttons do the same; offered where cells have attributes. Pixels Only is the other way round: pixels with no attributes. | Same |
 | Filling switch | Shapes and the fill tool use the chosen fill style instead of solid. | Filled and Use pattern options on each tool. | Same |
 | Inverse mode | Like BASIC INVERSE: tools reset dots instead of setting them; text and solid fills are reversed. | Preferences > Inverse, or Shift+I (2026-10-09; the owner moved it out of the top strip): swaps the two mouse buttons for the brush, fill, shapes, curves, patterns, text and stamps (left draws paper pixels, right draws ink pixels). The gradient draws paper pixels with either button, as recorded in Batch 4 (its right button only reverses the direction). Ink and Paper Recolour and the XOR modes give both buttons one job, so Inverse changes nothing there and the status line says so. Remembered, saved in presets. | Same |
 | Over mode | Like BASIC OVER: dots are toggled. | XOR / Over, plus XOR / Every Pass. | PixULA further |
@@ -342,8 +344,8 @@ cost and the owner decides.
     print; the rest of Options; picture converter extras (black-and-white mode,
     GIF frame picker).
 13. **Found by the 2026-10-18 audit** (rows moved to Partial on 2026-10-19, not yet
-    placed in a batch; the owner decides): a draw mode that writes Ink and Paper
-    without touching a pixel (the one that did was retired on purpose); an elliptic, rotatable
+    placed in a batch; the owner decides): ~~a draw mode that writes Ink and Paper
+    without touching a pixel~~ (built 2026-10-19: Attributes Only); an elliptic, rotatable
     ring; triangular, pentagonal, hexagonal and octagonal gradients with rotation
     and zoom; keeping the colours of coloured CHX characters; opening BMP and
     saving GIF; the conversion dialog for a system clipboard paste; a setting for

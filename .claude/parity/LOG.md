@@ -1035,3 +1035,29 @@ All 35 are closed; each code fix has a test that was seen failing first.
   stale since 2026-10-08 / 2026-10-09 and now carry the counter's figures.
 - For the owner: whether to build any of the new Partial items (Part 3 item 13); Transform > Invert acts on the bounding
   rectangle of a lasso or ellipse selection, as the dot flips do (Batch 2 recorded that rule for the attribute commands and Flip only).
+
+## Attributes Only draw mode (owner decision 2026-10-19, built 2026-10-19)
+Plan: .claude/parity/feature-attr-mode.md. A third attribute-only button after Ink Recolour and Paper Recolour on the
+draw-mode bar (those two unchanged). Every drawing tool gives each cell it touches Ink, Paper, Bright and Flash and
+draws no pixel; each "use existing" box keeps its attribute (Paper kept = Ink Recolour's result, Ink kept = Paper
+Recolour's). Both buttons do the same; Inverse changes nothing and the status line says so; Mirror, colour core,
+presets and the reload all follow it as they do Ink Recolour. Hidden in Timex hi-res (both), Layer 2 and LoRes, with
+fallback to Normal.
+- Why the old one was retired, and why that no longer holds: 'attributes_only' was dropped as a duplicate of the
+  Recolour cell tool, but Recolour paints the whole cell under the pointer whatever the tool, while a draw mode follows
+  the brush size, shape and fill area. New id 'attributes', so a preference or preset still holding the retired id
+  still comes back Normal. resolveUserMode('attributes') -> the existing DRAW_MODE.ATTRIBUTES_ONLY primitive; no new
+  write path.
+- Label "Attributes Only" (pairs with Pixels Only; a name with "Recolour" in it is the confusion the retirement note
+  warned of). dm.attributes / dm.attributes.hint in 13 languages; manual 40-colour.md x13 (new paragraph, Inverse list).
+- Tests, seen failing first [M, 2026-10-19]: tests/attributes-draw-mode.test.js 28 failed checks before the code (every
+  tool compared with Ink Recolour cell for cell: brush 1/5, square 9, right button, spray, pattern, rectangle outline and
+  filled, ellipse, line, Bezier, pixel fill, gradient; the four boxes; Mirror; colour core; multicolour 8x1 and 8x4,
+  ULAplus, ULANext, GigaScreen both screens, Layer 2 no-op); draw-mode-matrix 3, figure-tool 1, stamp-draw-mode 1;
+  tests/browser/attributes-draw-mode.spec.js 5 of 6 failed on the first run, and the sixth (Mirror) passed only because
+  its mirrored pixel was already ink - moved to a paper pixel, it failed too (button and tooltip, both mouse buttons on the canvas, status
+  line with Inverse, Mirror, reload and preset, withdrawn in Layer 2 / Timex hi-res / LoRes). All pass after.
+- Comparison: Drawing (pixels) switch -> Same. Totals [M, count-verdicts.js, 2026-10-19]: 114 functions, 33 below parity
+  (6 missing, 27 partial), 71 same, 8 further, 2 n/a. Before [M, same counter, same day]: 34 (6, 28), 70 same.
+- For the owner: the icon has no colour of its own in the theme palette (XOR / Every Pass has none either); the pop-up
+  is two icons wide, so Attributes Only sits alone on a fourth row under Ink Recolour.

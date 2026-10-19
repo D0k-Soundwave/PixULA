@@ -59,7 +59,7 @@ asserts pixel/attribute effects — that test is the baseline for every row here
 |---|---|---|
 | 256×192, 32×24 attr grid, one attribute byte per cell | Yes | `SCREEN_MODES.STANDARD_ULA` descriptor; `tests/core-draw.test.js` |
 | All drawing through `PixelDrawRoutine`, live clash enforcement | Yes | Lint-enforced architecture; `core-draw` + `tools-draw` assert attribute behaviour |
-| Draw modes NORMAL / TRANSPARENT / ERASE / ATTRIBUTES_ONLY exposed for brush/fill/shape | Yes, as one global selector | `DrawModeBar` (top bar) drives `StateManager`'s draw mode for every tool: Normal, Pixels Only, XOR / Over, XOR / Every Pass, Ink and Paper Recolour. Attributes only is the Recolour cell op and the fill's own option; the unused TRANSPARENT primitive was removed 2026-10-07 |
+| Draw modes NORMAL / TRANSPARENT / ERASE / ATTRIBUTES_ONLY exposed for brush/fill/shape | Yes, as one global selector | `DrawModeBar` (top bar) drives `StateManager`'s draw mode for every tool: Normal, Pixels Only, XOR / Over, XOR / Every Pass, Ink and Paper Recolour, and Attributes Only (back as a draw mode 2026-10-19, owner decision; it writes through the ATTRIBUTES_ONLY primitive, as the Recolour cell op and the fill's own option do); the unused TRANSPARENT primitive was removed 2026-10-07 |
 | Cell-wide BRIGHT constraint + bright-black special case | Yes | `attribute-system.js` ported verified-good; core-draw covers bright handling |
 | Document border colour (tape loaders + preview) | Yes | `ColorManager.get/setBorder`, `border-control.js`; `tests/border-color.test.js` proves the TAP/TZX loader embeds it |
 | 16-colour palette (8+8) | Yes | `ZX_PALETTE` single source; ColorManager writes `--zx-*` tokens; swatches generated |
