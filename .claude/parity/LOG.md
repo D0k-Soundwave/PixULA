@@ -1105,3 +1105,20 @@ says that on a big picture it can keep fewer steps than set; the hint takes its 
 - Suites (M, 2026-10-19): run-all ALL TEST FILES PASSED; check:manual up to date; the 15 specs covering the changed files
   171 passed, 1 failed - shell.spec.js:453 (draw-mode status after a reload expects "Paper Recolour", gets empty); it fails
   the same way with these changes stashed, so it is not caused by this feature.
+
+## Undo steps setting - independent check (2026-10-19)
+Probed in the running app (temporary Playwright specs, deleted): mouse strokes with the left and right button and with
+Inverse on, at depth 2, in all 18 screen modes (Standard ULA, multicolour 8x1/8x2/8x4, ULAplus and its 8x1, Timex hi-res
+and its GigaScreen pair, GigaScreen and multicolour GigaScreen, ULANext, Layer 2 256/320/640, LoRes and Radastan): two
+steps kept each time, Undo restores each, a third Undo does nothing, Redo returns the picture. Depth 2000 at LAYER2_640:
+1,400 one-layer steps kept 1,263 at 268,362,240 B [M, 2026-10-19], as the hint says. Stored garbage under pref.undoLimit
+('1500' as text, 0, -3, 2.5, 2001, null, an object) boots at 500. A reload keeps the depth together with Inverse set in
+the same OK. The French hint retranslates with its numbers while the dialog is open. -5 typed becomes 1. 13 translations
+and the manual paragraph checked; check:manual up to date.
+Two defects found and fixed:
+- Redo after lowering the depth: 10 steps, undo all 10, set 3, redo all 10 left Undo able to go back 10. redo() never
+  pruned; with a fixed depth the two stacks could not outgrow it, but a lowered one can. redo() now prunes like a new
+  step does (every undone step is still redone). tests/undo-depth.test.js: 2 checks failed before the fix.
+- The field read with parseInt: 1e3, a number the field accepts, was taken as 1 and threw away all but one step.
+  It now reads valueAsNumber and rounds (7.6 -> 8). tests/browser/undo-depth.spec.js: failed (1 for 1000) before the fix.
+- Not this feature: shell.spec.js:453 fails the same way on 6b01274, before the Undo steps commits.

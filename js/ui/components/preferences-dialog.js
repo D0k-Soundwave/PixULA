@@ -959,10 +959,12 @@ class PreferencesDialogClass {
 
         // Undo steps: stored under its own key by UndoRedo, and only when it changed, so an untouched
         // dialog leaves a never-set depth following DEFAULT_UNDO_LIMIT. A typed value is held to the
-        // range like the other number fields; an emptied field keeps the depth it had.
+        // range like the other number fields; an emptied field keeps the depth it had. The number is
+        // read as the browser reads it (valueAsNumber), not with parseInt, which takes 1e3 for 1 and
+        // would throw away all but one step; a fraction rounds to the nearest whole step.
         const undoLimitEl = dialog.querySelector('#pref-undo-limit');
-        const typedDepth = undoLimitEl ? parseInt(undoLimitEl.value, 10) : NaN;
-        const depth = Number.isNaN(typedDepth) ? UndoRedo.getMaxStates()
+        const typedDepth = undoLimitEl ? Math.round(undoLimitEl.valueAsNumber) : NaN;
+        const depth = !Number.isFinite(typedDepth) ? UndoRedo.getMaxStates()
             : clamp(typedDepth, ZX_SPECTRUM.MIN_UNDO_LIMIT, ZX_SPECTRUM.MAX_UNDO_LIMIT);
         let depthStored = true;
         if (depth !== UndoRedo.getMaxStates()) depthStored = await UndoRedo.setMaxStates(depth);

@@ -88,6 +88,14 @@ test('a typed value outside the range is held to it, and Cancel changes nothing'
     expect(await depth(page)).toBe(1);
     await setDepth(page, 300);
     expect(await depth(page)).toBe(300);
+    // The field reads the number as the browser does: 1e3 is 1000, not 1, and a fraction rounds
+    await steps(page, 5);
+    await setDepth(page, '1e3');
+    expect(await depth(page)).toBe(1000);
+    expect(await count(page), 'no step is lost to a misread number').toBe(5);
+    await setDepth(page, '7.6');
+    expect(await depth(page)).toBe(8);
+    await setDepth(page, 300);
     // Emptied, the field keeps the depth it had
     await setDepth(page, '');
     expect(await depth(page)).toBe(300);
