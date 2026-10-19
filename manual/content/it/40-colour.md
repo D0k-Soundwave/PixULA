@@ -71,6 +71,15 @@ cella. Entrambi restano attivi finché non li spegni - scegli Nessuno, sceglilo
 di nuovo, fai clic destro sull'area di disegno o scegli uno strumento o una
 modalità di disegno - e la barra di stato lo dice finché è attivo.
 
+**Solo attributi** è la terza di queste modalità di disegno. Dà a ogni cella
+toccata dallo strumento attuale Inchiostro, Carta, Luminosità e Lampeggio tutti
+insieme e non disegna alcun pixel, come ZX Paintbrush con il disegno dei pixel
+spento. Ognuna delle quattro parti impostata su **usa esistente** resta com'è in
+ogni cella: con la Carta su esistente fa ciò che fa Ricolora inchiostro, con
+l'Inchiostro su esistente ciò che fa Ricolora carta. Come in quelle, i due
+pulsanti fanno la stessa cosa, ed è offerta solo nelle modalità schermo le cui
+celle hanno attributi.
+
 **Copia attributi, Inverti pixel e Inverti pixel e attributi** sono altri tre
 strumenti cella nello stesso pulsante Strumento cella e funzionano allo stesso
 modo: scegline uno, poi fai clic o trascina sulle celle. Ogni trascinamento si
@@ -99,8 +108,8 @@ due modalità danno lo stesso risultato.
 
 **Inverso** scambia ciò che fanno i due pulsanti del mouse: il sinistro disegna
 pixel di carta e il destro pixel d'inchiostro, come INVERSE 1 del BASIC. Si attiva nelle Preferenze, oppure con Maiusc+I, e la barra di stato dice “Inverso
-attivo” finché lo è. Non cambia nulla in Ricolora inchiostro, Ricolora carta e
-nelle due modalità XOR, dove i due pulsanti fanno la stessa cosa, e la barra di
+attivo” finché lo è. Non cambia nulla in Ricolora inchiostro, Ricolora carta,
+Solo attributi e nelle due modalità XOR, dove i due pulsanti fanno la stessa cosa, e la barra di
 stato lo dice. Il testo e i timbri disegnano le loro lettere e forme in pixel di
 carta invece che in pixel d'inchiostro, un motivo posa i suoi pixel d'inchiostro
 come pixel di carta e i suoi pixel di carta come inchiostro, e il riempimento

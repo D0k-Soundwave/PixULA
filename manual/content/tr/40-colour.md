@@ -69,6 +69,15 @@ her hücrenin Mürekkebiyle Kâğıdını değiştirir. İkisi de siz kapatana k
 kalır - Yok'u seçin, onu yeniden seçin, tuvale sağ tıklayın ya da bir araç veya
 çizim modu seçin - ve açıkken durum çubuğu bunu söyler.
 
+**Yalnızca öznitelikler** bu çizim modlarının üçüncüsüdür. Geçerli aracın
+dokunduğu her hücreye Mürekkep, Kâğıt, Parlak ve Yanıp sönme özniteliklerini bir
+kerede verir ve hiçbir piksel çizmez; ZX Paintbrush'ın piksel çizimi
+kapalıykenki davranışı budur. Dört kısımdan **mevcudu kullan** konumunda olan
+her biri her hücrede olduğu gibi kalır: Kâğıt mevcuttayken Mürekkebi Yeniden
+Renklendir'in yaptığını, Mürekkep mevcuttayken Kâğıdı Yeniden Renklendir'in
+yaptığını yapar. Onlardaki gibi iki düğme de aynı işi yapar ve yalnızca
+hücreleri öznitelik taşıyan ekran modlarında sunulur.
+
 **Öznitelikleri kopyala, Pikselleri ters çevir ve Pikselleri ve öznitelikleri
 ters çevir** aynı Hücre aracı düğmesindeki üç hücre aracıdır ve aynı şekilde
 çalışır: birini seçin, sonra hücrelerin üzerine tıklayın veya sürükleyin. Her
@@ -98,7 +107,8 @@ aynı sonucu verir.
 
 **Ters**, iki fare düğmesinin yaptığını değiştirir: sol düğme kâğıt pikselleri,
 sağ düğme mürekkep pikselleri çizer, BASIC'in INVERSE 1'i gibi. Tercihler'den açılır, ya da Shift+I ile; durum çubuğu açıkken „Ters mod açık“ der. Mürekkebi
-Yeniden Renklendir, Kâğıdı Yeniden Renklendir ve iki XOR modunda hiçbir şeyi
+Yeniden Renklendir, Kâğıdı Yeniden Renklendir, Yalnızca öznitelikler ve iki XOR
+modunda hiçbir şeyi
 değiştirmez, çünkü orada iki düğme aynı işi yapar; durum çubuğu bunu söyler.
 Metin ve damgalar harflerini ve şekillerini mürekkep pikselleri yerine kâğıt
 pikselleriyle çizer, bir desen mürekkep piksellerini kâğıt pikseli, kâğıt

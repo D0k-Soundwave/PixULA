@@ -336,8 +336,8 @@ class PixelDrawRoutineClass {
     const dm = (window.StateManager && StateManager.getDrawMode)
       ? StateManager.getDrawMode() : 'normal';
     // Inverse swaps the buttons: left clears, right sets. Only the modes that
-    // read isInk are affected (Normal and Pixels Only); Ink, Paper and the XOR
-    // modes give both buttons the same job, so there is nothing to swap.
+    // read isInk are affected (Normal and Pixels Only); Ink, Paper, Attributes
+    // and the XOR modes give both buttons the same job, so there is nothing to swap.
     // Patterns follow too: their gap mode comes from resolveUserMode(false).
     if (window.StateManager && StateManager.getInverse && StateManager.getInverse()) isInk = !isInk;
     switch (dm) {
@@ -348,6 +348,10 @@ class PixelDrawRoutineClass {
       // button (they never place or clear a pixel).
       case 'ink':             return DRAW_MODE.INK;
       case 'paper':           return DRAW_MODE.PAPER;
+      // Attributes Only: ZX Paintbrush with pixel drawing off - the cell takes
+      // Ink, Paper, Bright and Flash, each "use existing" box keeping its own
+      // (_resolveTransparent), and no pixel is written.
+      case 'attributes':      return DRAW_MODE.ATTRIBUTES_ONLY;
       case 'xor':             return DRAW_MODE.XOR;
       case 'xor_pixel':       return DRAW_MODE.XOR_PIXEL;
       default:                return isInk ? DRAW_MODE.NORMAL : DRAW_MODE.NORMAL_ERASE;
@@ -1447,7 +1451,7 @@ class PixelDrawRoutineClass {
 
   /**
    * Apply attributes only (change colors, don't modify pixels) - the Recolour
-   * attribute op and the attribute flood fill.
+   * attribute op, the attribute flood fill and the Attributes Only draw mode.
    *
    * The attributes follow _stampAttributes exactly - with both boxes on "use
    * existing" it changes bright and flash and nothing else.

@@ -75,6 +75,15 @@ de chaque cellule. L'un comme l'autre reste actif jusqu'à ce que vous le coupie
 dessin ou choisissez un outil ou un mode de dessin - et la barre d'état
 l'indique tant qu'il est actif.
 
+**Attributs seulement** est le troisième de ces modes de dessin. Il donne à
+chaque cellule que touche l'outil actuel l'Encre, le Papier, la Brillance et le
+Clignotement à la fois et ne dessine aucun pixel, comme ZX Paintbrush avec le
+dessin des pixels désactivé. Chacune des quatre parties réglée sur **utiliser
+l'existant** reste telle quelle dans chaque cellule : avec le Papier sur
+existant il fait comme Recolorer l'encre, avec l'Encre sur existant comme
+Recolorer le papier. Comme pour eux, les deux boutons font de même, et il n'est
+proposé que dans les modes d'écran dont les cellules ont des attributs.
+
 **Copier les attributs, Inverser les pixels et Inverser pixels et attributs** sont
 trois outils de cellule de plus dans le même bouton Outil de cellule, et
 fonctionnent de la même façon : choisissez-en un, puis cliquez ou glissez sur
@@ -106,7 +115,7 @@ un seul passage : avec eux, les deux modes donnent le même résultat.
 **Inverse** échange ce que font les deux boutons de la souris : le bouton gauche
 dessine des pixels de papier et le droit des pixels d'encre, comme INVERSE 1 en BASIC. On l'active dans les Préférences, ou avec Maj+I, et la barre d'état indique «
 Inverse activé » tant qu'il l'est. Il ne change rien dans Recolorer l'encre,
-Recolorer le papier et les deux modes XOR, où les deux boutons font la même
+Recolorer le papier, Attributs seulement et les deux modes XOR, où les deux boutons font la même
 chose, et la barre d'état le dit. Le texte et les tampons dessinent leurs lettres
 et formes en pixels de papier au lieu de pixels d'encre, un motif pose ses pixels
 d'encre comme pixels de papier et ses pixels de papier comme encre, et le

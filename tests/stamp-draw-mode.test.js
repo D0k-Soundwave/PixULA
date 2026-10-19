@@ -106,6 +106,21 @@ check('paper mode: pixel bits unchanged (no shape placed)',
 check('paper mode: paper recoloured to selection', cellAttrs().paper === 4);
 check('paper mode: ink left as it was (2)', cellAttrs().ink === 2);
 
+// -- Attributes Only: all four attributes, no pixel shape --------------------
+target.clearCell(CELL_X, CELL_Y);
+paintHalfCell(2, 6);
+const beforeAttrBits = cellBits();
+StateManager.setDrawMode('attributes');
+global.ColorManager._sel = { ink: 5, paper: 1, bright: true, flash: true, inkTransparent: false, paperTransparent: false };
+stamp = makeSolidStamp();
+SelectionService.commitStamp(stamp);
+check('attributes mode: pixel bits unchanged (no shape placed)',
+  JSON.stringify(cellBits()) === JSON.stringify(beforeAttrBits));
+check('attributes mode: ink AND paper recoloured to the selection',
+  cellAttrs().ink === 5 && cellAttrs().paper === 1);
+check('attributes mode: bright/flash taken from the selection',
+  cellAttrs().bright === true && cellAttrs().flash === true);
+
 // ── Pixels Only: places the shape, never touches attributes ────────────────
 target.clearCell(CELL_X, CELL_Y);
 paintHalfCell(2, 6);
@@ -240,7 +255,7 @@ check('normal: commitStamp bakes the same paper the drag painted',
   };
 
   let disagreements = 0;
-  for (const dm of ['normal', 'pixel_only', 'ink', 'paper', 'xor', 'xor_pixel']) {
+  for (const dm of ['normal', 'pixel_only', 'ink', 'paper', 'attributes', 'xor', 'xor_pixel']) {
     for (const inkT of [false, true]) {
       for (const paperT of [false, true]) {
         target.clearCell(CELL_X, CELL_Y);

@@ -417,7 +417,7 @@ test('top bar: global draw-mode selector drives StateManager and persists', asyn
     await page.click('#draw-mode-select');
     const modes = await page.$$eval('.strip-popup .tool-btn', b => b.map(x => x.dataset.drawMode));
     await page.keyboard.press('Escape');
-    expect(modes).toEqual(['normal', 'pixel_only', 'xor', 'xor_pixel', 'ink', 'paper']);
+    expect(modes).toEqual(['normal', 'pixel_only', 'xor', 'xor_pixel', 'ink', 'paper', 'attributes']);
     const retired = await page.evaluate(() => {
         StateManager.setDrawMode('attributes_only');
         return StateManager.getDrawMode();

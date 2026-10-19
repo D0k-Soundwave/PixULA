@@ -8,7 +8,7 @@
  * Replaces the per-tool "Draw Mode" dropdown that used to live in the Brush
  * (and Shape / Fill) options. Draw mode is now one document-wide setting
  * (StateManager.getDrawMode / setDrawMode) that every direct drawing tool
- * resolves through PixelDrawRoutine.resolveUserMode. The bar is six
+ * resolves through PixelDrawRoutine.resolveUserMode. The bar is seven
  * left-toolbar-style icon buttons; the active one renders from the
  * DRAW_MODE_CHANGED fact and the choice persists to Storage. Mirror is a
  * second, smaller icon-button group (own #mirror-modes host) that renders
@@ -50,16 +50,19 @@ const FX = {
 //   needsAttributes - see below
 //
 // The order follows what a stroke changes (2026-10-07): the modes that set
-// dots first, the two that only recolour last - next to the Swap and Recolour
-// cell operations after the divider, which are the ones they get mistaken for.
+// pixels first, the three that only recolour last - next to the Swap and
+// Recolour cell operations after the divider, which are the ones they get
+// mistaken for.
 //
-// There is no Attributes Only entry: it did the same job as the Recolour
-// attribute op (both write the palette's ink, paper, bright and flash onto the
-// cell under the pointer and touch no pixel - one as a global mode over every
-// tool, one as its own paint mode), and two buttons for one job is a choice
-// the artist has to make and cannot get right. Recolour is the one that names
-// what it does. The DRAW_MODE.ATTRIBUTES_ONLY primitive stays - Recolour, Swap
-// and TransformService all write through it.
+// Attributes Only was retired once (as 'attributes_only') for doing the same
+// job as the Recolour cell tool. It did not quite: Recolour paints the whole
+// cell under the pointer whatever the tool, while a draw mode follows the brush
+// size, the shape and the fill area, and Mirror applies. Without it no drawing
+// tool could give a cell Ink and Paper together without drawing pixels (audit
+// 2026-10-18), which ZX Paintbrush does with pixel drawing switched off. The
+// owner brought it back on 2026-10-19 as a third button beside Ink and Paper
+// Recolour, under the new id 'attributes' (StateManager.setDrawMode says why).
+// It writes through the same DRAW_MODE.ATTRIBUTES_ONLY primitive as Recolour.
 //
 // A mode with `needsAttributes` acts on CELL ATTRIBUTES, so it means nothing
 // in a screen mode whose cells have none - the indexed Next modes give every
@@ -95,6 +98,11 @@ const MODES = [
       name: ['dm.paper', 'Paper Recolour'],
       hint: ['dm.paper.hint', 'Gives every cell the tool touches your Paper, Bright and Flash without touching a pixel - following the brush size, the shape or the fill area. Both buttons do the same. With Bright or Flash on "use existing", each cell keeps its own'],
       dots: FX.untouched, colours: FX.coloursPaper, right: FX.rightSame,
+      needsAttributes: true },
+    { value: 'attributes', icon: 'icon-dm-attributes',
+      name: ['dm.attributes', 'Attributes Only'],
+      hint: ['dm.attributes.hint', 'Gives every cell the tool touches your Ink, Paper, Bright and Flash without touching a pixel - following the brush size, the shape or the fill area. Both buttons do the same. An attribute on "use existing" stays as each cell has it'],
+      dots: FX.untouched, colours: FX.coloursAll, right: FX.rightSame,
       needsAttributes: true }
 ];
 
@@ -105,7 +113,7 @@ const ATTR_OP_PREFIX = 'attr:';
 // Appended to a draw-mode id while Inverse is on ('pixel_only+inverse').
 const INVERSE_SUFFIX = '+inverse';
 // The draw modes that give both mouse buttons the same job: Inverse has nothing to swap in them.
-const INVERSE_NO_EFFECT = ['ink', 'paper', 'xor', 'xor_pixel'];
+const INVERSE_NO_EFFECT = ['ink', 'paper', 'attributes', 'xor', 'xor_pixel'];
 const ATTR_OPS = {
     swap:  ['status.attrSwap', 'Swap is on'],
     apply: ['status.attrRecolour', 'Recolour is on'],
