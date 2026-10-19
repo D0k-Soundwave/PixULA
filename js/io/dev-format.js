@@ -182,9 +182,12 @@ class DevFormatClass {
     let attrs = null;
     if (this.hasAttributeBlock()) {
       attrs = new Uint8Array(cols * rows);
+      // 8x1 modes keep the attribute block in the ULA line interleave (one row a pixel line, as SCRFormat writes it); the rest linear
+      const interleaved = ACTIVE_SCREEN_MODE.attrCellH === 1;
       for (let r = 0; r < rows; r++) {
+        const rowStart = interleaved ? AttributeSystem._lineOffset(rect.y + r) : (rect.y / cellH + r) * ZX_SPECTRUM.GRID_COLS;
         for (let c = 0; c < cols; c++) {
-          attrs[r * cols + c] = scr[ZX_SPECTRUM.BITMAP_SIZE + (rect.y / cellH + r) * ZX_SPECTRUM.GRID_COLS + rect.x / 8 + c];
+          attrs[r * cols + c] = scr[ZX_SPECTRUM.BITMAP_SIZE + rowStart + rect.x / 8 + c];
         }
       }
     }
