@@ -1289,9 +1289,11 @@ class MenuSystemClass {
 
         UndoRedo.beginAction('Flatten');
 
-        // Bake any stamps into drawing layers first so their content is
-        // included in the flatten (commitAllStamps uses nested undo).
-        SelectionService.commitAllStamps();
+        // Bake the shown stamps into drawing layers first so their content is
+        // included in the flatten (commitAllStamps uses nested undo). A hidden
+        // stamp is left out, as flattenVisible leaves out a hidden layer, and
+        // goes with the other layers below.
+        SelectionService.commitAllStamps({ onlyVisible: true });
 
         const flatLayer = LayerManager.flattenVisible();
 
@@ -1306,6 +1308,8 @@ class MenuSystemClass {
         target.restoreAttributeData(flatLayer.cloneAttributeData());
         target.name = 'Flattened';
         target.isStamp = false;
+        // It may have been a hidden layer; the flattened picture is shown.
+        target.visible = true;
 
         LayerManager.selectedLayers.clear();
         LayerManager.selectedLayers.add(1);
