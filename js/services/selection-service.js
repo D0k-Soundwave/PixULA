@@ -1714,7 +1714,8 @@ class SelectionServiceClass {
    * Coloured stamp: every cell takes its OWN ink, paper, bright and flash
    * (a null cell is a hole and writes nothing), ignoring the draw mode, the
    * colour rail and the XOR box. Set dots set the dot; clear dots recolour the
-   * cell's paper and leave the dot alone, or - with overlap - clear the dot.
+   * cell (all four colours, so a cell with no set dots still places its own
+   * ink) and leave the dot alone, or - with overlap - clear the dot.
    * Inverse swaps which of the two clears the dot.
    *
    * @param {Object} data - stamp data from getStampData
@@ -1738,7 +1739,7 @@ class SelectionServiceClass {
       const setMode = inverse ? DRAW_MODE.NORMAL_ERASE : DRAW_MODE.NORMAL;
       const clearMode = overlap
         ? (inverse ? DRAW_MODE.NORMAL : DRAW_MODE.NORMAL_ERASE)
-        : DRAW_MODE.PAPER;
+        : DRAW_MODE.ATTRIBUTES_ONLY;
       const st = opts.showThrough;
       const startCellX = Math.floor((x - g.ox) / CW);
       const startCellY = Math.floor((y - g.oy) / CH);

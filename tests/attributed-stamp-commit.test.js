@@ -72,4 +72,35 @@ check('stampAt bakes right cell paper', target2.getCell(1, 0).paper === 2);
 check('stampAt does not remove the stamp layer (repeatable placement)',
   LayerManager.layers.indexOf(SelectionService.floatingPaste.floatingLayer) !== -1);
 
+// A coloured stamp cell with no set dots still places its OWN ink (the
+// show-through switches are off), so dots already in the picture there take
+// the stamp's ink - not the background's. With Inverse on the same holds:
+// the set dots clear and the empty cell still takes all four colours.
+for (const inverse of [false, true]) {
+  LayerManager.initialize();
+  LayerManager.addLayer();
+  LayerManager.setCurrentLayer(1);
+  // Background dots in cell (1,0): ink 4 paper 1, top half of each row.
+  for (let ly = 0; ly < 8; ly++) {
+    for (let lx = 0; lx < 4; lx++) {
+      PixelDrawRoutine.draw(8 + lx, ly, { ink: 4, paper: 1, bright: false, flash: false },
+        DRAW_MODE.NORMAL, { mirror: false });
+    }
+  }
+  // Left cell has dots, right cell has none.
+  const halfMask = Array.from({ length: 8 }, () => Array.from({ length: 16 }, (_, i) => i < 8));
+  SelectionService.startFloatingPasteFromMask(halfMask, 16, 8, 0, 0, 'Test empty cell');
+  SelectionService.floatingPaste.attrs = [(1 << 6) | (6 << 3) | 1, (1 << 7) | (5 << 3) | 2];
+  StateManager.setInverse(inverse);
+  LayerManager.setCurrentLayer(1);
+  SelectionService.commitStamp(SelectionService.floatingPaste.floatingLayer);
+  StateManager.setInverse(false);
+  const c = LayerManager.layers[1].getCell(1, 0);
+  const tag = inverse ? 'inverse: ' : '';
+  check(`${tag}empty stamp cell places its own ink`, c.ink === 2, `ink ${c.ink}`);
+  check(`${tag}empty stamp cell places its own paper`, c.paper === 5, `paper ${c.paper}`);
+  check(`${tag}empty stamp cell places its own flash and bright`, c.flash === true && c.bright === false);
+  check(`${tag}empty stamp cell leaves the dots under it`, c.pixels[0] === 0xF0, `row0 ${c.pixels[0]}`);
+}
+
 summary();
