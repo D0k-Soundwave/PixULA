@@ -520,6 +520,7 @@ const de = {
     'mapel.fitted': 'Die Auswahl wurde auf ganze Zellen angepasst.',
     'mapel.tooBig': 'Die Karte würde mit diesem Element zu groß.',
     'mapel.invalid': 'Dieses Element kann nicht gespeichert werden.',
+    'mapel.gone': 'Der Block ist nicht mehr im Bild, es gibt also nichts zu speichern.',
     'msg.selectionSnapped': 'Auswahl an ganze Zellen angepasst: {w} x {h}.',
     'msg.confirmNewFromSelection': 'Die Auswahl zum ganzen Bild machen? Mit Strg+Z lässt sich das rückgängig machen.',
     'opt.selectSize': 'Größe',

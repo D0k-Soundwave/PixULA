@@ -520,6 +520,7 @@ const cs = {
     'mapel.fitted': 'Výběr byl upraven na celé buňky.',
     'mapel.tooBig': 'Mapa by s tímto prvkem byla příliš velká.',
     'mapel.invalid': 'Tento prvek nelze uložit.',
+    'mapel.gone': 'Blok už na obrázku není, takže není co uložit.',
     'msg.selectionSnapped': 'Výběr přizpůsoben celým buňkám: {w} x {h}.',
     'msg.confirmNewFromSelection': 'Udělat z výběru celý obrázek? Vrátit to lze pomocí Ctrl+Z.',
     'opt.selectSize': 'Velikost',

@@ -92,6 +92,68 @@ test('a place already covered by an earlier element is left out of the next find
     await panel(page).locator('.mapel-cancel').click();
 });
 
+/** Element 1 kept on (20, 15) only, so (3, 4) and (10, 4) are free; then a find open on (3, 4): 2 places, 1 covered. */
+async function findBesideElement(page) {
+    await boot(page);
+    await paintCircles(page);
+    await select(page, 3, 4);
+    await page.keyboard.press('Control+f');
+    await panel(page).locator('.mapel-accept').click();
+    await page.evaluate(() => MapService.setElements(MapService.getElements().map(e => ({ ...e, positions: [{ x: 20, y: 15 }] }))));
+    await select(page, 3, 4);
+    await page.keyboard.press('Control+f');
+    await expect(panel(page).locator('.mapel-count')).toContainText('2 places found');
+}
+const highlightPlaces = (page) => page.evaluate(() => {
+    const h = MapElementOverlay.describe().highlight;
+    return h ? h.places.map(p => [p.x, p.y]) : null;
+});
+
+test('deleting an element while a find is open keeps the find and its outlines, and finds the place it freed', async ({ page }) => {
+    await findBesideElement(page);
+    page.once('dialog', (d) => d.accept());
+    await panel(page).locator('.mapel-delete').click();
+    expect(await page.evaluate(() => MapService.getElements().length)).toBe(0);
+    expect(await page.evaluate(() => MapElementsPanel.active), 'the find is still open').toBe(true);
+    await expect(panel(page).locator('.mapel-count')).toHaveText('3 places found');
+    expect(await highlightPlaces(page), 'the outlines are on the places the panel counts').toEqual([[3, 4], [10, 4], [20, 15]]);
+});
+
+test('a map load while a find is open (Show outlines on too) keeps the find\'s outlines', async ({ page }) => {
+    await findBesideElement(page);
+    await panel(page).locator('.mapel-cancel').click();
+    await panel(page).locator('.mapel-show').click();      // Show outlines on (20, 15)
+    await select(page, 3, 4);
+    await page.keyboard.press('Control+f');
+    await expect(panel(page).locator('.mapel-count')).toContainText('2 places found');
+    // a map file without elements replaces them: the covered place is free again
+    await page.evaluate(() => MapService.loadDocument({ ...MapService.toDocument(), elements: [] }));
+    expect(await page.evaluate(() => MapElementsPanel.active), 'the find is still open').toBe(true);
+    await expect(panel(page).locator('.mapel-count')).toHaveText('3 places found');
+    expect(await highlightPlaces(page), 'the outlines are the find\'s, not cleared').toEqual([[3, 4], [10, 4], [20, 15]]);
+});
+
+test('Accept after the block has gone from the picture says so and shows the find as it is now', async ({ page }) => {
+    await boot(page);
+    await paintCircles(page);
+    await select(page, 3, 4);
+    await page.keyboard.press('Control+f');
+    await expect(panel(page).locator('.mapel-count')).toContainText('3 places found');
+    // draw over every red circle without closing the find
+    await page.evaluate(() => {
+        const layer = LayerManager.getCurrentLayer();
+        for (const [cx, cy] of [[3, 4], [10, 4], [20, 15]]) layer.getCell(cx, cy).pixels.fill(0xFF);
+        LayerManager.composeToCanvas();
+    });
+    const p = notice(page);
+    await page.waitForTimeout(50);
+    await panel(page).locator('.mapel-accept').click();
+    expect(await p).toBe('The block is no longer on the picture, so there is nothing to store.');
+    expect(await page.evaluate(() => MapService.getElements().length)).toBe(0);
+    await expect(panel(page).locator('.mapel-count')).toHaveText('0 places found');
+    expect(await highlightPlaces(page), 'no outlines on places that no longer match').toEqual([]);
+});
+
 test('a 2 x 2 block is found where it repeats; Escape cancels and puts the keys back on the picture', async ({ page }) => {
     await boot(page);
     await page.evaluate((rows) => {

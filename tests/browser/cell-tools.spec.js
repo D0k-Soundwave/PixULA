@@ -197,6 +197,23 @@ test('Copy colours picks on the press, paints the cells dragged over, and leaves
     expect(await undoCount(page)).toBe(before + 1);
 });
 
+test('Copy colours pressed outside the picture picks nothing, so the drag into the picture paints nothing', async ({ page }) => {
+    await boot(page);
+    await prepare(page, 0, 3, { ink: 1, paper: 6, bright: true, flash: false });
+    await prepare(page, 1, 3, { ink: 2, paper: 5, bright: false, flash: false });
+    await prepare(page, 2, 3, { ink: 3, paper: 4, bright: false, flash: false });
+    await pickCellTool(page, 'copy');
+    // the press lands in the grey margin left of the picture, then the drag crosses cells 0, 1 and 2
+    await drag(page, [-3, 28], cellCentre(2, 3), 10);
+    const got = [];
+    for (const cx of [0, 1, 2]) { const c = await cellState(page, cx, 3); got.push([c.ink, c.paper, c.bright]); }
+    expect(got, 'every cell keeps its own colours').toEqual([[1, 6, true], [2, 5, false], [3, 4, false]]);
+    // a press inside the picture still picks as before
+    await drag(page, cellCentre(0, 3), cellCentre(1, 3), 4);
+    const c1 = await cellState(page, 1, 3);
+    expect([c1.ink, c1.paper, c1.bright], 'a press on a cell still picks it').toEqual([1, 6, true]);
+});
+
 test('how a cell tool is left: right-click and a new tool end it; Escape does not', async ({ page }) => {
     await boot(page);
     await pickCellTool(page, 'invertDots');

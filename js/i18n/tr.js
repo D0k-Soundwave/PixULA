@@ -520,6 +520,7 @@ const tr = {
     'mapel.fitted': 'Seçim tam hücrelere uyduruldu.',
     'mapel.tooBig': 'Harita bu öğeyle çok büyük olurdu.',
     'mapel.invalid': 'Bu öğe kaydedilemez.',
+    'mapel.gone': 'Blok artık resimde yok, bu yüzden kaydedilecek bir şey yok.',
     'msg.selectionSnapped': 'Seçim tam hücrelere uydu: {w} x {h}.',
     'msg.confirmNewFromSelection': 'Seçim resmin tamamı olsun mu? Ctrl+Z ile geri alabilirsiniz.',
     'opt.selectSize': 'Boyut',

@@ -161,6 +161,7 @@ const en = {
     'mapel.fitted': 'The selection was fitted to whole cells.',
     'mapel.tooBig': 'The map would be too big to keep with this element.',
     'mapel.invalid': 'This element cannot be stored.',
+    'mapel.gone': 'The block is no longer on the picture, so there is nothing to store.',
     'msg.selectionSnapped': 'Selection fitted to whole cells: {w} x {h}.',
     'msg.confirmNewFromSelection': 'Make the selection the whole picture? You can undo it with Ctrl+Z.',
     'opt.selectSize': 'Size',

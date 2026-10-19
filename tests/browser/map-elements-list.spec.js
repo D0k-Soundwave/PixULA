@@ -80,6 +80,43 @@ for (const mode of ['standard_ula', 'gigascreen']) {
     });
 }
 
+test('Shift+M pictures follow a palette change and a palette slot change (ULAplus)', async ({ page }) => {
+    await boot(page);
+    page.on('dialog', (d) => d.accept());
+    await selectMode(page, 'ula_plus');
+    await page.evaluate((rows) => {
+        const layer = LayerManager.getCurrentLayer();
+        for (const [cx, cy] of [[3, 4], [10, 4]]) {
+            const c = layer.getCell(cx, cy);
+            c.pixels.set(rows);
+            Object.assign(c, { ink: 2, paper: 7, bright: false, flash: false, altered: true });
+        }
+        LayerManager.composeToCanvas();
+        SelectionService.setSelection({ x: 24, y: 32, width: 8, height: 8 });
+    }, CIRCLE);
+    await page.keyboard.press('Control+f');
+    await page.locator('.mapel-accept').click();
+    await page.keyboard.press('Shift+M');
+    // place 2, cell (10,4) = pixel (80,32), shows the picture of the source cell (3,4) = pixel (24,32)
+    // the canvas is drawn on the next frame, so wait for it before reading
+    const same = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))).then(() => page.evaluate(() => {
+        const main = CanvasSystem.canvas.getContext('2d').getImageData(24, 32, 8, 8).data;
+        const ov = CanvasSystem.getCanvasElement('map-element-canvas').getContext('2d').getImageData(80, 32, 8, 8).data;
+        for (let i = 0; i < main.length; i += 4) if (main[i] !== ov[i] || main[i + 1] !== ov[i + 1] || main[i + 2] !== ov[i + 2]) return false;
+        return true;
+    }));
+    expect(await same(), 'before any change').toBe(true);
+    // the palette editor's write path: every register of CLUT 0 changed
+    await page.evaluate(() => {
+        for (let i = 0; i < 16; i++) ColorManager.setUlaplusRegister(i, ColorManager.getUlaplusRegisters()[i] ^ 0xB6);
+        LayerManager.composeToCanvas();
+    });
+    expect(await same(), 'after a palette register change').toBe(true);
+    // a palette slot change (Image > Palette): slot 2 holds the untouched palette
+    expect(await page.evaluate(() => { const ok = ColorManager.selectPaletteSlot(1); LayerManager.composeToCanvas(); return ok; })).toBe(true);
+    expect(await same(), 'after a palette slot change').toBe(true);
+});
+
 test('Shift+M with no elements says so', async ({ page }) => {
     await boot(page);
     const p = page.evaluate(() => new Promise((r) => { EventBus.on(EVENTS.STATUS_NOTICE, (d) => r(d.text)); setTimeout(() => r(null), 1500); }));
