@@ -1087,6 +1087,8 @@ const it = {
     'pref.defaultScreenMode': 'Modalità schermo del nuovo documento',
     'pref.defaultScreenModeHint': 'La modalità schermo con cui File > Nuovo avvia una tela vuota.',
     'pref.confirmClear': 'Conferma prima di cancellare',
+    'pref.undoLimit': 'Passi di Annulla',
+    'pref.undoLimitHint': 'Quanti passi Annulla può tornare indietro, da {min} a {max}. Abbassarlo dimentica subito i passi più vecchi. Annulla resta anche entro un limite di memoria di {mb} MB, quindi su un\'immagine grande può tenere meno passi di quelli impostati.',
     'pref.restoreOnBoot': 'Proponi di ripristinare il lavoro non salvato all\'avvio',
     'pref.restoreOnBootHint': 'Disattivato, ogni sessione inizia con una tela vuota. Il salvataggio automatico sopra continua comunque a funzionare come protezione in caso di arresto anomalo durante la sessione - questo decide solo se verrà mai riproposto.',
     'pref.backupFolder': 'Cartella dei backup',

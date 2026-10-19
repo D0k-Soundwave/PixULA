@@ -1087,6 +1087,8 @@ const sk = {
     'pref.defaultScreenMode': 'Režim obrazovky nového dokumentu',
     'pref.defaultScreenModeHint': 'Režim obrazovky, v ktorom Súbor > Nový vytvorí prázdne plátno.',
     'pref.confirmClear': 'Pred vymazaním potvrdiť',
+    'pref.undoLimit': 'Počet krokov Späť',
+    'pref.undoLimitHint': 'Koľko krokov možno vrátiť cez Späť, {min} až {max}. Zníženie hneď zabudne najstaršie kroky. Späť sa navyše drží limitu pamäte {mb} MB, takže pri veľkom obrázku môže uchovať menej krokov, než je nastavené.',
     'pref.restoreOnBoot': 'Ponúknuť obnovenie neuloženej práce pri štarte',
     'pref.restoreOnBootHint': 'Vypnuté znamená, že každé sedenie začína prázdnym plátnom. Automatické ukladanie vyššie naďalej funguje ako ochrana pred pádom počas sedenia - toto nastavenie iba rozhoduje, či bude niekedy znova ponúknuté.',
     'pref.backupFolder': 'Priečinok záloh',

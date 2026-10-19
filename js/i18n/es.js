@@ -1087,6 +1087,8 @@ const es = {
     'pref.defaultScreenMode': 'Modo de pantalla del documento nuevo',
     'pref.defaultScreenModeHint': 'El modo de pantalla con el que Archivo > Nuevo inicia un lienzo en blanco.',
     'pref.confirmClear': 'Confirmar antes de borrar',
+    'pref.undoLimit': 'Pasos de Deshacer',
+    'pref.undoLimitHint': 'Cuántos pasos puede retroceder Deshacer, de {min} a {max}. Al bajarlo se olvidan al momento los pasos más antiguos. Deshacer también se mantiene dentro de un límite de memoria de {mb} MB, así que en una imagen grande puede guardar menos pasos de los indicados.',
     'pref.restoreOnBoot': 'Ofrecer restaurar trabajo sin guardar al iniciar',
     'pref.restoreOnBootHint': 'Desactivado, cada sesión empieza con un lienzo en blanco. El guardado automático de arriba sigue funcionando como protección ante fallos dentro de la sesión - esto solo decide si alguna vez se vuelve a ofrecer.',
     'pref.backupFolder': 'Carpeta de copias de seguridad',

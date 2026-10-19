@@ -1087,6 +1087,8 @@ const tr = {
     'pref.defaultScreenMode': 'Yeni belge ekran modu',
     'pref.defaultScreenModeHint': 'Dosya > Yeni komutunun boş bir tuval başlattığı ekran modu.',
     'pref.confirmClear': 'Temizlemeden önce onayla',
+    'pref.undoLimit': 'Geri alma adımı',
+    'pref.undoLimitHint': 'Geri al ile kaç adım geri gidilebileceği, {min} ile {max} arası. Düşürmek en eski adımları hemen unutur. Geri al ayrıca {mb} MB bellek sınırı içinde kalır; bu yüzden büyük bir resimde ayarlanandan daha az adım tutabilir.',
     'pref.restoreOnBoot': 'Başlangıçta kaydedilmemiş çalışmayı geri yüklemeyi teklif et',
     'pref.restoreOnBootHint': 'Kapalıyken her oturum boş bir tuvalle başlar. Yukarıdaki otomatik kaydetme, oturum içindeki bir çökmeye karşı korumak için yine de çalışmaya devam eder - bu ayar yalnızca bunun tekrar teklif edilip edilmeyeceğine karar verir.',
     'pref.backupFolder': 'Yedekleme klasörü',

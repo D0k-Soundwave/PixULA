@@ -481,9 +481,23 @@ const ZX_SPECTRUM = Object.freeze({
      *
      * Undo and redo share this budget rather than doubling it: undo moves an
      * entry from one stack to the other, so the two never hold more than
-     * DEFAULT_UNDO_LIMIT entries between them.
+     * the depth in use between them.
+     *
+     * Since 2026-10-19 this is the depth to START with: Preferences > Undo
+     * steps sets it anywhere from MIN_UNDO_LIMIT to MAX_UNDO_LIMIT (owner
+     * decision 2026-10-19, stored as 'pref.undoLimit'). 500 stays the default.
      */
     DEFAULT_UNDO_LIMIT: 500,
+    /**
+     * The range of the Undo steps preference. Owner decision 2026-10-19, not
+     * derived from memory: UndoRedo.MAX_HISTORY_BYTES (256 MB) still bounds
+     * what the history may hold, so a deep setting on a big picture keeps
+     * fewer steps than set. [C] 2000 one-layer steps are ~16.9 MB at
+     * STANDARD_ULA (2000 x 8,448 B) and ~425 MB at LAYER2_640
+     * (2000 x 212,480 B), where the cap keeps ~1,263 (268,435,456 / 212,480).
+     */
+    MIN_UNDO_LIMIT: 1,
+    MAX_UNDO_LIMIT: 2000,
     get SCR_FILE_SIZE() { return _activeScreenMode.fileSize; },
     get BITMAP_SIZE()   { return _activeScreenMode.bitmapSize; },
     get ATTR_SIZE()     { return _activeScreenMode.attrSize; }

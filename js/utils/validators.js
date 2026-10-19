@@ -159,12 +159,15 @@ const Validators = {
     },
 
     /**
-     * Validate undo limit
+     * Validate an undo depth (Preferences > Undo steps): a whole number from
+     * ZX_SPECTRUM.MIN_UNDO_LIMIT to MAX_UNDO_LIMIT (1 to 2000, owner decision
+     * 2026-10-19; it was 1 to 500 while the depth had no setting).
      * @param {number} limit - Undo limit
      * @returns {boolean}
      */
     isValidUndoLimit(limit) {
-        return Number.isInteger(limit) && limit >= 1 && limit <= 500;
+        return Number.isInteger(limit) &&
+            limit >= ZX_SPECTRUM.MIN_UNDO_LIMIT && limit <= ZX_SPECTRUM.MAX_UNDO_LIMIT;
     },
 
     /**

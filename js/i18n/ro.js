@@ -1087,6 +1087,8 @@ const ro = {
     'pref.defaultScreenMode': 'Modul de ecran pentru document nou',
     'pref.defaultScreenModeHint': 'Modul de ecran în care Fișier > Nou pornește un canvas gol.',
     'pref.confirmClear': 'Confirmă înainte de golire',
+    'pref.undoLimit': 'Pași de anulare',
+    'pref.undoLimitHint': 'Câți pași poate merge înapoi Anulează, de la {min} la {max}. Micșorarea uită imediat pașii cei mai vechi. Anulează rămâne și în limita de memorie de {mb} MB, așa că la o imagine mare poate păstra mai puțini pași decât s-a setat.',
     'pref.restoreOnBoot': 'Oferă restaurarea lucrării nesalvate la pornire',
     'pref.restoreOnBootHint': 'Dezactivat, fiecare sesiune începe cu o pânză goală. Salvarea automată de mai sus continuă să funcționeze ca protecție împotriva unei blocări în timpul sesiunii - aceasta decide doar dacă va mai fi vreodată oferită înapoi.',
     'pref.backupFolder': 'Dosarul copiilor de rezervă',

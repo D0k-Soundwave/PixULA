@@ -1087,6 +1087,8 @@ const pl = {
     'pref.defaultScreenMode': 'Tryb ekranu nowego dokumentu',
     'pref.defaultScreenModeHint': 'Tryb ekranu, w którym Plik > Nowy tworzy pusty obszar roboczy.',
     'pref.confirmClear': 'Potwierdź przed wyczyszczeniem',
+    'pref.undoLimit': 'Kroki cofania',
+    'pref.undoLimitHint': 'Ile kroków może cofnąć Cofnij, od {min} do {max}. Zmniejszenie od razu usuwa najstarsze kroki. Cofnij mieści się też w limicie pamięci {mb} MB, więc przy dużym obrazie może zachować mniej kroków, niż ustawiono.',
     'pref.restoreOnBoot': 'Proponuj przywrócenie niezapisanej pracy przy starcie',
     'pref.restoreOnBootHint': 'Wyłączone oznacza, że każda sesja zaczyna się od pustego płótna. Autozapis powyżej nadal działa jako zabezpieczenie na wypadek awarii w trakcie sesji - to ustawienie decyduje tylko, czy zostanie kiedykolwiek zaproponowany ponownie.',
     'pref.backupFolder': 'Folder kopii zapasowych',
