@@ -1360,11 +1360,13 @@ class TransformServiceClass {
   /**
    * Invert all pixels in the area. GigaScreen inverts each screen on its own:
    * slot s becomes 3 - s, so inverting twice gives the picture back.
+   * Only dots change: in the modes with cell colours every cell keeps its own
+   * ink, paper, bright and flash (the rail's colours are never written).
    */
   invert() {
     if (this._onStampLayer()) return;
     const area = this._getWorkArea();
-    const buffer = ZX_SPECTRUM.SCREENS === 2 ? this._copySlots(area) : this._copyToBuffer(area);
+    const buffer = this._dotGrid(area);
     if (!buffer) return;
 
     const inverted = ZX_SPECTRUM.SCREENS === 2
@@ -1372,7 +1374,8 @@ class TransformServiceClass {
       : buffer.map(row => row.map(pixel => !pixel));
 
     PixelDrawRoutine.beginBatch();
-    this._applyBuffer(inverted, area);
+    if (ColorManager.hasCellAttributes()) this._writeDots(area, buffer, inverted);
+    else this._applyBuffer(inverted, area);
     PixelDrawRoutine.endBatch();
 
     Logger.debug('TransformService', 'Invert applied');
