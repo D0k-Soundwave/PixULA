@@ -239,6 +239,28 @@ check('shift on a locked layer returns false', TransformService.shift('left', 1,
 layer.locked = false;
 check('shift on an unlocked layer returns true', TransformService.shift('left', 1, true, 'dots') === true);
 
+// -- Invert Dots (Transform > Invert, Image > Invert Dots): colours stay --
+// The rail is set to different colours; no cell may take them.
+for (const mode of ['standard_ula', 'multicolor_8x4', 'ula_plus']) {
+  __setActiveScreenMode(mode);
+  LayerManager.initialize();
+  selectionArea = null;
+  const cellH = ZX_SPECTRUM.CELL_HEIGHT;
+  setCell(0, 0, { ink: 2, paper: 6, bright: false, flash: false });
+  setCell(1, 0, { ink: 1, paper: 5, bright: false, flash: false });
+  setDot(1, 1, true); setDot(3, 2, true);
+  ColorManager.setInk(4); ColorManager.setPaper(3);
+  ColorManager.setBright(true); ColorManager.setFlash(true);
+  selectionArea = { x: 0, y: 0, width: 16, height: cellH };
+  const sig = (cx) => { const a = shown(cx, 0); return `${a.ink}/${a.paper}/${a.bright ? 1 : 0}/${a.flash ? 1 : 0}`; };
+  TransformService.invert();
+  check(`${mode}: invert dots keeps the colours of a cell with dots`, sig(0) === '2/6/0/0', sig(0));
+  check(`${mode}: invert dots keeps the colours of a cell without dots`, sig(1) === '1/5/0/0', sig(1));
+  check(`${mode}: invert dots flips the dots`, !isInk(1, 1) && isInk(0, 0) && isInk(9, 1));
+  ColorManager.setInk(0); ColorManager.setPaper(7);
+  ColorManager.setBright(false); ColorManager.setFlash(false);
+}
+
 // -- GigaScreen: the blend slot of each dot mirrors with the dot ----------
 __setActiveScreenMode('gigascreen');
 LayerManager.initialize();
