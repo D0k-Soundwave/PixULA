@@ -435,9 +435,7 @@ class FileManagerClass {
         }
       }
 
-      // the step the open lands also puts the old picture's elements back on Ctrl+Z (owner decision 2026-10-18)
-      const stepBefore = window.UndoRedo ? UndoRedo.peekLast() : null;
-      const elementsBefore = window.MapService ? MapService.elements.slice() : [];
+      const before = this._pictureBefore();
       const result = await handler.parse(buffer, parseOptions);
 
       if (!result.success) {
@@ -446,14 +444,8 @@ class FileManagerClass {
         return false;
       }
 
-      // The picture was replaced: its elements go, unless the handler brings its own (importsElements: .zxm, project)
-      if (replacesDocument && window.MapService && !handler.importsElements) MapService.clearElements();
-      if (replacesDocument && window.UndoRedo && UndoRedo.peekLast() !== stepBefore) UndoRedo.attachMapElements(UndoRedo.peekLast(), elementsBefore);
-
-      // A picture that is not a project has no palette slots: it opens on slot 1, slots 2-4
-      // copies of its palette. A project restores its own in App._loadProjectData.
-      if (replacesDocument && extension !== 'pixula' && window.ColorManager) {
-        ColorManager.resetPaletteSlots();
+      if (replacesDocument) {
+        this._pictureReplaced(before, { bringsElements: !!handler.importsElements, project: extension === 'pixula' });
       }
 
       if (!replacesDocument) {
@@ -482,6 +474,66 @@ class FileManagerClass {
           'Failed to load file: {reason}', { reason: error.message }) });
       return false;
     }
+  }
+
+  /**
+   * What a picture replacement has to know about the picture it replaces: the last undo step and the map elements, so the step
+   * the replacement lands can put the old elements back on Ctrl+Z (owner decision 2026-10-18).
+   * @returns {{step: *, elements: Object[]}}
+   * @private
+   */
+  _pictureBefore() {
+    return {
+      step: window.UndoRedo ? UndoRedo.peekLast() : null,
+      elements: window.MapService ? MapService.elements.slice() : []
+    };
+  }
+
+  /**
+   * The picture has been replaced: its map elements go (unless the new picture brings its own: .zxm, project), the old list rides
+   * on the undo step the replacement landed, and a picture that is not a project opens on palette slot 1 with slots 2-4 copies
+   * of its palette (a project restores its own in App._loadProjectData).
+   * @param {{step: *, elements: Object[]}} before - from _pictureBefore()
+   * @param {{bringsElements?: boolean, project?: boolean}} [opts]
+   * @private
+   */
+  _pictureReplaced(before, opts = {}) {
+    if (window.MapService && !opts.bringsElements) MapService.clearElements();
+    if (window.UndoRedo && UndoRedo.peekLast() !== before.step) UndoRedo.attachMapElements(UndoRedo.peekLast(), before.elements);
+    if (!opts.project && window.ColorManager) ColorManager.resetPaletteSlots();
+  }
+
+  /**
+   * Replace the picture from somewhere other than a file of its own (File > Tape Blocks > Load), by File > Open's rules: ask
+   * first (unsaved work, map elements), and once the load has worked drop the old elements (Ctrl+Z brings them back with the
+   * old picture). The new picture is not a file of its own, so it has no name: Ctrl+S must not write it over the old picture's
+   * file, and it counts as unsaved work.
+   * @param {function(): (Object|Promise<Object>)} load - loads the picture; returns { success, error }
+   * @returns {Promise<boolean>} true if the picture was replaced
+   */
+  async replacePicture(load) {
+    if (!(await this._confirmReplace())) return false;
+    const before = this._pictureBefore();
+    let result;
+    try {
+      result = await load();
+    } catch (error) {
+      result = { success: false, error: Helpers.localizedMessage('err.loadFailed', 'Failed to load file: {reason}', { reason: error.message }) };
+    }
+    if (!result || !result.success) {
+      const message = (result && result.error) || Helpers.localizedMessage('err.loadFailed', 'Failed to load file: {reason}', { reason: '' });
+      Logger.error('FileManager', message);
+      EventBus.emit(EVENTS.FILE_ERROR, { message });
+      return false;
+    }
+    this._pictureReplaced(before);
+    this.currentFilename = null;
+    this._fileHandle = null;
+    this.hasUnsavedChanges = true;
+    if (window.StateManager) StateManager.markModified();
+    EventBus.emit(EVENTS.FILE_OPEN, { filename: null });
+    if (window.CanvasSystem) CanvasSystem.requestRender();
+    return true;
   }
 
   /**

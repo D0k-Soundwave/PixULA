@@ -306,7 +306,8 @@ class ZXMFormatClass {
 
   /**
    * File > Open of a .zxm: the base picture becomes the picture (Standard ULA), the map elements and their places become the picture's map
-   * elements, and the tile map is filled too, for the Map Editor.
+   * elements. The Map Editor's tile map is left alone: the elements belong to the picture, and the Map Editor's own Import (parseTileMap)
+   * is the way to put a .zxm into the tile map.
    * @param {ArrayBuffer} buffer - File data
    * @returns {Object} { success: true } or { success: false, error: string }
    */
@@ -326,7 +327,6 @@ class ZXMFormatClass {
     }
     const loaded = SCRFormat.importScreen(bitmap, Uint8Array.from(pic.attrs), std.id, 'Load ZXM');
     if (loaded && loaded.success === false) return loaded;
-    MapService.loadDocument(result.doc);
     const els = this.elementsFromParsed(result.elements);
     MapService.setElements(els.elements);
     if (els.rounded || els.dropped) {
