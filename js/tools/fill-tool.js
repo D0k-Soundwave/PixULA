@@ -8,6 +8,10 @@
  * Uses 4-connectivity (up, down, left, right).
  * Left-click fills with INK, right-click fills with PAPER (erases).
  */
+// The fill is a pixel flood: Fill attributes is off, or the mode has no cell
+// colours for it to work on.
+const PIXEL_FLOOD = { any: [{ key: 'attributesOnly', equals: false }, { cells: false }] };
+
 class FillToolClass extends ToolBase {
   /** Declarative options - rendered by OptionControls (contract in tool-base.js). */
   static optionsSchema = [
@@ -19,16 +23,19 @@ class FillToolClass extends ToolBase {
      * the Recolour attribute op; this is the one thing that mode could do and
      * Recolour cannot, since Recolour paints only the cell under the pointer.
      * The options below describe a PIXEL flood and have no effect here.
+     * Offered only where cells have colours; elsewhere a value left on (by a
+     * preset) counts as off, so the rows below show and the fill is a pixel
+     * fill (_attributeFill).
      */
-    { type: 'check', key: 'attributesOnly', i18n: 'opt.fillAttributes', value: false },
+    { type: 'check', key: 'attributesOnly', i18n: 'opt.fillAttributes', value: false,
+      showIf: { cells: true } },
     { type: 'check', key: 'contiguous', i18n: 'opt.contiguousOnly', value: true,
-      showIf: { key: 'attributesOnly', equals: false } },
+      showIf: PIXEL_FLOOD },
     // Connectivity only matters for a contiguous PIXEL flood.
     { type: 'check', key: 'diagonal',   i18n: 'opt.allowDiagonal',  value: false,
-      showIf: { all: [{ key: 'attributesOnly', equals: false },
-                      { key: 'contiguous', equals: true }] } },
+      showIf: { all: [PIXEL_FLOOD, { key: 'contiguous', equals: true }] } },
     { type: 'check', key: 'usePattern', i18n: 'opt.usePattern',     value: false,
-      showIf: { key: 'attributesOnly', equals: false } }
+      showIf: PIXEL_FLOOD }
   ];
 
   constructor() {
@@ -48,6 +55,17 @@ class FillToolClass extends ToolBase {
   /** @param {boolean} value */
   setAttributesOnly(value) {
     this._attributesOnly = Boolean(value);
+  }
+
+  /**
+   * Whether a click floods cell colours: the option is on AND the mode has
+   * cell colours (where it has none the option is not offered, and a value
+   * left on must not turn the click into a fill that does nothing).
+   * @returns {boolean}
+   * @private
+   */
+  _attributeFill() {
+    return this._attributesOnly && ColorManager.hasCellAttributes();
   }
 
   /**
@@ -105,7 +123,7 @@ class FillToolClass extends ToolBase {
    */
   _floodFill(startX, startY, isErase) {
     // Attribute-only flood fill: recolour cells sharing the same attribute
-    if (this._attributesOnly) {
+    if (this._attributeFill()) {
       this._attributeFloodFill(startX, startY);
       return;
     }
@@ -325,10 +343,12 @@ class FillToolClass extends ToolBase {
       const cellOrigin = ZX_COORDS.cellToPixel(cx, cy);
       PixelDrawRoutine.draw(cellOrigin.x, cellOrigin.y, color, DRAW_MODE.ATTRIBUTES_ONLY);
 
-      stack.push(encodeCell(cx + 1, cy));
-      stack.push(encodeCell(cx - 1, cy));
-      stack.push(encodeCell(cx, cy + 1));
-      stack.push(encodeCell(cx, cy - 1));
+      // Bounds-check BEFORE encoding: (COLS-1)+1 encodes as column 0 of the
+      // next row, and 0-1 as the last column of the row above.
+      if (cx + 1 < COLS) stack.push(encodeCell(cx + 1, cy));
+      if (cx > 0) stack.push(encodeCell(cx - 1, cy));
+      if (cy + 1 < ROWS) stack.push(encodeCell(cx, cy + 1));
+      if (cy > 0) stack.push(encodeCell(cx, cy - 1));
     }
 
     PixelDrawRoutine.endBatch();
