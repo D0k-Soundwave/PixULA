@@ -21,9 +21,11 @@ listings and had gone stale (it described an "Attributes only" draw mode and a
 Paintbrush never had).
 
 **Totals** [M, counted from the tables below by .claude/parity/count-verdicts.js, 2026-10-19, after the
-Attributes Only draw mode was built]: 114 functions; PixULA is below parity on 33 (6 missing, 27 partial), level on 71,
-ahead on 8, and 2 do not apply to a browser app. The Attributes Only draw mode took Drawing (pixels) switch back to Same.
-Before it [M, same counter, 2026-10-19, after the 2026-10-18 audit corrections] it was 34 below parity (6 missing,
+Undo steps setting was built]: 114 functions; PixULA is below parity on 32 (6 missing, 26 partial), level on 72,
+ahead on 8, and 2 do not apply to a browser app. The Undo steps setting took Undo and redo back to Same.
+Before it [M, same counter, 2026-10-19, after the Attributes Only draw mode] it was 33 below parity (6 missing,
+27 partial), level on 71; Attributes Only took Drawing (pixels) switch back to Same.
+Before that [M, same counter, 2026-10-19, after the 2026-10-18 audit corrections] it was 34 below parity (6 missing,
 28 partial), level on 70. The audit found seven rows judged too kindly and moved them to
 Partial: Drawing (pixels) switch, Ring, Gradient fills, CHX big fonts, Paste Windows graphic and Undo (from Same),
 and BMP, GIF, JPG, PNG (from PixULA further).
@@ -153,7 +155,7 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 
 ## Part 2 - Everything else
 
-64 functions: 30 same, 7 where PixULA goes further, 19 partial, 6 missing, 2 not applicable [M, count-verdicts.js, 2026-10-19].
+64 functions: 31 same, 7 where PixULA goes further, 18 partial, 6 missing, 2 not applicable [M, count-verdicts.js, 2026-10-19, after the Undo steps setting]. Before it: 30 same, 19 partial [M, same counter, same day].
 Before the 2026-10-18 audit the counter gave 35 same, 8 further, 13 partial and 6 missing; this line still read
 19 same, 9 further, 19 partial and 15 missing, its 2026-10-08 count, never updated since.
 
@@ -257,7 +259,7 @@ Before the 2026-10-18 audit the counter gave 35 same, 8 further, 13 partial and 
 |---|---|---|---|
 | Internal clipboard | Text-based ZXP format, shared between program windows. | Internal clipboard that survives a reload. | Same |
 | Paste Windows graphic | Through the import converter. | System clipboard paste (Ctrl+V) goes through the importer's per-cell two-colour engine and becomes a floating stamp in the current ink only. The conversion dialog (brightness, contrast, dither, Sharp / Smooth / Flat) is not shown, and the picture's colours are lost. | Partial (no conversion dialog, one ink colour) |
-| Undo and redo | Configurable depth. | 500 steps with a 256 MB memory cap. The depth is fixed: there is no setting for it. | Partial (depth not configurable) |
+| Undo and redo | Configurable depth. | Preferences > General > Undo steps sets the depth, 1 to 2000 (500 to start with), kept across reloads; lowering it drops the oldest steps at once (2026-10-19). A 256 MB memory cap stays on top, so on a big picture it can keep fewer steps than set, and the hint says so. | Same |
 | Options | Grid colours, three display sizes, info bar formats, PLOT coordinate range. | Interface size, themes, languages. Grid colours (Preferences, per grid, with Reset to the theme) and PLOT coordinates (Preferences > Y counts from; the readout only) added 2026-10-09. The rest of this row stays with Batch 12. | Partial (left out by choice, 2026-10-14: not attribute work) |
 | Context help and hotkey list | Click-for-help and a shortcuts page. | Two-stage tooltips, a built-in manual in 13 languages, a shortcuts dialog. | PixULA further |
 
@@ -348,5 +350,5 @@ cost and the owner decides.
     without touching a pixel~~ (built 2026-10-19: Attributes Only); an elliptic, rotatable
     ring; triangular, pentagonal, hexagonal and octagonal gradients with rotation
     and zoom; keeping the colours of coloured CHX characters; opening BMP and
-    saving GIF; the conversion dialog for a system clipboard paste; a setting for
-    the undo depth.
+    saving GIF; the conversion dialog for a system clipboard paste; ~~a setting for
+    the undo depth~~ (built 2026-10-19: Preferences > Undo steps, 1 to 2000).

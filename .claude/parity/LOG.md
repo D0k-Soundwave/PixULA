@@ -1079,3 +1079,29 @@ Radastan all behaved as specified.
   locale's hint naming the mode by its own label. Manual rebuilt (the Preferences picture shows the hint).
 - Not changed (owner's call): the draw-mode pop-up is two icons wide, so Attributes Only sits on its own row under Ink
   Recolour rather than beside both recolour buttons.
+
+## Undo steps setting (owner decision 2026-10-19, built 2026-10-19)
+Plan: .claude/parity/feature-undo-depth.md. Preferences > General > Undo steps: how many steps Undo keeps, 1 to 2000,
+500 to start with (owner decision 2026-10-19). Kept across reloads under the existing 'pref.undoLimit' key, written by
+UndoRedo.setMaxStates only when the value changes (an untouched dialog stores nothing); Reset All Preferences deletes it.
+Lowering the depth drops the oldest steps at once. The 256 MB memory cap (MAX_HISTORY_BYTES) stays on top, and the hint
+says that on a big picture it can keep fewer steps than set; the hint takes its numbers from the constants ({min} {max} {mb}).
+- Range: ZX_SPECTRUM.MIN_UNDO_LIMIT / MAX_UNDO_LIMIT = 1 / 2000 (P, owner decision; FIGURES.md row). isValidUndoLimit was
+  1-500; its only callers are UndoRedo.initialize and setMaxStates, and no test relied on 500 as a maximum.
+- setMaxStates now returns a promise (true once stored, false if refused or the write failed), so Preferences OK waits for
+  the write and says so if it failed, as it does for the rest of the record. initialize() prunes after the stored depth
+  arrives. A typed value is held to 1..2000 (Helpers clamp); an emptied field keeps the depth it had.
+- Screen modes: the history is the same in every mode, so nothing is hidden or refused; only the number of steps the cap
+  allows differs. [C] 2000 one-layer steps: ~16.9 MB at Standard ULA (2000 x 8,448 B), ~425 MB at LAYER2_640
+  (2000 x 212,480 B), where the cap keeps ~1,263.
+- i18n: pref.undoLimit, pref.undoLimitHint in 13 languages. Manual 70-menus.md x13: one paragraph.
+- Tests, seen failing first [M, 2026-10-19]: tests/undo-depth.test.js 22 failed checks before the code (range constants,
+  getMaxStates, isValidUndoLimit 501-2000, setMaxStates accept / refuse / store / failed write, the cap floor at depth 2000,
+  the stored depth at boot and its pruning, the en text); tests/browser/undo-depth.spec.js 7 of 7 failed (field and hint,
+  reload, lowering drops oldest at once, typed 5000 -> 2000 and 0 -> 1, empty and Cancel, untouched dialog and Reset All,
+  depth 3 in every one of the 18 screen modes, the German hint filled in). All pass after.
+- Comparison: Undo and redo -> Same. Totals [M, count-verdicts.js, 2026-10-19]: 114 functions, 32 below parity
+  (6 missing, 26 partial), 72 same, 8 further, 2 n/a. Before [M, same counter, same day]: 33 (6, 27), 71 same.
+- Suites (M, 2026-10-19): run-all ALL TEST FILES PASSED; check:manual up to date; the 15 specs covering the changed files
+  171 passed, 1 failed - shell.spec.js:453 (draw-mode status after a reload expects "Paper Recolour", gets empty); it fails
+  the same way with these changes stashed, so it is not caused by this feature.
