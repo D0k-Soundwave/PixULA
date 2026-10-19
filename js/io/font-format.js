@@ -96,6 +96,9 @@ class FontFormatClass {
   initialize() {
     for (const ext of this.EXTENSIONS) {
       const adapter = {
+        // A font goes to the Font Editor; it is not the picture, so opening one must not replace the picture's file
+        // name, unsaved flag, map elements or palette slots (nor ask before doing so)
+        importsDocument: false,
         parse: (buffer) => this.parse(buffer, ext),
         export: () => this.export(ext),
         exportAndDownload: (filename, options, handle) => this.exportAndDownload(filename, handle)

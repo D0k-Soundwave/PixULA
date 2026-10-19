@@ -21,6 +21,8 @@ class SpriteFormatClass {
 
   initialize() {
     FormatRegistry.registerImport('spr', {
+      // A sprite sheet goes to the Sprite Editor, not into the picture (see FileManager.loadFile)
+      importsDocument: false,
       parse: (buffer) => this.parse(buffer)
     });
     FormatRegistry.registerExport('spr', {

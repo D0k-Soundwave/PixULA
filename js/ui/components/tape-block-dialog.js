@@ -248,12 +248,10 @@ class TapeBlockDialogClass {
 
         switch (btn.dataset.act) {
             case 'load': {
-                const result = this._state.handler.loadScreenBlock(blocks[i]);
-                if (!result.success) {
-                    EventBus.emit(EVENTS.FILE_ERROR, { message: result.error });
-                } else {
-                    CanvasSystem.requestRender();
-                }
+                // Loading a SCREEN$ replaces the picture: the same question and map element rules as File > Open
+                const { handler } = this._state;
+                const block = blocks[i];
+                FileManager.replacePicture(() => handler.loadScreenBlock(block));
                 break;
             }
             case 'up':
@@ -280,6 +278,12 @@ class TapeBlockDialogClass {
      * @private
      */
     _addCurrentScreen() {
+        // A screen mode with no SCREEN$ form (GigaScreen, Timex hi-res, the multicolour and indexed modes) says why instead
+        if (!this._state.handler.canExport()) {
+            EventBus.emit(EVENTS.FILE_ERROR, { message: Helpers.localizedMessage('mode.formatNeedsStandard',
+                'This format needs a standard screen layout - switch to Standard ULA or ULAplus mode first.') });
+            return;
+        }
         const base = this._state.filename.replace(/\.[^.]+$/, '');
         const pair = this._state.handler.buildScreenBlockPair({ name: base });
         this._state.blocks.push(...pair);
