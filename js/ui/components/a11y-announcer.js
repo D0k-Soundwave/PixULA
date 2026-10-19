@@ -38,9 +38,9 @@ class A11yAnnouncerClass {
             // Named as the buttons are, so what is heard matches what is seen.
             if (mode === 'swap')            this.announce(this._t('a11y.attrModeSwap', 'Swap on'));
             else if (mode === 'apply')      this.announce(this._t('a11y.attrModeApply', 'Recolour on'));
-            else if (mode === 'copy')       this.announce(this._t('a11y.attrModeCopy', 'Copy colours on'));
-            else if (mode === 'invertDots') this.announce(this._t('a11y.attrModeInvertDots', 'Invert dots on'));
-            else if (mode === 'invertBoth') this.announce(this._t('a11y.attrModeInvertBoth', 'Invert dots and colours on'));
+            else if (mode === 'copy')       this.announce(this._t('a11y.attrModeCopy', 'Copy attributes on'));
+            else if (mode === 'invertDots') this.announce(this._t('a11y.attrModeInvertDots', 'Invert pixels on'));
+            else if (mode === 'invertBoth') this.announce(this._t('a11y.attrModeInvertBoth', 'Invert pixels and attributes on'));
             else                            this.announce(this._t('a11y.attrModeOff', 'Cell tool off'));
         });
 

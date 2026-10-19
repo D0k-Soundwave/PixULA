@@ -37,7 +37,7 @@ test('Timex Hi-res greys the commands out and says why on the Attributes row', a
     expect(await itemState(page, 'attr-flip-v')).toEqual({ present: true, disabled: true });
     expect(await itemState(page, 'attr-change')).toEqual({ present: true, disabled: true });
     const tip = await page.getAttribute('#menu-image [data-id="attributes"]', 'title');
-    expect(tip, 'the reason is on the parent row').toMatch(/no cell colours/i);
+    expect(tip, 'the reason is on the parent row').toMatch(/no cell attributes/i);
 });
 
 test('Invert from the menu changes the cell colours and leaves the dots', async ({ page }) => {

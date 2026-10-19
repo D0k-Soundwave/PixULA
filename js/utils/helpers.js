@@ -196,7 +196,7 @@ const Helpers = {
     assertClassicPixelModel() {
         if (!this.hasClassicPixelModel()) {
             throw new Error(this.localizedMessage('mode.needsClassicPixels',
-                'This works in the classic ink/paper modes only - the current mode uses indexed pixels.'));
+                'This works in the classic Ink/Paper modes only - the current mode uses indexed pixels.'));
         }
     },
 

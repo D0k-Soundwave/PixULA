@@ -162,7 +162,7 @@ class MapElementsPanelClass {
      */
     refusal() {
         if (!window.MapService || !MapService.findModes().length) {
-            return ['mapel.badMode', 'Finding needs 8x8 colour cells: Standard, ULAplus, ULANext, GigaScreen or Timex hi-res.'];
+            return ['mapel.badMode', 'Finding needs 8x8 attribute cells: Standard, ULAplus, ULANext, GigaScreen or Timex hi-res.'];
         }
         if (SelectionService.isFloating()) return ['mapel.floating', 'Place or cancel the floating piece first.'];
         if (!SelectionService.hasSelection()) return ['mapel.noSelection', 'Select a block of the picture first.'];
@@ -189,7 +189,7 @@ class MapElementsPanelClass {
             return false;
         }
         const screen = MapService.captureScreen();
-        if (!screen) { this._notice('mapel.badMode', 'Finding needs 8x8 colour cells: Standard, ULAplus, ULANext, GigaScreen or Timex hi-res.'); return false; }
+        if (!screen) { this._notice('mapel.badMode', 'Finding needs 8x8 attribute cells: Standard, ULAplus, ULANext, GigaScreen or Timex hi-res.'); return false; }
         const block = MapService.sliceBlock(screen, rect.x, rect.y, rect.w, rect.h);
         this._session = { block, source: { x: rect.x, y: rect.y }, rect, kept: [], current: 0, mode: null, found: null };
 
@@ -201,7 +201,7 @@ class MapElementsPanelClass {
             const o = document.createElement('option');
             o.value = m;
             o.dataset.i18n = 'mapel.mode.' + m;
-            o.textContent = this._t('mapel.mode.' + m, { exact: 'Dots and colours', dots: 'Dots only', visual: 'Looks the same' }[m]);
+            o.textContent = this._t('mapel.mode.' + m, { exact: 'Pixels and attributes', dots: 'Pixels only', visual: 'Looks the same' }[m]);
             this._els.mode.appendChild(o);
         }
         this._els.mode.value = modes[0];

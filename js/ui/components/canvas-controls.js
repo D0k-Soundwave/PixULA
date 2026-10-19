@@ -418,23 +418,23 @@ class CanvasControlsClass {
      */
     _attributeText(mode, cell, msg) {
         if (!ColorManager.hasCellAttributes()) {
-            return msg('readout.noCells', 'No colour cells in this mode');
+            return msg('readout.noCells', 'No attribute cells in this mode');
         }
         const one = (plane) => {
             const attrs = LayerManager.attrsShowing(cell.x, cell.y, plane);
             const byte = PointerInfo.attributeByte(mode, attrs);
             const parts = PointerInfo.attributeParts(mode, attrs);
-            if (byte === null || !parts) return msg('readout.noCells', 'No colour cells in this mode');
+            if (byte === null || !parts) return msg('readout.noCells', 'No attribute cells in this mode');
             const base = { dec: byte, hex: PointerInfo.hex(byte, 2), ink: parts.ink, paper: parts.paper };
             if (parts.kind === 'clut') {
-                return msg('readout.attrClut', 'Attribute {dec} ({hex}): CLUT {clut}, ink {ink}, paper {paper}',
+                return msg('readout.attrClut', 'Attribute {dec} ({hex}): CLUT {clut}, Ink {ink}, Paper {paper}',
                     { ...base, clut: parts.clut });
             }
             if (parts.kind === 'ulanext') {
-                return msg('readout.attrNext', 'Attribute {dec} ({hex}): ink entry {ink}, paper entry {paper}', base);
+                return msg('readout.attrNext', 'Attribute {dec} ({hex}): Ink entry {ink}, Paper entry {paper}', base);
             }
             return msg('readout.attrFixed',
-                'Attribute {dec} ({hex}): ink {ink}, paper {paper}, bright {bright}, flash {flash}',
+                'Attribute {dec} ({hex}): Ink {ink}, Paper {paper}, Bright {bright}, Flash {flash}',
                 { ...base, bright: parts.bright ? 1 : 0, flash: parts.flash ? 1 : 0 });
         };
         return ZX_SPECTRUM.SCREENS === 2 ? `A ${one(0)} | B ${one(1)}` : one(0);

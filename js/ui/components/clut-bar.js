@@ -328,10 +328,10 @@ class ClutBarClass {
         grid.setAttribute('aria-label', this._t('giga.paint', 'Paint'));
         grid.dataset.i18nAriaLabel = 'giga.paint';
         const slots = [
-            [GIGA_SLOTS.INK_INK, 'giga.slot.inkInk', 'Ink on screen A, ink on screen B'],
-            [GIGA_SLOTS.INK_PAPER, 'giga.slot.inkPaper', 'Ink on screen A, paper on screen B'],
-            [GIGA_SLOTS.PAPER_INK, 'giga.slot.paperInk', 'Paper on screen A, ink on screen B'],
-            [GIGA_SLOTS.PAPER_PAPER, 'giga.slot.paperPaper', 'Paper on screen A, paper on screen B']
+            [GIGA_SLOTS.INK_INK, 'giga.slot.inkInk', 'Ink on screen A, Ink on screen B'],
+            [GIGA_SLOTS.INK_PAPER, 'giga.slot.inkPaper', 'Ink on screen A, Paper on screen B'],
+            [GIGA_SLOTS.PAPER_INK, 'giga.slot.paperInk', 'Paper on screen A, Ink on screen B'],
+            [GIGA_SLOTS.PAPER_PAPER, 'giga.slot.paperPaper', 'Paper on screen A, Paper on screen B']
         ];
         for (const [slot, i18n, fallback] of slots) {
             const sw = document.createElement('div');
@@ -392,7 +392,7 @@ class ClutBarClass {
             ? (channel === 'ink' ? 'giga.inkColoursB' : 'giga.paperColoursB')
             : (channel === 'ink' ? 'clut.inkColours' : 'clut.paperColours');
         const fallback = screenB
-            ? (channel === 'ink' ? 'Screen B ink colours' : 'Screen B paper colours')
+            ? (channel === 'ink' ? 'Screen B Ink colours' : 'Screen B Paper colours')
             : (channel === 'ink' ? 'Ink colours' : 'Paper colours');
         row.setAttribute('aria-label', this._t(labelKey, fallback));
         row.dataset.i18nAriaLabel = labelKey;
@@ -546,10 +546,10 @@ class ClutBarClass {
         const SPECS = {
             bright: ['clut.brightTransparent', 'Use existing Bright',
                 'clut.brightTransparent.hint',
-                'Keep each cell\'s own bright instead of writing the Bright setting. Click Bright to write a value again'],
+                'Keep each cell\'s own Bright instead of writing the Bright setting. Click Bright to write a value again'],
             flash: ['clut.flashTransparent', 'Use existing Flash',
                 'clut.flashTransparent.hint',
-                'Keep each cell\'s own flash instead of writing the Flash setting. Click Flash to write a value again'],
+                'Keep each cell\'s own Flash instead of writing the Flash setting. Click Flash to write a value again'],
             clut: ['clut.clutTransparent', 'Use existing CLUT',
                 'clut.clutTransparent.hint',
                 'Keep each cell\'s own CLUT instead of writing the selected one. Pick a CLUT to write it again']
@@ -1111,15 +1111,15 @@ class ClutBarClass {
             T('attr-none', 'icon-attr-tools', 'attr.none', 'None', 'attr.none.hint',
               'Switches the cell tool off, so strokes go back to the tool and draw mode you chose', 'none'),
             T('attr-transpose', 'icon-attr-swap', 'attr.transpose', 'Swap', 'attr.transpose.hint',
-              'Swaps the ink and paper colours of each whole cell you click or drag over, ignoring brush size and Mirror. Right-click the picture, choose None in the cell-tool list, or pick a tool or a draw mode, to stop', 'swap'),
+              'Swaps the Ink and Paper of each whole cell you click or drag over, ignoring brush size and Mirror. Right-click the picture, choose None in the cell-tool list, or pick a tool or a draw mode, to stop', 'swap'),
             T('attr-apply', 'icon-attr-apply', 'attr.apply', 'Recolour', 'attr.apply.hint',
-              'Gives each whole cell you click or drag over your ink, paper, bright and flash, without touching a dot and ignoring brush size and Mirror. Right-click the picture, choose None in the cell-tool list, or pick a tool or a draw mode, to stop. With Bright or Flash on "use existing", each cell keeps its own', 'apply'),
-            T('attr-copy', 'icon-attr-copy', 'attr.copy', 'Copy colours', 'attr.copy.hint',
-              'Click a cell to pick up the colours it shows, then drag over other cells to give them those colours. Dots stay as they are and the colour rail is not changed. Right-click the picture, choose None in the cell-tool list, or pick a tool or a draw mode, to stop', 'copy'),
-            T('attr-invert-dots', 'icon-attr-invert-dots', 'attr.invertDots', 'Invert dots', 'attr.invertDots.hint',
-              'Inverts the dots of each whole cell you click or drag over - set dots clear, clear dots set - and leaves the colours. Right-click the picture, choose None in the cell-tool list, or pick a tool or a draw mode, to stop', 'invertDots'),
-            T('attr-invert-both', 'icon-attr-invert-both', 'attr.invertBoth', 'Invert dots and colours', 'attr.invertBoth.hint',
-              'Inverts the dots and swaps ink and paper in each whole cell you click or drag over, so the cell looks the same - for tidying an import. Not in ULAplus or ULANext. Right-click the picture, choose None in the cell-tool list, or pick a tool or a draw mode, to stop', 'invertBoth')
+              'Gives each whole cell you click or drag over your Ink, Paper, Bright and Flash, without touching a pixel and ignoring brush size and Mirror. Right-click the picture, choose None in the cell-tool list, or pick a tool or a draw mode, to stop. With Bright or Flash on "use existing", each cell keeps its own', 'apply'),
+            T('attr-copy', 'icon-attr-copy', 'attr.copy', 'Copy attributes', 'attr.copy.hint',
+              'Click a cell to pick up the attributes it shows, then drag over other cells to give them those attributes. Pixels stay as they are and the colour rail is not changed. Right-click the picture, choose None in the cell-tool list, or pick a tool or a draw mode, to stop', 'copy'),
+            T('attr-invert-dots', 'icon-attr-invert-dots', 'attr.invertDots', 'Invert pixels', 'attr.invertDots.hint',
+              'Inverts the pixels of each whole cell you click or drag over - ink pixels become paper pixels and paper pixels become ink - and leaves the attributes. Right-click the picture, choose None in the cell-tool list, or pick a tool or a draw mode, to stop', 'invertDots'),
+            T('attr-invert-both', 'icon-attr-invert-both', 'attr.invertBoth', 'Invert pixels and attributes', 'attr.invertBoth.hint',
+              'Inverts the pixels and swaps Ink and Paper in each whole cell you click or drag over, so the cell looks the same - for tidying an import. Not in ULAplus or ULANext. Right-click the picture, choose None in the cell-tool list, or pick a tool or a draw mode, to stop', 'invertBoth')
         ];
         const armed = () => (window.InputHandler && InputHandler._attrPaintMode) || 'none';
         this._cellSelector = new StripSelector({

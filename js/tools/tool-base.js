@@ -278,7 +278,7 @@ class ToolBaseClass {
 }
 
 /**
- * The "Colour core" option shared by Brush, Shape outlines and Bezier: a thick
+ * The "Attribute core" option shared by Brush, Shape outlines and Bezier: a thick
  * line sets all its dots, but only the cells under its core take the colours.
  * Values are strings so the select carries them; colourCoreSize turns one into
  * the core's width in pixels (0 = the whole line, as before).

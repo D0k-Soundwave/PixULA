@@ -395,7 +395,7 @@ class LayerPanelClass {
             btn.setAttribute('aria-disabled', ignored ? 'true' : 'false');
             const key = ignored ? 'transform.colouredIgnoresXor' : 'stamp.xorMode';
             btn.dataset.i18nTitle = key;
-            btn.title = this._t(key, ignored ? 'A stamp with its own colours ignores XOR' : 'XOR mode');
+            btn.title = this._t(key, ignored ? 'A stamp with its own attributes ignores XOR' : 'XOR mode');
         });
     }
 
@@ -474,7 +474,7 @@ class LayerPanelClass {
                 e.stopPropagation();
                 const ctl = SelectionService.stampControls(layer);
                 if (ctl && ctl.ownColours) {
-                    EventBus.emit(EVENTS.STATUS_NOTICE, { text: this._t('transform.colouredIgnoresXor', 'A stamp with its own colours ignores XOR') });
+                    EventBus.emit(EVENTS.STATUS_NOTICE, { text: this._t('transform.colouredIgnoresXor', 'A stamp with its own attributes ignores XOR') });
                     return;
                 }
                 LayerManager.setLayerXorMode(layerIndex, !layer.xorMode);

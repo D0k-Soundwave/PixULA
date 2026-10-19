@@ -51,7 +51,7 @@ test('Standard ULA: the attribute and the addresses under the pointer', async ({
     });
     await setReadout(page, 'addresses', 'screen');
     await hover(page, 10, 20);
-    expect(await text(page, '#attr-readout')).toBe('Attribute 235 ($EB): ink 3, paper 5, bright 1, flash 1');
+    expect(await text(page, '#attr-readout')).toBe('Attribute 235 ($EB): Ink 3, Paper 5, Bright 1, Flash 1');
     // (10,20): y = 20 = 00010100b. byte = $4000 + ((y & 0xC0) << 5 = 0) + ((y & 7 = 4) << 8 = $400)
     //          + ((y & 0x38 = $10) << 2 = $40) + (10 >> 3 = 1) = $4441; attribute = $5800 + (20 >> 3 = 2) * 32 + 1 = $5841
     expect(await text(page, '#addr-readout')).toBe('Byte $4441, attribute $5841 (48K)');
@@ -94,12 +94,12 @@ test('modes: GigaScreen shows both screens, Timex hi-res and Layer 2 show what t
     await selectMode(page, 'timex_hires');
     await hover(page, 264, 96);
     expect(await text(page, '#addr-readout')).toBe('Byte $6890 (Timex)');
-    expect(await text(page, '#attr-readout')).toBe('No colour cells in this mode');
+    expect(await text(page, '#attr-readout')).toBe('No attribute cells in this mode');
 
     await selectMode(page, 'layer2_256');
     await hover(page, 10, 10);
     expect(await text(page, '#addr-readout')).toBe('No memory address in this mode');
-    expect(await text(page, '#attr-readout')).toBe('No colour cells in this mode');
+    expect(await text(page, '#attr-readout')).toBe('No attribute cells in this mode');
 
     await selectMode(page, 'ula_plus');
     await page.evaluate(() => {
@@ -108,7 +108,7 @@ test('modes: GigaScreen shows both screens, Timex hi-res and Layer 2 show what t
         c.altered = true;
     });
     await hover(page, 2, 2);
-    expect(await text(page, '#attr-readout')).toBe('Attribute 177 ($B1): CLUT 2, ink 1, paper 6');
+    expect(await text(page, '#attr-readout')).toBe('Attribute 177 ($B1): CLUT 2, Ink 1, Paper 6');
 });
 
 test('the Preferences dialog sets the readout and the Y direction, and OK is what applies them', async ({ page }) => {

@@ -84,8 +84,8 @@ class FontEditorDialogClass {
             <div class="fe-center">
                 <div class="me-toolbar">
                     <div class="me-tool-group">
-                        ${Helpers.miniToolButton('brush', 'B', 'tool.brush', 'Brush', 'miniTool.brush.hint', 'Click or drag to set pixels', true)}
-                        ${Helpers.miniToolButton('eraser', 'E', 'tool.eraser', 'Eraser', 'tool.eraser.hint', 'Clear pixels back to the paper colour')}
+                        ${Helpers.miniToolButton('brush', 'B', 'tool.brush', 'Brush', 'miniTool.brush.hint', 'Click or drag to draw ink pixels', true)}
+                        ${Helpers.miniToolButton('eraser', 'E', 'tool.eraser', 'Eraser', 'tool.eraser.hint', 'Turn ink pixels back into paper pixels')}
                         ${Helpers.miniToolButton('line', 'S', 'shape.line', 'Line', 'miniTool.line.hint', 'Drag to draw a straight line between two points')}
                         ${Helpers.miniToolButton('fill', 'F', 'tool.fill', 'Fill', 'tool.fill.hint', 'Flood the area under the cursor out to its edges')}
                     </div>
@@ -114,7 +114,7 @@ class FontEditorDialogClass {
                         <span class="btn-captioned">${Helpers.captionHTML('cap.clear', 'Clear')}<button type="button" data-op="clear"  class="tool-btn" data-i18n-title-name="font.op.clear" data-i18n-title="font.op.clear.hint" data-i18n-aria-label="font.op.clear" aria-label="${this._t('font.op.clear', 'Clear glyph')}" title="${Helpers.composeTitle(this._t('font.op.clear', 'Clear glyph'), this._t('font.op.clear.hint', 'Empties the current glyph back to blank'))}"><span class="tool-icon">&#8709;</span></button></span>
                         <span class="btn-captioned">${Helpers.captionHTML('cap.copy', 'Copy')}<button type="button" data-op="copy"   class="tool-btn" data-i18n-title-name="font.op.copy" data-i18n-title="font.op.copy.hint" data-i18n-aria-label="font.op.copy" aria-label="${this._t('font.op.copy', 'Copy glyph')}" title="${Helpers.composeTitle(this._t('font.op.copy', 'Copy glyph'), this._t('font.op.copy.hint', 'Copies the current glyph to the internal glyph clipboard'))}"><span class="tool-icon">C</span></button></span>
                         <span class="btn-captioned">${Helpers.captionHTML('cap.paste', 'Paste')}<button type="button" data-op="paste"  class="tool-btn" data-i18n-title-name="font.op.paste" data-i18n-title="font.op.paste.hint" data-i18n-aria-label="font.op.paste" aria-label="${this._t('font.op.paste', 'Paste glyph')}" title="${Helpers.composeTitle(this._t('font.op.paste', 'Paste glyph'), this._t('font.op.paste.hint', 'Overwrites the current glyph with the one last copied'))}"><span class="tool-icon">V</span></button></span>
-                        <span class="btn-captioned">${Helpers.captionHTML('cap.invert', 'Invert')}<button type="button" data-op="invert" class="tool-btn" data-i18n-title-name="font.op.invert" data-i18n-title="font.op.invert.hint" data-i18n-aria-label="font.op.invert" aria-label="${this._t('font.op.invert', 'Invert glyph')}" title="${Helpers.composeTitle(this._t('font.op.invert', 'Invert glyph'), this._t('font.op.invert.hint', 'Swaps every set pixel in the glyph for an unset one and back'))}"><span class="tool-icon">&#9680;</span></button></span>
+                        <span class="btn-captioned">${Helpers.captionHTML('cap.invert', 'Invert')}<button type="button" data-op="invert" class="tool-btn" data-i18n-title-name="font.op.invert" data-i18n-title="font.op.invert.hint" data-i18n-aria-label="font.op.invert" aria-label="${this._t('font.op.invert', 'Invert glyph')}" title="${Helpers.composeTitle(this._t('font.op.invert', 'Invert glyph'), this._t('font.op.invert.hint', 'Turns every ink pixel in the glyph into a paper pixel and every paper pixel into ink'))}"><span class="tool-icon">&#9680;</span></button></span>
                     </div>
                     <div class="me-tool-group">
                         <span class="btn-captioned">${Helpers.captionHTML('cap.flipH', 'Flip H')}<button type="button" data-op="flip-h" class="tool-btn" data-i18n-title-name="font.op.flipH" data-i18n-title="font.op.flipH.hint" data-i18n-aria-label="font.op.flipH" aria-label="${this._t('font.op.flipH', 'Flip horizontally')}" title="${Helpers.composeTitle(this._t('font.op.flipH', 'Flip horizontally'), this._t('font.op.flipH.hint', 'Mirrors the glyph left-to-right'))}"><span class="tool-icon">&#8596;</span></button></span>
@@ -618,7 +618,7 @@ class FontEditorDialogClass {
                     msg += part('plural.fontNarrowed', sum.narrowed, 'one: {n} character saved narrower | other: {n} characters saved narrower') +
                         part('plural.fontLeftOut', sum.leftOut, 'one: {n} character left out | other: {n} characters left out') +
                         part('plural.fontHiddenInk', sum.hiddenInk,
-                            'one: {n} character has dots under the shading that were not saved | other: {n} characters have dots under the shading that were not saved');
+                            'one: {n} character has ink pixels under the shading that were not saved | other: {n} characters have ink pixels under the shading that were not saved');
                 }
                 this._status(msg, Math.max(3000, (msg.split(/\s+/).length / 5 + 1) * 1000)); // [P] about 5 words a second + 1 s to notice it
             }

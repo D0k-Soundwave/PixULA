@@ -83,8 +83,8 @@ const ATTR_PAINT_LABELS = Object.freeze({
   apply: 'Apply Attribute',
   swap: 'Swap INK/PAP',
   copy: 'Copy Attribute',
-  invertDots: 'Invert Dots',
-  invertBoth: 'Invert Dots and Colours'
+  invertDots: 'Invert Pixels',
+  invertBoth: 'Invert Pixels and Attributes'
 });
 
 class InputHandlerClass {

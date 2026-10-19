@@ -25,7 +25,7 @@ class TransformPanelClass {
         this._outlineSize = 1;
         this._shiftWrap = true;
         // The step the user last chose. The step select is forced to one
-        // cell while Move is "Dots and colours" or "Colours only"; this value
+        // cell while Move is "Pixels and attributes" or "Attributes only"; this value
         // is what comes back when it is free again.
         this._shiftStep = '1';
     }
@@ -66,16 +66,16 @@ class TransformPanelClass {
           <div class="tp-stamp-section" hidden>
             <div class="tool-option">
               <label><input type="checkbox" class="tp-xor" id="tp-xor" name="tp-xor" data-i18n-title-name="transform.xorMode" data-i18n-title="transform.xorMode.hint"> <span data-i18n="transform.xorMode">XOR Mode</span></label>
-              <span class="tool-option-hint tp-stamp-xor-ignored" data-i18n="transform.colouredIgnoresXor" hidden>A stamp with its own colours ignores XOR</span>
+              <span class="tool-option-hint tp-stamp-xor-ignored" data-i18n="transform.colouredIgnoresXor" hidden>A stamp with its own attributes ignores XOR</span>
             </div>
             <div class="tp-stamp-controls" hidden>
               <div class="tool-option tp-colours-row">
-                <label for="tp-stamp-colours" data-i18n="transform.stampColours">Colours</label>
+                <label for="tp-stamp-colours" data-i18n="transform.stampColours">Attributes</label>
                 <select class="tp-stamp-colours" id="tp-stamp-colours" name="tp-stamp-colours" data-i18n-title-name="transform.stampColours" data-i18n-title="transform.stampColours.hint">
                   <option value="pixels" data-i18n="transform.stampColours.pixels">Pixels only</option>
-                  <option value="coloured" data-i18n="transform.stampColours.own">Own colours</option>
+                  <option value="coloured" data-i18n="transform.stampColours.own">Own attributes</option>
                 </select>
-                <span class="tool-option-hint tp-stamp-colours-geometry" data-i18n="transform.stampColours.geometryHint" hidden>This stamp's colour cells are a different size from this screen mode's, so it can only place its dots</span>
+                <span class="tool-option-hint tp-stamp-colours-geometry" data-i18n="transform.stampColours.geometryHint" hidden>This stamp's attribute cells are a different size from this screen mode's, so it can only place its pixels</span>
               </div>
               <div class="tool-option tp-show-through-row" hidden>
                 <span class="tp-show-through-heading" data-i18n="transform.showThrough">Show through</span>
@@ -86,7 +86,7 @@ class TransformPanelClass {
               <label class="tp-st-box"><input type="checkbox" class="tp-st" id="tp-st-clut" name="tp-st-clut" data-st="clut" data-i18n-title-name="transform.showThrough.clut" data-i18n-title="transform.showThrough.clut.hint"> <span data-i18n="transform.st.clut">CLUT</span></label>
               </div>
               <div class="tool-option tp-clear-dots-row">
-                <label for="tp-clear-dots" data-i18n="transform.clearDots">Clear dots</label>
+                <label for="tp-clear-dots" data-i18n="transform.clearDots">Paper pixels</label>
                 <select class="tp-clear-dots" id="tp-clear-dots" name="tp-clear-dots" data-i18n-title-name="transform.clearDots" data-i18n-title="transform.clearDots.hint">
                   <option value="transparent" data-i18n="transform.clearDots.transparent">Leave background</option>
                   <option value="overlap" data-i18n="transform.clearDots.overlap">Clear background</option>
@@ -127,7 +127,7 @@ class TransformPanelClass {
             </div>
             <div class="tool-option">
               <button type="button" class="panel-button small tp-reset" data-i18n="transform.reset" data-i18n-title-name="transform.reset" data-i18n-title="transform.reset.hint">Reset</button>
-              <span class="tool-option-hint tp-stamp-reshape-blocked" data-i18n="transform.colouredNoReshape" hidden>A stamp with its own colours cannot be scaled, rotated, bent, flipped, inverted or outlined; switch it to Pixels only first</span>
+              <span class="tool-option-hint tp-stamp-reshape-blocked" data-i18n="transform.colouredNoReshape" hidden>A stamp with its own attributes cannot be scaled, rotated, bent, flipped, inverted or outlined; switch it to Pixels only first</span>
             </div>
             <hr class="tool-option-separator">
           </div>
@@ -159,12 +159,12 @@ class TransformPanelClass {
             <div class="tool-option tp-shift-move-row">
               <label for="tp-shift-move" data-i18n="transform.shiftMove">Move</label>
               <select class="tp-shift-move" id="tp-shift-move" name="tp-shift-move" data-i18n-title-name="transform.shiftMove" data-i18n-title="transform.shiftMove.hint">
-                <option value="both" data-i18n="transform.shiftMove.both">Dots and colours</option>
-                <option value="dots" data-i18n="transform.shiftMove.dots">Dots only</option>
-                <option value="colours" data-i18n="transform.shiftMove.colours">Colours only</option>
+                <option value="both" data-i18n="transform.shiftMove.both">Pixels and attributes</option>
+                <option value="dots" data-i18n="transform.shiftMove.dots">Pixels only</option>
+                <option value="colours" data-i18n="transform.shiftMove.colours">Attributes only</option>
               </select>
               <span class="tool-option-hint tp-shift-move-stamp" data-i18n="transform.shiftMove.stampHint" hidden>Shifts move the whole stamp</span>
-              <span class="tool-option-hint tp-shift-move-cell" data-i18n="transform.shiftMove.cellHint" hidden>Dots and colours move a whole cell at a time</span>
+              <span class="tool-option-hint tp-shift-move-cell" data-i18n="transform.shiftMove.cellHint" hidden>Pixels and attributes move a whole cell at a time</span>
             </div>
             <div class="tp-shift-opts">
               <select class="tp-shift-step" id="tp-shift-step" name="tp-shift-step" data-i18n-aria-label="transform.shiftStep" aria-label="Shift step" data-i18n-title-name="transform.shiftStep" data-i18n-title="transform.shiftStep.hint">
