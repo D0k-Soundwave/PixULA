@@ -32,7 +32,7 @@ test('every strip selector, and every icon in its pop-up, has a real two-stage t
             expect(desc).not.toBe(name);
         }
     }
-    expect(seen).toBe(3 + 6 + 6 + 4);   // the three selectors, six modes, five tools and None, four mirror choices
+    expect(seen).toBe(3 + 7 + 6 + 4);   // the three selectors, seven modes, five tools and None, four mirror choices
 });
 
 test('hovering an icon in the pop-up uses the shared hover tag: the name, then the description', async ({ page }) => {

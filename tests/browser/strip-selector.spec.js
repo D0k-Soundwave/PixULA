@@ -26,7 +26,7 @@ test('each selector shows what is in force and opens a two-column grid under its
     await expect(page.locator('#mirror-select')).toHaveAttribute('data-value', 'off');
     await expect(page.locator('#cell-tool-select')).toHaveAttribute('data-value', 'none');
 
-    for (const [id, count] of [['draw-mode-select', 6], ['mirror-select', 4], ['cell-tool-select', 5]]) {
+    for (const [id, count] of [['draw-mode-select', 7], ['mirror-select', 4], ['cell-tool-select', 5]]) {
         await page.click('#' + id);
         await expect(popup(page)).toHaveCount(1);
         await expect(page.locator('#' + id)).toHaveAttribute('aria-expanded', 'true');
