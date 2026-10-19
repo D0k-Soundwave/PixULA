@@ -197,8 +197,8 @@ class MenuSystemClass {
         this._updateToggleState('stop-flashing', v.stopFlashing);
         this._updateToggleState('colour-grid', v.colourGrid);
         const can = LayerManager.displayViewAvailability();
-        const noDots = ['view.display.noDots', 'Every pixel has its own colour in this screen mode, so there are no dots to show.'];
-        const noCells = ['view.display.noCells', 'This screen mode has no colour cells.'];
+        const noDots = ['view.display.noDots', 'Every pixel has its own colour in this screen mode, so there are no ink and paper pixels to show.'];
+        const noCells = ['view.display.noCells', 'This screen mode has no attribute cells.'];
         const noFlash = ['view.display.noFlash', 'Nothing flashes in this screen mode.'];
         const rows = [
             ['colours-off', can.coloursOff, noDots],
@@ -229,7 +229,7 @@ class MenuSystemClass {
         const parent = this.element.querySelector('[data-id="attributes"]');
         if (parent) {
             const reasons = {
-                noCellAttributes: ['menu.image.attrNoCells', 'This screen mode has no cell colours.'],
+                noCellAttributes: ['menu.image.attrNoCells', 'This screen mode has no cell attributes.'],
                 stamp: ['menu.image.attrStamp', 'Finish or cancel the stamp first.'],
                 locked: ['menu.image.attrLocked', 'This layer is locked.']
             };
@@ -267,7 +267,7 @@ class MenuSystemClass {
         if (!parent) return;
         const reason = b.slots ? ['menu.image.paletteFixed', 'This screen mode has fixed colours, so it has no palette slots.']
             : (b.invert === 'nextPalette'
-                ? ['menu.image.invertPaletteNext', 'The palette inverter is for ULAplus palettes; the Next modes keep ink and paper in different parts of the palette.']
+                ? ['menu.image.invertPaletteNext', 'The palette inverter is for ULAplus palettes; the Next modes keep Ink and Paper in different parts of the palette.']
                 : null);
         if (reason) parent.title = this._t(reason[0], reason[1]);
         else parent.removeAttribute('title');
@@ -290,7 +290,7 @@ class MenuSystemClass {
         // the picture. Greyed out with the reason as a tooltip (the rows are pointer-reachable).
         const stampBlock = (b.flip === 'stampAttrs' || b.flip === 'stamp') ? b.flip : null;
         const stampReasons = {
-            stampAttrs: ['menu.image.dotsStampAttrs', 'This stamp keeps its own colours, so it cannot be flipped here.'],
+            stampAttrs: ['menu.image.dotsStampAttrs', 'This stamp keeps its own attributes, so it cannot be flipped here.'],
             stamp: ['menu.image.attrStamp', 'Finish or cancel the stamp first.']
         };
         for (const id of ['flip-h', 'flip-v', 'rotate-90cw', 'rotate-90ccw', 'rotate-180', 'invert']) {
@@ -305,9 +305,9 @@ class MenuSystemClass {
         const reasons = {
             locked: ['menu.image.attrLocked', 'This layer is locked.'],
             stamp: ['menu.image.attrStamp', 'Finish or cancel the stamp first.'],
-            stampAttrs: ['menu.image.dotsStampAttrs', 'This stamp keeps its own colours, so it cannot be flipped here.'],
-            noCellAttributes: ['menu.image.dotsNoCells', 'Invert Dots and Colours needs cell colours, which this screen mode does not have.'],
-            palette: ['menu.image.dotsPalette', 'Invert Dots and Colours needs the fixed 16 colours: in ULAplus and ULANext, swapping ink and paper would change how the picture looks.']
+            stampAttrs: ['menu.image.dotsStampAttrs', 'This stamp keeps its own attributes, so it cannot be flipped here.'],
+            noCellAttributes: ['menu.image.dotsNoCells', 'Invert Pixels and Attributes needs cell attributes, which this screen mode does not have.'],
+            palette: ['menu.image.dotsPalette', 'Invert Pixels and Attributes needs the fixed 16 colours: in ULAplus and ULANext, swapping Ink and Paper would change how the picture looks.']
         };
         const texts = [b.flip, b.invert]
             .filter((r, i, all) => r && all.indexOf(r) === i)
@@ -447,7 +447,7 @@ class MenuSystemClass {
                     { id: 'grid-snap', label: 'Snap', shortcut: 'Shift+S', action: 'view:toggleSnap', toggle: true, i18n: 'view.snap' },
                     { type: 'separator' },
                     // Display-only: they change what the screen shows, never the picture.
-                    { id: 'colours-off', label: 'Colours Off', action: 'view:toggleColoursOff', toggle: true, i18n: 'view.coloursOff' },
+                    { id: 'colours-off', label: 'Attributes Off', action: 'view:toggleColoursOff', toggle: true, i18n: 'view.coloursOff' },
                     { id: 'stop-flashing', label: 'Stop Flashing', action: 'view:toggleStopFlashing', toggle: true, i18n: 'view.stopFlashing' },
                     { id: 'colour-grid', label: 'Colour Grid', action: 'view:toggleColourGrid', toggle: true, i18n: 'view.colourGrid' },
                     { type: 'separator' },
@@ -504,7 +504,7 @@ class MenuSystemClass {
                     { id: 'rotate-90ccw', label: 'Rotate 90 CCW', action: 'image:rotate90ccw' },
                     { id: 'rotate-180', label: 'Rotate 180', action: 'image:rotate180' },
                     { type: 'separator' },
-                    { id: 'invert', label: 'Invert Dots', action: 'image:invert' },
+                    { id: 'invert', label: 'Invert Pixels', action: 'image:invert' },
                     { id: 'clear', label: 'Clear Canvas', action: 'image:clear' },
                     { type: 'separator' },
                     // Cell colours only (dots stay). Each row is greyed out where
@@ -522,11 +522,11 @@ class MenuSystemClass {
                     // Dots only (the colours stay in their cells), except
                     // Invert Dots and Colours, which inverts both. Reasons on
                     // the Dots row as for Attributes (_updateDotMenuState).
-                    { id: 'dots', label: 'Dots', i18n: 'menu.image.dots', items: [
+                    { id: 'dots', label: 'Pixels', i18n: 'menu.image.dots', items: [
                         { id: 'dots-flip-h', label: 'Flip Horizontal', action: 'image:dotsFlipH' },
                         { id: 'dots-flip-v', label: 'Flip Vertical', action: 'image:dotsFlipV' },
                         { type: 'separator' },
-                        { id: 'dots-invert', label: 'Invert Dots and Colours', action: 'image:dotsInvert' }
+                        { id: 'dots-invert', label: 'Invert Pixels and Attributes', action: 'image:dotsInvert' }
                     ]},
                     { type: 'separator' },
                     // Screen modes (Phase 12a/13) live in their own flyout —
@@ -1403,7 +1403,7 @@ class MenuSystemClass {
         for (const s of COLOUR_SHORTCUTS) shortcuts.push([s.keys, this._t(s.i18n, s.en)]);
         // ULAplus CLUT keys - one list with the key handler
         shortcuts.push([CLUT_SHORTCUTS.keys, this._t(CLUT_SHORTCUTS.i18n, CLUT_SHORTCUTS.en)]);
-        shortcuts.push(['X / Y', this._t('help.axisLock', 'Hold while drawing: keep to a horizontal (X) or vertical (Y) line. Tap X: swap ink and paper')]);
+        shortcuts.push(['X / Y', this._t('help.axisLock', 'Hold while drawing: keep to a horizontal (X) or vertical (Y) line. Tap X: swap Ink and Paper')]);
         shortcuts.push(['Shift+C', this._t('menu.edit.cloneFigure', 'Clone Last Figure')]);
         shortcuts.push(['Ctrl+F', this._t('menu.edit.findMapElement', 'Find Map Element')]);
         shortcuts.push(['Shift+M', this._t('menu.view.mapElementPictures', 'Map Element Pictures')]);

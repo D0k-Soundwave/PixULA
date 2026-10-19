@@ -113,7 +113,7 @@ class PreferencesDialogClass {
                 <input type="checkbox" id="pref-inverse" name="pref-inverse">
                 <span data-i18n="pref.inverse">${this._t('pref.inverse', 'Inverse: swap the mouse buttons')}</span>
             </label>
-            <div class="pref-block__hint" data-i18n="pref.inverseHint">${this._t('pref.inverseHint', 'The left button clears dots and the right button sets them, like BASIC\'s INVERSE 1. Shift+I switches it from the keyboard, and the status bar says when it is on. It changes nothing in the Ink Recolour, Paper Recolour and XOR draw modes.')}</div>
+            <div class="pref-block__hint" data-i18n="pref.inverseHint">${this._t('pref.inverseHint', 'The left button draws paper pixels and the right button draws ink pixels, like BASIC\'s INVERSE 1. Shift+I switches it from the keyboard, and the status bar says when it is on. It changes nothing in the Ink Recolour, Paper Recolour and XOR draw modes.')}</div>
             <h3 data-i18n="pref.input">${this._t('pref.input', 'Input')}</h3>
             <label class="pref-row">
                 <input type="checkbox" id="pref-touch-draw" name="pref-touch-draw">

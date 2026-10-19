@@ -22,16 +22,16 @@
 // out. Shared phrases, so the manual's draw-mode table (describeModes) and the
 // translations say the same thing the same way. [i18n key, English].
 const FX = {
-    dotsSet:        ['dm.fx.dotsSet', 'Sets them'],
+    dotsSet:        ['dm.fx.dotsSet', 'Draws ink pixels'],
     dotsFlipStroke: ['dm.fx.dotsFlipStroke', 'Flips each one once per stroke'],
     dotsFlipPass:   ['dm.fx.dotsFlipPass', 'Flips each one once per pass'],
     untouched:      ['dm.fx.untouched', 'Untouched'],
-    coloursAll:     ['dm.fx.coloursAll', 'Ink, paper, bright and flash'],
-    coloursInk:     ['dm.fx.coloursInk', 'Ink, bright and flash'],
-    coloursPaper:   ['dm.fx.coloursPaper', 'Paper, bright and flash'],
+    coloursAll:     ['dm.fx.coloursAll', 'Ink, Paper, Bright and Flash'],
+    coloursInk:     ['dm.fx.coloursInk', 'Ink, Bright and Flash'],
+    coloursPaper:   ['dm.fx.coloursPaper', 'Paper, Bright and Flash'],
     coloursNone:    ['dm.fx.coloursNone', 'None'],
-    rightNormal:    ['dm.fx.rightNormal', 'Clears dots, sets the same colours'],
-    rightPixels:    ['dm.fx.rightPixels', 'Clears dots, colours untouched'],
+    rightNormal:    ['dm.fx.rightNormal', 'Draws paper pixels, sets the same attributes'],
+    rightPixels:    ['dm.fx.rightPixels', 'Draws paper pixels, attributes untouched'],
     rightSame:      ['dm.fx.rightSame', 'Same as the left button']
 };
 
@@ -72,28 +72,28 @@ const FX = {
 const MODES = [
     { value: 'normal', icon: 'icon-dm-normal',
       name: ['dm.normal', 'Normal'],
-      hint: ['dm.normal.hint', 'Sets dots and gives the cell your ink, paper, bright and flash. The right button clears dots and gives the cell the same colours'],
+      hint: ['dm.normal.hint', 'Draws ink pixels and gives the cell your Ink, Paper, Bright and Flash. The right button draws paper pixels and gives the cell the same attributes'],
       dots: FX.dotsSet, colours: FX.coloursAll, right: FX.rightNormal },
     { value: 'pixel_only', icon: 'icon-dm-pixels',
       name: ['dm.pixelsOnly', 'Pixels Only'],
-      hint: ['dm.pixelsOnly.hint', 'Sets dots and leaves the cell\'s colours alone. The right button clears dots, also leaving the colours alone'],
+      hint: ['dm.pixelsOnly.hint', 'Draws ink pixels and leaves the cell\'s attributes alone. The right button draws paper pixels, also leaving the attributes alone'],
       dots: FX.dotsSet, colours: FX.coloursNone, right: FX.rightPixels },
     { value: 'xor', icon: 'icon-dm-xor',
       name: ['dm.xor', 'XOR / Over'],
-      hint: ['dm.xor.hint', 'Flips each dot it touches, once per stroke, and gives the cell your colours. Two strokes over the same dots cancel each other out. Both buttons do the same'],
+      hint: ['dm.xor.hint', 'Flips each pixel it touches, ink to paper and paper to ink, once per stroke, and gives the cell your attributes. Two strokes over the same pixels cancel each other out. Both buttons do the same'],
       dots: FX.dotsFlipStroke, colours: FX.coloursAll, right: FX.rightSame },
     { value: 'xor_pixel', icon: 'icon-dm-xor-pixel',
       name: ['dm.xorPixel', 'XOR / Every Pass'],
-      hint: ['dm.xorPixel.hint', 'Like XOR / Over, but a stroke that comes back over its own path flips those dots again, so it cancels where it crosses itself. Both buttons do the same'],
+      hint: ['dm.xorPixel.hint', 'Like XOR / Over, but a stroke that comes back over its own path flips those pixels again, so it cancels where it crosses itself. Both buttons do the same'],
       dots: FX.dotsFlipPass, colours: FX.coloursAll, right: FX.rightSame },
     { value: 'ink', icon: 'icon-dm-ink',
       name: ['dm.ink', 'Ink Recolour'],
-      hint: ['dm.ink.hint', 'Gives every cell the tool touches your ink colour, bright and flash without touching a dot - following the brush size, the shape or the fill area. Both buttons do the same. With Bright or Flash on "use existing", each cell keeps its own'],
+      hint: ['dm.ink.hint', 'Gives every cell the tool touches your Ink, Bright and Flash without touching a pixel - following the brush size, the shape or the fill area. Both buttons do the same. With Bright or Flash on "use existing", each cell keeps its own'],
       dots: FX.untouched, colours: FX.coloursInk, right: FX.rightSame,
       needsAttributes: true },
     { value: 'paper', icon: 'icon-dm-paper',
       name: ['dm.paper', 'Paper Recolour'],
-      hint: ['dm.paper.hint', 'Gives every cell the tool touches your paper colour, bright and flash without touching a dot - following the brush size, the shape or the fill area. Both buttons do the same. With Bright or Flash on "use existing", each cell keeps its own'],
+      hint: ['dm.paper.hint', 'Gives every cell the tool touches your Paper, Bright and Flash without touching a pixel - following the brush size, the shape or the fill area. Both buttons do the same. With Bright or Flash on "use existing", each cell keeps its own'],
       dots: FX.untouched, colours: FX.coloursPaper, right: FX.rightSame,
       needsAttributes: true }
 ];
@@ -109,9 +109,9 @@ const INVERSE_NO_EFFECT = ['ink', 'paper', 'xor', 'xor_pixel'];
 const ATTR_OPS = {
     swap:  ['status.attrSwap', 'Swap is on'],
     apply: ['status.attrRecolour', 'Recolour is on'],
-    copy: ['status.attrCopy', 'Copy colours is on'],
-    invertDots: ['status.attrInvertDots', 'Invert dots is on'],
-    invertBoth: ['status.attrInvertBoth', 'Invert dots and colours is on']
+    copy: ['status.attrCopy', 'Copy attributes is on'],
+    invertDots: ['status.attrInvertDots', 'Invert pixels is on'],
+    invertBoth: ['status.attrInvertBoth', 'Invert pixels and attributes is on']
 };
 
 // Mirror (symmetry-while-drawing) toggle group: mode, icon, caption i18n key

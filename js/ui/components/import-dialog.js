@@ -253,7 +253,7 @@ class ImportDialogClass {
                     }
                     dsel.appendChild(og);
                 }
-                row.title = this._t('import.dither.hint', 'How the Smooth conversion turns shades into dots.');
+                row.title = this._t('import.dither.hint', 'How the Smooth conversion turns shades into ink and paper pixels.');
                 row.dataset.i18nTitle = 'import.dither.hint';
                 dsel.addEventListener('change', () => {
                     state.dither = dsel.value;

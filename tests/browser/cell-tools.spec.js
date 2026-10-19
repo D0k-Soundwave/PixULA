@@ -73,12 +73,12 @@ test('the cell tools are ONE selector: pick one to arm it, pick it again or None
     await pickCellTool(page, 'copy');
     expect(await armed(page)).toBe('copy');
     await expect(page.locator('.strip-popup'), 'the grid is gone once a choice is made').toHaveCount(0);
-    await expect(page.locator('#draw-mode-status')).toHaveText('Copy colours is on');
+    await expect(page.locator('#draw-mode-status')).toHaveText('Copy attributes is on');
     await pickCellTool(page, 'invertDots');
     expect(await armed(page)).toBe('invertDots');
-    await expect(page.locator('#draw-mode-status')).toHaveText('Invert dots is on');
+    await expect(page.locator('#draw-mode-status')).toHaveText('Invert pixels is on');
     await pickCellTool(page, 'invertBoth');
-    await expect(page.locator('#draw-mode-status')).toHaveText('Invert dots and colours is on');
+    await expect(page.locator('#draw-mode-status')).toHaveText('Invert pixels and attributes is on');
     expect((await offered(page)).includes('attr-none'), 'None is offered while one is armed').toBe(true);
 
     await pickCellTool(page, 'invertBoth');   // picking the armed one again switches it off

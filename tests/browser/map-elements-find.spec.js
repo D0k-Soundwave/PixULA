@@ -205,7 +205,7 @@ test('Find says why it cannot start: no selection, a floating piece, a mode with
     p = notice(page);
     await page.waitForTimeout(50);
     await page.keyboard.press('Control+f');
-    expect(await p).toContain('8x8 colour cells');
+    expect(await p).toContain('8x8 attribute cells');
     await expect(panel(page).locator('.mapel-find')).toBeHidden();
 });
 

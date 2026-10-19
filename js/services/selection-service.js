@@ -357,7 +357,7 @@ class SelectionServiceClass {
     }
 
     // The colours of the cells the copy covered, so a paste can bring them back
-    // ("Own colours"). Only where one cell colour pair describes a cell: not in
+    // ("Own attributes"). Only where one cell colour pair describes a cell: not in
     // GigaScreen (two screens), not in the indexed modes, not where cells have
     // no colours. A cell the lasso did not touch has none (null).
     if (ZX_SPECTRUM.SCREENS !== 2 && ZX_SPECTRUM.PIXEL_DEPTH === 1 &&

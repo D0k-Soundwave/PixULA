@@ -36,7 +36,7 @@ test('Layer 2 greys out Invert Dots and Colours and says why on the Dots row; fl
     expect(await itemState(page, 'dots-invert')).toEqual({ present: true, disabled: true });
     expect(await itemState(page, 'dots-flip-h')).toEqual({ present: true, disabled: false });
     const tip = await page.getAttribute('#menu-image [data-id="dots"]', 'title');
-    expect(tip, 'the reason is on the parent row').toMatch(/cell colours/i);
+    expect(tip, 'the reason is on the parent row').toMatch(/cell attributes/i);
 });
 
 test('Flip Horizontal from the menu mirrors the dots and leaves the colours', async ({ page }) => {
