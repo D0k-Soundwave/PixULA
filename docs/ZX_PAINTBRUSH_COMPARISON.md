@@ -20,10 +20,14 @@ listings and had gone stale (it described an "Attributes only" draw mode and a
 "transparent" draw mode that no longer exist, and GigaScreen support that ZX
 Paintbrush never had).
 
-**Totals** [M, counted from the tables below]: 114 functions; PixULA is below
-parity on 27 (6 missing, 21 partial), level on 76, ahead on 9, and 2 do not apply to a browser app
-(counted by .claude/parity/count-verdicts.js, 2026-10-14, after Batch 11; the counter now reads a verdict that has a note after it, so rows such as
-"Same in Standard ULA" or "Missing (left out by choice ...)" are counted - before today it silently skipped 9 rows). On 2026-10-10, after Batch 7, it was
+**Totals** [M, counted from the tables below by .claude/parity/count-verdicts.js, 2026-10-19, after the
+2026-10-18 audit corrections]: 114 functions; PixULA is below parity on 34 (6 missing, 28 partial), level on 70,
+ahead on 8, and 2 do not apply to a browser app. The audit found seven rows judged too kindly and moved them to
+Partial: Drawing (pixels) switch, Ring, Gradient fills, CHX big fonts, Paste Windows graphic and Undo (from Same),
+and BMP, GIF, JPG, PNG (from PixULA further).
+Before the audit [M, same counter, 2026-10-14, after Batch 11] it was 27 below parity (6 missing, 21 partial),
+level on 76, ahead on 9, 2 not applicable; that day the counter learned to read a verdict that has a note after it, so rows such as
+"Same in Standard ULA" or "Missing (left out by choice ...)" are counted - before then it silently skipped 9 rows. On 2026-10-10, after Batch 7, it was
 33 below parity (7 missing, 26 partial).
 Before Batch 1 (2026-10-08 morning) the count below parity was 69 (34 missing, 35
 partial). Before Batch 2 part 2B2 (2026-10-08) it was 64 (28 missing, 36 partial):
@@ -41,7 +45,9 @@ Batch 4 part 4B (2026-10-09) took the four inverter, copy-attribute and wiping r
 
 ## Part 1 - Attributes, Bright and Flash
 
-50 functions: 30 same, 1 where PixULA goes further, 14 partial, 5 missing, 0 not applicable.
+50 functions: 40 same, 1 where PixULA goes further, 9 partial, 0 missing, 0 not applicable [M, count-verdicts.js, 2026-10-19].
+Before the 2026-10-18 audit the counter gave 41 same and 8 partial; this line still read 30 same, 14 partial and
+5 missing, its 2026-10-09 count, never updated since.
 
 ZX Paintbrush gives each part of the attribute byte (bit 7 FLASH, bit 6 BRIGHT,
 bits 5-3 PAPER, bits 2-0 INK) three states: a value, or "transparent" (BASIC's
@@ -65,9 +71,9 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 
 | ZX Paintbrush | What it does | PixULA | Verdict |
 |---|---|---|---|
-| Drawing (pixels) switch | Turn pixel drawing off so any tool writes colours only. Combined with the per-colour transparency above, any mix is possible, e.g. paper and flash only. | Pixels Only, Ink Recolour and Paper Recolour, combined with the four "use existing" boxes, give any mix, e.g. paper and flash only (2026-10-08). | Same |
+| Drawing (pixels) switch | Turn pixel drawing off so any tool writes colours only. Combined with the per-colour transparency above, any mix is possible, e.g. paper and flash only. | Ink Recolour (ink, bright, flash) and Paper Recolour (paper, bright, flash), combined with the four "use existing" boxes, let every drawing tool write colours with no dots, e.g. paper and flash only (2026-10-08). Ink and paper together with no dots cannot be written by a drawing tool in one stroke: Ink Recolour never writes paper and Paper Recolour never writes ink. That takes the Recolour cell tool (whole cells), the Fill tool's Fill attributes only option (whole cells) or two passes. The draw mode that wrote all four was retired on purpose; bringing one back is the owner's call (audit 2026-10-18). Pixels Only is the other way round: dots with no colours. | Partial (ink and paper together with no dots need two passes or a whole-cell tool) |
 | Filling switch | Shapes and the fill tool use the chosen fill style instead of solid. | Filled and Use pattern options on each tool. | Same |
-| Inverse mode | Like BASIC INVERSE: tools reset dots instead of setting them; text and solid fills are reversed. | Preferences > Inverse, or Shift+I (2026-10-09; the owner moved it out of the top strip): swaps the two mouse buttons for the brush, fill, shapes, curves, gradient, patterns, text and stamps (left clears dots, right sets them). Ink and Paper Recolour and the XOR modes give both buttons one job, so Inverse changes nothing there and the status line says so. Remembered, saved in presets. | Same |
+| Inverse mode | Like BASIC INVERSE: tools reset dots instead of setting them; text and solid fills are reversed. | Preferences > Inverse, or Shift+I (2026-10-09; the owner moved it out of the top strip): swaps the two mouse buttons for the brush, fill, shapes, curves, patterns, text and stamps (left clears dots, right sets them). The gradient clears dots with either button, as recorded in Batch 4 (its right button only reverses the direction). Ink and Paper Recolour and the XOR modes give both buttons one job, so Inverse changes nothing there and the status line says so. Remembered, saved in presets. | Same |
 | Over mode | Like BASIC OVER: dots are toggled. | XOR / Over, plus XOR / Every Pass. | PixULA further |
 
 ### Painting attributes
@@ -88,13 +94,13 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 |---|---|---|---|
 | Attributes inverter tool | Swaps ink and paper of each cell clicked; snaps to cells. | Swap button. | Same |
 | Pixels inverter tool | Inverts the dots of each cell clicked. | Invert dots in the Cell tool selector of the top strip (2026-10-09): click or drag over whole cells; GigaScreen slot s becomes 3 - s; works in Timex Hi-res (8x8 cells) too; a blank cell fills; one undo step per drag. | Same |
-| Pixels and attributes inverter | Inverts dots and swaps colours together, so the picture looks unchanged. Used to tidy imported pictures, where solid areas come in as inverted cells with holes. | Invert dots and colours in the Cell tool selector of the top strip, and Image > Dots > Invert Dots and Colours (2026-10-08, tool 2026-10-09): inverts the dots and swaps ink and paper of each whole cell; one undo step. Skips cells another visible layer also draws in. Not offered in ULAplus and ULANext (swapping would change the look), modes without cell colours, or while a stamp floats. | Same |
+| Pixels and attributes inverter | Inverts dots and swaps colours together, so the picture looks unchanged. Used to tidy imported pictures, where solid areas come in as inverted cells with holes. | Invert dots and colours in the Cell tool selector of the top strip, and Image > Dots > Invert Dots and Colours (2026-10-08, tool 2026-10-09): inverts the dots and swaps ink and paper of each whole cell; one undo step. Skips cells another visible layer also draws in. Not offered in ULAplus and ULANext (swapping would change the look) or modes without cell colours. While a stamp floats the menu command is shut, and the cell tool stays in the list but says to finish or cancel the stamp first, as every cell tool does. | Same |
 
 ### Edit attributes bar - selection or whole screen
 
 | ZX Paintbrush | What it does | PixULA | Verdict |
 |---|---|---|---|
-| Invert attributes of selection | Swaps ink and paper of every cell in the selection, or the whole screen. | Image > Attributes > Invert (2026-10-08): whole cells touched by the selection, or the whole picture; one undo step. Greyed out in modes without cell colours. Over a stamp that places its own colours (2026-10-10, Batch 5 part 5C) it acts on the stamp's cell colours, floating or parked, ignoring the selection, one undo step; greyed out for a stamp with no colours of its own. | Same |
+| Invert attributes of selection | Swaps ink and paper of every cell in the selection, or the whole screen. | Image > Attributes > Invert (2026-10-08): the whole cells of the selection's bounding rectangle (a lasso, wand or ellipse selection counts as its rectangle, owner decision in Batch 2), or the whole picture; one undo step. Greyed out in modes without cell colours. Over a stamp that places its own colours (2026-10-10, Batch 5 part 5C) it acts on the stamp's cell colours, floating or parked, ignoring the selection, one undo step; greyed out for a stamp with no colours of its own. | Same |
 | Erase attributes of selection | Sets every cell in the selection, or the whole screen, to the current colours. | Image > Attributes > Erase (2026-10-08): writes the rail colours, honouring the use-existing boxes; one undo step. Same limits as Invert. Over a stamp that places its own colours (2026-10-10, Batch 5 part 5C) it acts on the stamp's cell colours, floating or parked, ignoring the selection, one undo step; greyed out for a stamp with no colours of its own. | Same |
 | Flip attributes horizontally | Mirrors the colours; the dots stay where they are. | Image > Attributes > Flip Horizontal (2026-10-08): mirrors the cell colours, dots untouched. Same limits as Invert. Over a stamp that places its own colours (2026-10-10, Batch 5 part 5C) it acts on the stamp's cell colours, floating or parked, ignoring the selection, one undo step; greyed out for a stamp with no colours of its own. | Same |
 | Flip attributes vertically | As above, top to bottom. | Image > Attributes > Flip Vertical (2026-10-08): as above. Same limits as Invert. Over a stamp that places its own colours (2026-10-10, Batch 5 part 5C) it acts on the stamp's cell colours, floating or parked, ignoring the selection, one undo step; greyed out for a stamp with no colours of its own. | Same |
@@ -104,7 +110,7 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 
 | ZX Paintbrush | What it does | PixULA | Verdict |
 |---|---|---|---|
-| Invert pixels of selection | Inverts the dots of the selection or screen; colours untouched. | Transform > Invert, and Image > Invert Colours, which does the same thing despite its name. | Same |
+| Invert pixels of selection | Inverts the dots of the selection or screen; colours untouched. | Transform > Invert and Image > Invert Dots: the dots of the selection's bounding rectangle (a lasso or ellipse counts as its rectangle) or of the whole picture; every cell keeps its own ink, paper, bright and flash (2026-10-19; before that the cells took the rail's colours). | Same |
 | Erase pixels of selection | Clears the dots; colours kept. | Edit > Delete. | Same |
 | Flip pixels horizontally / vertically | Mirrors the dots; colours stay where they are. | Image > Dots > Flip Horizontal / Vertical (2026-10-08): mirrors the dots of the selection or whole picture, colours stay in their cells; one undo step. A floating stamp is flipped as a stamp, but a stamp with its own cell colours cannot be flipped here. | Partial |
 | Roll or scroll pixels only | Moves the dots one pixel at a time; colours stay. | Transform Shift, Move = Dots only (2026-10-08): dots move one pixel or one cell at a time, 8 directions, wrap on or off, repeats while held. Not for a floating stamp (a stamp moves whole), and the arrow keys follow Move too (owner decision, 2026-10-08). | Partial |
@@ -145,13 +151,15 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 
 ## Part 2 - Everything else
 
-64 functions: 19 same, 9 where PixULA goes further, 19 partial, 15 missing, 2 not applicable.
+64 functions: 30 same, 7 where PixULA goes further, 19 partial, 6 missing, 2 not applicable [M, count-verdicts.js, 2026-10-19].
+Before the 2026-10-18 audit the counter gave 35 same, 8 further, 13 partial and 6 missing; this line still read
+19 same, 9 further, 19 partial and 15 missing, its 2026-10-08 count, never updated since.
 
 ### Draw tools
 
 | ZX Paintbrush | What it does | PixULA | Verdict |
 |---|---|---|---|
-| Freehand | Draw with the mouse. | Brush, with eight engines, size 1 to 32 and pressure. | PixULA further |
+| Freehand | Draw with the mouse. | Brush, with seven engines (round, square, crosshatch, spray, fade, pattern, hatch), size 1 to 32 and pressure. | PixULA further |
 | Freehand and line | Mix straight segments and freehand in one figure; Enter finishes. | Figure tool > Polyline (2026-10-10, Batch 7 part 7A; Shape list, or the L key): click points or drag for freehand runs, double-click or Enter finishes, the figure stays a pending preview, Enter again draws it as one undo step, Backspace removes the last point (a whole run), Escape drops it (ZX Paintbrush finishes the figure on Escape; here it is dropped, per the plan). | Same |
 | Line | Two-point line. | Shape: line. | Same |
 | Rays | Many lines from one start point. | Figure tool > Rays (2026-10-10): the first point, then each further point or freehand sample is joined to it. | Same |
@@ -162,7 +170,7 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | Triangle tools | Free three-point, equal-sided and symmetrical triangles. | Shape: triangle from a box; Figure tool > Triangle (2026-10-10): three free points, optionally filled. Equal-sided and symmetrical triangles are still only the box form. | Partial |
 | Rectangle, square, rounded rectangle, parallelogram | Rotatable; the rounding is adjustable. | All four exist as shapes. Since 2026-10-10 (7B) each has a Rotation option, and the rounded rectangle has an adjustable Rounding (0 to 100 percent; 50, the default, is the radius it always had). The Figures group now has Parallelogram (3 points) (2026-10-14): drag the first side, click the third corner, the fourth is A + C - B; fillable, turns about the middle of all four corners, moving the third point moves the fourth with it. Read from the help text as 'the corner after the second point' - the help picture was not looked at, so check one against ZX Paintbrush. | Same |
 | Polygon, centred polygon, N-edge polygon | Free points, or regular around a centre. | Regular polygons from a box; Figure tool > Polygon (2026-10-10): any number of free points, freehand runs, optionally filled. No centred polygon or N-edge polygon tool beyond the regular shapes. | Partial |
-| Ring | Elliptic ring with adjustable width. | Shape: ring with inner radius. | Same |
+| Ring | Elliptic ring with adjustable width. | Shape: ring with an inner radius of 10 to 90 percent of the outer one. The ring is always circular and has no Rotation option; ZX Paintbrush's ring is elliptic and can be rotated. | Partial (circular ring only, no rotation) |
 | Line arrow | Line with arrowhead. | Arrow shapes. | Same |
 | Line styles | Solid, dashed, dotted, clear. | Line style on Shape, Figure and Bezier (2026-10-10, 7B): Solid, Dashed, Dotted, Dash-dot, Dash-dot-dot (the six styles the help names) and Clear. Dash lengths read from the help's toolbar picture [M]; dashes only at thickness 1 (greyed out above, enforced by the rasteriser); Clear draws no outline, so it is for filled shapes. The pattern runs round corners and restarts per ray or line of a figure. | Same |
 | Line thickness | Thickness setting for all lines. | Thickness 1 to 8. | Same |
@@ -180,7 +188,7 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | Fill styles and fill style editor | Built-in 16x16 patterns, each editable. | Pattern library and Pattern Creator. | PixULA further |
 | Custom fill style from a picture | Turns a picture file into a fill through the converter. | From picture... in the pattern panel (2026-10-10, Batch 8 part 8B2): brightness, contrast, scaling, any of the 31 dithers, to a square tile of 8, 16 or 32 pixels, saved to the library under the file name. ZX Paintbrush also allows other widths and heights, which the library does not (square tiles only). Patterns captured from the canvas, and JSON import / export; there are no .pat files. | Partial |
 | Capture fill style | Uses the last captured area as the fill. | Pattern capture from a selection. | Same |
-| Gradient fills and custom gradient | Linear, radial, circular, triangular, rectangular, pentagonal, hexagonal, octagonal; rotation, repeats, zoom. | Gradient tool: linear, radial, reflected, diamond, square, conical, spiral; repeats, curve, bias, steps, shape fills. | Same |
+| Gradient fills and custom gradient | Linear, radial, circular, triangular, rectangular, pentagonal, hexagonal, octagonal; rotation, repeats, zoom. | Gradient tool: linear, radial, reflected, diamond, square, conical, spiral; repeats, curve, bias, steps, shape fills. Missing: the triangular, pentagonal, hexagonal and octagonal styles, rotation (Square and Diamond keep their bands square to the picture; the drag sets only their size) and zoom. Conical, spiral, curve, bias and steps go further than ZX Paintbrush. | Partial (no triangular, pentagonal, hexagonal or octagonal styles, no rotation, no zoom) |
 | Dithering styles | 31 methods: three thresholds, 14 error-diffusion kernels, three Bayer matrices, seven cluster-dot and four supercell screens, for gradients, fills and imports. | All 31 exist in js/utils/dither.js (2026-10-10, Batch 8 part 8A; tables from the help, usage measured against its pictures). Gradient (8B): its own Bayer 2/4/8 first, then the 28 others. Picture import (8B): the Smooth conversion takes any of the 31, and Sharp too once a method is chosen; in the cell modes error diffusion stays inside each attribute cell; the Layer 2 / LoRes modes take all 31 as well (each pixel between its two nearest palette colours, the whole picture one block; 2026-10-13). Custom fills (8B2): all 31. The fade brush keeps its own ordered, halftone and noise. The gradient's Bayer matrices are the transpose of ZX Paintbrush's. | Partial |
 
 ### Capture, selection and overlays
@@ -193,7 +201,7 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | Export selection; new file from selection | Save just the selection, or open it as a new picture. | File > Save Selection As (2026-10-12, Batch 9 part 9B): PNG, BMP, JPEG any rectangle; ZXP, SEV, ZED, ASM, C, BIN, ATR whole cells (fitted first, with a notice; the code dumps are linear rows in the classic, multicolor and ULAplus modes); ColorTiles whole 16x16 tiles; one-screen dumps (SCR, tapes, MLT, ...) only for the whole screen. Edit > Fit Selection to Cells is ZX Paintbrush's Adjust to 8x8; Edit > New Picture from Selection keeps every layer, asks first and can be undone. Not covered: ZX Paintbrush's character-set (128x128) and CHX font exports of a selection, and SEV sizes beyond cells. | Partial |
 | Create, merge and delete overlay | Overlay from a selection; accept or throw away. | Copy and paste as a floating stamp; commit or cancel. | Same |
 | Rotate overlay 90 / 180 degrees | Quarter and half turns. | Stamps rotate to any angle, flip, scale and bend. | PixULA further |
-| Toggle overlay display (O key) | Hide an overlay without losing it. | Show/hide on each stamp. | Same |
+| Toggle overlay display (O key) | Hide an overlay without losing it. | Show/hide on each stamp; Layer > Flatten leaves a hidden stamp out (2026-10-19). | Same |
 
 ### Text and fonts
 
@@ -202,21 +210,21 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | Windows text tool | Any font and size; left, centre, right; vertical anchor; four directions; shading in four corner directions; contour. | Text tool: system fonts, sizes, bold, italic, alignment, eight directions, mirror, outline; shadow in four directions; a nine-way Anchor for where the click sits on the finished block; Background (Clear background); shadow and contour dots each Same as the letters (the original) or Opposite, drawn in the opposite dot state as ZX Paintbrush does (2026-10-13, Batch 10A / 10A2). Differences: ZX Paintbrush ties the anchor to the alignment; PixULA keeps them apart so existing text does not move; opposite dots are not drawn in XOR / Ink only / Paper only. | Same |
 | Sinclair text tool | Type on the canvas at a flashing L cursor; 4x8, 6x8 and 8x8 fonts stretched to any width and height; character and line spacing. | Text tool: Type on canvas (ZX ROM or a saved font): click, type at a flashing caret, Shift+Enter for a new line, Enter draws in one undo step, Escape throws away; Character width / height stretch the font 1 to 64 dots and Character / Line spacing -8 to 32; every text effect applies live (2026-10-13, Batch 10B). Big and proportional saved fonts work too: each letter is as wide as it is saved, the Size list goes in steps of the font's height, and changing font keeps the zoom (Batch 10C3). Differences: the caret is a plain caret, not ZX Paintbrush's flashing L; touch devices use the on-screen keyboard and Draw / New line / Cancel buttons. | Same |
 | Character set editing | CH4, CH6, CH8, CHR as a 16x16 map; press a key to find its character. | Font Editor for CH4, CH6, CH8, CHR and CHX; All characters shows the whole font as one 16-wide map you can draw across; arrow keys or a typed character choose a character in the map and the grid (2026-10-13, Batch 10C2b). | Same |
-| CHX big fonts | 8x8 up to 32x32 characters; edit as a map or one at a time; fill from a Windows font; proportional widths with the shader tool. | Font Editor: CHX read and write of whole characters up to 32x32 (each at its own size), New Big Font with separate width and height, Fill from font (any font in the Text tool's list, height percent, left / centre / right, Proportional that saves narrower letters), edited one character at a time or across the whole map (2026-10-13, Batch 10C). The all-characters map (draw across every character, Fill inside the clicked letter) and the Shade tool, Shade all to fit and Undo are built (Batch 10C2 / 10C2b). The multi-block layout is from the published format description and not yet checked against a file saved by ZX Paintbrush. | Same |
+| CHX big fonts | 8x8 up to 32x32 characters; edit as a map or one at a time; fill from a Windows font; proportional widths with the shader tool. | Font Editor: CHX read and write of whole characters up to 32x32 (each at its own size), New Big Font with separate width and height, Fill from font (any font in the Text tool's list, height percent, left / centre / right, Proportional that saves narrower letters), edited one character at a time or across the whole map (2026-10-13, Batch 10C). The all-characters map (draw across every character, Fill inside the clicked letter) and the Shade tool, Shade all to fit and Undo are built (Batch 10C2 / 10C2b). The multi-block layout is from the published format description and not yet checked against a file saved by ZX Paintbrush. Coloured CHX characters are read as dots only: their colour bytes are dropped on opening, and every character is saved transparent, so coloured characters can be neither kept nor made. | Partial (coloured characters lose their colours) |
 
 ### Maps
 
 | ZX Paintbrush | What it does | PixULA | Verdict |
 |---|---|---|---|
 | Find and create map elements | Turns a selection into an element and finds every copy on screen, matching dots and colours, dots only, or by look. | Edit > Find Map Element (Ctrl+F) copies the selected block of whole cells and finds every copy: Dots and colours, Dots only, or Looks the same (both flash phases; each GigaScreen screen on its own); places outlined and stepped through, Accept stores the element with the map and covers its places with numbered boxes (display only, not an undo step); covered places and overlaps are left out of a later find (2026-10-14, Batch 11B), and a find cannot start on a block an element already covers (owner, 2026-10-18). Works in 8x8-cell modes (Standard, ULAplus, ULANext, GigaScreen, Timex hi-res); refused with a reason elsewhere. | Same in 8x8-cell modes |
-| Map element list | Elements and their positions; import, export, placeholders (M key). | Map Elements panel: list with Show and Delete, numbered boxes or the elements' own pictures (Shift+M, since M is the Selection tool), elements saved with the map (.zxtm), the project, the autosave and .zxm, New / Open ask before abandoning them; drawing on a covered place is allowed and stays hidden. Not built: merge-into-picture on delete, moving or adding a place, importing or exporting one element as .zxp. The Map Editor's tile palette and maps bigger than one screen are further. | Partial |
-| ZXM files | Screen plus map elements. | File > Open reads a .zxm as the picture plus its map elements and their places (places not on a cell are moved to one, with a notice); Save Image As > ZXM writes the picture with its elements (Standard ULA only; elements of another screen mode are left out, with a notice); the Map Editor's .zxm is the tile map; PixULA's own .zxtm and the project and autosave also carry the elements (2026-10-14, Batch 11B3). Not checked against a file saved by ZX Paintbrush itself. | Same in Standard ULA |
+| Map element list | Elements and their positions; import, export, placeholders (M key). | Map Elements panel: list with Show and Delete, numbered boxes or the elements' own pictures (Shift+M, since M is the Selection tool), elements saved with the map (.zxtm), the project, the autosave and .zxm, New / Open and Tape Blocks > Load (2026-10-19) ask before abandoning them; drawing on a covered place is allowed and stays hidden. Not built: merge-into-picture on delete, moving or adding a place, importing or exporting one element as .zxp. The Map Editor's tile palette and maps bigger than one screen are further. | Partial |
+| ZXM files | Screen plus map elements. | File > Open reads a .zxm as the picture plus its map elements and their places (places not on a cell are moved to one, with a notice); Save Image As > ZXM writes the picture with its elements (Standard ULA only; elements of another screen mode are left out, with a notice); the Map Editor's .zxm is the tile map, and File > Open of a .zxm leaves the Map Editor's working tile map alone (2026-10-19); PixULA's own .zxtm and the project and autosave also carry the elements (2026-10-14, Batch 11B3). Not checked against a file saved by ZX Paintbrush itself. | Same in Standard ULA |
 
 ### View and positioning
 
 | ZX Paintbrush | What it does | PixULA | Verdict |
 |---|---|---|---|
-| Zoom | Up to 1600%; Ctrl+wheel; Ctrl + and -. | 100 to 1600%; wheel; + and -. | Same |
+| Zoom | Up to 1600%; Ctrl+wheel; Ctrl + and -. | 100 to 1600%; Ctrl+wheel (a plain wheel scrolls); + and - step 100/200/400/800/1600. | Same |
 | Preview window | Miniature of the whole picture. | View > Preview (2026-10-12, Batch 9 part 9B): a sidebar map with a frame for the visible part, click or drag or arrow keys to scroll, hidden until switched on. | Same |
 | Background picture (P key) | A picture behind the canvas with position and transparency. | Reference panel: position, scale, rotate, flip, opacity. | PixULA further |
 | Raster jump 8x8, 16x16, 256x192, user-defined | The pointer moves in fixed steps. | Snap has a step (2026-10-12, Batch 9 part 9A): the mode's attribute cell, 16x16, a whole 256x192 screen (only on a canvas bigger than one screen) or a custom across/down step set in Preferences; picking a step turns Snap on; shape ends, figure points, text, selections and pasted pieces land on it (a pasted piece by its top-left corner). Also the arrow keys step by it with Snap on. ZX Paintbrush moves pixel by pixel with the keyboard whatever the raster, so that part differs on purpose. | Same |
@@ -232,9 +240,9 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | Nirvana tiles (.btile) | 8x2-attribute tiles. | No. | Missing (left out by choice, 2026-10-14: not attribute work) |
 | Archives and Warajevo tapes | Reads zip, rar and 28 other archive formats, and Warajevo TAP. | No. | Missing (left out by choice, 2026-10-14: not attribute work) |
 | ZXB meta files | ZX-Blockeditor's container. | Left out on purpose; the Tape Blocks dialog covers tape blocks. | N/A |
-| BMP, GIF, JPG, PNG | Read and write. | Read and write; GIF can animate Flash. | PixULA further |
+| BMP, GIF, JPG, PNG | Read and write. | PNG, JPG and GIF are read (through the Import dialog); PNG, BMP and JPG are written. BMP cannot be opened. GIF export (with Flash animation) is built but has had no menu entry since 2026-08-25, so GIF cannot be saved. | Partial (no BMP read, no GIF write) |
 | Picture converter | Brightness, contrast, size, crop, 31 dithers, black-and-white, colour, Timex, ULAplus via Image2ULAPlus, GIF frame picker. | Import dialog: brightness, contrast, fit/stretch/crop, Dither select with the 31 methods for the Smooth and Sharp conversions, in every mode (8B, 2026-10-13), live preview; ULAplus palette built in; GIF first frame only. | Partial (left out by choice, 2026-10-14: not attribute work) |
-| File window | Edit each SCREEN$ block in a tape or disk file; add, delete, move blocks. | Tape Blocks dialog for tapes. | Same |
+| File window | Edit each SCREEN$ block in a tape or disk file; add, delete, move blocks. | Tape Blocks dialog for tapes; Load asks first, as File > Open does, and Add current screen says why in a mode with no SCREEN$ form (2026-10-19). | Same |
 | Data block composer, memory and pulse editors, header changer | Build and edit any tape block byte by byte. | No. | Missing (left out by choice, 2026-10-14: not attribute work) |
 | ASM and BIN export settings | Number base, prefixes, bytes per line, line or block layout, attributes mixed in. | .asm, .c, .bin and .atr with a fixed layout. | Partial (left out by choice, 2026-10-14: not attribute work) |
 | Change picture size | Add or remove space around the picture. | No; the canvas size comes from the screen mode. | Missing (left out by choice, 2026-10-14: not attribute work) |
@@ -246,8 +254,8 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 | ZX Paintbrush | What it does | PixULA | Verdict |
 |---|---|---|---|
 | Internal clipboard | Text-based ZXP format, shared between program windows. | Internal clipboard that survives a reload. | Same |
-| Paste Windows graphic | Through the import converter. | System clipboard paste through the converter. | Same |
-| Undo and redo | Configurable depth. | 500 steps with a memory cap. | Same |
+| Paste Windows graphic | Through the import converter. | System clipboard paste (Ctrl+V) goes through the importer's per-cell two-colour engine and becomes a floating stamp in the current ink only. The conversion dialog (brightness, contrast, dither, Sharp / Smooth / Flat) is not shown, and the picture's colours are lost. | Partial (no conversion dialog, one ink colour) |
+| Undo and redo | Configurable depth. | 500 steps with a 256 MB memory cap. The depth is fixed: there is no setting for it. | Partial (depth not configurable) |
 | Options | Grid colours, three display sizes, info bar formats, PLOT coordinate range. | Interface size, themes, languages. Grid colours (Preferences, per grid, with Reset to the theme) and PLOT coordinates (Preferences > Y counts from; the readout only) added 2026-10-09. The rest of this row stays with Batch 12. | Partial (left out by choice, 2026-10-14: not attribute work) |
 | Context help and hotkey list | Click-for-help and a shortcuts page. | Two-stage tooltips, a built-in manual in 13 languages, a shortcuts dialog. | PixULA further |
 
@@ -256,7 +264,7 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 - Layers (up to 32) with a compositor that follows the Spectrum's rules
 - Mirror drawing (H, V, both) for every tool
 - XOR / Every Pass: a stroke cancels where it crosses itself
-- Fill attributes only: flood connected cells that share the same four values
+- Fill attributes only: flood connected cells that share the same four values (in the modes with cell colours)
 - Brush engines: spray with weighting or Poisson spacing, fade, pattern, hatch; pressure
 - 30+ shapes: star, heart, gear, flower, moon, spiral, house, arrows and more
 - Gradient tool with seven types, curve, bias, steps and shape-constrained fills
@@ -333,3 +341,10 @@ cost and the owner decides.
     pulse editors, header changer; ASM/BIN export settings; change picture size;
     print; the rest of Options; picture converter extras (black-and-white mode,
     GIF frame picker).
+13. **Found by the 2026-10-18 audit** (rows moved to Partial on 2026-10-19, not yet
+    placed in a batch; the owner decides): a draw mode that writes ink and paper
+    with no dots (the one that did was retired on purpose); an elliptic, rotatable
+    ring; triangular, pentagonal, hexagonal and octagonal gradients with rotation
+    and zoom; keeping the colours of coloured CHX characters; opening BMP and
+    saving GIF; the conversion dialog for a system clipboard paste; a setting for
+    the undo depth.
