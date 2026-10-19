@@ -1061,3 +1061,5 @@ fallback to Normal.
   (6 missing, 27 partial), 71 same, 8 further, 2 n/a. Before [M, same counter, same day]: 34 (6, 28), 70 same.
 - For the owner: the icon has no colour of its own in the theme palette (XOR / Every Pass has none either); the pop-up
   is two icons wide, so Attributes Only sits alone on a fourth row under Ink Recolour.
+- Suites (M, 2026-10-19): run-all ALL TEST FILES PASSED; check:manual up to date; test:browser 865 passed, 2 failed -
+  strip-selector.spec.js and draw-mode-tooltip.spec.js still counted six draw modes; updated to seven, both pass.
