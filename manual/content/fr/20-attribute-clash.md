@@ -2,23 +2,23 @@
 
 Le Spectrum conserve une image en deux parties distinctes.
 
-La première est un bitmap : 256 sur 192 points, un bit chacun, allumé ou
-éteint. La seconde est une grille de couleur, un octet pour chaque bloc de 8
-sur 8 de ces points – 32 octets en largeur et 24 en hauteur. Chacun de ces
-octets indique la couleur de l’**encre** (les points allumés), celle du
-**papier** (les points éteints), si la paire est **lumineuse** et si elle doit
-**clignoter**.
+La première est un bitmap : 256 sur 192 pixels, un bit chacun, un pixel d’encre
+ou un pixel de papier. La seconde est une grille d’attributs, un octet pour
+chaque bloc de 8 sur 8 de ces pixels – 32 octets en largeur et 24 en hauteur.
+Chacun de ces octets indique la couleur de l’**Encre** (la couleur des pixels
+d’encre), celle du **Papier** (la couleur des pixels de papier), si la paire a
+la **Brillance** et si elle a le **Clignotement**.
 
 La forme de votre image a donc une résolution de 256 sur 192, et sa couleur
 une résolution de 32 sur 24. Chaque cellule de 8 sur 8 peut afficher deux
-couleurs, et chaque point à l’intérieur a l’une ou l’autre.
+couleurs, et chaque pixel à l’intérieur a l’une ou l’autre.
 
 ![Deux lignes diagonales se croisent sur une zone de dessin agrandie avec la grille de cellules affichée. La ligne bleue devient rouge dans chaque cellule que traverse aussi la ligne rouge](img/attribute-clash.png)
 
 *Une ligne bleue et une ligne rouge qui se croisent, à 800 % avec la grille de
 cellules. Là où la ligne rouge traverse une cellule, la ligne bleue de cette
-cellule est rouge aussi. Le trait rouge est arrivé en second et a fixé la
-couleur d’encre de toute la cellule, y compris les points déjà posés par le
+cellule est rouge aussi. Le trait rouge est arrivé en second et a fixé
+l’Encre de toute la cellule, y compris les pixels d’encre déjà posés par le
 trait bleu.*
 
 C’est ce qu’on appelle le « conflit d’attributs » (*attribute clash*). Dessiner
@@ -40,36 +40,38 @@ voyez exactement où un changement de couleur est gratuit et où il vous
 coûtera.
 
 **Les modes de dessin.** Un trait n’est pas obligé de changer à la fois les
-points et les couleurs. Vous pouvez poser des points sans toucher aux
-couleurs, ou recolorer une cellule sans toucher un seul point. Le chapitre sur
+pixels et les attributs. Vous pouvez dessiner des pixels d’encre sans toucher
+aux attributs, ou recolorer une cellule sans toucher un seul pixel. Le chapitre sur
 la couleur les énumère.
 
 **La bibliothèque de motifs.** Son cœur est une série de motifs à densités
-d’encre mesurées – ce qu’il vous faut quand une cellule a besoin d’un gris
+de pixels d’encre mesurées – ce qu’il vous faut quand une cellule a besoin d’un gris
 qu’elle ne peut pas contenir.
 
-### Voir les points
+### Voir les pixels
 
 Trois commutateurs du menu Affichage changent ce que l'écran montre, sans
-changer l'image. **Couleurs désactivées** montre les points en noir sur blanc,
-pour voir quels points sont vraiment allumés. **Grille de couleurs** fait de
-même et teinte en plus les cellules comme un échiquier, pour bien voir les
-limites des cellules ; elle et Couleurs désactivées s'excluent l'une l'autre.
+changer l'image. **Attributs désactivés** montre les pixels d'encre en noir et
+les pixels de papier en blanc, pour voir quels pixels sont vraiment de l'encre.
+**Grille de couleurs** fait de même et teinte en plus les cellules comme un
+échiquier, pour bien voir les limites des cellules ; elle et Attributs
+désactivés s'excluent l'une l'autre.
 **Arrêter le clignotement** garde chaque cellule clignotante dans ses couleurs
 normales. Aucun ne touche à l'image, à l'annulation ni à une exportation : une
 image enregistrée est identique, qu'ils soient activés ou non. Le navigateur
 s'en souvient, et un commutateur qui ne peut pas fonctionner dans le mode
 d'écran actuel est grisé : survolez-le pour voir pourquoi. Avec GigaScreen et
-MultiGiga, Couleurs désactivées montre quatre niveaux de gris : blanc là où
-aucun écran n'a de point, gris clair pour un point sur l'écran A seul, un gris
+MultiGiga, Attributs désactivés montre quatre niveaux de gris : blanc là où
+aucun écran n'a de pixel d'encre, gris clair pour un pixel d'encre sur l'écran
+A seul, un gris
 plus foncé sur l'écran B seul, et noir pour les deux.
 
 ### Lire le pointeur
 
 La bande sous l'image et la barre d'état disent où se trouve le pointeur. Dans
 les **Préférences**, *La lecture du pointeur affiche* ajoute l'attribut sous le
-pointeur (son numéro en décimal et en hexadécimal, puis encre, papier, brillant
-et clignotant ; la CLUT en ULAplus ; les deux écrans en GigaScreen) et l'adresse
+pointeur (son numéro en décimal et en hexadécimal, puis Encre, Papier, Brillance
+et Clignotement ; la CLUT en ULAplus ; les deux écrans en GigaScreen) et l'adresse
 mémoire de l'octet du pixel et de son octet d'attribut. Il y a des adresses là
 où la vraie machine a une disposition fixe : ULA standard et ULAplus (fichier
 d'affichage dès $4000, attributs dès $5800), Timex haute couleur (attributs dans
@@ -95,8 +97,8 @@ reste cochée, la grille suit le thème.
 ### Là où les règles changent
 
 Le matériel ultérieur a assoupli la contrainte de diverses façons, et PixULA
-sait travailler avec toutes. Les machines Timex ont affiné la grille de
-couleur. ULAplus a remplacé les seize couleurs fixes par une palette de votre
+sait travailler avec toutes. Les machines Timex ont affiné la grille
+d’attributs. ULAplus a remplacé les seize couleurs fixes par une palette de votre
 choix. GigaScreen alterne deux images assez vite pour suggérer des couleurs
 qu’aucune des deux ne contient. Le ZX Spectrum Next abandonne complètement ce
 système dans ses modes Layer 2 et LoRes, où chaque pixel porte sa propre

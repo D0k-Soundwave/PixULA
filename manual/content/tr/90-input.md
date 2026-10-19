@@ -2,20 +2,20 @@
 
 ### Fare
 
-Sol düğme mürekkeple, sağ düğme kâğıtla çizer. Shift ve sağ tık tuval menüsünü
+Sol düğme mürekkep pikselleri, sağ düğme kâğıt pikselleri çizer. Shift ve sağ tık tuval menüsünü
 açar; bir araç sağ düğmeyi çizim için kullanırken kesme, kopyalama ve
 yapıştırmaya bu yolla ulaşırsınız.
 
-Sürüklerken **X** tuşunu basılı tutarsanız fırça, silgi, şekil veya figür yatay bir çizgide kalır; dikey için **Y** tuşunu kullanın. Çizgi, düğmeye (veya tuşa) bastığınız noktadan geçer; diğer tuşa basarak köşe dönebilir, bırakarak yeniden serbest çizebilirsiniz. Sürüklemeden **X**'e kısa basış mürekkep ile kağıdı yine değiştirir, artık tuş bırakılınca.
+Sürüklerken **X** tuşunu basılı tutarsanız fırça, silgi, şekil veya figür yatay bir çizgide kalır; dikey için **Y** tuşunu kullanın. Çizgi, düğmeye (veya tuşa) bastığınız noktadan geçer; diğer tuşa basarak köşe dönebilir, bırakarak yeniden serbest çizebilirsiniz. Sürüklemeden **X**'e kısa basış Mürekkep ile Kâğıdı yine değiştirir, artık tuş bırakılınca.
 
 ### Kalem
 
 Kalem ucu seçili araçla çizer ve yeniden atanamaz. Kalemin diğer her denetimi
 atanabilir; **Tercihler > Kalem** altında.
 
-Varsayılan olarak yan düğme, sağ fare düğmesi gibi kâğıtla çizer ve silgi ucu
+Varsayılan olarak yan düğme, sağ fare düğmesi gibi kâğıt pikselleri çizer ve silgi ucu
 siler. Tercihler'deki listede ayrıca damlalık, görünümü kaydırma, geri alma,
-yineleme, renkleri değiştirme, tuval menüsü ve önceki araca dönme vardır.
+yineleme, Mürekkep ile Kâğıdı değiştirme, tuval menüsü ve önceki araca dönme vardır.
 
 Basınç, fırça boyutunu ve akışını ayarladığınız ölçüde değiştirir. Eğim, kalem
 bildiriyorsa kullanılır.

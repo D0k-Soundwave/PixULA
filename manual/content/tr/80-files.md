@@ -15,7 +15,7 @@ ama üzerinde çalışmaya devam etmek istiyorsanız değil.
 
 ### Resim içe aktarma
 
-Bir fotoğraf veya başka bir resim (PNG, JPG, GIF) açıldığında üç dönüşüm yan yana gösterilir - Keskin, Yumuşak ve Düz - ve beğendiğinize tıklarsınız. Tonları noktalara çeviren Yumuşak dönüşümdür; önizlemelerin altındaki **Tarama** listesi bunun nasıl yapılacağını seçer: varsayılan içe aktarmanın kendi Floyd-Steinberg'idir ve liste ZX Paintbrush'ın diğer 30 yöntemini de sunar - eşikler, hata yayılımı, Bayer matrisleri, küme noktaları ve süperhücreler. Bir yöntem seçmek Yumuşak'ı, bir tane seçtiyseniz Keskin'i de yeniden çizer (Düz hiç tarama yapmaz). Sıralı yöntemler öznitelik hücreleri boyunca devam eder, böylece desen tüm resimde akar; hata yayılımı her hücrenin içinde kalır, çünkü her hücrenin kendi iki rengi vardır. Layer 2 ve LoRes kiplerinde liste de çalışır: her nokta en yakın iki palet rengi arasına konur ve tüm resim tek bir bloktur, bu yüzden hata yayılımı tüm resimde akar.
+Bir fotoğraf veya başka bir resim (PNG, JPG, GIF) açıldığında üç dönüşüm yan yana gösterilir - Keskin, Yumuşak ve Düz - ve beğendiğinize tıklarsınız. Tonları mürekkep ve kâğıt piksellerine çeviren Yumuşak dönüşümdür; önizlemelerin altındaki **Tarama** listesi bunun nasıl yapılacağını seçer: varsayılan içe aktarmanın kendi Floyd-Steinberg'idir ve liste ZX Paintbrush'ın diğer 30 yöntemini de sunar - eşikler, hata yayılımı, Bayer matrisleri, küme noktaları ve süperhücreler. Bir yöntem seçmek Yumuşak'ı, bir tane seçtiyseniz Keskin'i de yeniden çizer (Düz hiç tarama yapmaz). Sıralı yöntemler öznitelik hücreleri boyunca devam eder, böylece desen tüm resimde akar; hata yayılımı her hücrenin içinde kalır, çünkü her hücrenin kendi iki rengi vardır. Layer 2 ve LoRes kiplerinde liste de çalışır: her piksel en yakın iki palet rengi arasına konur ve tüm resim tek bir bloktur, bu yüzden hata yayılımı tüm resimde akar.
 
 ### Resmin bir bölümünü kaydetme
 
@@ -23,7 +23,7 @@ Bir fotoğraf veya başka bir resim (PNG, JPG, GIF) açıldığında üç dönü
 
 ### Bir seçimden yeni resim
 
-**Düzen > Seçimden yeni resim** seçimi resmin tamamına çevirir. Seçim önce tam hücrelere uydurulur. Bir şey yapmadan önce sorar ve Ctrl+Z eski resmi geri getirir. Bütün katmanlar korunur ve o bloğa kırpılır; blok sol üste taşınır, geri kalan boştur ve oradaki arka plan beyaz kağıttır. Ekran kipi aynı kalır ve resim adsız olur, bu yüzden sonraki Kaydet bir ad sorar.
+**Düzen > Seçimden yeni resim** seçimi resmin tamamına çevirir. Seçim önce tam hücrelere uydurulur. Bir şey yapmadan önce sorar ve Ctrl+Z eski resmi geri getirir. Bütün katmanlar korunur ve o bloğa kırpılır; blok sol üste taşınır, geri kalan boştur ve oradaki arka plan beyaz Kâğıttır. Ekran kipi aynı kalır ve resim adsız olur, bu yüzden sonraki Kaydet bir ad sorar.
 
 ### Otomatik kaydetme ve yedekler
 

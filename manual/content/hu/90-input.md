@@ -2,20 +2,20 @@
 
 ### Egér
 
-A bal gomb tintával, a jobb papírral rajzol. A Shift és a jobb kattintás a vászon
+A bal gomb tintapixeleket, a jobb papírpixeleket rajzol. A Shift és a jobb kattintás a vászon
 menüjét nyitja meg – így érheted el a kivágást, a másolást és a beillesztést,
 amíg egy eszköz a jobb gombot rajzolásra használja.
 
-Húzás közben tartsd lenyomva az **X**-et, hogy az ecset, a radír, az alakzat vagy az ábra vízszintes vonalon maradjon, vagy az **Y**-t a függőlegeshez. A vonal azon a ponton megy át, ahol megnyomtad a gombot (vagy a billentyűt); a másik billentyűvel élesen fordulhatsz, elengedve pedig újra szabadon rajzolhatsz. Az **X** húzás nélküli megérintése továbbra is felcseréli a tintát és a papírt, mostantól a billentyű felengedésekor.
+Húzás közben tartsd lenyomva az **X**-et, hogy az ecset, a radír, az alakzat vagy az ábra vízszintes vonalon maradjon, vagy az **Y**-t a függőlegeshez. A vonal azon a ponton megy át, ahol megnyomtad a gombot (vagy a billentyűt); a másik billentyűvel élesen fordulhatsz, elengedve pedig újra szabadon rajzolhatsz. Az **X** húzás nélküli megérintése továbbra is felcseréli a Tintát és a Papírt, mostantól a billentyű felengedésekor.
 
 ### Toll
 
 A toll hegye a kiválasztott eszközzel rajzol, és nem rendelhető át. A toll minden
 más vezérlője igen, a **Beállítások > Toll** részben.
 
-Alapból az oldalgomb papírral rajzol, mint a jobb egérgomb, a radírvég pedig
+Alapból az oldalgomb papírpixeleket rajzol, mint a jobb egérgomb, a radírvég pedig
 radíroz. A Beállítások listájában szerepel még a pipetta, a nézet mozgatása, a
-visszavonás, az újra, a színek felcserélése, a vászon menüje és a visszatérés
+visszavonás, az újra, a Tinta és a Papír felcserélése, a vászon menüje és a visszatérés
 az előző eszközhöz.
 
 A nyomás az általad megadott mértékben változtatja az ecset méretét és

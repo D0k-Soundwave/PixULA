@@ -2,11 +2,11 @@
 
 ### Mouse
 
-Il tasto sinistro disegna con l’inchiostro e il destro con la carta. Maiusc e
+Il tasto sinistro disegna pixel d’inchiostro e il destro pixel di carta. Maiusc e
 clic destro aprono il menu dell’area di disegno, che è il modo di raggiungere
 taglia, copia e incolla mentre uno strumento usa il tasto destro per disegnare.
 
-Tieni premuto **X** mentre trascini per mantenere pennello, gomma, forma o figura su una linea orizzontale, oppure **Y** per una verticale. La linea passa per il punto in cui hai premuto il pulsante (o il tasto); premi l'altro tasto per voltare angolo e rilascia per disegnare di nuovo liberamente. Un tocco su **X** senza trascinare scambia ancora inchiostro e carta, ora quando rilasci il tasto.
+Tieni premuto **X** mentre trascini per mantenere pennello, gomma, forma o figura su una linea orizzontale, oppure **Y** per una verticale. La linea passa per il punto in cui hai premuto il pulsante (o il tasto); premi l'altro tasto per voltare angolo e rilascia per disegnare di nuovo liberamente. Un tocco su **X** senza trascinare scambia ancora Inchiostro e Carta, ora quando rilasci il tasto.
 
 ### Penna
 
@@ -14,9 +14,9 @@ La punta della penna disegna con lo strumento selezionato e non si può
 riassegnare. Tutti gli altri controlli della penna sì, in
 **Preferenze > Penna**.
 
-Di serie il pulsante laterale disegna con la carta, come il tasto destro del
+Di serie il pulsante laterale disegna pixel di carta, come il tasto destro del
 mouse, e il gommino cancella. L’elenco delle Preferenze offre anche il
-contagocce, lo spostamento della vista, annulla, ripeti, lo scambio dei colori,
+contagocce, lo spostamento della vista, annulla, ripeti, lo scambio di Inchiostro e Carta,
 il menu dell’area di disegno e il ritorno allo strumento precedente.
 
 La pressione cambia dimensione e flusso del pennello nella misura che imposti.

@@ -15,7 +15,7 @@ eredményt, de nem ezt, ha tovább akarsz dolgozni rajta.
 
 ### Kép importálása
 
-Egy fotó vagy más kép (PNG, JPG, GIF) megnyitásakor három átalakítás jelenik meg egymás mellett - Éles, Lágy és Lapos -, és arra kattintasz, amelyik tetszik. A Lágy alakítja pontokká az árnyalatokat, és az előnézetek alatti **Raszterezés** lista dönti el, hogyan: alapértelmezés az import saját Floyd-Steinberg eljárása, a lista pedig a ZX Paintbrush másik 30 módszerét is kínálja - küszöbök, hibaterítés, Bayer-mátrixok, klaszterpontok és szupercellák. A módszer választása újrarajzolja a Lágyat, és az Élest is, ha már választottál módszert (a Lapos soha nem raszterez). A rendezett módszerek folytatódnak az attribútumcellák között, így a minta az egész képen végigfut; a hibaterítés minden cellán belül marad, mert minden cellának saját két színe van. A Layer 2 és LoRes üzemmódban a lista is működik: minden pont a két legközelebbi palettaszín közé kerül, és az egész kép egy blokk, így a hibaterítés az egész képen végigfut.
+Egy fotó vagy más kép (PNG, JPG, GIF) megnyitásakor három átalakítás jelenik meg egymás mellett - Éles, Lágy és Lapos -, és arra kattintasz, amelyik tetszik. A Lágy alakítja tinta- és papírpixelekké az árnyalatokat, és az előnézetek alatti **Raszterezés** lista dönti el, hogyan: alapértelmezés az import saját Floyd-Steinberg eljárása, a lista pedig a ZX Paintbrush másik 30 módszerét is kínálja - küszöbök, hibaterítés, Bayer-mátrixok, klaszterpontok és szupercellák. A módszer választása újrarajzolja a Lágyat, és az Élest is, ha már választottál módszert (a Lapos soha nem raszterez). A rendezett módszerek folytatódnak az attribútumcellák között, így a minta az egész képen végigfut; a hibaterítés minden cellán belül marad, mert minden cellának saját két színe van. A Layer 2 és LoRes üzemmódban a lista is működik: minden pixel a két legközelebbi palettaszín közé kerül, és az egész kép egy blokk, így a hibaterítés az egész képen végigfut.
 
 ### A kép egy részének mentése
 
@@ -23,7 +23,7 @@ A **Fájl > Kijelölés mentése másként** ugyanazokat a formátumokat listáz
 
 ### Új kép egy kijelölésből
 
-A **Szerkesztés > Új kép a kijelölésből** a kijelölést teszi a teljes képpé. A kijelölést előbb egész cellákhoz igazítja. Mielőtt bármit tenne, rákérdez, és a Ctrl+Z visszaadja a régi képet. Minden réteg megmarad, és erre a blokkra vágódik, amely a bal felső sarokba kerül; a többi üres, a háttér ott fehér papír. A képernyőmód ugyanaz marad, a kép névtelen lesz, így a következő Mentés nevet kér.
+A **Szerkesztés > Új kép a kijelölésből** a kijelölést teszi a teljes képpé. A kijelölést előbb egész cellákhoz igazítja. Mielőtt bármit tenne, rákérdez, és a Ctrl+Z visszaadja a régi képet. Minden réteg megmarad, és erre a blokkra vágódik, amely a bal felső sarokba kerül; a többi üres, a háttér ott fehér Papír. A képernyőmód ugyanaz marad, a kép névtelen lesz, így a következő Mentés nevet kér.
 
 ### Automatikus mentés és biztonsági másolatok
 

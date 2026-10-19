@@ -2,21 +2,21 @@
 
 A Spectrum a képet két külön részben tárolja.
 
-Az első egy bitkép: 256×192 pont, mindegyik egy bit, be- vagy kikapcsolva. A
-második egy színrács, e pontok minden 8×8-as blokkjára egy bájt – vízszintesen
+Az első egy bitkép: 256×192 pixel, mindegyik egy bit, tintapixel vagy papírpixel. A
+második egy attribútumrács, e pixelek minden 8×8-as blokkjára egy bájt – vízszintesen
 32, függőlegesen 24 bájt. Mindegyik bájt megadja, milyen színű legyen a
-**tinta** (a bekapcsolt pontok), milyen színű a **papír** (a kikapcsolt
-pontok), **fényes-e** a pár, és **villogjon-e**.
+**Tinta** (a tintapixelek színe), milyen színű a **Papír** (a papírpixelek
+színe), és hogy a pár kap-e **Fényességet** és **Villogást**.
 
 A kép formájának felbontása tehát 256×192, a színéé viszont 32×24. Minden 8×8-as
-cella két színt mutathat, és benne minden pont vagy az egyik, vagy a másik.
+cella két színt mutathat, és benne minden pixel vagy az egyik, vagy a másik.
 
 ![Két átlós vonal keresztezi egymást egy nagyított vásznon, bekapcsolt cellaráccsal. A kék vonal minden olyan cellában pirossá válik, amelyen a piros is áthalad](img/attribute-clash.png)
 
 *Egy kék és egy piros vonal keresztezi egymást, 800%-on, cellaráccsal. Ahol a
 piros vonal áthalad egy cellán, ott a kék vonal is piros abban a cellában. A
-piros vonás érkezett másodikként, és az egész cella tintaszínét beállította,
-azokét a pontokét is, amelyeket a kék vonás már letett.*
+piros vonás érkezett másodikként, és az egész cella Tintáját beállította,
+azokét a tintapixelekét is, amelyeket a kék vonás már letett.*
 
 Ezt jelenti az „attribútumütközés” (*attribute clash*). Ha egy cella egyik
 részében rajzolsz, a cellában minden más színe is megváltozik, és nincs olyan
@@ -34,36 +34,36 @@ A PixULA ebben háromféleképpen segít.
 **A cellarács.** Kapcsold be a nagyításvezérlők mellett, és pontosan látni
 fogod, hol ingyenes egy színváltás, és hol kerül valamibe.
 
-**A rajzolási módok.** Egy vonásnak nem kell egyszerre a pontokat és a színeket
-is megváltoztatnia. Tehetsz le pontokat a színek érintése nélkül, vagy
-átszínezhetsz egy cellát egyetlen pont érintése nélkül. A színről szóló fejezet
+**A rajzolási módok.** Egy vonásnak nem kell egyszerre a pixeleket és az attribútumokat
+is megváltoztatnia. Rajzolhatsz tintapixeleket az attribútumok érintése nélkül, vagy
+átszínezhetsz egy cellát egyetlen pixel érintése nélkül. A színről szóló fejezet
 felsorolja őket.
 
-**A mintakönyvtár.** Magja egy sor mért tintasűrűségű csempe – ehhez nyúlsz,
+**A mintakönyvtár.** Magja egy sor mért tintapixel-sűrűségű csempe – ehhez nyúlsz,
 amikor egy cellának olyan szürke kell, amelyet nem tud befogadni.
 
-### A pontok megjelenítése
+### A pixelek megjelenítése
 
 A Nézet menü három kapcsolója azt változtatja meg, amit a képernyő mutat, a
-képet nem. A **Színek kikapcsolva** fehér alapon feketen mutatja a pontokat,
-hogy lásd, mely pontok vannak ténylegesen beállítva. A **Színrács** ugyanezt
+képet nem. Az **Attribútumok kikapcsolva** a tintapixeleket feketén, a papírpixeleket
+fehéren mutatja, hogy lásd, mely pixelek valóban tintapixelek. A **Színrács** ugyanezt
 teszi, és a cellákat sakktáblaszerűen meg is színezi, hogy a cellahatárok jól
-látsszanak; ez és a Színek kikapcsolva kikapcsolják egymást. A **Villogás
+látsszanak; ez és az Attribútumok kikapcsolva kikapcsolják egymást. A **Villogás
 leállítása** minden villogó cellát a normál színeiben tart. Egyik sem érinti a
 képet, a visszavonást vagy az exportálást: a mentett kép ugyanúgy néz ki, akár
 be vannak kapcsolva, akár nem. A böngésző megjegyzi őket, és az a kapcsoló,
 amely az aktuális képernyőmódban nem működhet, szürkén látszik – vidd fölé az
-egeret, hogy lásd, miért. GigaScreen és MultiGiga módban a Színek kikapcsolva
-négy szürke szintet mutat: fehér, ahol egyik képernyőn sincs pont,
-világosszürke, ha csak az A képernyőn van pont, sötétebb szürke, ha csak a B
+egeret, hogy lásd, miért. GigaScreen és MultiGiga módban az Attribútumok kikapcsolva
+négy szürke szintet mutat: fehér, ahol egyik képernyőn sincs tintapixel,
+világosszürke, ha csak az A képernyőn van tintapixel, sötétebb szürke, ha csak a B
 képernyőn, és fekete, ha mindkettőn.
 
 ### A mutató olvasása
 
 A kép alatti sáv és az állapotsor megmondja, hol van a mutató. A
 **Beállításokban** a *A mutatókijelzés mutatja* a mutató alatti attribútumot
-egészíti ki (a számát tízes és tizenhatos számrendszerben, majd tinta, papír,
-fényes és villogó; ULAplusban a CLUT; GigaScreenben mindkét képernyő), valamint
+egészíti ki (a számát tízes és tizenhatos számrendszerben, majd Tinta, Papír,
+Fényesség és Villogás; ULAplusban a CLUT; GigaScreenben mindkét képernyő), valamint
 a képpont bájtjának és attribútumbájtjának memóriacímét. Cím ott van, ahol a
 valódi gépnek rögzített elrendezése van: Standard ULA és ULAplus (a képfájl
 $4000-től, az attribútumok $5800-tól), Timex hi-colour (az attribútumok a
@@ -87,7 +87,7 @@ be van jelölve, a rács a témát követi.
 ### Ahol mások a szabályok
 
 A későbbi hardverek többféleképpen lazítottak a korláton, és a PixULA mindegyikkel
-tud dolgozni. A Timex gépek finomabbá tették a színrácsot. Az ULAplus a tizenhat
+tud dolgozni. A Timex gépek finomabbá tették az attribútumrácsot. Az ULAplus a tizenhat
 rögzített színt választható palettára cserélte. A GigaScreen két képet olyan
 gyorsan váltogat, hogy olyan színeket sejtet, amelyek egyikben sincsenek meg. A
 ZX Spectrum Next a Layer 2 és LoRes módjaiban teljesen elhagyja ezt a rendszert:

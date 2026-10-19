@@ -8,10 +8,10 @@ Alcuni lavori comuni, dall’inizio alla fine.
    192.
 2. Attiva la griglia delle celle, accanto ai controlli zoom, per vedere i
    blocchi 8 per 8 in cui è memorizzato il colore.
-3. Scegli un colore d’inchiostro dalla barra dei colori o con i tasti da 1 a 8,
-   e un colore di carta con un clic destro su un campione.
-4. Disegna con il **Pennello**. Tasto sinistro per l’inchiostro, destro per la
-   carta.
+3. Scegli un colore d’Inchiostro dalla barra dei colori o con i tasti da 1 a 8,
+   e un colore di Carta con un clic destro su un campione.
+4. Disegna con il **Pennello**. Tasto sinistro per i pixel d’inchiostro, destro per
+   i pixel di carta.
 5. Zooma con `+` e `-`. Tieni premuta la barra spaziatrice e trascina per
    spostarti, o usa lo strumento **Sposta vista**.
 6. `Ctrl+Z` annulla. `Ctrl+S` salva un progetto `.pixula`, che conserva livelli

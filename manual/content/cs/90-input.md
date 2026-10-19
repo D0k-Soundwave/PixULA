@@ -2,20 +2,20 @@
 
 ### Myš
 
-Levé tlačítko kreslí inkoustem, pravé papírem. Shift a pravé tlačítko otevřou
+Levé tlačítko kreslí pixely inkoustu, pravé pixely papíru. Shift a pravé tlačítko otevřou
 nabídku plátna – tak se dostanete k vyjmutí, kopírování a vložení, když nástroj
 používá pravé tlačítko ke kreslení.
 
-Podržte **X** při tažení a štětec, guma, tvar nebo obrazec zůstane na vodorovné čáře, nebo **Y** pro svislou. Čára vede bodem, kde jste stiskli tlačítko (nebo klávesu); stiskem druhé klávesy zahnete do pravého úhlu a po uvolnění zase kreslíte volně. Krátké stisknutí **X** bez tažení stále prohodí inkoust a papír, nyní až při uvolnění klávesy.
+Podržte **X** při tažení a štětec, guma, tvar nebo obrazec zůstane na vodorovné čáře, nebo **Y** pro svislou. Čára vede bodem, kde jste stiskli tlačítko (nebo klávesu); stiskem druhé klávesy zahnete do pravého úhlu a po uvolnění zase kreslíte volně. Krátké stisknutí **X** bez tažení stále prohodí Inkoust a Papír, nyní až při uvolnění klávesy.
 
 ### Pero
 
 Hrot pera kreslí vybraným nástrojem a nelze ho přeřadit. Všechny ostatní prvky
 pera ano, v **Předvolby > Pero**.
 
-Ve výchozím stavu boční tlačítko kreslí papírem, stejně jako pravé tlačítko
+Ve výchozím stavu boční tlačítko kreslí pixely papíru, stejně jako pravé tlačítko
 myši, a gumovací konec maže. Seznam v Předvolbách nabízí také kapátko, posun
-zobrazení, zpět, znovu, prohození barev, nabídku plátna a návrat k předchozímu
+zobrazení, zpět, znovu, prohození Inkoustu a Papíru, nabídku plátna a návrat k předchozímu
 nástroji.
 
 Přítlak mění velikost a tok štětce v míře, kterou nastavíte. Náklon se použije,
