@@ -205,7 +205,10 @@ class CanvasSystemClass {
 
     this._eventUnsubscribers.push(
       EventBus.on(EVENTS.CANVAS_ZOOM, this._boundOnZoomChanged),
-      EventBus.on(EVENTS.CANVAS_DIRTY, this._boundOnCanvasModified)
+      EventBus.on(EVENTS.CANVAS_DIRTY, this._boundOnCanvasModified),
+      // The rail covers the frame's left edge only while it is expanded, so
+      // collapsing or expanding it changes the room the picture has.
+      EventBus.on(EVENTS.COLORRAIL_COLLAPSE_CHANGED, () => this._onFrameRoomChanged())
     );
 
     this._startRenderLoop();
@@ -415,6 +418,41 @@ class CanvasSystemClass {
     };
   }
 
+  /**
+   * How much of the frame's left edge the expanded colour rail covers, in the
+   * frame's own CSS px. The rail floats over the canvas frame rather than
+   * taking a grid column (css/layout.css #color-rail), so a picture placed in
+   * that strip cannot be drawn on: the rail takes the clicks. 0 when the rail
+   * is collapsed or absent.
+   * @returns {number}
+   */
+  railCover() {
+    if (!this.iframe || typeof document === 'undefined') return 0;
+    if (window.ColorRailToggle && ColorRailToggle.isCollapsed()) return 0;
+    const rail = document.getElementById('color-rail');
+    if (!rail) return 0;
+    const r = rail.getBoundingClientRect();
+    const f = this.iframe.getBoundingClientRect();
+    if (!r.width || !f.width) return 0;
+    // Outer px -> the frame's px (an interface scale can make them differ).
+    const cover = (r.right - f.left) * (this.iframe.clientWidth / f.width);
+    return Helpers.clamp(Math.ceil(cover), 0, this.iframe.clientWidth);
+  }
+
+  /**
+   * Re-lay the canvas for a change in the room the frame offers (the rail
+   * collapsing or expanding): re-fit while following Fit, else just re-place.
+   * @private
+   */
+  _onFrameRoomChanged() {
+    if (!this.iframeDoc || this._zoomPreview) return;
+    if (this._followFit && this.fitZoom() !== this.zoom) {
+      this.zoomToFit();
+    } else {
+      this.updateCanvasSize();
+    }
+  }
+
   /** devicePixelRatio of the rendering context. @private */
   _dpr() {
     const w = this.iframe && this.iframe.contentWindow;
@@ -450,10 +488,14 @@ class CanvasSystemClass {
    * (measured 2026-08-22: at DPR 1 and DPR 2 a 40px margin picked 200%
    * while 300% rendered with zero overflow). Uses the same rounding as
    * `updateCanvasSize()` so this predicts exactly what gets rendered.
+   * The width is the part of the frame the colour rail leaves uncovered
+   * (railCover), so a fitted picture is never under the rail.
    * @returns {number} Zoom percentage
    */
   fitZoom() {
-    const { width, height } = this.getViewportSize();
+    const vp = this.getViewportSize();
+    const height = vp.height;
+    const width = vp.width - this.railCover();
     if (!width || !height) return ZOOM_CONFIG.DEFAULT;
     const levels = ZOOM_CONFIG.LEVELS;
     for (let i = levels.length - 1; i >= 0; i--) {
@@ -495,6 +537,16 @@ class CanvasSystemClass {
     if (shell) {
       shell.style.width  = shellW + 'px';
       shell.style.height = shellH + 'px';
+      // A picture that fits across is centred (margin: auto) - unless that
+      // puts its left edge under the colour rail; then it moves right just
+      // far enough to clear it, never past the frame's right edge.
+      let marginLeft = '';
+      if (!marginX && vp.width) {
+        const centred = (vp.width - shellW) / 2;
+        const cover = this.railCover();
+        if (cover > centred) marginLeft = Math.floor(Helpers.clamp(cover, 0, vp.width - shellW)) + 'px';
+      }
+      shell.style.marginLeft = marginLeft;
     }
 
     // Place canvas-container and grid-wrapper at the per-axis margin inside shell.
