@@ -1087,6 +1087,8 @@ const de = {
     'pref.defaultScreenMode': 'Bildschirmmodus für neue Dokumente',
     'pref.defaultScreenModeHint': 'Der Bildschirmmodus, in dem Datei > Neu eine leere Zeichenfläche startet.',
     'pref.confirmClear': 'Vor dem Löschen bestätigen',
+    'pref.undoLimit': 'Rückgängig-Schritte',
+    'pref.undoLimitHint': 'Wie viele Schritte Rückgängig zurückgehen kann, {min} bis {max}. Ein kleinerer Wert vergisst die ältesten Schritte sofort. Rückgängig bleibt außerdem innerhalb einer Speichergrenze von {mb} MB, sodass es bei einem großen Bild weniger Schritte behalten kann als eingestellt.',
     'pref.restoreOnBoot': 'Beim Start ungespeicherte Arbeit zur Wiederherstellung anbieten',
     'pref.restoreOnBootHint': 'Aus startet jede Sitzung mit einer leeren Leinwand. Die automatische Speicherung oben läuft weiterhin als Absturzschutz innerhalb der Sitzung - dies entscheidet nur, ob sie je wieder angeboten wird.',
     'pref.backupFolder': 'Sicherungsordner',

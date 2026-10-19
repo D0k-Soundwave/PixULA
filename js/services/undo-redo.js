@@ -14,7 +14,8 @@
  * actually changed (see LayerManager.packAttributeData / dropUnchangedLayers).
  * Measured 2026-08-07: a one-layer stroke is 8,448 B at STANDARD_ULA and
  * 212,480 B at LAYER2_640, the largest mode. The history is bounded twice —
- * DEFAULT_UNDO_LIMIT entries and MAX_HISTORY_BYTES — because an action that
+ * maxStates entries (Preferences > Undo steps, DEFAULT_UNDO_LIMIT to start)
+ * and MAX_HISTORY_BYTES — because an action that
  * touches every layer costs 32x one that touches a single layer.
  *
  * Public API:
@@ -42,13 +43,21 @@ class UndoRedoManagerClass {
     this._pendingLabel = null;
   }
 
+  /**
+   * Read the stored depth (Preferences > Undo steps). Anything outside the
+   * range is ignored and the default stays. Prunes after loading, in case
+   * steps were made before the stored value arrived.
+   * @returns {Promise<void>}
+   */
   initialize() {
-    Storage.get('pref.undoLimit').then(limit => {
+    Logger.info('UndoRedo', `Initialized with max ${this.maxStates} states`);
+    return Promise.resolve(Storage.get('pref.undoLimit')).then(limit => {
       if (limit && Validators.isValidUndoLimit(limit)) {
         this.maxStates = limit;
+        this._pruneStack();
+        this._updateState();
       }
-    });
-    Logger.info('UndoRedo', `Initialized with max ${this.maxStates} states`);
+    }).catch((e) => Logger.warn('UndoRedo', `Undo limit not read: ${e && e.message}`));
   }
 
   // ─── Action API ──────────────────────────────────────────────────────────
@@ -262,7 +271,7 @@ class UndoRedoManagerClass {
   canUndo() { return this.undoStack.length > 0; }
   canRedo() { return this.redoStack.length > 0; }
 
-  /** Drop all history. Called by the undo-limit setter and by file-new flows. */
+  /** Drop all history. Called by file-new flows. */
   clear() {
     this.undoStack = [];
     this.redoStack = [];
@@ -275,13 +284,28 @@ class UndoRedoManagerClass {
   getUndoCount() { return this.undoStack.length; }
   getRedoCount() { return this.redoStack.length; }
 
+  /** How many steps Undo keeps at most (the byte budget may keep fewer). */
+  getMaxStates() { return this.maxStates; }
+
+  /**
+   * Set the undo depth (Preferences > Undo steps) and store it for the next
+   * visit. Applies at once: a lower depth drops the oldest steps straight
+   * away, not at the next action. Redo is left alone, as pruning always has.
+   * @param {number} limit - whole number, ZX_SPECTRUM.MIN_UNDO_LIMIT..MAX_UNDO_LIMIT
+   * @returns {Promise<boolean>} true once stored; false when refused or the
+   *   write failed (the depth still applies for this session then)
+   */
   setMaxStates(limit) {
-    if (Validators.isValidUndoLimit(limit)) {
-      this.maxStates = limit;
-      this._pruneStack();
-      Promise.resolve(Storage.set('pref.undoLimit', limit))
-        .catch((e) => Logger.warn('UndoRedo', `Undo limit not stored: ${e && e.message}`));
-    }
+    if (!Validators.isValidUndoLimit(limit)) return Promise.resolve(false);
+    this.maxStates = limit;
+    this._pruneStack();
+    this._updateState();
+    return Promise.resolve(Storage.set('pref.undoLimit', limit))
+      .then(() => true)
+      .catch((e) => {
+        Logger.warn('UndoRedo', `Undo limit not stored: ${e && e.message}`);
+        return false;
+      });
   }
 
   // ─── Snapshot capture / restore ──────────────────────────────────────────

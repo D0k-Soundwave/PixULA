@@ -1087,6 +1087,8 @@ const pt = {
     'pref.defaultScreenMode': 'Modo de ecrã do novo documento',
     'pref.defaultScreenModeHint': 'O modo de ecrã em que Ficheiro > Novo inicia uma tela em branco.',
     'pref.confirmClear': 'Confirmar antes de limpar',
+    'pref.undoLimit': 'Passos de Desfazer',
+    'pref.undoLimitHint': 'Quantos passos Desfazer pode recuar, de {min} a {max}. Baixar o valor esquece logo os passos mais antigos. Desfazer também fica dentro de um limite de memória de {mb} MB, pelo que numa imagem grande pode guardar menos passos do que os definidos.',
     'pref.restoreOnBoot': 'Oferecer restaurar trabalho não salvo ao iniciar',
     'pref.restoreOnBootHint': 'Desligado, cada sessão começa com uma tela em branco. A gravação automática acima continua a funcionar como proteção contra falhas durante a sessão - isto só decide se alguma vez é oferecida de novo.',
     'pref.backupFolder': 'Pasta de cópias de segurança',

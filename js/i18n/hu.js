@@ -1087,6 +1087,8 @@ const hu = {
     'pref.defaultScreenMode': 'Új dokumentum képernyőmódja',
     'pref.defaultScreenModeHint': 'Az a képernyőmód, amelyben a Fájl > Új üres vásznat indít.',
     'pref.confirmClear': 'Megerősítés törlés előtt',
+    'pref.undoLimit': 'Visszavonási lépések',
+    'pref.undoLimitHint': 'Hány lépést tud visszamenni a Visszavonás, {min} és {max} között. Csökkentésekor a legrégebbi lépések azonnal elvesznek. A Visszavonás egy {mb} MB-os memóriakorláton belül is marad, így nagy képnél kevesebb lépést tarthat meg a beállítottnál.',
     'pref.restoreOnBoot': 'Induláskor ajánlja fel a mentetlen munka visszaállítását',
     'pref.restoreOnBootHint': 'Kikapcsolva minden munkamenet üres vászonnal indul. A fenti automatikus mentés továbbra is fut a munkameneten belüli összeomlás elleni védelemként - ez csak azt dönti el, hogy valaha felajánlásra kerül-e újra.',
     'pref.backupFolder': 'Biztonsági mentés mappája',

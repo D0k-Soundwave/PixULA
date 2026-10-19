@@ -4,6 +4,7 @@
 /** The eight colour names (black to white), for the standard-colour pickers' tooltips. */
 const COLOUR_KEYS = ['color.black', 'color.blue', 'color.red', 'color.magenta', 'color.green', 'color.cyan', 'color.yellow', 'color.white'];
 const COLOUR_FALLBACKS = ['Black', 'Blue', 'Red', 'Magenta', 'Green', 'Cyan', 'Yellow', 'White'];
+const UNDO_HINT_FALLBACK = 'How many steps Undo can go back, {min} to {max}. Lowering it forgets the oldest steps at once. Undo also keeps within a {mb} MB memory cap, so on a big picture it can keep fewer steps than set.';
 
 /**
  * PreferencesDialog — Settings > Preferences… and Reset All Preferences.
@@ -48,6 +49,12 @@ class PreferencesDialogClass {
 
     /** Settings > Preferences… */
     open() {
+        // The Undo steps hint names the range and the memory cap from the figures themselves.
+        const undoParams = {
+            min: ZX_SPECTRUM.MIN_UNDO_LIMIT,
+            max: ZX_SPECTRUM.MAX_UNDO_LIMIT,
+            mb: Math.round(UndoRedo.constructor.MAX_HISTORY_BYTES / (1024 * 1024))
+        };
         const content = document.createElement('div');
         content.className = 'preferences-dialog-body';
         content.innerHTML = `
@@ -74,6 +81,15 @@ class PreferencesDialogClass {
                 <input type="checkbox" id="pref-confirm-clear" name="pref-confirm-clear" checked>
                 <span data-i18n="pref.confirmClear">${this._t('pref.confirmClear', 'Confirm before clearing')}</span>
             </label>
+            <label class="pref-row">
+                <span data-i18n="pref.undoLimit">${this._t('pref.undoLimit', 'Undo steps')}</span>
+                <input type="number" id="pref-undo-limit" name="pref-undo-limit"
+                       min="${ZX_SPECTRUM.MIN_UNDO_LIMIT}" max="${ZX_SPECTRUM.MAX_UNDO_LIMIT}" step="1"
+                       value="${ZX_SPECTRUM.DEFAULT_UNDO_LIMIT}">
+            </label>
+            <div class="pref-block__hint" id="pref-undo-limit-hint" data-i18n="pref.undoLimitHint"
+                 data-i18n-param-min="${undoParams.min}" data-i18n-param-max="${undoParams.max}"
+                 data-i18n-param-mb="${undoParams.mb}">${this._t('pref.undoLimitHint', UNDO_HINT_FALLBACK, undoParams)}</div>
             <div class="pref-block" id="pref-backup">
                 <div class="pref-block__label" data-i18n="pref.backupFolder">${this._t('pref.backupFolder', 'Backup folder')}</div>
                 <div class="pref-block__hint" data-i18n="pref.backupHint">${this._t('pref.backupHint', 'Each autosave also writes the whole document here as a numbered version, so you can go back to any of them.')}</div>
@@ -268,6 +284,8 @@ class PreferencesDialogClass {
         if (restoreOnBoot) restoreOnBoot.checked = StateManager.get('restoreOnBoot') !== false;
         const confirmClear = content.querySelector('#pref-confirm-clear');
         if (confirmClear) confirmClear.checked = StateManager.get('confirmClear') !== false;
+        const undoLimit = content.querySelector('#pref-undo-limit');
+        if (undoLimit) undoLimit.value = String(UndoRedo.getMaxStates());
         const resetDrawMode = content.querySelector('#pref-reset-draw-mode');
         if (resetDrawMode) resetDrawMode.checked = StateManager.get('resetDrawModeOnTool') === true;
         const inverse = content.querySelector('#pref-inverse');
@@ -939,8 +957,19 @@ class PreferencesDialogClass {
             penActions: pen?.actions
         };
 
+        // Undo steps: stored under its own key by UndoRedo, and only when it changed, so an untouched
+        // dialog leaves a never-set depth following DEFAULT_UNDO_LIMIT. A typed value is held to the
+        // range like the other number fields; an emptied field keeps the depth it had.
+        const undoLimitEl = dialog.querySelector('#pref-undo-limit');
+        const typedDepth = undoLimitEl ? parseInt(undoLimitEl.value, 10) : NaN;
+        const depth = Number.isNaN(typedDepth) ? UndoRedo.getMaxStates()
+            : clamp(typedDepth, ZX_SPECTRUM.MIN_UNDO_LIMIT, ZX_SPECTRUM.MAX_UNDO_LIMIT);
+        let depthStored = true;
+        if (depth !== UndoRedo.getMaxStates()) depthStored = await UndoRedo.setMaxStates(depth);
+
         try {
             await Storage.set('preferences', stored);
+            if (!depthStored) throw new Error('Undo steps not stored');
             Logger.info('PreferencesDialog', 'Preferences saved');
         } catch (error) {
             // The new values are live for this session either way; only the
@@ -963,6 +992,7 @@ class PreferencesDialogClass {
                 Storage.delete('theme'),
                 Storage.delete('gridSnap'),
                 Storage.delete('gridSnapStep'),
+                Storage.delete('pref.undoLimit'),
                 Storage.delete('gridState'),
                 Storage.delete('inverse', Storage.STORES.PREFERENCES),
                 Storage.delete('viewColoursOff'),

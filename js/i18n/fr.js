@@ -1087,6 +1087,8 @@ const fr = {
     'pref.defaultScreenMode': 'Mode d\'écran du nouveau document',
     'pref.defaultScreenModeHint': 'Le mode d\'écran dans lequel Fichier > Nouveau démarre une toile vierge.',
     'pref.confirmClear': 'Confirmer avant d\'effacer',
+    'pref.undoLimit': 'Étapes d\'annulation',
+    'pref.undoLimitHint': 'Combien d\'étapes Annuler peut remonter, de {min} à {max}. Baisser la valeur oublie aussitôt les étapes les plus anciennes. Annuler reste aussi dans une limite de mémoire de {mb} Mo, donc sur une grande image il peut garder moins d\'étapes que le nombre réglé.',
     'pref.restoreOnBoot': 'Proposer de restaurer le travail non enregistré au démarrage',
     'pref.restoreOnBootHint': 'Désactivé, chaque session démarre avec un canevas vierge. L\'enregistrement automatique ci-dessus continue de fonctionner comme protection contre les plantages pendant la session - ceci décide seulement s\'il est un jour reproposé.',
     'pref.backupFolder': 'Dossier de sauvegarde',
