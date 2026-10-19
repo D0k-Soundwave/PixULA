@@ -201,3 +201,25 @@ test('the hidden field sits where the text starts, in page coordinates (for the 
     expect(Math.abs(got.x - want.x)).toBeLessThan(8);
     expect(Math.abs(got.y - want.y)).toBeLessThan(8);
 });
+
+test('text left in the hidden Text box does not come back as a stamp: hover and click open a typing session', async ({ page }) => {
+    await boot(page);
+    await page.click('.tool-btn[data-tool="text"]');
+    await page.locator('#opt-textContent').fill('HELLO');
+    const p = await pixelPoint(page, 40, 40);
+    await page.mouse.move(p.x, p.y);
+    await page.waitForTimeout(100);
+    expect(await page.evaluate(() => SelectionService.isFloating()), 'the panel text floats as a stamp').toBe(true);
+    await page.locator('#opt-typeOnCanvas').check();
+    expect(await page.evaluate(() => SelectionService.isFloating()), 'ticking Type on canvas takes it away').toBe(false);
+    const undoBefore = await page.evaluate(() => UndoRedo.getUndoCount());
+    const q = await pixelPoint(page, 50, 50);
+    await page.mouse.move(q.x, q.y, { steps: 4 });
+    await page.waitForTimeout(100);
+    expect(await page.evaluate(() => SelectionService.isFloating()), 'hovering does not bring the stamp back').toBe(false);
+    await clickAt(page, 50, 50);
+    expect(await page.evaluate(() => ToolManager.getCurrentTool()._typing.active), 'the click opens a typing session').toBe(true);
+    expect(await active(page)).toBe('canvas-text-entry');
+    expect(await page.evaluate(() => UndoRedo.getUndoCount()), 'nothing was stamped').toBe(undoBefore);
+    expect(await inkCount(page)).toBe(0);
+});

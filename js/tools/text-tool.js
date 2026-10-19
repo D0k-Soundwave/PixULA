@@ -247,6 +247,8 @@ class TextToolClass extends ToolBase {
     // (including hover, no button needed).
     EventBus.on(EVENTS.INPUT_POINTER_MOVE, (data) => {
       if (!window.ToolManager || ToolManager.getCurrentTool()?.id !== TOOLS.TEXT) return;
+      // Type on canvas hides the Text box: text left in it must not float back as a stamp (the click would place it).
+      if (this._typeOnCanvas) return;
       if (!this._fixedSize || !this._text.trim()) return;
       if (this._disengaged) return;
       if (!window.SelectionService) return;
