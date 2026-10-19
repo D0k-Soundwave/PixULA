@@ -167,6 +167,27 @@ for (const ext of Object.keys(R.SELECTION_RULES)) R.registerExport(ext, { canExp
   __setActiveScreenMode('standard_ula');
 }
 
+// -- a part in the 8x1 modes: the attribute block is in the ULA line interleave, one row a pixel line ----------------
+for (const mode of ['multicolor_8x1', 'ula_plus_8x1']) {
+  __setActiveScreenMode(mode);
+  const attrOf = (y, col) => (y * 7 + col * 3 + 1) & 0xFF;
+  const mc = new Uint8Array(ACTIVE_SCREEN_MODE.fileSize);
+  for (let i = 0; i < 6144; i++) mc[i] = (i * 13 + 7) & 0xFF;
+  for (let y = 0; y < 192; y++) for (let col = 0; col < 32; col++) mc[6144 + AttributeSystem._lineOffset(y) + col] = attrOf(y, col);
+  const exportBefore = SCRFormat.export;
+  SCRFormat.export = () => mc.slice();
+  const part = { x: 16, y: 8, width: 16, height: 16 };
+  const r = DevFormat.rectBytes(part);
+  const want = [];
+  for (let line = 0; line < 16; line++) for (let c = 0; c < 2; c++) want.push(attrOf(8 + line, 2 + c));
+  check(mode + ': a part keeps each pixel line\'s own attribute bytes', r.rows === 16 && r.cols === 2 && same(Array.from(r.attrs), want),
+    JSON.stringify(Array.from(r.attrs).slice(0, 8)) + ' want ' + JSON.stringify(want.slice(0, 8)));
+  const atr = DevFormat.generate('atr', 'part', part);
+  check(mode + ': ATR of a part is those bytes', same(Array.from(atr), want));
+  SCRFormat.export = exportBefore;
+  __setActiveScreenMode('standard_ula');
+}
+
 // -- ZXP of a block ----------------------------------------------------------------------------------------------------
 {
   const part = { x: 16, y: 24, width: 32, height: 16 };
