@@ -27,6 +27,10 @@ class MapElementOverlayClass {
         EventBus.on(EVENTS.MAP_LOADED, redraw);
         EventBus.on(EVENTS.SCREEN_MODE_CHANGED, redraw);
         EventBus.on(EVENTS.FILE_NEW, redraw);
+        // the pictures (Shift+M) are drawn in the live palette's colours; the numbered boxes do not depend on colours
+        const recolour = () => { if (this._pictures) this.draw(); };
+        EventBus.on(EVENTS.PALETTE_CHANGED, recolour);
+        EventBus.on(EVENTS.PALETTE_SLOT_CHANGED, recolour);
         if (window.CanvasSystem && CanvasSystem.onReady) CanvasSystem.onReady(redraw);
     }
 

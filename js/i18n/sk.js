@@ -520,6 +520,7 @@ const sk = {
     'mapel.fitted': 'Výber bol upravený na celé bunky.',
     'mapel.tooBig': 'Mapa by s týmto prvkom bola príliš veľká.',
     'mapel.invalid': 'Tento prvok sa nedá uložiť.',
+    'mapel.gone': 'Blok už na obrázku nie je, takže nie je čo uložiť.',
     'msg.selectionSnapped': 'Výber prispôsobený celým bunkám: {w} x {h}.',
     'msg.confirmNewFromSelection': 'Urobiť z výberu celý obrázok? Vrátiť to možno pomocou Ctrl+Z.',
     'opt.selectSize': 'Veľkosť',

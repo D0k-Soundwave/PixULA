@@ -520,6 +520,7 @@ const hu = {
     'mapel.fitted': 'A kijelölés egész cellákra lett igazítva.',
     'mapel.tooBig': 'A térkép ezzel az elemmel túl nagy lenne.',
     'mapel.invalid': 'Ez az elem nem menthető.',
+    'mapel.gone': 'A képrész már nincs a képen, így nincs mit menteni.',
     'msg.selectionSnapped': 'A kijelölés egész cellákhoz igazítva: {w} x {h}.',
     'msg.confirmNewFromSelection': 'A kijelölés legyen a teljes kép? A Ctrl+Z visszavonja.',
     'opt.selectSize': 'Méret',

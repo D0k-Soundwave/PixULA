@@ -520,6 +520,7 @@ const it = {
     'mapel.fitted': 'La selezione è stata adattata a celle intere.',
     'mapel.tooBig': 'La mappa sarebbe troppo grande con questo elemento.',
     'mapel.invalid': 'Questo elemento non può essere salvato.',
+    'mapel.gone': 'Il blocco non è più nell\'immagine, quindi non c\'è nulla da salvare.',
     'msg.selectionSnapped': 'Selezione adattata a celle intere: {w} x {h}.',
     'msg.confirmNewFromSelection': 'Fare della selezione l\'immagine intera? Puoi annullare con Ctrl+Z.',
     'opt.selectSize': 'Dimensione',

@@ -520,6 +520,7 @@ const pl = {
     'mapel.fitted': 'Zaznaczenie dopasowano do całych komórek.',
     'mapel.tooBig': 'Mapa byłaby z tym elementem zbyt duża.',
     'mapel.invalid': 'Tego elementu nie można zapisać.',
+    'mapel.gone': 'Bloku nie ma już na obrazie, więc nie ma czego zapisać.',
     'msg.selectionSnapped': 'Zaznaczenie dopasowane do całych komórek: {w} x {h}.',
     'msg.confirmNewFromSelection': 'Zrobić z zaznaczenia cały obraz? Można to cofnąć przez Ctrl+Z.',
     'opt.selectSize': 'Rozmiar',

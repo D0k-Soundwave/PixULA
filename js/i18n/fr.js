@@ -520,6 +520,7 @@ const fr = {
     'mapel.fitted': 'La sélection a été ajustée à des cellules entières.',
     'mapel.tooBig': 'La carte serait trop grande avec cet élément.',
     'mapel.invalid': 'Cet élément ne peut pas être enregistré.',
+    'mapel.gone': 'Le bloc n\'est plus dans l\'image, il n\'y a donc rien à enregistrer.',
     'msg.selectionSnapped': 'Sélection ajustée aux cellules entières : {w} x {h}.',
     'msg.confirmNewFromSelection': 'Faire de la sélection l\'image entière ? Vous pouvez l\'annuler avec Ctrl+Z.',
     'opt.selectSize': 'Taille',

@@ -520,6 +520,7 @@ const es = {
     'mapel.fitted': 'La selección se ajustó a celdas enteras.',
     'mapel.tooBig': 'El mapa sería demasiado grande con este elemento.',
     'mapel.invalid': 'Este elemento no se puede guardar.',
+    'mapel.gone': 'El bloque ya no está en la imagen, así que no hay nada que guardar.',
     'msg.selectionSnapped': 'Selección ajustada a celdas enteras: {w} x {h}.',
     'msg.confirmNewFromSelection': '¿Hacer de la selección la imagen entera? Puedes deshacerlo con Ctrl+Z.',
     'opt.selectSize': 'Tamaño',

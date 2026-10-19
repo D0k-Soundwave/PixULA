@@ -66,7 +66,12 @@ class MapElementsPanelClass {
         });
         EventBus.on(EVENTS.MAP_ELEMENTS_CHANGED, () => this.renderList());
         // a map file can replace the elements: outlines Show left would point at a different element now
-        EventBus.on(EVENTS.MAP_LOADED, () => { this.renderList(); if (this._shown) { this._shown = null; MapElementOverlay.setHighlight(null); } });
+        // an open find stays open: its outlines come back, and it searches again because the covered places may have changed
+        EventBus.on(EVENTS.MAP_LOADED, () => {
+            this.renderList();
+            if (this._session) { this._shown = null; this._search(this._session.mode); }
+            else if (this._shown) { this._shown = null; MapElementOverlay.setHighlight(null); }
+        });
         EventBus.on(EVENTS.UI_LANGUAGE_CHANGE, () => this.renderList());
         this.renderList();
         // a new mode, a new picture or an opened one (a project too): the find and the Show outlines belonged to the picture that was there
@@ -129,7 +134,9 @@ class MapElementsPanelClass {
         MapService.removeElement(index);
         if (window.FileManager && FileManager.markModified) FileManager.markModified();
         this._shown = null;
-        MapElementOverlay.setHighlight(null);
+        // an open find keeps its outlines; it searches again, because the deleted element may have covered some of its places
+        if (this._session) this._search(this._session.mode);
+        else MapElementOverlay.setHighlight(null);
         this._notice('mapel.deleted', 'Element deleted.');
         return true;
     }
@@ -254,6 +261,12 @@ class MapElementsPanelClass {
         const screen = MapService.captureScreen();
         const found = screen ? MapService.findElement(s.block, s.mode, screen) : null;
         const r = found ? MapService.placesFrom(found.positions, s.block.w, s.block.h, s.source) : { kept: s.kept };
+        if (!r.kept.length) {
+            // drawn over since the find began: say so, and show the find as it is now instead of the old outlines
+            this._notice('mapel.gone', 'The block is no longer on the picture, so there is nothing to store.');
+            this._search(s.mode);
+            return false;
+        }
         const number = MapService.nextElementNumber();
         const res = MapService.addElement(s.block, r.kept, {
             match: s.mode, name: this._t('mapel.name', 'Element {n}', { n: number }),

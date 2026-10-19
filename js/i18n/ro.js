@@ -520,6 +520,7 @@ const ro = {
     'mapel.fitted': 'Selecția a fost ajustată la celule întregi.',
     'mapel.tooBig': 'Harta ar fi prea mare cu acest element.',
     'mapel.invalid': 'Acest element nu poate fi salvat.',
+    'mapel.gone': 'Blocul nu mai este în imagine, așa că nu există nimic de salvat.',
     'msg.selectionSnapped': 'Selecție potrivită la celule întregi: {w} x {h}.',
     'msg.confirmNewFromSelection': 'Faci din selecție întreaga imagine? Poți anula cu Ctrl+Z.',
     'opt.selectSize': 'Dimensiune',

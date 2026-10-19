@@ -616,7 +616,14 @@ class InputHandlerClass {
       this._attrPaintVisited = new Set();
       this._attrCopy = null;
       PixelDrawRoutine.beginBatch(ATTR_PAINT_LABELS[this._attrPaintMode] || 'Cell tool');
-      this._applyAttrPaintAtPoint(this._getCanvasPoint(e, false));
+      const point = this._getCanvasPoint(e, false);
+      // Copy colours pressed outside the picture: the press picked nothing, so
+      // the drag must not take the first cell it enters as the pick.
+      if (this._attrPaintMode === 'copy') {
+        const cell = ZX_COORDS.pixelToCell(point.x, point.y);
+        if (!Validators.isValidCellCoord(cell.x, cell.y)) this._attrCopy = { picked: null };
+      }
+      this._applyAttrPaintAtPoint(point);
       return;
     }
 
