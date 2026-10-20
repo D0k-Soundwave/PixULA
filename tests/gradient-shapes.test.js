@@ -434,4 +434,31 @@ const A = box(0, 0);
     `${changes(z100)} -> ${changes(z200)}`);
 }
 
+// The manual's paragraph on the styles must not promise an option for a style the panel hides it for: Wrap, Repeats
+// and Curve are not shown for Reflected, so the sentence naming Repeats and Curve has to name that style as the
+// exception, and Radial (round, not led by the drag) must not be counted among the drag-led styles.
+{
+  const fs = require('fs');
+  const path = require('path');
+  const md = fs.readFileSync(path.join(__dirname, '..', 'manual', 'content', '50-tools.md'), 'utf8');
+  const para = md.split(/\r?\n/).find((l) => l.startsWith('**Gradient styles, Rotation and Zoom.**')) || '';
+  check('the Tools chapter has the Gradient styles paragraph', para.length > 0);
+  const schema = GradientTool.optionsSchema;
+  const label = (key) => window.i18n_en[key];
+  const typeLabel = (v) => label(schema.find((e) => e.key === 'gradientType').options.find((o) => o.value === v).i18n);
+  const sentences = para.split(/(?<=\.)\s+/);
+  for (const key of ['repeatCount', 'gammaCurve']) {
+    const row = schema.find((e) => e.key === key);
+    const hiddenFor = [].concat(...[row.showIf].flatMap((s) => (s.all || [s]))
+      .filter((s) => s.key === 'gradientType' && s.notIn).map((s) => s.notIn));
+    const s = sentences.find((t) => t.includes(label('opt.repeatCount')) && t.includes(label('opt.gammaCurve'))) || '';
+    for (const v of hiddenFor) {
+      check(`the manual names ${typeLabel(v)} as a style without ${label(row.i18n)}`, s.includes(typeLabel(v)), s);
+    }
+  }
+  const dragLed = sentences.find((t) => /direction from the drag/.test(t)) || '';
+  check('the manual does not say Radial takes its direction from the drag',
+    !new RegExp(`(other styles|${typeLabel('radial')}[^.]*take their direction)`).test(dragLed), dragLed);
+}
+
 summary();

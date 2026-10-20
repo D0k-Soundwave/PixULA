@@ -1153,3 +1153,23 @@ polygons round the start point, one side flat at the bottom at Rotation 0, the d
 - Suites (M, 2026-10-20): run-all ALL TEST FILES PASSED; check:manual up to date; whole browser suite 880 passed.
 - For the owner to check by eye: the help's pictures are not in the repository, so the polygons' starting orientation
   (flat side at the bottom) is not compared against ZX Paintbrush.
+
+## Gradient polygon styles, Rotation and Zoom - independent check (2026-10-20)
+Tried: the diff; temporary Playwright probes (deleted) in all 18 screen modes comparing, for the six edge-based styles
+at Rotation 37, Zoom 130, Mirror x3, the committed pixels, the phase-2 preview and the band math pixel for pixel
+(0 differences anywhere); undo / redo by Ctrl+Z / Ctrl+Y and UndoRedo; the right button (reverse, 0 differences);
+Inverse; GigaScreen (only the active layer changes); typed values in the number fields ('' , -200, 45.6, 999, -0 for
+Rotation; '', 10, 37, 1000, 0 for Zoom - all held to the slider); a preset saved, the page reloaded, the preset
+applied (style, Rotation and Zoom and the panel all restored); Rotation and Zoom changed mid-gesture (the preview
+follows); boxes of 2 x 1 and 2 x 2, a zero-length axis, an axis ending off the picture, the whole picture. Also
+checked: Zoom 100 against the old Square / Diamond values for 70,000 drag lengths (r x 100 / 100 differs from r in
+the last bit for 11,193 of them [M], but no pixel value changes [M]); every locale's paragraph uses that locale's
+panel names; the comparison totals recount the same.
+One defect found and fixed:
+- The Tools chapter (13 languages) and the comparison row said Repeats and Curve work with every style; the panel
+  hides them for Reflected. The chapter also counted Radial among the styles that take their direction from the
+  drag. Reworded in all 13 languages and the row. tests/gradient-shapes.test.js: 3 checks failed before the fix.
+Not changed, for the owner: ZX Paintbrush applies its gradients as the fill of every 2D figure; PixULA's Gradient
+tool fills its own five outlines or (Shape fill) any drawn outline by flood, two steps for other figures. The Zoom
+400 % ceiling's working rests on the Coarse grain only; with a finer grain or a box larger than the drag, a larger
+zoom would still show more. Both are design rules the owner may move.
