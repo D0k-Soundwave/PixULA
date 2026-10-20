@@ -21,8 +21,10 @@ listings and had gone stale (it described an "Attributes only" draw mode and a
 Paintbrush never had).
 
 **Totals** [M, counted from the tables below by .claude/parity/count-verdicts.js, 2026-10-20, after the
-gradient polygon styles, Rotation and Zoom were built]: 114 functions; PixULA is below parity on 31 (6 missing,
-25 partial), level on 73, ahead on 8, and 2 do not apply to a browser app. The polygon styles, Rotation and Zoom took
+elliptic, rotatable Ring was built]: 114 functions; PixULA is below parity on 30 (6 missing,
+24 partial), level on 74, ahead on 8, and 2 do not apply to a browser app. The elliptic Ring took Ring back to Same.
+Before it [M, same counter, 2026-10-20, after the gradient polygon styles, Rotation and Zoom] it was 31 below
+parity (6 missing, 25 partial), level on 73; the polygon styles, Rotation and Zoom took
 Gradient fills and custom gradient back to Same.
 Before them [M, same counter, 2026-10-19, after the Undo steps setting] it was 32 below parity (6 missing,
 26 partial), level on 72; the Undo steps setting took Undo and redo back to Same.
@@ -177,7 +179,7 @@ Before the 2026-10-18 audit the counter gave 35 same, 8 further, 13 partial and 
 | Triangle tools | Free three-point, equal-sided and symmetrical triangles. | Shape: triangle from a box; Figure tool > Triangle (2026-10-10): three free points, optionally filled. Equal-sided and symmetrical triangles are still only the box form. | Partial |
 | Rectangle, square, rounded rectangle, parallelogram | Rotatable; the rounding is adjustable. | All four exist as shapes. Since 2026-10-10 (7B) each has a Rotation option, and the rounded rectangle has an adjustable Rounding (0 to 100 percent; 50, the default, is the radius it always had). The Figures group now has Parallelogram (3 points) (2026-10-14): drag the first side, click the third corner, the fourth is A + C - B; fillable, turns about the middle of all four corners, moving the third point moves the fourth with it. Read from the help text as 'the corner after the second point' - the help picture was not looked at, so check one against ZX Paintbrush. | Same |
 | Polygon, centred polygon, N-edge polygon | Free points, or regular around a centre. | Regular polygons from a box; Figure tool > Polygon (2026-10-10): any number of free points, freehand runs, optionally filled. No centred polygon or N-edge polygon tool beyond the regular shapes. | Partial |
-| Ring | Elliptic ring with adjustable width. | Shape: ring with an inner radius of 10 to 90 percent of the outer one. The ring is always circular and has no Rotation option; ZX Paintbrush's ring is elliptic and can be rotated. | Partial (circular ring only, no rotation) |
+| Ring | Elliptic ring with adjustable width. | Shape: ring (2026-10-20) drawn from its centre like the Ellipse, the drag setting its width across and its height down (the same both ways gives the circular ring, pixel for pixel as before), with the Shape tool's Rotation (-180 to 180 degrees, clockwise, round the centre) and an Inner radius of 10 to 90 percent of the outer, applied to both radii. Filled, thickness, line styles, Keep editable, Mirror and the draw modes all apply. ZX Paintbrush sets the ring by three points (two diagonal corners, then the inner ring); PixULA by one drag and the Inner radius slider. | Same |
 | Line arrow | Line with arrowhead. | Arrow shapes. | Same |
 | Line styles | Solid, dashed, dotted, clear. | Line style on Shape, Figure and Bezier (2026-10-10, 7B): Solid, Dashed, Dotted, Dash-dot, Dash-dot-dot (the six styles the help names) and Clear. Dash lengths read from the help's toolbar picture [M]; dashes only at thickness 1 (greyed out above, enforced by the rasteriser); Clear draws no outline, so it is for filled shapes. The pattern runs round corners and restarts per ray or line of a figure. | Same |
 | Line thickness | Thickness setting for all lines. | Thickness 1 to 8. | Same |
@@ -350,8 +352,8 @@ cost and the owner decides.
     GIF frame picker).
 13. **Found by the 2026-10-18 audit** (rows moved to Partial on 2026-10-19, not yet
     placed in a batch; the owner decides): ~~a draw mode that writes Ink and Paper
-    without touching a pixel~~ (built 2026-10-19: Attributes Only); an elliptic, rotatable
-    ring; ~~triangular, pentagonal, hexagonal and octagonal gradients with rotation
+    without touching a pixel~~ (built 2026-10-19: Attributes Only); ~~an elliptic, rotatable
+    ring~~ (built 2026-10-20: the Shape tool's Ring has a width, a height and Rotation); ~~triangular, pentagonal, hexagonal and octagonal gradients with rotation
     and zoom~~ (built 2026-10-20: the four Gradient styles, Rotation and Zoom); keeping the colours of coloured CHX characters; opening BMP and
     saving GIF; the conversion dialog for a system clipboard paste; ~~a setting for
     the undo depth~~ (built 2026-10-19: Preferences > Undo steps, 1 to 2000).

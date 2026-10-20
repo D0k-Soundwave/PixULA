@@ -961,3 +961,27 @@ which now go through the turned path, show no change that can be told from it. T
 (its worst run 47.0 ms against 42.7 ms for the worst old one, C: 47.0 - 42.7 = 4.3 ms). All are over the 7 ms live
 budget (`CoverageOps.LIVE_BUDGET_MS`) at this size, as every style already was (Gradient preview with a Dither method
 at Layer 2 640, above); nothing was changed on the strength of it.
+
+
+### Elliptic, rotatable Ring - measured 2026-10-20
+
+Method: Node 24.19.0 on this machine, the repo's test stubs (logic only, no canvas or drawing), `generateShape('ring')`
+21 times per case, median / worst [M]. The ring fills the picture: an ellipse with radii half the width and height less
+one, Inner radius 50 %. "Circular" is a ring of radius half the height less one, which takes the old row-span fill
+(unchanged, so it is also the before figure). Two runs back to back; the table gives the range over both.
+
+| Case | Standard ULA 256 x 192 | Layer 2 640 x 256 | Tag |
+|---|---|---|---|
+| Circular, filled (the old fill) | 0.29 to 0.31 / 1.90 to 2.56 ms | 0.55 to 0.77 / 2.16 to 3.01 ms | M |
+| Elliptic, filled, Rotation 0 | 1.14 to 1.16 / 2.95 to 3.16 ms | 4.38 to 4.42 / 7.95 to 9.61 ms | M |
+| Elliptic, filled, Rotation 30 | 1.45 to 1.54 / 3.17 to 3.52 ms | 3.50 to 3.58 / 5.64 to 6.24 ms | M |
+| Elliptic, outline, Rotation 30 | 0.11 / 0.40 to 0.50 ms | 0.23 to 0.24 / 0.26 to 0.34 ms | M |
+| Elliptic, filled, Dashed, Rotation 30 | 2.56 to 2.90 / 4.54 to 4.68 ms | 6.23 to 6.25 / 11.62 to 12.05 ms | M |
+
+The elliptic fill tests every pixel of the ring's box, so it costs about 4 to 8 times the circular row-span fill
+(C: 4.42 / 0.55 = 8.0, 1.16 / 0.29 = 4.0) but stays under a 16.7 ms frame [C: 1000 / 60] in every case here, the
+worst being 12.05 ms for a dashed filled ring covering the whole Layer 2 640 picture. That is the generator only; the
+preview adds its drawing. Nothing was changed on the strength of these figures.
+
+The sample count of each ellipse, max(60, round(4 x the larger radius)), is the old circular ring's count with the
+larger radius in place of its one radius [C: existing code]; it is not a limit.

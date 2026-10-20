@@ -216,6 +216,11 @@ Conditional reveals:
                                           -> thickness [1..8 =1]
                                              (outline stroke width; hidden when
                                               the shape is filled)
+  shapeType in [Rectangle, Square, Rounded rectangle, Ellipse, Ring,
+                Parallelogram, Arc, Sector, Triangle, Diamond, the regular
+                polygons]        -> rotation [-180..180 deg =0] (clockwise;
+                                    box shapes and Ellipse / Ring round their
+                                    centre, the others round the press point)
 
 Per-shape parameters (SHAPE_PARAM_ROWS - each keyed to its own shape, so
 picking a shape brings up its dial and nothing else's):
@@ -224,6 +229,9 @@ picking a shape brings up its dial and nothing else's):
   gear    -> gearTeeth    [3..16 =8]
   spiral  -> spiralTurns  [1..8 =3]
   ring    -> ringInner    [10..90% step 5 =50]   inner radius, % of outer
+                                                 (both radii: the ring is drawn
+                                                  from its centre like the ellipse,
+                                                  width across, height down)
   moon    -> moonPhase    [5..95% step 5 =30]    cutout offset, % of radius
   arc     -> arcSpan      [15..360 deg step 15 =180]
   sector  -> arcSpan      (same row, re-seeded to 90 by setShapeType)

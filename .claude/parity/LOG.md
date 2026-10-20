@@ -1173,3 +1173,35 @@ Not changed, for the owner: ZX Paintbrush applies its gradients as the fill of e
 tool fills its own five outlines or (Shape fill) any drawn outline by flood, two steps for other figures. The Zoom
 400 % ceiling's working rests on the Coarse grain only; with a finer grain or a box larger than the drag, a larger
 zoom would still show more. Both are design rules the owner may move.
+
+## Elliptic, rotatable Ring (decided 2026-10-19, built 2026-10-20)
+Plan: .claude/parity/feature-elliptic-ring.md. The Shape tool's Ring was always circular (radius = drag distance) with
+no Rotation; ZX Paintbrush's is elliptic and turns (ring_tool.txt: "you will get an elliptic ring. Rings can be
+rotated!").
+- Drag: as the Ellipse - press at the centre, across sets the width, down the height. The only modifier keys a Shape
+  drag has are the X / Y axis lock (and Snap); PixULA's Ellipse has no circle key, so the Ring has none either.
+- Rotation: the Shape tool's Rotation row now shows for the Ring (-180 to 180, clockwise, round the centre). The ring
+  turns itself (SELF_ROTATING in ShapeGenerator): it has two outlines and a fill with a hole, which the box-shape path
+  cannot make. A half turn is no turn and a quarter turn swaps the radii, so those are exact; a circle does not turn.
+- Inner radius (10 to 90 percent) applies to both radii.
+- Equal width and height: the circular ring pixel for pixel. Pinned BEFORE the change: 234 rings (13 radii, 5 inner
+  ratios, outline / thick / filled, the dash styles and Clear, rings clipped at the edges) as pixel-set hashes;
+  all 234 match after it, also at Rotation 37. The button picture is pinned unchanged.
+- Filled: the circular ring keeps its old row-span fill; an elliptic one tests each pixel of its turned box and keeps
+  its outline, so a band thinner than a pixel stays joined. A flat drag (no height) draws a line.
+- Keep editable: ShapeFigure needed no change - the Ring is centre-anchored like the Ellipse, its drag handle turns
+  round the centre, the knob turns it.
+- Screen modes: still a pixel list drawn through PixelDrawRoutine.draw, so nothing is mode-specific; nothing hidden
+  or refused. The browser spec checks the drawn pixels equal the generator's in all 18 modes.
+- No new user-facing text (opt.rotation and opt.ringInner reused). Manual: 50-tools.md x13, the Rotation sentence
+  names the ring and says how it is dragged; tool tables regenerated. docs/TOOL_OPTIONS_TREES.txt gains the shape
+  Rotation row (it had none). docs/FIGURES.md: timings [M, 2026-10-20] - a picture-filling elliptic filled ring costs
+  up to 12.05 ms (dashed, Layer 2 640) in the generator, against 3.01 ms for the circular fill.
+- Tests, seen failing first [M, 2026-10-20]: tests/elliptic-ring.test.js 26 checks failed on the old code (the pins
+  among them: 231 of 234 missed; the 3 that matched are unfilled Clear rings, which draw nothing); tests/browser/
+  elliptic-ring.spec.js 7 of 7 failed with shape-generator.js and shape-tool.js stashed. After: all pass.
+- Comparison: Ring -> Same. Totals [M, count-verdicts.js, 2026-10-20]: 114 functions, 30 below parity (6 missing,
+  24 partial), 74 same, 8 further, 2 n/a. Before [M, same counter, 2026-10-20]: 31 (6, 25), 73 same. Part 3 item 13
+  strikes the ring.
+- For the owner: a circular ring used to be any drag; now it needs a drag exactly on the diagonal. A circle key, if
+  wanted, belongs to the Ellipse and the Ring together.
