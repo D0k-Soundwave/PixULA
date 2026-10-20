@@ -87,6 +87,10 @@ the comparison row, the format header and the manual say so.
 - [C] Codec cap check: heaviest font 256 glyphs x 32x32 = 32,768 bytes of glyphs (43,692
   base64) + 512 shading bytes (684 base64) + 256 x (1 + 16) = 4,352 colour bytes (5,804
   base64) = about 50.2 KB of JSON, under FontCodec.MAX_JSON_BYTES (64 KB, existing).
+  Measured after building [M, 2026-10-20, Node]: 50,255 characters (44,444 uncoloured).
+- [M, 2026-10-20, Playwright, this machine's Chrome] All characters map repaint of a 512 x 512
+  map: 1.6 ms before, 3.0 ms with the colour hook and nothing coloured, 9.6-10.0 ms with every
+  glyph coloured; once per stroke or attribute change, inside a 16.7 ms frame.
 - [C] Undo: the heaviest snapshot grows from 33,280 (256 x (128 + 2)) to 37,376 bytes (+ 256 x 16 attribute bytes); FontHistory's 2 MB cap
   (existing) then holds about 56 steps of it (2,097,152 / 37,376) instead of 63.
 - Attribute 56 (0x38) for padding blocks: the Spectrum's power-on attribute [P, ZX Spectrum
