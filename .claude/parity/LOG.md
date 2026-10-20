@@ -1122,3 +1122,34 @@ Two defects found and fixed:
 - The field read with parseInt: 1e3, a number the field accepts, was taken as 1 and threw away all but one step.
   It now reads valueAsNumber and rounds (7.6 -> 8). tests/browser/undo-depth.spec.js: failed (1 for 1000) before the fix.
 - Not this feature: shell.spec.js:453 fails the same way on 6b01274, before the Undo steps commits.
+
+## Gradient polygon styles, Rotation and Zoom (owner decision 2026-10-19, built 2026-10-20)
+Plan: .claude/parity/feature-gradient-shapes.md. The Gradient tool's Type list gains Triangle, Pentagon, Hexagon and
+Octagon (after Square; labels reuse common.triangle and shape.pentagon / hexagon / octagon). Their bands are regular
+polygons round the start point, one side flat at the bottom at Rotation 0, the drag reaching the band corners.
+- Rotation (opt.rotation, -180 to 180 degrees, clockwise, as the Shape tool's) and Zoom (opt.gradientZoom, 25 to 400
+  percent, step 5) show for the edge-based styles only: Diamond, Square and the four polygons. Linear, Reflected,
+  Conical and Spiral take their direction from the drag (Shift snaps it to 15 degrees), so Rotation is not added to
+  them; Radial is round. ZX Paintbrush's help gives a zoom level to "figures that are edge-based (triangle, square
+  etc.)" and does not say what it does, so Zoom scales the band spacing about the start point.
+- Square and Diamond at Rotation 0, Zoom 100 read exactly the old formulas (checked pixel for pixel); quarter turns
+  use exact sines and cosines, and the polygon normals are rounded to 2^-40 so the mirror and half-turn symmetries
+  hold exactly on the pixel grid.
+- Screen modes: only the position math changed; drawing still goes through PixelDrawRoutine.draw as before, so every
+  mode behaves as with the old styles. Nothing hidden or refused. Checked in all of them by the browser spec.
+- Presets: both are schema options, saved and restored; a preset saved before them leaves them where they are, as
+  for every later option.
+- Figures: FIGURES.md rows for the Rotation range, Zoom 25 / 400 / step 5 (C, design rules the owner may move) and
+  a timing section [M, 2026-10-20]: full-canvas preview at Layer 2 640, the new styles within the old styles'
+  run-to-run spread except the triangle's worst run (47.0 ms against 42.7 ms for the worst old one).
+- i18n: opt.gradientZoom in 13 languages. Manual: 50-tools.md x13, one paragraph (Gradient styles, Rotation and
+  Zoom); tool tables regenerated.
+- Tests, seen failing first [M, 2026-10-20, gradient-tool.js stashed]: tests/gradient-shapes.test.js failed 12 checks
+  (types, schema rows, setters) and then stopped at the missing getGradientRotation; tests/browser/gradient-shapes.spec.js
+  6 of 6 failed. After: 132 checks pass, 6 of 6 specs pass.
+- Comparison: Gradient fills and custom gradient -> Same. Totals [M, count-verdicts.js, 2026-10-20]: 114 functions,
+  31 below parity (6 missing, 25 partial), 73 same, 8 further, 2 n/a. Before [M, same counter, 2026-10-19]: 32 (6, 26),
+  72 same. Part 3 item 13 strikes the gradients.
+- Suites (M, 2026-10-20): run-all ALL TEST FILES PASSED; check:manual up to date; whole browser suite 880 passed.
+- For the owner to check by eye: the help's pictures are not in the repository, so the polygons' starting orientation
+  (flat side at the bottom) is not compared against ZX Paintbrush.

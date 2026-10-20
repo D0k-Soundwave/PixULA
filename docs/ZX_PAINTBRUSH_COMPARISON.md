@@ -20,10 +20,13 @@ listings and had gone stale (it described an "Attributes only" draw mode and a
 "transparent" draw mode that no longer exist, and GigaScreen support that ZX
 Paintbrush never had).
 
-**Totals** [M, counted from the tables below by .claude/parity/count-verdicts.js, 2026-10-19, after the
-Undo steps setting was built]: 114 functions; PixULA is below parity on 32 (6 missing, 26 partial), level on 72,
-ahead on 8, and 2 do not apply to a browser app. The Undo steps setting took Undo and redo back to Same.
-Before it [M, same counter, 2026-10-19, after the Attributes Only draw mode] it was 33 below parity (6 missing,
+**Totals** [M, counted from the tables below by .claude/parity/count-verdicts.js, 2026-10-20, after the
+gradient polygon styles, Rotation and Zoom were built]: 114 functions; PixULA is below parity on 31 (6 missing,
+25 partial), level on 73, ahead on 8, and 2 do not apply to a browser app. The polygon styles, Rotation and Zoom took
+Gradient fills and custom gradient back to Same.
+Before them [M, same counter, 2026-10-19, after the Undo steps setting] it was 32 below parity (6 missing,
+26 partial), level on 72; the Undo steps setting took Undo and redo back to Same.
+Before that [M, same counter, 2026-10-19, after the Attributes Only draw mode] it was 33 below parity (6 missing,
 27 partial), level on 71; Attributes Only took Drawing (pixels) switch back to Same.
 Before that [M, same counter, 2026-10-19, after the 2026-10-18 audit corrections] it was 34 below parity (6 missing,
 28 partial), level on 70. The audit found seven rows judged too kindly and moved them to
@@ -155,7 +158,7 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 
 ## Part 2 - Everything else
 
-64 functions: 31 same, 7 where PixULA goes further, 18 partial, 6 missing, 2 not applicable [M, count-verdicts.js, 2026-10-19, after the Undo steps setting]. Before it: 30 same, 19 partial [M, same counter, same day].
+64 functions: 32 same, 7 where PixULA goes further, 17 partial, 6 missing, 2 not applicable [M, count-verdicts.js, 2026-10-20, after the gradient polygon styles, Rotation and Zoom]. Before them: 31 same, 18 partial [M, same counter, 2026-10-19, after the Undo steps setting]; before that: 30 same, 19 partial [M, same counter, same day].
 Before the 2026-10-18 audit the counter gave 35 same, 8 further, 13 partial and 6 missing; this line still read
 19 same, 9 further, 19 partial and 15 missing, its 2026-10-08 count, never updated since.
 
@@ -192,7 +195,7 @@ Before the 2026-10-18 audit the counter gave 35 same, 8 further, 13 partial and 
 | Fill styles and fill style editor | Built-in 16x16 patterns, each editable. | Pattern library and Pattern Creator. | PixULA further |
 | Custom fill style from a picture | Turns a picture file into a fill through the converter. | From picture... in the pattern panel (2026-10-10, Batch 8 part 8B2): brightness, contrast, scaling, any of the 31 dithers, to a square tile of 8, 16 or 32 pixels, saved to the library under the file name. ZX Paintbrush also allows other widths and heights, which the library does not (square tiles only). Patterns captured from the canvas, and JSON import / export; there are no .pat files. | Partial |
 | Capture fill style | Uses the last captured area as the fill. | Pattern capture from a selection. | Same |
-| Gradient fills and custom gradient | Linear, radial, circular, triangular, rectangular, pentagonal, hexagonal, octagonal; rotation, repeats, zoom. | Gradient tool: linear, radial, reflected, diamond, square, conical, spiral; repeats, curve, bias, steps, shape fills. Missing: the triangular, pentagonal, hexagonal and octagonal styles, rotation (Square and Diamond keep their bands square to the picture; the drag sets only their size) and zoom. Conical, spiral, curve, bias and steps go further than ZX Paintbrush. | Partial (no triangular, pentagonal, hexagonal or octagonal styles, no rotation, no zoom) |
+| Gradient fills and custom gradient | Linear, radial, circular, triangular, rectangular, pentagonal, hexagonal, octagonal; rotation, repeats, zoom. | Gradient tool: linear, radial, reflected, diamond, square, triangle, pentagon, hexagon, octagon, conical, spiral; repeats, curve, bias, steps, shape fills. The four polygon styles (2026-10-19, owner decision) draw regular-polygon bands round the start point; the drag sets their size and reaches the bands' corners, and at Rotation 0 one side lies flat at the bottom (the triangle and pentagon point up). Rotation (-180 to 180 degrees, clockwise, as the Shape tool's) turns the edge-based styles: square, diamond and the four polygons. Linear, reflected, conical and spiral take their direction from the drag (Shift snaps it to 15 degrees), so the drag is their rotation and the option is not shown for them; radial is round. Zoom (25 to 400 percent) is offered for the same edge-based styles, as the help says ("figures that are edge-based (triangle, square etc.) can also have a zoom level"); the help does not say what it does, so here it scales the band spacing about the start point (200 percent puts the bands twice as far apart, and with Repeats makes each repeat twice as wide). Repeats, curve, bias, steps, shape fills and all 31 dithers work with every style. Conical, spiral, reflected, curve, bias and steps go further than ZX Paintbrush. The help's pictures of the styles are not in the repository, so the polygons' starting orientation should be checked against ZX Paintbrush by eye. Manual: Tools chapter, Gradient styles, Rotation and Zoom. | Same |
 | Dithering styles | 31 methods: three thresholds, 14 error-diffusion kernels, three Bayer matrices, seven cluster-dot and four supercell screens, for gradients, fills and imports. | All 31 exist in js/utils/dither.js (2026-10-10, Batch 8 part 8A; tables from the help, usage measured against its pictures). Gradient (8B): its own Bayer 2/4/8 first, then the 28 others. Picture import (8B): the Smooth conversion takes any of the 31, and Sharp too once a method is chosen; in the cell modes error diffusion stays inside each attribute cell; the Layer 2 / LoRes modes take all 31 as well (each pixel between its two nearest palette colours, the whole picture one block; 2026-10-13). Custom fills (8B2): all 31. The fade brush keeps its own ordered, halftone and noise. The gradient's Bayer matrices are the transpose of ZX Paintbrush's. | Partial |
 
 ### Capture, selection and overlays
@@ -271,7 +274,7 @@ Before the 2026-10-18 audit the counter gave 35 same, 8 further, 13 partial and 
 - Fill attributes only: flood connected cells that share the same four values (in the modes with cell colours)
 - Brush engines: spray with weighting or Poisson spacing, fade, pattern, hatch; pressure
 - 30+ shapes: star, heart, gear, flower, moon, spiral, house, arrows and more
-- Gradient tool with seven types, curve, bias, steps and shape-constrained fills
+- Gradient tool with eleven types (reflected, conical and spiral beyond ZX Paintbrush's), curve, bias, steps and shape-constrained fills
 - Pattern library of 105 measured tiles, plus your own
 - GigaScreen, MultiGigaScreen, Timex hi-res and every Next mode (Layer 2, LoRes, ULANext)
 - Stamps that rotate to any angle, scale and bend
@@ -348,7 +351,7 @@ cost and the owner decides.
 13. **Found by the 2026-10-18 audit** (rows moved to Partial on 2026-10-19, not yet
     placed in a batch; the owner decides): ~~a draw mode that writes Ink and Paper
     without touching a pixel~~ (built 2026-10-19: Attributes Only); an elliptic, rotatable
-    ring; triangular, pentagonal, hexagonal and octagonal gradients with rotation
-    and zoom; keeping the colours of coloured CHX characters; opening BMP and
+    ring; ~~triangular, pentagonal, hexagonal and octagonal gradients with rotation
+    and zoom~~ (built 2026-10-20: the four Gradient styles, Rotation and Zoom); keeping the colours of coloured CHX characters; opening BMP and
     saving GIF; the conversion dialog for a system clipboard paste; ~~a setting for
     the undo depth~~ (built 2026-10-19: Preferences > Undo steps, 1 to 2000).

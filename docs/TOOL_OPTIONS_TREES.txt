@@ -249,8 +249,13 @@ hint: usage text
 ===============================================================================
 7. GRADIENT  (id 'gradient', shortcut D)                 js/tools/gradient-tool.js
 ===============================================================================
-gradientType  <Linear | Radial | Reflected | Diamond | Square |
-               Conical | Spiral>                                    =Linear
+gradientType  <Linear | Radial | Reflected | Diamond | Square | Triangle |
+               Pentagon | Hexagon | Octagon | Conical | Spiral>     =Linear
+  -> gradientRotation (Rotation) [-180..180 deg =0]
+  -> gradientZoom (Zoom) [25..400 % =100]
+                                        ONLY for the edge-based styles: Diamond,
+                                        Square, Triangle, Pentagon, Hexagon,
+                                        Octagon (2026-10-19)
 gradientSteps (Steps) [1..16 =1]      (1 = smooth; 2..16 = quantised bands)
 dithered      (check =on)             (off = hard 50% threshold, crisp bands)
   -> ditherScale (Dither grain) <Coarse (2) | Medium (4) | Fine (8)>  =Fine
@@ -260,7 +265,7 @@ shapeConstraint (Shape fill, check =off)   click-flood the region, then gradient
                                         ONLY when shapeConstraint = off
                                         (the constraint uses the flood region)
 
-Permutations: {7 gradientType} x gradientSteps x dithered(->ditherScale)
+Permutations: {11 gradientType} (6 of them x rotation x zoom) x gradientSteps x dithered(->ditherScale)
   x shapeConstraint (off adds fillShape)
 
 ===============================================================================
