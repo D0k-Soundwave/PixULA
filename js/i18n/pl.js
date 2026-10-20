@@ -331,6 +331,7 @@ const pl = {
     'opt.gammaCurve': 'Krzywa',
     'opt.bias': 'Przesunięcie',
     'opt.lockAxis': 'Zablokuj oś',
+    'opt.gradientZoom': 'Powiększenie',
     'gt.linear': 'Liniowy',
     'gt.radial': 'Promienisty',
     'gt.reflected': 'Odbity',

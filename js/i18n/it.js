@@ -331,6 +331,7 @@ const it = {
     'opt.gammaCurve': 'Curva',
     'opt.bias': 'Scostamento',
     'opt.lockAxis': 'Blocca asse',
+    'opt.gradientZoom': 'Zoom',
     'gt.linear': 'Lineare',
     'gt.radial': 'Radiale',
     'gt.reflected': 'Riflesso',

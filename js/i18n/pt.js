@@ -331,6 +331,7 @@ const pt = {
     'opt.gammaCurve': 'Curva',
     'opt.bias': 'Desvio',
     'opt.lockAxis': 'Bloquear eixo',
+    'opt.gradientZoom': 'Zoom',
     'gt.linear': 'Linear',
     'gt.radial': 'Radial',
     'gt.reflected': 'Refletido',

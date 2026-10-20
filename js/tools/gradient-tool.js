@@ -21,6 +21,43 @@ const GRADIENT_DITHER_OPTIONS = (() => {
 })();
 
 /**
+ * The styles whose bands have edges and corners: Rotation turns them and Zoom scales them (ZX Paintbrush's help:
+ * "Figures that are edge-based (triangle, square etc.) can also have a zoom level"). The other styles take their
+ * direction and length from the drag itself (linear, reflected, conical, spiral) or are round (radial), so neither
+ * option is shown for them.
+ */
+const EDGE_STYLES = Object.freeze(['square', 'diamond', 'triangle', 'pentagon', 'hexagon', 'octagon']);
+
+/** Sides of the regular-polygon styles. */
+const POLYGON_SIDES = Object.freeze({ triangle: 3, pentagon: 5, hexagon: 6, octagon: 8 });
+
+/**
+ * The outward side normals of each polygon style, flattened [cos0, sin0, cos1, sin1, ...], in screen angles (y grows
+ * downward): the first points straight down, so at Rotation 0 one side lies flat at the bottom - the triangle and the
+ * pentagon point up, the hexagon and the octagon have a flat top as well. Each set is divided by cos(pi / n), the
+ * inner reach of a polygon whose corners are 1 away, so a band's corners lie on the drag distance.
+ * The sines and cosines are rounded to 2^-40 first: Math.cos(150 deg) and -Math.cos(30 deg) differ in the last bit,
+ * and that was enough to flip a pixel lying exactly on a band edge, so a hexagon was not quite the same turned half
+ * round. Rounded, the mirror and half-turn pairs are exact negatives and those symmetries hold pixel for pixel.
+ */
+const POLYGON_NORMALS = Object.freeze(Object.fromEntries(Object.entries(POLYGON_SIDES).map(([style, n]) => {
+  const out = new Float64Array(2 * n);
+  const scale = 1 / Math.cos(Math.PI / n);
+  const exact = (v) => Math.round(v * 1099511627776) / 1099511627776;   // 2^40
+  for (let k = 0; k < n; k++) {
+    const a = Math.PI / 2 + 2 * Math.PI * k / n;
+    out[2 * k] = exact(Math.cos(a)) * scale;
+    out[2 * k + 1] = exact(Math.sin(a)) * scale;
+  }
+  return [style, out];
+})));
+
+/** Rotation range in degrees: one full turn centred on 0, as the Shape tool's Rotation. */
+const ROTATION_MIN = -180, ROTATION_MAX = 180;
+/** Zoom range in percent (docs/FIGURES.md, Gradient Rotation and Zoom). */
+const ZOOM_MIN = 25, ZOOM_MAX = 400, ZOOM_DEFAULT = 100;
+
+/**
  * Gradient Tool — Two-phase interaction
  *
  * Phase 1: User drags to define the shape/region (shown as outline on canvas).
@@ -50,9 +87,18 @@ class GradientToolClass extends ToolBase {
       { value: 'reflected', i18n: 'gt.reflected' },
       { value: 'diamond',   i18n: 'gt.diamond' },
       { value: 'square',    i18n: 'common.square' },
+      { value: 'triangle',  i18n: 'common.triangle' },
+      { value: 'pentagon',  i18n: 'shape.pentagon' },
+      { value: 'hexagon',   i18n: 'shape.hexagon' },
+      { value: 'octagon',   i18n: 'shape.octagon' },
       { value: 'conical',   i18n: 'gt.conical' },
       { value: 'spiral',    i18n: 'gt.spiral' }
     ]},
+    // Turn and scale the edge-based styles round the start point; hidden for the others (see EDGE_STYLES).
+    { type: 'range', key: 'gradientRotation', i18n: 'opt.rotation', min: ROTATION_MIN, max: ROTATION_MAX, step: 1,
+      value: 0, unit: '\u00b0', showIf: { key: 'gradientType', in: EDGE_STYLES } },
+    { type: 'range', key: 'gradientZoom', i18n: 'opt.gradientZoom', min: ZOOM_MIN, max: ZOOM_MAX, step: 5,
+      value: ZOOM_DEFAULT, unit: '%', showIf: { key: 'gradientType', in: EDGE_STYLES } },
     // 'drag' is the exact point phase 1 was dragged from - a corner for
     // rectangle/square/none/triangle. Circle is dragged from its centre
     // outward already, so drag and centre coincide there; not hidden for it,
@@ -106,8 +152,16 @@ class GradientToolClass extends ToolBase {
     // _shouldBeInk to a hard 50% threshold (crisp banded gradient).
     this._dithered = true;
 
-    // Gradient type: 'linear', 'radial', 'reflected', 'diamond', 'conical', 'square', 'spiral'
+    // Gradient type: 'linear', 'radial', 'reflected', 'diamond', 'square', 'triangle', 'pentagon', 'hexagon',
+    // 'octagon', 'conical', 'spiral'
     this.gradientType = 'linear';
+
+    // Rotation (degrees, clockwise on screen) and Zoom (percent) of the edge-based styles; 0 and 100 draw exactly
+    // as before they existed. _rotCos / _rotSin are kept with the angle so the pixel loop does no trigonometry.
+    this._rotation = 0;
+    this._rotCos = 1;
+    this._rotSin = 0;
+    this._zoom = ZOOM_DEFAULT;
 
     // Quantise gradient into N discrete density levels (1 = smooth continuous)
     this.gradientSteps = 1;
@@ -225,10 +279,43 @@ class GradientToolClass extends ToolBase {
   // ── Setters / getters ──────────────────────────────────────────────────────
 
   setGradientType(type) {
-    const valid = ['linear', 'radial', 'reflected', 'diamond', 'conical', 'square', 'spiral'];
+    const valid = ['linear', 'radial', 'reflected', 'diamond', 'conical', 'square', 'spiral',
+      'triangle', 'pentagon', 'hexagon', 'octagon'];
     if (valid.includes(type)) this.gradientType = type;
   }
   getGradientType() { return this.gradientType; }
+
+  getGradientRotation() { return this._rotation; }
+  /**
+   * Degrees, positive clockwise on screen. An angle outside -180..180 is brought into it (270 is -90, 360 is 0), as
+   * ShapeGenerator.rotationDeg does; anything that is not a finite number is 0. Quarter turns keep exact sines and
+   * cosines, so a square turned 90 degrees is the unturned square pixel for pixel.
+   */
+  setGradientRotation(v) {
+    const n = (v === null || v === '' || typeof v === 'boolean') ? NaN : Number(v);
+    let d = Number.isFinite(n) ? n % 360 : 0;
+    if (d > ROTATION_MAX) d -= 360;
+    if (d < ROTATION_MIN) d += 360;
+    if (d === 0) d = 0;   // no -0
+    this._rotation = d;
+    const q = ((d % 360) + 360) % 360;
+    if (q === 0)        { this._rotCos = 1;  this._rotSin = 0; }
+    else if (q === 90)  { this._rotCos = 0;  this._rotSin = 1; }
+    else if (q === 180) { this._rotCos = -1; this._rotSin = 0; }
+    else if (q === 270) { this._rotCos = 0;  this._rotSin = -1; }
+    else {
+      const r = d * Math.PI / 180;
+      this._rotCos = Math.cos(r);
+      this._rotSin = Math.sin(r);
+    }
+  }
+
+  getGradientZoom() { return this._zoom; }
+  /** Percent of the drag's reach the bands use: 200 spreads them twice as far apart. Held to 25..400. */
+  setGradientZoom(v) {
+    const n = (v === null || v === '' || typeof v === 'boolean') ? NaN : Number(v);
+    this._zoom = Number.isFinite(n) ? clamp(n, ZOOM_MIN, ZOOM_MAX) : ZOOM_DEFAULT;
+  }
 
   getShapeConstraint() { return this._shapeConstraint; }
   setShapeConstraint(v) { this._shapeConstraint = Boolean(v); }
@@ -731,16 +818,15 @@ class GradientToolClass extends ToolBase {
         raw = Math.sqrt(px * px + py * py) / r;
         break;
       }
-      case 'diamond': {
-        const r = Math.sqrt(lenSq);
+      case 'diamond':
+      case 'square':
+      case 'triangle':
+      case 'pentagon':
+      case 'hexagon':
+      case 'octagon': {
+        const r = Math.sqrt(lenSq) * this._zoom / 100;
         if (r === 0) return 0.5;
-        raw = (Math.abs(pixelX - sx) + Math.abs(pixelY - sy)) / r;
-        break;
-      }
-      case 'square': {
-        const r = Math.sqrt(lenSq);
-        if (r === 0) return 0.5;
-        raw = Math.max(Math.abs(pixelX - sx), Math.abs(pixelY - sy)) / r;
+        raw = this._edgeReach(pixelX - sx, pixelY - sy) / r;
         break;
       }
       case 'conical': {
@@ -765,6 +851,30 @@ class GradientToolClass extends ToolBase {
 
     const wrapped = this._applyWrap(raw);
     return this._gammaCurve === 1 ? wrapped : Math.pow(wrapped, this._gammaCurve);
+  }
+
+  // How far out the offset (px, py) lies on an edge-based style's bands, in pixels of the drag. The offset is first
+  // turned back by the Rotation (so the bands turn clockwise with it); then Square reads its larger coordinate (the
+  // drag is half its side), Diamond the sum of both (the drag reaches its corners) and a polygon its largest side
+  // distance, scaled so the drag reaches its corners (POLYGON_NORMALS). At Rotation 0 the offset is used as it is,
+  // so Square and Diamond give exactly the values they always did.
+  _edgeReach(px, py) {
+    const c = this._rotCos, s = this._rotSin;
+    const x = px * c + py * s;
+    const y = py * c - px * s;
+    switch (this.gradientType) {
+      case 'square':  return Math.max(Math.abs(x), Math.abs(y));
+      case 'diamond': return Math.abs(x) + Math.abs(y);
+      default: {
+        const nm = POLYGON_NORMALS[this.gradientType];
+        let best = -Infinity;
+        for (let k = 0; k < nm.length; k += 2) {
+          const d = x * nm[k] + y * nm[k + 1];
+          if (d > best) best = d;
+        }
+        return best;
+      }
+    }
   }
 
   // Shared wrap stage for every gradient type except 'reflected' (see above).

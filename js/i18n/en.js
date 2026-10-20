@@ -683,6 +683,7 @@ const en = {
     'opt.gammaCurve': 'Curve',
     'opt.bias': 'Bias',
     'opt.lockAxis': 'Lock axis',
+    'opt.gradientZoom': 'Zoom',
     'gt.linear': 'Linear',
     'gt.radial': 'Radial',
     'gt.reflected': 'Reflected',

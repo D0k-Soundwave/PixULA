@@ -331,6 +331,7 @@ const hu = {
     'opt.gammaCurve': 'Görbe',
     'opt.bias': 'Eltolás',
     'opt.lockAxis': 'Tengely zárolása',
+    'opt.gradientZoom': 'Nagyítás',
     'gt.linear': 'Lineáris',
     'gt.radial': 'Sugárirányú',
     'gt.reflected': 'Tükrözött',

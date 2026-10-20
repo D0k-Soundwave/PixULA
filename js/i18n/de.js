@@ -331,6 +331,7 @@ const de = {
     'opt.gammaCurve': 'Kurve',
     'opt.bias': 'Verschiebung',
     'opt.lockAxis': 'Achse sperren',
+    'opt.gradientZoom': 'Zoom',
     'gt.linear': 'Linear',
     'gt.radial': 'Radial',
     'gt.reflected': 'Reflektiert',

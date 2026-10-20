@@ -331,6 +331,7 @@ const cs = {
     'opt.gammaCurve': 'Křivka',
     'opt.bias': 'Posun',
     'opt.lockAxis': 'Zamknout osu',
+    'opt.gradientZoom': 'Zvětšení',
     'gt.linear': 'Lineární',
     'gt.radial': 'Radiální',
     'gt.reflected': 'Odražený',
