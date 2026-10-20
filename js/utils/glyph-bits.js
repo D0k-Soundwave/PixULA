@@ -132,6 +132,49 @@ const GlyphBits = {
         return out;
     },
 
+    /**
+     * The attribute byte a block gets when a coloured character grows (or a smaller one is read into a bigger font): 56, the
+     * Spectrum's own default - black Ink on white Paper, no Bright, no Flash - which looks the same as an uncoloured block.
+     */
+    DEFAULT_ATTR: 0x38,
+
+    /**
+     * A coloured character's block attributes (cols x rows bytes, left to right then down) at a new block size: the top-left
+     * part is kept, new blocks get DEFAULT_ATTR. Null stays null (an uncoloured character).
+     * @param {?Uint8Array} attrs
+     * @returns {?Uint8Array}
+     */
+    resizeBlocks(attrs, cols, rows, newCols, newRows) {
+        if (!attrs) return null;
+        const out = new Uint8Array(newCols * newRows).fill(this.DEFAULT_ATTR);
+        for (let by = 0; by < newRows && by < rows; by++) {
+            for (let bx = 0; bx < newCols && bx < cols; bx++) out[by * newCols + bx] = attrs[by * cols + bx];
+        }
+        return out;
+    },
+
+    /** Mirror a character's block attributes left-right (the blocks follow the pixels of flipH). Mutates and returns attrs. */
+    flipBlocksH(attrs, cols, rows) {
+        if (!attrs) return attrs;
+        for (let by = 0; by < rows; by++) {
+            for (let a = by * cols, b = a + cols - 1; a < b; a++, b--) {
+                const t = attrs[a]; attrs[a] = attrs[b]; attrs[b] = t;
+            }
+        }
+        return attrs;
+    },
+
+    /** Mirror a character's block attributes top-bottom (flipV). Mutates and returns attrs. */
+    flipBlocksV(attrs, cols, rows) {
+        if (!attrs) return attrs;
+        for (let a = 0, b = rows - 1; a < b; a++, b--) {
+            for (let bx = 0; bx < cols; bx++) {
+                const t = attrs[a * cols + bx]; attrs[a * cols + bx] = attrs[b * cols + bx]; attrs[b * cols + bx] = t;
+            }
+        }
+        return attrs;
+    },
+
     /** A copy at a new size: the top-left part is kept, new area is blank. */
     resize(g, width, height, newWidth, newHeight) {
         const out = this.create(newWidth, newHeight);
