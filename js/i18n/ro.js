@@ -331,6 +331,7 @@ const ro = {
     'opt.gammaCurve': 'Curbă',
     'opt.bias': 'Decalaj',
     'opt.lockAxis': 'Blochează axa',
+    'opt.gradientZoom': 'Zoom',
     'gt.linear': 'Liniar',
     'gt.radial': 'Radial',
     'gt.reflected': 'Reflectat',

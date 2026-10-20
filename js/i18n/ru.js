@@ -331,6 +331,7 @@ const ru = {
     'opt.gammaCurve': 'Кривая',
     'opt.bias': 'Смещение',
     'opt.lockAxis': 'Заблокировать ось',
+    'opt.gradientZoom': 'Масштаб',
     'gt.linear': 'Линейный',
     'gt.radial': 'Радиальный',
     'gt.reflected': 'Отражённый',

@@ -331,6 +331,7 @@ const sk = {
     'opt.gammaCurve': 'Krivka',
     'opt.bias': 'Posun',
     'opt.lockAxis': 'Zamknúť os',
+    'opt.gradientZoom': 'Zväčšenie',
     'gt.linear': 'Lineárny',
     'gt.radial': 'Radiálny',
     'gt.reflected': 'Odrazený',

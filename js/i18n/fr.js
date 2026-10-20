@@ -331,6 +331,7 @@ const fr = {
     'opt.gammaCurve': 'Courbe',
     'opt.bias': 'Biais',
     'opt.lockAxis': "Verrouiller l'axe",
+    'opt.gradientZoom': 'Zoom',
     'gt.linear': 'Linéaire',
     'gt.radial': 'Radial',
     'gt.reflected': 'Réfléchi',

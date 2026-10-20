@@ -331,6 +331,7 @@ const tr = {
     'opt.gammaCurve': 'Eğri',
     'opt.bias': 'Kaydırma',
     'opt.lockAxis': 'Ekseni kilitle',
+    'opt.gradientZoom': 'Yakınlaştırma',
     'gt.linear': 'Doğrusal',
     'gt.radial': 'Radyal',
     'gt.reflected': 'Yansıtılmış',

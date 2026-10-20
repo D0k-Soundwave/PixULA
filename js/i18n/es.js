@@ -331,6 +331,7 @@ const es = {
     'opt.gammaCurve': 'Curva',
     'opt.bias': 'Sesgo',
     'opt.lockAxis': 'Bloquear eje',
+    'opt.gradientZoom': 'Zoom',
     'gt.linear': 'Lineal',
     'gt.radial': 'Radial',
     'gt.reflected': 'Reflejado',
