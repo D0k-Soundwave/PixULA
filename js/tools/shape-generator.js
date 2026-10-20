@@ -133,7 +133,9 @@ const ICON_POSE = Object.freeze({
     // the one direction an arrow reads worst in.
     arrow:    { mode: 'radius', origin: [0, 0.5], dir: [1, 0], radius: 2 },
     spiral:   { mode: 'radius', dir: [1, 0] },
-    ring:     { mode: 'radius', dir: [1, 0] },
+    // Drawn from a centre with a width and a height like the ellipse; posed as the circle it was before it could be
+    // elliptic, so its button picture did not change.
+    ring:     { mode: 'disc' },
     moon:     { mode: 'radius', dir: [1, 0] },
     diamond:  { mode: 'radius', dir: [0, -1] },
     pentagon: POLYGON_POSE, hexagon:  POLYGON_POSE, heptagon: POLYGON_POSE,
@@ -423,7 +425,7 @@ class ShapeGeneratorClass {
 
     /** Shapes whose start point is the CENTRE and whose drag point defines the radius (the others run corner to corner). */
     static isCenterAnchored(shapeType) {
-        return ['circle', 'ellipse', 'star', 'flower', 'gear', 'heart', 'x', 'plus', 'hourglass'].includes(shapeType);
+        return ['circle', 'ellipse', 'ring', 'star', 'flower', 'gear', 'heart', 'x', 'plus', 'hourglass'].includes(shapeType);
     }
 
     /** Bounds for a centre-anchored shape: a box round the centre reaching the drag point. */
@@ -442,6 +444,10 @@ class ShapeGeneratorClass {
      */
     rotationPivot(shapeType, bounds, options = {}) {
         if (ShapeGeneratorClass.DRAG_ROTATABLE.has(shapeType)) return { x: bounds.x1, y: bounds.y1 };
+        if (ShapeGeneratorClass.SELF_ROTATING.has(shapeType)) {
+            const b = this._standardizeBounds(shapeType, bounds);
+            return { x: Math.round(b.centerX), y: Math.round(b.centerY) };
+        }
         if (ShapeGeneratorClass.BOX_ROTATABLE.has(shapeType)) {
             const box = this._boxVertices(shapeType, this._standardizeBounds(shapeType, bounds), options);
             return box ? { x: box.cx, y: box.cy } : null;
@@ -462,6 +468,14 @@ class ShapeGeneratorClass {
     /** Shapes drawn from a box that turn round the box centre. */
     static get BOX_ROTATABLE() {
         return new Set(['rectangle', 'square', 'rounded-rectangle', 'parallelogram', 'ellipse']);
+    }
+
+    /**
+     * Shapes whose own generator applies options.rotation, round the centre of their box. The ring is one: it has two
+     * outlines and a fill with a hole, which the box-shape path (turn one sampled outline, fill inside it) cannot make.
+     */
+    static get SELF_ROTATING() {
+        return new Set(['ring']);
     }
 
     /** Shapes drawn from a centre point and a drag point: turning them turns the drag point round the start. */
@@ -903,6 +917,9 @@ class ShapeGeneratorClass {
             const oy = Math.round((pose.origin ? pose.origin[1] : 0.5) * max);
             const r = Math.round(c * (pose.radius || 1));
             bounds = { x1: ox, y1: oy, x2: ox + pose.dir[0] * r, y2: oy + pose.dir[1] * r };
+        } else if (pose.mode === 'disc') {
+            // A square box round the centre, half-side c: a centre-anchored shape drawn as a circle of radius c.
+            bounds = { x1: 0, y1: 0, x2: 2 * c, y2: 2 * c };
         } else if (pose.mode === 'half') {
             // Box of side c, centred: these read radius = diagonal / sqrt(2),
             // which for a square box is its SIDE — so side c fills the icon.
@@ -1995,66 +2012,64 @@ class ShapeGeneratorClass {
         return points;
     }
 
-    _generateRing(bounds, options = {}) {
+    /**
+     * The ring's geometry from its box (drawn from the centre like the ellipse): centre, outer radii, inner radii
+     * (Inner radius applies to both) and the turn in degrees. An ellipse is the same after a half turn, so the turn is
+     * taken into -90..90; a quarter turn swaps the radii instead of turning, and a circle does not turn at all, so
+     * those draw exactly as the unturned ring does.
+     * @private
+     */
+    _ringGeometry(bounds, options = {}) {
         const { innerRatio = 0.5 } = options;
-        const { x1, y1, x2, y2 } = bounds;
+        let rx = bounds.radiusX, ry = bounds.radiusY;
+        let deg = ShapeGeneratorClass.rotationDeg(options.rotation);
+        if (deg > 90) deg -= 180;
+        if (deg <= -90) deg += 180;
+        if (deg === 90) { const t = rx; rx = ry; ry = t; deg = 0; }
+        if (rx === ry) deg = 0;
+        return { cx: bounds.centerX, cy: bounds.centerY, rx, ry, irx: rx * innerRatio, iry: ry * innerRatio, deg };
+    }
 
-        const dx = x2 - x1;
-        const dy = y2 - y1;
-        const outerR = Math.sqrt(dx * dx + dy * dy);
+    /**
+     * Outline of the ring: the outer ellipse, then the inner one, each traced as samples joined by straight lines.
+     * With equal radii every expression is the one the circular ring always used, so it draws the same pixels.
+     */
+    _generateRing(bounds, options = {}) {
+        const { cx, cy, rx, ry, irx, iry, deg } = this._ringGeometry(bounds, options);
 
-        if (outerR <= 1) return [{ x: Math.round(x1), y: Math.round(y1) }];
-
-        const cx = x1;
-        const cy = y1;
-        const innerR = outerR * innerRatio;
+        if (rx <= 1 && ry <= 1) return [{ x: Math.round(cx), y: Math.round(cy) }];
 
         const points = [];
-        const steps = Math.max(60, Math.round(outerR * 4));
-
-        const isInsideCircle = (px, py, ccx, ccy, cr) => {
-            const ddx = px - ccx;
-            const ddy = py - ccy;
-            return (ddx * ddx + ddy * ddy) < (cr * cr);
+        const steps = Math.max(60, Math.round(Math.max(rx, ry) * 4));
+        const at = (angle, ax, ay) => {
+            if (deg === 0) return { x: Math.round(cx + ax * Math.cos(angle)), y: Math.round(cy + ay * Math.sin(angle)) };
+            const r = ShapeGeneratorClass._rotateXY(ax * Math.cos(angle), ay * Math.sin(angle), 0, 0, deg);
+            return { x: ShapeGeneratorClass._snap(cx + r.x), y: ShapeGeneratorClass._snap(cy + r.y) };
         };
 
-        // Trace outer circle, keep points outside inner circle
+        // Outer ellipse (the inner one lies wholly inside it: Inner radius is at most 90 percent)
         let prevOutside = null;
         for (let i = 0; i <= steps; i++) {
-            const angle = (2 * Math.PI * i) / steps;
-            const px = cx + outerR * Math.cos(angle);
-            const py = cy + outerR * Math.sin(angle);
-
-            if (!isInsideCircle(px, py, cx, cy, innerR)) {
-                const rx = Math.round(px);
-                const ry = Math.round(py);
-                if (prevOutside !== null) {
-                    points.push(...this._bresenhamLine(prevOutside.x, prevOutside.y, rx, ry));
-                }
-                prevOutside = { x: rx, y: ry };
-            } else {
-                prevOutside = null;
+            const p = at((2 * Math.PI * i) / steps, rx, ry);
+            if (prevOutside !== null) {
+                points.push(...this._bresenhamLine(prevOutside.x, prevOutside.y, p.x, p.y));
             }
+            prevOutside = p;
         }
-        // Close the outer circle
+        // Close the outer ellipse
         if (prevOutside !== null && points.length > 0) {
             const first = points[0];
             points.push(...this._bresenhamLine(prevOutside.x, prevOutside.y, first.x, first.y));
         }
 
-        // Trace inner circle (all points are inside outer, so draw all)
+        // Inner ellipse
         let prevInner = null;
         for (let i = 0; i <= steps; i++) {
-            const angle = (2 * Math.PI * i) / steps;
-            const px = cx + innerR * Math.cos(angle);
-            const py = cy + innerR * Math.sin(angle);
-            const rx = Math.round(px);
-            const ry = Math.round(py);
-
+            const p = at((2 * Math.PI * i) / steps, irx, iry);
             if (prevInner !== null) {
-                points.push(...this._bresenhamLine(prevInner.x, prevInner.y, rx, ry));
+                points.push(...this._bresenhamLine(prevInner.x, prevInner.y, p.x, p.y));
             }
-            prevInner = { x: rx, y: ry };
+            prevInner = p;
         }
 
         return points;
@@ -2557,19 +2572,22 @@ class ShapeGeneratorClass {
         return points;
     }
 
+    /**
+     * Filled ring: everything between the outer and the inner ellipse.
+     *
+     * A circular ring keeps the row-span fill it always had, pixel for pixel. An elliptic one, turned or not, tests
+     * every pixel of its box in the ring's own frame (inside the outer ellipse, not strictly inside the inner one) and
+     * keeps its outline too, so where the band is thinner than a pixel it stays joined. A flat ring (no width or no
+     * height) is its outline.
+     */
     _fillRing(bounds, options = {}) {
-        const { innerRatio = 0.5 } = options;
-        const { x1, y1, x2, y2 } = bounds;
+        const { cx, cy, rx, ry, irx, iry, deg } = this._ringGeometry(bounds, options);
 
-        const dx = x2 - x1;
-        const dy = y2 - y1;
-        const outerR = Math.sqrt(dx * dx + dy * dy);
+        if (rx <= 1 && ry <= 1) return [{ x: Math.round(cx), y: Math.round(cy) }];
+        if (rx !== ry) return this._fillEllipticRing(bounds, options, { cx, cy, rx, ry, irx, iry, deg });
 
-        if (outerR <= 1) return [{ x: Math.round(x1), y: Math.round(y1) }];
-
-        const cx = x1;
-        const cy = y1;
-        const innerR = outerR * innerRatio;
+        const outerR = rx;
+        const innerR = irx;
         const outerRSq = outerR * outerR;
         const innerRSq = innerR * innerR;
 
@@ -2605,6 +2623,45 @@ class ShapeGeneratorClass {
             }
         }
 
+        return points;
+    }
+
+    /** The elliptic case of _fillRing (radii differ), turned by g.deg round the centre. @private */
+    _fillEllipticRing(bounds, options, g) {
+        const { cx, cy, rx, ry, irx, iry, deg } = g;
+        const outline = this._generateRing(bounds, options);
+        if (rx === 0 || ry === 0) return outline;
+
+        // The turned box: half-extents of an ellipse turned by deg.
+        const rad = deg * Math.PI / 180;
+        const c = Math.cos(rad), s = Math.sin(rad);
+        const ex = Math.sqrt(rx * rx * c * c + ry * ry * s * s);
+        const ey = Math.sqrt(rx * rx * s * s + ry * ry * c * c);
+        const minX = Helpers.clamp(Math.floor(cx - ex), 0, ZX_SPECTRUM.WIDTH - 1);
+        const maxX = Helpers.clamp(Math.ceil(cx + ex), 0, ZX_SPECTRUM.WIDTH - 1);
+        const minY = Helpers.clamp(Math.floor(cy - ey), 0, ZX_SPECTRUM.HEIGHT - 1);
+        const maxY = Helpers.clamp(Math.ceil(cy + ey), 0, ZX_SPECTRUM.HEIGHT - 1);
+
+        const seen = new Set();
+        const points = [];
+        const add = (x, y) => {
+            const k = y * 100003 + x;
+            if (seen.has(k)) return;
+            seen.add(k);
+            points.push({ x, y });
+        };
+        for (let y = minY; y <= maxY; y++) {
+            for (let x = minX; x <= maxX; x++) {
+                // the pixel in the ring's own frame: turned back by deg
+                const dx = x - cx, dy = y - cy;
+                const u = dx * c + dy * s;
+                const v = -dx * s + dy * c;
+                if ((u / rx) * (u / rx) + (v / ry) * (v / ry) > 1) continue;
+                if (irx > 0 && iry > 0 && (u / irx) * (u / irx) + (v / iry) * (v / iry) < 1) continue;
+                add(x, y);
+            }
+        }
+        for (const p of outline) add(p.x, p.y);
         return points;
     }
 
