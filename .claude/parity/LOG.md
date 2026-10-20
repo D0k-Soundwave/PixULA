@@ -1205,3 +1205,54 @@ rotated!").
   strikes the ring.
 - For the owner: a circular ring used to be any drag; now it needs a drag exactly on the diagonal. A circle key, if
   wanted, belongs to the Ellipse and the Ring together.
+
+## Coloured CHX characters (owner decision 2026-10-19: keep, edit AND type in colour; built 2026-10-20)
+
+Plan: .claude/parity/feature-chx-colour.md. Before: a coloured CHX character's attribute bytes were dropped on opening
+and every character was saved transparent (comparison row CHX big fonts: Partial since the 2026-10-18 audit, S2A-6).
+- File (js/io/font-format.js): a record with transparent = 0 keeps each block's attribute byte; the font document gains
+  colours[i] = null (uncoloured) or one ZX attribute byte per 8x8 block of the full cell. A smaller coloured character's
+  missing blocks get 56 (black Ink on white Paper) [P, ROM start-up ATTR-P]. Saving writes transparent = 0 and the byte
+  after each stored block; an uncoloured character is written exactly as before - pinned BEFORE the change
+  (tests/chx-colour-pin.test.js: 7 sha-256 pins of .chx, .ch8 and FontCodec output taken from ffe8747, all still match,
+  also with a colours list of all nulls). The coloured layout follows the published description (RECOIL, ZX-Blockeditor
+  "Colour character map"); NOT checked against a ZX Paintbrush file - said in the row, the format header and the manual.
+- Storage: FontService.colours parallel to glyphs and shade, carried by copy / paste (resized at the top-left), flip H / V
+  (the blocks follow), coverage changes, the library and the working-font autosave; FontCodec field c (version 2 only
+  when something is coloured, so an uncoloured classic font is still version 1 byte for byte); FontHistory snapshots
+  hold them. The project file holds no font, so the FONTS store is the "project and autosave" path.
+- One flag per character in the file, so a character is coloured as a whole: the first block given attributes gives
+  them to every block (the status line says so), later clicks change one block; Remove attributes makes it uncoloured.
+- Font Editor: blocks drawn in their Ink / Paper (Bright = the bright pair; Flash a corner mark on the editing surface,
+  not animated) in the grid, the editing surface and the All characters map; Attributes tool on both surfaces (the bar's
+  Ink, Paper, Bright, Flash; screen A's in GigaScreen); All blocks; Remove attributes; one Undo step each. Refused with a
+  reason in Timex hi-res, Layer 2 and LoRes (the bar has no attributes) and for a font not a whole number of 8-pixel
+  columns wide. Exports other than .chx (and the ASM / C / BIN listings) say how many characters lost their attributes.
+- Text tool: Attributes = Attribute bar (default, unchanged) | Own attributes, shown only for a saved font with coloured
+  characters in a mode with 8x8 attribute cells (Standard, ULAplus, ULANext, GigaScreen); hidden in multicolour, ULAplus
+  8x1, Timex hi-res and its pair, Layer 2, LoRes. Own attributes: each coloured letter's blocks place their attributes,
+  uncoloured letters and empty cells use the bar and the draw mode (new stamp option uncoloured: 'rail'; every other
+  stamp still treats a null cell as a hole). The block goes onto the cell grid, stamp and Type on canvas alike.
+  Refused (option greyed, hint with the reason, text drawn with the bar) for effects (Direction, mirror, italic, Shadow,
+  Outline, a Transform scale / rotation / warp) and geometry (a block not landing exactly on 8x8 cells: character
+  size, spacing, centred / right lines, vertical layouts of mixed widths), worked out from where each block lands
+  (BitmapText.blockRects / attrCells), not from a list of settings. The Transform panel's Attributes of the text stamp
+  and the tool's choice follow each other. In GigaScreen both screens take the letter's attributes.
+- New: OptionControls condition { toolIs } (a rule only the tool knows), described in the manual via its own sentence.
+- Figures (docs/FIGURES.md, Coloured CHX characters): heaviest encoded font 50,255 characters of the 64 KB cap [M];
+  41 such fonts in the 2 MB library [C]; undo snapshot 37,376 bytes, about 56 steps [C]; map repaint 9.6-10.0 ms with
+  every glyph coloured [M], once per change. No new limit.
+- Tests, seen failing first [M, 2026-10-20]: tests/chx-colour.test.js (stopped at the first colour check on the old
+  parser), tests/font-service-colour.test.js (hasColours missing), tests/text-chx-colour.test.js (blockRects missing;
+  then 4 failed until the stamp write plan and the stamp option existed), tests/browser/chx-colour.spec.js 6 of 8 failed
+  before the Font Editor and option work (the 2 that passed are the stamp and Type on canvas placements, written after
+  the Text tool core was already in). The GigaScreen spec test was added after the build and was not seen failing.
+- Strings: 18 keys x 13 locales. Manual: 85-editors.md (Attributes paragraph) and 50-tools.md (A font with attributes)
+  x13; tables regenerated. docs/TOOL_OPTIONS_TREES.txt gains the textColours row.
+- Comparison: CHX big fonts -> Same (with the layout caveat). Totals [M, count-verdicts.js, 2026-10-20]: 114 functions,
+  29 below parity (6 missing, 23 partial), 75 same, 8 further, 2 n/a. Before [M, same counter, 2026-10-20]: 30 (6, 24),
+  74 same. Part 3 item 13 strikes the coloured CHX characters.
+- For the owner: (1) open a coloured .chx saved by ZX Paintbrush in PixULA, and a coloured .chx saved by PixULA in ZX
+  Paintbrush, to confirm the attribute-after-each-block layout; (2) the first-click rule (one click colours the whole
+  character) - say if a click should colour only its block and give the others 56; (3) Flash is shown as a mark, not
+  animated, in the Font Editor.

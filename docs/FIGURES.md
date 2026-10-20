@@ -844,8 +844,21 @@ Median is about 7 times inside the budget and the worst case about 1.6 times ins
 | Encoded total against `FontCodec.MAX_JSON_BYTES` | about 44.5 KB of 64 KB (65,536) | C: 43,692 + 684 + about 100 for the other fields |
 | Big fonts that fit the 2 MB library cap in the worst case | 2,097,152 / 44,500 = 47 | C |
 | Heaviest CHX file: 256 characters of 4 x 4 blocks, transparent | 517 + 256 x (3 + 16 x 8) = 33,653 bytes | C |
-| Same, all coloured (9 bytes a block, not written by PixULA) | 517 + 256 x (3 + 16 x 9) = 38,149 bytes, under the 65,535 reach of the 2-byte offsets | C |
+| Same, all coloured (9 bytes a block; written by PixULA since 2026-10-20, read as pixels only before) | 517 + 256 x (3 + 16 x 9) = 38,149 bytes, under the 65,535 reach of the 2-byte offsets | C |
 | Glyph grid repaint for 256 glyphs of 32 x 32 | 256 x 32 x 32 = 262,144 pixel tests | C |
+
+### Coloured CHX characters - 2026-10-20
+
+The attribute bytes of coloured characters (owner decision 2026-10-19). No new limit: every row checks an existing cap.
+
+| Figure | Value | Tag |
+|---|---|---|
+| Colour list of the heaviest font (FontCodec field `c`) | 256 x (1 flag + 16 blocks) = 4,352 bytes; base64 = ceil(4,352 / 3) x 4 = 5,804 characters | C |
+| Heaviest font encoded, every glyph shaded and coloured | 50,255 characters of JSON (44,444 without the colours), of the 65,536 `FontCodec.MAX_JSON_BYTES` | M, 2026-10-20, `JSON.stringify(FontCodec.encode(...)).length` in Node; pinned by tests/chx-colour.test.js |
+| Heaviest coloured big fonts that fit the 2 MB library cap | 2,097,152 / 50,255 = 41 (47 uncoloured) | C |
+| Undo snapshot of the heaviest font, all coloured | 256 x (128 + 2) + 256 x 16 = 37,376 bytes; about 56 steps in the 2 MB `FontHistory` cap (63 uncoloured) | C: 2,097,152 / 37,376 |
+| Attribute of a block a smaller coloured character does not have | 56 (0x38: black Ink, white Paper, no Bright, no Flash) | P: the Spectrum's start-up ATTR-P, Logan and O'Hara, "The Complete Spectrum ROM Disassembly", 1983. A choice of what to show, not a limit |
+| All characters map repaint (`FontMapView.setData`, 512 x 512 map, 256 glyphs of 32 x 32) | 1.6 ms with no colour hook; 3.0-3.1 ms with the hook and no coloured glyph; 9.6-10.0 ms with every glyph coloured (median of 9, two runs) | M, 2026-10-20, Playwright in this machine's Chrome. Runs once per stroke or attribute change, not per pointer move; inside the 16.7 ms frame (C: 1000 / 60) |
 
 ### Font Editor map and undo - measured 2026-10-13
 
