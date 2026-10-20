@@ -96,6 +96,8 @@ class OptionControlsClass {
 
         // A row that follows the screen mode ({ cells: true }) changes with it.
         EventBus.on(EVENTS.SCREEN_MODE_CHANGED, () => this._applyVisibility());
+        // ...and a row that asks the tool about the fonts ({ toolIs }) with the font library and the working font.
+        EventBus.on(EVENTS.FONT_LIBRARY_CHANGED, () => this._applyVisibility());
 
         this._initialized = true;
 
@@ -649,6 +651,13 @@ class OptionControlsClass {
         }
         // { clearDotsNoEffect: true }: Clear background would write nothing with the draw mode in force.
         if ('clearDotsNoEffect' in cond) return (window.SelectionService ? !SelectionService.clearDotsHasEffect() : false) === !!cond.clearDotsNoEffect;
+        // { toolIs: 'method' } / { toolIs: 'method', equals: v }: the tool's own answer (a rule only the tool knows, such as
+        // whether the font in force has coloured characters) - truthy, or equal to v.
+        if ('toolIs' in cond) {
+            const tool = window.ToolManager ? ToolManager.getTool(this.currentToolId) : null;
+            const answer = tool && typeof tool[cond.toolIs] === 'function' ? tool[cond.toolIs]() : null;
+            return 'equals' in cond ? answer === cond.equals : !!answer;
+        }
         if ('screenFits' in cond) return SnapGrid.screenFits() === !!cond.screenFits;
         if ('cells' in cond) {
             const has = !window.ColorManager || ColorManager.hasCellAttributes();

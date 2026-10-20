@@ -2967,6 +2967,8 @@ class LayerManagerClass {
     const out = {};
     if (o.colours === 'pixels' || o.colours === 'coloured') out.colours = o.colours;
     if (o.clearDots === 'transparent' || o.clearDots === 'overlap') out.clearDots = o.clearDots;
+    // 'rail': a cell without attributes of its own is drawn with the attribute bar (a coloured-font text stamp), not a hole
+    if (o.uncoloured === 'rail') out.uncoloured = 'rail';
     if (o.showThrough && typeof o.showThrough === 'object') {
       out.showThrough = {};
       for (const k of ['ink', 'paper', 'bright', 'flash']) out.showThrough[k] = o.showThrough[k] === true;

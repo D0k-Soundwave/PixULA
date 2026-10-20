@@ -37,7 +37,10 @@ const BitmapText = {
      * Everything the layout needs to know about a decoded library font (FontCodec shape).
      * glyphOf is null for a code the font does not have and for a character shaded all the way across, so typing refuses it
      * and the Text tool gives it no space - the text matches what the .chx file holds.
-     * @returns {{glyphOf:function, spanOf:function, fw:number, w0:number, h0:number, proportional:boolean}}
+     * coloursOf gives a coloured character's block attributes (or null); coloured says whether the font has any, cols is the
+     * number of 8-pixel block columns of a full cell.
+     * @returns {{glyphOf:function, spanOf:function, coloursOf:function, coloured:boolean, cols:number, fw:number, w0:number,
+     *   h0:number, proportional:boolean}}
      */
     fontSource(font) {
         const width = font.width;
@@ -59,7 +62,82 @@ const BitmapText = {
                 if (sp && sp.w < width) proportional = true;
             }
         }
-        return { glyphOf, spanOf, fw: width, w0: width, h0: font.height === undefined ? 8 : font.height, proportional };
+        const colours = Array.isArray(font.colours) ? font.colours : null;
+        const coloursOf = (c) => {
+            const i = index(c);
+            return colours && i >= 0 && i < colours.length ? colours[i] || null : null;
+        };
+        return { glyphOf, spanOf, coloursOf, coloured: !!(colours && colours.some(Boolean)), cols: (width + 7) >> 3,
+                 fw: width, w0: width, h0: font.height === undefined ? 8 : font.height, proportional };
+    },
+
+    /**
+     * Where each 8x8 block of a coloured letter lands in the drawn text (coloured CHX characters, 2026-10-19).
+     * The letter shows glyph columns srcX0 .. srcX0 + srcW and rows 0 .. srcH in its slot (x, y, w, h); output column c
+     * shows glyph column srcX0 + floor(c * srcW / w) and row r glyph row floor(r * srcH / h) - the nearest-neighbour
+     * stretch both Text tool paths use, so the rects are exactly the pixels each block's pixels went to.
+     * @param {{x:number, y:number, w:number, h:number, srcX0:number, srcW:number, srcH:number}} letter
+     * @param {Uint8Array} attrs - the glyph's block attributes, cols x rows of the FULL cell, left to right then down
+     * @param {number} cols - block columns in a full cell
+     * @returns {?Array<{x:number, y:number, w:number, h:number, attr:number}>} null when the shown part does not start and end
+     *   on block edges
+     */
+    blockRects(letter, attrs, cols) {
+        const { x, y, w, h, srcX0, srcW, srcH } = letter;
+        if (srcX0 % 8 || srcW % 8 || srcH % 8 || srcW <= 0 || srcH <= 0) return null;
+        const out = [];
+        for (let r = 0; r < srcH / 8; r++) {
+            const y0 = Math.ceil(r * 8 * h / srcH), y1 = Math.ceil((r + 1) * 8 * h / srcH);
+            for (let j = 0; j < srcW / 8; j++) {
+                const gj = srcX0 / 8 + j;
+                const x0 = Math.ceil(j * 8 * w / srcW), x1 = Math.ceil((j + 1) * 8 * w / srcW);
+                out.push({ x: x + x0, y: y + y0, w: x1 - x0, h: y1 - y0, attr: attrs[r * cols + gj] });
+            }
+        }
+        return out;
+    },
+
+    /**
+     * Block rects -> one attribute per 8x8 cell of a text block maskW x maskH, its top-left on a cell corner. Cells no rect
+     * covers are null (drawn with the attribute bar). Refused ({blocked: 'geometry'}) when a block does not sit exactly on
+     * cells, or two blocks of different attributes share a cell.
+     * @returns {{attrs: Array<?number>, cols: number, rows: number}|{blocked: string}}
+     */
+    attrCells(rects, maskW, maskH) {
+        const cols = Math.ceil(maskW / 8), rows = Math.ceil(maskH / 8);
+        const attrs = new Array(cols * rows).fill(null);
+        for (const r of rects) {
+            if (r.w <= 0 || r.h <= 0) continue;
+            if (r.x % 8 || r.y % 8 || r.w % 8 || r.h % 8) return { blocked: 'geometry' };
+            for (let cy = r.y / 8; cy < (r.y + r.h) / 8; cy++) {
+                if (cy < 0 || cy >= rows) continue;
+                for (let cx = r.x / 8; cx < (r.x + r.w) / 8; cx++) {
+                    if (cx < 0 || cx >= cols) continue;
+                    const i = cy * cols + cx;
+                    if (attrs[i] !== null && attrs[i] !== r.attr) return { blocked: 'geometry' };
+                    attrs[i] = r.attr;
+                }
+            }
+        }
+        return { attrs, cols, rows };
+    },
+
+    /**
+     * Every letter of a layout() result, where its slot is in the laid-out block and which part of its glyph it shows
+     * (the shape blockRects takes).
+     * @returns {Array<{ch:string, x:number, y:number, w:number, h:number, srcX0:number, srcW:number, srcH:number}>}
+     */
+    layoutLetters(lay) {
+        const out = [];
+        if (!lay) return out;
+        for (const l of lay.lines) {
+            if (!l.mask || !l.letters) continue;
+            l.letters.forEach((L, i) => {
+                out.push({ ch: L.ch, x: l.x0 + l.mask.xs[i], y: l.y0, w: l.mask.slots[i], h: lay.H,
+                           srcX0: L.x0, srcW: L.w, srcH: lay.h0 });
+            });
+        }
+        return out;
     },
 
     /** Typed text split into lines, tolerating any line ending (the Text tool's rule). */
@@ -125,8 +203,10 @@ const BitmapText = {
      * how wide it is in the line.
      * @param {string} text
      * @param {Object} o - { glyphOf, spanOf?, fw?, w0, h0, reverse?, bold, italic, style }
-     * @returns {?{pixels:boolean[][], width:number, height:number, count:number, spans:{x:number,w:number}[]}}
-     *   null when nothing is drawable
+     * `letters[i]` says which character letter i is, where it starts (x) and how wide it is in the line (w), and the glyph
+     * column its saved part starts at (x0).
+     * @returns {?{pixels:boolean[][], width:number, height:number, count:number, spans:{x:number,w:number}[],
+     *   letters:{ch:string, x:number, w:number, x0:number}[]}} null when nothing is drawable
      */
     nativeLine(text, o) {
         const fw = o.fw || o.w0;
@@ -135,7 +215,7 @@ const BitmapText = {
             const g = o.glyphOf(text[u]);
             if (!g) continue;
             const sp = (o.spanOf && o.spanOf(text[u])) || { x0: 0, w: o.w0 };
-            recs.push({ g, x0: sp.x0, w: sp.w });
+            recs.push({ g, x0: sp.x0, w: sp.w, ch: text[u] });
         }
         if (!recs.length) return null;
         if (o.reverse) recs.reverse();
@@ -154,7 +234,8 @@ const BitmapText = {
             const s = o.style(pixels, total, o.h0, !!o.bold, !!o.italic);
             pixels = s.pixels; width = s.width; height = s.height;
         }
-        return { pixels, width, height, count: recs.length, spans };
+        const letters = recs.map((r, i) => ({ ch: r.ch, x: spans[i].x, w: r.w, x0: r.x0 }));
+        return { pixels, width, height, count: recs.length, spans, letters };
     },
 
     /**
@@ -165,8 +246,8 @@ const BitmapText = {
      * @param {{pixels:boolean[][], width:number, height:number, count:number, spans?:{x:number,w:number}[]}} native
      * @param {number} w0 - the font's glyph width
      * @param {number} h0 - the font's glyph height
-     * @returns {{pixels:boolean[][], width:number, height:number, xs:number[]}} xs = where each slot starts (count + 1 entries,
-     *   the last being where the next letter would start)
+     * @returns {{pixels:boolean[][], width:number, height:number, xs:number[], slots:number[]}} xs = where each slot starts
+     *   (count + 1 entries, the last being where the next letter would start); slots = each letter's slot width
      */
     stretchLine(native, w0, h0, W, H, sx) {
         const n = native.count;
@@ -192,7 +273,7 @@ const BitmapText = {
                 }
             }
         }
-        return { pixels: out, width, height: H, xs };
+        return { pixels: out, width, height: H, xs, slots: slot };
     },
 
     /**
@@ -215,7 +296,7 @@ const BitmapText = {
             const before = [0];
             let k = 0;
             for (let u = 0; u < line.length; u++) { if (o.glyphOf(line[u])) k++; before.push(k); }
-            return { text: line, mask, before, y0: i * pitch, x0: 0, xs: mask ? mask.xs : [0] };
+            return { text: line, mask, before, y0: i * pitch, x0: 0, xs: mask ? mask.xs : [0], letters: native ? native.letters : [] };
         });
         let crossMax = 0, total = 0;
         for (const l of lines) {
@@ -239,7 +320,7 @@ const BitmapText = {
                 }
             }
         }
-        return { pixels, width: crossMax, height: total, adv, pitch, lines, W: o.W, H: o.H };
+        return { pixels, width: crossMax, height: total, adv, pitch, lines, W: o.W, H: o.H, h0: o.h0 };
     },
 
     /**

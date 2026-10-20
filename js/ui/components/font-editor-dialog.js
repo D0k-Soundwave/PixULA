@@ -90,6 +90,7 @@ class FontEditorDialogClass {
                         ${Helpers.miniToolButton('fill', 'F', 'tool.fill', 'Fill', 'tool.fill.hint', 'Flood the area under the cursor out to its edges')}
                     </div>
                     <div class="me-tool-group">
+                        <button type="button" class="pc-btn fe-attr-tool" data-tool="attrs" data-i18n="font.tool.attrs" data-i18n-title-name="font.tool.attrs" data-i18n-title="font.tool.attrs.hint" title="${Helpers.composeTitle(this._t('font.tool.attrs', 'Attributes'), this._t('font.tool.attrs.hint', 'Click a block to give it the Ink, Paper, Bright and Flash on the attribute bar (the first click colours the whole character)'))}">${this._t('font.tool.attrs', 'Attributes')}</button>
                         <button type="button" class="pc-btn fe-map-toggle" aria-pressed="false" data-i18n="font.allCharacters">${this._t('font.allCharacters', 'All characters')}</button>
                         <span class="fe-map-tools" hidden>
                             <button type="button" class="pc-btn" data-tool="shade" data-i18n="font.tool.shade">${this._t('font.tool.shade', 'Shade')}</button>
@@ -168,6 +169,11 @@ class FontEditorDialogClass {
                     <button type="button" class="pc-btn" data-shade="fit" data-i18n="font.shade.fit">${this._t('font.shade.fit', 'Shade all to fit')}</button>
                     <span class="fe-shade-state"></span>
                 </div>
+                <div class="me-toolbar fe-attr-bar">
+                    <span class="fe-attr-state"></span>
+                    <button type="button" class="pc-btn fe-attr-all" data-i18n="font.attrs.all">${this._t('font.attrs.all', 'Whole character')}</button>
+                    <button type="button" class="pc-btn fe-attr-remove" data-i18n="font.attrs.remove">${this._t('font.attrs.remove', 'Remove attributes')}</button>
+                </div>
                 <div class="me-toolbar">
                     <button type="button" class="pc-btn fe-system-font font-editor-system-font-btn" data-i18n="font.fromSystemFont">${this._t('font.fromSystemFont', 'From System Font...')}</button>
                 </div>
@@ -198,8 +204,10 @@ class FontEditorDialogClass {
             canvasWidth: w * zoom,
             canvasHeight: h * zoom,
             onChange: () => this._commitGlyphEdit(),
-            drawOverlay: (ctx, sx, sy) => this._paintShade(ctx, sx, sy),
+            drawOverlay: (ctx, sx, sy) => { this._paintShade(ctx, sx, sy); this._paintBlockMarks(ctx, sx, sy); },
             onStrokeStart: () => this._strokeStart(),
+            getPixelColours: (x, y) => this._blockCss(this._selected, x >> 3, y >> 3),
+            onPick: (x, y) => this._attrClick(this._selected, x >> 3, y >> 3),
             className: 'fe-glyph-canvas'
         });
         content.querySelector('.fe-editor-slot').appendChild(this._glyphEditor.element);
@@ -348,6 +356,8 @@ class FontEditorDialogClass {
             const btn = e.target.closest('button[data-shade]');
             if (btn) this._runShade(btn.dataset.shade);
         });
+        c.querySelector('.fe-attr-all').addEventListener('click', () => this._attrWhole(this._selected));
+        c.querySelector('.fe-attr-remove').addEventListener('click', () => FontService.clearColours(this._selected));
         c.addEventListener('keydown', e => {
             if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
             if (e.target.closest && e.target.closest('input, textarea, select')) return;
@@ -466,6 +476,15 @@ class FontEditorDialogClass {
         // Shading is in whole 8-pixel columns: only for fonts that are a whole number of them wide
         const shadeOk = FontService.width % 8 === 0;
         this._root.querySelectorAll('button[data-shade]').forEach(b => { b.disabled = !shadeOk; });
+        // Attributes, as shading, need whole 8-pixel columns; the state says whether this character has its own
+        const own = !!FontService.getColours(this._selected);
+        this._root.querySelector('.fe-attr-all').disabled = !FontService.coloursAllowed();
+        this._root.querySelector('.fe-attr-remove').disabled = !own;
+        const attrState = this._root.querySelector('.fe-attr-state');
+        const stateKey = own ? 'font.attrs.own' : 'font.attrs.none';
+        attrState.dataset.i18n = stateKey;
+        attrState.textContent = own ? this._t('font.attrs.own', 'Own attributes')
+            : this._t('font.attrs.none', 'No attributes: the Text tool uses the attribute bar');
         const sh = FontService.getShade(this._selected);
         const stateEl = this._root.querySelector('.fe-shade-state');
         stateEl.dataset.i18nParamLeft = sh.left;
@@ -526,17 +545,31 @@ class FontEditorDialogClass {
         ctx.fillStyle = ZX_PALETTE[7];
         ctx.fillRect(0, 0, this._grid.width, this._grid.height);
 
-        // Glyphs at 2x (classic) or scaled to fit the cell (big), centred in their cells
+        // Glyphs at 2x (classic) or scaled to fit the cell (big), centred in their cells; a coloured character in its
+        // blocks' own Ink and Paper
         const k = (gw > 8 || gh > 8) ? (cs - 2) / Math.max(gw, gh) : 2;
-        ctx.fillStyle = ZX_PALETTE[0];
         for (let i = 0; i < count; i++) {
             const glyph = FontService.getGlyph(firstCode + i);
             if (!glyph) continue;
             const ox = (i % this.GRID_COLS) * cs + (cs - gw * k) / 2;
             const oy = Math.floor(i / this.GRID_COLS) * cs + (cs - gh * k) / 2;
+            const coloured = !!FontService.getColours(firstCode + i);
+            if (coloured) {
+                const bg = FontService.blockGrid();
+                for (let by = 0; by < bg.rows; by++) {
+                    for (let bx = 0; bx < bg.cols; bx++) {
+                        const bw = gw - bx * 8 < 8 ? gw - bx * 8 : 8;     // a 4 or 6 wide font has one narrower block
+                        ctx.fillStyle = this._blockCss(firstCode + i, bx, by).paper;
+                        ctx.fillRect(ox + bx * 8 * k, oy + by * 8 * k, bw * k, 8 * k);
+                    }
+                }
+            }
+            ctx.fillStyle = ZX_PALETTE[0];
             for (let y = 0; y < gh; y++) {
                 for (let x = 0; x < gw; x++) {
-                    if (GlyphBits.getPixel(glyph, gw, x, y)) ctx.fillRect(ox + x * k, oy + y * k, k, k);
+                    if (!GlyphBits.getPixel(glyph, gw, x, y)) continue;
+                    if (coloured) ctx.fillStyle = this._blockCss(firstCode + i, x >> 3, y >> 3).ink;
+                    ctx.fillRect(ox + x * k, oy + y * k, k, k);
                 }
             }
         }
@@ -612,6 +645,10 @@ class FontEditorDialogClass {
             }
             if (saved !== false) {
                 let msg = this._t('font.status.exported', 'Font exported.');
+                // Only a .chx holds a character's attributes: say how many the other formats left behind
+                const lost = format === 'chx' ? 0 : FontFormat.colouredCount(FontService.toDocument());
+                if (lost) msg += ' ' + Helpers.localizedPlural('plural.fontAttrsLost', lost,
+                    'one: {n} character lost its attributes (only CHX keeps them) | other: {n} characters lost their attributes (only CHX keeps them)');
                 if (format === 'chx') {
                     const sum = FontFormat.chxSummary(FontService.toDocument());
                     const part = (key, n, fallback) => (n ? ' ' + Helpers.localizedPlural(key, n, fallback) : '');
@@ -886,7 +923,7 @@ class FontEditorDialogClass {
         const mapOnly = this._tool === 'shade' || this._tool === 'move';
         const shown = this._mapMode || !mapOnly ? this._tool : 'brush';   // the one-character editor has no map-only tools
         if (this._mapMode) this._mapView.setTool(shown);
-        else this._glyphEditor.setTool(shown);
+        else this._glyphEditor.setTool(shown === 'attrs' ? 'pick' : shown);   // Attributes draws nothing: it picks a block
         this._root.querySelectorAll('button[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === shown));
     }
 
@@ -906,7 +943,9 @@ class FontEditorDialogClass {
                     onSelect: index => this._selectGlyph(FontService.firstCode + index),
                     onCommit: (touched, map) => this._commitMap(touched, map),
                     onShade: (index, col8) => this._shadeClick(FontService.firstCode + index, col8),
-                    getShade: index => FontService.getShade(FontService.firstCode + index)
+                    getShade: index => FontService.getShade(FontService.firstCode + index),
+                    getColours: (index, bx, by) => this._blockRgb(FontService.firstCode + index, bx, by),
+                    onAttrs: (index, bx, by) => this._attrClick(FontService.firstCode + index, bx, by)
                 });
                 this._mapView.element.setAttribute('aria-label', this._t('font.mapLabel', 'All characters: arrow keys or a typed character choose one'));
                 this._mapView.element.addEventListener('keydown', e => this._navKey(e));
@@ -1092,6 +1131,105 @@ class FontEditorDialogClass {
         }
         if (FontService.replaceGlyphs(FontService.glyphs.map(g => Uint8Array.from(g)), shade)) {
             this._status(this._t('font.status.shadeFitted', 'Every character shaded to fit.'));
+        }
+    }
+
+    // --- Attributes of coloured characters (CHX) --------------------------
+
+    /** The attribute bar's Ink, Paper, Bright and Flash as one ZX attribute byte (screen A's in GigaScreen). @private */
+    _barAttr() {
+        const s = ColorManager.getCurrentSelection();
+        return (s.ink & 7) | ((s.paper & 7) << 3) | (s.bright ? 0x40 : 0) | (s.flash ? 0x80 : 0);
+    }
+
+    /** Why the bar's attributes cannot be given to a character now, as a message, or null. @private */
+    _attrRefusal() {
+        if (!FontService.coloursAllowed()) {
+            return this._t('font.status.attrsNeed8', 'Attributes need a font whose width is a whole number of 8-pixel columns.');
+        }
+        if (!(window.ColorManager && ColorManager.hasCellAttributes())) {
+            return this._t('font.status.attrsNoBar', 'The attribute bar has no Ink, Paper, Bright and Flash in this screen mode.');
+        }
+        return null;
+    }
+
+    /** Attributes tool: one block gets the bar's attributes (the first one on an uncoloured character, every block). @private */
+    _attrClick(code, bx, by) {
+        const refused = this._attrRefusal();
+        if (refused) { this._status(refused); return; }
+        const was = !!FontService.getColours(code);
+        if (!FontService.setBlockAttr(code, bx, by, this._barAttr())) return;
+        const g = FontService.blockGrid();
+        if (!was && g.cols * g.rows > 1) {
+            const msg = this._t('font.status.attrsWhole',
+                'A CHX file gives a whole character attributes, so every block now has these. Click a block to change just that one.');
+            this._status(msg, Math.max(3000, (msg.split(/\s+/).length / 5 + 1) * 1000)); // [P] about 5 words a second + 1 s to notice it
+        }
+    }
+
+    /** Whole character: every block the bar's attributes. @private */
+    _attrWhole(code) {
+        const refused = this._attrRefusal();
+        if (refused) { this._status(refused); return; }
+        FontService.setAllBlocks(code, this._barAttr());
+    }
+
+    /** A coloured character's block as CSS colours ({ink, paper}, Bright picking the bright pair), or null. @private */
+    _blockCss(code, bx, by) {
+        const a = this._blockAttr(code, bx, by);
+        if (a === null) return null;
+        const b = a & 0x40 ? 8 : 0;
+        return { ink: ZX_PALETTE[(a & 7) + b], paper: ZX_PALETTE[((a >> 3) & 7) + b] };
+    }
+
+    /** The same as RGB arrays (the All characters map). @private */
+    _blockRgb(code, bx, by) {
+        const a = this._blockAttr(code, bx, by);
+        if (a === null) return null;
+        const b = a & 0x40 ? 8 : 0;
+        return { ink: ZX_PALETTE_RGB[(a & 7) + b], paper: ZX_PALETTE_RGB[((a >> 3) & 7) + b] };
+    }
+
+    /** @private */
+    _blockAttr(code, bx, by) {
+        const c = FontService.getColours(code);
+        if (!c) return null;
+        const g = FontService.blockGrid();
+        const i = by * g.cols + bx;
+        return bx < g.cols && by < g.rows && i < c.length ? c[i] : null;
+    }
+
+    /**
+     * Over the one-character editor: the 8x8 block lines of a big font (what the Attributes tool picks) and a corner mark on
+     * a flashing block (the editor shows Ink and Paper still). @private
+     */
+    _paintBlockMarks(ctx, sx, sy) {
+        const { w, h } = FontService.getGlyphSize();
+        if (w > 8 || h > 8) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(80,80,80,0.8)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let x = 8; x < w; x += 8) { ctx.moveTo(x * sx, 0); ctx.lineTo(x * sx, h * sy); }
+            for (let y = 8; y < h; y += 8) { ctx.moveTo(0, y * sy); ctx.lineTo(w * sx, y * sy); }
+            ctx.stroke();
+            ctx.restore();
+        }
+        const c = FontService.getColours(this._selected);
+        if (!c) return;
+        const g = FontService.blockGrid();
+        for (let by = 0; by < g.rows; by++) {
+            for (let bx = 0; bx < g.cols; bx++) {
+                if (!(c[by * g.cols + bx] & 0x80)) continue;
+                const x1 = (bx * 8 + 8) * sx, y0 = by * 8 * sy, m = 2 * sx;
+                ctx.save();
+                ctx.fillStyle = 'rgba(255,255,255,0.9)';
+                ctx.strokeStyle = 'rgba(0,0,0,0.9)';
+                ctx.beginPath();
+                ctx.moveTo(x1 - m, y0); ctx.lineTo(x1, y0); ctx.lineTo(x1, y0 + m); ctx.closePath();
+                ctx.fill(); ctx.stroke();
+                ctx.restore();
+            }
         }
     }
 
