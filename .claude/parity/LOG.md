@@ -1256,3 +1256,5 @@ and every character was saved transparent (comparison row CHX big fonts: Partial
   Paintbrush, to confirm the attribute-after-each-block layout; (2) the first-click rule (one click colours the whole
   character) - say if a click should colour only its block and give the others 56; (3) Flash is shown as a mark, not
   animated, in the Font Editor.
+- Whole browser suite [M, 2026-10-20]: 895 of 896 passed; the dialog tooltip sweep found the new Attributes button missing
+  from TooltipManager.SELECTOR (fixed in its own commit); then 896 of 896. node tests/run-all.js and check:manual pass.
