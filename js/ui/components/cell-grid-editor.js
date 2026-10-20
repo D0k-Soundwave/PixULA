@@ -50,6 +50,10 @@ class CellGridEditor {
         // (its undo history). Hosts that pass neither are unaffected.
         this._drawOverlay = opts.drawOverlay || null;
         this._onStrokeStart = opts.onStrokeStart || null;
+        // Optional (coloured CHX characters): the colours of one pixel's cell - (x, y) => {ink, paper} CSS colours, or null for
+        // the default pair - and the 'pick' tool, which draws nothing and reports the clicked pixel to onPick(x, y, erase).
+        this._getPixelColours = opts.getPixelColours || null;
+        this._onPick = opts.onPick || null;
         // Indexed mode (Phase 13): values are palette indices
         this._indexed = !!opts.indexed;
         this._getColor = opts.getColor || null;
@@ -137,6 +141,16 @@ class CellGridEditor {
                     ctx.fillRect(x * sx, y * sy, sx, sy);
                 }
             }
+        } else if (this._getPixelColours) {
+            for (let y = 0; y < this._h; y++) {
+                for (let x = 0; x < this._w; x++) {
+                    const c = this._getPixelColours(x, y);
+                    const on = this._pixels[y * this._w + x];
+                    if (!c && !on) continue;
+                    ctx.fillStyle = c ? (on ? c.ink : c.paper) : this._getInk();
+                    ctx.fillRect(x * sx, y * sy, sx, sy);
+                }
+            }
         } else {
             ctx.fillStyle = this._getInk();
             for (let y = 0; y < this._h; y++) {
@@ -202,9 +216,13 @@ class CellGridEditor {
 
     _onPointerDown(e) {
         e.preventDefault();
+        const { x, y } = this._pixelCoord(e);
+        if (this._tool === 'pick') {
+            if (this._onPick) this._onPick(x, y, this._isErase(e));
+            return;
+        }
         if (this._onStrokeStart) this._onStrokeStart();
         this._isDrawing = true;
-        const { x, y } = this._pixelCoord(e);
         if (this._tool === 'line') {
             this._lineStart = { x, y };
         } else if (this._tool === 'fill') {

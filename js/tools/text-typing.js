@@ -89,15 +89,22 @@ class TextTyping {
         // contour, shadow and Direction do to the box.
         const rawW = lay ? lay.width : Math.max(1, o.W), rawH = lay ? lay.height : Math.max(1, o.H);
         const origin = MaskOps.mapPoint(0, 0, rawW, rawH, eff);
-        const ox = this.x - origin.x, oy = this.y - origin.y;
+        let ox = this.x - origin.x, oy = this.y - origin.y;
+
+        // A coloured font's own attributes (no effects can be in force then, so the block is the layout itself): the text
+        // goes on the cell grid so its letters' blocks land on the picture's 8x8 cells
+        const plan = tool._typedColourPlan ? tool._typedColourPlan(lay) : null;
+        const colours = plan && plan.attrs ? plan : null;
+        if (colours) { ox = Math.floor(ox / 8) * 8; oy = Math.floor(oy / 8) * 8; }
 
         let data = null;
         if (lay) {
             const L = MaskOps.processLayers(lay.pixels, eff);
             data = {
-                mask: L.pixels, clearMask: L.clearMask, opts: tool._stampOpts(),
+                mask: L.pixels, clearMask: L.clearMask, opts: tool._stampOpts(colours),
                 x: ox, y: oy, w: L.pixels[0].length, h: L.pixels.length, colorSelection: null
             };
+            if (colours) { data.attrs = colours.attrs; data.attrGrid = colours.attrGrid; }
         }
 
         // the caret bar: its two ends carried through the same effects, then joined

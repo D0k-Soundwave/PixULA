@@ -662,12 +662,16 @@ class SelectionServiceClass {
    *   { text, fontFamily, fontSize, bold, italic }
    * @param {string} [warpEffect] - Initial warp effect name (or 'none')
    */
-  startFloatingPasteFromMask(pixels, width, height, x = 0, y = 0, label = 'Place', fontInfo = null, warpEffect = 'none', opts = null, srcSize = null, clearMask = null) {
-    this._createFloatingPaste(pixels, width, height, x, y, label, fontInfo, warpEffect, opts, srcSize, clearMask);
+  startFloatingPasteFromMask(pixels, width, height, x = 0, y = 0, label = 'Place', fontInfo = null, warpEffect = 'none', opts = null, srcSize = null, clearMask = null, colours = null) {
+    this._createFloatingPaste(pixels, width, height, x, y, label, fontInfo, warpEffect, opts, srcSize, clearMask, colours);
   }
 
-  /** @private */
-  _createFloatingPaste(pixels, width, height, x, y, label, fontInfo = null, warpEffect = 'none', opts = null, srcSize = null, clearMask = null) {
+  /**
+   * @param {?{attrs: Array<?number>, attrGrid: Object}} [colours] - per-cell attributes the stamp starts with (text in a
+   *   coloured CHX font); absent for every other stamp
+   * @private
+   */
+  _createFloatingPaste(pixels, width, height, x, y, label, fontInfo = null, warpEffect = 'none', opts = null, srcSize = null, clearMask = null, colours = null) {
     if (this.floatingPaste) this.endFloatingPaste();
 
     UndoRedo.beginAction(label);
@@ -721,6 +725,10 @@ class SelectionServiceClass {
     // default stamps, saved stamps and project bytes stay exactly as they were.
     const startOpts = LayerManager._readStampOpts(opts);
     if (startOpts) this.floatingPaste.opts = startOpts;
+    if (colours && Array.isArray(colours.attrs) && colours.attrGrid) {
+      this.floatingPaste.attrs = colours.attrs.slice();
+      this.floatingPaste.attrGrid = { ...colours.attrGrid };
+    }
     // The dots this stamp CLEARS (a text stamp's opposite-dot shade / contour): absent unless there are some.
     if (clearMask && clearMask.some(row => row.some(Boolean))) {
       this.floatingPaste.clearMask = clearMask.map(r => [...r]);
@@ -798,8 +806,11 @@ class SelectionServiceClass {
    * @param {string|null} warpEffect
    * @param {number} [targetW] - New source width (0 = keep current)
    * @param {number} [targetH] - New source height (0 = keep current)
+   * @param {?Object} [optsPatch] - stamp settings to merge in (no undo entry)
+   * @param {?{attrs: Array<?number>, attrGrid: Object}} [colours] - the per-cell attributes of text in a coloured font: given,
+   *   they replace the stamp's; null drops them; left out, they stay. A stamp that then places them goes on the cell grid.
    */
-  refreshTextStamp(fontInfo, warpEffect, targetW = 0, targetH = 0, optsPatch = null) {
+  refreshTextStamp(fontInfo, warpEffect, targetW = 0, targetH = 0, optsPatch = null, colours = undefined) {
     const fp = this.floatingPaste;
     if (!fp) return;
     if (optsPatch) {
@@ -809,11 +820,17 @@ class SelectionServiceClass {
       const clean = LayerManager._readStampOpts(merged);
       if (clean) fp.opts = clean; else delete fp.opts;
     }
+    if (colours !== undefined) {
+      fp.attrs = colours ? colours.attrs.slice() : null;
+      fp.attrGrid = colours ? { ...colours.attrGrid } : null;
+    }
     if (fontInfo != null)   fp.fontInfo    = { ...fontInfo };
     if (warpEffect != null) fp._warpEffect = warpEffect;
     if (targetW > 0) fp._srcWidth  = targetW;
     if (targetH > 0) fp._srcHeight = targetH;
     this._recomputeStampTransform();
+    // re-anchored to the new size: back on the cell grid if it places its own attributes (moveFloatingPaste snaps)
+    if (this.stampColoured(fp)) this.moveFloatingPaste(fp.x, fp.y);
   }
 
   /**
@@ -1718,6 +1735,10 @@ class SelectionServiceClass {
    * ink) and leave the dot alone, or - with overlap - clear the dot.
    * Inverse swaps which of the two clears the dot.
    *
+   * A coloured stamp with option uncoloured: 'rail' (text in a coloured CHX
+   * font) draws a null cell as a Pixels stamp would instead: that cell's
+   * pixels with the attribute bar, in the draw mode in force.
+   *
    * @param {Object} data - stamp data from getStampData
    * @param {Layer} stampLayer
    * @param {Layer} target - the layer the writes land on
@@ -1734,7 +1755,37 @@ class SelectionServiceClass {
     const CW = ZX_SPECTRUM.CELL_WIDTH;
     const CH = ZX_SPECTRUM.CELL_HEIGHT;
 
+    // The Pixels stamp's write of one stamp pixel (px, py): every Pixels stamp, and the attribute-bar cells of a coloured
+    // text stamp (uncoloured: 'rail').
+    const color = ColorManager.getCurrentSelection();
+    const mode = PixelDrawRoutine.resolveUserMode(true);
+    const xorBox = !!stampLayer.xorMode;
+    // The stamp's own clear dots (a text stamp's opposite-dot shade / contour) are written like Clear background, but
+    // only where the stamp says so: the opposite of the mode in force, and nothing in the modes with no opposite.
+    const cm = !overlap && data.clearMask && data.clearMask.length === h ? data.clearMask : null;
+    const pixClearMode = (overlap || cm) ? this._overlapClearMode(mode, xorBox) : null;
+    const pixelAt = (px, py, row) => {
+      const cx = x + px, cy = y + py;
+      if (row && row[px]) {
+        if (!Validators.isValidPixelCoord(cx, cy)) return;
+        if (xorBox) {
+          if (xorOnce) {
+            const key = target.id + ':' + (cy * ZX_SPECTRUM.WIDTH + cx);
+            if (xorOnce.has(key)) return;
+            xorOnce.add(key);
+          }
+          const inv = PixelDrawRoutine.invertWrite(target, cx, cy, color);
+          visit(cx, cy, inv.sel, inv.mode);
+        } else {
+          visit(cx, cy, color, mode);
+        }
+      } else if (pixClearMode && (overlap || (cm[py] && cm[py][px])) && Validators.isValidPixelCoord(cx, cy)) {
+        visit(cx, cy, color, pixClearMode);
+      }
+    };
+
     if (this.stampColoured(data)) {
+      const rail = opts.uncoloured === 'rail';
       const g = this.stampAttrGrid(data);
       const setMode = inverse ? DRAW_MODE.NORMAL_ERASE : DRAW_MODE.NORMAL;
       const clearMode = overlap
@@ -1750,7 +1801,18 @@ class SelectionServiceClass {
           const sc = cx - startCellX, sr = cy - startCellY;
           if (sc < 0 || sc >= g.cols || sr < 0 || sr >= g.rows) continue;
           const attr = data.attrs[sr * g.cols + sc];
-          if (attr == null) continue;
+          if (attr == null) {
+            if (!rail) continue;
+            for (let ly = 0; ly < CH; ly++) {
+              const stampY = cy * CH + ly - y;
+              if (stampY < 0 || stampY >= h) continue;
+              for (let lx = 0; lx < CW; lx++) {
+                const stampX = cx * CW + lx - x;
+                if (stampX >= 0 && stampX < w) pixelAt(stampX, stampY, mask[stampY]);
+              }
+            }
+            continue;
+          }
           const sel = {
             ...this.unpackStampAttr(attr),
             inkTransparent: st.ink,
@@ -1777,35 +1839,10 @@ class SelectionServiceClass {
       return;
     }
 
-    const color = ColorManager.getCurrentSelection();
-    const mode = PixelDrawRoutine.resolveUserMode(true);
-    const xorBox = !!stampLayer.xorMode;
-    // The stamp's own clear dots (a text stamp's opposite-dot shade / contour) are written like Clear background, but
-    // only where the stamp says so: the opposite of the mode in force, and nothing in the modes with no opposite.
-    const cm = !overlap && data.clearMask && data.clearMask.length === h ? data.clearMask : null;
-    const clearMode = (overlap || cm) ? this._overlapClearMode(mode, xorBox) : null;
     for (let py = 0; py < h; py++) {
       const row = mask[py];
-      if (!row && !clearMode) continue;
-      for (let px = 0; px < w; px++) {
-        const cx = x + px, cy = y + py;
-        if (row && row[px]) {
-          if (!Validators.isValidPixelCoord(cx, cy)) continue;
-          if (xorBox) {
-            if (xorOnce) {
-              const key = target.id + ':' + (cy * ZX_SPECTRUM.WIDTH + cx);
-              if (xorOnce.has(key)) continue;
-              xorOnce.add(key);
-            }
-            const inv = PixelDrawRoutine.invertWrite(target, cx, cy, color);
-            visit(cx, cy, inv.sel, inv.mode);
-          } else {
-            visit(cx, cy, color, mode);
-          }
-        } else if (clearMode && (overlap || (cm[py] && cm[py][px])) && Validators.isValidPixelCoord(cx, cy)) {
-          visit(cx, cy, color, clearMode);
-        }
-      }
+      if (!row && !pixClearMode) continue;
+      for (let px = 0; px < w; px++) pixelAt(px, py, row);
     }
   }
 
@@ -2305,7 +2342,7 @@ class SelectionServiceClass {
    * HERE, when read, because the Map Editor and the tests give a stamp its
    * attrs after it is created.
    * @param {?Object} data - stamp data from getStampData (or a floating paste)
-   * @returns {{colours:string, showThrough:Object, clearDots:string}}
+   * @returns {{colours:string, showThrough:Object, clearDots:string, uncoloured:string}}
    */
   stampOptions(data) {
     const o = (data && data.opts) || {};
@@ -2314,7 +2351,9 @@ class SelectionServiceClass {
       colours: o.colours || (data && data.attrs ? 'coloured' : 'pixels'),
       showThrough: { ink: st.ink === true, paper: st.paper === true,
                      bright: st.bright === true, flash: st.flash === true },
-      clearDots: o.clearDots || 'transparent'
+      clearDots: o.clearDots || 'transparent',
+      // 'rail' = cells with no attributes of their own are drawn with the attribute bar (coloured-font text), 'hole' = not at all
+      uncoloured: o.uncoloured === 'rail' ? 'rail' : 'hole'
     };
   }
 

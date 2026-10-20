@@ -174,6 +174,17 @@ class TextToolClass extends ToolBase {
                 { value: 'overlap', i18n: 'transform.clearDots.overlap' }] },
     { type: 'hint', i18n: 'transform.clearDots.noEffectHint',
       showIf: { all: [ { key: 'textBackground', equals: 'overlap' }, { clearDotsNoEffect: true } ] } },
+    // Coloured CHX characters (owner decision 2026-10-19): a saved font with coloured characters can place each letter's own
+    // attributes, like a stamp's Own attributes. Only in modes with 8x8 attribute cells; refused, with the reason, where the
+    // letters' blocks would not land on the picture's cells.
+    { type: 'select', key: 'textColours', i18n: 'opt.textColours', value: 'rail',
+      syncEvent: EVENTS.STAMP_OPTIONS_CHANGED, showIf: { toolIs: 'textColoursOffered', manual: 'manual.showIf.colouredFont' },
+      options: [{ value: 'rail', i18n: 'opt.textColours.rail' },
+                { value: 'own', i18n: 'opt.textColours.own', disabledIf: { toolIs: 'textColoursBlocked' } }] },
+    { type: 'hint', i18n: 'text.coloursEffects',
+      showIf: { toolIs: 'textColoursBlocked', equals: 'effects', manual: 'manual.showIf.coloursEffects' } },
+    { type: 'hint', i18n: 'text.coloursGeometry',
+      showIf: { toolIs: 'textColoursBlocked', equals: 'geometry', manual: 'manual.showIf.coloursGeometry' } },
     { type: 'hint', i18n: 'text.hint' }
   ];
 
@@ -205,6 +216,7 @@ class TextToolClass extends ToolBase {
     this._typing          = window.TextTyping ? new TextTyping(this) : { active: false, preview() {}, cancel() {}, commit() { return true; } };
     this._fontH0          = 8;           // cell height of the font the character size was set for (keeps the zoom on a font change)
     this._textBackground  = 'transparent';  // 'overlap' = Clear background: the box's clear dots are written too
+    this._textColours     = 'rail';         // 'own' = a coloured font's letters place their own attributes
     this._fixedSize       = 16;   // px height; always > 0 (selected from dropdown)
     this._cachedFonts     = null;
     this._sizeCache       = new Map(); // fontFamily -> number[] of clean sizes
@@ -241,6 +253,11 @@ class TextToolClass extends ToolBase {
       if (!fp || !fp.fontInfo) return;
       const v = SelectionService.stampOptions(fp).clearDots;
       if (v !== this._textBackground) this._textBackground = v;
+      // ...and the Transform panel's Attributes (Pixels only / Own attributes) of a text stamp that has a coloured font's
+      if (fp.attrs) {
+        const want = SelectionService.stampOptions(fp).colours === 'coloured' ? 'own' : 'rail';
+        if (want !== this._textColours) this._textColours = want;
+      }
     });
 
     // Drive stamp cursor-following.  This event fires on every pointermove
@@ -383,7 +400,8 @@ class TextToolClass extends ToolBase {
    */
   _glyphSourceFor(family) {
     if (family === 'ZX ROM') {
-      return { glyphOf: (c) => this.charBitmaps[c] || null, spanOf: null, fw: 8, w0: 8, h0: 8, proportional: false };
+      return { glyphOf: (c) => this.charBitmaps[c] || null, spanOf: null, coloursOf: () => null, coloured: false, cols: 1,
+               fw: 8, w0: 8, h0: 8, proportional: false };
     }
     if (!String(family).startsWith('zxfont:')) return null;
     const font = window.FontService ? FontService.getLibraryFont(family.slice('zxfont:'.length)) : null;
@@ -447,6 +465,12 @@ class TextToolClass extends ToolBase {
     }
     this._typing.setBuffer(text, caret);
     this._typing.preview();
+    // what is typed can decide whether a coloured font's attributes line up (alignment): keep the panel's reason current
+    const blocked = this.textColoursBlocked();
+    if (blocked !== this._lastColourBlock) {
+      this._lastColourBlock = blocked;
+      EventBus.emit(EVENTS.TOOL_OPTIONS);
+    }
   }
 
   /** Enter in the text field, or the Draw button. @private */
@@ -518,9 +542,14 @@ class TextToolClass extends ToolBase {
     }
   }
 
-  /** The settings a new text stamp starts with: null unless Clear background is on. @private */
-  _stampOpts() {
-    return this._textBackground === 'overlap' ? { clearDots: 'overlap' } : null;
+  /**
+   * The settings a new text stamp (or typed text) starts with: null unless Clear background is on or the text places a
+   * coloured font's own attributes (`plan` from _colourPlan).
+   * @private
+   */
+  _stampOpts(plan = null) {
+    const o = { ...(this._textBackground === 'overlap' ? { clearDots: 'overlap' } : {}), ...(this._colourOpts(plan) || {}) };
+    return Object.keys(o).length ? o : null;
   }
 
   getTextAnchor()     { return this._textAnchor; }
@@ -728,13 +757,18 @@ class TextToolClass extends ToolBase {
     // Put the anchor point of the finished block on the cursor (Centre = the old centring)
     const a = window.MaskOps ? MaskOps.anchorOffset(this._textAnchor, width, height)
       : { x: Math.floor(width / 2), y: Math.floor(height / 2) };
-    const px = x - a.x;
-    const py = y - a.y;
+    let px = x - a.x;
+    let py = y - a.y;
+
+    // A coloured font's own attributes: the block goes on the cell grid, as an own-attributes stamp does
+    const plan = this._colourPlan(result.letters, width, height);
+    const colours = plan && plan.attrs ? { attrs: plan.attrs, attrGrid: plan.attrGrid } : null;
+    if (colours) { px = Math.floor(px / 8) * 8; py = Math.floor(py / 8) * 8; }
 
     if (window.SelectionService) {
       SelectionService.startFloatingPasteFromMask(
         pixels, width, height,
-        px, py, 'Text', fontInfo, 'none', this._stampOpts(), { w: result.width, h: result.height }, layers.clearMask
+        px, py, 'Text', fontInfo, 'none', this._stampOpts(plan), { w: result.width, h: result.height }, layers.clearMask, colours
       );
       this._textStampActive = true;
     }
@@ -763,13 +797,14 @@ class TextToolClass extends ToolBase {
     };
 
     let targetW = 0, targetH = 0;
+    let plan = null;
     if (this._fixedSize > 0) {
       if (this.isBitmapFont(this._fontFamily)) {
-        const src = this._buildTextMask(text, this._fontFamily);
-        const scale = Math.max(1, Math.round(this._fixedSize / this._fontCellHeight(this._fontFamily)));
+        const src = this._rasterizeAtFixedSize(text, this._fixedSize);
         if (src) {
-          targetW = src.width * scale;
-          targetH = src.height * scale;
+          targetW = src.width;
+          targetH = src.height;
+          plan = this._colourPlan(src.letters, src.width, src.height);
         }
       } else {
         const src = this._rasterizeWithFont(text, this._fontFamily, this._fixedSize, this._fontBold, this._fontItalic);
@@ -777,7 +812,10 @@ class TextToolClass extends ToolBase {
       }
     }
 
-    SelectionService.refreshTextStamp(fontInfo, null, targetW, targetH);
+    // The attributes follow the text: placed when they line up, dropped otherwise (no undo entry - a tool option is not an edit)
+    const colours = plan && plan.attrs ? { attrs: plan.attrs, attrGrid: plan.attrGrid } : null;
+    SelectionService.refreshTextStamp(fontInfo, null, targetW, targetH,
+      { colours: colours ? 'coloured' : undefined, uncoloured: colours ? 'rail' : undefined }, colours);
   }
 
   // ── Rasterization helpers ─────────────────────────────────────────────────
@@ -789,10 +827,112 @@ class TextToolClass extends ToolBase {
       // The Size is a multiple of the font's own cell height - NOT of the block's height, which grows with every extra line (or
       // letter, in a column): that made two-line and vertical text land at half size and jump when any option changed.
       const scale = Math.max(1, Math.round(targetHeight / this._fontCellHeight(this._fontFamily)));
-      return this._scaleToFit(src.pixels, src.width, src.height,
+      const out = this._scaleToFit(src.pixels, src.width, src.height,
         src.width * scale, src.height * scale);
+      // each letter's cell at the final size, and the part of its glyph it shows (BitmapText.blockRects' shape)
+      if (out) out.letters = src.letters.map(L => ({ ch: L.ch, x: L.x * scale, y: L.y * scale, w: L.w * scale, h: L.h * scale,
+                                                      srcX0: L.x0, srcW: L.w, srcH: L.h }));
+      return out;
     }
     return this._rasterizeWithFont(text, this._fontFamily, targetHeight, this._fontBold, this._fontItalic);
+  }
+
+  // -- Attributes of a coloured font (CHX, owner decision 2026-10-19) -------
+
+  getTextColours() { return this._textColours; }
+  /** 'rail' (the attribute bar, as always) | 'own' (a coloured character places its blocks' own attributes). */
+  setTextColours(v) {
+    if (v !== 'rail' && v !== 'own') return;
+    this._textColours = v;
+    this._disengaged = false;
+    this._updatePreviewIfActive();
+  }
+
+  /**
+   * Whether the Attributes choice means anything: the font is a saved one with coloured characters, and the screen mode has
+   * 8x8 attribute cells (Standard, ULAplus, ULANext, GigaScreen). Hidden everywhere else.
+   */
+  textColoursOffered(family = this._fontFamily) {
+    const src = this.isBitmapFont(family) ? this._glyphSourceFor(family) : null;
+    if (!src || !src.coloured) return false;
+    return !!(window.ColorManager && ColorManager.hasCellAttributes()) &&
+      ZX_SPECTRUM.CELL_WIDTH === 8 && ZX_SPECTRUM.CELL_HEIGHT === 8;
+  }
+
+  /**
+   * Why Own attributes cannot be used with the settings in force, or null if they can (or the choice is not offered):
+   * 'effects' - something moves the pixels off the letters' blocks (Direction, a mirror, italic, Shadow, Contour, or a
+   * Transform panel scale, rotation or warp of the waiting text); 'geometry' - the blocks do not land on the picture's 8x8
+   * cells (character size, spacing, alignment, a vertical layout). Then the text is drawn with the attribute bar.
+   * @returns {?string}
+   */
+  textColoursBlocked() {
+    if (!this.textColoursOffered()) return null;
+    if (this._colourEffects()) return 'effects';
+    let plan = null;
+    if (this._typeOnCanvas) {
+      const text = this._typing.active && this._typing.text ? this._typing.text : this._colouredSample();
+      plan = this._typedColourPlan(BitmapText.layout(text, this._typeLayoutOptions()), true);
+    } else {
+      const text = this._text.trim();
+      const r = text && this._fixedSize ? this._rasterizeAtFixedSize(text, this._fixedSize) : null;
+      plan = r ? this._colourPlan(r.letters, r.width, r.height, true) : null;
+    }
+    return plan && plan.blocked ? plan.blocked : null;
+  }
+
+  /** Two of the font's coloured characters (what the blocked check measures while nothing is typed yet). @private */
+  _colouredSample() {
+    const font = window.FontService ? FontService.getLibraryFont(String(this._fontFamily).slice('zxfont:'.length)) : null;
+    if (!font || !font.colours) return '';
+    const i = font.colours.findIndex(Boolean);
+    const ch = i < 0 ? '' : String.fromCharCode(font.firstCode + i);
+    return ch + ch;
+  }
+
+  /** True if an effect moves pixels off the letters' 8x8 blocks. @private */
+  _colourEffects() {
+    if (this._textDirection || this._textMirrorH || this._textMirrorV || this._textShadow || this._textOutline || this._fontItalic) return true;
+    const fp = this._ownStampFloating() ? SelectionService.floatingPaste : null;
+    return !!(fp && (fp._scaleX !== 1 || fp._scaleY !== 1 || fp._rotation || (fp._warpEffect && fp._warpEffect !== 'none')));
+  }
+
+  /**
+   * The attributes text in a coloured font places: { attrs, attrGrid } (one attribute per 8x8 cell of the text block, null
+   * where the attribute bar is used), { blocked } when Own attributes cannot be used, or null when they are not asked for or
+   * no letter of the text is coloured.
+   * @param {Array<Object>} letters - each letter's slot and shown glyph part (BitmapText.blockRects' shape)
+   * @param {number} w - the text block's width
+   * @param {number} h - its height
+   * @param {boolean} [ignoreChoice] - work it out even if Attribute bar is chosen (for the hint)
+   * @private
+   */
+  _colourPlan(letters, w, h, ignoreChoice = false) {
+    if ((!ignoreChoice && this._textColours !== 'own') || !this.textColoursOffered()) return null;
+    if (this._colourEffects()) return { blocked: 'effects' };
+    const src = this._glyphSource();
+    const rects = [];
+    for (const L of letters || []) {
+      const attrs = src.coloursOf(L.ch);
+      if (!attrs) continue;
+      const r = BitmapText.blockRects(L, attrs, src.cols);
+      if (!r) return { blocked: 'geometry' };
+      for (const q of r) rects.push(q);
+    }
+    if (!rects.length) return null;
+    const cells = BitmapText.attrCells(rects, w, h);
+    if (cells.blocked) return cells;
+    return { attrs: cells.attrs, attrGrid: { cols: cells.cols, rows: cells.rows, cw: 8, ch: 8, ox: 0, oy: 0 } };
+  }
+
+  /** _colourPlan for a Type on canvas layout (BitmapText.layout). @private */
+  _typedColourPlan(lay, ignoreChoice = false) {
+    return lay ? this._colourPlan(BitmapText.layoutLetters(lay), lay.width, lay.height, ignoreChoice) : null;
+  }
+
+  /** The stamp settings that make a coloured text block place its attributes and draw the rest with the bar. @private */
+  _colourOpts(plan) {
+    return plan && plan.attrs ? { colours: 'coloured', uncoloured: 'rail' } : null;
   }
 
   /** Height of one cell of a bitmap font (8 for ZX ROM and the classic sizes). @private */
@@ -865,6 +1005,8 @@ class TextToolClass extends ToolBase {
     const width  = vertical ? total : crossMax;
     const height = vertical ? crossMax : total;
     const pixels = Array.from({ length: height }, () => new Array(width).fill(false));
+    // Where every letter of a glyph-byte line ended up (coloured fonts place each letter's attributes by it)
+    const letters = [];
 
     for (let i = 0; i < masks.length; i++) {
       const m = masks[i];
@@ -873,6 +1015,10 @@ class TextToolClass extends ToolBase {
       const off = align === 'center' ? Math.floor(slack / 2)
                 : align === 'right'  ? slack
                 : 0;
+      if (m.letters) {
+        const dx = vertical ? at[i] : off, dy = vertical ? off : at[i];
+        for (const L of m.letters) letters.push({ ...L, x: L.x + dx, y: L.y + dy });
+      }
       for (let y = 0; y < m.height; y++) {
         const row = m.pixels[y];
         for (let x = 0; x < m.width; x++) {
@@ -883,7 +1029,7 @@ class TextToolClass extends ToolBase {
         }
       }
     }
-    return { pixels, width, height };
+    return { pixels, width, height, letters };
   }
 
   /**
@@ -892,9 +1038,11 @@ class TextToolClass extends ToolBase {
    * The advance width is the font's glyph width (8 for ZX ROM, 4/6/8 for
    * library fonts), so narrow Sinclair fonts keep their tight spacing.
    * Characters outside the font take no space, like unknown ZX ROM chars.
+   * `letters` gives each drawn letter's cell in the block ({ch, x, y, w, h}) and the glyph column its saved part starts at
+   * (x0), for placing a coloured font's attributes.
    * @param {string} text
    * @param {string} [family] - defaults to the tool's current family
-   * @returns {{ pixels: boolean[][], width: number, height: number }|null}
+   * @returns {{ pixels: boolean[][], width: number, height: number, letters: Object[] }|null}
    */
   _buildTextMask(text, family = this._fontFamily, bold = this._fontBold,
                  italic = this._fontItalic, layout = this._textLayout,
@@ -938,7 +1086,7 @@ class TextToolClass extends ToolBase {
         const g = src.glyphOf(text[i]);
         if (!g) continue;
         const sp = (src.spanOf && src.spanOf(text[i])) || { x0: 0, w: src.w0 };
-        recs.push({ g, x0: sp.x0, w: sp.w });
+        recs.push({ g, x0: sp.x0, w: sp.w, ch: text[i] });
       }
       if (!recs.length) return null;
       if (reverse) recs.reverse();
@@ -948,7 +1096,9 @@ class TextToolClass extends ToolBase {
       glyphOf: src.glyphOf, spanOf: src.spanOf, fw: src.fw || src.w0, w0: src.w0, h0: src.h0, reverse,
       bold, italic, style: (p, w, h, b, it) => this._styleBitmapMask(p, w, h, b, it)
     });
-    return native ? { pixels: native.pixels, width: native.width, height: native.height } : null;
+    if (!native) return null;
+    const letters = native.letters.map(L => ({ ch: L.ch, x: L.x, y: 0, w: L.w, h: src.h0, x0: L.x0 }));
+    return { pixels: native.pixels, width: native.width, height: native.height, letters };
   }
 
   /**
@@ -980,15 +1130,17 @@ class TextToolClass extends ToolBase {
 
     const width = cells.reduce((w, c) => Math.max(w, c.width), 0);
     const out = [];
-    for (const cell of cells) {
+    const letters = [];
+    cells.forEach((cell, k) => {
       const pad = Math.floor((width - cell.width) / 2);
+      letters.push({ ch: recs[k].ch, x: pad, y: out.length, w: recs[k].w, h: charH, x0: recs[k].x0 });
       for (const row of cell.pixels) {
         const line = new Array(width).fill(false);
         for (let x = 0; x < cell.width; x++) if (row[x]) line[pad + x] = true;
         out.push(line);
       }
-    }
-    return { pixels: out, width, height: out.length };
+    });
+    return { pixels: out, width, height: out.length, letters };
   }
 
   /**

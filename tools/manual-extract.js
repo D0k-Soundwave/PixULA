@@ -89,6 +89,8 @@ function extractManualData() {
             if (c.all) return c.all.map(one).filter(Boolean).join(and);
             if (c.any) return c.any.map(one).filter(Boolean).join(or);
             if ('cells' in c) return c.cells ? t('manual.showIf.cellAttributes') : '';
+            // a rule only the tool knows ({ toolIs }) carries its own sentence
+            if ('toolIs' in c) return c.manual ? t(c.manual) : '';
             if (!c.key) return '';
             const label = labelFor(c.key);
             if ('equals' in c) {

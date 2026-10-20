@@ -22,12 +22,18 @@ class FontMapView {
      * @param {function(Set<number>, Uint8Array):void} opts.onCommit - a stroke ended
      * @param {function(number, number):void} opts.onShade - shade tool click: (glyph index, 8-pixel column)
      * @param {function(number):{left:number,right:number}} opts.getShade
+     * @param {function(number, number, number):?{ink:number[], paper:number[]}} [opts.getColours] - the RGB pair of a
+     *   character's 8x8 block (glyph index, block column, block row), or null for the default (a coloured CHX character)
+     * @param {function(number, number, number, boolean):void} [opts.onAttrs] - Attributes tool click: (glyph index, block
+     *   column, block row, erase)
      */
     constructor(opts) {
         this._onSelect = opts.onSelect || (() => {});
         this._onCommit = opts.onCommit || (() => {});
         this._onShade = opts.onShade || (() => {});
         this._getShade = opts.getShade || (() => ({ left: 0, right: 0 }));
+        this._getColours = opts.getColours || null;
+        this._onAttrs = opts.onAttrs || (() => {});
 
         this._map = new Uint8Array(0);
         this._w = 0; this._h = 0; this._gw = 8; this._gh = 8; this._count = 0;
@@ -83,7 +89,7 @@ class FontMapView {
         this._tool = tool;
         this._lineStart = null;
         this._linePreview = null;
-        this.canvas.style.cursor = tool === 'move' ? 'grab' : tool === 'shade' ? 'pointer' : 'crosshair';
+        this.canvas.style.cursor = tool === 'move' ? 'grab' : (tool === 'shade' || tool === 'attrs') ? 'pointer' : 'crosshair';
         this._scheduleRedraw();
     }
 
@@ -156,15 +162,35 @@ class FontMapView {
         return { ink: this._rgb(ZX_PALETTE[0], [0, 0, 0]), paper: this._rgb(ZX_PALETTE[7], [215, 215, 215]) };
     }
 
+    /**
+     * The RGB a map pixel shows: its block's Ink or Paper for a coloured character, else the default pair.
+     * @private
+     */
+    _rgbAt(x, y, on, def) {
+        if (this._getColours) {
+            const cell = FontMap.cellAt(x, y, this._gw, this._gh, this._count);
+            const c = cell ? this._getColours(cell.index, cell.lx >> 3, cell.ly >> 3) : null;
+            if (c) return on ? c.ink : c.paper;
+        }
+        return on ? def.ink : def.paper;
+    }
+
     _paintAll() {
-        const { ink, paper } = this._colours();
+        const def = this._colours();
         const d = this._img.data;
         for (let i = 0; i < this._map.length; i++) {
-            const c = this._map[i] ? ink : paper;
+            const c = this._rgbAt(i % this._w, Math.floor(i / this._w), this._map[i], def);
             d[i * 4] = c[0]; d[i * 4 + 1] = c[1]; d[i * 4 + 2] = c[2]; d[i * 4 + 3] = 255;
         }
         this._scratch.getContext('2d').putImageData(this._img, 0, 0);
         this._dirty = null;
+    }
+
+    /** Repaint from the host's colours (an attribute changed; the pixels did not). */
+    repaint() {
+        if (!this._scratch) return;
+        this._paintAll();
+        this._scheduleRedraw();
     }
 
     /** Set a pixel in the bitmap and the scratch image; remember the changed rectangle. @private */
@@ -172,8 +198,7 @@ class FontMapView {
         const i = FontMap.setPixel(this._map, x, y, v, this._gw, this._gh, this._count);
         if (i < 0) return;
         this._touched.add(i);
-        const { ink, paper } = this._colours();
-        const c = v ? ink : paper;
+        const c = this._rgbAt(x, y, v, this._colours());
         const o = (y * this._w + x) * 4;
         const d = this._img.data;
         d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2];
@@ -322,6 +347,10 @@ class FontMapView {
             return;
         }
         const erase = CellGridEditor.isEraseEvent(e);
+        if (this._tool === 'attrs') {
+            this._onAttrs(cell.index, cell.col8, cell.ly >> 3, erase);
+            return;
+        }
         if (this._tool === 'fill') {
             FontMap.fillInside(this._map, p.x, p.y, erase ? 0 : 1, this._gw, this._gh, this._count);
             this._paintAll();
@@ -366,11 +395,11 @@ class FontMapView {
         const cy = (v) => Helpers.clamp(v, 0, this._h - 1);
         const x0 = cx(a.x < b.x ? a.x : b.x), x1 = cx(a.x > b.x ? a.x : b.x);
         const y0 = cy(a.y < b.y ? a.y : b.y), y1 = cy(a.y > b.y ? a.y : b.y);
-        const { ink, paper } = this._colours();
+        const def = this._colours();
         const d = this._img.data;
         for (let y = y0; y <= y1; y++) {
             for (let x = x0; x <= x1; x++) {
-                const c = this._map[y * this._w + x] ? ink : paper;
+                const c = this._rgbAt(x, y, this._map[y * this._w + x], def);
                 const o = (y * this._w + x) * 4;
                 d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2];
             }

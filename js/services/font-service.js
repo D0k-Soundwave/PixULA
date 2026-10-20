@@ -155,7 +155,7 @@ class FontServiceClass {
         return true;
     }
 
-    // ── Attributes of coloured characters ──────────────────────────────────
+    // -- Attributes of coloured characters ----------------------------------
 
     /** The 8x8 block grid of one character: { cols, rows } (1 x 1 for a classic font). */
     blockGrid() {

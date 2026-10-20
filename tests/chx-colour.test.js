@@ -38,7 +38,7 @@ const blocksOf = (n, seed) => Uint8Array.from({ length: n * 8 }, (_, i) => (i * 
 const rec = (out, code) => out[5 + code * 2] | (out[6 + code * 2] << 8);
 const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
 
-// ── import keeps the attribute bytes ─────────────────────────────────────────
+// -- import keeps the attribute bytes -----------------------------------------
 {
   const space = { code: 32, cols: 2, rows: 2, blocks: new Uint8Array(32) };
   const a = { code: 65, cols: 2, rows: 2, blocks: blocksOf(4, 3), attrs: [0x0A, 0x47, 0x80 | 0x38, 0x16] };
@@ -53,13 +53,13 @@ const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
   check('a code the file does not define has no attributes', f.colours[67 - 32] === null);
 }
 
-// ── a file with no coloured character opens as before (no colours list) ──────
+// -- a file with no coloured character opens as before (no colours list) ------
 {
   const r = F.parseFont(buildChx([{ code: 32, cols: 1, rows: 1, blocks: new Uint8Array(8) }, { code: 65, cols: 1, rows: 1, blocks: blocksOf(1, 2) }]), 'chx');
   check('an uncoloured file has colours null', r.success && r.font.colours === null);
 }
 
-// ── a smaller coloured character: its missing blocks get attribute 56 ────────
+// -- a smaller coloured character: its missing blocks get attribute 56 --------
 {
   const space = { code: 32, cols: 3, rows: 2, blocks: new Uint8Array(48) };
   const small = { code: 105, cols: 1, rows: 1, blocks: blocksOf(1, 5), attrs: [0x51] };
@@ -71,7 +71,7 @@ const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
   check('it is still shaded on the right as before', f.shade[105 - 32][0] === 0 && f.shade[105 - 32][1] === 2);
 }
 
-// ── export writes coloured characters coloured ───────────────────────────────
+// -- export writes coloured characters coloured -------------------------------
 function doc(cols, rows, count, colours, shade) {
   const w = cols * 8, h = rows * 8;
   const glyphs = [];
@@ -100,7 +100,7 @@ function doc(cols, rows, count, colours, shade) {
   check('export, import, export gives identical bytes', same(F.exportFont(back, 'chx'), out));
 }
 
-// ── shading: only the stored columns' attributes are written ─────────────────
+// -- shading: only the stored columns' attributes are written -----------------
 {
   const colours = Array.from({ length: 96 }, () => null);
   colours[65 - 32] = Uint8Array.from([10, 11, 12, 20, 21, 22]);   // row 0: 10 11 12, row 1: 20 21 22
@@ -115,7 +115,7 @@ function doc(cols, rows, count, colours, shade) {
     same(back.colours[65 - 32], [11, 12, 56, 21, 22, 56]));
 }
 
-// ── the CHX summary and the formats that cannot hold attributes ─────────────
+// -- the CHX summary and the formats that cannot hold attributes -------------
 {
   const colours = Array.from({ length: 96 }, () => null);
   colours[1] = Uint8Array.from([7]); colours[2] = Uint8Array.from([0x38]);
@@ -128,7 +128,7 @@ function doc(cols, rows, count, colours, shade) {
 }
 function out1(out, code) { return out[rec(out, code)]; }
 
-// ── FontCodec carries the attributes ─────────────────────────────────────────
+// -- FontCodec carries the attributes -----------------------------------------
 {
   const colours = Array.from({ length: 96 }, () => null);
   colours[65 - 32] = Uint8Array.from([0x47, 0x0A, 0x80, 0xFF]);

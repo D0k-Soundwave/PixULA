@@ -27,12 +27,12 @@ const INK2_PAPER7 = 2 | (7 << 3);           // red Ink on white Paper
 const BRIGHT_FLASH = 6 | (1 << 3) | 0x40 | 0x80;
 
 (async () => {
-  // ── the default font has no colours ────────────────────────────────────────
+  // -- the default font has no colours ----------------------------------------
   check('the ROM font has no colours', S.hasColours() === false && S.getColours(65) === null);
   check('an 8 x 8 font takes attributes', S.coloursAllowed() === true);
   check('the document of an uncoloured font has colours null', S.toDocument().colours === null);
 
-  // ── first block on an uncoloured character colours every block ────────────
+  // -- first block on an uncoloured character colours every block ------------
   check('newBigFont 2 x 2', S.newBigFont({ cols: 2, rows: 2, coverage: 'ASCII' }));
   check('blocks of a 16 x 16 font: 2 x 2', S.blockGrid().cols === 2 && S.blockGrid().rows === 2);
   events.length = 0;
@@ -49,18 +49,18 @@ const BRIGHT_FLASH = 6 | (1 << 3) | 0x40 | 0x80;
   check('other characters stay uncoloured', S.getColours(66) === null);
   check('setAllBlocks gives every block one attribute', S.setAllBlocks(66, 0x47) && same(S.getColours(66), [0x47, 0x47, 0x47, 0x47]));
 
-  // ── the document and the codec ─────────────────────────────────────────────
+  // -- the document and the codec ---------------------------------------------
   const doc = S.toDocument();
   check('the document carries one colours entry per glyph', Array.isArray(doc.colours) && doc.colours.length === 96 && doc.colours[0] === null);
   const p = FontCodec.encode(doc);
   const back = FontCodec.decode(p);
   check('the working font persists with its colours', back && same(back.colours[65 - 32], S.getColours(65)));
 
-  // ── remove ─────────────────────────────────────────────────────────────────
+  // -- remove -----------------------------------------------------------------
   check('clearColours makes a character uncoloured', S.clearColours(66) === true && S.getColours(66) === null);
   check('clearColours of an uncoloured character changes nothing', S.clearColours(66) === false);
 
-  // ── operations carry the colours ───────────────────────────────────────────
+  // -- operations carry the colours -------------------------------------------
   {
     const g = new Uint8Array(32); g[0] = 0x80;
     S.setGlyph(65, g);
@@ -87,7 +87,7 @@ const BRIGHT_FLASH = 6 | (1 << 3) | 0x40 | 0x80;
     S.setCoverage('ASCII');
   }
 
-  // ── a paste between sizes ──────────────────────────────────────────────────
+  // -- a paste between sizes --------------------------------------------------
   {
     S.setColoursFor(65, [9, 8, 7, 6]);
     S.copyGlyph(65);
@@ -97,7 +97,7 @@ const BRIGHT_FLASH = 6 | (1 << 3) | 0x40 | 0x80;
     check('a paste into a bigger font keeps the top-left blocks and fills the new ones with 56', same(S.getColours(65), [9, 8, 56]));
   }
 
-  // ── snapshot / restore (the Font Editor's undo) ────────────────────────────
+  // -- snapshot / restore (the Font Editor's undo) ----------------------------
   {
     S.setBlockAttr(66, 2, 0, 0x11);
     const snap = S.snapshot();
@@ -115,7 +115,7 @@ const BRIGHT_FLASH = 6 | (1 << 3) | 0x40 | 0x80;
     check('redo takes them away again', S.getColours(66) === null);
   }
 
-  // ── loading ────────────────────────────────────────────────────────────────
+  // -- loading ----------------------------------------------------------------
   {
     const c = Array.from({ length: 96 }, () => null); c[1] = Uint8Array.from([0x42]);
     const g = Array.from({ length: 96 }, () => new Uint8Array(8));
@@ -134,14 +134,14 @@ const BRIGHT_FLASH = 6 | (1 << 3) | 0x40 | 0x80;
     check('editing a font loaded from the library does not change the library copy', S.getLibraryFont('Col').colours[1][0] === 0x42);
   }
 
-  // ── fonts that are not a whole number of 8-pixel columns ───────────────────
+  // -- fonts that are not a whole number of 8-pixel columns -------------------
   {
     S.resetToROM();
     S.setWidth(6);
     check('a 6-wide font does not take attributes', S.coloursAllowed() === false && S.setBlockAttr(65, 0, 0, 1) === false && S.setAllBlocks(65, 1) === false);
   }
 
-  // ── persist / restore at boot ──────────────────────────────────────────────
+  // -- persist / restore at boot ----------------------------------------------
   {
     S.newBigFont({ cols: 1, rows: 2, coverage: 'ASCII' });
     S.setBlockAttr(65, 0, 1, 0x5A);
