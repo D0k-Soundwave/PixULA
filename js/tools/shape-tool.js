@@ -116,8 +116,9 @@ window.SHAPE_TYPE_ROW = SHAPE_TYPE_ROW;
  * takes fractions and radians.
  * @const {Array<Object>}
  */
-/** Shapes whose outline can be turned (Batch 7 part 7B): the box shapes, and those drawn from a centre and a drag point. */
-const ROTATABLE_SHAPES = Object.freeze(['rectangle', 'square', 'rounded-rectangle', 'ellipse', 'parallelogram', 'arc',
+/** Shapes whose outline can be turned (Batch 7 part 7B): the box shapes, and those drawn from a centre and a drag point.
+ *  The ring (2026-10-20) turns round its centre like the ellipse. */
+const ROTATABLE_SHAPES = Object.freeze(['rectangle', 'square', 'rounded-rectangle', 'ellipse', 'ring', 'parallelogram', 'arc',
   'sector', 'triangle', 'diamond', 'pentagon', 'hexagon', 'heptagon', 'octagon', 'nonagon', 'decagon', 'dodecagon', 'polygon']);
 
 /** The shapes with no fillable interior (their Filled box is hidden and thickness always applies). */
