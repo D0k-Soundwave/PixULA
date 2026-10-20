@@ -120,6 +120,10 @@ measured.
 | GIF `MAX_CODES` | 4096 | P | The LZW code-width ceiling in GIF89a |
 | Long-press slop | 8 px | A | `input-handler.js` |
 | Tooltip hold slop | 10 px | A | `tooltip-manager.js` |
+| Gradient Rotation range | -180 to 180 degrees | C | One full turn (360 degrees) centred on 0, the same range as the Shape tool's Rotation; `gradient-tool.js` ROTATION_MIN / MAX. Added 2026-10-19 (owner decision: build Rotation) |
+| Gradient Zoom maximum | 400 % | C | The Coarse grain is a 2 x 2 matrix, 4 levels (C: 2 x 2). Past 4x the whole dragged size falls inside the first quarter of the ramp, one level of that grain, so a larger zoom shows nothing new with it. `gradient-tool.js` ZOOM_MAX. Added 2026-10-19 |
+| Gradient Zoom minimum | 25 % | C | 1 / 4 = 0.25, the reciprocal of the maximum, so the slider zooms out as far as it zooms in; the same 0.25 to 4 span as the gradient's Curve slider. A design rule, not a measurement: the owner may move it, nothing else rests on it. `ZOOM_MIN` |
+| Gradient Zoom step | 5 % | C | 375 / 5 = 75 slider positions between 25 and 400; the same step the Shape tool's percentage sliders use |
 
 ## 5. Revisions - all resolved 2026-08-07
 
@@ -935,3 +939,25 @@ with Visual compare, is 7.8 ms against a 16.7 ms frame [C: 1000 / 60].
 
 All are well under a 16.7 ms frame [C: 1000 / 60], so the find still runs straight away.
 
+
+### Gradient polygon styles, Rotation and Zoom - measured 2026-10-20
+
+Method: a temporary Playwright spec (deleted after), Chrome on this machine, Layer 2 640, a full-canvas gradient
+(640 x 256 = 163,840 pixels [C]), axis from corner to corner, Bayer 8, `_updatePreview` median of 7. Before = the
+working tree with `gradient-tool.js` taken back to the last commit (no new styles), after = with them, the edge-based
+styles at Rotation 20 (the turned path). Two sessions of two runs each, before and after back to back; the figures are
+the range over the four runs [M].
+
+| Style | Before | After | Tag |
+|---|---|---|---|
+| Square | 35.6 to 39.1 ms | 34.5 to 39.0 ms | M |
+| Diamond | 32.0 to 42.7 ms | 30.4 to 37.2 ms | M |
+| Radial (untouched, for scale) | 29.6 to 37.6 ms | 28.4 to 34.1 ms | M |
+| Triangle | - | 35.7 to 47.0 ms | M |
+| Octagon | - | 31.5 to 39.2 ms | M |
+
+The run-to-run spread of one unchanged style is up to 10.7 ms (C: Diamond before, 42.7 - 32.0), so Square and Diamond,
+which now go through the turned path, show no change that can be told from it. The triangle is the slowest new style
+(its worst run 47.0 ms against 42.7 ms for the worst old one, C: 47.0 - 42.7 = 4.3 ms). All are over the 7 ms live
+budget (`CoverageOps.LIVE_BUDGET_MS`) at this size, as every style already was (Gradient preview with a Dither method
+at Layer 2 640, above); nothing was changed on the strength of it.
