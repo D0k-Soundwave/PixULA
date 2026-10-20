@@ -60,23 +60,34 @@
  *   Import: the font is as large as the largest character (columns x rows).
  *   A smaller character sits at the top-left and the rest is shaded on the
  *   right (so it saves back the same size); codes the file does not define
- *   come back fully shaded (so a sparse file stays sparse); attributes are
- *   ignored. If the file has no Space, one is added as a blank, unshaded
- *   column. Coverage becomes the 96-char window when every defined code
- *   lies in 32..127, else full 256.
+ *   come back fully shaded (so a sparse file stays sparse). If the file has
+ *   no Space, one is added as a blank, unshaded column. Coverage becomes the
+ *   96-char window when every defined code lies in 32..127, else full 256.
+ *
+ *   Coloured characters (owner decision 2026-10-19): a record with
+ *   transparent = 0 keeps the attribute byte of each block, so the font
+ *   document gains colours[i] = a Uint8Array of columns * rows ZX attribute
+ *   bytes for the FULL character cell (same block order), or null for an
+ *   uncoloured character; colours is null when no character is coloured. The
+ *   blocks a smaller coloured character does not have get attribute 56
+ *   (GlyphBits.DEFAULT_ATTR). A character is coloured or transparent as a
+ *   whole - the file has one flag per character.
  *
  *   Export: every code of the coverage is written at its size minus its
- *   shading, except fully shaded ones. Reading the file back gives the same
- *   pixels, but a character shaded on the LEFT comes back shaded on the right
- *   (the file stores no position), so the guarantee is export, import,
- *   export = identical bytes.
+ *   shading, except fully shaded ones. A coloured character is written with
+ *   transparent = 0 and the attribute byte after each stored block; an
+ *   uncoloured one exactly as before (transparent = 1, 8 bytes a block), so
+ *   an uncoloured font saves the same bytes it always did. Reading the file
+ *   back gives the same pixels and attributes, but a character shaded on the
+ *   LEFT comes back shaded on the right (the file stores no position), so
+ *   the guarantee is export, import, export = identical bytes.
  *
- *   UNVERIFIED against a file made by ZX-Paintbrush: only 1x1 files were ever
- *   compared with the real program (owner, 2026-09-26). The block order, the
- *   columns-then-rows header order and the attribute byte after each block
- *   come from RECOIL and the datablocks manual; the owner declined to make
- *   sample files on 2026-10-13 (LOG, Batch 10C), so open a PixULA big CHX in
- *   ZX-Paintbrush before relying on it.
+ *   UNVERIFIED against a file made by ZX-Paintbrush: only 1x1 uncoloured
+ *   files were ever compared with the real program (owner, 2026-09-26). The
+ *   block order, the columns-then-rows header order and the attribute byte
+ *   after each block come from RECOIL and the datablocks manual; the owner
+ *   declined to make sample files on 2026-10-13 (LOG, Batch 10C), so open a
+ *   PixULA big or coloured CHX in ZX-Paintbrush before relying on it.
  *
  * The pure byte math is on this handler (parseFont/exportFont) so Node
  * tests can drive it without FontService; parse()/export() are the
@@ -247,7 +258,7 @@ class FontFormatClass {
       }
     }
 
-    const defined = new Map(); // code -> { cols, rows, bitmap }
+    const defined = new Map(); // code -> { cols, rows, bitmap, attrs (null = transparent) }
     for (let code = 0; code < 256; code++) {
       const offset = bytes[5 + code * 2] | (bytes[6 + code * 2] << 8);
       if (offset === 0) continue;
@@ -271,12 +282,14 @@ class FontFormatClass {
         return { success: false, error: Helpers.localizedMessage('err.chxEnd',
             'Unexpected end of file (code {code})', { code }) };
       }
-      // Whole character: the 8 bitmap bytes of each block (the attribute byte, if any, is dropped)
+      // Whole character: the 8 bitmap bytes of each block, and its attribute byte when the character is coloured
       const blocks = new Uint8Array(columns * rows * 8);
+      const attrs = transparent ? null : new Uint8Array(columns * rows);
       for (let b = 0; b < columns * rows; b++) {
         blocks.set(bytes.subarray(offset + 3 + b * blockSize, offset + 3 + b * blockSize + 8), b * 8);
+        if (attrs) attrs[b] = bytes[offset + 3 + b * blockSize + 8];
       }
-      defined.set(code, { cols: columns, rows, bitmap: GlyphBits.fromBlocks(blocks, columns, rows) });
+      defined.set(code, { cols: columns, rows, bitmap: GlyphBits.fromBlocks(blocks, columns, rows), attrs });
     }
     if (defined.size === 0) {
       return { success: false, error: Helpers.localizedMessage('err.chxEmpty',
@@ -296,9 +309,13 @@ class FontFormatClass {
     const count = ascii ? 96 : 256;
     const glyphs = [];
     const shade = [];
+    const colours = [];
+    let coloured = false;
     for (let i = 0; i < count; i++) {
       const code = firstCode + i;
       const c = defined.get(code);
+      colours.push(c && c.attrs ? GlyphBits.resizeBlocks(c.attrs, c.cols, c.rows, maxCols, maxRows) : null);
+      if (c && c.attrs) coloured = true;
       if (c) {
         glyphs.push(GlyphBits.resize(c.bitmap, c.cols * 8, c.rows * 8, width, height));
         shade.push([0, maxCols - c.cols]);
@@ -308,7 +325,7 @@ class FontFormatClass {
         shade.push([0, code === 32 ? 0 : maxCols]);
       }
     }
-    return { success: true, font: { name: '', width, height, firstCode, glyphs, shade } };
+    return { success: true, font: { name: '', width, height, firstCode, glyphs, shade, colours: coloured ? colours : null } };
   }
 
   /**
@@ -327,8 +344,9 @@ class FontFormatClass {
       const left = sh ? sh[0] : 0;
       const right = sh ? sh[1] : 0;
       const stored = cols - left - right;
-      entries.push({ left, right, stored });
-      if (stored > 0) size += 3 + stored * rows * 8;
+      const attrs = this._docColours(doc, i, cols, rows);
+      entries.push({ left, right, stored, attrs });
+      if (stored > 0) size += 3 + stored * rows * (attrs ? 9 : 8);
     }
     const spaceIndex = 32 - doc.firstCode;
     const hasSpace = spaceIndex >= 0 && spaceIndex < entries.length && entries[spaceIndex].stored > 0;
@@ -372,12 +390,12 @@ class FontFormatClass {
     out.set(this.CHX_MAGIC, 0);
     let offset = 5 + 256 * 2;
     for (let i = 0; i < entries.length; i++) {
-      const { left, stored } = entries[i];
+      const { left, stored, attrs } = entries[i];
       if (stored <= 0) continue;
       const code = doc.firstCode + i;
       out[5 + code * 2] = offset & 0xFF;
       out[6 + code * 2] = (offset >> 8) & 0xFF;
-      out[offset] = 1;       // transparent (no attribute byte)
+      out[offset] = attrs ? 0 : 1;   // 1 = transparent (no attribute byte), 0 = coloured (one after each block)
       out[offset + 1] = stored;
       out[offset + 2] = rows;
       let o = offset + 3;
@@ -385,11 +403,33 @@ class FontFormatClass {
       for (let by = 0; by < rows; by++) {
         for (let bx = left; bx < left + stored; bx++) {
           for (let r = 0; r < 8; r++) out[o++] = g[(by * 8 + r) * cols + bx];
+          if (attrs) out[o++] = attrs[by * cols + bx];
         }
       }
       offset = o;
     }
     return out;
+  }
+
+  /**
+   * How many characters of a document have attributes of their own (what a .ch4/.ch6/.ch8/.chr or a code listing cannot
+   * keep, so the export can say so).
+   * @param {Object} doc
+   * @returns {number}
+   */
+  colouredCount(doc) {
+    if (!doc || !Array.isArray(doc.colours)) return 0;
+    const height = doc.height === undefined ? 8 : doc.height;
+    const cols = (doc.width + 7) >> 3, rows = height >> 3;
+    let n = 0;
+    for (let i = 0; i < doc.glyphs.length; i++) if (this._docColours(doc, i, cols, rows)) n++;
+    return n;
+  }
+
+  /** A glyph's block attributes (cols x rows bytes) if it is coloured, else null - also for a list of the wrong shape. @private */
+  _docColours(doc, i, cols, rows) {
+    const c = Array.isArray(doc.colours) ? doc.colours[i] : null;
+    return c && c.length === cols * rows ? c : null;
   }
 
   /** Glyph bytes of a document by character code, or null. @private */

@@ -43,7 +43,7 @@ const space = { code: 32, cols: 1, rows: 1, blocks: new Uint8Array(8) };
   check('glyphs are 32 bytes each', f.glyphs.every(g => g.length === 32));
   check('character 65 keeps all four blocks', f.glyphs[65 - 32].every((b, i) => b === G.fromBlocks(a, 2, 2)[i]));
   check('block order is left to right, then down', f.glyphs[65 - 32][0] === a[0] && f.glyphs[65 - 32][1] === a[8] && f.glyphs[65 - 32][16] === a[16]);
-  check('a coloured character imports its bitmap and ignores the attribute bytes', (() => {
+  check('a coloured character imports its bitmap (its attribute bytes are kept as its colours, see chx-colour.test.js)', (() => {
     const want = G.fromBlocks(blocksOf(4, 9), 2, 2);
     return f.glyphs[66 - 32].every((b, i) => b === want[i]);
   })());

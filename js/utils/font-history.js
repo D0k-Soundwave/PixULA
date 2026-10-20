@@ -6,7 +6,8 @@
  * A snapshot is any object with a `bytes` number (its approximate size). The stacks are capped by TOTAL BYTES, not by count, because a
  * 256-glyph 32 x 32 font is 32 KB and a classic one 2 KB. [C] The heaviest snapshot is 256 x 128 = 32,768 bytes of glyphs plus 512 of
  * shading; at a 2 MB cap that is about 62 steps of the heaviest font and thousands of the lightest - 2 MB is the order of every other
- * persistence path in the app (FontService.MAX_LIBRARY_BYTES). The oldest snapshots are dropped first.
+ * persistence path in the app (FontService.MAX_LIBRARY_BYTES). The oldest snapshots are dropped first. A coloured font's snapshot also
+ * holds its block attributes: [C] every glyph of the heaviest font coloured adds 256 x 16 = 4,096 bytes, 37,376 in all, about 56 steps.
  */
 class FontHistory {
     constructor(maxBytes = 2 * 1024 * 1024) {

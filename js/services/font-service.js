@@ -25,6 +25,11 @@
  *           firstCode + glyphs.length describe the
  *           charset coverage: 32+96 (the ASCII window of the 768-byte
  *           CHR variant) or 0+256 (a full extended-ANSI set).
+ *           colours[i] (parallel to glyphs): null for an uncoloured
+ *           character (the Text tool draws it with the attribute bar), or
+ *           the ZX attribute byte of each 8x8 block of the full cell, left
+ *           to right then down (a coloured CHX character, owner decision
+ *           2026-10-19). A character is coloured as a whole, as in the file.
  *
  * Commands come down as direct calls; facts go up ONLY via
  * EVENTS.FONT_CHANGED / FONT_LOADED / FONT_LIBRARY_CHANGED.
@@ -81,8 +86,10 @@ class FontServiceClass {
         this.glyphs = [];
         /** @type {Array<Array<number>>} [left, right] shaded 8-pixel columns per glyph (parallel to glyphs) */
         this.shade = [];
+        /** @type {Array<?Uint8Array>} block attributes per glyph, null = uncoloured (parallel to glyphs) */
+        this.colours = [];
 
-        this._glyphClipboard = null;   // { w, h, bytes } copy from copyGlyph
+        this._glyphClipboard = null;   // { w, h, bytes, attrs } copy from copyGlyph
         this._library = {};            // name -> FontCodec payload (mirror of the store)
         this._decodedCache = new Map();// name -> decoded doc (for the text tool's hot path)
         this._persistTimer = null;
@@ -148,6 +155,84 @@ class FontServiceClass {
         return true;
     }
 
+    // ── Attributes of coloured characters ──────────────────────────────────
+
+    /** The 8x8 block grid of one character: { cols, rows } (1 x 1 for a classic font). */
+    blockGrid() {
+        return { cols: this.columns(), rows: this.height >> 3 };
+    }
+
+    /** True if characters of this font can take attributes: its width is a whole number of 8-pixel columns (as for shading). */
+    coloursAllowed() {
+        return this.width % 8 === 0;
+    }
+
+    /** The live block attributes of a code (treat as read-only), or null when it is uncoloured or outside the coverage. */
+    getColours(code) {
+        return this.hasCode(code) ? this.colours[code - this.firstCode] : null;
+    }
+
+    /** True if any character has attributes of its own. */
+    hasColours() {
+        return this.colours.some(Boolean);
+    }
+
+    /**
+     * Give one block of a character an attribute byte (Ink 0-2, Paper 3-5, Bright 6, Flash 7). A character is coloured as a
+     * whole - the CHX file has one flag per character - so on an uncoloured character every block takes it.
+     * @returns {boolean} false if refused or nothing changed
+     */
+    setBlockAttr(code, bx, by, attr) {
+        const g = this.blockGrid();
+        if (!this.hasCode(code) || !this.coloursAllowed() || !this._attrOk(attr) ||
+            !Number.isInteger(bx) || !Number.isInteger(by) || bx < 0 || by < 0 || bx >= g.cols || by >= g.rows) return false;
+        const i = code - this.firstCode;
+        const cur = this.colours[i];
+        if (!cur) return this.setAllBlocks(code, attr);
+        if (cur[by * g.cols + bx] === attr) return false;
+        cur[by * g.cols + bx] = attr;
+        this._announceFont();
+        return true;
+    }
+
+    /** Give every block of a character one attribute byte. @returns {boolean} false if refused or nothing changed */
+    setAllBlocks(code, attr) {
+        if (!this.hasCode(code) || !this.coloursAllowed() || !this._attrOk(attr)) return false;
+        const g = this.blockGrid();
+        const i = code - this.firstCode;
+        const cur = this.colours[i];
+        if (cur && cur.every(a => a === attr)) return false;
+        this.colours[i] = new Uint8Array(g.cols * g.rows).fill(attr);
+        this._announceFont();
+        return true;
+    }
+
+    /**
+     * Replace a character's attributes outright: null makes it uncoloured, else one byte per block (copied).
+     * @returns {boolean}
+     */
+    setColoursFor(code, attrs) {
+        if (!this.hasCode(code)) return false;
+        const g = this.blockGrid();
+        if (attrs != null && (attrs.length !== g.cols * g.rows || !Array.from(attrs).every(a => this._attrOk(a)))) return false;
+        this.colours[code - this.firstCode] = attrs == null ? null : Uint8Array.from(attrs);
+        this._announceFont();
+        return true;
+    }
+
+    /** Make a character uncoloured again. @returns {boolean} false if it already was */
+    clearColours(code) {
+        if (!this.getColours(code)) return false;
+        this.colours[code - this.firstCode] = null;
+        this._announceFont();
+        return true;
+    }
+
+    /** @private */
+    _attrOk(a) {
+        return Number.isInteger(a) && a >= 0 && a <= 255;
+    }
+
     /** Coverage window ({ firstCode, count }). */
     getCoverage() {
         return { firstCode: this.firstCode, count: this.glyphs.length };
@@ -191,16 +276,25 @@ class FontServiceClass {
     copyGlyph(code) {
         const g = this.getGlyph(code);
         if (!g) return false;
-        this._glyphClipboard = { w: this.width, h: this.height, bytes: Uint8Array.from(g) };
+        const a = this.getColours(code);
+        this._glyphClipboard = { w: this.width, h: this.height, bytes: Uint8Array.from(g), attrs: a ? Uint8Array.from(a) : null };
         return true;
     }
 
-    /** Paste the glyph clipboard onto a code (cropped or padded at the top-left to the current size). */
+    /**
+     * Paste the glyph clipboard onto a code (cropped or padded at the top-left to the current size). The character's
+     * attributes come with it (an uncoloured copy makes the target uncoloured); a font that takes no attributes keeps none.
+     */
     pasteGlyph(code) {
         const c = this._glyphClipboard;
-        if (!c) return false;
-        const bytes = (c.w === this.width && c.h === this.height)
-            ? c.bytes : GlyphBits.resize(c.bytes, c.w, c.h, this.width, this.height);
+        if (!c || !this.hasCode(code)) return false;
+        const sameSize = c.w === this.width && c.h === this.height;
+        const bytes = sameSize ? c.bytes : GlyphBits.resize(c.bytes, c.w, c.h, this.width, this.height);
+        if (bytes.length !== this.glyphBytes()) return false;
+        const g = this.blockGrid();
+        const attrs = c.attrs && this.coloursAllowed()
+            ? GlyphBits.resizeBlocks(c.attrs, (c.w + 7) >> 3, c.h >> 3, g.cols, g.rows) : null;
+        this.colours[code - this.firstCode] = attrs;
         return this.setGlyph(code, bytes);
     }
 
@@ -216,8 +310,11 @@ class FontServiceClass {
     flipGlyph(code, axis) {
         const g = this.getGlyph(code);
         if (!g) return false;
-        if (axis === 'h') GlyphBits.flipH(g, this.width, this.height);
-        else if (axis === 'v') GlyphBits.flipV(g, this.width, this.height);
+        const a = this.getColours(code);
+        const b = this.blockGrid();
+        // the block attributes follow their blocks (exact: a coloured font is a whole number of 8-pixel columns wide)
+        if (axis === 'h') { GlyphBits.flipH(g, this.width, this.height); GlyphBits.flipBlocksH(a, b.cols, b.rows); }
+        else if (axis === 'v') { GlyphBits.flipV(g, this.width, this.height); GlyphBits.flipBlocksV(a, b.cols, b.rows); }
         else return false;
         this._announceFont();
         return true;
@@ -276,9 +373,11 @@ class FontServiceClass {
         this.firstCode = cov.firstCode;
         this.glyphs = [];
         this.shade = [];
+        this.colours = [];
         for (let i = 0; i < cov.count; i++) {
             this.glyphs.push(this._blank());
             this.shade.push([0, 0]);
+            this.colours.push(null);
         }
         this._emit(EVENTS.FONT_LOADED, { name: this.name });
         this._schedulePersist();
@@ -314,15 +413,18 @@ class FontServiceClass {
         }
         const next = [];
         const nextShade = [];
+        const nextColours = [];
         for (let i = 0; i < target.count; i++) {
             const code = target.firstCode + i;
             const g = this.getGlyph(code);
             next.push(g ? g : this._blank());
             nextShade.push(g ? this.shade[code - this.firstCode] : [0, 0]);
+            nextColours.push(g ? this.colours[code - this.firstCode] : null);
         }
         this.firstCode = target.firstCode;
         this.glyphs = next;
         this.shade = nextShade;
+        this.colours = nextColours;
         this._announceFont();
         return true;
     }
@@ -358,6 +460,7 @@ class FontServiceClass {
         this.firstCode = firstCode;
         this.glyphs = next;
         this.shade = next.map(() => [0, 0]);
+        this.colours = next.map(() => null);
         if (announce) this._announceFont();
         return true;
     }
@@ -406,16 +509,21 @@ class FontServiceClass {
             height: this.height,
             firstCode: this.firstCode,
             glyphs: this.glyphs,
-            shade: this.hasShading() ? this.shade : null
+            shade: this.hasShading() ? this.shade : null,
+            colours: this.hasColours() ? this.colours : null
         };
     }
 
     /**
      * A deep copy of the working font for the Font Editor's undo history (see FontHistory).
-     * @returns {{name:string,width:number,height:number,firstCode:number,glyphs:Uint8Array[],shade:number[][],bytes:number}}
+     * @returns {{name:string,width:number,height:number,firstCode:number,glyphs:Uint8Array[],shade:number[][],
+     *   colours:Array<?Uint8Array>,bytes:number}}
      */
     snapshot() {
         const glyphs = this.glyphs.map(g => Uint8Array.from(g));
+        const colours = this.colours.map(c => (c ? Uint8Array.from(c) : null));
+        let colourBytes = 0;
+        for (const c of colours) if (c) colourBytes += c.length;
         return {
             name: this.name,
             width: this.width,
@@ -423,7 +531,8 @@ class FontServiceClass {
             firstCode: this.firstCode,
             glyphs,
             shade: this.shade.map(p => [p[0], p[1]]),
-            bytes: glyphs.length * (this.glyphBytes() + 2)
+            colours,
+            bytes: glyphs.length * (this.glyphBytes() + 2) + colourBytes
         };
     }
 
@@ -437,7 +546,8 @@ class FontServiceClass {
         const name = this.name;
         this._adopt({
             name: snap.name, width: snap.width, height: snap.height, firstCode: snap.firstCode,
-            glyphs: snap.glyphs.map(g => Uint8Array.from(g)), shade: snap.shade
+            glyphs: snap.glyphs.map(g => Uint8Array.from(g)), shade: snap.shade,
+            colours: snap.colours ? snap.colours.map(c => (c ? Uint8Array.from(c) : null)) : null
         });
         if (keepName) this.name = name;
         this._emit(EVENTS.FONT_LOADED, { name: this.name });
@@ -454,6 +564,9 @@ class FontServiceClass {
         this.glyphs = doc.glyphs;
         const ok = doc.shade && FontCodec._shadeOk(doc.shade, doc.glyphs.length, doc.width);
         this.shade = ok ? doc.shade.map(p => [p[0], p[1]]) : doc.glyphs.map(() => [0, 0]);
+        // A colours list that does not fit the font is dropped (the pixels still load)
+        const colours = FontCodec._coloursOf(doc.colours, doc.glyphs.length, this.width, this.height);
+        this.colours = colours ? colours.map(c => (c ? Uint8Array.from(c) : null)) : doc.glyphs.map(() => null);
     }
 
     /**
@@ -574,7 +687,8 @@ class FontServiceClass {
         return this.loadDocument({
             ...doc,
             glyphs: doc.glyphs.map(g => Uint8Array.from(g)),
-            shade: doc.shade ? doc.shade.map(p => [p[0], p[1]]) : null
+            shade: doc.shade ? doc.shade.map(p => [p[0], p[1]]) : null,
+            colours: doc.colours ? doc.colours.map(c => (c ? Uint8Array.from(c) : null)) : null
         });
     }
 
