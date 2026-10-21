@@ -139,6 +139,22 @@ const GlyphBits = {
     DEFAULT_ATTR: 0x38,
 
     /**
+     * The attribute bar laid onto one block's attribute byte: Ink, Paper, Bright and Flash from the bar, except a part the bar
+     * has on use existing (its Transparent flag), which keeps the block's own - as a stroke keeps a cell's.
+     * @param {{ink:number, paper:number, bright:boolean, flash:boolean, inkTransparent?:boolean, paperTransparent?:boolean,
+     *   brightTransparent?:boolean, flashTransparent?:boolean}} sel - ColorManager.getCurrentSelection()
+     * @param {number} [cur] - the block's byte now (an uncoloured block counts as DEFAULT_ATTR)
+     * @returns {number}
+     */
+    attrOnto(sel, cur = this.DEFAULT_ATTR) {
+        const ink = sel.inkTransparent ? cur & 7 : sel.ink & 7;
+        const paper = sel.paperTransparent ? (cur >> 3) & 7 : sel.paper & 7;
+        const bright = sel.brightTransparent ? cur & 0x40 : (sel.bright ? 0x40 : 0);
+        const flash = sel.flashTransparent ? cur & 0x80 : (sel.flash ? 0x80 : 0);
+        return ink | (paper << 3) | bright | flash;
+    },
+
+    /**
      * A coloured character's block attributes (cols x rows bytes, left to right then down) at a new block size: the top-left
      * part is kept, new blocks get DEFAULT_ATTR. Null stays null (an uncoloured character).
      * @param {?Uint8Array} attrs
