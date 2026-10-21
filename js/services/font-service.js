@@ -346,13 +346,15 @@ class FontServiceClass {
     /**
      * Change the glyph width (re-shape the font). Existing glyphs keep
      * their left-aligned pixels: narrowing crops the right-hand columns
-     * (destructive), widening exposes blank new columns.
+     * (destructive), widening exposes blank new columns. A width that is not a whole number of 8-pixel columns cannot
+     * take attributes, so narrowing drops them too (Undo brings them back).
      * @param {number} width - 4 | 6 | 8
      */
     setWidth(width) {
         if (this.isBig() || !this.WIDTHS.includes(width) || width === this.width) return false;
         this.width = width;
         for (const g of this.glyphs) GlyphBits.normalise(g, this.width, this.height);
+        if (!this.coloursAllowed()) this.colours = this.glyphs.map(() => null);
         this._announceFont();
         return true;
     }
@@ -564,8 +566,8 @@ class FontServiceClass {
         this.glyphs = doc.glyphs;
         const ok = doc.shade && FontCodec._shadeOk(doc.shade, doc.glyphs.length, doc.width);
         this.shade = ok ? doc.shade.map(p => [p[0], p[1]]) : doc.glyphs.map(() => [0, 0]);
-        // A colours list that does not fit the font is dropped (the pixels still load)
-        const colours = FontCodec._coloursOf(doc.colours, doc.glyphs.length, this.width, this.height);
+        // A colours list that does not fit the font, or a font that takes none, is dropped (the pixels still load)
+        const colours = this.coloursAllowed() && FontCodec._coloursOf(doc.colours, doc.glyphs.length, this.width, this.height);
         this.colours = colours ? colours.map(c => (c ? Uint8Array.from(c) : null)) : doc.glyphs.map(() => null);
     }
 

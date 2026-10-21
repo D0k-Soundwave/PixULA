@@ -75,6 +75,15 @@ const B = BitmapText;
   check('character spacing moves the second letter by the spacing', B.layoutLetters(sp)[1].x === 19);
 }
 
+// -- fontSource: only a font of whole 8-pixel columns is offered as coloured ----
+{
+  const glyphs = Array.from({ length: 96 }, () => new Uint8Array(8).fill(0xFC));
+  const colours = Array.from({ length: 96 }, (_, i) => (i === 33 ? Uint8Array.of(0x42) : null));
+  check('an 8-wide font with attributes is coloured', B.fontSource({ width: 8, height: 8, firstCode: 32, glyphs, colours }).coloured === true);
+  const six = B.fontSource({ width: 6, height: 8, firstCode: 32, glyphs, colours });
+  check('a 6-wide font (saved before narrowing dropped them) is not offered as coloured', six.coloured === false && six.coloursOf('A') === null);
+}
+
 // -- stamp option uncoloured: 'rail' survives a project round trip ------------
 check('stamp option uncoloured: rail is kept', LayerManager._readStampOpts({ colours: 'coloured', uncoloured: 'rail' }).uncoloured === 'rail');
 check('an unknown uncoloured value is dropped', LayerManager._readStampOpts({ uncoloured: 'x' }) === null);

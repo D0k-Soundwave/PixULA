@@ -62,7 +62,8 @@ const BitmapText = {
                 if (sp && sp.w < width) proportional = true;
             }
         }
-        const colours = Array.isArray(font.colours) ? font.colours : null;
+        // attributes only on a font of whole 8-pixel columns (as the Font Editor gives them)
+        const colours = Array.isArray(font.colours) && width % 8 === 0 ? font.colours : null;
         const coloursOf = (c) => {
             const i = index(c);
             return colours && i >= 0 && i < colours.length ? colours[i] || null : null;
