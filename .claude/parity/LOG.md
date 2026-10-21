@@ -1258,3 +1258,38 @@ and every character was saved transparent (comparison row CHX big fonts: Partial
   animated, in the Font Editor.
 - Whole browser suite [M, 2026-10-20]: 895 of 896 passed; the dialog tooltip sweep found the new Attributes button missing
   from TooltipManager.SELECTOR (fixed in its own commit); then 896 of 896. node tests/run-all.js and check:manual pass.
+
+## Coloured CHX characters - independent check (2026-10-21)
+Tried: the diff; temporary Playwright probes (deleted) for the Text tool's Attributes choice in all 18 screen modes
+(shown in Standard, ULAplus, ULANext, GigaScreen; hidden in multicolour 8x1/8x2/8x4, ULAplus 8x1, the multicolour
+GigaScreens, Timex hi-res and its pair, Layer 2 x3, LoRes x2); the stamp and Type on canvas with Own attributes at
+sizes 8, 16, 24, with spacing -8, 1, 8, line spacing 0, 3, 8, centred and right-aligned lines, vertical layouts,
+a proportional font, bold, italic, Direction, Shadow, Outline, empty and all-space text, a font switch while the
+stamp floats, a Transform scale (refused), Pixels only from the Transform panel (the tool follows), Clear background;
+the right button and Inverse (as for every coloured stamp: right erases with the bar, Inverse erases the ink pixels and
+places the own attributes); undo / redo on the picture and in the Font Editor (buttons, Ctrl+Z / Ctrl+Y); a reload
+(library and working font keep their attributes); a tool preset with Own attributes saved, reloaded and applied;
+the smallest coloured font (8 x 8) and the largest (32 x 32 at Size 64, and dropped over the right and bottom edge);
+the Font Editor's refusal per mode, right button, copy / paste / flip / shift / coverage, a new big font, export of
+.ch8 / .asm (lost count) and .chx (round trip); a coloured font re-saved uncoloured (the choice hides). The 13 locale
+files and both manual chapters use each locale's Ink / Paper / Bright / Flash words; the comparison row is honest
+about the unverified layout.
+Two defects found and fixed:
+- Narrowing a coloured 8-wide font to 6 or 4 kept attributes the Font Editor would no longer change, and the Text tool
+  offered Own attributes for that font and always refused them with the wrong reason (blocks off the cells). setWidth
+  now drops them (Undo brings them back), a document of such a width loads without them, and BitmapText.fontSource does
+  not offer such a library font as coloured. Tests failing first: tests/font-service-colour.test.js (3 checks),
+  tests/text-chx-colour.test.js (1 check). Commit e90e1f9.
+- The Attributes tool and All blocks ignored the colour rail's use existing: a part on use existing wrote the bar's
+  hidden value instead of keeping the block's own (Paper and Bright on use existing over A1 = 114 gave 28, not 116).
+  New GlyphBits.attrOnto; an uncoloured character's blocks count as 56. Manual (85-editors, 13 languages) says so and
+  that narrowing removes attributes. Tests failing first: tests/font-service-colour.test.js (attrOnto missing),
+  tests/browser/chx-colour.spec.js (new test, got 28). Commit 0c5052c.
+Not changed, for the owner: the Font Editor's right button with the Attributes tool does the same as the left (no
+spec for it); in GigaScreen the tool takes screen A's bar and the Text tool gives a coloured letter's one byte to both
+screens; the tool's Attributes choice is not kept over a reload (as the other Text tool options). This machine has no
+installed Chrome today (Playwright's channel 'chrome' is missing), so the browser runs and the manual build used
+Playwright's own Chromium 1228 through a temporary config; nothing in the repo was changed for it.
+Gates after the fixes [M, 2026-10-21]: node tests/run-all.js passes; check:manual up to date in 13 languages; whole
+browser suite 896 of 897 - undo-partial-capture's 32-layer Layer 2 timing check (undo under 1.5 x a full pack) failed
+once under 4 workers and passed on its own rerun; it touches no font or text code.
