@@ -20,9 +20,14 @@ listings and had gone stale (it described an "Attributes only" draw mode and a
 "transparent" draw mode that no longer exist, and GigaScreen support that ZX
 Paintbrush never had).
 
-**Totals** [M, counted from the tables below by .claude/parity/count-verdicts.js, 2026-10-20, after
-coloured CHX characters were built]: 114 functions; PixULA is below parity on 29 (6 missing,
-23 partial), level on 75, ahead on 8, and 2 do not apply to a browser app. Coloured CHX characters (kept,
+**Totals** [M, counted from the tables below by .claude/parity/count-verdicts.js, 2026-10-21, after
+the five features of 2026-10-19 to 2026-10-21 (Attributes Only, Undo steps, gradient polygon styles,
+elliptic Ring, coloured CHX characters) and their independent checks]: 114 functions; PixULA is below
+parity on 29 (6 missing, 23 partial), level on 75, ahead on 8, and 2 do not apply to a browser app.
+The checks moved no verdict: the count is the same as on 2026-10-20. Across the five features the
+count below parity went from 34 to 29 [C, 34 - 29 = 5, one row each].
+Before the checks [M, same counter, 2026-10-20, after coloured CHX characters were built] it was 29 below
+parity (6 missing, 23 partial), level on 75. Coloured CHX characters (kept,
 edited and typed) took CHX big fonts back to Same, with the caveat that the coloured layout is not checked
 against a ZX Paintbrush file.
 Before them [M, same counter, 2026-10-20, after the elliptic, rotatable Ring] it was 30 below parity (6 missing,
@@ -58,7 +63,7 @@ Batch 4 part 4B (2026-10-09) took the four inverter, copy-attribute and wiping r
 
 ## Part 1 - Attributes, Bright and Flash
 
-50 functions: 41 same, 1 where PixULA goes further, 8 partial, 0 missing, 0 not applicable [M, count-verdicts.js, 2026-10-19, after Attributes Only]. Before it: 40 same, 9 partial [M, same counter, same day].
+50 functions: 41 same, 1 where PixULA goes further, 8 partial, 0 missing, 0 not applicable [M, count-verdicts.js, 2026-10-21, after the five features of 2026-10-19 to 2026-10-21 and their checks; unchanged since 2026-10-19, after Attributes Only]. Before Attributes Only: 40 same, 9 partial [M, same counter, same day].
 Before the 2026-10-18 audit the counter gave 41 same and 8 partial; this line still read 30 same, 14 partial and
 5 missing, its 2026-10-09 count, never updated since.
 
@@ -164,7 +169,7 @@ PixULA had that for Ink and Paper only until Batch 1 added it for Bright and Fla
 
 ## Part 2 - Everything else
 
-64 functions: 32 same, 7 where PixULA goes further, 17 partial, 6 missing, 2 not applicable [M, count-verdicts.js, 2026-10-20, after the gradient polygon styles, Rotation and Zoom]. Before them: 31 same, 18 partial [M, same counter, 2026-10-19, after the Undo steps setting]; before that: 30 same, 19 partial [M, same counter, same day].
+64 functions: 34 same, 7 where PixULA goes further, 15 partial, 6 missing, 2 not applicable [M, count-verdicts.js, 2026-10-21, after the five features of 2026-10-19 to 2026-10-21 and their checks]. This line was not updated after the elliptic Ring or coloured CHX characters; from the totals of those days less Part 1's unchanged 41 same and 8 partial, it was 33 same, 16 partial after the elliptic Ring [C, 74 - 41 = 33, 24 - 8 = 16] and 34 same, 15 partial after coloured CHX characters [C, 75 - 41 = 34, 23 - 8 = 15]. Before the elliptic Ring: 32 same, 17 partial [M, same counter, 2026-10-20, after the gradient polygon styles, Rotation and Zoom]; before that: 31 same, 18 partial [M, same counter, 2026-10-19, after the Undo steps setting]; before that: 30 same, 19 partial [M, same counter, same day].
 Before the 2026-10-18 audit the counter gave 35 same, 8 further, 13 partial and 6 missing; this line still read
 19 same, 9 further, 19 partial and 15 missing, its 2026-10-08 count, never updated since.
 
