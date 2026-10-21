@@ -124,6 +124,24 @@ test('the Attributes tool gives a block the bar\'s attributes; Remove attributes
     expect(await colours(page, 66)).toEqual([2 << 3, 2 << 3]);
 });
 
+test('the Attributes tool keeps what a block has where the bar is set to use existing', async ({ page }) => {
+    await boot(page);
+    await openEditor(page);
+    await importChx(page);
+    await selectChar(page, 65);                              // blocks A1 (red on yellow, Bright) and A2 (blue on cyan)
+    await setBar(page, 4, 3);                                // green Ink, magenta Paper...
+    await page.evaluate(() => { ColorManager.setPaperTransparent(true); ColorManager.setBrightTransparent(true); });
+    await page.click('button[data-tool="attrs"]');
+    await clickEditor(page, 2, 2);
+    expect(await colours(page, 65), 'Ink and Flash from the bar, Paper and Bright kept').toEqual([4 | (6 << 3) | 0x40, A2]);
+    await page.click('.fe-attr-all');
+    expect(await colours(page, 65), 'All blocks: each block keeps its own Paper and Bright').toEqual([4 | (6 << 3) | 0x40, 4 | (5 << 3)]);
+    // an uncoloured character's blocks count as black Ink on white Paper (56)
+    await selectChar(page, 66);
+    await clickEditor(page, 2, 2);
+    expect(await colours(page, 66)).toEqual([4 | (7 << 3), 4 | (7 << 3)]);
+});
+
 test('the All characters map draws the blocks in their attributes and the Attributes tool works there', async ({ page }) => {
     await boot(page);
     await openEditor(page);

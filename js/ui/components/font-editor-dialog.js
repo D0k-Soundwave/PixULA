@@ -171,7 +171,7 @@ class FontEditorDialogClass {
                 </div>
                 <div class="me-toolbar fe-attr-bar">
                     <span class="fe-attr-state"></span>
-                    <button type="button" class="pc-btn fe-attr-all" data-i18n="font.attrs.all">${this._t('font.attrs.all', 'Whole character')}</button>
+                    <button type="button" class="pc-btn fe-attr-all" data-i18n="font.attrs.all">${this._t('font.attrs.all', 'All blocks')}</button>
                     <button type="button" class="pc-btn fe-attr-remove" data-i18n="font.attrs.remove">${this._t('font.attrs.remove', 'Remove attributes')}</button>
                 </div>
                 <div class="me-toolbar">
@@ -1136,10 +1136,12 @@ class FontEditorDialogClass {
 
     // --- Attributes of coloured characters (CHX) --------------------------
 
-    /** The attribute bar's Ink, Paper, Bright and Flash as one ZX attribute byte (screen A's in GigaScreen). @private */
-    _barAttr() {
-        const s = ColorManager.getCurrentSelection();
-        return (s.ink & 7) | ((s.paper & 7) << 3) | (s.bright ? 0x40 : 0) | (s.flash ? 0x80 : 0);
+    /**
+     * The attribute bar's Ink, Paper, Bright and Flash laid onto a block's byte (screen A's in GigaScreen): a part on use
+     * existing keeps the block's own. @private
+     */
+    _barAttr(cur) {
+        return GlyphBits.attrOnto(ColorManager.getCurrentSelection(), cur);
     }
 
     /** Why the bar's attributes cannot be given to a character now, as a message, or null. @private */
@@ -1157,9 +1159,12 @@ class FontEditorDialogClass {
     _attrClick(code, bx, by) {
         const refused = this._attrRefusal();
         if (refused) { this._status(refused); return; }
-        const was = !!FontService.getColours(code);
-        if (!FontService.setBlockAttr(code, bx, by, this._barAttr())) return;
+        const was = FontService.getColours(code);
         const g = FontService.blockGrid();
+        const ok = was
+            ? FontService.setBlockAttr(code, bx, by, this._barAttr(was[by * g.cols + bx]))
+            : FontService.setAllBlocks(code, this._barAttr());
+        if (!ok) return;
         if (!was && g.cols * g.rows > 1) {
             const msg = this._t('font.status.attrsWhole',
                 'A CHX file gives a whole character attributes, so every block now has these. Click a block to change just that one.');
@@ -1167,11 +1172,14 @@ class FontEditorDialogClass {
         }
     }
 
-    /** Whole character: every block the bar's attributes. @private */
+    /** All blocks: every block the bar's attributes (each keeping its own where the bar is on use existing). @private */
     _attrWhole(code) {
         const refused = this._attrRefusal();
         if (refused) { this._status(refused); return; }
-        FontService.setAllBlocks(code, this._barAttr());
+        const cur = FontService.getColours(code);
+        if (!cur) { FontService.setAllBlocks(code, this._barAttr()); return; }
+        const next = Array.from(cur, a => this._barAttr(a));
+        if (next.some((a, i) => a !== cur[i])) FontService.setColoursFor(code, next);
     }
 
     /** A coloured character's block as CSS colours ({ink, paper}, Bright picking the bright pair), or null. @private */

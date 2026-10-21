@@ -153,6 +153,15 @@ const BRIGHT_FLASH = 6 | (1 << 3) | 0x40 | 0x80;
     check('a 4-wide document with attributes loads without them', S.hasColours() === false);
   }
 
+  // -- the attribute bar onto a block: a part set to use existing keeps the block's own ------------------------
+  {
+    const sel = { ink: 4, paper: 3, bright: false, flash: true, inkTransparent: false, paperTransparent: true, brightTransparent: true, flashTransparent: false };
+    check('use existing Paper and Bright keep the block\'s own', GlyphBits.attrOnto(sel, 2 | (6 << 3) | 0x40) === (4 | (6 << 3) | 0x40 | 0x80));
+    check('no part on use existing: the bar\'s byte', GlyphBits.attrOnto({ ...sel, paperTransparent: false, brightTransparent: false }, 0xFF) === (4 | (3 << 3) | 0x80));
+    check('every part on use existing: the block unchanged', GlyphBits.attrOnto({ ...sel, inkTransparent: true, flashTransparent: true }, 0x5A) === 0x5A);
+    check('no block byte given: an uncoloured block counts as 56', GlyphBits.attrOnto(sel) === (4 | (7 << 3) | 0x80));
+  }
+
   // -- persist / restore at boot ----------------------------------------------
   {
     S.newBigFont({ cols: 1, rows: 2, coverage: 'ASCII' });
