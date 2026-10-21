@@ -1293,3 +1293,24 @@ Playwright's own Chromium 1228 through a temporary config; nothing in the repo w
 Gates after the fixes [M, 2026-10-21]: node tests/run-all.js passes; check:manual up to date in 13 languages; whole
 browser suite 896 of 897 - undo-partial-capture's 32-layer Layer 2 timing check (undo under 1.5 x a full pack) failed
 once under 4 workers and passed on its own rerun; it touches no font or text code.
+
+## Five features 2026-10-19 to 2026-10-21 - summary and closing gates (2026-10-21)
+Features (plans in .claude/parity/feature-*.md): Attributes Only draw mode, Undo steps setting, gradient polygon
+styles with Rotation and Zoom, elliptic rotatable Ring, coloured CHX characters. Each was built test first and then
+checked independently; the checks found and fixed defects in their own commits (logged above).
+- Totals [M, count-verdicts.js, 2026-10-21]: 114 functions, 29 below parity (6 missing, 23 partial), 75 same,
+  8 further, 2 n/a. Part 1: 41 same, 1 further, 8 partial. Part 2: 34 same, 7 further, 15 partial, 6 missing, 2 n/a.
+  The independent checks moved no verdict (same as the 2026-10-20 count). Before the five features [M, same counter,
+  2026-10-19, after the audit corrections]: 34 below parity (6 missing, 28 partial), level on 70; down 5
+  [C, 34 - 29], one row per feature.
+- The Part 2 count line in the comparison had been left at the gradient's figures (32 same, 17 partial); it now reads
+  the counter's 34 / 15, with the two missed steps computed from the totals of those days (33 / 16 after the Ring
+  [C, 74 - 41, 24 - 8], 34 / 15 after coloured CHX [C, 75 - 41, 23 - 8]). Commit 2f875aa.
+- Gates [M, 2026-10-21]: node tests/run-all.js passes; node tools/build-manual.js rebuilt the manual with no change
+  (13 languages, 20 tools, 220 options, 18 screen modes, 41 import / 38 export formats); check:manual up to date in
+  13 languages; whole browser suite 896 of 897 passed (2.4 min, 4 workers). The one failure was the known timing
+  check tests/browser/undo-partial-capture.spec.js:67 (undo 13.6 ms against a 11.1 ms limit, 1.5 x a full pack);
+  rerun alone 4 times it passed 4 of 4. No failure came from the five features, so nothing was fixed.
+- This machine still has no installed Chrome (Playwright's channel 'chrome' is missing, and the headless shell is not
+  installed), so the manual build and the browser suite ran on Playwright's own Chromium 1228 through channel
+  'chromium', set by a temporary preload and config outside the repo; nothing in the repo was changed for it.
