@@ -140,6 +140,18 @@ const BRIGHT_FLASH = 6 | (1 << 3) | 0x40 | 0x80;
     S.setWidth(6);
     check('a 6-wide font does not take attributes', S.coloursAllowed() === false && S.setBlockAttr(65, 0, 0, 1) === false && S.setAllBlocks(65, 1) === false);
   }
+  {
+    // narrowing a coloured 8-wide font: what it can no longer edit or type is dropped, not kept out of reach
+    S.resetToROM();
+    S.setBlockAttr(65, 0, 0, INK2_PAPER7);
+    S.setWidth(6);
+    check('narrowing to 6 drops the attributes (the font cannot take them)', S.hasColours() === false && S.getColours(65) === null);
+    check('...and the document saves none', S.toDocument().colours === null);
+    S.resetToROM();
+    S.loadDocument({ name: 'n', width: 4, height: 8, firstCode: 32, glyphs: Array.from({ length: 96 }, () => new Uint8Array(8)),
+      colours: Array.from({ length: 96 }, (_, i) => (i === 33 ? Uint8Array.of(0x42) : null)) });
+    check('a 4-wide document with attributes loads without them', S.hasColours() === false);
+  }
 
   // -- persist / restore at boot ----------------------------------------------
   {
