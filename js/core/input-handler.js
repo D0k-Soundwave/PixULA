@@ -47,7 +47,8 @@
  * NOT ported: they shadowed registry shortcuts (V=move, I=eyedropper).
  *
  * Special canvas modes (API relied on by components):
- *   enterAttrPaintMode/exitAttrPaintMode + _attrPaintMode  (clut-bar Swap/Recolour)
+ *   enterAttrPaintMode/exitAttrPaintMode + _attrPaintMode  (clut-bar: Swap, Recolour, Copy colours,
+ *                                                            Invert dots, Invert dots and colours)
  *   enterPatternCaptureMode                                 (pattern-panel)
  *   exitPatternCaptureMode                                  (transform-panel)
  * EVENTS.ATTR_PAINT_MODE announces the mode fact. Attribute paint mode is
@@ -77,6 +78,15 @@
  * than committing it — the OS retracting a contact is palm arbitration, and it
  * is better at that than any timer here.
  */
+/** The undo-step name of a whole-cell tool's drag, by tool. */
+const ATTR_PAINT_LABELS = Object.freeze({
+  apply: 'Apply Attribute',
+  swap: 'Swap INK/PAP',
+  copy: 'Copy Attribute',
+  invertDots: 'Invert Pixels',
+  invertBoth: 'Invert Pixels and Attributes'
+});
+
 class InputHandlerClass {
   constructor() {
     this.canvas = null;       // main-canvas — coordinate reference
@@ -131,8 +141,10 @@ class InputHandlerClass {
     // Special modes
     this._stampMode = null;          // 'stamp' | 'erase' | null
     this._patternCaptureSize = 0;    // 0 = inactive
-    this._attrPaintMode = null;      // 'apply' | 'swap' | null
-    this._attrPaintLastCell = null;
+    this._attrPaintMode = null;      // 'apply' | 'swap' | 'copy' | 'invertDots' | 'invertBoth' | null
+    this._attrPaintLastCell = null;  // the previous cell of this drag: the cell walk starts there
+    this._attrPaintVisited = null;   // cells this drag already inverted or swapped (twice would undo it)
+    this._attrCopy = null;           // Copy colours: { picked } once the press has tried to pick
     this._escapeToolReset = false;   // true while Escape resets to the brush
 
     // Panning
@@ -222,6 +234,17 @@ class InputHandlerClass {
       this.deactivateSpecialModes();
       this._repaintHover();
     });
+    // Inverse changes what each button leaves, so the hover mark (which shows
+    // the colour a click would paint) is redrawn. It does not leave a cell
+    // operation: Swap and Recolour ignore the buttons' meaning.
+    EventBus.on(EVENTS.INVERSE_CHANGED, () => this._repaintHover());
+    // A whole-cell tool the new screen mode does not have must not stay armed
+    // out of sight (its button is hidden there).
+    EventBus.on(EVENTS.SCREEN_MODE_CHANGED, () => {
+      if (this._attrPaintMode && !ColorManager.cellToolAvailable(this._attrPaintMode)) {
+        this.exitAttrPaintMode();
+      }
+    });
     EventBus.on(EVENTS.LAYER_SELECTED, () => {
       this.exitPatternCaptureMode();
       this._repaintHover();
@@ -243,11 +266,15 @@ class InputHandlerClass {
   /**
    * Enter attribute paint mode: clicking/dragging applies the chosen
    * attribute operation cell-by-cell without touching pixel bits.
-   * @param {'apply'|'swap'} mode
+   * @param {'apply'|'swap'|'copy'|'invertDots'|'invertBoth'} mode
    */
   enterAttrPaintMode(mode) {
     this._attrPaintMode = mode;
     this._attrPaintLastCell = null;
+    this._attrPaintVisited = null;
+    this._attrCopy = null;
+    // The tool's own footprint outline is not the mark of a cell tool.
+    this._clearHoverOutline();
     EventBus.emit(EVENTS.ATTR_PAINT_MODE, { mode });
   }
 
@@ -255,6 +282,8 @@ class InputHandlerClass {
   exitAttrPaintMode() {
     this._attrPaintMode = null;
     this._attrPaintLastCell = null;
+    this._attrPaintVisited = null;
+    this._attrCopy = null;
     EventBus.emit(EVENTS.ATTR_PAINT_MODE, { mode: null });
   }
 
@@ -300,48 +329,68 @@ class InputHandlerClass {
   }
 
   /**
-   * Apply the active attribute paint operation to the cell under the point.
-   * Skips re-application to the same cell within one drag stroke.
+   * Apply the active whole-cell tool to the cell under the point - and to every
+   * cell between the previous event's cell and this one, because a fast drag
+   * jumps several cells between two pointer events. Cells outside the picture
+   * restart the walk.
    * @param {{x: number, y: number}} point
    * @private
    */
   _applyAttrPaintAtPoint(point) {
     const cell = ZX_COORDS.pixelToCell(point.x, point.y);
-
-    if (this._attrPaintLastCell &&
-        this._attrPaintLastCell.x === cell.x &&
-        this._attrPaintLastCell.y === cell.y) return;
+    if (!Validators.isValidCellCoord(cell.x, cell.y)) {
+      this._attrPaintLastCell = null;
+      return;
+    }
+    const prev = this._attrPaintLastCell;
+    if (prev && prev.x === cell.x && prev.y === cell.y) return;
     this._attrPaintLastCell = cell;
 
-    if (!Validators.isValidCellCoord(cell.x, cell.y)) return;
+    let cells = [cell];
+    if (prev) {
+      cells = [];
+      ToolBase.forEachLinePoint(prev.x, prev.y, cell.x, cell.y, (x, y) => {
+        if (x !== prev.x || y !== prev.y) cells.push({ x, y });
+      });
+    }
+    for (const c of cells) this._applyAttrPaintToCell(c);
+    CanvasSystem.requestRender();
+  }
+
+  /**
+   * One cell of a whole-cell tool, and - with Mirror on - its mirror cells, each
+   * of which gets the same operation on its own content. The cell work is
+   * TransformService's (public methods that open no batch: this drag's batch is
+   * the only one, so one drag is one undo step).
+   * @private
+   */
+  _applyAttrPaintToCell(cell) {
     const layer = LayerManager.getCurrentLayer();
     if (!layer || layer.locked) return;
+    const mode = this._attrPaintMode;
 
-    const px = ZX_COORDS.cellToPixel(cell.x, cell.y);
-    // Attr paint targets exactly the cell under the pointer — no symmetry
-    if (this._attrPaintMode === 'apply') {
-      PixelDrawRoutine.draw(px.x, px.y,
-        ColorManager.getCurrentSelection(), DRAW_MODE.ATTRIBUTES_ONLY, { layer, mirror: false });
-    } else if (this._attrPaintMode === 'swap') {
-      // What the cell SHOWS, not the placeholder black-on-white an empty
-      // upper-layer cell stores - swapping that produced white ink on black
-      // out of nowhere (2026-09-16).
-      const attrs = LayerManager.attrsAsSeen(layer, cell.x, cell.y);
-      const swapped = { ink: attrs.paper, paper: attrs.ink, bright: attrs.bright, flash: attrs.flash };
-      // GigaScreen: each screen swaps its OWN pair. Without these the gate
-      // falls back to screen A's values and gives screen B screen A's colours.
-      if (ZX_SPECTRUM.SCREENS === 2) {
-        const b = LayerManager.attrsAsSeen(layer, cell.x, cell.y, 1);
-        swapped.inkB = b.paper;
-        swapped.paperB = b.ink;
-        swapped.brightB = b.bright;
-        swapped.flashB = b.flash;
-      }
-      PixelDrawRoutine.draw(px.x, px.y, swapped,
-        DRAW_MODE.ATTRIBUTES_ONLY, { layer, mirror: false });
+    // Copy colours: the first cell of the drag only picks; a press outside the
+    // picture picks nothing, and then the drag paints nothing.
+    if (mode === 'copy' && !this._attrCopy) {
+      this._attrCopy = { picked: TransformService.pickCellColours(cell.x, cell.y) };
+      return;
     }
 
-    CanvasSystem.requestRender();
+    for (const c of [cell, ...PixelDrawRoutine.getMirrorCells(cell.x, cell.y)]) {
+      // Swapping or inverting a cell twice in one drag would put it back - and a
+      // drag that crosses the mirror line reaches cells it has already mirrored.
+      if (mode === 'swap' || mode === 'invertDots' || mode === 'invertBoth') {
+        const key = c.x + ',' + c.y;
+        if (!this._attrPaintVisited) this._attrPaintVisited = new Set();
+        if (this._attrPaintVisited.has(key)) continue;
+        this._attrPaintVisited.add(key);
+      }
+      if (mode === 'copy') { if (this._attrCopy.picked) TransformService.paintCellColours(c.x, c.y, this._attrCopy.picked); }
+      else if (mode === 'invertDots') TransformService.invertCellDots(c.x, c.y);
+      else if (mode === 'invertBoth') TransformService.invertCellDotsAndColours(c.x, c.y);
+      else if (mode === 'swap') TransformService.swapCellColours(c.x, c.y);
+      else if (mode === 'apply') TransformService.recolourCell(c.x, c.y);
+    }
   }
 
   /** @private */
@@ -546,6 +595,16 @@ class InputHandlerClass {
         this.exitAttrPaintMode();
         return;
       }
+      // A stamp floating, or a locked layer: say so instead of doing nothing (or, as
+      // Swap and Recolour once did, writing into the stamp's preview cells).
+      const blocked = TransformService.cellToolBlocked(this._attrPaintMode);
+      if (blocked === 'stamp' || blocked === 'locked') {
+        const text = blocked === 'stamp'
+          ? Helpers.localizedMessage('menu.image.attrStamp', 'Finish or cancel the stamp first.')
+          : Helpers.localizedMessage('menu.image.attrLocked', 'This layer is locked.');
+        EventBus.emit(EVENTS.STATUS_NOTICE, { text });
+        return;
+      }
       this._capturePointer(e);
       this.isDrawing = true;
       this.currentPointerId = e.pointerId;
@@ -554,8 +613,17 @@ class InputHandlerClass {
       // duration and layer 1 protected nothing while the artist recoloured.
       this._strokePointerType = e.pointerType;
       this._attrPaintLastCell = null;
-      PixelDrawRoutine.beginBatch(this._attrPaintMode === 'apply' ? 'Apply Attribute' : 'Swap INK/PAP');
-      this._applyAttrPaintAtPoint(this._getCanvasPoint(e, false));
+      this._attrPaintVisited = new Set();
+      this._attrCopy = null;
+      PixelDrawRoutine.beginBatch(ATTR_PAINT_LABELS[this._attrPaintMode] || 'Cell tool');
+      const point = this._getCanvasPoint(e, false);
+      // Copy colours pressed outside the picture: the press picked nothing, so
+      // the drag must not take the first cell it enters as the pick.
+      if (this._attrPaintMode === 'copy') {
+        const cell = ZX_COORDS.pixelToCell(point.x, point.y);
+        if (!Validators.isValidCellCoord(cell.x, cell.y)) this._attrCopy = { picked: null };
+      }
+      this._applyAttrPaintAtPoint(point);
       return;
     }
 
@@ -615,7 +683,7 @@ class InputHandlerClass {
     this.pressure = (typeof e.pressure === 'number' && e.pressure > 0) ? e.pressure : 1.0;
     this._updateTilt(e);
 
-    const point = this._getCanvasPoint(e);
+    let point = this._getCanvasPoint(e);
     this.lastPoint = point;
     // A brush's mark IS its pointer, so it stays up through the stroke (it is
     // redrawn once the tool has written, below); every other press takes the
@@ -643,6 +711,12 @@ class InputHandlerClass {
 
     // ── Delegate to the (possibly rerouted) tool — DIRECT call ──
     const tool = this._strokeTool || ToolManager.getCurrentTool();
+    AxisLock.endStroke();
+    if (tool && tool.axisLockable) {
+      point = AxisLock.projectAbout(tool.axisAnchor(), point);
+      AxisLock.beginStroke(point);
+      point = AxisLock.project(point);
+    }
     if (tool) tool.onPointerDown(point.x, point.y, this._toolEvent(e));
     if (marking) this._drawToolFootprint(point, markTool, { force: true, live: true });
   }
@@ -693,7 +767,7 @@ class InputHandlerClass {
         this._showCanvasContextMenu(e.clientX, e.clientY);
         return false;
       case A.UNDO.id:
-        UndoRedo.undo();
+        ToolManager.undo();
         return false;
       case A.REDO.id:
         UndoRedo.redo();
@@ -782,7 +856,7 @@ class InputHandlerClass {
     if (SelectionService.isFloating()) {
       const current = LayerManager.getCurrentLayer();
       if (current && current.isStamp) {
-        SelectionService.moveStampPreview(point.x, point.y);
+        this._placeStamp(e, point);
       }
     }
 
@@ -827,7 +901,7 @@ class InputHandlerClass {
         const events = this._samplesOf(e);
         for (let i = 0; i < events.length; i++) {
           const cp = this._getCanvasPoint(events[i]);
-          SelectionService.moveStampPreview(cp.x, cp.y);
+          this._placeStamp(events[i], cp);
           if (this._stampMode === 'erase') {
             SelectionService.eraseAt(stamp);
           } else {
@@ -850,7 +924,8 @@ class InputHandlerClass {
     const first = tool.coalescesPointerMoves ? events.length - 1 : 0;
     for (let i = first; i < events.length; i++) {
       const sample = events[i];
-      const samplePoint = this._getCanvasPoint(sample);
+      let samplePoint = this._getCanvasPoint(sample);
+      if (tool.axisLockable) samplePoint = AxisLock.project(samplePoint);
 
       // Skip samples that stayed on the same canvas pixel (common at high zoom)
       if (this.lastPoint &&
@@ -891,7 +966,10 @@ class InputHandlerClass {
     this._touchStrokeRevocable = false;
     this._touchNavigating = false;
 
-    const point = this._getCanvasPoint(e);
+    let point = this._getCanvasPoint(e);
+    const lockedTool = this._strokeTool || ToolManager.getCurrentTool();
+    if (lockedTool && lockedTool.axisLockable) point = AxisLock.project(point);
+    AxisLock.endStroke();
 
     // Close the stamp batch opened in pointerdown; the tool never saw this
     // stroke (pointerdown returned before delegation), so don't notify it.
@@ -906,6 +984,8 @@ class InputHandlerClass {
     if (this._attrPaintMode) {
       PixelDrawRoutine.endBatch();
       this._attrPaintLastCell = null;
+      this._attrPaintVisited = null;
+      this._attrCopy = null;
       this._strokeTool = null;
       this.lastPoint = null;
       return;
@@ -1031,6 +1111,8 @@ class InputHandlerClass {
     } else if (this._attrPaintMode) {
       PixelDrawRoutine.endBatch();
       this._attrPaintLastCell = null;
+      this._attrPaintVisited = null;
+      this._attrCopy = null;
     } else if (!this._panMode && !this._dragPanActive) {
       const tool = this._strokeTool || ToolManager.getCurrentTool();
       this._strokeTool = null;
@@ -1061,7 +1143,7 @@ class InputHandlerClass {
       SelectionService.startComponentReposition(stamp);
     }
 
-    SelectionService.moveStampPreview(point.x, point.y);
+    this._placeStamp(e, point);
     PixelDrawRoutine.beginBatch();
     const erase = e.button === 2 || (e.buttons & 32) !== 0;
     if (erase) {
@@ -1083,6 +1165,7 @@ class InputHandlerClass {
     if (!tool) return;
 
     if (e.buttons === 0 && typeof tool.onPointerHover === 'function') {
+      if (tool.axisLockable) point = AxisLock.projectAbout(tool.axisAnchor(), point);
       tool.onPointerHover(point.x, point.y, e);
     }
 
@@ -1264,7 +1347,7 @@ class InputHandlerClass {
     this._hoverOutlineTool = tool.id;
     // Each pixel of the mark in the colour it will be left in (or, for the
     // eyedropper, the colour it will take) - PixelDrawRoutine.markColours.
-    const colourAt = PixelDrawRoutine.markColours(tool, pixels, { live });
+    const colourAt = PixelDrawRoutine.markColours(tool, pixels, { live, centre: point });
     const onPicture = isPointer && this._onPicture(point);
     const cursor = onPicture
       ? GridOverlay.brushCursor(pixels, colourAt, this._pointerAt)
@@ -1611,10 +1694,9 @@ class InputHandlerClass {
     let py = Math.floor(fy);
 
     if (snap && StateManager.getGridSnap() && this._snapContextActive()) {
-      const cellW = ZX_SPECTRUM.CELL_WIDTH;
-      const cellH = ZX_SPECTRUM.CELL_HEIGHT;
-      px = Math.round(px / cellW) * cellW;
-      py = Math.round(py / cellH) * cellH;
+      const step = StateManager.getGridSnapSize();
+      px = SnapGrid.snap(px, step.w);
+      py = SnapGrid.snap(py, step.h);
     }
     return { x: px, y: py };
   }
@@ -1630,10 +1712,30 @@ class InputHandlerClass {
     if (window.SelectionService && SelectionService.isFloating()) return true;
     const tool = window.ToolManager && ToolManager.getCurrentTool();
     if (!tool) return false;
+    if (tool.snapsPointer === false) return false;
     return tool.id === TOOLS.SELECTION ||
            tool.id === TOOLS.RECTANGLE || // ShapeTool base — all shape variants
            tool.id === TOOLS.BEZIER ||    // anchor/handle placement
+           tool.id === TOOLS.FIGURE ||    // figure points
            tool.id === TOOLS.TEXT;
+  }
+
+  /**
+   * Put the floating stamp where the pointer is. Without Snap the stamp is centred on the pointer. With Snap on, its
+   * top-left CORNER snaps to the step (a stamp centred on a snapped point would sit half a step off the grid: an 8x8 stamp
+   * at x = 8k - 4). `point` is the pointer already snapped by _getCanvasPoint.
+   * @private
+   */
+  _placeStamp(e, point) {
+    const fp = SelectionService.floatingPaste;
+    if (fp && StateManager.getGridSnap() && this._snapContextActive()) {
+      const raw = this._getCanvasPoint(e, false);
+      const step = StateManager.getGridSnapSize();
+      const a = SelectionService.anchorOffset(fp, fp.width, fp.height);
+      SelectionService.moveFloatingPaste(SnapGrid.snap(raw.x - a.x, step.w), SnapGrid.snap(raw.y - a.y, step.h));
+      return;
+    }
+    SelectionService.moveStampPreview(point.x, point.y);
   }
 
   /** Record pen tilt; hand it to the brush engine where the hook exists. @private */
@@ -1706,21 +1808,48 @@ class InputHandlerClass {
   /** @private */
   _attachKeyboardEvents(doc) {
     doc.addEventListener('keydown', (e) => {
+      // Type on canvas keeps the focus in a hidden text field, which switches every shortcut off - except the file commands,
+      // which would otherwise open the browser's own Save page / Open file.
+      if (e.target && e.target.dataset && e.target.dataset.canvasText && (e.ctrlKey || e.metaKey) &&
+          ['s', 'o'].includes(String(e.key).toLowerCase())) {
+        this.keysDown.add(e.key);
+        this._updateModifiers(e);
+        this._handleKeyboardShortcut(e);
+        return;
+      }
       if (this._isTypingTarget(e.target)) return;
       this.keysDown.add(e.key);
       this._updateModifiers(e);
+      // Bare X / Y: hold to lock a stroke to an axis. X's colour swap moved to the key coming up (a tap).
+      if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && AxisLock.keyDown(e.key, e.repeat)) {
+        e.preventDefault();
+        return;
+      }
       this._handleKeyboardShortcut(e);
     });
 
     doc.addEventListener('keyup', (e) => {
       this.keysDown.delete(e.key);
       this._updateModifiers(e);
+      if (AxisLock.keyUp(e.key) === 'tap' && e.key.toLowerCase() === 'x' && !this._isTypingTarget(e.target)) {
+        ColorManager.swapColors();
+      }
       if (e.key === ' ' && this._panMode) {
         this._panMode = false;
         this._lastPanClient = null;
         EventBus.emit(EVENTS.SHORTCUT_PAN_MODE, { active: false });
       }
     });
+
+    // Focus usually sits inside the canvas iframe while drawing, and leaving the browser from there blurs the
+    // IFRAME window, not the main one: the held X / Y must let go on either, or a key released elsewhere locks every
+    // later stroke. Also when the tab is hidden.
+    if (doc.defaultView) {
+      doc.defaultView.addEventListener('blur', () => {
+        setTimeout(() => { if (!document.hasFocus()) AxisLock.reset(); }, 0);
+      });
+    }
+    doc.addEventListener('visibilitychange', () => { if (doc.hidden) AxisLock.reset(); });
 
     // Only attach the blur reset once (init calls this per document)
     if (doc === document) {
@@ -1733,6 +1862,7 @@ class InputHandlerClass {
         setTimeout(() => {
           if (document.hasFocus()) return;
           this.keysDown.clear();
+          AxisLock.reset();
           this.modifiers = { shift: false, ctrl: false, alt: false, meta: false };
           if (this._panMode) {
             this._panMode = false;
@@ -1764,6 +1894,13 @@ class InputHandlerClass {
    */
   _handleEscape(e) {
     e.preventDefault();
+
+    // 0. A tool holding an unfinished figure drops it BEFORE the tool is switched below
+    //    (switching tools commits a pending figure).
+    const held = window.ToolManager && ToolManager.getCurrentTool();
+    if (held && typeof held.cancelPending === 'function') held.cancelPending();
+    // An open Find Map Element, or the outlines Show left on the picture, go away too
+    if (window.MapElementsPanel) MapElementsPanel.dismiss();
 
     // 1. End any in-progress stroke (close open batches so undo stays sound)
     if (this.isDrawing) {
@@ -1831,12 +1968,26 @@ class InputHandlerClass {
     if (!dir) return;
 
     const prefStep = clamp(parseInt(StateManager.get('nudgeStep'), 10) || 1, 1, 32);
-    // Snap-nudge steps one cell — per axis, since cells are not square in
-    // the multicolor modes (8 wide × 1/2/4 tall)
+    // The Transform panel's Move choice decides what a selection's arrow moves
+    // (owner decision, batch 2B2). Dots and colours and Colours only step one
+    // whole cell, as the pad does. Snap-nudge also steps one cell - per axis,
+    // since cells are not square in the multicolor modes (8 wide x 1/2/4 tall).
+    const move = (window.TransformPanel && TransformPanel.shiftMove)
+        ? TransformPanel.shiftMove() : { content: 'both', locked: false };
     const snap = StateManager.getGridSnap();
-    const stepX = snap ? ZX_SPECTRUM.CELL_WIDTH : prefStep;
-    const stepY = snap ? ZX_SPECTRUM.CELL_HEIGHT : prefStep;
-    const step = dir.dx !== 0 ? stepX : stepY;
+    // Snap on: the arrows step by the snap step (Cell, 16x16, Screen or the custom one). A selection's content that
+    // carries its colours only moves in whole cells, so the step is rounded to cells (at least one).
+    const snapSize = StateManager.getGridSnapSize();
+    const snapStep = { x: snapSize.w, y: snapSize.h };
+    const content = SnapGrid.nudgeStep(snapStep, { snap, wholeCells: move.locked, pref: prefStep });
+    const stepX = content.x;
+    const stepY = content.y;
+    // A floating stamp and the gradient's endpoint are not content moves: the Move choice does not apply to them (it is
+    // greyed out while a stamp floats), so they keep the nudge distance, or the snap step under snap.
+    const free = SnapGrid.nudgeStep(snapStep, { snap, wholeCells: false, pref: prefStep });
+    const fineX = free.x;
+    const fineY = free.y;
+    const step = dir.dx !== 0 ? fineX : fineY;
 
     // Gradient tool, phase 2 (axis drag locked in): arrows nudge the axis
     // endpoint at the same step used everywhere else, rather than moving a
@@ -1858,9 +2009,21 @@ class InputHandlerClass {
       return;
     }
 
+    // A pending figure (Figure, Shape kept editable, Bezier) moves before the selection does: people draw figures
+    // inside a drawing-guide selection, and the arrows must move the figure, not the pixels under it. One pixel, or
+    // one cell under grid snap; Shift moves a whole cell (CELL_WIDTH across, CELL_HEIGHT down).
+    if (activeTool && typeof activeTool.nudgePending === 'function' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      const cx = e.shiftKey ? ZX_SPECTRUM.CELL_WIDTH : snap ? snapStep.x : 1;
+      const cy = e.shiftKey ? ZX_SPECTRUM.CELL_HEIGHT : snap ? snapStep.y : 1;
+      if (activeTool.nudgePending(dir.dx * cx, dir.dy * cy) === true) {
+        e.preventDefault();
+        return;
+      }
+    }
+
     if (SelectionService.hasSelection()) {
       e.preventDefault();
-      TransformService.shift(dir.name, step);
+      TransformService.shift(dir.name, { x: stepX, y: stepY }, true, move.content);
       CanvasSystem.requestRender();
     }
   }
@@ -1897,8 +2060,31 @@ class InputHandlerClass {
       return;
     }
 
+    // ULAplus CLUT keys: Ctrl+Shift+1 to 4. Matched on e.code and tested before every branch that
+    // looks at e.key (Shift+1 is '+' on some layouts, which would zoom). !altKey keeps AltGr
+    // (Ctrl+Alt on Windows) out. Always claimed, so the browser never sees the chord.
+    if (ctrl && e.shiftKey && !e.altKey) {
+      const clutIndex = CLUT_SHORTCUTS.codes.indexOf(e.code);
+      if (clutIndex >= 0) {
+        e.preventDefault();
+        if (ACTIVE_SCREEN_MODE.paletteModel === 'ulaplus64') {
+          ColorManager.setClut(clutIndex);
+        } else {
+          EventBus.emit(EVENTS.STATUS_NOTICE, { text: Helpers.localizedMessage('help.clutKeysUlaplusOnly',
+            'The CLUT keys work in the ULAplus modes only.') });
+        }
+        return;
+      }
+    }
+
+    // Ctrl+F finds repeated map elements (ZX Paintbrush's key). Claimed, so the browser's own find does not open over the picture; it always answers, with a reason when it cannot start.
+    if (ctrl && key === 'f' && !e.shiftKey && !e.altKey) { e.preventDefault(); if (window.MapElementsPanel) MapElementsPanel.startFind(); return; }
+
+    // Shift+M switches the map elements between numbered boxes and their own pictures (ZX Paintbrush uses M, which is the Selection tool here)
+    if (!ctrl && e.shiftKey && !e.altKey && key === 'm') { e.preventDefault(); if (window.MapElementOverlay) MapElementOverlay.togglePictures(); return; }
+
     // ── Ctrl combos ──
-    if (ctrl && key === 'z' && !e.shiftKey) { e.preventDefault(); UndoRedo.undo(); return; }
+    if (ctrl && key === 'z' && !e.shiftKey) { e.preventDefault(); ToolManager.undo(); return; }
     if (ctrl && (key === 'y' || (key === 'z' && e.shiftKey))) { e.preventDefault(); UndoRedo.redo(); return; }
     if (ctrl && key === 's') {
       e.preventDefault();
@@ -1990,6 +2176,16 @@ class InputHandlerClass {
     // Phase 5 deliberately left the arrows unbound; they now nudge at the
     // configurable step (pref.nudgeStep), or one attribute cell with grid
     // snap on, whenever a stamp is floating or a selection is active.
+    // The active tool may claim Enter / Backspace first (a pending figure). Ahead of the
+    // selection's Delete below: people draw figures inside a drawing-guide selection.
+    if (!ctrl && !e.altKey && (key === 'enter' || key === 'backspace')) {
+      const active = window.ToolManager && ToolManager.getCurrentTool();
+      if (active && typeof active.handleKey === 'function' && active.handleKey(e.key, e) === true) {
+        e.preventDefault();
+        return;
+      }
+    }
+
     if (key.startsWith('arrow')) {
       this._handleArrowNudge(e, key);
       return;
@@ -2051,6 +2247,24 @@ class InputHandlerClass {
       return;
     }
 
+    // Inverse (MODE_SHORTCUTS, Shift+I). Not while a stroke is in progress: the
+    // buttons would change meaning under the pointer.
+    if (!ctrl && e.shiftKey && !e.altKey) {
+      const mode = MODE_SHORTCUTS.find((s) => s.key === key);
+      if (mode) {
+        e.preventDefault();
+        if (!this.isDrawing) StateManager.setInverse(!StateManager.getInverse());
+        return;
+      }
+    }
+
+    // Shift+C: Edit > Clone Last Figure (bare C is the Bezier tool). Nothing while a stroke is under way.
+    if (!ctrl && e.shiftKey && !e.altKey && key === 'c') {
+      e.preventDefault();
+      if (!this.isDrawing && window.FigureHistory) FigureHistory.cloneLast();
+      return;
+    }
+
     // Bright, Flash and "use existing" (COLOUR_SHORTCUTS). Toggling a value
     // also turns its "use existing" off, in ColorManager - the key means "set
     // it", exactly as clicking the rail's toggle does.
@@ -2072,12 +2286,7 @@ class InputHandlerClass {
         ToolManager.selectTool(toolId);
         return;
       }
-      // Swap ink/paper (not a registry tool — colour operation)
-      if (key === 'x') {
-        e.preventDefault();
-        ColorManager.swapColors();
-        return;
-      }
+      // Swap ink/paper is bare X coming UP (see the keyup handler): X held is the axis lock.
     }
 
     // Colour keys: 1–8 set INK, Shift+1–8 set PAPER

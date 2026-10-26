@@ -1260,9 +1260,11 @@ PresetServiceClass.SLICES = Object.freeze([
         capture() {
             return {
                 drawMode: StateManager.getDrawMode(),
+                inverse: StateManager.getInverse(),
                 symmetry: StateManager.getSymmetryMode(),
                 clip: StateManager.getClipMode(),
                 snap: StateManager.getGridSnap(),
+                snapStep: StateManager.getGridSnapStep(),
                 nudgeStep: StateManager.get('nudgeStep')
             };
         },
@@ -1270,8 +1272,12 @@ PresetServiceClass.SLICES = Object.freeze([
         apply(value) {
             if (!value) return;
             if (typeof value.drawMode === 'string') StateManager.setDrawMode(value.drawMode);
+            if (typeof value.inverse === 'boolean') StateManager.setInverse(value.inverse);
             if (typeof value.symmetry === 'string') StateManager.setSymmetryMode(value.symmetry);
             if (typeof value.clip === 'string') StateManager.setClipMode(value.clip);
+            // The step: an older preset or file that has Snap but no step snapped to the attribute cell, so it gets Cell.
+            if (value.snapStep && typeof value.snapStep === 'object') StateManager.setGridSnapStep(value.snapStep);
+            else if (typeof value.snap === 'boolean') StateManager.setGridSnapStep({ kind: 'cell' });
             if (typeof value.snap === 'boolean') StateManager.setGridSnap(value.snap);
             if (Number.isFinite(value.nudgeStep)) {
                 StateManager.set('nudgeStep', Helpers.clamp(value.nudgeStep, 1, 32));
@@ -1477,6 +1483,9 @@ PresetServiceClass.SLICES = Object.freeze([
                 value.gridPixel = !!GridOverlay.pixelGridVisible;
                 value.gridCell  = !!GridOverlay.cellGridVisible;
                 value.gridBlock = !!GridOverlay.blockGridVisible;
+                value.gridCustom = !!GridOverlay.customGridVisible;
+                value.gridCustomX = GridOverlay.customStepX;
+                value.gridCustomY = GridOverlay.customStepY;
             }
             return value;
         },
@@ -1488,6 +1497,10 @@ PresetServiceClass.SLICES = Object.freeze([
                 if (typeof value.gridPixel === 'boolean') GridOverlay.setPixelGridVisible(value.gridPixel);
                 if (typeof value.gridCell === 'boolean') GridOverlay.setCellGridVisible(value.gridCell);
                 if (typeof value.gridBlock === 'boolean') GridOverlay.setBlockGridVisible(value.gridBlock);
+                if (Number.isFinite(value.gridCustomX) && Number.isFinite(value.gridCustomY)) {
+                    GridOverlay.setCustomGridSteps(value.gridCustomX, value.gridCustomY);
+                }
+                if (typeof value.gridCustom === 'boolean') GridOverlay.setCustomGridVisible(value.gridCustom);
             }
 
             if (Number.isFinite(value.zoom)) CanvasSystem.setZoom(value.zoom);
@@ -1559,7 +1572,10 @@ PresetServiceClass.applyToolOptions = function(toolId, values) {
     const schema = tool && tool.constructor ? tool.constructor.optionsSchema : null;
     if (!tool || !schema || !values) return;
 
-    for (const entry of schema) {
+    // A row marked `applyFirst` is restored before the others (the Text tool's font: its setter rescales the character size and
+    // refuses Type on canvas for a non-bitmap font, so both must see the font the preset was saved with).
+    const ordered = [...schema.filter(e => e && e.applyFirst), ...schema.filter(e => !(e && e.applyFirst))];
+    for (const entry of ordered) {
         if (!entry || !entry.key || entry.preset === false) continue;
         if (!Object.prototype.hasOwnProperty.call(values, entry.key)) continue;
 

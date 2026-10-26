@@ -44,6 +44,8 @@ global.GridOverlay = new Proxy({}, {
     if (prop === 'getFunctionPreviewContext' || prop === 'getCompositePreviewContext') {
       return () => null;
     }
+    // the gradient fills a set of pending writes before it previews them
+    if (prop === 'newPixelMarks') return () => ({ marks: null, cells: [], mark() {} });
     return () => {};
   }
 });
@@ -59,6 +61,7 @@ loadModule('js/core/pixel-draw-routine.js');
 loadModule('js/services/pattern-service.js');
 loadModule('js/services/selection-service.js');
 loadModule('js/data/zx-rom-font.js');
+loadModule('js/utils/bitmap-text.js');
 loadModule('js/tools/tool-base.js');
 loadModule('js/tools/tool-manager.js');
 loadModule('js/utils/brush-shapes.js');
@@ -67,6 +70,8 @@ loadModule('js/tools/shape-generator.js');
 loadModule('js/utils/mask-ops.js');
 loadModule('js/utils/coverage-ops.js');
 loadModule('js/utils/font-rasterizer.js');
+loadModule('js/tools/figure-model.js');
+loadModule('js/tools/figure-editor.js');
 for (const f of ['brush-tool.js', 'eraser-tool.js', 'fill-tool.js', 'shape-tool.js',
   'bezier-tool.js', 'gradient-tool.js', 'text-tool.js', 'selection-tool.js',
   'eyedropper-tool.js', 'move-tool.js', 'zoom-tool.js']) {

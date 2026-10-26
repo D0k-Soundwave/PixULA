@@ -216,6 +216,11 @@ Conditional reveals:
                                           -> thickness [1..8 =1]
                                              (outline stroke width; hidden when
                                               the shape is filled)
+  shapeType in [Rectangle, Square, Rounded rectangle, Ellipse, Ring,
+                Parallelogram, Arc, Sector, Triangle, Diamond, the regular
+                polygons]        -> rotation [-180..180 deg =0] (clockwise;
+                                    box shapes and Ellipse / Ring round their
+                                    centre, the others round the press point)
 
 Per-shape parameters (SHAPE_PARAM_ROWS - each keyed to its own shape, so
 picking a shape brings up its dial and nothing else's):
@@ -224,6 +229,9 @@ picking a shape brings up its dial and nothing else's):
   gear    -> gearTeeth    [3..16 =8]
   spiral  -> spiralTurns  [1..8 =3]
   ring    -> ringInner    [10..90% step 5 =50]   inner radius, % of outer
+                                                 (both radii: the ring is drawn
+                                                  from its centre like the ellipse,
+                                                  width across, height down)
   moon    -> moonPhase    [5..95% step 5 =30]    cutout offset, % of radius
   arc     -> arcSpan      [15..360 deg step 15 =180]
   sector  -> arcSpan      (same row, re-seeded to 90 by setShapeType)
@@ -249,8 +257,13 @@ hint: usage text
 ===============================================================================
 7. GRADIENT  (id 'gradient', shortcut D)                 js/tools/gradient-tool.js
 ===============================================================================
-gradientType  <Linear | Radial | Reflected | Diamond | Square |
-               Conical | Spiral>                                    =Linear
+gradientType  <Linear | Radial | Reflected | Diamond | Square | Triangle |
+               Pentagon | Hexagon | Octagon | Conical | Spiral>     =Linear
+  -> gradientRotation (Rotation) [-180..180 deg =0]
+  -> gradientZoom (Zoom) [25..400 % =100]
+                                        ONLY for the edge-based styles: Diamond,
+                                        Square, Triangle, Pentagon, Hexagon,
+                                        Octagon (2026-10-19)
 gradientSteps (Steps) [1..16 =1]      (1 = smooth; 2..16 = quantised bands)
 dithered      (check =on)             (off = hard 50% threshold, crisp bands)
   -> ditherScale (Dither grain) <Coarse (2) | Medium (4) | Fine (8)>  =Fine
@@ -260,7 +273,7 @@ shapeConstraint (Shape fill, check =off)   click-flood the region, then gradient
                                         ONLY when shapeConstraint = off
                                         (the constraint uses the flood region)
 
-Permutations: {7 gradientType} x gradientSteps x dithered(->ditherScale)
+Permutations: {11 gradientType} (6 of them x rotation x zoom) x gradientSteps x dithered(->ditherScale)
   x shapeConstraint (off adds fillShape)
 
 ===============================================================================
@@ -287,6 +300,10 @@ fontItalic  (check =off)   faux-italic shear on bitmap fonts; real style on
 textDirection <0 | 90 | 180 | 270 deg>  =0
 textShadow  (check =off)
 textOutline (check =off)
+textColours <rail | own>  =rail   (Attributes; 2026-10-20) shown only for a saved
+            font with coloured CHX characters in a mode with 8x8 attribute cells
+            (showIf toolIs textColoursOffered); 'own' greyed (disabledIf toolIs
+            textColoursBlocked) with a hint for the reason (effects / geometry)
 hint: usage text
 (direction/shadow/outline ride on fontInfo, so SelectionService re-applies them
  when the placed stamp is dragged, scaled, rotated or warped)

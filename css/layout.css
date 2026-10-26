@@ -472,6 +472,17 @@ body {
     transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
+.grid-step-select {
+    padding: var(--space-xs) var(--space-xs);
+    font-size: var(--font-size-sm);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    cursor: pointer;
+    max-width: 8em;
+}
+
 .grid-toggle:hover {
     background: var(--bg-hover);
 }
@@ -495,6 +506,16 @@ body {
 #cell-position {
     display: inline-block;
     text-align: right;
+}
+
+/* The readout's attribute and address lines live in the status bar, which has
+   the room; the zoom strip is already full at 1024 wide. */
+.status-readout {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    font-variant-numeric: tabular-nums;
 }
 
 /* ONE layout at every size (2026-09-15). There are no width breakpoints:
@@ -581,4 +602,39 @@ input:focus-visible,
 #canvas-area.border-preview {
     background-color: var(--zx-border-preview);
 }
+}
+
+/* The Preview panel: a map of the whole picture (Batch 9 part 9B). */
+.preview-canvas {
+    display: block;
+    max-width: 100%;
+    margin: 0 auto;
+    box-shadow: 0 0 0 1px var(--border-color);
+    background: var(--bg-tertiary);
+    cursor: pointer;
+    touch-action: none;
+}
+
+.preview-canvas:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+
+/* Type on canvas: the Draw / New line / Cancel buttons shown while text is being typed (Batch 10B). */
+.canvas-text-buttons {
+    position: fixed;
+    left: 50%;
+    bottom: calc(var(--space-lg, 16px) + 32px);
+    transform: translateX(-50%);
+    display: flex;
+    gap: var(--space-sm, 8px);
+    padding: var(--space-xs, 4px) var(--space-sm, 8px);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    z-index: 50;
+}
+
+.canvas-text-buttons[hidden] {
+    display: none;
 }

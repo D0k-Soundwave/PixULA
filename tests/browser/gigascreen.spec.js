@@ -11,7 +11,7 @@
  * colour. Everything here draws with the real pointer over the canvas.
  */
 const { test, expect } = require('@playwright/test');
-const { boot, selectMode } = require('./helpers');
+const { boot, selectMode, pickCellTool } = require('./helpers');
 
 /** Page coordinates of the centre of app pixel (px, py). */
 async function pixelPoint(page, px, py) {
@@ -284,7 +284,7 @@ test('Swap exchanges each screen\'s own ink and paper', async ({ page }) => {
         c.altered = true;
         LayerManager.composeToCanvas();
     });
-    await page.click('#attr-transpose');
+    await pickCellTool(page, 'swap');
     await dab(page, 12 * 8 + 3, 12 * 8 + 3);
     const cell = await page.evaluate(() => {
         const c = LayerManager.getCurrentLayer().getCell(12, 12);

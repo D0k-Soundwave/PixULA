@@ -22,11 +22,26 @@
  * be misread while a multicolor mode is active. The map editor's canvas
  * bridges gate separately on the active mode being cell-compatible.
  *
+ * Version 2 (Batch 11A) adds ELEMENTS: the results of "find repeated elements". An element is self-contained - its own dots and attribute bytes
+ * (one or two screens), the match mode it was found with, the cell grid of the picture it belongs to, and the places it was found at - so it does
+ * not depend on the tileset (tile numbers change when a tile is removed, and a GigaScreen cell does not fit an 8x8 tile). Version 1 payloads still
+ * decode, with no elements.
+ *
  * Versioned: `v` is checked on decode so a future format change can add a
  * migration instead of silently misreading old payloads.
  */
 const MapCodec = {
-    VERSION: 1,
+    VERSION: 2,
+    OLDEST_VERSION: 1,
+
+    /** Match modes an element can carry (MapFind.MODES). */
+    ELEMENT_MODES: Object.freeze(['exact', 'dots', 'visual']),
+
+    /**
+     * Most elements a document may hold. Only a guard against a hostile file: the real limit is the trial encode in MapService.addElement
+     * (MAX_JSON_BYTES). Chosen so it never binds first - see docs/FIGURES.md, "Map elements".
+     */
+    MAX_ELEMENTS: 4096,
 
     /**
      * Tile kinds. ULA_CELL is the only kind the codec ENCODES/DECODES —
@@ -61,9 +76,66 @@ const MapCodec = {
     /** Serialized-size sanity cap (a 256×256 map is ~180 KB encoded, M above). */
     MAX_JSON_BYTES: 1024 * 1024,
 
+    /** @private one element -> its JSON-safe record, or null if it is not valid */
+    _encodeElement(el) {
+        if (!el || !Number.isInteger(el.w) || !Number.isInteger(el.h) || !Number.isInteger(el.gridW) || !Number.isInteger(el.gridH) ||
+            el.w < 1 || el.h < 1 || el.gridW > this.MAX_DIM || el.gridH > this.MAX_DIM || el.w > el.gridW || el.h > el.gridH ||
+            (el.screens !== 1 && el.screens !== 2) || !this.ELEMENT_MODES.includes(el.match) ||
+            !el.bitmap || !el.attrs || !Array.isArray(el.positions)) {
+            return null;
+        }
+        const cellH = SCREEN_MODES.STANDARD_ULA.attrCellH;
+        const cells = el.screens * el.w * el.h;
+        if (el.bitmap.length !== cells * cellH || el.attrs.length !== cells) return null;
+        const n = el.positions.length;
+        if (n < 1 || n > (el.gridW - el.w + 1) * (el.gridH - el.h + 1)) return null;
+        const p = new Uint8Array(n * 2);
+        for (let i = 0; i < n; i++) {
+            const q = el.positions[i];
+            if (!q || !Number.isInteger(q.x) || !Number.isInteger(q.y) || q.x < 0 || q.y < 0 ||
+                q.x + el.w > el.gridW || q.y + el.h > el.gridH) {
+                return null;
+            }
+            p[i * 2] = q.x; p[i * 2 + 1] = q.y;
+        }
+        return {
+            ...(Number.isInteger(el.number) && el.number > 0 ? { k: el.number } : {}),
+            n: typeof el.name === 'string' ? el.name.slice(0, 64) : '',
+            w: el.w, h: el.h, s: el.screens, gw: el.gridW, gh: el.gridH, m: el.match,
+            b: Helpers.encodeBase64(Uint8Array.from(el.bitmap)),
+            a: Helpers.encodeBase64(Uint8Array.from(el.attrs)),
+            p: Helpers.encodeBase64(p)
+        };
+    },
+
+    /** @private one stored record -> an element, or null */
+    _decodeElement(r) {
+        if (!r || !Number.isInteger(r.w) || !Number.isInteger(r.h) || !Number.isInteger(r.gw) || !Number.isInteger(r.gh) ||
+            r.w < 1 || r.h < 1 || r.gw > this.MAX_DIM || r.gh > this.MAX_DIM || r.w > r.gw || r.h > r.gh ||
+            (r.s !== 1 && r.s !== 2) || !this.ELEMENT_MODES.includes(r.m) ||
+            typeof r.b !== 'string' || typeof r.a !== 'string' || typeof r.p !== 'string') {
+            return null;
+        }
+        const cellH = SCREEN_MODES.STANDARD_ULA.attrCellH;
+        const cells = r.s * r.w * r.h;
+        const bitmap = Helpers.decodeBase64(r.b), attrs = Helpers.decodeBase64(r.a), p = Helpers.decodeBase64(r.p);
+        if (!bitmap || !attrs || !p || bitmap.length !== cells * cellH || attrs.length !== cells) return null;
+        if (p.length < 2 || p.length % 2 !== 0 || p.length / 2 > (r.gw - r.w + 1) * (r.gh - r.h + 1)) return null;
+        const positions = [];
+        for (let i = 0; i < p.length; i += 2) {
+            if (p[i] + r.w > r.gw || p[i + 1] + r.h > r.gh) return null;
+            positions.push({ x: p[i], y: p[i + 1] });
+        }
+        return {
+            number: Number.isInteger(r.k) && r.k > 0 ? r.k : 0,
+            name: typeof r.n === 'string' ? r.n : '', w: r.w, h: r.h, screens: r.s, gridW: r.gw, gridH: r.gh, match: r.m,
+            bitmap, attrs, positions
+        };
+    },
+
     /**
      * Encode a map document for storage / the native file format.
-     * @param {Object} doc - { name, tileKind, tiles, map }
+     * @param {Object} doc - { name, tileKind, tiles, map, elements? }
      * @returns {Object|null} JSON-safe payload, or null if not encodable
      */
     encode(doc) {
@@ -98,12 +170,22 @@ const MapCodec = {
             packed[i * 2 + 1] = (v >> 8) & 0xFF;
         }
 
+        const list = doc.elements === undefined ? [] : doc.elements;
+        if (!Array.isArray(list) || list.length > this.MAX_ELEMENTS) return null;
+        const elements = [];
+        for (const el of list) {
+            const rec = this._encodeElement(el);
+            if (!rec) return null;
+            elements.push(rec);
+        }
+
         const payload = {
             v: this.VERSION,
             k: doc.tileKind,
             name: typeof doc.name === 'string' ? doc.name.slice(0, 64) : '',
             tiles,
-            map: { w: width, h: height, cells: Helpers.encodeBase64(packed) }
+            map: { w: width, h: height, cells: Helpers.encodeBase64(packed) },
+            elements
         };
 
         // Size-cap sanity: never persist something a future boot would choke on
@@ -117,7 +199,8 @@ const MapCodec = {
      * @returns {Object|null} Document, or null if invalid/unknown version/kind
      */
     decode(payload) {
-        if (!payload || payload.v !== this.VERSION) return null;
+        if (!payload || (payload.v !== this.VERSION && payload.v !== this.OLDEST_VERSION)) return null;
+        if (payload.v >= 2 && !Array.isArray(payload.elements)) return null;
         if (payload.k !== this.TILE_KINDS.ULA_CELL) return null;
         if (!Array.isArray(payload.tiles) || payload.tiles.length > this.MAX_TILES) return null;
         if (!payload.map ||
@@ -153,11 +236,22 @@ const MapCodec = {
             cells[i] = idx;
         }
 
+        const elements = [];
+        if (payload.v >= 2) {
+            if (payload.elements.length > this.MAX_ELEMENTS) return null;
+            for (const r of payload.elements) {
+                const el = this._decodeElement(r);
+                if (!el) return null;
+                elements.push(el);
+            }
+        }
+
         return {
             name: typeof payload.name === 'string' ? payload.name : '',
             tileKind: payload.k,
             tiles,
-            map: { width, height, cells }
+            map: { width, height, cells },
+            elements
         };
     }
 };

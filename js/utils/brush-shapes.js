@@ -263,6 +263,64 @@ const BrushShapes = {
     },
 
     /**
+     * One small figure of the spray PATTERN distribution (Batch 7 part 7C2), as offsets from its own centre. The box
+     * is `n` wide and straddles 0 the way a brush of that size does (-floor(n/2) .. n-1-floor(n/2)).
+     *
+     * @param {string} shape - 'circle' | 'square' | 'line'
+     * @param {number} n - Width in pixels (line: length)
+     * @param {boolean} filled - Solid, or just the outline (ignored by a line)
+     * @param {number} orient - Line only: 0 horizontal, 1 vertical, 2 diagonal \, 3 diagonal /
+     * @returns {Array<{dx: number, dy: number}>}
+     */
+    patternFigure(shape, n, filled, orient) {
+        const size = Math.max(1, Math.round(n));
+        const off = Math.floor(size / 2);
+        const out = [];
+        if (shape === 'line') {
+            for (let i = 0; i < size; i++) {
+                const t = i - off;
+                const o = orient | 0;
+                out.push(o === 1 ? { dx: 0, dy: t } : o === 2 ? { dx: t, dy: t } : o === 3 ? { dx: -t, dy: t } : { dx: t, dy: 0 });
+            }
+            return out;
+        }
+        const mask = shape === 'circle'
+            ? BrushShapes.disc(size)
+            : Array.from({ length: size }, () => new Array(size).fill(1));
+        const at = (x, y) => x >= 0 && y >= 0 && x < size && y < size && mask[y][x] > 0;
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                if (!at(x, y)) continue;
+                if (!filled && at(x - 1, y) && at(x + 1, y) && at(x, y - 1) && at(x, y + 1)) continue;
+                out.push({ dx: x - off, dy: y - off });
+            }
+        }
+        return out;
+    },
+
+    /**
+     * Up to `count` whole figures for one stamp, each placed so that EVERY one of its cells lies inside the spray disc
+     * of `radius`. A figure that will not fit after a few tries is dropped, never clipped, so a disc too small for one
+     * figure lays nothing.
+     *
+     * @returns {Array<Array<{dx: number, dy: number}>>} figures as absolute offsets from the stamp centre
+     */
+    patternStamps(radius, n, shape, filled, count, rng = Math.random) {
+        const r = Math.max(0, radius);
+        const rr = r * r;
+        const figures = [];
+        for (let i = 0; i < Math.max(0, Math.floor(count)); i++) {
+            const base = BrushShapes.patternFigure(shape, n, filled, shape === 'line' ? Math.floor(rng() * 4) : 0);
+            for (let attempt = 0; attempt < 6; attempt++) {
+                const c = BrushShapes.scatterPoints(r, 0, 1, rng)[0];
+                const cells = base.map(b => ({ dx: c.dx + b.dx, dy: c.dy + b.dy }));
+                if (cells.every(q => q.dx * q.dx + q.dy * q.dy <= rr)) { figures.push(cells); break; }
+            }
+        }
+        return figures;
+    },
+
+    /**
      * Every cell a `scatterPoints(radius, ...)` particle can land in — the
      * hover outline for any scattering brush, and a hard upper bound the
      * footprint tests hold the sampler to.

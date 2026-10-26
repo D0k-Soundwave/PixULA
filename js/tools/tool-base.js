@@ -116,12 +116,73 @@ class ToolBaseClass {
   }
 
   /**
+   * Whether holding X or Y keeps this tool's stroke on one axis (AxisLock, via InputHandler). True for the tools that
+   * follow the pointer to draw: brush, eraser, shapes and figures.
+   * @returns {boolean}
+   */
+  get axisLockable() {
+    return false;
+  }
+
+  /**
+   * For a tool built from clicked points: the last point placed, or null. Held X / Y then constrain the NEXT click
+   * and the hover line to the axis through it, not just drags.
+   * @returns {?{x: number, y: number}}
+   */
+  axisAnchor() {
+    return null;
+  }
+
+  /**
    * Handle pointer up event
    * @param {number} pixelX - X coordinate in pixel space (0-255)
    * @param {number} pixelY - Y coordinate in pixel space (0-191)
    * @param {PointerEvent} e - Original pointer event
    */
   onPointerUp(pixelX, pixelY, e) {
+    // Override in subclass
+  }
+
+  /**
+   * A key the active tool may claim before the global shortcuts see it (Enter and Backspace for a
+   * tool with a pending figure, in Batch 7). Return true when the key was used; the input handler
+   * then stops. Called with Ctrl and Alt NOT held.
+   * @param {string} key - KeyboardEvent.key
+   * @param {KeyboardEvent} [e]
+   * @returns {boolean}
+   */
+  handleKey(key, e) {
+    return false;
+  }
+
+  /**
+   * Ctrl+Z while the tool holds an unfinished figure: take back its last edit instead of undoing the picture.
+   * Return true when it was used. Called through ToolManager.undo.
+   * @returns {boolean}
+   */
+  undoPending() {
+    return false;
+  }
+
+  /**
+   * Cursor keys while the tool holds a pending figure: move it by (dx, dy) pixels.
+   * @returns {boolean} whether the figure was moved
+   */
+  nudgePending(dx, dy) {
+    return false;
+  }
+
+  /** Draw whatever the tool is holding unfinished (before a save, or before Clone Last Figure). */
+  commitPending() {
+    // Override in subclass
+  }
+
+  /**
+   * Throw away anything the tool is holding unfinished, without drawing it. Escape calls this
+   * before the tool is switched (switching tools COMMITS a pending figure, so Escape must discard
+   * first). Nothing to do by default.
+   */
+  cancelPending() {
     // Override in subclass
   }
 
@@ -217,6 +278,44 @@ class ToolBaseClass {
 }
 
 /**
+ * The "Attribute core" option shared by Brush, Shape outlines and Bezier: a thick
+ * line sets all its dots, but only the cells under its core take the colours.
+ * Values are strings so the select carries them; colourCoreSize turns one into
+ * the core's width in pixels (0 = the whole line, as before).
+ */
+ToolBaseClass.COLOUR_CORE_OPTS = Object.freeze([
+  { value: 'whole', i18n: 'cc.whole' },
+  { value: '1',     i18n: 'cc.one' },
+  { value: '4',     i18n: 'cc.four' }
+]);
+
+/**
+ * The Line style select row shared by Shape, Figure and Bezier (Batch 7 part 7B). The dash styles carry
+ * `disabledIf: thickWhen` - they are drawn on a one-pixel line only (the rasteriser enforces it as well) -
+ * and `clear: false` leaves 'clear' out (a Bezier curve has no inside to keep).
+ * @param {{thickWhen: Object, clear?: boolean}} opts - `thickWhen` is a showIf-style condition that is true when
+ *   the outline is thicker than one pixel
+ * @returns {Object} an optionsSchema entry
+ */
+ToolBaseClass.lineStyleRow = ({ thickWhen, clear = true }) => ({
+  type: 'select', key: 'lineStyle', i18n: 'opt.lineStyle', value: 'solid',
+  options: [
+    { value: 'solid',        i18n: 'lineStyle.solid' },
+    { value: 'dashed',       i18n: 'lineStyle.dashed',      disabledIf: thickWhen },
+    { value: 'dotted',       i18n: 'lineStyle.dotted',      disabledIf: thickWhen },
+    { value: 'dash-dot',     i18n: 'lineStyle.dashDot',     disabledIf: thickWhen },
+    { value: 'dash-dot-dot', i18n: 'lineStyle.dashDotDot',  disabledIf: thickWhen },
+    ...(clear ? [{ value: 'clear', i18n: 'lineStyle.clear' }] : [])
+  ]
+});
+
+/** @param {*} value - a COLOUR_CORE_OPTS value @returns {number} 0, 1 or 4 */
+ToolBaseClass.colourCoreSize = (value) => (value === '1' ? 1 : value === '4' ? 4 : 0);
+
+/** Same value, or 'whole' for anything else. */
+ToolBaseClass.cleanColourCore = (value) => (value === '1' || value === '4' ? value : 'whole');
+
+/**
  * Declarative tool-options contract (docs/REFACTOR_PLAN.md §2, UNIFICATION_AUDIT §2.3A).
  *
  * Every tool declares `static optionsSchema = [...]`; the OptionControls
@@ -233,7 +332,8 @@ class ToolBaseClass {
  *            { i18n, options: [...] }
  *   showIf   { key, equals } | { key, in: [...] } | { key, notIn: [...] }
  *            | { key, gt: n } — row visibility follows another option's
- *            current value. Compound: { any: [cond…] } (OR) /
+ *            current value. { cells: true } follows the SCREEN MODE instead:
+ *            shown only where cells have colours (re-evaluated on a mode switch). Compound: { any: [cond...] } (OR) /
  *            { all: [cond…] } (AND), nestable.
  *   dynamic  name of an async tool method the renderer awaits to extend or
  *            replace `options` at render time (e.g. system font enumeration).

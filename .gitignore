@@ -22,3 +22,6 @@ docs/Companion fail/
 # the build intermediates it is generated FROM the screenshots of; the committed
 # artefact is the JS file, not these PNGs.
 manual/img/
+
+# Local reference material (third-party help text); never committed.
+.reference/

@@ -316,4 +316,14 @@ check('ordered4 is byte-for-byte the matrix the fade always used', same);
 fade.setDitherType('nonsense');
 check('an unknown dither id is ignored', fade.ditherType !== 'nonsense');
 
+// The halftone screen is ZX Paintbrush's 8 x 8 clustered dot as its help prints it (owner decision 2026-10-18: two cells were swapped,
+// row 4 col 3 read 38 and row 7 col 3 read 36). The Dither methods' cluster-8 is the same table.
+{
+  const m = FADE_DITHERS.halftone.matrix.map(row => row.map(v => Math.round(v * 64)));
+  check('halftone row 4 col 3 is 36', m[4][3] === 36, String(m[4][3]));
+  check('halftone row 7 col 3 is 38', m[7][3] === 38, String(m[7][3]));
+  const all = m.flat().slice().sort((a, b) => a - b);
+  check('halftone holds every threshold 0..63 once', all.every((v, k) => v === k));
+}
+
 summary();

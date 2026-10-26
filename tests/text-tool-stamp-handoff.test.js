@@ -44,6 +44,7 @@ global.document = {
 };
 
 loadModule('js/tools/tool-base.js');
+loadModule('js/utils/bitmap-text.js');
 loadModule('js/tools/text-tool.js');
 
 // ── Spy SelectionService: records which method TextTool called ────────────

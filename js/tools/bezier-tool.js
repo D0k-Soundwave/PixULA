@@ -53,6 +53,12 @@ class BezierToolClass extends ToolBase {
         { value: 'cubic',     i18n: 'curve.cubic' }
       ] },
     { type: 'range', key: 'thickness', i18n: 'opt.thickness', min: 1, max: 8, value: 1 },
+    // Colour core: only the cells under the curve's centre line take the colours.
+    { type: 'select', key: 'colourCore', i18n: 'opt.colourCore', value: 'whole',
+      options: ToolBase.COLOUR_CORE_OPTS, showIf: { cells: true } },
+    // Line style (no 'clear': a curve has no inside to keep). The dashes need a one-pixel line.
+    ToolBase.lineStyleRow({ thickWhen: { key: 'thickness', gt: 1 }, clear: false }),
+    { type: 'hint', i18n: 'lineStyle.thinOnly', showIf: { key: 'thickness', gt: 1 } },
     { type: 'hint', i18n: 'bezier.usage' }
   ];
 
@@ -60,6 +66,8 @@ class BezierToolClass extends ToolBase {
     super(TOOLS.BEZIER, 'Bezier');
     this._curveType = 'quadratic';
     this._thickness = 1;
+    this._colourCore = 'whole';
+    this._lineStyle = 'solid';
     this._phase = 'idle';       // 'idle' | 'baseline' | 'edit'
     this._p0 = null;            // start anchor
     this._p1 = null;            // end anchor
@@ -75,11 +83,20 @@ class BezierToolClass extends ToolBase {
       if (this._phase === 'edit') this.commitCurve();
     });
 
-    // Marker size is derived from the zoom, so a zoom while a curve is pending
-    // has to redraw them or they stay sized for the old one.
-    EventBus.on(EVENTS.CANVAS_ZOOM, () => {
-      if (this._phase === 'edit') this._renderPreview();
-    });
+    // The pending preview is the picture the commit WOULD leave right now, which depends on the colours,
+    // draw mode, symmetry, drawing guide, palette and layer in force, and the marker size on the zoom: redraw
+    // when any of them change. A document-level change drops the curve instead.
+    const redraw = () => {
+      if (this._phase === 'edit' && window.ToolManager && ToolManager.getCurrentTool() === this) this._renderPreview();
+    };
+    for (const name of ['COLOR_INK', 'COLOR_PAPER', 'COLOR_BRIGHT', 'COLOR_FLASH', 'PALETTE_CHANGED',
+      'PALETTE_SLOT_CHANGED', 'DRAW_MODE_CHANGED', 'INVERSE_CHANGED', 'SYMMETRY_CHANGED', 'CLIP_CHANGED',
+      'LAYER_SELECTED', 'LAYER_VISIBILITY', 'HISTORY_UNDO', 'HISTORY_REDO', 'CANVAS_ZOOM']) {
+      if (EVENTS[name]) EventBus.on(EVENTS[name], redraw);
+    }
+    for (const name of ['FILE_NEW', 'FILE_OPEN', 'SCREEN_MODE_CHANGED']) {
+      if (EVENTS[name]) EventBus.on(EVENTS[name], () => { if (this._phase !== 'idle') this.cancelPending(); });
+    }
   }
 
   // ── Options ────────────────────────────────────────────────────────────────
@@ -100,6 +117,31 @@ class BezierToolClass extends ToolBase {
       this._resetControls();
       this._renderPreview();
     }
+  }
+
+  getColourCore() { return this._colourCore; }
+  setColourCore(v) {
+    this._colourCore = ToolBase.cleanColourCore(v);
+    if (this._phase === 'edit') this._renderPreview();
+  }
+
+  getLineStyle() { return this._lineStyle; }
+  setLineStyle(v) {
+    const s = ShapeGenerator.constructor.cleanLineStyle(v);
+    this._lineStyle = s === 'clear' ? 'solid' : s;
+    if (this._phase === 'edit') this._renderPreview();
+  }
+
+  /**
+   * The curve's colour core for PixelDrawRoutine.withColourCore, or null when
+   * the whole curve takes colours (see ShapeTool._coreFor).
+   * @private
+   */
+  _coreForCurve() {
+    const size = ToolBase.colourCoreSize(this._colourCore);
+    if (!size || this._thickness <= size) return null;
+    if (!window.ColorManager || !ColorManager.hasCellAttributes()) return null;
+    return ShapeGenerator.corePredicate(this._curvePixels(1, 'solid'), size);
   }
 
   getThickness() { return this._thickness; }
@@ -163,8 +205,10 @@ class BezierToolClass extends ToolBase {
         const line = ShapeGenerator.generateShape('line', {
           x1: this._p0.x, y1: this._p0.y, x2: pixelX, y2: pixelY
         });
-        if (this._isEraseMode) GridOverlay.drawCompositorPreview([], line);
-        else GridOverlay.drawCompositorPreview(line, []);
+        // only the pixels the commit would really write (mirror, drawing guide, locked layer)
+        const shown = PixelDrawRoutine.strokeTargets(line).pixels;
+        if (this._isEraseMode) GridOverlay.drawCompositorPreview([], shown);
+        else GridOverlay.drawCompositorPreview(shown, []);
       }
       return;
     }
@@ -199,8 +243,16 @@ class BezierToolClass extends ToolBase {
     this.isDrawing = false;
   }
 
-  /** Switching tools (incl. the Escape cascade) cancels the pending curve. */
+  /** Escape: drop the pending curve without drawing it (the input handler calls this before the tool is switched). */
+  cancelPending() {
+    if (this._phase === 'idle') return;
+    this._resetState();
+    this.clearPreview();
+  }
+
+  /** Switching tools COMMITS a curve being edited (as the Figure tool does) - nothing the person drew is lost. */
   deactivate() {
+    if (this._phase === 'edit') this.commitCurve();
     this._resetState();
     super.deactivate();
   }
@@ -215,14 +267,62 @@ class BezierToolClass extends ToolBase {
     const mode = PixelDrawRoutine.resolveUserMode(!this._isEraseMode);
     const color = ColorManager.getCurrentSelection();
 
+    const core = this._coreForCurve();
     PixelDrawRoutine.beginBatch('Bezier curve');
-    for (let i = 0; i < pixels.length; i++) {
-      PixelDrawRoutine.draw(pixels[i].x, pixels[i].y, color, mode);
-    }
+    PixelDrawRoutine.withColourCore(core, () => {
+      for (let i = 0; i < pixels.length; i++) {
+        PixelDrawRoutine.draw(pixels[i].x, pixels[i].y, color, mode);
+      }
+    });
     PixelDrawRoutine.endBatch();
+
+    // Remember it for Edit > Clone Last Figure.
+    FigureHistory.record({ tool: 'bezier', erase: this._isEraseMode, model: {
+      p0: { ...this._p0 }, p1: { ...this._p1 }, controls: this._controls.map(c => ({ ...c })),
+      curveType: this._curveType, thickness: this._thickness, lineStyle: this._lineStyle } });
 
     this._resetState();
     this.clearPreview();
+  }
+
+  // ── Holding a curve (cursor keys, Ctrl+Z, Save, Clone) ──────────────────────
+
+  /** Cursor keys move the curve being edited. */
+  nudgePending(dx, dy) {
+    if (this._phase !== 'edit') return false;
+    for (const p of [this._p0, this._p1, ...this._controls]) { p.x += dx; p.y += dy; }
+    this._renderPreview();
+    return true;
+  }
+
+  /** Ctrl+Z while a curve is being edited drops it (its handle moves are not kept as steps). */
+  undoPending() {
+    if (this._phase !== 'edit') return false;
+    this.cancelPending();
+    return true;
+  }
+
+  /** Draw a curve that is being edited (before a save, or before Clone). */
+  commitPending() {
+    if (this._phase === 'edit') this.commitCurve();
+  }
+
+  /** Options for the curve about to be reopened by Clone, so the panel shows them. */
+  prepareClone(rec) {
+    this._curveType = rec.model.curveType;
+    this._thickness = rec.model.thickness;
+    this._lineStyle = rec.model.lineStyle;
+  }
+
+  /** Open a pending copy of a recorded curve. */
+  openFigure(rec) {
+    const m = rec.model;
+    this._p0 = { ...m.p0 };
+    this._p1 = { ...m.p1 };
+    this._controls = m.controls.map(c => ({ ...c }));
+    this._isEraseMode = !!rec.erase;
+    this._phase = 'edit';
+    this._renderPreview();
   }
 
   // ── Geometry helpers ──────────────────────────────────────────────────────
@@ -292,8 +392,8 @@ class BezierToolClass extends ToolBase {
   }
 
   /** Current curve raster from ShapeGenerator (pure math). @private */
-  _curvePixels() {
-    const opts = { thickness: this._thickness };
+  _curvePixels(thickness = this._thickness, lineStyle = this._lineStyle) {
+    const opts = { thickness, lineStyle };
     if (this._curveType === 'cubic') {
       return ShapeGenerator.generateCubicBezier(
         this._p0, this._controls[0], this._controls[1], this._p1, opts);
@@ -319,9 +419,11 @@ class BezierToolClass extends ToolBase {
   _renderPreview() {
     if (!window.GridOverlay) return;
 
-    const pixels = this._curvePixels();
-    if (this._isEraseMode) GridOverlay.drawCompositorPreview([], pixels);
-    else GridOverlay.drawCompositorPreview(pixels, []);
+    const t = PixelDrawRoutine.strokeTargets(this._curvePixels(), this._coreForCurve());
+    PixelDrawRoutine.withColourCore(t.isCore, () => {
+      if (this._isEraseMode) GridOverlay.drawCompositorPreview([], t.pixels);
+      else GridOverlay.drawCompositorPreview(t.pixels, []);
+    });
 
     const points = this._handles();
     const radius = this._handleRadius();

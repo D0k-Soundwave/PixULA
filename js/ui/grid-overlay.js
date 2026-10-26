@@ -24,6 +24,8 @@ class GridOverlayClass {
         this.grid8x8Ctx = null;
         this.grid16x16Canvas = null;
         this.grid16x16Ctx = null;
+        this.gridCustomCanvas = null;
+        this.gridCustomCtx = null;
 
         // Preview canvases
         this.functionPreviewCanvas = null;
@@ -67,6 +69,12 @@ class GridOverlayClass {
         this.pixelGridVisible = false;   // 1x1 grid
         this.cellGridVisible = false;    // 8x8 grid (attribute cells)
         this.blockGridVisible = false;   // 16x16 grid
+        // The user-defined grid: any X step and Y step, set independently.
+        // Stored as typed (1 and up) and clamped when drawn, so a trip through
+        // a smaller screen mode and back keeps the user's numbers.
+        this.customGridVisible = false;
+        this.customStepX = GridLines.DEFAULT_STEP;
+        this.customStepY = GridLines.DEFAULT_STEP;
         this.zoom = DEFAULT_ZOOM || 100; // percent
         this._initialized = false;
 
@@ -74,6 +82,7 @@ class GridOverlayClass {
         this.pixelGridColor = '#000000';
         this.cellGridColor  = '#FF0000';
         this.blockGridColor = '#0000FF';
+        this.customGridColor = '#00AA00';
 
         // Overlay chrome colours (selection border, handles, footprint/stamp
         // outlines, selection fill/dim) — resolved once here and on
@@ -90,7 +99,7 @@ class GridOverlayClass {
         };
 
         // What each grid canvas was last drawn for (_renderGrid); null = not drawn
-        this._gridSigs = { '1x1': null, '8x8': null, '16x16': null };
+        this._gridSigs = { '1x1': null, '8x8': null, '16x16': null, 'custom': null };
 
         // Grid wrapper div (sub-pixel grid rendering lives outside CSS-scaled canvas-container)
         this._gridWrapper = null;
@@ -122,6 +131,7 @@ class GridOverlayClass {
         this.grid1x1Canvas   = CanvasSystem.getCanvasElement('grid-1x1-canvas');
         this.grid8x8Canvas   = CanvasSystem.getCanvasElement('grid-8x8-canvas');
         this.grid16x16Canvas = CanvasSystem.getCanvasElement('grid-16x16-canvas');
+        this.gridCustomCanvas = CanvasSystem.getCanvasElement('grid-custom-canvas');
 
         const iDoc = CanvasSystem.getIframeDocument();
         this._gridWrapper = iDoc ? iDoc.getElementById('grid-wrapper') : null;
@@ -148,6 +158,7 @@ class GridOverlayClass {
         if (this.grid1x1Canvas)   this.grid1x1Ctx   = this.grid1x1Canvas.getContext('2d');
         if (this.grid8x8Canvas)   this.grid8x8Ctx   = this.grid8x8Canvas.getContext('2d');
         if (this.grid16x16Canvas) this.grid16x16Ctx = this.grid16x16Canvas.getContext('2d');
+        if (this.gridCustomCanvas) this.gridCustomCtx = this.gridCustomCanvas.getContext('2d');
         if (this.functionPreviewCanvas)  this.functionPreviewCtx  = this.functionPreviewCanvas.getContext('2d');
         if (this.compositePreviewCanvas) this.compositePreviewCtx = this.compositePreviewCanvas.getContext('2d');
         if (this.selectionCanvas)        this.selectionCtx        = this.selectionCanvas.getContext('2d');
@@ -156,6 +167,7 @@ class GridOverlayClass {
 
         this._attachEvents();
         this._refreshGridColors();
+        this._restoreSavedGrids();
         this._initialized = true;
 
         // Sync zoom from the authoritative source in case setZoom() fired before we initialised
@@ -166,8 +178,29 @@ class GridOverlayClass {
         this._updateGridLayout(this._scale());
         this._updateCanvasVisibility();
         this.render();
+        // The remembered grids may have switched some on: tell the buttons and
+        // the menu, which subscribed before this ran.
+        this._emitVisibility();
 
         Logger.info('GridOverlay', 'Initialized with separate grid canvases');
+    }
+
+    /**
+     * Put the four grids back as the last session left them (App restores the
+     * stored record into StateManager 'grid.state' before the UI starts).
+     * Values are checked, not trusted: the record is a stored file.
+     * @private
+     */
+    _restoreSavedGrids() {
+        const saved = window.StateManager ? StateManager.get('grid.state') : null;
+        if (!saved || typeof saved !== 'object') return;
+        this.pixelGridVisible = saved.pixel === true;
+        this.cellGridVisible = saved.cell === true;
+        this.blockGridVisible = saved.block === true;
+        this.customGridVisible = saved.custom === true;
+        const x = Number(saved.customX), y = Number(saved.customY);
+        if (Number.isFinite(x) && x >= 1) this.customStepX = Math.round(x);
+        if (Number.isFinite(y) && y >= 1) this.customStepY = Math.round(y);
     }
 
     /**
@@ -190,6 +223,15 @@ class GridOverlayClass {
         this.pixelGridColor = this._cssVar('--grid-pixel-color', '#000000');
         this.cellGridColor  = this._cssVar('--grid-cell-color',  '#FF0000');
         this.blockGridColor = this._cssVar('--grid-block-color', '#0000FF');
+        this.customGridColor = this._cssVar('--grid-custom-color', '#00AA00');
+        // The owner's own colours (Preferences) replace the theme's, per grid.
+        // null = follow the theme, so a theme change still recolours that grid.
+        const own = (window.StateManager && StateManager.get('gridColors')) || {};
+        const pick = (key, themed) => Validators.normaliseHexColour(own[key]) || themed;
+        this.pixelGridColor = pick('pixel', this.pixelGridColor);
+        this.cellGridColor = pick('cell', this.cellGridColor);
+        this.blockGridColor = pick('block', this.blockGridColor);
+        this.customGridColor = pick('custom', this.customGridColor);
 
         this._overlayColors = {
             outline:         this._cssVar('--overlay-outline',          'rgba(255,255,255,0.85)'),
@@ -269,6 +311,26 @@ class GridOverlayClass {
             this.cellGridVisible, this.cellGridColor, 0.1, this._path8x8);
         this._renderGrid('16x16', this.grid16x16Canvas, this.grid16x16Ctx,
             this.blockGridVisible, this.blockGridColor, 0.1, this._path16x16);
+        const customLines = (ctx, scale, half, dW, dH) => this._pathCustom(ctx, scale, half, dW, dH);
+        this._renderGrid('custom', this.gridCustomCanvas, this.gridCustomCtx,
+            this.customGridVisible, this.customGridColor, 0.1, customLines,
+            `${this.customStepX}x${this.customStepY}`);
+    }
+
+    /** The custom grid's lines: GridLines decides which, this strokes them. @private */
+    _pathCustom(ctx, scale, half, dW, dH) {
+        const { xs, ys } = GridLines.lines(ZX_SPECTRUM.WIDTH, ZX_SPECTRUM.HEIGHT,
+            this.customStepX, this.customStepY, scale);
+        for (const col of xs) {
+            const x = col * scale;
+            ctx.moveTo(x - half, 0);  ctx.lineTo(x - half, dH);
+            ctx.moveTo(x + half, 0);  ctx.lineTo(x + half, dH);
+        }
+        for (const row of ys) {
+            const y = row * scale;
+            ctx.moveTo(0, y - half);  ctx.lineTo(dW, y - half);
+            ctx.moveTo(0, y + half);  ctx.lineTo(dW, y + half);
+        }
     }
 
     /**
@@ -296,7 +358,7 @@ class GridOverlayClass {
      * when nothing the lines depend on has changed since they were drawn.
      * @private
      */
-    _renderGrid(key, canvas, ctx, visible, strokeStyle, lineWidthZx, pathFn) {
+    _renderGrid(key, canvas, ctx, visible, strokeStyle, lineWidthZx, pathFn, extra = '') {
         if (!canvas || !ctx) return;
         if (!visible) {
             if (canvas.width || canvas.height) {
@@ -310,7 +372,7 @@ class GridOverlayClass {
         const scale = this._scale();
         const DPR   = window.devicePixelRatio || 1;
         const sig = [scale, DPR, strokeStyle, lineWidthZx, ZX_SPECTRUM.WIDTH, ZX_SPECTRUM.HEIGHT,
-            ZX_SPECTRUM.CELL_WIDTH, ZX_SPECTRUM.CELL_HEIGHT, ZX_SPECTRUM.CELL_SIZE].join('|');
+            ZX_SPECTRUM.CELL_WIDTH, ZX_SPECTRUM.CELL_HEIGHT, ZX_SPECTRUM.CELL_SIZE, extra].join('|');
         if (this._gridSigs[key] === sig) return;
         this._gridSigs[key] = sig;
 
@@ -401,6 +463,9 @@ class GridOverlayClass {
         if (this.grid16x16Canvas) {
             this.grid16x16Canvas.style.display = this.blockGridVisible ? '' : 'none';
         }
+        if (this.gridCustomCanvas) {
+            this.gridCustomCanvas.style.display = this.customGridVisible ? '' : 'none';
+        }
     }
 
     /**
@@ -412,8 +477,62 @@ class GridOverlayClass {
         EventBus.emit(EVENTS.GRID_VISIBILITY, {
             pixel: this.pixelGridVisible,
             cell:  this.cellGridVisible,
-            block: this.blockGridVisible
+            block: this.blockGridVisible,
+            custom: this.customGridVisible,
+            customX: this.customStepX,
+            customY: this.customStepY
         });
+    }
+
+    /**
+     * The THEME's colour for a grid ("#rrggbb"), ignoring the owner's own
+     * override: what the Preferences picker starts from and what Reset returns to.
+     * @param {'pixel'|'cell'|'block'|'custom'} key
+     * @returns {string}
+     */
+    themeGridColour(key) {
+        const vars = { pixel: '--grid-pixel-color', cell: '--grid-cell-color',
+            block: '--grid-block-color', custom: '--grid-custom-color' };
+        return Validators.normaliseHexColour(this._cssVar(vars[key], '')) || '#808080';
+    }
+
+    /** Set the user-defined grid's visibility. */
+    setCustomGridVisible(visible) {
+        this.customGridVisible = !!visible;
+        this._updateCanvasVisibility();
+        this.render();
+        this._emitVisibility();
+    }
+
+    toggleCustomGrid() { this.setCustomGridVisible(!this.customGridVisible); }
+
+    /**
+     * Set the user-defined grid's steps (whole pixels, 1 and up, X and Y set
+     * independently). Larger than the picture is allowed and simply draws no
+     * lines until the picture is big enough.
+     * @param {number} x
+     * @param {number} y
+     */
+    setCustomGridSteps(x, y) {
+        const clean = (v, old) => {
+            const n = Math.round(Number(v));
+            return Number.isFinite(n) && n >= 1 ? n : old;
+        };
+        this.customStepX = clean(x, this.customStepX);
+        this.customStepY = clean(y, this.customStepY);
+        this.render();
+        this._emitVisibility();
+    }
+
+    /**
+     * Use the owner's grid colours in place of the theme's.
+     * @param {{pixel: ?string, cell: ?string, block: ?string, custom: ?string}} colours
+     *   "#rrggbb" per grid, or null to follow the theme
+     */
+    setGridColorOverrides(colours) {
+        StateManager.set('gridColors', colours || {});
+        this._refreshGridColors();
+        this.render();
     }
 
     /** Set 1x1 pixel grid visibility. */
@@ -499,6 +618,28 @@ class GridOverlayClass {
     clearCompositePreview() {
         if (this.compositePreviewCtx && this.compositePreviewCanvas) {
             this.compositePreviewCtx.clearRect(0, 0, this.compositePreviewCanvas.width, this.compositePreviewCanvas.height);
+        }
+    }
+
+    /**
+     * Draw the text caret (Type on canvas) on the cursor layer: the given picture pixels, in the overlay outline colour with a
+     * dark edge, so it can be seen on any colour. An empty list just takes it down (the blink's off half).
+     * @param {Array<{x:number,y:number}>} pixels
+     */
+    drawCaret(pixels) {
+        if (!this._initialized || !this.cursorCtx || !this.cursorCanvas) return;
+        const ctx = this.cursorCtx;
+        ctx.clearRect(0, 0, this.cursorCanvas.width, this.cursorCanvas.height);
+        if (!pixels || !pixels.length) return;
+        ctx.fillStyle = '#000';
+        for (const p of pixels) {
+            if (p.x < 0 || p.y < 0 || p.x >= ZX_SPECTRUM.WIDTH || p.y >= ZX_SPECTRUM.HEIGHT) continue;
+            ctx.fillRect(p.x - 0.25, p.y - 0.25, 1.5, 1.5);
+        }
+        ctx.fillStyle = '#fff';
+        for (const p of pixels) {
+            if (p.x < 0 || p.y < 0 || p.x >= ZX_SPECTRUM.WIDTH || p.y >= ZX_SPECTRUM.HEIGHT) continue;
+            ctx.fillRect(p.x, p.y, 1, 1);
         }
     }
 
@@ -786,12 +927,25 @@ class GridOverlayClass {
             if (h.kind === 'control') {
                 this._fillDiamond(ctx, h.x, h.y, r + 1, edge);
                 this._fillDiamond(ctx, h.x, h.y, r, fill);
+            } else if (h.kind === 'rotate') {
+                // the turn knob is a round disc, so it reads as different from the square point handles
+                this._fillDisc(ctx, h.x, h.y, r + 1, edge);
+                this._fillDisc(ctx, h.x, h.y, r, fill);
             } else {
                 ctx.fillStyle = edge;
                 ctx.fillRect(h.x - r - 1, h.y - r - 1, 2 * r + 3, 2 * r + 3);
                 ctx.fillStyle = fill;
                 ctx.fillRect(h.x - r, h.y - r, 2 * r + 1, 2 * r + 1);
             }
+        }
+    }
+
+    /** Solid disc of radius r, row by row (crisp at any size). @private */
+    _fillDisc(ctx, cx, cy, r, color) {
+        ctx.fillStyle = color;
+        for (let dy = -r; dy <= r; dy++) {
+            const half = Math.floor(Math.sqrt(r * r - dy * dy) + 0.5);
+            ctx.fillRect(cx - half, cy + dy, 2 * half + 1, 1);
         }
     }
 
@@ -818,53 +972,71 @@ class GridOverlayClass {
         const canvas = this.compositePreviewCanvas;
         if (!ctx || !canvas) return;
 
-        const inkSet = inkPixels instanceof Set
-            ? inkPixels
-            : new Set((inkPixels || []).map(p => p.x + ',' + p.y));
-        const paperSet = erasePixels instanceof Set
-            ? erasePixels
-            : new Set((erasePixels || []).map(p => p.x + ',' + p.y));
-
-        if (inkSet.size === 0 && paperSet.size === 0) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            return;
-        }
-
-        // Derive affected cells from all touched pixels
-        const cellW = ZX_SPECTRUM.CELL_WIDTH;
-        const cellH = ZX_SPECTRUM.CELL_HEIGHT;
-        const affectedCells = new Set();
-        const addCell = key => {
-            const c = key.indexOf(',');
-            affectedCells.add(
-                Math.floor(parseInt(key.slice(0, c), 10) / cellW) + ',' +
-                Math.floor(parseInt(key.slice(c + 1), 10) / cellH)
-            );
+        const pending = this.newPixelMarks();
+        const put = (list, value) => {
+            if (!list) return;
+            for (const p of list) {
+                if (typeof p === 'string') {
+                    const c = p.indexOf(',');
+                    pending.mark(parseInt(p.slice(0, c), 10), parseInt(p.slice(c + 1), 10), value);
+                } else {
+                    pending.mark(p.x, p.y, value);
+                }
+            }
         };
-        for (const k of inkSet)   addCell(k);
-        for (const k of paperSet) addCell(k);
+        put(inkPixels, 1);
+        put(erasePixels, 2);
 
-        const colorSelection = ColorManager.getCurrentSelection();
-        const activeLayerIndex = LayerManager.currentLayerIndex;
-
-        this._renderCompositorPreview(ctx, canvas, affectedCells, inkSet, paperSet, colorSelection, activeLayerIndex);
+        this._renderCompositorPreview(ctx, canvas, pending,
+            ColorManager.getCurrentSelection(), LayerManager.currentLayerIndex);
     }
 
     /**
-     * Gradient-specific entry point — accepts pre-built Sets and explicit colour
-     * selection (gradient may differ from current ColorManager state mid-drag).
+     * A blank set of pending writes for drawMarksPreview, one byte a picture
+     * pixel: mark(x, y, 1) for an ink write, mark(x, y, 2) for a paper (erase)
+     * write; the first mark on a pixel stands. It keeps the cells it touched,
+     * so the preview visits only those. Numbers, not "x,y" strings: a
+     * full-screen gradient built and looked up some 49,000 of those strings
+     * on every redraw, half of its preview's time (profiled 2026-10-26).
+     * @returns {{marks: Uint8Array, cells: number[], mark: function(number, number, number)}}
+     *   cells are cy * GRID_COLS + cx
      */
-    drawGradientCellPreview(affectedCells, gradientInkSet, gradientPaprSet, colorSelection, activeLayerIndex) {
+    newPixelMarks() {
+        const W = ZX_SPECTRUM.WIDTH;
+        const cellW = ZX_SPECTRUM.CELL_WIDTH, cellH = ZX_SPECTRUM.CELL_HEIGHT, cols = ZX_SPECTRUM.GRID_COLS;
+        const marks = new Uint8Array(W * ZX_SPECTRUM.HEIGHT);
+        const cellSeen = new Uint8Array(cols * ZX_SPECTRUM.GRID_ROWS);
+        const cells = [];
+        return {
+            marks,
+            cells,
+            mark(x, y, value) {
+                if (!Validators.isValidPixelCoord(x, y)) return;
+                const k = y * W + x;
+                if (!marks[k]) marks[k] = value;
+                const c = Math.floor(y / cellH) * cols + Math.floor(x / cellW);
+                if (!cellSeen[c]) { cellSeen[c] = 1; cells.push(c); }
+            }
+        };
+    }
+
+    /**
+     * Preview pending writes made with newPixelMarks, with an explicit colour
+     * selection and layer (the gradient's).
+     * @param {Object} pending - from newPixelMarks
+     * @param {Object} colorSelection
+     * @param {number} activeLayerIndex
+     */
+    drawMarksPreview(pending, colorSelection, activeLayerIndex) {
         if (!this._initialized) return;
         const ctx = this.compositePreviewCtx;
         const canvas = this.compositePreviewCanvas;
         if (!ctx || !canvas) return;
-        this._renderCompositorPreview(ctx, canvas, affectedCells, gradientInkSet, gradientPaprSet, colorSelection, activeLayerIndex);
+        this._renderCompositorPreview(ctx, canvas, pending, colorSelection, activeLayerIndex);
     }
 
     /**
-     * Shared preview used by both drawCompositorPreview and
-     * drawGradientCellPreview.
+     * Shared preview used by both drawCompositorPreview and drawMarksPreview.
      *
      * It does not reimplement the drawing rules: it SIMULATES the pending
      * write through the real gate (PixelDrawRoutine.simulateCell) and asks the
@@ -876,12 +1048,15 @@ class GridOverlayClass {
      * actually about to happen (2026-09-16).
      * @private
      */
-    _renderCompositorPreview(ctx, canvas, affectedCells, inkSet, paperSet, colorSelection, activeLayerIndex) {
+    _renderCompositorPreview(ctx, canvas, pending, colorSelection, activeLayerIndex) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        if (affectedCells.size === 0) return;
+        if (pending.cells.length === 0) return;
 
         const cellW = ZX_SPECTRUM.CELL_WIDTH;
         const cellH = ZX_SPECTRUM.CELL_HEIGHT;
+        const cols = ZX_SPECTRUM.GRID_COLS;
+        const W = ZX_SPECTRUM.WIDTH;
+        const marks = pending.marks;
         const layer = LayerManager.layers[activeLayerIndex];
         if (!layer) return;
         // The modes the tools really commit with: left button for the ink
@@ -889,20 +1064,80 @@ class GridOverlayClass {
         const inkMode = PixelDrawRoutine.resolveUserMode(true);
         const paperMode = PixelDrawRoutine.resolveUserMode(false);
 
+        // The pending writes that fall inside each cell, in the tools' own
+        // terms: which pixel, and which button's mode.
+        const cellWrites = new Map();
+        for (const c of pending.cells) {
+            const baseX = (c % cols) * cellW;
+            const baseY = Math.floor(c / cols) * cellH;
+            const writes = [];
+            for (let row = 0; row < cellH; row++) {
+                const line = (baseY + row) * W + baseX;
+                for (let col = 0; col < cellW; col++) {
+                    const m = marks[line + col];
+                    if (!m) continue;
+                    const wanted = m === 1 ? inkMode : paperMode;
+                    // Under a colour core the pixels outside it keep their dot but
+                    // not their colours: the same rule the commit applies.
+                    const kept = PixelDrawRoutine.classifyCore(baseX + col, baseY + row, wanted, colorSelection);
+                    if (kept === null) continue;
+                    writes.push({ localX: col, localY: row, mode: kept.mode,
+                        sel: kept.sel !== colorSelection ? kept.sel : undefined });
+                }
+            }
+            cellWrites.set(c, writes);
+        }
+        this._paintCellWrites(ctx, cellWrites, layer, colorSelection);
+    }
+
+    /**
+     * Preview an explicit list of writes - the stamp write plan, with a mode (and maybe colours) of its own for each pixel -
+     * exactly as the commit would leave the picture. Used by Type on canvas, whose text is not a layer.
+     * @param {Array<{x:number,y:number,mode:number,sel:Object}>} writes - picture pixels
+     * @param {number} activeLayerIndex - the layer the writes would land on
+     */
+    drawWritesPreview(writes, activeLayerIndex) {
+        if (!this._initialized) return;
+        const ctx = this.compositePreviewCtx;
+        const canvas = this.compositePreviewCanvas;
+        if (!ctx || !canvas) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const layer = LayerManager.layers[activeLayerIndex];
+        if (!layer || !writes || !writes.length) return;
+        const cellW = ZX_SPECTRUM.CELL_WIDTH, cellH = ZX_SPECTRUM.CELL_HEIGHT;
+        const cellWrites = new Map();
+        for (const w of writes) {
+            const key = Math.floor(w.y / cellH) * ZX_SPECTRUM.GRID_COLS + Math.floor(w.x / cellW);
+            let list = cellWrites.get(key);
+            if (!list) { list = []; cellWrites.set(key, list); }
+            list.push({ localX: w.x % cellW, localY: w.y % cellH, mode: w.mode, sel: w.sel });
+        }
+        this._paintCellWrites(ctx, cellWrites, layer, ColorManager.getCurrentSelection());
+    }
+
+    /**
+     * Paint the cells' result of simulating their writes: one buffer, one putImageData, whatever the pixel count.
+     * @param {Map<number, Array>} cellWrites - cell (cy * GRID_COLS + cx) -> [{localX, localY, mode, sel}]
+     * @private
+     */
+    _paintCellWrites(ctx, cellWrites, layer, colorSelection) {
+        const cellW = ZX_SPECTRUM.CELL_WIDTH;
+        const cellH = ZX_SPECTRUM.CELL_HEIGHT;
+        const cols = ZX_SPECTRUM.GRID_COLS;
+
         // Every touched pixel is written straight into one RGBA buffer and
         // painted with a single putImageData, instead of a fillStyle+fillRect
         // pair per pixel. A full-canvas gradient preview used to issue tens
         // of thousands of canvas-API calls on every pointermove; this issues
         // one, regardless of how many pixels are affected. The buffer only
-        // spans the bounding box of affectedCells - cells inside the box but
+        // spans the bounding box of the cells - cells inside the box but
         // not in the set are left at alpha 0 (transparent), matching the old
         // behaviour of simply never drawing them (the clearRect above already
         // cleared that area).
         let minCX = Infinity, minCY = Infinity, maxCX = -Infinity, maxCY = -Infinity;
-        for (const key of affectedCells) {
-            const comma = key.indexOf(',');
-            const cellX = parseInt(key.slice(0, comma), 10);
-            const cellY = parseInt(key.slice(comma + 1), 10);
+        for (const key of cellWrites.keys()) {
+            const cellX = key % cols;
+            const cellY = Math.floor(key / cols);
             if (cellX < minCX) minCX = cellX;
             if (cellX > maxCX) maxCX = cellX;
             if (cellY < minCY) minCY = cellY;
@@ -916,26 +1151,11 @@ class GridOverlayClass {
         const imgData = ctx.createImageData(bboxW, bboxH);
         const buf = imgData.data;
 
-        for (const key of affectedCells) {
-            const comma = key.indexOf(',');
-            const cellX = parseInt(key.slice(0, comma), 10);
-            const cellY = parseInt(key.slice(comma + 1), 10);
+        for (const [key, writes] of cellWrites) {
+            const cellX = key % cols;
+            const cellY = Math.floor(key / cols);
             const baseX = cellX * cellW;
             const baseY = cellY * cellH;
-
-            // The pending writes that fall inside this cell, in the tools' own
-            // terms: which pixel, and which button's mode.
-            const writes = [];
-            for (let row = 0; row < cellH; row++) {
-                for (let col = 0; col < cellW; col++) {
-                    const pixKey = (baseX + col) + ',' + (baseY + row);
-                    if (inkSet.has(pixKey)) {
-                        writes.push({ localX: col, localY: row, mode: inkMode });
-                    } else if (paperSet.has(pixKey)) {
-                        writes.push({ localX: col, localY: row, mode: paperMode });
-                    }
-                }
-            }
 
             const simulated = PixelDrawRoutine.simulateCell(
                 layer, cellX, cellY, writes, colorSelection);

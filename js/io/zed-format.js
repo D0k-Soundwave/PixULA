@@ -94,11 +94,11 @@ class ZEDFormatClass {
     return Helpers.hasStandardScreenLayout();
   }
 
-  export() {
+  export(options = {}) {
     // ZED is a standard-layout format (24 lines × 32 cells) — Phase 12a gate
     Helpers.assertStandardScreenLayout();
     const zed = this.encodeScreen(
-      SCRFormat.export().subarray(0, SCREEN_MODES.STANDARD_ULA.fileSize));
+      SCRFormat.export().subarray(0, SCREEN_MODES.STANDARD_ULA.fileSize), this.cellRectOf(options.rect));
     Logger.info('ZEDFormat', `Exported ZED (${zed.length} bytes)`);
     return zed;
   }
@@ -109,7 +109,15 @@ class ZEDFormatClass {
    */
   async exportAndDownload(filename = 'image.zed', options = {}, handle = null) {
     const name = filename.endsWith('.zed') ? filename : `${filename}.zed`;
-    return FormatRegistry.download(this.export(), name, undefined, handle);
+    return FormatRegistry.download(this.export(options), name, undefined, handle);
+  }
+
+  /** A pixel rectangle (Save Selection As) as whole cells {cx, cy, cols, rows}; null for the whole screen. */
+  cellRectOf(rect) {
+    if (!rect) return null;
+    const C = ZX_SPECTRUM.CELL_SIZE;
+    if (rect.x % C || rect.y % C || rect.width % C || rect.height % C) throw new Error('ZED: the part to save must be whole cells');
+    return { cx: rect.x / C, cy: rect.y / C, cols: rect.width / C, rows: rect.height / C };
   }
 
   // ── Pure byte math (Node-tested) ─────────────────────────────────────────
@@ -117,11 +125,14 @@ class ZEDFormatClass {
   /**
    * Encode SCR-format screen bytes as a graphics-only ZED document.
    * @param {Uint8Array} scr - SCR screen bytes (bitmap + attributes)
+   * @param {?{cx:number,cy:number,cols:number,rows:number}} [part] - a block of cells to write (default: the whole screen)
    * @returns {Uint8Array}
    */
-  encodeScreen(scr) {
-    const COLS = ZX_SPECTRUM.GRID_COLS, ROWS = ZX_SPECTRUM.GRID_ROWS;
+  encodeScreen(scr, part = null) {
+    const SCREEN_COLS = ZX_SPECTRUM.GRID_COLS;
     const CELL = ZX_SPECTRUM.CELL_SIZE;
+    const p0 = part || { cx: 0, cy: 0, cols: SCREEN_COLS, rows: ZX_SPECTRUM.GRID_ROWS };
+    const COLS = p0.cols, ROWS = p0.rows;
     const lineSize = COLS * (1 + CELL + 1); // per column: #29 + pixels + attr
     const out = new Uint8Array(58 + 2 + ROWS * (2 + lineSize));
 
@@ -133,15 +144,17 @@ class ZEDFormatClass {
     out[p++] = ROWS & 0xFF;
     out[p++] = (ROWS >> 8) & 0xFF;
 
-    for (let cy = 0; cy < ROWS; cy++) {
+    for (let ry = 0; ry < ROWS; ry++) {
+      const cy = p0.cy + ry;
       out[p++] = lineSize & 0xFF;
       out[p++] = (lineSize >> 8) & 0xFF;
-      for (let cx = 0; cx < COLS; cx++) {
+      for (let rx = 0; rx < COLS; rx++) {
+        const cx = p0.cx + rx;
         out[p++] = 0x1D; // coloured 8x8 block
         for (let j = 0; j < CELL; j++) {
           out[p++] = scr[this._scrRowOffset(cx, cy, j)];
         }
-        out[p++] = scr[ZX_SPECTRUM.BITMAP_SIZE + cy * COLS + cx];
+        out[p++] = scr[ZX_SPECTRUM.BITMAP_SIZE + cy * SCREEN_COLS + cx];
       }
     }
     // No embedded fonts appended (empty font list)

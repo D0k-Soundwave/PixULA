@@ -83,11 +83,11 @@ class SEVFormatClass {
     return Helpers.hasStandardScreenLayout();
   }
 
-  export() {
+  export(options = {}) {
     // SEV is a standard-layout format (8+1-byte 8×8 cells) — Phase 12a gate
     Helpers.assertStandardScreenLayout();
     const sev = this.encodeScreen(
-      SCRFormat.export().subarray(0, SCREEN_MODES.STANDARD_ULA.fileSize));
+      SCRFormat.export().subarray(0, SCREEN_MODES.STANDARD_ULA.fileSize), this.cellRectOf(options.rect));
     Logger.info('SEVFormat', `Exported SEV (${sev.length} bytes)`);
     return sev;
   }
@@ -98,7 +98,19 @@ class SEVFormatClass {
    */
   async exportAndDownload(filename = 'image.sev', options = {}, handle = null) {
     const name = filename.endsWith('.sev') ? filename : `${filename}.sev`;
-    return FormatRegistry.download(this.export(), name, undefined, handle);
+    return FormatRegistry.download(this.export(options), name, undefined, handle);
+  }
+
+  /**
+   * A pixel rectangle (Save Selection As) as the whole cells it covers: {cx, cy, cols, rows}. Null for the whole screen.
+   * Throws if the rectangle is not on cell boundaries.
+   * @param {?{x:number,y:number,width:number,height:number}} rect
+   */
+  cellRectOf(rect) {
+    if (!rect) return null;
+    const C = ZX_SPECTRUM.CELL_SIZE;
+    if (rect.x % C || rect.y % C || rect.width % C || rect.height % C) throw new Error('SEV: the part to save must be whole cells');
+    return { cx: rect.x / C, cy: rect.y / C, cols: rect.width / C, rows: rect.height / C };
   }
 
   // ── Pure byte math (Node-tested) ─────────────────────────────────────────
@@ -106,14 +118,16 @@ class SEVFormatClass {
   /**
    * Encode SCR-format screen bytes as a full-screen SEV file.
    * @param {Uint8Array} scr - SCR screen bytes (bitmap + attributes)
+   * @param {?{cx:number,cy:number,cols:number,rows:number}} [part] - a block of cells to write (default: the whole screen)
    * @returns {Uint8Array}
    */
-  encodeScreen(scr) {
-    const W = ZX_SPECTRUM.WIDTH, H = ZX_SPECTRUM.HEIGHT;
-    const COLS = ZX_SPECTRUM.GRID_COLS, ROWS = ZX_SPECTRUM.GRID_ROWS;
+  encodeScreen(scr, part = null) {
+    const COLS = ZX_SPECTRUM.GRID_COLS;
     const CELL = ZX_SPECTRUM.CELL_SIZE;
+    const p0 = part || { cx: 0, cy: 0, cols: COLS, rows: ZX_SPECTRUM.GRID_ROWS };
+    const W = p0.cols * CELL, H = p0.rows * CELL;
 
-    const out = new Uint8Array(14 + COLS * ROWS * (CELL + 1));
+    const out = new Uint8Array(14 + p0.cols * p0.rows * (CELL + 1));
     out[0] = 0x53; out[1] = 0x65; out[2] = 0x76; out[3] = 0x00; // "Sev\0"
     out[4] = 0; out[5] = 8;         // v0.8
     out[6] = 1; out[7] = 0;         // P1 = 1 (plain graphic)
@@ -122,8 +136,8 @@ class SEVFormatClass {
     out[12] = H & 0xFF; out[13] = (H >> 8) & 0xFF;
 
     let p = 14;
-    for (let cy = 0; cy < ROWS; cy++) {
-      for (let cx = 0; cx < COLS; cx++) {
+    for (let cy = p0.cy; cy < p0.cy + p0.rows; cy++) {
+      for (let cx = p0.cx; cx < p0.cx + p0.cols; cx++) {
         for (let j = 0; j < CELL; j++) {
           out[p++] = scr[this._scrRowOffset(cx, cy, j)];
         }

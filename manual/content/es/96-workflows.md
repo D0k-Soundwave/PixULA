@@ -8,10 +8,10 @@ Algunas tareas habituales, de principio a fin.
    por 192.
 2. Activa la cuadrícula de celdas, junto a los controles de zoom, para ver los
    bloques de 8 por 8 en los que se guarda el color.
-3. Elige un color de tinta en la barra de color o con las teclas 1 a 8, y un
-   color de papel con clic derecho sobre una muestra.
-4. Dibuja con el **Pincel**. Botón izquierdo para la tinta, derecho para el
-   papel.
+3. Elige un color de Tinta en la barra de color o con las teclas 1 a 8, y un
+   color de Papel con clic derecho sobre una muestra.
+4. Dibuja con el **Pincel**. Botón izquierdo para los píxeles de tinta, derecho
+   para los píxeles de papel.
 5. Haz zoom con `+` y `-`. Mantén la barra espaciadora y arrastra para moverte,
    o usa la herramienta **Desplazar vista**.
 6. `Ctrl+Z` deshace. `Ctrl+S` guarda un proyecto `.pixula`, que conserva tus

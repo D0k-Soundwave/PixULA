@@ -148,6 +148,12 @@ class CanvasSystemClass {
 
     this.canvas = this.iframeDoc.getElementById('main-canvas');
 
+    // Anything that shows where the viewport is (the Preview panel) hears about every scroll of it. Bound again on each
+    // load of the iframe's document.
+    if (this.iframeDoc.defaultView) {
+      this.iframeDoc.defaultView.addEventListener('scroll', () => EventBus.emit(EVENTS.CANVAS_SCROLL), { passive: true });
+    }
+
     if (!this.canvas) {
       Logger.error('CanvasSystem', 'Main canvas not found in iframe');
       if (this._initReject) {
@@ -199,7 +205,10 @@ class CanvasSystemClass {
 
     this._eventUnsubscribers.push(
       EventBus.on(EVENTS.CANVAS_ZOOM, this._boundOnZoomChanged),
-      EventBus.on(EVENTS.CANVAS_DIRTY, this._boundOnCanvasModified)
+      EventBus.on(EVENTS.CANVAS_DIRTY, this._boundOnCanvasModified),
+      // The rail covers the frame's left edge only while it is expanded, so
+      // collapsing or expanding it changes the room the picture has.
+      EventBus.on(EVENTS.COLORRAIL_COLLAPSE_CHANGED, () => this._onFrameRoomChanged())
     );
 
     this._startRenderLoop();
@@ -409,6 +418,41 @@ class CanvasSystemClass {
     };
   }
 
+  /**
+   * How much of the frame's left edge the expanded colour rail covers, in the
+   * frame's own CSS px. The rail floats over the canvas frame rather than
+   * taking a grid column (css/layout.css #color-rail), so a picture placed in
+   * that strip cannot be drawn on: the rail takes the clicks. 0 when the rail
+   * is collapsed or absent.
+   * @returns {number}
+   */
+  railCover() {
+    if (!this.iframe || typeof document === 'undefined') return 0;
+    if (window.ColorRailToggle && ColorRailToggle.isCollapsed()) return 0;
+    const rail = document.getElementById('color-rail');
+    if (!rail) return 0;
+    const r = rail.getBoundingClientRect();
+    const f = this.iframe.getBoundingClientRect();
+    if (!r.width || !f.width) return 0;
+    // Outer px -> the frame's px (an interface scale can make them differ).
+    const cover = (r.right - f.left) * (this.iframe.clientWidth / f.width);
+    return Helpers.clamp(Math.ceil(cover), 0, this.iframe.clientWidth);
+  }
+
+  /**
+   * Re-lay the canvas for a change in the room the frame offers (the rail
+   * collapsing or expanding): re-fit while following Fit, else just re-place.
+   * @private
+   */
+  _onFrameRoomChanged() {
+    if (!this.iframeDoc || this._zoomPreview) return;
+    if (this._followFit && this.fitZoom() !== this.zoom) {
+      this.zoomToFit();
+    } else {
+      this.updateCanvasSize();
+    }
+  }
+
   /** devicePixelRatio of the rendering context. @private */
   _dpr() {
     const w = this.iframe && this.iframe.contentWindow;
@@ -444,10 +488,14 @@ class CanvasSystemClass {
    * (measured 2026-08-22: at DPR 1 and DPR 2 a 40px margin picked 200%
    * while 300% rendered with zero overflow). Uses the same rounding as
    * `updateCanvasSize()` so this predicts exactly what gets rendered.
+   * The width is the part of the frame the colour rail leaves uncovered
+   * (railCover), so a fitted picture is never under the rail.
    * @returns {number} Zoom percentage
    */
   fitZoom() {
-    const { width, height } = this.getViewportSize();
+    const vp = this.getViewportSize();
+    const height = vp.height;
+    const width = vp.width - this.railCover();
     if (!width || !height) return ZOOM_CONFIG.DEFAULT;
     const levels = ZOOM_CONFIG.LEVELS;
     for (let i = levels.length - 1; i >= 0; i--) {
@@ -489,6 +537,16 @@ class CanvasSystemClass {
     if (shell) {
       shell.style.width  = shellW + 'px';
       shell.style.height = shellH + 'px';
+      // A picture that fits across is centred (margin: auto) - unless that
+      // puts its left edge under the colour rail; then it moves right just
+      // far enough to clear it, never past the frame's right edge.
+      let marginLeft = '';
+      if (!marginX && vp.width) {
+        const centred = (vp.width - shellW) / 2;
+        const cover = this.railCover();
+        if (cover > centred) marginLeft = Math.floor(Helpers.clamp(cover, 0, vp.width - shellW)) + 'px';
+      }
+      shell.style.marginLeft = marginLeft;
     }
 
     // Place canvas-container and grid-wrapper at the per-axis margin inside shell.
@@ -862,46 +920,6 @@ class CanvasSystemClass {
   }
 
   /**
-   * Render a specific cell from layer data
-   * @param {number} cellX - Cell X
-   * @param {number} cellY - Cell Y
-   * @param {Object} cellData - Cell data { ink, paper, bright, pixels }
-   */
-  renderCell(cellX, cellY, cellData) {
-    if (!Validators.isValidCellCoord(cellX, cellY)) return;
-
-    const cellW = ZX_SPECTRUM.CELL_WIDTH;
-    const cellH = ZX_SPECTRUM.CELL_HEIGHT;
-    const baseX = cellX * cellW;
-    const baseY = cellY * cellH;
-
-    let inkRgb, paperRgb;
-    if (window.ColorManager && ColorManager.attrToIndices) {
-      const t = ColorManager.attrToIndices(cellData);
-      inkRgb = ColorManager.getRGB(t.ink);
-      paperRgb = ColorManager.getRGB(t.paper);
-    } else {
-      inkRgb = ZX_PALETTE_RGB[this.getColorIndex(cellData.ink, cellData.bright)];
-      paperRgb = ZX_PALETTE_RGB[this.getColorIndex(cellData.paper, cellData.bright)];
-    }
-
-    for (let row = 0; row < cellH; row++) {
-      const pixelByte = cellData.pixels[row];
-      for (let col = 0; col < cellW; col++) {
-        const x = baseX + col;
-        const y = baseY + row;
-        const bitPosition = 7 - col;
-        const isInk = (pixelByte >> bitPosition) & 1;
-
-        const rgb = isInk ? inkRgb : paperRgb;
-        this.setPixel(x, y, rgb[0], rgb[1], rgb[2]);
-      }
-    }
-
-    this.markCellDirty(cellX, cellY);
-  }
-
-  /**
    * Convert screen coordinates to pixel coordinates
    *
    * IMPORTANT: This method does NOT clamp or reject out-of-bounds coordinates.
@@ -989,6 +1007,40 @@ class CanvasSystemClass {
       this.rectCacheTime = now;
     }
     return this.canvasRect;
+  }
+
+  /**
+   * The part of the picture the viewport shows, in picture pixels (fractions allowed): the canvas rectangle cut down to
+   * the iframe's visible area. Measured from the live rectangles, not from zoom and scroll arithmetic, so the scroll margin
+   * and a DPR-snapped scale are already in it.
+   * @returns {?{x:number,y:number,w:number,h:number}}
+   */
+  getVisibleRect() {
+    if (!this.canvas || !this.iframeDoc) return null;
+    const cr = this.canvas.getBoundingClientRect();
+    if (!cr.width || !cr.height) return null;
+    const win = this.iframeDoc.defaultView;
+    const vw = win ? win.innerWidth : cr.right, vh = win ? win.innerHeight : cr.bottom;
+    const sx = cr.width / ZX_SPECTRUM.WIDTH, sy = cr.height / ZX_SPECTRUM.HEIGHT;
+    const left = Helpers.clamp(-cr.left, 0, cr.width), top = Helpers.clamp(-cr.top, 0, cr.height);
+    const right = Helpers.clamp(vw - cr.left, 0, cr.width), bottom = Helpers.clamp(vh - cr.top, 0, cr.height);
+    return { x: left / sx, y: top / sy, w: (right - left) / sx, h: (bottom - top) / sy };
+  }
+
+  /**
+   * Scroll so that a picture pixel is in the middle of the viewport (as far as the scroll range allows).
+   * @param {number} px @param {number} py - picture pixel coordinates
+   */
+  centreOn(px, py) {
+    if (!this.canvas || !this.iframeDoc) return;
+    const s = this.iframeDoc.scrollingElement || this.iframeDoc.body;
+    const cr = this.canvas.getBoundingClientRect();
+    const sx = cr.width / ZX_SPECTRUM.WIDTH, sy = cr.height / ZX_SPECTRUM.HEIGHT;
+    // the canvas' place in the scrolled document, then the pixel's
+    const docLeft = cr.left + s.scrollLeft, docTop = cr.top + s.scrollTop;
+    s.scrollLeft = docLeft + px * sx - s.clientWidth / 2;
+    s.scrollTop = docTop + py * sy - s.clientHeight / 2;
+    this.invalidateRectCache();
   }
 
   /**

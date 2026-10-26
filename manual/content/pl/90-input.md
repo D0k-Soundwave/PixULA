@@ -2,18 +2,20 @@
 
 ### Mysz
 
-Lewy przycisk rysuje tuszem, prawy papierem. Shift i prawy przycisk otwierają
+Lewy przycisk rysuje piksele tuszu, prawy piksele papieru. Shift i prawy przycisk otwierają
 menu płótna – tak dostaniesz się do wycinania, kopiowania i wklejania, gdy
 narzędzie używa prawego przycisku do rysowania.
+
+Przytrzymaj **X** podczas przeciągania, aby pędzel, gumka, kształt lub figura trzymały się linii poziomej, albo **Y** dla pionowej. Linia przechodzi przez punkt, w którym wcisnąłeś przycisk (lub klawisz); drugim klawiszem zmienisz kierunek, a po puszczeniu znów rysujesz swobodnie. Krótkie naciśnięcie **X** bez przeciągania nadal zamienia Tusz z Papierem, teraz przy puszczeniu klawisza.
 
 ### Pióro
 
 Końcówka pióra rysuje wybranym narzędziem i nie można jej przypisać inaczej.
 Każdy inny element pióra można, w **Preferencje > Pióro**.
 
-Domyślnie przycisk boczny rysuje papierem, jak prawy przycisk myszy, a gumka na
+Domyślnie przycisk boczny rysuje piksele papieru, jak prawy przycisk myszy, a gumka na
 końcu wymazuje. Lista w Preferencjach oferuje też pipetę, przesuwanie widoku,
-cofanie, ponawianie, zamianę kolorów, menu płótna i powrót do poprzedniego
+cofanie, ponawianie, zamianę Tuszu i Papieru, menu płótna i powrót do poprzedniego
 narzędzia.
 
 Nacisk zmienia rozmiar i przepływ pędzla w ustawionym przez Ciebie stopniu.

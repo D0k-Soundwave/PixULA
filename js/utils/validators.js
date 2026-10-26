@@ -34,6 +34,28 @@ const Validators = {
     },
 
     /**
+     * Is this a colour a colour picker writes: "#" and six hex digits?
+     * @param {*} value
+     * @returns {boolean}
+     */
+    isHexColour(value) {
+        return typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value);
+    },
+
+    /**
+     * A stored colour as "#rrggbb" in lower case, expanding "#rgb"; null for
+     * anything else. For preference values read back from storage.
+     * @param {*} value
+     * @returns {string|null}
+     */
+    normaliseHexColour(value) {
+        if (typeof value !== 'string') return null;
+        const short = /^#([0-9a-fA-F])([0-9a-fA-F])([0-9a-fA-F])$/.exec(value);
+        const full = short ? '#' + short[1] + short[1] + short[2] + short[2] + short[3] + short[3] : value;
+        return this.isHexColour(full) ? full.toLowerCase() : null;
+    },
+
+    /**
      * Validate pixel coordinates
      * @param {number} x - X coordinate
      * @param {number} y - Y coordinate
@@ -137,12 +159,15 @@ const Validators = {
     },
 
     /**
-     * Validate undo limit
+     * Validate an undo depth (Preferences > Undo steps): a whole number from
+     * ZX_SPECTRUM.MIN_UNDO_LIMIT to MAX_UNDO_LIMIT (1 to 2000, owner decision
+     * 2026-10-19; it was 1 to 500 while the depth had no setting).
      * @param {number} limit - Undo limit
      * @returns {boolean}
      */
     isValidUndoLimit(limit) {
-        return Number.isInteger(limit) && limit >= 1 && limit <= 500;
+        return Number.isInteger(limit) &&
+            limit >= ZX_SPECTRUM.MIN_UNDO_LIMIT && limit <= ZX_SPECTRUM.MAX_UNDO_LIMIT;
     },
 
     /**

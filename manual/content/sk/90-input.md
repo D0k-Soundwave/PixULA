@@ -2,18 +2,20 @@
 
 ### Myš
 
-Ľavé tlačidlo kreslí atramentom, pravé papierom. Shift a pravé tlačidlo otvoria
+Ľavé tlačidlo kreslí pixely atramentu, pravé pixely papiera. Shift a pravé tlačidlo otvoria
 ponuku plátna – tak sa dostanete k vystrihnutiu, kopírovaniu a vloženiu, keď
 nástroj používa pravé tlačidlo na kreslenie.
+
+Podržte **X** pri ťahaní a štetec, guma, tvar alebo obrazec zostane na vodorovnej čiare, alebo **Y** pre zvislú. Čiara vedie bodom, kde ste stlačili tlačidlo (alebo kláves); stlačením druhého klávesu zahnete do pravého uhla a po uvoľnení opäť kreslíte voľne. Krátke stlačenie **X** bez ťahania stále vymení Atrament a Papier, teraz až pri uvoľnení klávesu.
 
 ### Pero
 
 Hrot pera kreslí vybraným nástrojom a nedá sa preradiť. Všetky ostatné prvky
 pera áno, v **Predvoľby > Pero**.
 
-V predvolenom stave bočné tlačidlo kreslí papierom, rovnako ako pravé tlačidlo
+V predvolenom stave bočné tlačidlo kreslí pixely papiera, rovnako ako pravé tlačidlo
 myši, a gumovací koniec maže. Zoznam v Predvoľbách ponúka aj kvapkadlo, posun
-zobrazenia, späť, znova, výmenu farieb, ponuku plátna a návrat k predchádzajúcemu
+zobrazenia, späť, znova, výmenu Atramentu a Papiera, ponuku plátna a návrat k predchádzajúcemu
 nástroju.
 
 Prítlak mení veľkosť a tok štetca v miere, ktorú nastavíte. Náklon sa použije,

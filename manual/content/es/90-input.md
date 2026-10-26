@@ -2,18 +2,20 @@
 
 ### Ratón
 
-El botón izquierdo dibuja con tinta y el derecho con papel. Mayús y clic
+El botón izquierdo dibuja píxeles de tinta y el derecho píxeles de papel. Mayús y clic
 derecho abre el menú del lienzo, que es la forma de llegar a cortar, copiar y
 pegar mientras una herramienta usa el botón derecho para dibujar.
+
+Mantén pulsada **X** mientras arrastras para que el pincel, la goma, la forma o la figura sigan una línea horizontal, o **Y** para una vertical. La línea pasa por el punto donde pulsaste el botón (o la tecla); pulsa la otra tecla para girar la esquina y suéltala para dibujar libremente otra vez. Un toque en **X** sin arrastrar sigue intercambiando Tinta y Papel, ahora al soltar la tecla.
 
 ### Lápiz
 
 La punta del lápiz dibuja con la herramienta seleccionada y no se puede
 reasignar. Todos los demás controles del lápiz sí, en **Preferencias > Lápiz**.
 
-De fábrica, el botón lateral dibuja con papel, igual que el botón derecho del
+De fábrica, el botón lateral dibuja píxeles de papel, igual que el botón derecho del
 ratón, y el extremo borrador borra. La lista de Preferencias ofrece además el
-cuentagotas, desplazar la vista, deshacer, rehacer, intercambiar los colores,
+cuentagotas, desplazar la vista, deshacer, rehacer, intercambiar Tinta y Papel,
 el menú del lienzo y volver a la herramienta anterior.
 
 La presión cambia el tamaño y el flujo del pincel en la medida que tú fijes. La

@@ -39,7 +39,15 @@ const HATCH_ANGLE_OPTS = Object.freeze([
 // and Poisson blue-noise (the former stand-alone stipple brush, folded in).
 const DISTRIBUTION_OPTS = Object.freeze([
   { value: 'uniform', i18n: 'opt.dist.uniform' },
-  { value: 'poisson', i18n: 'opt.dist.poisson' }
+  { value: 'poisson', i18n: 'opt.dist.poisson' },
+  { value: 'pattern', i18n: 'common.pattern' }
+]);
+
+// The spray pattern's little figures.
+const PATTERN_SHAPE_OPTS = Object.freeze([
+  { value: 'circle', i18n: 'common.circle' },
+  { value: 'square', i18n: 'common.square' },
+  { value: 'line',   i18n: 'shape.line' }
 ]);
 
 // A nib outline: the whole size x size box, or the disc inside it. Shared by
@@ -105,10 +113,13 @@ const FADE_DITHER_OPTS = Object.freeze([
 ]);
 const SPRAY_UNIFORM_SHOWIF = { all: [ SPRAY_SHOWIF, { key: 'distribution', equals: 'uniform' } ] };
 const SPRAY_POISSON_SHOWIF = { all: [ SPRAY_SHOWIF, { key: 'distribution', equals: 'poisson' } ] };
+const SPRAY_PATTERN_SHOWIF = { all: [ SPRAY_SHOWIF, { key: 'distribution', equals: 'pattern' } ] };
 // Hatch owns its own dials — angle, and the thickness/spacing tone pair.
 const HATCH_SHOWIF = showIfBrush(['hatch']);
 
 class BrushToolClass extends ToolBase {
+  get axisLockable() { return true; }
+
   /** Declarative options - rendered by OptionControls (contract in tool-base.js). */
   static optionsSchema = [
     // Draw mode moved to the GLOBAL top-bar selector (StateManager) — no
@@ -135,6 +146,12 @@ class BrushToolClass extends ToolBase {
       showIf: SPRAY_POISSON_SHOWIF },
     { type: 'select', key: 'poissonShape', i18n: 'opt.shape', value: 'square', options: NIB_SHAPE_OPTS,
       showIf: SPRAY_POISSON_SHOWIF },
+    { type: 'select', key: 'patternShape', i18n: 'opt.patternShape', value: 'circle', options: PATTERN_SHAPE_OPTS,
+      showIf: SPRAY_PATTERN_SHOWIF },
+    { type: 'range',  key: 'patternSize', i18n: 'opt.patternSize', min: 2, max: 16, value: 5, unit: 'px',
+      showIf: SPRAY_PATTERN_SHOWIF },
+    { type: 'check',  key: 'patternFilled', i18n: 'opt.filled', value: false,
+      showIf: { all: [ SPRAY_PATTERN_SHOWIF, { key: 'patternShape', notIn: ['line'] } ] } },
     { type: 'select', key: 'hatchAngle', i18n: 'opt.angle', value: 'follow', options: HATCH_ANGLE_OPTS,
       showIf: HATCH_SHOWIF },
     { type: 'range',  key: 'hatchSpacing', i18n: 'opt.spacing', min: 2, max: 16, value: 4, unit: 'px',
@@ -163,6 +180,11 @@ class BrushToolClass extends ToolBase {
       showIf: FADE_SHOWIF },
     { type: 'range',  key: 'fadeStipple', i18n: 'opt.fadeStipple', min: 0, max: 100, value: 25, unit: '%',
       showIf: FADE_SHOWIF },
+    // Colour core: a thick solid line sets every dot but only its core's cells take the
+    // colours. Shown only where cells have colours, for the solid round/square types.
+    { type: 'select', key: 'colourCore', i18n: 'opt.colourCore', value: 'whole',
+      options: ToolBase.COLOUR_CORE_OPTS,
+      showIf: { all: [ { key: 'brushType', in: SOLID_BRUSHES }, { cells: true } ] } },
     { type: 'range',  key: 'sizeVariation', i18n: 'opt.sizeJitter',    min: 0, max: 100, value: 0, unit: '%' },
     // Jitter spacing only matters while size jitter is active
     { type: 'range',  key: 'variationRate', i18n: 'opt.jitterSpacing', min: 1, max: 50,  value: 10,
@@ -295,6 +317,13 @@ class BrushToolClass extends ToolBase {
    * mode (nothing at all in XOR) - so the mark's colours must follow the tile,
    * or every gap in the outline would promise ink it will not get.
    */
+  getColourCore() { return BrushEngine.colourCore; }
+
+  setColourCore(value) { BrushEngine.colourCore = ToolBase.cleanColourCore(value); }
+
+  /** Which pixels of the hover mark are the colour core (see PixelDrawRoutine.markColours). */
+  markCore(centre) { return BrushEngine.markCoreAround(centre); }
+
   markWrite(pixelX, pixelY) {
     const data = BrushEngine.currentBrush === 'pattern'
       ? PatternService.getCurrentPatternData() : null;
@@ -452,6 +481,44 @@ class BrushToolClass extends ToolBase {
   getPoissonShape() {
     const brush = BrushEngine.brushes.get('spray');
     return brush ? brush.poissonShape : 'square';
+  }
+
+  // ── Spray pattern (Batch 7 part 7C2) ──────────────────────────────────────
+
+  /** @param {string} value - 'circle' | 'square' | 'line' */
+  setPatternShape(value) {
+    const brush = BrushEngine.brushes.get('spray');
+    if (brush) brush.setPatternShape(value);
+  }
+
+  /** @returns {string} */
+  getPatternShape() {
+    const brush = BrushEngine.brushes.get('spray');
+    return brush ? brush.patternShape : 'circle';
+  }
+
+  /** @param {number} value - one figure's width, 2..16 */
+  setPatternSize(value) {
+    const brush = BrushEngine.brushes.get('spray');
+    if (brush) brush.setPatternSize(value);
+  }
+
+  /** @returns {number} */
+  getPatternSize() {
+    const brush = BrushEngine.brushes.get('spray');
+    return brush ? brush.patternSize : 5;
+  }
+
+  /** @param {boolean} value */
+  setPatternFilled(value) {
+    const brush = BrushEngine.brushes.get('spray');
+    if (brush) brush.setPatternFilled(value);
+  }
+
+  /** @returns {boolean} */
+  getPatternFilled() {
+    const brush = BrushEngine.brushes.get('spray');
+    return brush ? brush.patternFilled : false;
   }
 
   // ── Hatch ─────────────────────────────────────────────────────────────────

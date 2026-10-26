@@ -48,6 +48,9 @@ class NextPaletteFormatClass {
   /** Registry adapter. @private */
   _adapter(ext) {
     return {
+      // A palette file puts a palette into the document; it is not the document, so opening one
+      // must not rename the open file (Ctrl+S would then overwrite the palette).
+      importsDocument: false,
       parse: (buffer) => this.parse(ext, buffer),
       export: () => this.export(ext),
       canExport: () => this.canExport(),
@@ -119,6 +122,49 @@ class NextPaletteFormatClass {
    * @param {ArrayBuffer} buffer
    * @returns {Object} { success } | { success: false, error }
    */
+  // ── ZX Paintbrush's .pal (the standard Spectrum colours) ─────────────────
+  //
+  // Layout [M, Brights.pal, 256 bytes, hex dump 2026-10-10]: 64 entries of 4 bytes R,G,B,0 in ULAplus
+  // CLUT order (CLUT = flash*2 + bright; within a CLUT entries 0-7 are the ink half, 8-15 the paper
+  // half). The normal colours are entries 0-7 and the bright colours entries 16-23; the file repeats
+  // each set in the paper half and in CLUTs 2 and 3. All 64 pad bytes are 0. Brights.pal's own bright
+  // black is a dark grey (32,32,32); PixULA keeps black as black however bright (that colour is dropped).
+  // This is read only from Preferences: File > Open still treats a 256-byte .pal as a Next palette.
+
+  /**
+   * The 16 standard colours of a ZX Paintbrush .pal.
+   * @param {Uint8Array} bytes - exactly 256 bytes with every pad byte 0
+   * @returns {?{hex16: string[], brightBlackDropped: boolean}} null if it is not that layout
+   */
+  decodeStandardColours(bytes) {
+    if (!bytes || bytes.length !== 256) return null;
+    for (let i = 3; i < 256; i += 4) if (bytes[i] !== 0) return null;
+    const hex = (entry) => '#' + [0, 1, 2].map(k => bytes[entry * 4 + k].toString(16).padStart(2, '0')).join('').toUpperCase();
+    const hex16 = [];
+    for (let i = 0; i < 8; i++) hex16.push(hex(i));
+    hex16.push(hex16[0]);                           // bright black is black
+    for (let i = 1; i < 8; i++) hex16.push(hex(16 + i));
+    return { hex16, brightBlackDropped: hex(16) !== hex16[0] };
+  }
+
+  /**
+   * The 256-byte ZX Paintbrush .pal for 16 standard colours (the layout above).
+   * @param {string[]} hex16 - '#RRGGBB' x 16; index 8 is ignored (black)
+   * @returns {Uint8Array}
+   */
+  encodeStandardColours(hex16) {
+    const out = new Uint8Array(256);
+    const rgb = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+    for (let clut = 0; clut < 4; clut++) {
+      const bright = (clut & 1) === 1;
+      for (let i = 0; i < 16; i++) {
+        const colour = i & 7;
+        out.set(rgb(hex16[bright ? 8 + colour : colour]), (clut * 16 + i) * 4);
+      }
+    }
+    return out;
+  }
+
   parse(ext, buffer) {
     const bytes = new Uint8Array(buffer);
 

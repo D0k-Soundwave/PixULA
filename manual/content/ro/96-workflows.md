@@ -8,10 +8,10 @@ Câteva sarcini obișnuite, de la început la sfârșit.
    192.
 2. Activați grila de celule, lângă comenzile de zoom, ca să vedeți blocurile de
    8 pe 8 în care se stochează culoarea.
-3. Alegeți o culoare de cerneală din bara de culori sau cu tastele 1–8 și o
-   culoare de hârtie cu clic dreapta pe o mostră.
-4. Desenați cu **Pensula**. Butonul stâng pentru cerneală, dreptul pentru
-   hârtie.
+3. Alegeți o culoare de Cerneală din bara de culori sau cu tastele 1–8 și o
+   culoare de Hârtie cu clic dreapta pe o mostră.
+4. Desenați cu **Pensula**. Butonul stâng pentru pixeli de cerneală, dreptul
+   pentru pixeli de hârtie.
 5. Faceți zoom cu `+` și `-`. Țineți apăsată bara de spațiu și trageți ca să vă
    deplasați sau folosiți instrumentul **Deplasare vedere**.
 6. `Ctrl+Z` anulează. `Ctrl+S` salvează un proiect `.pixula`, care păstrează

@@ -43,7 +43,10 @@ class ImportDialogClass {
         // are three is written up there.
         const METHODS = PNGFormat.IMPORT_METHODS;
 
-        const state = { brightness: 0, contrast: 0, scaling: 'fit' };
+        const state = { brightness: 0, contrast: 0, scaling: 'fit', dither: 'floyd-steinberg', ditherTouched: false };
+        // The Dither method drives Smooth always, and Sharp once the person has chosen one (until then Sharp is shown, and imported, exactly
+        // as it always was: no dither). Flat never dithers.
+        const ditherFor = (id) => (id === 'smooth' ? state.dither : (id === 'sharp' && state.ditherTouched ? state.dither : undefined));
         let chosen = METHODS[0];
 
         return new Promise((resolve) => {
@@ -120,7 +123,8 @@ class ImportDialogClass {
             let renderer = null, rendererKey = null;
             const drawnKey = new Map();   // method id -> setting it shows
             const paint = (ids) => {
-                const key = `${state.brightness}|${state.contrast}|${state.scaling}`;
+                const baseKey = `${state.brightness}|${state.contrast}|${state.scaling}`;
+                const key = baseKey;
                 if (key !== rendererKey) {
                     const adjusted = (state.brightness !== 0 || state.contrast !== 0)
                         ? PNGFormat.applyBrightnessContrast(decoded, state.brightness, state.contrast)
@@ -129,10 +133,12 @@ class ImportDialogClass {
                     rendererKey = key;
                 }
                 for (const p of panes) {
-                    if (!ids.includes(p.spec.id) || drawnKey.get(p.spec.id) === key) continue;
-                    const q = renderer(p.spec.id);
+                    // Smooth (and Sharp, once a method was chosen) dither dots; their panes also depend on the chosen Dither method
+                    const paneKey = ditherFor(p.spec.id) ? `${key}|${ditherFor(p.spec.id)}` : key;
+                    if (!ids.includes(p.spec.id) || drawnKey.get(p.spec.id) === paneKey) continue;
+                    const q = renderer(p.spec.id, ditherFor(p.spec.id));
                     p.ctx.putImageData(new ImageData(q.data, q.width, q.height), 0, 0);
-                    drawnKey.set(p.spec.id, key);
+                    drawnKey.set(p.spec.id, paneKey);
                 }
             };
             const catchUp = (ms) => {
@@ -217,6 +223,51 @@ class ImportDialogClass {
                 controls.appendChild(row);
             };
 
+            // The Dither method (Batch 8 part 8B) drives the Smooth conversion; the indexed modes keep their own
+            // colour dither, so there it is shown shut with the reason.
+            const addDitherSelect = () => {
+                const row = document.createElement('div');
+                row.className = 'tool-option';
+                const label = document.createElement('label');
+                label.htmlFor = 'import-dither';
+                const span = document.createElement('span');
+                span.dataset.i18n = 'import.dither';
+                span.textContent = this._t('import.dither', 'Dither');
+                label.appendChild(span);
+                const dsel = document.createElement('select');
+                dsel.id = 'import-dither';
+                dsel.className = 'opt-input';
+                const groups = [['threshold', 'Threshold'], ['diffusion', 'Error diffusion'], ['bayer', 'Bayer matrix'],
+                                ['cluster', 'Cluster dot'], ['supercell', 'Supercell']];
+                for (const [fam, fb] of groups) {
+                    const og = document.createElement('optgroup');
+                    og.dataset.i18nLabel = `dither.family.${fam}`;
+                    og.label = this._t(`dither.family.${fam}`, fb);
+                    for (const m of Dither.METHODS.filter((x) => x.family === fam)) {
+                        const el = document.createElement('option');
+                        el.value = m.id;
+                        el.dataset.i18n = m.i18n;
+                        el.textContent = this._t(m.i18n, m.id);
+                        if (m.id === state.dither) el.selected = true;
+                        og.appendChild(el);
+                    }
+                    dsel.appendChild(og);
+                }
+                row.title = this._t('import.dither.hint', 'How the Smooth conversion turns shades into ink and paper pixels.');
+                row.dataset.i18nTitle = 'import.dither.hint';
+                dsel.addEventListener('change', () => {
+                    state.dither = dsel.value;
+                    state.ditherTouched = true;
+                    // Flat does not dither: look at a conversion that does
+                    if (chosen.id === 'flat') select(METHODS.find((m) => m.id === 'smooth'));
+                    catchUp(0);
+                    refresh();
+                });
+                row.appendChild(label);
+                row.appendChild(dsel);
+                controls.appendChild(row);
+            };
+
             addRange('brightness', 'import.brightness', 'Brightness');
             addRange('contrast',   'import.contrast',   'Contrast');
             addSelect('scaling', 'import.scaling', 'Scaling', [
@@ -224,6 +275,7 @@ class ImportDialogClass {
                 { value: 'stretch', i18n: 'import.scalingStretch', fallback: 'Stretch' },
                 { value: 'crop',    i18n: 'import.scalingCrop',    fallback: 'Crop (fill)' }
             ]);
+            addDitherSelect();
 
 
             Dialog.open({
@@ -238,7 +290,7 @@ class ImportDialogClass {
                       onClick: () => settle({
                           ...state,
                           method: chosen.method,
-                          dithering: chosen.dithering,
+                          dithering: ditherFor(chosen.id) || chosen.dithering,
                           choice: chosen.id
                       }) }
                 ],
@@ -248,6 +300,156 @@ class ImportDialogClass {
 
             // Opening: the chosen method first, the others right after
             refresh(true);
+        });
+    }
+
+    /**
+     * "Make a fill from a picture": the same controls as the import dialog but one result, a pattern tile
+     * (Batch 8 part 8B2). A tile is 8, 16 or 32 pixels square (the pattern library's sizes), so the preview is the tile
+     * repeated, built by the same PNGFormat.patternFromImage the result comes from.
+     * @param {ArrayBuffer} buffer - Raw file bytes
+     * @param {string} ext - 'png' | 'jpg' | 'jpeg' | 'gif'
+     * @returns {Promise<{size:number,bitmap:Uint8Array}|null|undefined>} the tile; null if cancelled; undefined if the file
+     *   could not be read as a picture
+     */
+    async showPattern(buffer, ext) {
+        const mime = (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg'
+            : (ext === 'gif') ? 'image/gif' : 'image/png';
+        const decoded = await PNGFormat.decodeToImageData(buffer, mime);
+        if (!decoded) return undefined;
+
+        const state = { brightness: 0, contrast: 0, scaling: 'crop', size: 32, dither: 'floyd-steinberg' };
+
+        return new Promise((resolve) => {
+            let settled = false;
+            const settle = (value) => {
+                if (!settled) { settled = true; resolve(value); }
+            };
+
+            const content = document.createElement('div');
+            content.className = 'import-dialog-body';
+
+            const preview = document.createElement('canvas');
+            preview.className = 'import-preview pattern-from-picture-preview';
+            preview.width = 128;
+            preview.height = 128;
+            content.appendChild(preview);
+
+            const controls = document.createElement('div');
+            controls.className = 'import-controls';
+            content.appendChild(controls);
+
+            const tile = () => PNGFormat.patternFromImage(decoded, {
+                size: state.size, dithering: state.dither, brightness: state.brightness,
+                contrast: state.contrast, scaling: state.scaling
+            });
+            const draw = () => {
+                if (settled) return;
+                const bits = tile();
+                const n = state.size, zoom = Math.max(1, Math.floor(128 / (n * 2)));
+                const ctx = preview.getContext('2d');
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(0, 0, 128, 128);
+                ctx.fillStyle = '#000';
+                // the tile repeated, so the join shows
+                for (let ty = 0; ty * n * zoom < 128; ty++) {
+                    for (let tx = 0; tx * n * zoom < 128; tx++) {
+                        for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+                            if (bits[y * n + x]) ctx.fillRect((tx * n + x) * zoom, (ty * n + y) * zoom, zoom, zoom);
+                        }
+                    }
+                }
+            };
+            let rafPending = false;
+            const refresh = () => {
+                if (rafPending) return;
+                rafPending = true;
+                requestAnimationFrame(() => { rafPending = false; draw(); });
+            };
+
+            const row = (key, i18n, fallback, control) => {
+                const r = document.createElement('div');
+                r.className = 'tool-option';
+                const label = document.createElement('label');
+                label.htmlFor = `pattern-${key}`;
+                const span = document.createElement('span');
+                span.dataset.i18n = i18n;
+                span.textContent = this._t(i18n, fallback);
+                label.appendChild(span);
+                control.id = `pattern-${key}`;
+                control.className = 'opt-input';
+                r.appendChild(label);
+                r.appendChild(control);
+                controls.appendChild(r);
+                return r;
+            };
+            const range = (key, i18n, fallback) => {
+                const input = document.createElement('input');
+                input.type = 'range';
+                input.min = '-100';
+                input.max = '100';
+                input.value = '0';
+                input.addEventListener('input', () => { state[key] = parseInt(input.value, 10) || 0; refresh(); });
+                const r = row(key, i18n, fallback, input);
+                if (window.OptionControls) OptionControls.decorateSliders(r);
+            };
+            const select = (key, i18n, fallback, options, parse) => {
+                const el = document.createElement('select');
+                for (const opt of options) {
+                    const o = document.createElement('option');
+                    o.value = opt.value;
+                    if (opt.i18n) o.dataset.i18n = opt.i18n;
+                    o.textContent = opt.i18n ? this._t(opt.i18n, opt.fallback) : opt.fallback;
+                    if (String(opt.value) === String(state[key])) o.selected = true;
+                    el.appendChild(o);
+                }
+                el.addEventListener('change', () => { state[key] = parse ? parse(el.value) : el.value; refresh(); });
+                row(key, i18n, fallback, el);
+            };
+
+            range('brightness', 'import.brightness', 'Brightness');
+            range('contrast', 'import.contrast', 'Contrast');
+            select('scaling', 'import.scaling', 'Scaling', [
+                { value: 'fit',     i18n: 'import.scalingFit',     fallback: 'Fit (letterbox)' },
+                { value: 'stretch', i18n: 'import.scalingStretch', fallback: 'Stretch' },
+                { value: 'crop',    i18n: 'import.scalingCrop',    fallback: 'Crop (fill)' }
+            ]);
+            select('size', 'import.tileSize', 'Tile size', [8, 16, 32].map((n) => (
+                { value: n, i18n: null, fallback: n + 'x' + n })), (v) => parseInt(v, 10));
+
+            const dsel = document.createElement('select');
+            for (const [fam, fb] of [['threshold', 'Threshold'], ['diffusion', 'Error diffusion'], ['bayer', 'Bayer matrix'],
+                                     ['cluster', 'Cluster dot'], ['supercell', 'Supercell']]) {
+                const og = document.createElement('optgroup');
+                og.dataset.i18nLabel = `dither.family.${fam}`;
+                og.label = this._t(`dither.family.${fam}`, fb);
+                for (const m of Dither.METHODS.filter((x) => x.family === fam)) {
+                    const o = document.createElement('option');
+                    o.value = m.id;
+                    o.dataset.i18n = m.i18n;
+                    o.textContent = this._t(m.i18n, m.id);
+                    if (m.id === state.dither) o.selected = true;
+                    og.appendChild(o);
+                }
+                dsel.appendChild(og);
+            }
+            dsel.addEventListener('change', () => { state.dither = dsel.value; refresh(); });
+            row('dither', 'import.dither', 'Dither', dsel);
+
+            Dialog.open({
+                id: 'pattern-from-picture',
+                titleI18n: 'dialog.patternFromPicture',
+                title: 'Make a fill from a picture',
+                content,
+                className: 'import-conversion-dialog',
+                buttons: [
+                    { i18n: 'dialog.cancel', label: 'Cancel', onClick: () => { settle(null); } },
+                    { i18n: 'dialog.ok', label: 'OK', primary: true,
+                      onClick: () => settle({ size: state.size, bitmap: tile() }) }
+                ],
+                onClose: () => settle(null)
+            });
+            draw();
         });
     }
 }

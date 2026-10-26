@@ -2,6 +2,62 @@
 (function() {
 
 /**
+ * The Dithered grain: the gradient's own Bayer matrices first (2 / 4 / 8, so every old preset keeps loading and
+ * drawing exactly as before; the first value must stay the NUMBER 2, see OptionControls._coerce), then the other
+ * Dither methods by family (Batch 8 part 8B). ZX Paintbrush's three Bayer matrices are left out: they are the transpose
+ * of these and would only repeat the names.
+ */
+const GRADIENT_DITHER_OPTIONS = (() => {
+  const groups = [{ i18n: 'dither.family.bayer', options: [
+    { value: 2, i18n: 'dg.coarse' }, { value: 4, i18n: 'dg.medium' }, { value: 8, i18n: 'dg.fine' }
+  ] }];
+  if (window.Dither) {
+    for (const fam of ['threshold', 'diffusion', 'cluster', 'supercell']) {
+      groups.push({ i18n: 'dither.family.' + fam,
+        options: Dither.METHODS.filter(m => m.family === fam).map(m => ({ value: m.id, i18n: m.i18n })) });
+    }
+  }
+  return groups;
+})();
+
+/**
+ * The styles whose bands have edges and corners: Rotation turns them and Zoom scales them (ZX Paintbrush's help:
+ * "Figures that are edge-based (triangle, square etc.) can also have a zoom level"). The other styles take their
+ * direction and length from the drag itself (linear, reflected, conical, spiral) or are round (radial), so neither
+ * option is shown for them.
+ */
+const EDGE_STYLES = Object.freeze(['square', 'diamond', 'triangle', 'pentagon', 'hexagon', 'octagon']);
+
+/** Sides of the regular-polygon styles. */
+const POLYGON_SIDES = Object.freeze({ triangle: 3, pentagon: 5, hexagon: 6, octagon: 8 });
+
+/**
+ * The outward side normals of each polygon style, flattened [cos0, sin0, cos1, sin1, ...], in screen angles (y grows
+ * downward): the first points straight down, so at Rotation 0 one side lies flat at the bottom - the triangle and the
+ * pentagon point up, the hexagon and the octagon have a flat top as well. Each set is divided by cos(pi / n), the
+ * inner reach of a polygon whose corners are 1 away, so a band's corners lie on the drag distance.
+ * The sines and cosines are rounded to 2^-40 first: Math.cos(150 deg) and -Math.cos(30 deg) differ in the last bit,
+ * and that was enough to flip a pixel lying exactly on a band edge, so a hexagon was not quite the same turned half
+ * round. Rounded, the mirror and half-turn pairs are exact negatives and those symmetries hold pixel for pixel.
+ */
+const POLYGON_NORMALS = Object.freeze(Object.fromEntries(Object.entries(POLYGON_SIDES).map(([style, n]) => {
+  const out = new Float64Array(2 * n);
+  const scale = 1 / Math.cos(Math.PI / n);
+  const exact = (v) => Math.round(v * 1099511627776) / 1099511627776;   // 2^40
+  for (let k = 0; k < n; k++) {
+    const a = Math.PI / 2 + 2 * Math.PI * k / n;
+    out[2 * k] = exact(Math.cos(a)) * scale;
+    out[2 * k + 1] = exact(Math.sin(a)) * scale;
+  }
+  return [style, out];
+})));
+
+/** Rotation range in degrees: one full turn centred on 0, as the Shape tool's Rotation. */
+const ROTATION_MIN = -180, ROTATION_MAX = 180;
+/** Zoom range in percent (docs/FIGURES.md, Gradient Rotation and Zoom). */
+const ZOOM_MIN = 25, ZOOM_MAX = 400, ZOOM_DEFAULT = 100;
+
+/**
  * Gradient Tool — Two-phase interaction
  *
  * Phase 1: User drags to define the shape/region (shown as outline on canvas).
@@ -31,9 +87,18 @@ class GradientToolClass extends ToolBase {
       { value: 'reflected', i18n: 'gt.reflected' },
       { value: 'diamond',   i18n: 'gt.diamond' },
       { value: 'square',    i18n: 'common.square' },
+      { value: 'triangle',  i18n: 'common.triangle' },
+      { value: 'pentagon',  i18n: 'shape.pentagon' },
+      { value: 'hexagon',   i18n: 'shape.hexagon' },
+      { value: 'octagon',   i18n: 'shape.octagon' },
       { value: 'conical',   i18n: 'gt.conical' },
       { value: 'spiral',    i18n: 'gt.spiral' }
     ]},
+    // Turn and scale the edge-based styles round the start point; hidden for the others (see EDGE_STYLES).
+    { type: 'range', key: 'gradientRotation', i18n: 'opt.rotation', min: ROTATION_MIN, max: ROTATION_MAX, step: 1,
+      value: 0, unit: '\u00b0', showIf: { key: 'gradientType', in: EDGE_STYLES } },
+    { type: 'range', key: 'gradientZoom', i18n: 'opt.gradientZoom', min: ZOOM_MIN, max: ZOOM_MAX, step: 5,
+      value: ZOOM_DEFAULT, unit: '%', showIf: { key: 'gradientType', in: EDGE_STYLES } },
     // 'drag' is the exact point phase 1 was dragged from - a corner for
     // rectangle/square/none/triangle. Circle is dragged from its centre
     // outward already, so drag and centre coincide there; not hidden for it,
@@ -72,11 +137,7 @@ class GradientToolClass extends ToolBase {
     // Dither grain is the Bayer matrix size; only used while Dithered is on
     // (off = a single hard threshold), so hide it when Dithered is off.
     { type: 'select', key: 'ditherScale', i18n: 'opt.ditherGrain', value: 8,
-      showIf: { key: 'dithered', equals: true }, options: [
-      { value: 2, i18n: 'dg.coarse' },
-      { value: 4, i18n: 'dg.medium' },
-      { value: 8, i18n: 'dg.fine' }
-    ]},
+      showIf: { key: 'dithered', equals: true }, options: GRADIENT_DITHER_OPTIONS },
     { type: 'check', key: 'dithered',        i18n: 'opt.dithered',  value: true },
     { type: 'check', key: 'shapeConstraint', i18n: 'opt.shapeFill', value: false },
     { type: 'check', key: 'lockAxis',        i18n: 'opt.lockAxis', value: false }
@@ -91,24 +152,28 @@ class GradientToolClass extends ToolBase {
     // _shouldBeInk to a hard 50% threshold (crisp banded gradient).
     this._dithered = true;
 
-    // Gradient type: 'linear', 'radial', 'reflected', 'diamond', 'conical', 'square', 'spiral'
+    // Gradient type: 'linear', 'radial', 'reflected', 'diamond', 'square', 'triangle', 'pentagon', 'hexagon',
+    // 'octagon', 'conical', 'spiral'
     this.gradientType = 'linear';
+
+    // Rotation (degrees, clockwise on screen) and Zoom (percent) of the edge-based styles; 0 and 100 draw exactly
+    // as before they existed. _rotCos / _rotSin are kept with the angle so the pixel loop does no trigonometry.
+    this._rotation = 0;
+    this._rotCos = 1;
+    this._rotSin = 0;
+    this._zoom = ZOOM_DEFAULT;
 
     // Quantise gradient into N discrete density levels (1 = smooth continuous)
     this.gradientSteps = 1;
 
     // Size of Bayer dither matrix tile: 2, 4, or 8
     this.ditherScale = 8;
+    this._ditherMethod = null;   // a Dither method id, or null for the 2/4/8 grain
 
     // Bayer dither matrices normalised to 0-63, keyed by matrix size
     this.ditherPatterns = this._createDitherPatterns();
     // Cached reference to the active matrix — avoids object lookup in hot pixel loop
     this._activeDitherMatrix = this.ditherPatterns[8];
-
-    // Pre-allocated Sets for preview — cleared and reused each frame to avoid GC pressure
-    this._previewCellSet = new Set();
-    this._previewInkSet  = new Set();
-    this._previewPaprSet = new Set();
 
     // Shape fill: constrain gradient to flood-filled region from start point
     this._shapeConstraint = false;
@@ -209,10 +274,43 @@ class GradientToolClass extends ToolBase {
   // ── Setters / getters ──────────────────────────────────────────────────────
 
   setGradientType(type) {
-    const valid = ['linear', 'radial', 'reflected', 'diamond', 'conical', 'square', 'spiral'];
+    const valid = ['linear', 'radial', 'reflected', 'diamond', 'conical', 'square', 'spiral',
+      'triangle', 'pentagon', 'hexagon', 'octagon'];
     if (valid.includes(type)) this.gradientType = type;
   }
   getGradientType() { return this.gradientType; }
+
+  getGradientRotation() { return this._rotation; }
+  /**
+   * Degrees, positive clockwise on screen. An angle outside -180..180 is brought into it (270 is -90, 360 is 0), as
+   * ShapeGenerator.rotationDeg does; anything that is not a finite number is 0. Quarter turns keep exact sines and
+   * cosines, so a square turned 90 degrees is the unturned square pixel for pixel.
+   */
+  setGradientRotation(v) {
+    const n = (v === null || v === '' || typeof v === 'boolean') ? NaN : Number(v);
+    let d = Number.isFinite(n) ? n % 360 : 0;
+    if (d > ROTATION_MAX) d -= 360;
+    if (d < ROTATION_MIN) d += 360;
+    if (d === 0) d = 0;   // no -0
+    this._rotation = d;
+    const q = ((d % 360) + 360) % 360;
+    if (q === 0)        { this._rotCos = 1;  this._rotSin = 0; }
+    else if (q === 90)  { this._rotCos = 0;  this._rotSin = 1; }
+    else if (q === 180) { this._rotCos = -1; this._rotSin = 0; }
+    else if (q === 270) { this._rotCos = 0;  this._rotSin = -1; }
+    else {
+      const r = d * Math.PI / 180;
+      this._rotCos = Math.cos(r);
+      this._rotSin = Math.sin(r);
+    }
+  }
+
+  getGradientZoom() { return this._zoom; }
+  /** Percent of the drag's reach the bands use: 200 spreads them twice as far apart. Held to 25..400. */
+  setGradientZoom(v) {
+    const n = (v === null || v === '' || typeof v === 'boolean') ? NaN : Number(v);
+    this._zoom = Number.isFinite(n) ? clamp(n, ZOOM_MIN, ZOOM_MAX) : ZOOM_DEFAULT;
+  }
 
   getShapeConstraint() { return this._shapeConstraint; }
   setShapeConstraint(v) { this._shapeConstraint = Boolean(v); }
@@ -229,13 +327,40 @@ class GradientToolClass extends ToolBase {
   getGradientSteps() { return this.gradientSteps; }
   setGradientSteps(v) { this.gradientSteps = clamp(parseInt(v) || 1, 1, 16); }
 
-  getDitherScale() { return this.ditherScale; }
+  /** The grain: 2 / 4 / 8 (the gradient's own Bayer matrices) or a Dither method id (8B). */
+  getDitherScale() { return this._ditherMethod || this.ditherScale; }
   setDitherScale(v) {
     const n = parseInt(v);
-    if (n === 2 || n === 4 || n === 8) {
+    if ((n === 2 || n === 4 || n === 8) && String(n) === String(v).trim()) {
       this.ditherScale = n;
+      this._ditherMethod = null;
       this._activeDitherMatrix = this.ditherPatterns[n];
+      return;
     }
+    const m = window.Dither && Dither.get(String(v));
+    if (m && m.family !== 'bayer') this._ditherMethod = m.id;
+  }
+
+  /**
+   * With a Dither method chosen: 1 = ink for every pixel of `rect`, from the gradient position (steps, reverse and
+   * bias applied) as a grey, so the picture is anchored to the screen like the Bayer grain. Null for the legacy
+   * 2/4/8 grain, or with Dithered off.
+   * @private
+   */
+  _methodMask(rect, reverse) {
+    if (!this._ditherMethod || this._dithered === false || !window.Dither) return null;
+    const w = rect.width, h = rect.height;
+    const gray = new Float64Array(w * h);
+    const bias = this._bias / 100;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        let pos = this._getGradientPosition(rect.x + x, rect.y + y);
+        if (this.gradientSteps > 1) pos = Math.floor(pos * this.gradientSteps) / this.gradientSteps;
+        if (reverse) pos = 1 - pos;
+        gray[y * w + x] = 255 * (1 - clamp(pos + bias, 0, 1));
+      }
+    }
+    return Dither.apply(gray, w, h, this._ditherMethod, { originX: rect.x, originY: rect.y });
   }
 
   getBias() { return this._bias; }
@@ -621,6 +746,7 @@ class GradientToolClass extends ToolBase {
     const encodeKey = region ? (x, y) => (y << 16) | x : null;
     const checkShape = !this._shapeConstraint && this._fillShape !== 'none';
 
+    const mask = this._methodMask(rect, reverse);
     PixelDrawRoutine.beginBatch();
 
     for (let y = 0; y < rect.height; y++) {
@@ -631,6 +757,11 @@ class GradientToolClass extends ToolBase {
         if (region && !region.has(encodeKey(pixelX, pixelY))) continue;
         if (checkShape && !this._isInsideShape(pixelX, pixelY, rect)) continue;
 
+        if (mask) {
+          if (mask[y * rect.width + x] !== 1) continue;
+          PixelDrawRoutine.draw(pixelX, pixelY, color, PixelDrawRoutine.resolveUserMode(true));
+          continue;
+        }
         let gradientPos = this._getGradientPosition(pixelX, pixelY);
         if (this.gradientSteps > 1) {
           gradientPos = Math.floor(gradientPos * this.gradientSteps) / this.gradientSteps;
@@ -682,16 +813,15 @@ class GradientToolClass extends ToolBase {
         raw = Math.sqrt(px * px + py * py) / r;
         break;
       }
-      case 'diamond': {
-        const r = Math.sqrt(lenSq);
+      case 'diamond':
+      case 'square':
+      case 'triangle':
+      case 'pentagon':
+      case 'hexagon':
+      case 'octagon': {
+        const r = Math.sqrt(lenSq) * this._zoom / 100;
         if (r === 0) return 0.5;
-        raw = (Math.abs(pixelX - sx) + Math.abs(pixelY - sy)) / r;
-        break;
-      }
-      case 'square': {
-        const r = Math.sqrt(lenSq);
-        if (r === 0) return 0.5;
-        raw = Math.max(Math.abs(pixelX - sx), Math.abs(pixelY - sy)) / r;
+        raw = this._edgeReach(pixelX - sx, pixelY - sy) / r;
         break;
       }
       case 'conical': {
@@ -716,6 +846,30 @@ class GradientToolClass extends ToolBase {
 
     const wrapped = this._applyWrap(raw);
     return this._gammaCurve === 1 ? wrapped : Math.pow(wrapped, this._gammaCurve);
+  }
+
+  // How far out the offset (px, py) lies on an edge-based style's bands, in pixels of the drag. The offset is first
+  // turned back by the Rotation (so the bands turn clockwise with it); then Square reads its larger coordinate (the
+  // drag is half its side), Diamond the sum of both (the drag reaches its corners) and a polygon its largest side
+  // distance, scaled so the drag reaches its corners (POLYGON_NORMALS). At Rotation 0 the offset is used as it is,
+  // so Square and Diamond give exactly the values they always did.
+  _edgeReach(px, py) {
+    const c = this._rotCos, s = this._rotSin;
+    const x = px * c + py * s;
+    const y = py * c - px * s;
+    switch (this.gradientType) {
+      case 'square':  return Math.max(Math.abs(x), Math.abs(y));
+      case 'diamond': return Math.abs(x) + Math.abs(y);
+      default: {
+        const nm = POLYGON_NORMALS[this.gradientType];
+        let best = -Infinity;
+        for (let k = 0; k < nm.length; k += 2) {
+          const d = x * nm[k] + y * nm[k + 1];
+          if (d > best) best = d;
+        }
+        return best;
+      }
+    }
   }
 
   // Shared wrap stage for every gradient type except 'reflected' (see above).
@@ -773,6 +927,13 @@ class GradientToolClass extends ToolBase {
       return;
     }
     const pixels = this._getShapeBorderPixels(rect);
+    // The outline is a guide, not a write: Mirror's copies of it, but no drawing-guide clip.
+    const sym = StateManager.getSymmetryMode ? StateManager.getSymmetryMode() : 'off';
+    if (sym !== 'off') {
+      for (let i = 0, n = pixels.length; i < n; i++) {
+        for (const m of PixelDrawRoutine.getMirrorPoints(pixels[i].x, pixels[i].y, sym)) pixels.push(m);
+      }
+    }
     GridOverlay.drawPreviewPixels(pixels, 'rgba(255, 255, 255, 0.9)');
   }
 
@@ -787,21 +948,16 @@ class GradientToolClass extends ToolBase {
       return;
     }
 
-    const affectedCells   = this._previewCellSet;
-    const gradientInkSet  = this._previewInkSet;
-    const gradientPaprSet = this._previewPaprSet;
-    affectedCells.clear();
-    gradientInkSet.clear();
-    gradientPaprSet.clear();
-
     const colorSelection = ColorManager.getCurrentSelection();
     const region         = this._cachedFloodRegion;
     const encodeKey      = region ? (x, y) => (y << 16) | x : null;
     const checkShape     = !this._shapeConstraint && this._fillShape !== 'none';
 
     // Additive preview, mirroring _drawGradient: only the pixels the gradient
-    // will actually ADD show as pending ink. gradientPaprSet stays empty -
-    // the gradient never clears a pixel, so nothing previews as erased.
+    // will actually ADD show as pending ink. Nothing is marked paper - the
+    // gradient never clears a pixel, so nothing previews as erased.
+    const mask = this._methodMask(rect, this.isReverseMode);
+    const xs = [], ys = [];
     for (let y = 0; y < rect.height; y++) {
       for (let x = 0; x < rect.width; x++) {
         const pixelX = rect.x + x;
@@ -810,23 +966,30 @@ class GradientToolClass extends ToolBase {
         if (region && !region.has(encodeKey(pixelX, pixelY))) continue;
         if (checkShape && !this._isInsideShape(pixelX, pixelY, rect)) continue;
 
-        let gradientPos = this._getGradientPosition(pixelX, pixelY);
-        if (this.gradientSteps > 1) {
-          gradientPos = Math.floor(gradientPos * this.gradientSteps) / this.gradientSteps;
+        if (mask) {
+          if (mask[y * rect.width + x] !== 1) continue;
+        } else {
+          let gradientPos = this._getGradientPosition(pixelX, pixelY);
+          if (this.gradientSteps > 1) {
+            gradientPos = Math.floor(gradientPos * this.gradientSteps) / this.gradientSteps;
+          }
+          if (this.isReverseMode) gradientPos = 1 - gradientPos;
+
+          if (!this._shouldBeInk(pixelX, pixelY, gradientPos)) continue;
         }
-        if (this.isReverseMode) gradientPos = 1 - gradientPos;
 
-        if (!this._shouldBeInk(pixelX, pixelY, gradientPos)) continue;
-
-        affectedCells.add(Math.floor(pixelX / ZX_SPECTRUM.CELL_WIDTH) + ',' + Math.floor(pixelY / ZX_SPECTRUM.CELL_HEIGHT));
-        gradientInkSet.add(pixelX + ',' + pixelY);
+        xs.push(pixelX);
+        ys.push(pixelY);
       }
     }
 
-    GridOverlay.drawGradientCellPreview(
-      affectedCells, gradientInkSet, gradientPaprSet,
-      colorSelection, LayerManager.activeDrawLayerIndex
-    );
+    // Only the pixels the commit's draw() calls really write: Mirror's copies,
+    // the drawing guide and a locked layer included, as the shape tools
+    // preview (forEachStrokeTarget: strokeTargets without an object a pixel).
+    const pending = GridOverlay.newPixelMarks();
+    PixelDrawRoutine.forEachStrokeTarget(xs, ys, (x, y) => pending.mark(x, y, 1));
+
+    GridOverlay.drawMarksPreview(pending, colorSelection, LayerManager.activeDrawLayerIndex);
   }
 
   // 1-pixel border pixels for the current shape, clamped to canvas bounds.

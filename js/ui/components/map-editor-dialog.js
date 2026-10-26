@@ -84,8 +84,8 @@ class MapEditorDialogClass {
                 </div>
                 <div class="me-section-title" data-i18n="map.editTile">${this._t('map.editTile', 'Edit Tile')}</div>
                 <div class="me-tile-toolbar">
-                    ${Helpers.miniToolButton('brush', 'B', 'tool.brush', 'Brush', 'miniTool.brush.hint', 'Click or drag to set pixels', true)}
-                    ${Helpers.miniToolButton('eraser', 'E', 'tool.eraser', 'Eraser', 'tool.eraser.hint', 'Clear pixels back to the paper colour')}
+                    ${Helpers.miniToolButton('brush', 'B', 'tool.brush', 'Brush', 'miniTool.brush.hint', 'Click or drag to draw ink pixels', true)}
+                    ${Helpers.miniToolButton('eraser', 'E', 'tool.eraser', 'Eraser', 'tool.eraser.hint', 'Turn ink pixels back into paper pixels')}
                     ${Helpers.miniToolButton('line', 'S', 'shape.line', 'Line', 'miniTool.line.hint', 'Drag to draw a straight line between two points')}
                     ${Helpers.miniToolButton('fill', 'F', 'tool.fill', 'Fill', 'tool.fill.hint', 'Flood the area under the cursor out to its edges')}
                 </div>
@@ -667,7 +667,8 @@ class MapEditorDialogClass {
         if (!handler) return;
         try {
             const buffer = await Helpers.readFileAsArrayBuffer(file);
-            const result = handler.parse(buffer);
+            // a .zxm here is read as the TILE map (File > Open reads the whole picture with its elements)
+            const result = ext === 'zxm' ? ZXMFormat.parseTileMap(buffer) : handler.parse(buffer);
             if (result && result.success) {
                 this._status(this._t('map.status.imported', 'Map imported.'));
             } else {
@@ -687,7 +688,7 @@ class MapEditorDialogClass {
             if (format === 'zxtm') {
                 saved = await MapFormat.exportAndDownload(`${base}.zxtm`);
             } else if (format === 'zxm') {
-                saved = await ZXMFormat.exportAndDownload(`${base}.zxm`);
+                saved = await ZXMFormat.exportTileMapAndDownload(`${base}.zxm`);
             } else if (format.startsWith('next-')) {
                 // ZX Spectrum Next tilemap export (Phase 13): ula-cell tiles
                 // convert to 4bpp Next tile definitions at export time

@@ -10,16 +10,26 @@
  * named-font library).
  *
  * Model:
- *   glyph — one character bitmap: Uint8Array(cellH) row bytes, MSB =
- *           leftmost pixel (the same row-byte layout as layer cell.pixels
- *           and MapService tiles). Row bits beyond the font width are
- *           always zero (every mutation masks).
- *   font  — { name, width (4|6|8), firstCode, glyphs[] }. Glyph height is
- *           one attribute cell of the active mode (8 in STANDARD_ULA);
- *           width varies per font, which is why CellGridEditor supports
- *           width ≠ height. firstCode + glyphs.length describe the
+ *   glyph - one character bitmap: Uint8Array of row bytes, MSB = leftmost
+ *           pixel (for a classic font one byte per row, the same layout as
+ *           layer cell.pixels and MapService tiles). Row bits beyond the font
+ *           width are always zero (every mutation masks).
+ *   font  - { name, width, height, firstCode, glyphs[], shade[] }. A classic
+ *           font is 4, 6 or 8 wide and 8 high. A BIG font (Batch 10C, the CHX
+ *           big font sets) is 8, 16, 24 or 32 wide and 8, 16, 24 or 32 high;
+ *           its glyphs are height * ceil(width / 8) bytes (see GlyphBits).
+ *           shade[i] = [left, right]: how many 8-pixel columns of glyph i
+ *           are left out (the shader; saved as a narrower CHX character, and
+ *           a character shaded all the way across is not written at all).
+ *           Pixels under shading are kept, so the shading can be undone.
+ *           firstCode + glyphs.length describe the
  *           charset coverage: 32+96 (the ASCII window of the 768-byte
  *           CHR variant) or 0+256 (a full extended-ANSI set).
+ *           colours[i] (parallel to glyphs): null for an uncoloured
+ *           character (the Text tool draws it with the attribute bar), or
+ *           the ZX attribute byte of each 8x8 block of the full cell, left
+ *           to right then down (a coloured CHX character, owner decision
+ *           2026-10-19). A character is coloured as a whole, as in the file.
  *
  * Commands come down as direct calls; facts go up ONLY via
  * EVENTS.FONT_CHANGED / FONT_LOADED / FONT_LIBRARY_CHANGED.
@@ -70,11 +80,16 @@ class FontServiceClass {
 
         this.name = '';
         this.width = 8;
+        this.height = 8;
         this.firstCode = ZX_ROM_FONT_FIRST;
         /** @type {Uint8Array[]} */
         this.glyphs = [];
+        /** @type {Array<Array<number>>} [left, right] shaded 8-pixel columns per glyph (parallel to glyphs) */
+        this.shade = [];
+        /** @type {Array<?Uint8Array>} block attributes per glyph, null = uncoloured (parallel to glyphs) */
+        this.colours = [];
 
-        this._glyphClipboard = null;   // Uint8Array copy from copyGlyph
+        this._glyphClipboard = null;   // { w, h, bytes, attrs } copy from copyGlyph
         this._library = {};            // name -> FontCodec payload (mirror of the store)
         this._decodedCache = new Map();// name -> decoded doc (for the text tool's hot path)
         this._persistTimer = null;
@@ -91,12 +106,131 @@ class FontServiceClass {
      * canvas capture bridge gates separately on mode compatibility).
      */
     getGlyphSize() {
-        return { w: this.width, h: SCREEN_MODES.STANDARD_ULA.attrCellH };
+        return { w: this.width, h: this.height };
     }
 
-    /** Highest-bits row mask for the current width. @private */
-    _mask() {
-        return (0xFF << (8 - this.width)) & 0xFF;
+    /** True for a big font (wider than 8 or taller than 8) - the CHX big font sets. */
+    isBig() {
+        return this.width > 8 || this.height > 8;
+    }
+
+    /** Bytes in one glyph of the working font. */
+    glyphBytes() {
+        return GlyphBits.byteLength(this.width, this.height);
+    }
+
+    /** 8-pixel columns in one glyph (1 for a classic font). */
+    columns() {
+        return FontCodec.columns(this.width);
+    }
+
+    /** A blank glyph of the working font's size. @private */
+    _blank() {
+        return GlyphBits.create(this.width, this.height);
+    }
+
+    /** Shading of a code: { left, right } in 8-pixel columns (zeros outside the coverage). */
+    getShade(code) {
+        const s = this.hasCode(code) ? this.shade[code - this.firstCode] : null;
+        return s ? { left: s[0], right: s[1] } : { left: 0, right: 0 };
+    }
+
+    /** True if any character is shaded. */
+    hasShading() {
+        return this.shade.some(p => p[0] || p[1]);
+    }
+
+    /**
+     * Shade columns on the left and right of a character (it is saved narrower; shaded all the way across, it is not
+     * saved). The pixels are kept. Space (code 32) always keeps one column: a CHX file must define it.
+     * @returns {boolean}
+     */
+    setShade(code, left, right) {
+        if (!this.hasCode(code) || !Number.isInteger(left) || !Number.isInteger(right) || left < 0 || right < 0) return false;
+        const cols = this.columns();
+        if (left + right > cols) return false;
+        if (code === 32 && left + right >= cols) return false;
+        this.shade[code - this.firstCode] = [left, right];
+        this._announceFont();
+        return true;
+    }
+
+    // -- Attributes of coloured characters ----------------------------------
+
+    /** The 8x8 block grid of one character: { cols, rows } (1 x 1 for a classic font). */
+    blockGrid() {
+        return { cols: this.columns(), rows: this.height >> 3 };
+    }
+
+    /** True if characters of this font can take attributes: its width is a whole number of 8-pixel columns (as for shading). */
+    coloursAllowed() {
+        return this.width % 8 === 0;
+    }
+
+    /** The live block attributes of a code (treat as read-only), or null when it is uncoloured or outside the coverage. */
+    getColours(code) {
+        return this.hasCode(code) ? this.colours[code - this.firstCode] : null;
+    }
+
+    /** True if any character has attributes of its own. */
+    hasColours() {
+        return this.colours.some(Boolean);
+    }
+
+    /**
+     * Give one block of a character an attribute byte (Ink 0-2, Paper 3-5, Bright 6, Flash 7). A character is coloured as a
+     * whole - the CHX file has one flag per character - so on an uncoloured character every block takes it.
+     * @returns {boolean} false if refused or nothing changed
+     */
+    setBlockAttr(code, bx, by, attr) {
+        const g = this.blockGrid();
+        if (!this.hasCode(code) || !this.coloursAllowed() || !this._attrOk(attr) ||
+            !Number.isInteger(bx) || !Number.isInteger(by) || bx < 0 || by < 0 || bx >= g.cols || by >= g.rows) return false;
+        const i = code - this.firstCode;
+        const cur = this.colours[i];
+        if (!cur) return this.setAllBlocks(code, attr);
+        if (cur[by * g.cols + bx] === attr) return false;
+        cur[by * g.cols + bx] = attr;
+        this._announceFont();
+        return true;
+    }
+
+    /** Give every block of a character one attribute byte. @returns {boolean} false if refused or nothing changed */
+    setAllBlocks(code, attr) {
+        if (!this.hasCode(code) || !this.coloursAllowed() || !this._attrOk(attr)) return false;
+        const g = this.blockGrid();
+        const i = code - this.firstCode;
+        const cur = this.colours[i];
+        if (cur && cur.every(a => a === attr)) return false;
+        this.colours[i] = new Uint8Array(g.cols * g.rows).fill(attr);
+        this._announceFont();
+        return true;
+    }
+
+    /**
+     * Replace a character's attributes outright: null makes it uncoloured, else one byte per block (copied).
+     * @returns {boolean}
+     */
+    setColoursFor(code, attrs) {
+        if (!this.hasCode(code)) return false;
+        const g = this.blockGrid();
+        if (attrs != null && (attrs.length !== g.cols * g.rows || !Array.from(attrs).every(a => this._attrOk(a)))) return false;
+        this.colours[code - this.firstCode] = attrs == null ? null : Uint8Array.from(attrs);
+        this._announceFont();
+        return true;
+    }
+
+    /** Make a character uncoloured again. @returns {boolean} false if it already was */
+    clearColours(code) {
+        if (!this.getColours(code)) return false;
+        this.colours[code - this.firstCode] = null;
+        this._announceFont();
+        return true;
+    }
+
+    /** @private */
+    _attrOk(a) {
+        return Number.isInteger(a) && a >= 0 && a <= 255;
     }
 
     /** Coverage window ({ firstCode, count }). */
@@ -123,11 +257,8 @@ class FontServiceClass {
      * @returns {boolean}
      */
     setGlyph(code, bytes) {
-        const { h } = this.getGlyphSize();
-        if (!this.hasCode(code) || !bytes || bytes.length !== h) return false;
-        const mask = this._mask();
-        const g = new Uint8Array(h);
-        for (let y = 0; y < h; y++) g[y] = bytes[y] & mask;
+        if (!this.hasCode(code) || !bytes || bytes.length !== this.glyphBytes()) return false;
+        const g = GlyphBits.normalise(Uint8Array.from(bytes), this.width, this.height);
         this.glyphs[code - this.firstCode] = g;
         this._announceFont();
         return true;
@@ -145,14 +276,26 @@ class FontServiceClass {
     copyGlyph(code) {
         const g = this.getGlyph(code);
         if (!g) return false;
-        this._glyphClipboard = Uint8Array.from(g);
+        const a = this.getColours(code);
+        this._glyphClipboard = { w: this.width, h: this.height, bytes: Uint8Array.from(g), attrs: a ? Uint8Array.from(a) : null };
         return true;
     }
 
-    /** Paste the glyph clipboard onto a code (masked to the current width). */
+    /**
+     * Paste the glyph clipboard onto a code (cropped or padded at the top-left to the current size). The character's
+     * attributes come with it (an uncoloured copy makes the target uncoloured); a font that takes no attributes keeps none.
+     */
     pasteGlyph(code) {
-        if (!this._glyphClipboard) return false;
-        return this.setGlyph(code, this._glyphClipboard);
+        const c = this._glyphClipboard;
+        if (!c || !this.hasCode(code)) return false;
+        const sameSize = c.w === this.width && c.h === this.height;
+        const bytes = sameSize ? c.bytes : GlyphBits.resize(c.bytes, c.w, c.h, this.width, this.height);
+        if (bytes.length !== this.glyphBytes()) return false;
+        const g = this.blockGrid();
+        const attrs = c.attrs && this.coloursAllowed()
+            ? GlyphBits.resizeBlocks(c.attrs, (c.w + 7) >> 3, c.h >> 3, g.cols, g.rows) : null;
+        this.colours[code - this.firstCode] = attrs;
+        return this.setGlyph(code, bytes);
     }
 
     hasGlyphClipboard() {
@@ -167,20 +310,12 @@ class FontServiceClass {
     flipGlyph(code, axis) {
         const g = this.getGlyph(code);
         if (!g) return false;
-        const { w, h } = this.getGlyphSize();
-        if (axis === 'h') {
-            for (let y = 0; y < h; y++) {
-                let out = 0;
-                for (let x = 0; x < w; x++) {
-                    if (g[y] & (0x80 >> x)) out |= 0x80 >> (w - 1 - x);
-                }
-                g[y] = out;
-            }
-        } else if (axis === 'v') {
-            g.reverse();
-        } else {
-            return false;
-        }
+        const a = this.getColours(code);
+        const b = this.blockGrid();
+        // the block attributes follow their blocks (exact: a coloured font is a whole number of 8-pixel columns wide)
+        if (axis === 'h') { GlyphBits.flipH(g, this.width, this.height); GlyphBits.flipBlocksH(a, b.cols, b.rows); }
+        else if (axis === 'v') { GlyphBits.flipV(g, this.width, this.height); GlyphBits.flipBlocksV(a, b.cols, b.rows); }
+        else return false;
         this._announceFont();
         return true;
     }
@@ -191,38 +326,8 @@ class FontServiceClass {
      */
     shiftGlyph(code, dir) {
         const g = this.getGlyph(code);
-        if (!g) return false;
-        const { w, h } = this.getGlyphSize();
-        const mask = this._mask();
-        switch (dir) {
-            case 'left':
-                for (let y = 0; y < h; y++) {
-                    const carry = (g[y] & 0x80) ? 0x80 >> (w - 1) : 0;
-                    g[y] = ((g[y] << 1) | carry) & mask;
-                }
-                break;
-            case 'right':
-                for (let y = 0; y < h; y++) {
-                    const low = 0x80 >> (w - 1);
-                    const carry = (g[y] & low) ? 0x80 : 0;
-                    g[y] = ((g[y] >> 1) | carry) & mask;
-                }
-                break;
-            case 'up': {
-                const first = g[0];
-                for (let y = 0; y < h - 1; y++) g[y] = g[y + 1];
-                g[h - 1] = first;
-                break;
-            }
-            case 'down': {
-                const last = g[h - 1];
-                for (let y = h - 1; y > 0; y--) g[y] = g[y - 1];
-                g[0] = last;
-                break;
-            }
-            default:
-                return false;
-        }
+        if (!g || !['left', 'right', 'up', 'down'].includes(dir)) return false;
+        GlyphBits.shift(g, this.width, this.height, dir);
         this._announceFont();
         return true;
     }
@@ -231,8 +336,7 @@ class FontServiceClass {
     invertGlyph(code) {
         const g = this.getGlyph(code);
         if (!g) return false;
-        const mask = this._mask();
-        for (let y = 0; y < g.length; y++) g[y] = ~g[y] & mask;
+        GlyphBits.invert(g, this.width, this.height);
         this._announceFont();
         return true;
     }
@@ -242,16 +346,58 @@ class FontServiceClass {
     /**
      * Change the glyph width (re-shape the font). Existing glyphs keep
      * their left-aligned pixels: narrowing crops the right-hand columns
-     * (destructive), widening exposes blank new columns.
+     * (destructive), widening exposes blank new columns. A width that is not a whole number of 8-pixel columns cannot
+     * take attributes, so narrowing drops them too (Undo brings them back).
      * @param {number} width - 4 | 6 | 8
      */
     setWidth(width) {
-        if (!this.WIDTHS.includes(width) || width === this.width) return false;
+        if (this.isBig() || !this.WIDTHS.includes(width) || width === this.width) return false;
         this.width = width;
-        const mask = this._mask();
-        for (const g of this.glyphs) {
-            for (let y = 0; y < g.length; y++) g[y] &= mask;
+        for (const g of this.glyphs) GlyphBits.normalise(g, this.width, this.height);
+        if (!this.coloursAllowed()) this.colours = this.glyphs.map(() => null);
+        this._announceFont();
+        return true;
+    }
+
+    /**
+     * Start a new BIG font: every character cols x rows blocks of 8 x 8 pixels (1 to 4 each way), all blank and
+     * unshaded. Announces FONT_LOADED.
+     * @param {{cols:number, rows:number, coverage:string}} o
+     * @returns {boolean}
+     */
+    newBigFont(o) {
+        const cov = o && this.COVERAGES[o.coverage];
+        if (!cov || !Number.isInteger(o.cols) || !Number.isInteger(o.rows) ||
+            o.cols < 1 || o.cols > 4 || o.rows < 1 || o.rows > 4) return false;
+        this.name = '';
+        this.width = o.cols * 8;
+        this.height = o.rows * 8;
+        this.firstCode = cov.firstCode;
+        this.glyphs = [];
+        this.shade = [];
+        this.colours = [];
+        for (let i = 0; i < cov.count; i++) {
+            this.glyphs.push(this._blank());
+            this.shade.push([0, 0]);
+            this.colours.push(null);
         }
+        this._emit(EVENTS.FONT_LOADED, { name: this.name });
+        this._schedulePersist();
+        return true;
+    }
+
+    /**
+     * Replace every glyph at once (a fill from a system font): one announcement instead of one per glyph.
+     * @param {Uint8Array[]} glyphs - exactly one per code of the coverage, each glyphBytes() long
+     * @param {Array<Array<number>>} [shade] - optional [left, right] per glyph
+     * @returns {boolean}
+     */
+    replaceGlyphs(glyphs, shade) {
+        const size = this.glyphBytes();
+        if (!Array.isArray(glyphs) || glyphs.length !== this.glyphs.length || glyphs.some(g => !g || g.length !== size)) return false;
+        if (shade && !FontCodec._shadeOk(shade, glyphs.length, this.width)) return false;
+        this.glyphs = glyphs.map(g => GlyphBits.normalise(Uint8Array.from(g), this.width, this.height));
+        if (shade) this.shade = shade.map(p => [p[0], p[1]]);
         this._announceFont();
         return true;
     }
@@ -267,15 +413,20 @@ class FontServiceClass {
         if (target.firstCode === this.firstCode && target.count === this.glyphs.length) {
             return false;
         }
-        const { h } = this.getGlyphSize();
         const next = [];
+        const nextShade = [];
+        const nextColours = [];
         for (let i = 0; i < target.count; i++) {
             const code = target.firstCode + i;
             const g = this.getGlyph(code);
-            next.push(g ? g : new Uint8Array(h));
+            next.push(g ? g : this._blank());
+            nextShade.push(g ? this.shade[code - this.firstCode] : [0, 0]);
+            nextColours.push(g ? this.colours[code - this.firstCode] : null);
         }
         this.firstCode = target.firstCode;
         this.glyphs = next;
+        this.shade = nextShade;
+        this.colours = nextColours;
         this._announceFont();
         return true;
     }
@@ -293,8 +444,9 @@ class FontServiceClass {
      * @param {boolean} [announce=true]
      */
     resetToROM(announce = true) {
-        const { h } = this.getGlyphSize();
+        const h = 8;
         this.width = 8;
+        this.height = 8;
         const count = this.glyphs.length || this.COVERAGES.ASCII.count;
         const firstCode = this.glyphs.length ? this.firstCode : this.COVERAGES.ASCII.firstCode;
         const next = [];
@@ -309,6 +461,8 @@ class FontServiceClass {
         }
         this.firstCode = firstCode;
         this.glyphs = next;
+        this.shade = next.map(() => [0, 0]);
+        this.colours = next.map(() => null);
         if (announce) this._announceFont();
         return true;
     }
@@ -326,7 +480,7 @@ class FontServiceClass {
      * @returns {boolean}
      */
     captureGlyphFromCanvasCell(cellX, cellY, code) {
-        if (!window.LayerManager || !this.hasCode(code)) return false;
+        if (!window.LayerManager || !this.hasCode(code) || this.isBig()) return false;
         // Glyphs are 8-row 1-bit cells — capture only works while the canvas
         // has 8×8 attribute cells with classic bitmask pixels (the UI gates
         // too; this is the model guard). Indexed modes have no ink bits.
@@ -354,9 +508,67 @@ class FontServiceClass {
         return {
             name: this.name,
             width: this.width,
+            height: this.height,
             firstCode: this.firstCode,
-            glyphs: this.glyphs
+            glyphs: this.glyphs,
+            shade: this.hasShading() ? this.shade : null,
+            colours: this.hasColours() ? this.colours : null
         };
+    }
+
+    /**
+     * A deep copy of the working font for the Font Editor's undo history (see FontHistory).
+     * @returns {{name:string,width:number,height:number,firstCode:number,glyphs:Uint8Array[],shade:number[][],
+     *   colours:Array<?Uint8Array>,bytes:number}}
+     */
+    snapshot() {
+        const glyphs = this.glyphs.map(g => Uint8Array.from(g));
+        const colours = this.colours.map(c => (c ? Uint8Array.from(c) : null));
+        let colourBytes = 0;
+        for (const c of colours) if (c) colourBytes += c.length;
+        return {
+            name: this.name,
+            width: this.width,
+            height: this.height,
+            firstCode: this.firstCode,
+            glyphs,
+            shade: this.shade.map(p => [p[0], p[1]]),
+            colours,
+            bytes: glyphs.length * (this.glyphBytes() + 2) + colourBytes
+        };
+    }
+
+    /**
+     * Put a snapshot back as the working font (announces FONT_LOADED). The name currently typed is kept unless asked otherwise:
+     * undo is for the pictures, not for what the font is called.
+     * @returns {boolean}
+     */
+    restore(snap, keepName = true) {
+        if (!snap || !FontCodec.validSize(snap.width, snap.height) || !Array.isArray(snap.glyphs) || !snap.glyphs.length) return false;
+        const name = this.name;
+        this._adopt({
+            name: snap.name, width: snap.width, height: snap.height, firstCode: snap.firstCode,
+            glyphs: snap.glyphs.map(g => Uint8Array.from(g)), shade: snap.shade,
+            colours: snap.colours ? snap.colours.map(c => (c ? Uint8Array.from(c) : null)) : null
+        });
+        if (keepName) this.name = name;
+        this._emit(EVENTS.FONT_LOADED, { name: this.name });
+        this._schedulePersist();
+        return true;
+    }
+
+    /** Take a decoded document's geometry and shading into the working font. @private */
+    _adopt(doc) {
+        this.name = doc.name || '';
+        this.width = doc.width;
+        this.height = doc.height === undefined ? 8 : doc.height;
+        this.firstCode = doc.firstCode | 0;
+        this.glyphs = doc.glyphs;
+        const ok = doc.shade && FontCodec._shadeOk(doc.shade, doc.glyphs.length, doc.width);
+        this.shade = ok ? doc.shade.map(p => [p[0], p[1]]) : doc.glyphs.map(() => [0, 0]);
+        // A colours list that does not fit the font, or a font that takes none, is dropped (the pixels still load)
+        const colours = this.coloursAllowed() && FontCodec._coloursOf(doc.colours, doc.glyphs.length, this.width, this.height);
+        this.colours = colours ? colours.map(c => (c ? Uint8Array.from(c) : null)) : doc.glyphs.map(() => null);
     }
 
     /**
@@ -364,14 +576,11 @@ class FontServiceClass {
      * handler). Announces FONT_LOADED.
      */
     loadDocument(doc) {
-        if (!doc || !this.WIDTHS.includes(doc.width) ||
+        if (!doc || !FontCodec.validSize(doc.width, doc.height === undefined ? 8 : doc.height) ||
             !Array.isArray(doc.glyphs) || !doc.glyphs.length) {
             return false;
         }
-        this.name = doc.name || '';
-        this.width = doc.width;
-        this.firstCode = doc.firstCode | 0;
-        this.glyphs = doc.glyphs;
+        this._adopt(doc);
         this._emit(EVENTS.FONT_LOADED, { name: this.name });
         this._schedulePersist();
         return true;
@@ -406,13 +615,10 @@ class FontServiceClass {
             if (payload) {
                 const doc = FontCodec.decode(payload);
                 if (doc) {
-                    this.name = doc.name;
-                    this.width = doc.width;
-                    this.firstCode = doc.firstCode;
-                    this.glyphs = doc.glyphs;
+                    this._adopt(doc);
                     this._emit(EVENTS.FONT_LOADED, { name: this.name, restored: true });
                     Logger.info('FontService',
-                        `Restored persisted font (${doc.glyphs.length} glyphs, ${doc.width}×8)`);
+                        `Restored persisted font (${doc.glyphs.length} glyphs, ${doc.width}x${doc.height})`);
                 } else {
                     Logger.warn('FontService', 'Discarding unreadable persisted font');
                     await Storage.delete(this.STORAGE_KEY, Storage.STORES.FONTS);
@@ -440,7 +646,7 @@ class FontServiceClass {
      * Decoded library font by name (synchronous — the text tool's
      * rasterization path). Decoded documents are cached until the
      * library changes.
-     * @returns {Object|null} { name, width, firstCode, glyphs }
+     * @returns {Object|null} { name, width, height, firstCode, glyphs, shade }
      */
     getLibraryFont(name) {
         if (this._decodedCache.has(name)) return this._decodedCache.get(name);
@@ -460,9 +666,16 @@ class FontServiceClass {
         }
         const payload = FontCodec.encode({ ...this.toDocument(), name: clean });
         if (!payload) return false;
+        const had = Object.prototype.hasOwnProperty.call(this._library, clean);
+        const previous = this._library[clean];
         this._library[clean] = payload;
         this._decodedCache.delete(clean);
-        await this._persistLibrary();
+        if (!(await this._persistLibrary())) {
+            // A save that was refused or failed must not look like it worked: take it back out
+            if (had) this._library[clean] = previous; else delete this._library[clean];
+            this._decodedCache.delete(clean);
+            return false;
+        }
         this._emit(EVENTS.FONT_LIBRARY_CHANGED, { names: this.listLibrary() });
         return true;
     }
@@ -475,7 +688,9 @@ class FontServiceClass {
         // editing the working font never mutates the cached library copy
         return this.loadDocument({
             ...doc,
-            glyphs: doc.glyphs.map(g => Uint8Array.from(g))
+            glyphs: doc.glyphs.map(g => Uint8Array.from(g)),
+            shade: doc.shade ? doc.shade.map(p => [p[0], p[1]]) : null,
+            colours: doc.colours ? doc.colours.map(c => (c ? Uint8Array.from(c) : null)) : null
         });
     }
 
@@ -524,6 +739,7 @@ class FontServiceClass {
     _announceFont() {
         this._emit(EVENTS.FONT_CHANGED, {
             width: this.width,
+            height: this.height,
             firstCode: this.firstCode,
             count: this.glyphs.length
         });

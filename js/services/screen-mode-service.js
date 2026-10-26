@@ -643,7 +643,12 @@ class ScreenModeServiceClass {
         // decision for the user by cancelling it (documented behaviour).
         if (window.SelectionService && SelectionService.isFloating
             && SelectionService.isFloating()) {
-            SelectionService.cancelFloatingPaste();
+            // A stamp picked up from the Stamps panel IS the saved stamp:
+            // cancelling would delete it (and before the undo action opens,
+            // so Undo could not bring it back). Park it; a fresh paste goes.
+            const fl = SelectionService.floatingPaste && SelectionService.floatingPaste.floatingLayer;
+            if (fl && fl.isStamp && fl.stamp) SelectionService.endFloatingPaste();
+            else SelectionService.cancelFloatingPaste();
         }
 
         UndoRedo.beginAction('Screen mode');

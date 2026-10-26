@@ -7,7 +7,7 @@
  * SemVer pre-release form: this is the first alpha, hence 0.x (1.0.0 is
  * reserved for the first release with no more breaking changes expected).
  */
-const APP_VERSION = '0.1.0-alpha.17';
+const APP_VERSION = '0.1.0-beta.1';
 
 /**
  * Screen mode registry — the mode seam (docs/REFACTOR_PLAN.md §1a).
@@ -481,9 +481,23 @@ const ZX_SPECTRUM = Object.freeze({
      *
      * Undo and redo share this budget rather than doubling it: undo moves an
      * entry from one stack to the other, so the two never hold more than
-     * DEFAULT_UNDO_LIMIT entries between them.
+     * the depth in use between them.
+     *
+     * Since 2026-10-19 this is the depth to START with: Preferences > Undo
+     * steps sets it anywhere from MIN_UNDO_LIMIT to MAX_UNDO_LIMIT (owner
+     * decision 2026-10-19, stored as 'pref.undoLimit'). 500 stays the default.
      */
     DEFAULT_UNDO_LIMIT: 500,
+    /**
+     * The range of the Undo steps preference. Owner decision 2026-10-19, not
+     * derived from memory: UndoRedo.MAX_HISTORY_BYTES (256 MB) still bounds
+     * what the history may hold, so a deep setting on a big picture keeps
+     * fewer steps than set. [C] 2000 one-layer steps are ~16.9 MB at
+     * STANDARD_ULA (2000 x 8,448 B) and ~425 MB at LAYER2_640
+     * (2000 x 212,480 B), where the cap keeps ~1,263 (268,435,456 / 212,480).
+     */
+    MIN_UNDO_LIMIT: 1,
+    MAX_UNDO_LIMIT: 2000,
     get SCR_FILE_SIZE() { return _activeScreenMode.fileSize; },
     get BITMAP_SIZE()   { return _activeScreenMode.bitmapSize; },
     get ATTR_SIZE()     { return _activeScreenMode.attrSize; }
@@ -562,6 +576,51 @@ const GIGA_SLOTS = Object.freeze({
 });
 
 /**
+ * The colours of the display-only view switches (View > Colours Off, Colour
+ * Grid). They are screen output, never stored in a document or an export.
+ * Colours off shows set dots BLACK on WHITE. Colour grid shows set dots black
+ * and clear dots in alternating WHITE / CELL_ALT, cell by cell, like a
+ * chessboard. On a two-screen mode a dot set on one screen only is a grey,
+ * and a dot set on both is black. The greys are a design choice [A, 2026-10-09]:
+ * three distinct levels, each readable against the others.
+ * @const {Object}
+ */
+const DISPLAY_VIEW_COLOURS = Object.freeze({
+    BLACK: new Uint8Array([0, 0, 0]),
+    WHITE: new Uint8Array([255, 255, 255]),
+    CELL_ALT: new Uint8Array([224, 224, 224]),
+    SCREEN_A_ONLY: new Uint8Array([170, 170, 170]),
+    SCREEN_B_ONLY: new Uint8Array([102, 102, 102])
+});
+
+/**
+ * Where the Spectrum keeps its screen, for the pointer readout (addresses are
+ * shown only in the modes with a fixed layout; see utils/pointer-info.js).
+ * [P] 16384 (4000h) display file and 22528 (5800h) attributes: ZX Spectrum BASIC
+ *     Programming manual, ch. 24 (worldofspectrum.org/ZXBasicManual), read 2026-10-09.
+ * [P] Timex second display file at 6000h (DFILE2), the hi-colour attribute byte
+ *     being the pixel byte + 2000h, and hi-res taking even byte columns from the
+ *     first file and odd from the second: TS2068 port map (port FFh), read 2026-10-09.
+ * [P] 128K shadow screen in bank 7, paged in at C000h by port 7FFDh: World of
+ *     Spectrum 128K reference, read 2026-10-09.
+ * [P] PLOT's picture is the top 22 of 24 text lines, 176 rows, with (0,0) at the
+ *     bottom left: ZX BASIC manual ch. 17, read 2026-10-09.
+ * [A] That GigaScreen's screen A is bank 5 and screen B bank 7: a convention.
+ *     The .img file does not say which frame goes in which bank. Labelled in the
+ *     readout; nothing else depends on it.
+ * @const {Object}
+ */
+const SPECTRUM_MEMORY = Object.freeze({
+    DISPLAY_FILE: 0x4000,
+    ATTRIBUTES: 0x5800,
+    ATTRIBUTES_OFFSET: 0x1800,
+    DFILE2: 0x6000,
+    DFILE2_OFFSET: 0x2000,
+    BANK7: 0xC000,
+    PLOT_ROWS: 176
+});
+
+/**
  * Drawing modes for PixelDrawRoutine
  * @const {Object}
  */
@@ -617,6 +676,7 @@ const TOOLS = Object.freeze({
     POLYGON: 'polygon',
     STAR: 'star',
     BEZIER: 'bezier',
+    FIGURE: 'figure',
     SELECTION: 'selection',
     // Viewport pan tool. The id string is legacy ('transform') and is kept for
     // persisted-session compatibility (the saved current-tool id is the raw
@@ -1025,6 +1085,9 @@ const TOOL_GROUPS = Object.freeze([
             // in the registry so its shortcut, label and options schema are found
             // exactly like any tool's — `variantOf` only says "no rail button".
             Object.freeze({ id: TOOLS.BEZIER,     icon: 'icon-bezier',     i18n: 'tool.bezier',     hintI18n: 'tool.bezier.hint', shortcut: 'C', variantOf: 'shape' }),
+            // The point-based figures (polyline, polygon, triangle, rays, orthogonal, parallel): one
+            // tool, six entries in the Shape picker. No rail button of its own.
+            Object.freeze({ id: TOOLS.FIGURE,     icon: 'icon-fig-polygon', i18n: 'tool.figure',     hintI18n: 'tool.figure.hint', shortcut: 'L', variantOf: 'shape' }),
             Object.freeze({ id: TOOLS.EYEDROPPER, icon: 'icon-eyedropper', i18n: 'tool.eyedropper', hintI18n: 'tool.eyedropper.hint', shortcut: 'I' })
         ])
     }),
@@ -1072,6 +1135,46 @@ const COLOUR_SHORTCUTS = Object.freeze([
     Object.freeze({ id: 'toggleFlash', key: 'f', keys: 'Shift+F', i18n: 'help.toggleFlash', en: 'Flash on or off' }),
     Object.freeze({ id: 'keepAll', key: 't', keys: 'Shift+T', i18n: 'help.keepAll', en: 'Use existing Ink, Paper, Bright and Flash' })
 ]);
+
+/**
+ * The ULAplus CLUT keys: Ctrl+Shift+1 to 4 pick CLUT 0 to 3 (the owner's choice, 2026-10-10: every
+ * plain and Alt digit is taken, and ZX Paintbrush's bare 0-3 cannot be copied). Matched on
+ * `KeyboardEvent.code` (Digit1-Digit4), never `key`: Shift changes the key on many layouts.
+ * Read by InputHandler (what the key does), the Keyboard Shortcuts dialog and the generated manual.
+ * @const {{codes: string[], keys: string, i18n: string, en: string}}
+ */
+const CLUT_SHORTCUTS = Object.freeze({
+    codes: Object.freeze(['Digit1', 'Digit2', 'Digit3', 'Digit4']),
+    keys: 'Ctrl+Shift+1 to 4',
+    i18n: 'help.clutKeys',
+    en: 'Pick CLUT 0-3 (ULAplus modes)'
+});
+
+/**
+ * The stroke-behaviour keys that are not tools and not colours. Shift+I
+ * (bare I is the Eyedropper) turns Inverse on or off. Same arrangement as
+ * COLOUR_SHORTCUTS: one list read by InputHandler, the Keyboard Shortcuts
+ * dialog and the generated manual.
+ * @const {Array<{id: string, key: string, keys: string, i18n: string, en: string}>}
+ */
+const MODE_SHORTCUTS = Object.freeze([
+    Object.freeze({ id: 'toggleInverse', key: 'i', keys: 'Shift+I', i18n: 'help.toggleInverse', en: 'Inverse on or off' })
+]);
+
+/**
+ * The whole-cell paint tools in the top strip's cell-tools group: button id ->
+ * the InputHandler attribute paint mode it arms. One table for ClutBar (builds
+ * and shows the buttons), DrawModeBar (the status line) and the tests. Which
+ * screen modes each exists in is ColorManager.cellToolAvailable.
+ * @const {Object<string, string>}
+ */
+const ATTR_PAINT_BUTTONS = Object.freeze({
+    'attr-transpose': 'swap',
+    'attr-apply': 'apply',
+    'attr-copy': 'copy',
+    'attr-invert-dots': 'invertDots',
+    'attr-invert-both': 'invertBoth'
+});
 
 /**
  * Canvas zoom configuration — the single source for the zoom dropdown options,
@@ -1144,14 +1247,30 @@ const EVENTS = Object.freeze({
     COLOR_FLASH: 'color:flash',
     COLOR_BORDER: 'color:border',
     PALETTE_CHANGED: 'color:paletteChanged',
+    PALETTE_SLOT_CHANGED: 'color:paletteSlotChanged',
+    FIGURE_HISTORY_CHANGED: 'figure:historyChanged',
 
     // Canvas events
     CANVAS_RENDER: 'canvas:render',
     CANVAS_DIRTY: 'canvas:dirty',
     CANVAS_ZOOM: 'canvas:zoom',
+    STAMP_OPTIONS_CHANGED: 'stamp:optionsChanged',
+    // Type on canvas (Batch 10B): the Text tool and the hidden text field that holds the keyboard talk through these.
+    TEXT_ENTRY_OPEN: 'textEntry:open',         // tool -> field: { text, caret, x, y }  focus it
+    TEXT_ENTRY_CLOSE: 'textEntry:close',       // tool -> field: let go of the keyboard
+    TEXT_ENTRY_CHANGED: 'textEntry:changed',   // field -> tool: { text, caret }
+    TEXT_ENTRY_COMMIT: 'textEntry:commit',     // field / button -> tool: draw it
+    TEXT_ENTRY_CANCEL: 'textEntry:cancel',     // field / button -> tool: throw it away
+    TEXT_ENTRY_NEWLINE: 'textEntry:newline',   // button -> tool: a line break at the caret
+    TEXT_ENTRY_CARET: 'textEntry:caret',       // tool -> field: { x, y } where the caret is on the picture (for the IME window)
+    CANVAS_SCROLL: 'canvas:scroll',
     CANVAS_SCALE_CHANGED: 'canvas:scaleChanged',
     GRID_SNAP_CHANGED: 'grid:snapChanged',
     GRID_VISIBILITY: 'grid:visibility',
+    DISPLAY_VIEW_CHANGED: 'view:displayChanged',
+    READOUT_CHANGED: 'readout:changed',
+    INVERSE_CHANGED: 'draw:inverseChanged',
+    STATUS_NOTICE: 'status:notice',
     SYMMETRY_CHANGED: 'symmetry:changed',
     CLIP_CHANGED: 'clip:changed',
     DRAW_MODE_CHANGED: 'draw:modeChanged',
@@ -1200,6 +1319,8 @@ const EVENTS = Object.freeze({
     MAP_CHANGED: 'map:changed',
     MAP_TILESET_CHANGED: 'map:tilesetChanged',
     MAP_LOADED: 'map:loaded',
+    MAP_ELEMENTS_CHANGED: 'map:elementsChanged',
+    MAP_ELEMENT_DISPLAY_CHANGED: 'map:elementDisplayChanged',   // { pictures: boolean }
 
     // Font editor events (facts from FontService)
     FONT_CHANGED: 'font:changed',
@@ -1516,9 +1637,30 @@ window.DEFAULT_ZOOM = DEFAULT_ZOOM;
 window.DRAW_MODE = DRAW_MODE;
 window.DEFAULT_CELL_ATTRS = DEFAULT_CELL_ATTRS;
 window.GIGA_SLOTS = GIGA_SLOTS;
+window.DISPLAY_VIEW_COLOURS = DISPLAY_VIEW_COLOURS;
+window.SPECTRUM_MEMORY = SPECTRUM_MEMORY;
+/**
+ * The point-based figures the Figure tool draws (Batch 7 part 7A). Values are prefixed so they can
+ * never collide with the shape ids ('triangle', 'polygon') in the Shape picker.
+ * @const {Object}
+ */
+const FIGURE_TYPES = Object.freeze({
+    POLYLINE: 'figure-polyline',
+    POLYGON: 'figure-polygon',
+    TRIANGLE: 'figure-triangle',
+    PARALLELOGRAM: 'figure-parallelogram',
+    RAYS: 'figure-rays',
+    ORTHOGONAL: 'figure-orthogonal',
+    PARALLEL: 'figure-parallel'
+});
+
 window.TOOLS = TOOLS;
+window.FIGURE_TYPES = FIGURE_TYPES;
 window.TOOL_GROUPS = TOOL_GROUPS;
 window.COLOUR_SHORTCUTS = COLOUR_SHORTCUTS;
+window.CLUT_SHORTCUTS = CLUT_SHORTCUTS;
+window.MODE_SHORTCUTS = MODE_SHORTCUTS;
+window.ATTR_PAINT_BUTTONS = ATTR_PAINT_BUTTONS;
 window.PEN_CONTROLS = PEN_CONTROLS;
 window.PEN_ACTIONS = PEN_ACTIONS;
 window.PEN_PROFILES = PEN_PROFILES;

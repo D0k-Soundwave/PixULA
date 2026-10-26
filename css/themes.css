@@ -75,6 +75,7 @@
     --grid-pixel-color: #888888;
     --grid-cell-color:  #cc0000;
     --grid-block-color: #0000cc;
+    --grid-custom-color: #008800;
 
     /* Tool icon identity colours — see the method note on the dark-theme
        block in variables.css. Same hues, re-lightened for this surface. */
@@ -380,6 +381,7 @@
     --grid-pixel-color: #7a6a50;
     --grid-cell-color:  #b23b2e;
     --grid-block-color: #3a4ba0;
+    --grid-custom-color: #3f7f3a;
 
     /* Tool icon identity colours — see the method note on the dark-theme
        block in variables.css. Same hues, re-lightened for this surface. */

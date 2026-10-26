@@ -13,6 +13,18 @@ yüklemek için `.tap`. Bunları **Dosya > Resmi farklı kaydet** yazar. Yalnız
 resmi içerirler, başka bir şey değil; sonucu teslim ederken istediğiniz budur,
 ama üzerinde çalışmaya devam etmek istiyorsanız değil.
 
+### Resim içe aktarma
+
+Bir fotoğraf veya başka bir resim (PNG, JPG, GIF) açıldığında üç dönüşüm yan yana gösterilir - Keskin, Yumuşak ve Düz - ve beğendiğinize tıklarsınız. Tonları mürekkep ve kâğıt piksellerine çeviren Yumuşak dönüşümdür; önizlemelerin altındaki **Tarama** listesi bunun nasıl yapılacağını seçer: varsayılan içe aktarmanın kendi Floyd-Steinberg'idir ve liste ZX Paintbrush'ın diğer 30 yöntemini de sunar - eşikler, hata yayılımı, Bayer matrisleri, küme noktaları ve süperhücreler. Bir yöntem seçmek Yumuşak'ı, bir tane seçtiyseniz Keskin'i de yeniden çizer (Düz hiç tarama yapmaz). Sıralı yöntemler öznitelik hücreleri boyunca devam eder, böylece desen tüm resimde akar; hata yayılımı her hücrenin içinde kalır, çünkü her hücrenin kendi iki rengi vardır. Layer 2 ve LoRes kiplerinde liste de çalışır: her piksel en yakın iki palet rengi arasına konur ve tüm resim tek bir bloktur, bu yüzden hata yayılımı tüm resimde akar.
+
+### Resmin bir bölümünü kaydetme
+
+**Dosya > Seçimi farklı kaydet**, Resmi farklı kaydet ile aynı biçimleri listeler; her biri yalnızca seçim ona uyuyorsa açıktır. PNG, BMP ve JPEG her dikdörtgeni alır. ZXP, SEV, ZED, ASM, C, BIN ve ATR tam öznitelik hücrelerini alır: seçim önce hücrelere uydurulur ve durum çubuğu bunu söyler. ColorTiles tam 16x16 döşemeleri alır. Bir bütün ekranın dökümü olan biçimler (SCR, kasetler, MLT ve benzerleri) yalnızca seçim bütün ekran olduğunda açıktır. ASM, C, BIN ve ATR parçayı satır satır yazar: bit eşlemi satır başına bayt bloğu olarak yukarıdan aşağıya, öznitelikleri hücre başına bir bayt olarak; bunu klasik, multicolor ve ULAplus kiplerinde yaparlar. Serbest el veya elips seçimi sınırlayıcı dikdörtgenini kaydeder. Kapalı bir biçim, üzerine gelince nedenini söyler. Resmi farklı kaydet bütün resmi kaydeder ve seçimi yok sayar.
+
+### Bir seçimden yeni resim
+
+**Düzen > Seçimden yeni resim** seçimi resmin tamamına çevirir. Seçim önce tam hücrelere uydurulur. Bir şey yapmadan önce sorar ve Ctrl+Z eski resmi geri getirir. Bütün katmanlar korunur ve o bloğa kırpılır; blok sol üste taşınır, geri kalan boştur ve oradaki arka plan beyaz Kâğıttır. Ekran kipi aynı kalır ve resim adsız olur, bu yüzden sonraki Kaydet bir ad sorar.
+
 ### Otomatik kaydetme ve yedekler
 
 PixULA çalışmanızı birkaç dakikada bir tarayıcının kendi depolamasına

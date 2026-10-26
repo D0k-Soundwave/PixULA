@@ -102,7 +102,8 @@ measured.
 |---|---|---|---|
 | `MAX_COLORS_PER_CELL` | 2 | P | The ULA. Not a choice |
 | `MAX_LAYERS` | 32 | M+C | 8,448 B per layer packed at STANDARD_ULA, 212,480 B at LAYER2_640 (M, 2026-08-07 after the snapshot work). Was 16, and was briefly raised on a figure taken at the SMALLEST mode - the largest mode is what matters, and it is now affordable there too. 31 are drawable; layer 0 is the locked Background |
-| `DEFAULT_UNDO_LIMIT` | 500 | M+C | Raised from 50 on 2026-08-07 once depth stopped being expensive. A one-layer stroke is 212,480 B at LAYER2_640 and 8,448 B at STANDARD_ULA (M), so 500 is ~101 MB at the largest mode and ~4.2 MB at the smallest (C) |
+| `DEFAULT_UNDO_LIMIT` | 500 | M+C | Raised from 50 on 2026-08-07 once depth stopped being expensive. A one-layer stroke is 212,480 B at LAYER2_640 and 8,448 B at STANDARD_ULA (M), so 500 is ~101 MB at the largest mode and ~4.2 MB at the smallest (C). Since 2026-10-19 the depth to start with; Preferences > Undo steps changes it (stored as `pref.undoLimit`) |
+| `MIN_UNDO_LIMIT` / `MAX_UNDO_LIMIT` | 1 / 2000 | P | Source: the owner's decision of 2026-10-19 (a stated requirement, not derived and not a guess): the range of Preferences > Undo steps. `Validators.isValidUndoLimit` allowed 1-500 before. 2000 one-layer steps are ~16.9 MB at STANDARD_ULA (C: 2000 x 8,448 B) and ~425 MB at LAYER2_640 (C: 2000 x 212,480 B), over `MAX_HISTORY_BYTES`, which then keeps ~1,263 (C: 268,435,456 / 212,480) - the setting's hint says the cap can keep fewer steps than set |
 | `UndoRedo.MAX_HISTORY_BYTES` | 256 MB | C | The count alone is the wrong lever: an all-layer action costs 6,586,880 B against a stroke's 212,480 B (M, 32 layers at LAYER2_640), so 500 of those would be 3.29 GB. The budget holds ~1,263 strokes or ~40 all-layer actions at that mode |
 | `UndoRedo.MIN_HISTORY_ENTRIES` | 10 | A | The floor the budget may not prune past - undo must not become least reliable exactly when the document is largest |
 | `PresetCodec.SLOT_COUNT` | 9 | C | Tied to the keyboard: nine digit keys, so nine slots and no unkeyed remainder. Was 24 (A, "at least 20 asked for, 24 lays out 4x6") until 2026-08-07 |
@@ -119,6 +120,10 @@ measured.
 | GIF `MAX_CODES` | 4096 | P | The LZW code-width ceiling in GIF89a |
 | Long-press slop | 8 px | A | `input-handler.js` |
 | Tooltip hold slop | 10 px | A | `tooltip-manager.js` |
+| Gradient Rotation range | -180 to 180 degrees | C | One full turn (360 degrees) centred on 0, the same range as the Shape tool's Rotation; `gradient-tool.js` ROTATION_MIN / MAX. Added 2026-10-19 (owner decision: build Rotation) |
+| Gradient Zoom maximum | 400 % | C | The Coarse grain is a 2 x 2 matrix, 4 levels (C: 2 x 2). Past 4x the whole dragged size falls inside the first quarter of the ramp, one level of that grain, so a larger zoom shows nothing new with it. `gradient-tool.js` ZOOM_MAX. Added 2026-10-19 |
+| Gradient Zoom minimum | 25 % | C | 1 / 4 = 0.25, the reciprocal of the maximum, so the slider zooms out as far as it zooms in; the same 0.25 to 4 span as the gradient's Curve slider. A design rule, not a measurement: the owner may move it, nothing else rests on it. `ZOOM_MIN` |
+| Gradient Zoom step | 5 % | C | 375 / 5 = 75 slider positions between 25 and 400; the same step the Shape tool's percentage sliders use |
 
 ## 5. Revisions - all resolved 2026-08-07
 
@@ -531,6 +536,30 @@ previous step already cleared, and about 57 ms building the per-move hover
 footprint. Stamping only the leading edge of each step would take most of the
 first; it is a rewrite of the stroke, so it was not part of this pass.
 
+### Shift and the Move choice - measured 2026-10-08
+
+Batch 2 part 2B2 changed `TransformService.shift` (diagonals, a per-axis
+amount, and the Move content choice). Instrument: a Node harness that runs
+`shift` 40 times per run on a picture with dots on every third row and fifth
+column, two runs back to back in one sitting. Before = commit 92fd7c2 (the
+single-direction shift, 1 pixel); after = the working tree (2B2). Node, not
+the browser: read for the ratio and the order of magnitude.
+
+| Path | Before | After | Tag |
+|---|---|---|---|
+| Layer 2 640x256, shift 1 pixel left/right | 29.0 to 30.6 ms per call | 29.6 to 31.0 ms per call | M, 2026-10-08, 2 runs each |
+| multigiga_8x1 256x192 (two screens), diagonal whole-cell step, content both | not measured (the diagonal did not exist) | 12.2 to 13.3 ms per call | M, 2026-10-08, 2 runs each |
+
+Reading: the Layer 2 path is unchanged within the run-to-run spread (about
+2 ms here), so the rounding fix and the new diagonals add no measurable cost
+there. The multigiga figure is the worst case the pad can ask for: one
+diagonal press is two passes over the whole screen. [C] mid-point of the two
+multigiga runs: (12.2 + 13.3) / 2 = 12.7 ms per call. A held diagonal keeps
+up with its repeat only while the repeat interval is longer than that. The
+repeat interval in Helpers.REPEAT_INTERVAL is 60 ms ([A]: a guess, never
+measured), so the check passes with the 60 ms guess. Measure the real hand
+cadence before relying on it.
+
 ### XOR strokes and the drawing-modes strip - measured 2026-10-07 and 2026-10-08
 
 XOR / Over remembered which pixels a stroke had toggled in a Set of
@@ -579,6 +608,51 @@ strip was already at 0.154, a hair above ColorBarFit's 0.15 FLOOR, and now
 sits on it at both device pixel ratios; the test that checks the DPR margin
 grows moved to 1200 px (0.277 / 0.270), where the scale is not floored.
 
+### View switches (Colours Off, Colour Grid, Stop Flashing) - 2026-10-09
+
+| Figure | Before | After | Tag |
+|---|---|---|---|
+| `composeToCanvas`, standard_ula, 768 cells, 8 layers, mean of 40 | 0.41 / 0.34 ms | 0.35 / 0.33 ms | M, 2026-10-09, Node with blits stubbed, 2 runs each. The "before" runs had the old inline FLASH swap put back in, not a checkout |
+| multicolor_8x1, 6,144 cells | 3.52 / 3.58 ms | 3.39 / 3.67 ms | M, same method |
+| multigiga_8x1 Average, 6,144 cells | 14.04 / 13.76 ms | 13.66 / 14.34 ms | M, same method |
+| timex_hires, 1,536 cells | 0.87 / 0.79 ms | 0.78 / 0.76 ms | M, same method |
+| layer2_640, 2,560 cells (not touched by the rule) | 0.650 / 0.649 / 0.698 ms | 0.634 / 0.638 / 0.639 ms | M, same method, three alternating runs |
+| The two calls added to `composeToCanvas` (`_refreshDisplayFlags`, `_syncFlashClock`) | - | about 8.5 ns per compose | M, same method |
+| Display greys in `DISPLAY_VIEW_COLOURS`: chessboard 224, screen A only 170, screen B only 102 (of 255) | - | - | A, 2026-10-09: three levels chosen to be told apart from each other and from white and black. Nothing depends on the exact values; change them freely |
+
+No decision rests on the grey levels. The compose cost did not move beyond run to
+run noise, so no optimisation was needed.
+
+### Pointer readout and custom grid - 2026-10-09 (batch 3 part 3B)
+
+| Figure | Value | Tag |
+|---|---|---|
+| Display file at $4000, attributes at $5800, PLOT rows 176 | as written | P, ZX BASIC manual ch. 17 and 24, read 2026-10-09 |
+| Timex second display file at $6000, hi-colour attribute = pixel byte + $2000, hi-res columns alternate | as written | P, TS2068 port map, read 2026-10-09 |
+| Shadow screen in bank 7 at $C000 | as written | P, World of Spectrum 128K reference, read 2026-10-09 |
+| GigaScreen screen A = bank 5, screen B = bank 7 | convention | A: the .img file does not say; shown labelled, nothing depends on it |
+| Custom grid draws a direction only when step x scale >= 4 CSS px | 4 px | C: the pixel grid shows from 400%, 1 px x 4 |
+| Custom grid default step | 4 | A: a visible but not crowded start; the owner sets their own |
+| Custom grid default colour | #00aa00 (light), #008800 / #3f7f3a (themes) | A: chosen to differ from the pixel, cell and block grids |
+| Readout refresh | 32 ms throttle, unchanged | C, as before |
+
+### Inverse and Colour core - 2026-10-09 (batch 4 part 4A)
+
+| Figure | Before | After | Tag |
+|---|---|---|---|
+| Layer 2 640x256 whole-screen fill, 163,840 `draw()` calls with `resolveUserMode`, steady state of 5 runs | 20.9 to 21.8 ms | 20.5 to 22.3 ms | M, 2026-10-09, Node with blits stubbed, 2 runs each back to back; "before" is `pixel-draw-routine.js` from commit c6d7a13. A first version read Inverse with a keyed lookup (`get('draw.inverse')`): 24.0 to 25.4 ms (+15%). Made a plain field; recorded so the keyed read is not tried again |
+| standard_ula, one 32 px brush stroke over 250 px, steady state | 1.7 to 2.2 ms | 1.8 to 2.3 ms | M, same method (core off) |
+| Strip icon width, 800 / 1024 / 1200 px window, default interface size | 30.8 / 48.3 / 54 px | with the Inverse button 28.3 / 44.5 / 54 px | M, 2026-10-09, Playwright |
+| Strip rows at 1024 px window, 200% interface size | 1 row (16 px icons, the floor) | 2 rows | M, 2026-10-09, Playwright; see batch-04.md |
+
+### The 15-button strip - 2026-10-09 (batch 4 part 4B)
+
+| Figure | Value | Tag |
+|---|---|---|
+| Strip icon width, 800 / 1024 / 1200 px window, default interface size, 15 buttons | 22.7 / 36.0 / 46.2 px (12 buttons: 28.3 / 44.5 / 54) | M, 2026-10-09, Playwright; matched the 2026-10-09 prediction made with clones of a button |
+| Strip rows with 15 buttons, 1024/1280/1366/1600 px x interface 100/125/150/200% | 1 row everywhere except 1024 px at 200% (2 rows) | M, 2026-10-09, Playwright |
+| Interface fit floor (ColorBarFit), icon width at the floor | 16 px at scale 0.15 | M, 2026-10-09 |
+
 ### What was measured and NOT acted on
 
 | Path | Figure | Tag | Why it was left |
@@ -599,6 +673,65 @@ Two of the rows above are things that looked like optimisations and were not,
 and four more are costs that turned out too small to be worth the change they
 would need. That is the point of measuring first.
 
+### Stamp placement and preview after the one write plan - measured 2026-10-10
+
+Batch 5 part 5A routed `stampAt`, `commitStamp` and both previews through one
+write plan (`SelectionService._forEachStampWrite`). Measured in Node against the
+repo's test stubs (no canvas, so this is the logic cost only, not rendering),
+a full-canvas stamp with a third of its dots set, plain default settings,
+median of 7 calls, two runs back to back against a `git archive` of the tree
+before part 5A (commit ad47ff8), one sitting.
+
+| Path | Before (run 1 / 2) | After (run 1 / 2) | Tag |
+|---|---|---|---|
+| `stampAt`, 256x192 stamp, standard_ula | 1.9 / 2.0 ms | 2.1 / 2.1 ms | M |
+| Preview (`moveFloatingPaste`), 256x192, standard_ula | 1.0 / 0.9 ms | 1.6 / 1.6 ms | M |
+| `stampAt`, 640x256 stamp, layer2_640 | 8.6 / 9.7 ms | 10.8 / 10.4 ms | M |
+| Preview, 640x256, layer2_640 | 2.8 / 2.9 ms | 2.8 / 2.7 ms | M |
+
+The classic preview now collects the stamp's writes into a per-cell map before
+simulating, instead of walking each cell's pixels in turn: +0.6 ms (C: 1.6 -
+1.0) on a stamp that covers the whole picture, which is the worst case. That is
+a tenth of `CoverageOps.LIVE_BUDGET_MS` (7 ms), so nothing was changed on the
+strength of it. The indexed default path is the old direct one and is unchanged.
+
+### Figure tool geometry cost - measured 2026-10-10
+
+Node, repo test stubs (no canvas, so this is the geometry only; the compositor preview that follows is
+measured in the browser specs, not here). A filled four-corner polygon covering the whole canvas (the worst
+case a person can draw), median of 9 calls, two runs back to back in one sitting.
+
+| Path | Run 1 / 2 | Tag |
+|---|---|---|
+| `FigureModel.rasterise`, 256x192 (49,152 pixels), standard_ula | 4.5 / 4.6 ms | M |
+| `PixelDrawRoutine.strokeTargets`, same pixels | 4.1 / 4.0 ms | M |
+| `FigureModel.rasterise`, 640x256 (163,840 pixels), layer2_640 | 10.9 / 10.6 ms | M |
+| `PixelDrawRoutine.strokeTargets`, same pixels | 13.0 / 13.0 ms | M |
+
+A full-canvas fill in Layer 2 640 costs about 24 ms of geometry (C: 10.9 + 13.0) per preview redraw, which is over
+the 7 ms `CoverageOps.LIVE_BUDGET_MS` budget [P: CoverageOps, read 2026-10-10]. That is the extreme case; a figure the size of
+a sprite is a few hundred pixels [A: not measured]. Corrected 2026-10-10 (group B review): since Batch 7C the Figure
+preview is NOT only redrawn on a click. `figure-tool.js` re-renders the full figure, fill included, on every hover
+move while points are being placed, and point-mode drags re-render on every move; `FigureEditor.render` rasterises
+twice (the plan, and `knob()`), and an editable Shape rasterises twice more. Worst case per move in Layer 2 640 is about
+35 ms [C: 2 x 10.9 + 13.0, from the table], five times the 7 ms budget. Not yet fixed; it is only reached with a
+full-canvas filled figure, and a figure of a few hundred pixels is far below it. Open item: rasterise once per render.
+
+### Line style and rotation cost - measured 2026-10-10
+
+Node, repo test stubs, a 601 x 241 ellipse (about 1,300 pixels [C: counted from the raster of that ellipse]) in Layer 2 640, median of 7 calls, two runs back to
+back in one sitting.
+
+| Path | Run 1 / 2 | Tag |
+|---|---|---|
+| Solid | 0.0 / 0.1 ms | M |
+| Dashed (orderOutline walk + pattern) | 0.9 / 1.0 ms | M |
+| Rotated 30 degrees (sampled outline) | 0.8 / 0.7 ms | M |
+| Rotated 30 degrees and dashed | 1.2 / 1.4 ms | M |
+
+All far inside the 7 ms live budget (C: 1.4 / 7 = 20 percent at worst). The outline walk is quadratic only when it has
+to jump between pieces, which a one-pixel closed outline does not.
+
 ---
 
 ## Method
@@ -618,3 +751,250 @@ observed, and it is the right order of magnitude for deciding whether a cap is
 protecting anything. Where a decision needs the true heap figure, say so and
 measure it with the profiler.
 
+
+### Dither module timing - measured 2026-10-10 (Batch 8 part 8A)
+
+`node tools/dither-bench.js`, Node v24.19.0, a 640x256 grey image (163,840 pixels; a ramp plus fixed noise), median of 9
+calls per method, two runs back to back in one sitting [M]. Run 1 / run 2:
+
+| Methods | Run 1 / 2 | Tag |
+|---|---|---|
+| 3 thresholds | 0.17 / 0.17-0.18 ms each | M |
+| 9 ordered, cluster and supercell methods, bayer 2/4/8 | 0.34-0.52 ms each | M |
+| Error diffusion, small kernels (Sierra Lite, False FS, FS, Zhigang Fan, Shiau-Fan, Atkinson, Burkes, Sierra 2-row) | 1.9-3.1 ms each | M |
+| Error diffusion, large kernels (JJN, Stucki, Sierra 3-row) | 3.9-4.5 ms each | M |
+| Park-Kang-Kim | 6.5 / 6.6 ms | M |
+| Stevenson-Arce | 16.8 / 16.7 ms | M |
+| All 31, summed | 64.4 / 63.x ms | C: sum of the 31 medians |
+
+Against the 7 ms `CoverageOps.LIVE_BUDGET_MS` budget [P: coverage-ops.js, read 2026-10-10] every method but Stevenson-Arce fits at
+this size; error diffusion is a serial scan and cannot be done per pointer move on a full 640x256 image either way, so 8B
+should preview on a reduced image or debounce it. `PKK_SPLIT = 224` in `js/utils/dither.js` is an [A] figure: the
+measurement against the help pictures could not tell kernel A from kernel B in the highlights, and nothing rests on it.
+
+### Dither in import and gradient - measured 2026-10-10 (Batch 8 part 8B)
+
+`node tools/import-dither-bench.js`, Node v24.19.0, standard_ula (256x192, 49,152 pixels [C: 256 x 192]), the Smooth
+conversion of one image (cell pairs chosen, dots rendered, preview painted), median of 9, two runs back to back [M]:
+
+| Dither | Run 1 / 2 | Tag |
+|---|---|---|
+| Floyd-Steinberg (the importer's own, unchanged) | 4.4 / 4.2 ms | M |
+| Bayer 8 (through Dither.paletteIndices) | 5.0 / 5.1 ms | M |
+| Stevenson-Arce | 6.3 / 6.5 ms | M |
+
+All within the 7 ms live-preview budget [P: CoverageOps.LIVE_BUDGET_MS] at this size. The gradient tool now runs one
+`Dither.apply` over the whole gradient rectangle for a method: the full-canvas Layer 2 640 case (163,840 pixels)
+costs the Dither time already measured above (0.2-0.5 ms ordered, 2-4.5 ms most kernels, 6.6 ms Park-Kang-Kim, 16.8 ms
+Stevenson-Arce [M, 2026-10-10 section above]) plus the existing per-pixel position loop; a before / after run of the
+gradient preview on layer2_640 was NOT made [A: nothing was measured]. A picture-made fill is at most 32 x 32 = 1,024
+pixels [C], negligible.
+
+### Preview panel and New Picture from Selection - measured 2026-10-12 (Batch 9 part 9B)
+
+One redraw of the Preview map (drawImage of the live canvas into the panel's canvas, frame stroked, then a 1-pixel read-back to
+force the work to finish), median of 200, two runs back to back, in the Playwright Chrome [M]:
+
+| Mode | Run 1 / 2 | Tag |
+|---|---|---|
+| standard_ula | 0.5 / 0.4 ms | M |
+| layer2_640 | 0.6 / 0.3 ms | M |
+
+Against the 32 ms redraw interval [C: every second frame of a 60 Hz display; 16.7 ms a frame, P] that is about 1-2 % of the interval [C: 0.6 / 32].
+The cheaper route the plan hoped for (drawImage from the live canvas rather than a copy through getImageData) was the one used and
+it agrees with the canvas pixel for pixel in the spec; the getImageData alternative was NOT timed [A: assumed slower, never measured].
+
+`node tools/crop-bench.js`: LayerManager.cropToCells at layer2_640 (80 x 32 cells a layer) with 32 drawing layers, median of 7,
+two runs: 56.1 / 31.7 ms [M, Node v24.19.0, repo test stubs]. The undo entry holds every layer [P: about 6.8 MB, undo-redo.js comment
+of 2026-08-07]. A one-off action, not a per-frame cost.
+
+### Text stamp re-render with opposite dots - measured 2026-10-13 (Batch 10A2)
+
+`node tools/text-layers-bench.js`, Node v24.19.0: "Hello world", ZX ROM 16 px, shadow and outline on, re-rendered at scale 1.5 by
+SelectionService.setStampScale, median of 15, two runs back to back [M]:
+
+| Dots | Run 1 / 2 | Tag |
+|---|---|---|
+| Same | 1.6 / 1.4 ms | M |
+| Opposite (a second coverage chain for the clear dots) | 1.6 / 1.5 ms | M |
+
+Against the 7 ms live budget [P: CoverageOps.LIVE_BUDGET_MS] both fit by a wide margin at this size; the plan's estimate that opposite
+dots "double the coverage work" [A] did not show up in the total at this size (the effect chain is a small part of it).
+
+### Type on canvas preview cost - measured 2026-10-13
+
+Method: Playwright run in this machine's Chromium, mode layer2_640 (640 wide), Text tool, Type on canvas, Clear background on, one
+full-width line of 78 "M" characters at 8x8, `TextTyping.preview(true)` timed with `performance.now()` for 15 consecutive keystroke
+rebuilds; median and worst of the 15, run three times.
+
+| Path | Figure | Tag |
+|---|---|---|
+| Preview per keystroke, median | 0.7 to 1.0 ms | M |
+| Preview per keystroke, worst of 15 | 3.1 to 4.3 ms | M |
+| Budget | 7 ms (`CoverageOps.LIVE_BUDGET_MS`, half a 60 fps frame) | C: 1000/60/2 = 8.3, the code constant is 7 |
+
+Median is about 7 times inside the budget and the worst case about 1.6 times inside it; nothing was optimised.
+
+### Big font (CHX) sizes - computed 2026-10-13
+
+| Figure | Value | Tag |
+|---|---|---|
+| Heaviest big font record in the library: 256 glyphs of 32 x 32 | 256 x 128 = 32,768 bytes; base64 = ceil(32,768 / 3) x 4 = 43,692 characters | C |
+| Its shading list | 256 x 2 = 512 bytes; base64 = 684 characters | C |
+| Encoded total against `FontCodec.MAX_JSON_BYTES` | about 44.5 KB of 64 KB (65,536) | C: 43,692 + 684 + about 100 for the other fields |
+| Big fonts that fit the 2 MB library cap in the worst case | 2,097,152 / 44,500 = 47 | C |
+| Heaviest CHX file: 256 characters of 4 x 4 blocks, transparent | 517 + 256 x (3 + 16 x 8) = 33,653 bytes | C |
+| Same, all coloured (9 bytes a block; written by PixULA since 2026-10-20, read as pixels only before) | 517 + 256 x (3 + 16 x 9) = 38,149 bytes, under the 65,535 reach of the 2-byte offsets | C |
+| Glyph grid repaint for 256 glyphs of 32 x 32 | 256 x 32 x 32 = 262,144 pixel tests | C |
+
+### Coloured CHX characters - 2026-10-20
+
+The attribute bytes of coloured characters (owner decision 2026-10-19). No new limit: every row checks an existing cap.
+
+| Figure | Value | Tag |
+|---|---|---|
+| Colour list of the heaviest font (FontCodec field `c`) | 256 x (1 flag + 16 blocks) = 4,352 bytes; base64 = ceil(4,352 / 3) x 4 = 5,804 characters | C |
+| Heaviest font encoded, every glyph shaded and coloured | 50,255 characters of JSON (44,444 without the colours), of the 65,536 `FontCodec.MAX_JSON_BYTES` | M, 2026-10-20, `JSON.stringify(FontCodec.encode(...)).length` in Node; pinned by tests/chx-colour.test.js |
+| Heaviest coloured big fonts that fit the 2 MB library cap | 2,097,152 / 50,255 = 41 (47 uncoloured) | C |
+| Undo snapshot of the heaviest font, all coloured | 256 x (128 + 2) + 256 x 16 = 37,376 bytes; about 56 steps in the 2 MB `FontHistory` cap (63 uncoloured) | C: 2,097,152 / 37,376 |
+| Attribute of a block a smaller coloured character does not have | 56 (0x38: black Ink, white Paper, no Bright, no Flash) | P: the Spectrum's start-up ATTR-P, Logan and O'Hara, "The Complete Spectrum ROM Disassembly", 1983. A choice of what to show, not a limit |
+| All characters map repaint (`FontMapView.setData`, 512 x 512 map, 256 glyphs of 32 x 32) | 1.6 ms with no colour hook; 3.0-3.1 ms with the hook and no coloured glyph; 9.6-10.0 ms with every glyph coloured (median of 9, two runs) | M, 2026-10-20, Playwright in this machine's Chrome. Runs once per stroke or attribute change, not per pointer move; inside the 16.7 ms frame (C: 1000 / 60) |
+
+### Font Editor map and undo - measured 2026-10-13
+
+Method: Node (tests/font-map.test.js, `FONTMAP_TIME=1`, two runs back to back) and Playwright in this machine's Chromium (tests/browser/font-editor-map.spec.js,
+a 4 x 4-block 256-character font = 512 x 512 map).
+
+| Path | Figure | Tag |
+|---|---|---|
+| `FontMap.compose` of 256 glyphs of 32 x 32 | 0.26 / 0.21 ms | M |
+| `FontMap.decompose` of all 256 | 0.89 / 0.88 ms | M |
+| `FontMapView.setData` (compose + paint the image + size the canvas) | 1.9 ms | M |
+| One pointer move while drawing (handler only; the canvas is redrawn once per animation frame) | 0.008 ms mean over 200 moves | M |
+| `FontMapView.redraw` at zoom 1 and 3 | below 0.1 ms (the browser timer rounds to 0.1 ms; the drawing itself runs on the GPU) | M, a ceiling only |
+| Budget | 16.7 ms = one 60 fps frame | C: 1000 / 60 |
+| Map canvas redraw at 1536 / 2048 / 3072 / 4096 pixels a side (512 x 512 picture) | 8.6 / 12.8 / 29.5 / 51.2 ms, median of 9 with readback | M, 2026-10-13 (replaces an untagged 1600-pixel guess) |
+| Map zoom cap | 2048 / 512 = 4 at the largest map: the largest canvas that redraws inside 16.7 ms | C from the row above |
+| Undo history cap | 2 MB; the heaviest snapshot 256 x (128 + 2) = 33,280 bytes, so about 63 steps | C: 2,097,152 / 33,280 |
+
+### Type on canvas with a big proportional font - measured 2026-10-13
+
+Method: Playwright in this machine's Chromium, mode layer2_640, a 32 x 32 font (256-glyph class, shaded on alternate letters), Character width and
+height 64, a line of 9 letters (496 x 64 pixels), `TextTyping.preview(true)` timed for 15 keystroke rebuilds, two runs back to back.
+
+| Path | Figure | Tag |
+|---|---|---|
+| Preview per keystroke, median | 2.7 and 2.9 ms | M |
+| Preview per keystroke, worst of 15 | 8.8 and 9.6 ms | M |
+| Budget | 16.7 ms = one 60 fps frame; the 7 ms `CoverageOps.LIVE_BUDGET_MS` is the stamp-preview budget, which the worst case here (8.8 and 9.6 ms) exceeds | C: 1000 / 60 |
+| Same measure with the 8 x 8 ROM font, full-width line, Clear background (Batch 10B) | median about 1 ms, worst about 4 ms | M, 2026-10-13 |
+
+The worst case is inside a frame but only by 1.7 times; nothing was optimised.
+
+### Dither methods in the indexed imports - measured 2026-10-13
+
+Method: Playwright in this machine's Chromium, `PNGFormat._quantizeIndices` on a full-screen noise picture (every pixel a different colour), median of 3,
+two runs back to back; the palette is the one the importer builds for the picture.
+
+| Mode (screen, palette) | Floyd-Steinberg | Bayer 8 | Atkinson | Tag |
+|---|---|---|---|---|
+| Layer 2 256 (256 x 192, 256 colours) | 17 and 20 ms | 8 ms | 9 ms | M |
+| Layer 2 640 (640 x 256, 16 colours) | 8 and 9 ms | 13 ms | 15 and 16 ms | M |
+| LoRes (128 x 96, 256 colours) | 5 ms | 7 and 8 ms | 8 and 12 ms | M |
+
+Each is well under the 100 ms a person starts to notice a pause at [P: Nielsen, response times, widely cited]; nothing was optimised beyond a table of
+already-seen colours in `Dither.paletteIndices` (palettes of more than 16 colours only, same answer).
+
+### Gradient preview with a Dither method at Layer 2 640 - measured 2026-10-13 (group C review)
+
+Method: Playwright in Chromium on this machine, full-canvas gradient `_updatePreview`, median of 7, two runs back to back (taken by the reviewer).
+
+| Grain | Run 1 | Run 2 | Tag |
+|---|---|---|---|
+| Bayer 8 (the gradient's own) | 34.6 ms | 28.7 ms | M |
+| Floyd-Steinberg | 35.1 ms | 38.0 ms | M |
+| Stevenson-Arce | 36.0 ms | 45.0 ms | M |
+
+All are above the 7 ms live budget (`CoverageOps.LIVE_BUDGET_MS`) - the preview was already about four times over it before the dither methods (Bayer 8, 28.7 to 34.6 ms),
+and the methods add 0 to 16 ms on top. This replaces the earlier 'nothing was measured' note; no change was made on the strength of it.
+
+### Map elements: find speed and record size - measured 2026-10-13
+
+Method: `node tools/map-find-bench.js` (Node, this machine), a screen of the mode filled with four dot patterns and varied attributes, `captureScreen` and
+`findElement` with a 1 x 1 and a 4 x 4 block, median of 7, two runs back to back (the ranges are the two runs).
+
+| Mode (cells) | Capture the picture | exact / dots, either block | visual, either block | Tag |
+|---|---|---|---|---|
+| Standard ULA (32 x 24) | 0.1 to 0.4 ms | 0.2 to 0.4 ms | 2.9 to 3.3 ms | M |
+| GigaScreen (32 x 24, two screens) | 0.2 to 0.4 ms | 0.3 to 0.4 ms | 3.2 to 3.6 ms | M |
+| Timex hi-res pair (64 x 24, two screens; no exact) | 0.4 to 1.0 ms | 0.5 to 0.8 ms (dots) | 7.7 to 7.8 ms | M |
+
+A find is a few milliseconds even on the biggest grid, so it runs synchronously (the earlier estimate was [A] until this measurement). The slowest, the Timex pair
+with Visual compare, is 7.8 ms against a 16.7 ms frame [C: 1000 / 60].
+
+| Figure | Value | Tag |
+|---|---|---|
+| Smallest element record as stored (1 x 1, one screen, one place) | 95 bytes | M |
+| Room left beside the largest map | 1,048,576 - 291,879 = 756,697 bytes | C: `MapCodec.MAX_JSON_BYTES` less the largest-map row measured 2026-08-07 |
+| Smallest elements that fit there | 756,697 / (95 + 1) = 7,882 | C |
+| `MapCodec.MAX_ELEMENTS` | 4,096, below 7,882, so it never binds before the size limit does | C |
+| Full-screen two-screen elements beside the largest map | 40 fit; the largest document then encodes to 1,032,628 bytes | M (tests/map-elements.test.js) |
+
+### Map elements: Visual compare after each GigaScreen screen is compared on its own - measured 2026-10-14
+
+`node tools/map-find-bench.js`, two runs back to back. This replaces the GigaScreen and Timex-pair "visual" rows above (3.2 to 3.6 ms and 7.7 to 7.8 ms [M, 2026-10-13], measured when the two screens were blended).
+
+| Mode | Visual compare, 1x1 or 4x4 block (before -> now) | Tag |
+|---|---|---|
+| GigaScreen (32 x 24, two screens) | 3.2 to 3.6 ms -> 4.2 to 4.3 ms | M |
+| Timex hi-res pair (64 x 24, two screens) | 7.7 to 7.8 ms -> 6.8 to 6.9 ms | M |
+| Standard ULA | 2.7 to 2.8 ms (unchanged) | M |
+
+All are well under a 16.7 ms frame [C: 1000 / 60], so the find still runs straight away.
+
+
+### Gradient polygon styles, Rotation and Zoom - measured 2026-10-20
+
+Method: a temporary Playwright spec (deleted after), Chrome on this machine, Layer 2 640, a full-canvas gradient
+(640 x 256 = 163,840 pixels [C]), axis from corner to corner, Bayer 8, `_updatePreview` median of 7. Before = the
+working tree with `gradient-tool.js` taken back to the last commit (no new styles), after = with them, the edge-based
+styles at Rotation 20 (the turned path). Two sessions of two runs each, before and after back to back; the figures are
+the range over the four runs [M].
+
+| Style | Before | After | Tag |
+|---|---|---|---|
+| Square | 35.6 to 39.1 ms | 34.5 to 39.0 ms | M |
+| Diamond | 32.0 to 42.7 ms | 30.4 to 37.2 ms | M |
+| Radial (untouched, for scale) | 29.6 to 37.6 ms | 28.4 to 34.1 ms | M |
+| Triangle | - | 35.7 to 47.0 ms | M |
+| Octagon | - | 31.5 to 39.2 ms | M |
+
+The run-to-run spread of one unchanged style is up to 10.7 ms (C: Diamond before, 42.7 - 32.0), so Square and Diamond,
+which now go through the turned path, show no change that can be told from it. The triangle is the slowest new style
+(its worst run 47.0 ms against 42.7 ms for the worst old one, C: 47.0 - 42.7 = 4.3 ms). All are over the 7 ms live
+budget (`CoverageOps.LIVE_BUDGET_MS`) at this size, as every style already was (Gradient preview with a Dither method
+at Layer 2 640, above); nothing was changed on the strength of it.
+
+
+### Elliptic, rotatable Ring - measured 2026-10-20
+
+Method: Node 24.19.0 on this machine, the repo's test stubs (logic only, no canvas or drawing), `generateShape('ring')`
+21 times per case, median / worst [M]. The ring fills the picture: an ellipse with radii half the width and height less
+one, Inner radius 50 %. "Circular" is a ring of radius half the height less one, which takes the old row-span fill
+(unchanged, so it is also the before figure). Two runs back to back; the table gives the range over both.
+
+| Case | Standard ULA 256 x 192 | Layer 2 640 x 256 | Tag |
+|---|---|---|---|
+| Circular, filled (the old fill) | 0.29 to 0.31 / 1.90 to 2.56 ms | 0.55 to 0.77 / 2.16 to 3.01 ms | M |
+| Elliptic, filled, Rotation 0 | 1.14 to 1.16 / 2.95 to 3.16 ms | 4.38 to 4.42 / 7.95 to 9.61 ms | M |
+| Elliptic, filled, Rotation 30 | 1.45 to 1.54 / 3.17 to 3.52 ms | 3.50 to 3.58 / 5.64 to 6.24 ms | M |
+| Elliptic, outline, Rotation 30 | 0.11 / 0.40 to 0.50 ms | 0.23 to 0.24 / 0.26 to 0.34 ms | M |
+| Elliptic, filled, Dashed, Rotation 30 | 2.56 to 2.90 / 4.54 to 4.68 ms | 6.23 to 6.25 / 11.62 to 12.05 ms | M |
+
+The elliptic fill tests every pixel of the ring's box, so it costs about 4 to 8 times the circular row-span fill
+(C: 4.42 / 0.55 = 8.0, 1.16 / 0.29 = 4.0) but stays under a 16.7 ms frame [C: 1000 / 60] in every case here, the
+worst being 12.05 ms for a dashed filled ring covering the whole Layer 2 640 picture. That is the generator only; the
+preview adds its drawing. Nothing was changed on the strength of these figures.
+
+The sample count of each ellipse, max(60, round(4 x the larger radius)), is the old circular ring's count with the
+larger radius in place of its one radius [C: existing code]; it is not a limit.

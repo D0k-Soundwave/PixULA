@@ -31,12 +31,20 @@ class MapServiceClass {
         this.MAX_DIM = MapCodec.MAX_DIM;
         this.MAX_TILES = MapCodec.MAX_TILES;
         this.STORAGE_KEY = 'current';
+        // element numbers above this are treated as damaged and replaced (far more than MapCodec.MAX_ELEMENTS accepts can ever reach)
+        this.MAX_ELEMENT_NUMBER = 999999;
+        this._nextNumber = 1;
 
         this.name = '';
         this.tileKind = this.TILE_KINDS.ULA_CELL;
         /** @type {Array<{kind:string,bitmap:Uint8Array,attr:number}>} */
         this.tiles = [];
         this.map = this._blankMap(32, 24);
+        /**
+         * Elements found in the picture (Batch 11A): { name, w, h, screens, gridW, gridH, match, bitmap, attrs, positions }.
+         * Self-contained, stored with the map (MapCodec version 2).
+         */
+        this.elements = [];
 
         this._persistTimer = null;
     }
@@ -212,6 +220,7 @@ class MapServiceClass {
         if (clearTiles) {
             this.tiles = [];
             this._announceTileset();
+            if (this.elements.length) { this.elements = []; this._announceElements(); }
         }
         this._announceMap();
     }
@@ -300,8 +309,19 @@ class MapServiceClass {
             name: this.name,
             tileKind: this.tileKind,
             tiles: this.tiles,
-            map: this.map
+            map: this.map,
+            elements: this.elements
         };
+    }
+
+    /** Take a document's parts into the working state (the one place that does it). @private */
+    _adopt(doc) {
+        this.name = doc.name || '';
+        this.tileKind = doc.tileKind || this.TILE_KINDS.ULA_CELL;
+        this.tiles = doc.tiles;
+        this.map = doc.map;
+        // A document with no elements field (a tile-only import) leaves the picture's elements alone
+        if (Array.isArray(doc.elements)) { this.elements = doc.elements; this._renumber(); }
     }
 
     /**
@@ -310,13 +330,240 @@ class MapServiceClass {
      */
     loadDocument(doc) {
         if (!doc || !Array.isArray(doc.tiles) || !doc.map) return false;
-        this.name = doc.name || '';
-        this.tileKind = doc.tileKind || this.TILE_KINDS.ULA_CELL;
-        this.tiles = doc.tiles;
-        this.map = doc.map;
+        this._adopt(doc);
         this._emit(EVENTS.MAP_LOADED, { name: this.name });
         this._schedulePersist();
         return true;
+    }
+
+    // -- Elements: find repeated parts of the picture (Batch 11A)
+
+    /** The match modes that make sense in the active screen mode ([] where the find does not run). */
+    findModes() {
+        if (!window.ColorManager || !this.isCanvasCompatible()) return [];
+        // Timex hi-res has no cell attributes: the attribute bytes are invisible leftovers, so 'exact' would compare nothing real
+        return ColorManager.hasCellAttributes() ? ['exact', 'dots', 'visual'] : ['dots', 'visual'];
+    }
+
+    /** The composited visible picture as a MapFind screen (dots and attribute bytes of every screen), or null where the find does not run. */
+    captureScreen() {
+        if (!window.LayerManager || !this.findModes().length) return null;
+        const flat = LayerManager.flattenVisible();
+        const w = ZX_SPECTRUM.GRID_COLS, h = ZX_SPECTRUM.GRID_ROWS, cellH = ZX_SPECTRUM.CELL_HEIGHT;
+        const screens = ZX_SPECTRUM.SCREENS === 2 ? 2 : 1;
+        const scr = MapFind.make(w, h, cellH, screens);
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                const cell = flat.getCell(x, y);
+                if (!cell) continue;
+                const i = y * w + x;
+                scr.attrs[i] = this.attrByte(cell);
+                for (let r = 0; r < cellH; r++) scr.bitmap[i * cellH + r] = cell.pixels[r];
+                if (screens === 2 && cell.pixelsB) {
+                    const j = w * h + i;
+                    scr.attrs[j] = this.attrByte({ ink: cell.inkB, paper: cell.paperB, bright: cell.brightB, flash: cell.flashB });
+                    for (let r = 0; r < cellH; r++) scr.bitmap[j * cellH + r] = cell.pixelsB[r];
+                }
+            }
+        }
+        return scr;
+    }
+
+    /** The colours the active mode really shows, for 'visual' compare: built from the live palette, never from a display toggle. */
+    colourTable() {
+        const screens = ZX_SPECTRUM.SCREENS === 2 ? 2 : 1;
+        const pack = (rgb) => (rgb[0] << 16) | (rgb[1] << 8) | rgb[2];
+        return MapFind.tableFrom(screens, (plane, attr) => {
+            const t = ColorManager.attrToIndices(this.attrFields(attr), plane);
+            return { ink: pack(ColorManager.getRGB(t.ink)), paper: pack(ColorManager.getRGB(t.paper)), flashing: !!t.flashing };
+        });
+    }
+
+    /** The w x h cells at (x, y) of a captured screen, as a block. */
+    sliceBlock(screen, x, y, w, h) {
+        return MapFind.slice(screen, x, y, w, h);
+    }
+
+    /**
+     * Every place a block appears on the picture.
+     * @param {Object} block - from sliceBlock
+     * @param {string} mode - one of findModes()
+     * @param {Object} [screen] - captureScreen() result (taken now if left out)
+     * @param {Object} [table] - colourTable() result (taken now if left out)
+     * @returns {?{positions: {x:number,y:number}[]}} null when the mode is not available here
+     */
+    findElement(block, mode, screen, table) {
+        if (!this.findModes().includes(mode)) return null;
+        const scr = screen || this.captureScreen();
+        if (!scr) return null;
+        const found = MapFind.find(scr, block, mode, mode === 'visual' ? (table || this.colourTable()) : null);
+        return found ? { positions: found } : null;
+    }
+
+    /**
+     * Keep a found element with the map.
+     * @param {Object} block - the element's cells (MapFind block)
+     * @param {{x:number,y:number}[]} positions - where it was found, in cells of the picture grid
+     * @param {{match:string, name?:string, gridW:number, gridH:number}} info
+     * @returns {{ok:true, index:number}|{ok:false, reason:string}}
+     */
+    addElement(block, positions, info) {
+        const seen = new Set();
+        const list = [];
+        for (const p of (positions || []).slice().sort((a, b) => (a.y - b.y) || (a.x - b.x))) {
+            const k = p.x + ',' + p.y;
+            if (!seen.has(k)) { seen.add(k); list.push({ x: p.x, y: p.y }); }
+        }
+        const el = {
+            number: this.nextElementNumber(),
+            name: String((info && info.name) || '').slice(0, 64), w: block && block.w, h: block && block.h,
+            screens: block && block.screens, gridW: info && info.gridW, gridH: info && info.gridH, match: info && info.match,
+            bitmap: block && Uint8Array.from(block.bitmap), attrs: block && Uint8Array.from(block.attrs), positions: list
+        };
+        // 'invalid' = the element itself is wrong; 'tooBig' = it is fine but the document would no longer fit the size limit (the UI translates the code)
+        if (!MapCodec._encodeElement(el)) return { ok: false, reason: 'invalid' };
+        const trial = MapCodec.encode({ ...this.toDocument(), elements: [...this.elements, el] });
+        if (!trial) return { ok: false, reason: 'tooBig' };
+        this.elements.push(el);
+        this._nextNumber = el.number + 1;
+        this._announceElements();
+        return { ok: true, index: this.elements.length - 1 };
+    }
+
+    /**
+     * A pixel rectangle (a selection) as a block of whole cells of the picture, or null if it is not whole cells or lies outside the picture.
+     * @param {{x:number,y:number,width:number,height:number}} rect
+     * @returns {?{x:number,y:number,w:number,h:number}}
+     */
+    blockAt(rect) {
+        if (!rect) return null;
+        const cw = ZX_SPECTRUM.CELL_WIDTH, ch = ZX_SPECTRUM.CELL_HEIGHT;
+        const { x, y, width, height } = rect;
+        if (![x, y, width, height].every(Number.isInteger) || width < 1 || height < 1) return null;
+        if (x % cw || y % ch || width % cw || height % ch || x < 0 || y < 0) return null;
+        const b = { x: x / cw, y: y / ch, w: width / cw, h: height / ch };
+        return (b.x + b.w <= ZX_SPECTRUM.GRID_COLS && b.y + b.h <= ZX_SPECTRUM.GRID_ROWS) ? b : null;
+    }
+
+    /** The cells ("x,y") the elements that fit the current picture already cover. */
+    coveredCells() {
+        const out = new Set();
+        for (const el of this.elements) {
+            if (!this.elementFitsScreen(el)) continue;
+            for (const p of el.positions) {
+                for (let dy = 0; dy < el.h; dy++) for (let dx = 0; dx < el.w; dx++) out.add((p.x + dx) + ',' + (p.y + dy));
+            }
+        }
+        return out;
+    }
+
+    /**
+     * The first element (of this screen) that covers any cell of the block, or null. A find may not start there: the block already belongs
+     * to that element (owner decision 2026-10-18), so two boxes can never sit on the same cells.
+     * @param {{x:number,y:number,w:number,h:number}} b - a block in cells
+     * @returns {?Object} a copy-free reference to the element; read only
+     */
+    elementCovering(b) {
+        for (const el of this.elements) {
+            if (!this.elementFitsScreen(el)) continue;
+            for (const p of el.positions) {
+                if (p.x < b.x + b.w && b.x < p.x + el.w && p.y < b.y + b.h && b.y < p.y + el.h) return el;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * From everything a find returned, the places an Accept will keep: places touching a cell an earlier element covers are left out, then places
+     * that overlap each other are resolved with the source first. (The source itself is always kept: you chose it.)
+     * @returns {{kept:{x:number,y:number}[], covered:number, overlapping:number}}
+     */
+    placesFrom(positions, w, h, source) {
+        const covered = this.coveredCells();
+        const free = positions.filter(p => {
+            if (source && p.x === source.x && p.y === source.y) return true;
+            for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) if (covered.has((p.x + dx) + ',' + (p.y + dy))) return false;
+            return true;
+        });
+        const kept = MapFind.disjoint(free, w, h, source);
+        return { kept, covered: positions.length - free.length, overlapping: free.length - kept.length };
+    }
+
+    /**
+     * The number the next element gets: one more than the highest handed out for this picture, so a number is not reused after a delete
+     * (not even the highest one). A new picture starts again at 1.
+     */
+    nextElementNumber() {
+        const inUse = this.elements.reduce((m, e) => (e.number > m ? e.number : m), 0) + 1;
+        return this._nextNumber > inUse ? this._nextNumber : inUse;
+    }
+
+    /**
+     * Give every element a usable number: a whole number above zero, not too big to count on from, and not used twice. Anything else (a
+     * file written before elements were numbered, a damaged one) gets the next free one, in order. @private
+     */
+    _renumber() {
+        const seen = new Set();
+        const ok = (n) => Number.isSafeInteger(n) && n > 0 && n <= this.MAX_ELEMENT_NUMBER && !seen.has(n);
+        let next = 1;
+        for (const e of this.elements) if (ok(e.number)) { seen.add(e.number); if (e.number >= next) next = e.number + 1; }
+        seen.clear();
+        for (const e of this.elements) {
+            if (ok(e.number)) seen.add(e.number);
+            else { e.number = next++; seen.add(e.number); }
+        }
+        this._nextNumber = next;
+    }
+
+    /** Remove every element (a new picture: numbering starts again at 1). */
+    clearElements() {
+        this._nextNumber = 1;
+        if (!this.elements.length) return;
+        this.elements = [];
+        this._announceElements();
+    }
+
+    /**
+     * Replace the elements with a list from a saved project or the autosave. Anything that is not a valid element is left out; no list means none.
+     */
+    setElements(list) {
+        const ok = [];
+        for (const e of (Array.isArray(list) ? list : [])) {
+            const el = e && { ...e, bitmap: Uint8Array.from(e.bitmap || []), attrs: Uint8Array.from(e.attrs || []), positions: (e.positions || []).map(p => ({ x: p.x, y: p.y })) };
+            if (el && MapCodec._encodeElement(el)) ok.push(el);
+        }
+        this.elements = ok;
+        this._renumber();
+        this._announceElements();
+    }
+
+    /** Put back a list undo or redo kept (already valid: it was this picture's list). Numbers handed out since stay used. */
+    restoreElements(list) {
+        this.elements = list.slice();
+        this._announceElements();
+    }
+
+    /** Copies of the elements (editing them changes nothing). */
+    getElements() {
+        return this.elements.map(e => ({ ...e, bitmap: Uint8Array.from(e.bitmap), attrs: Uint8Array.from(e.attrs), positions: e.positions.map(p => ({ ...p })) }));
+    }
+
+    removeElement(index) {
+        if (!Number.isInteger(index) || index < 0 || index >= this.elements.length) return false;
+        this.elements.splice(index, 1);
+        this._announceElements();
+        return true;
+    }
+
+    /** True while the picture's grid and mode are the ones the element's places belong to. */
+    elementFitsScreen(el) {
+        return !!el && this.isCanvasCompatible() && el.gridW === ZX_SPECTRUM.GRID_COLS && el.gridH === ZX_SPECTRUM.GRID_ROWS &&
+            el.screens === (ZX_SPECTRUM.SCREENS === 2 ? 2 : 1);
+    }
+
+    // The map store keeps no elements (they belong to the picture), so a change to them does not rewrite it
+    _announceElements() {
+        this._emit(EVENTS.MAP_ELEMENTS_CHANGED, { count: this.elements.length });
     }
 
     // ── Canvas bridges ─────────────────────────────────────────────────────
@@ -381,12 +628,14 @@ class MapServiceClass {
     /** Persist the working document (debounced by the callers via _schedulePersist). */
     async persist() {
         if (!window.Storage || !Storage.STORES || !Storage.STORES.MAPS) return;
-        const payload = MapCodec.encode(this.toDocument());
+        // The map store keeps the TILE map only: elements belong to the picture (project, autosave, .zxm), never restored on their own
+        const payload = MapCodec.encode({ ...this.toDocument(), elements: [] });
         try {
             if (payload) {
                 await Storage.set(this.STORAGE_KEY, payload, Storage.STORES.MAPS);
             } else {
-                await Storage.delete(this.STORAGE_KEY, Storage.STORES.MAPS);
+                // Not encodable (too big, or something invalid): keep the record that is there rather than delete the person's map
+                Logger.warn('MapService', 'The map cannot be encoded; the stored copy is left as it was');
             }
         } catch (error) {
             Logger.warn('MapService', 'Persist failed', error);
@@ -405,10 +654,8 @@ class MapServiceClass {
                 await Storage.delete(this.STORAGE_KEY, Storage.STORES.MAPS);
                 return;
             }
-            this.name = doc.name;
-            this.tileKind = doc.tileKind;
-            this.tiles = doc.tiles;
-            this.map = doc.map;
+            this._adopt(doc);
+            this.elements = [];     // whatever an older build stored here is not restored
             this._emit(EVENTS.MAP_LOADED, { name: this.name, restored: true });
             Logger.info('MapService',
                 `Restored persisted map (${doc.tiles.length} tiles, ${doc.map.width}×${doc.map.height})`);

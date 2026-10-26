@@ -88,6 +88,9 @@ function extractManualData() {
             if (!c) return '';
             if (c.all) return c.all.map(one).filter(Boolean).join(and);
             if (c.any) return c.any.map(one).filter(Boolean).join(or);
+            if ('cells' in c) return c.cells ? t('manual.showIf.cellAttributes') : '';
+            // a rule only the tool knows ({ toolIs }) carries its own sentence
+            if ('toolIs' in c) return c.manual ? t(c.manual) : '';
             if (!c.key) return '';
             const label = labelFor(c.key);
             if ('equals' in c) {
@@ -431,6 +434,12 @@ function extractManualData() {
         // Bright, Flash and "use existing" - the same list the key handler reads
         for (const s of (window.COLOUR_SHORTCUTS || [])) {
             rows.push({ keys: keyLabel(s.keys), what: t(s.i18n), from: t('manual.area.colourRail') });
+        }
+        if (window.CLUT_SHORTCUTS) {
+            rows.push({ keys: keyLabel(CLUT_SHORTCUTS.keys), what: t(CLUT_SHORTCUTS.i18n), from: t('manual.area.colourRail') });
+        }
+        for (const s of (window.MODE_SHORTCUTS || [])) {
+            rows.push({ keys: keyLabel(s.keys), what: t(s.i18n), from: t('manual.area.drawModes') });
         }
         if (window.PresetCodec && PresetCodec.KEY_SLOTS) {
             rows.push({

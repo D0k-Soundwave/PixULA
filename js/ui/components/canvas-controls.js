@@ -23,6 +23,7 @@ class CanvasControlsClass {
     }
 
     init() {
+        this._setupStatusNotice();
         this._buildZoomControls();
         this._buildGridControls();
         this._setupCursorDisplay();
@@ -254,23 +255,93 @@ class CanvasControlsClass {
         });
         host.appendChild(snapBtn);
 
+        // The snap step (Batch 9 part 9A): Cell (the mode's attribute cell), 16x16, a whole 256x192 screen (only where it
+        // fits inside the canvas) or the custom step from Preferences. The labels are the sizes themselves.
+        const stepSel = document.createElement('select');
+        stepSel.id = 'grid-snap-step';
+        stepSel.className = 'grid-step-select';
+        stepSel.dataset.i18nTitleName = 'view.snapStep';
+        stepSel.dataset.i18nTitle = 'view.snapStep.hint';
+        stepSel.title = Helpers.composeTitle(this._t('view.snapStep', 'Snap step'),
+            this._t('view.snapStep.hint', 'How far Snap jumps: the attribute cell, 16x16, a whole 256x192 screen (on a canvas bigger than one screen), or the custom step set in Preferences. Choosing one turns Snap on.'));
+        stepSel.setAttribute('aria-label', this._t('view.snapStep', 'Snap step'));
+        const labelOf = (kind) => { const z = kind === 'screen' ? { w: SnapGrid.screenSize().w, h: SnapGrid.screenSize().h } : SnapGrid.sizeOf(kind, StateManager.getGridSnapStep()); return z.w + 'x' + z.h; };
+        const fillStepSelect = () => {
+            const cur = StateManager.getGridSnapStep().kind;
+            stepSel.textContent = '';
+            for (const kind of SnapGrid.KINDS) {
+                const o = document.createElement('option');
+                o.value = kind;
+                o.textContent = labelOf(kind);
+                if (kind === 'screen' && !SnapGrid.screenFits()) {
+                    o.disabled = true;
+                    o.title = this._t('snap.screenOnlyBig', 'Needs a canvas bigger than one 256x192 screen.');
+                }
+                stepSel.appendChild(o);
+            }
+            stepSel.value = SnapGrid.cleanKind(cur);
+        };
+        fillStepSelect();
+        stepSel.addEventListener('change', () => {
+            StateManager.setGridSnapStep({ kind: stepSel.value });
+            StateManager.setGridSnap(true);
+        });
+        host.appendChild(stepSel);
+
         // Render from the fact (click here, Shift+S, or boot restore) + persist
         EventBus.on(EVENTS.GRID_SNAP_CHANGED, (data) => {
             snapBtn.setAttribute('aria-pressed', String(!!data.snap));
             Storage.set('gridSnap', !!data.snap).catch(() => {});
+            Storage.set('gridSnapStep', StateManager.getGridSnapStep()).catch(() => {});
+            fillStepSelect();
+        });
+        EventBus.on(EVENTS.SCREEN_MODE_CHANGED, fillStepSelect);
+    }
+
+    // -- Status notice --------------------------------------------------------
+
+    /**
+     * EVENTS.STATUS_NOTICE shows a short reason in the status bar for a moment (a tool that
+     * refused to run says why), then the usual text comes back. The duration is a reading
+     * time [C]: the longest notice is about 8 words, at a comfortable ~4 words a second that
+     * is 2 s, plus a second to notice it appeared.
+     * @private
+     */
+    _setupStatusNotice() {
+        const NOTICE_MS = 3000;
+        let timer = null;
+        EventBus.on(EVENTS.STATUS_NOTICE, ({ text }) => {
+            const el = document.getElementById('status-message');
+            if (!el || !text) return;
+            el.textContent = text;
+            if (window.A11yAnnouncer) A11yAnnouncer.announce(text);
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                el.textContent = this._t('status.ready', 'Ready');
+            }, NOTICE_MS);
         });
     }
 
     // ── Cursor position ──────────────────────────────────────────────────────
 
-    /** Throttled cursor/cell position readout (~30fps). @private */
+    /**
+     * Throttled pointer readout (~30fps): X/Y and the cell, and, as the
+     * Preferences ask, the attribute under the pointer and the Spectrum memory
+     * addresses (PointerInfo has the arithmetic and the sources).
+     * @private
+     */
     _setupCursorDisplay() {
         const posEl = document.getElementById('cursor-position');
         const cellEl = document.getElementById('cell-position');
+        const attrEl = document.getElementById('attr-readout');
+        const addrEl = document.getElementById('addr-readout');
 
         let lastPosText = '';
         let lastCellText = '';
+        let lastAttrText = '';
+        let lastAddrText = '';
         let lastUpdate = 0;
+        let lastPoint = null;
         /*
          * Cursor-position readout rate.
          *
@@ -282,25 +353,104 @@ class CanvasControlsClass {
          */
         const THROTTLE_MS = 32;
 
+        const msg = (key, fallback, params) => Helpers.localizedMessage(key, fallback, params);
+
+        const show = (el, text, last) => {
+            if (el && text !== last) el.textContent = text;
+            return text;
+        };
+
+        const render = (data) => {
+            const { detail, yDirection } = StateManager.getReadout();
+            const mode = ACTIVE_SCREEN_MODE;
+            const inside = Validators.isValidPixelCoord(data.x, data.y);
+
+            let posText;
+            if (yDirection === 'plot') {
+                const plot = inside ? PointerInfo.plotY(mode, data.y) : null;
+                posText = plot === null
+                    ? msg('readout.plotNone', 'X: {x}, PLOT Y: -', { x: data.x })
+                    : msg('readout.plot', 'X: {x}, PLOT Y: {y}', { x: data.x, y: plot });
+            } else {
+                posText = msg('readout.pos', 'X: {x}, Y: {y}', { x: data.x, y: data.y });
+            }
+            // Live cell geometry - differs per screen mode
+            const cell = ZX_COORDS.pixelToCell(data.x, data.y);
+            const cellText = msg('readout.cell', 'Cell: {x}, {y}', { x: cell.x, y: cell.y });
+            lastPosText = show(posEl, posText, lastPosText);
+            lastCellText = show(cellEl, cellText, lastCellText);
+
+            lastAttrText = show(attrEl, detail !== 'position' && inside
+                ? this._attributeText(mode, cell, msg) : '', lastAttrText);
+            lastAddrText = show(addrEl, detail === 'addresses' && inside
+                ? this._addressText(mode, data.x, data.y, msg) : '', lastAddrText);
+        };
+
+        const applyVisibility = () => {
+            const { detail } = StateManager.getReadout();
+            if (attrEl) attrEl.hidden = detail === 'position';
+            if (addrEl) addrEl.hidden = detail !== 'addresses';
+            // Redraw at once: the text must not wait for the next pointer move.
+            lastPosText = lastCellText = lastAttrText = lastAddrText = '\u0000';
+            if (lastPoint) render(lastPoint);
+        };
+
         EventBus.on(EVENTS.INPUT_POINTER_MOVE, (data) => {
             const now = performance.now();
-            if (now - lastUpdate < THROTTLE_MS) return;
+            if (now - lastUpdate < THROTTLE_MS) {
+                lastPoint = { x: data.x, y: data.y };   // the trailing move is kept for a refresh
+                return;
+            }
             lastUpdate = now;
-
-            const posText = `X: ${data.x}, Y: ${data.y}`;
-            // Live cell geometry — differs per screen mode
-            const cell = ZX_COORDS.pixelToCell(data.x, data.y);
-            const cellText = `Cell: ${cell.x}, ${cell.y}`;
-
-            if (posEl && posText !== lastPosText) {
-                posEl.textContent = posText;
-                lastPosText = posText;
-            }
-            if (cellEl && cellText !== lastCellText) {
-                cellEl.textContent = cellText;
-                lastCellText = cellText;
-            }
+            lastPoint = { x: data.x, y: data.y };
+            render(lastPoint);
         });
+        EventBus.on(EVENTS.READOUT_CHANGED, applyVisibility);
+        EventBus.on(EVENTS.UI_LANGUAGE_CHANGE, applyVisibility);
+        EventBus.on(EVENTS.SCREEN_MODE_CHANGED, applyVisibility);
+        applyVisibility();
+    }
+
+    /**
+     * The attribute under the pointer, in words: the byte (decimal and hex) and
+     * its parts. GigaScreen shows both screens. "No colour cells" where the
+     * mode has none. @private
+     */
+    _attributeText(mode, cell, msg) {
+        if (!ColorManager.hasCellAttributes()) {
+            return msg('readout.noCells', 'No attribute cells in this mode');
+        }
+        const one = (plane) => {
+            const attrs = LayerManager.attrsShowing(cell.x, cell.y, plane);
+            const byte = PointerInfo.attributeByte(mode, attrs);
+            const parts = PointerInfo.attributeParts(mode, attrs);
+            if (byte === null || !parts) return msg('readout.noCells', 'No attribute cells in this mode');
+            const base = { dec: byte, hex: PointerInfo.hex(byte, 2), ink: parts.ink, paper: parts.paper };
+            if (parts.kind === 'clut') {
+                return msg('readout.attrClut', 'Attribute {dec} ({hex}): CLUT {clut}, Ink {ink}, Paper {paper}',
+                    { ...base, clut: parts.clut });
+            }
+            if (parts.kind === 'ulanext') {
+                return msg('readout.attrNext', 'Attribute {dec} ({hex}): Ink entry {ink}, Paper entry {paper}', base);
+            }
+            return msg('readout.attrFixed',
+                'Attribute {dec} ({hex}): Ink {ink}, Paper {paper}, Bright {bright}, Flash {flash}',
+                { ...base, bright: parts.bright ? 1 : 0, flash: parts.flash ? 1 : 0 });
+        };
+        return ZX_SPECTRUM.SCREENS === 2 ? `A ${one(0)} | B ${one(1)}` : one(0);
+    }
+
+    /** The memory address of the pixel's byte and of its attribute byte. @private */
+    _addressText(mode, x, y, msg) {
+        const list = PointerInfo.addresses(mode, x, y);
+        if (!list.length) return msg('readout.noAddr', 'No memory address in this mode');
+        return list.map((a) => {
+            const prefix = a.screen ? `${a.screen} ` : '';
+            const params = { bitmap: PointerInfo.hex(a.bitmap), where: a.where };
+            if (a.attr === null) return prefix + msg('readout.addrNoAttr', 'Byte {bitmap} ({where})', params);
+            return prefix + msg('readout.addr', 'Byte {bitmap}, attribute {attr} ({where})',
+                { ...params, attr: PointerInfo.hex(a.attr) });
+        }).join(' | ');
     }
 
     // ── Canvas-view input facts (pinch/wheel come from the input layer) ─────
