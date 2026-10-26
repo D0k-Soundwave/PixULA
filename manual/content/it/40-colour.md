@@ -65,7 +65,7 @@ Ricolora carta sono modalità di disegno: ricolorano ogni cella toccata dallo
 strumento attuale - poche con un pennello piccolo, tutte quelle coperte da un
 rettangolo pieno - e lo specchio si applica. **Ricolora**, nel pulsante
 Strumento cella, ricolora l'intera cella sotto il puntatore qualunque sia lo
-strumento, ignorando dimensione del pennello e specchio. **Scambia**, dallo
+strumento, ignorando dimensione del pennello. **Scambia**, dallo
 stesso pulsante, funziona allo stesso modo e scambia Inchiostro e Carta di ogni
 cella. Entrambi restano attivi finché non li spegni - scegli Nessuno, sceglilo
 di nuovo, fai clic destro sull'area di disegno o scegli uno strumento o una
@@ -93,7 +93,7 @@ riordinare un'immagine importata, salta le celle in cui disegna anche un altro
 livello e non è offerto in ULAplus né ULANext. Uno strumento cella è offerto
 solo nelle modalità schermo in cui può funzionare: il pulsante Strumento cella
 elenca solo quelli validi (ed è nascosto dove nessuno lo è), e Inverti pixel
-funziona anche in Timex Hi-res, dove i pixel sono in celle da 8 per 8.
+funziona anche in Timex Hi-res, dove i pixel sono in celle da 8 per 8. Con lo specchio attivo, ogni strumento cella, Scambia e Ricolora compresi, agisce anche sull'immagine speculare di ogni cella che tocca: la cella speculare riceve la stessa modifica ai propri pixel e attributi.
 
 **XOR / Sopra e XOR / Ogni passaggio** invertono i pixel, da inchiostro a carta
 e da carta a inchiostro, invece di disegnare pixel d'inchiostro, ed entrambi

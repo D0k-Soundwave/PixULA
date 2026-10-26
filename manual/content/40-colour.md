@@ -60,7 +60,7 @@ and the Swap and Recolour buttons all ignore it.
 are draw modes: they recolour every cell the current tool touches - a few cells
 for a small brush, every cell a filled rectangle covers - and Mirror applies.
 **Recolour**, in the Cell tool button, recolours the whole cell under the
-pointer whichever tool is selected, ignoring brush size and Mirror. **Swap**,
+pointer whichever tool is selected, ignoring brush size. **Swap**,
 from the same button, works the same way, exchanging each cell's Ink and Paper.
 Either one stays on until you switch it off - pick None, pick it again,
 right-click the canvas, or choose a tool or a draw mode - and the status bar
@@ -86,7 +86,7 @@ and Paper, so each cell looks the same; it is for tidying an imported picture, i
 in, and it is not offered in ULAplus and ULANext. A cell tool is offered only in
 the screen modes it can work in: the Cell tool button lists just the ones that
 apply (and is hidden where none do), and Invert pixels also works in Timex
-Hi-res, where the pixels are in 8 by 8 cells.
+Hi-res, where the pixels are in 8 by 8 cells. With Mirror on, every cell tool, Swap and Recolour included, also works on the mirror image of each cell it touches: each mirror cell gets the same change to its own pixels and attributes.
 
 **XOR / Over and XOR / Every Pass** both flip pixels, ink to paper and paper to
 ink, rather than draw ink pixels, and both give the cell your attributes. XOR /

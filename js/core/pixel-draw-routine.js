@@ -136,9 +136,11 @@ class PixelDrawRoutineClass {
   //
   // The one hook every tool inherits: draw() expands each write into its
   // mirrored counterparts when StateManager's symmetry mode is on. Axes come
-  // from the active screen mode, never hardcoded. Services whose writes are
-  // NOT freehand drawing (stamp commit/erase, transforms, attr paint) wrap
-  // their loops in suspendMirror() so symmetry stays a tool-stroke feature.
+  // from the active screen mode, never hardcoded. Every tool works with it:
+  // stamps and text placed on the canvas mirror through draw() too, and the
+  // whole-cell tools mirror their cells via getMirrorCells(). Writes that are
+  // not a tool putting something down (transforms, menu commands on a
+  // selection, Flatten baking stamps) wrap their loops in suspendMirror().
 
   /**
    * Run fn with every TOOL-STROKE hook suspended — symmetry expansion and the
@@ -190,6 +192,28 @@ class PixelDrawRoutineClass {
     if (mode === 'v' || mode === 'quad') points.push({ x, y: my });
     if (mode === 'quad') points.push({ x: mx, y: my });
     return points.filter(p => p.x !== x || p.y !== y);
+  }
+
+  /**
+   * The mirrored counterparts of a whole CELL for the active symmetry mode, for the
+   * whole-cell tools (Swap, Recolour, Copy colours, the two inverts): they work on
+   * cells, not through draw(), so they ask here. The picture is a whole number of
+   * cells across and down in every mode, so a cell's mirror image is exactly one
+   * cell - the one that holds the mirror of any of its pixels. Empty when Mirror
+   * is off; the cell itself is not included.
+   * @param {number} cx
+   * @param {number} cy
+   * @returns {Array<{x: number, y: number}>}
+   */
+  getMirrorCells(cx, cy) {
+    const sym = window.StateManager && StateManager.getSymmetryMode
+      ? StateManager.getSymmetryMode() : 'off';
+    if (sym === 'off' || this._mirrorSuspend > 0) return [];
+    const px = cx * ZX_SPECTRUM.CELL_WIDTH, py = cy * ZX_SPECTRUM.CELL_HEIGHT;
+    return this.getMirrorPoints(px, py, sym).map(p => ({
+      x: Math.floor(p.x / ZX_SPECTRUM.CELL_WIDTH),
+      y: Math.floor(p.y / ZX_SPECTRUM.CELL_HEIGHT)
+    })).filter(c => c.x !== cx || c.y !== cy);
   }
 
   /** @private */
@@ -582,6 +606,17 @@ class PixelDrawRoutineClass {
       colorSelection = kept.sel;
     }
 
+    // The dither gate thins a stroke to a density. It judges the ORIGINAL
+    // pixel, before the symmetry expansion, and each mirrored copy takes that
+    // verdict (as it takes its colour-core treatment above): judged again at
+    // its own coordinates, the mirrored side of a fade came out a different
+    // pattern and, in the attribute draw modes, missed cells the drawn side
+    // coloured. The size-1 fade already judged before draw().
+    if (this._ditherGate && options.dither !== false && !this._inMirror &&
+        !this._ditherGate(pixelX, pixelY)) {
+      return false;
+    }
+
     // Symmetry: expand this write into its mirrored counterparts. The
     // _inMirror guard stops recursion; suspendMirror() exempts non-stroke
     // callers; options.mirror === false exempts a single call.
@@ -595,15 +630,6 @@ class PixelDrawRoutineClass {
     // stroke that strays outside stops producing its mirror inside".
     if (this._clipSuspend === 0 && options.clip !== false &&
         this.isClipped(pixelX, pixelY)) {
-      return false;
-    }
-
-    // The dither gate thins a stroke to a density. Placed after the symmetry
-    // expansion for the same reason as the clip: each mirrored counterpart is
-    // judged at its own coordinates, so the dither pattern stays continuous
-    // across the mirror instead of copying the original's holes.
-    if (this._ditherGate && options.dither !== false &&
-        !this._ditherGate(pixelX, pixelY)) {
       return false;
     }
 

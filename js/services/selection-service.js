@@ -1876,8 +1876,10 @@ class SelectionServiceClass {
     // ink and one paper on this hardware, so a stamp must pick a pair; the one
     // on the attribute bar is the only one the artist actually chose.
 
-    // Stamp writes place exactly the stamp mask — never symmetry-mirrored
-    PixelDrawRoutine.suspendMirror(() => {
+    // Stamp writes place exactly the stamp mask, with the drawing guide off. Mirror
+    // stays on: with it, every stamp placed also lands as its mirror image, as a
+    // brush stroke does (owner, 2026-10-26: every tool works with Mirror).
+    PixelDrawRoutine.suspendClip(() => {
       // Indexed modes (Phase 13): paint the stamp's palette indices (or the
       // mask at the current indexed ink), routed through the same resolved
       // mode (Paper Recolour/XOR still mean something over an index grid).
@@ -1984,7 +1986,8 @@ class SelectionServiceClass {
     // left button, so it resolves the SAME global draw-mode selector the
     // same way a brush's right button would (isInk=false).
     const mode = PixelDrawRoutine.resolveUserMode(false);
-    PixelDrawRoutine.suspendMirror(() => {
+    // As stampAt: the guide is off, Mirror applies.
+    PixelDrawRoutine.suspendClip(() => {
       for (let py = 0; py < h; py++) {
         const row = mask[py];
         if (!row) continue;
@@ -2009,9 +2012,12 @@ class SelectionServiceClass {
    * bright from the stamp) and honours the stamp's XOR mode — but bakes onto an
    * explicitly resolved target layer rather than relying on _findTargetBelow.
    * @param {Layer} layer - A stamp layer (isStamp=true)
+   * @param {Object} [opts]
+   * @param {boolean} [opts.mirror=true] - false bakes the stamp alone whatever Mirror is set to
+   *   (Flatten: a layer operation, not a stamp being put down)
    * @returns {boolean} true if committed, false if not a stamp / no data / no valid target
    */
-  commitStamp(layer) {
+  commitStamp(layer, { mirror = true } = {}) {
     if (!layer || !layer.isStamp) return false;
 
     // Capture stamp data FIRST, while floatingPaste is still set, so a live
@@ -2038,7 +2044,7 @@ class SelectionServiceClass {
 
     UndoRedo.beginAction('Commit stamp');
     PixelDrawRoutine.beginBatch();
-    this._writeStampInto(data, layer, target);
+    this._writeStampInto(data, layer, target, mirror);
     PixelDrawRoutine.endBatch();
 
     LayerManager.removeLayer(layer.index, false);
@@ -2060,14 +2066,15 @@ class SelectionServiceClass {
   /**
    * Write a stamp's data into a drawing layer through the shared write plan: the colour selection and draw mode in force, the
    * stamp's own XOR box, Clear background, clear dots - the same walk the preview does. The caller opens the undo action and
-   * the batch. (Commits bake exactly the previewed stamp - never symmetry-mirrored.)
+   * the batch. The guide is off; with Mirror on the stamp's mirror image is written too, unless `mirror` is false.
    * @private
    */
-  _writeStampInto(data, stampLayer, target) {
+  _writeStampInto(data, stampLayer, target, mirror = true) {
     const color = ColorManager.getCurrentSelection();
     // The top-bar draw-mode selector governs the commit exactly as it would a brush stroke laying down the same ink.
     const mode = PixelDrawRoutine.resolveUserMode(true);
-    PixelDrawRoutine.suspendMirror(() => {
+    const hooks = mirror ? (fn) => PixelDrawRoutine.suspendClip(fn) : (fn) => PixelDrawRoutine.suspendMirror(fn);
+    hooks(() => {
       // Indexed modes (Phase 13): bake the previewed indices/mask directly, through the same resolved mode as the classic branch.
       if (ZX_SPECTRUM.PIXEL_DEPTH > 1) {
         this._paintIndexedStamp(data, target, color, mode);
@@ -2154,7 +2161,8 @@ class SelectionServiceClass {
     for (let i = startLen - 1; i >= 1; i--) {
       const layer = LayerManager.layers[i];
       if (layer && layer.isStamp && !(onlyVisible && layer.visible === false)) {
-        if (this.commitStamp(layer)) count++;
+        // Baking a stack is a layer operation, not a stamp being put down: never mirrored.
+        if (this.commitStamp(layer, { mirror: false })) count++;
       }
     }
     UndoRedo.endAction();

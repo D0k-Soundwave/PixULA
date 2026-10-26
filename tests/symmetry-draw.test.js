@@ -158,5 +158,26 @@ PixelDrawRoutine.draw(94, 100, color, DRAW_MODE.NORMAL, { mirror: false });
 PixelDrawRoutine.endBatch();
 check('options.mirror=false: original only', isInk(94, 100) && !isInk(W - 1 - 94, 100));
 
+// ── A thinned stroke (the fade's dither gate) mirrors exactly ──────────────
+// Each mirrored copy takes its source pixel's verdict, as it takes its source's
+// colour-core treatment: judged at its own position, the mirrored side of a fade
+// came out a different pattern and missed cells the original side coloured.
+clearAll();
+StateManager.setSymmetryMode('quad');
+const gate = (x, y) => (x * 3 + y) % 4 === 0;
+PixelDrawRoutine.beginBatch();
+PixelDrawRoutine.withDitherGate(gate, () => {
+  for (let x = 8; x < 40; x++) for (let y = 8; y < 24; y++) PixelDrawRoutine.draw(x, y, color, DRAW_MODE.NORMAL);
+});
+PixelDrawRoutine.endBatch();
+let gateMirrored = true, gateKept = true;
+for (let x = 8; x < 40; x++) for (let y = 8; y < 24; y++) {
+  const src = isInk(x, y);
+  if (src !== gate(x, y)) gateKept = false;
+  if (isInk(W - 1 - x, y) !== src || isInk(x, H - 1 - y) !== src || isInk(W - 1 - x, H - 1 - y) !== src) gateMirrored = false;
+}
+check('dither gate: the original side keeps exactly the gated pixels', gateKept);
+check('dither gate: every mirrored copy matches its source pixel', gateMirrored);
+
 StateManager.setSymmetryMode('off');
 summary();

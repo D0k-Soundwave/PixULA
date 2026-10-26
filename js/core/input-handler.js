@@ -358,9 +358,10 @@ class InputHandlerClass {
   }
 
   /**
-   * One cell of a whole-cell tool. The cell work for Copy and the two inverts
-   * is TransformService's (public methods that open no batch: this drag's
-   * batch is the only one, so one drag is one undo step).
+   * One cell of a whole-cell tool, and - with Mirror on - its mirror cells, each
+   * of which gets the same operation on its own content. The cell work is
+   * TransformService's (public methods that open no batch: this drag's batch is
+   * the only one, so one drag is one undo step).
    * @private
    */
   _applyAttrPaintToCell(cell) {
@@ -370,27 +371,26 @@ class InputHandlerClass {
 
     // Copy colours: the first cell of the drag only picks; a press outside the
     // picture picks nothing, and then the drag paints nothing.
-    if (mode === 'copy') {
-      if (!this._attrCopy) {
-        this._attrCopy = { picked: TransformService.pickCellColours(cell.x, cell.y) };
-        return;
-      }
-      if (this._attrCopy.picked) TransformService.paintCellColours(cell.x, cell.y, this._attrCopy.picked);
+    if (mode === 'copy' && !this._attrCopy) {
+      this._attrCopy = { picked: TransformService.pickCellColours(cell.x, cell.y) };
       return;
     }
 
-    // Swapping or inverting a cell twice in one drag would put it back.
-    if (mode === 'swap' || mode === 'invertDots' || mode === 'invertBoth') {
-      const key = cell.x + ',' + cell.y;
-      if (!this._attrPaintVisited) this._attrPaintVisited = new Set();
-      if (this._attrPaintVisited.has(key)) return;
-      this._attrPaintVisited.add(key);
+    for (const c of [cell, ...PixelDrawRoutine.getMirrorCells(cell.x, cell.y)]) {
+      // Swapping or inverting a cell twice in one drag would put it back - and a
+      // drag that crosses the mirror line reaches cells it has already mirrored.
+      if (mode === 'swap' || mode === 'invertDots' || mode === 'invertBoth') {
+        const key = c.x + ',' + c.y;
+        if (!this._attrPaintVisited) this._attrPaintVisited = new Set();
+        if (this._attrPaintVisited.has(key)) continue;
+        this._attrPaintVisited.add(key);
+      }
+      if (mode === 'copy') { if (this._attrCopy.picked) TransformService.paintCellColours(c.x, c.y, this._attrCopy.picked); }
+      else if (mode === 'invertDots') TransformService.invertCellDots(c.x, c.y);
+      else if (mode === 'invertBoth') TransformService.invertCellDotsAndColours(c.x, c.y);
+      else if (mode === 'swap') TransformService.swapCellColours(c.x, c.y);
+      else if (mode === 'apply') TransformService.recolourCell(c.x, c.y);
     }
-    if (mode === 'invertDots') { TransformService.invertCellDots(cell.x, cell.y); return; }
-    if (mode === 'invertBoth') { TransformService.invertCellDotsAndColours(cell.x, cell.y); return; }
-
-    if (mode === 'swap') { TransformService.swapCellColours(cell.x, cell.y); return; }
-    if (mode === 'apply') TransformService.recolourCell(cell.x, cell.y);
   }
 
   /** @private */

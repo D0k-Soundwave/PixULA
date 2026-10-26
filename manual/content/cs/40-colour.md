@@ -58,8 +58,7 @@ kapátko, přesouvání, vkládání a mazání výběru, panel **Transformace**
 Papír jsou režimy kreslení: přebarvují každou buňku, které se nástroj dotkne
 - několik buněk u malého štětce, každou buňku, kterou pokrývá vyplněný obdélník
 - a platí Zrcadlení. **Přebarvit** v tlačítku Nástroj buněk přebarvuje celou
-buňku pod ukazatelem bez ohledu na zvolený nástroj, nehledě na velikost štětce a
-Zrcadlení. **Prohodit** ze stejného tlačítka funguje stejně a vymění Inkoust s
+buňku pod ukazatelem bez ohledu na zvolený nástroj, nehledě na velikost štětce. **Prohodit** ze stejného tlačítka funguje stejně a vymění Inkoust s
 Papírem každé buňky. Obojí zůstává zapnuté, dokud je nevypnete - zvolte Žádný,
 zvolte je znovu, klikněte pravým tlačítkem na plátno nebo vyberte nástroj či
 režim kreslení - a stavový řádek to hlásí, dokud je zapnuté.
@@ -85,7 +84,7 @@ vypadá stejně; slouží k úklidu importovaného obrázku, přeskakuje buňky,
 kreslí i jiná vrstva, a v ULAplus a ULANext se nenabízí. Nástroj pro buňky se
 nabízí jen v režimech obrazovky, kde může fungovat: tlačítko Nástroj buněk uvádí
 jen ty, které platí (a je skryté tam, kde žádný neplatí), a Invertovat pixely
-funguje i v Timex Hi-res, kde jsou pixely v buňkách 8 × 8.
+funguje i v Timex Hi-res, kde jsou pixely v buňkách 8 × 8. Se zapnutým Zrcadlením každý nástroj pro buňky, včetně Prohodit a Přebarvit, pracuje i na zrcadlovém obrazu každé buňky, které se dotkne: zrcadlová buňka dostane stejnou změnu svých vlastních pixelů a atributů.
 
 **XOR / Přes a XOR / Každý přejezd** pixely přepínají, z inkoustu na papír a z
 papíru na inkoust, místo aby kreslily pixely inkoustu, a oba dají buňce zvolené

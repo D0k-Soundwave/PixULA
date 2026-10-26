@@ -62,8 +62,7 @@ botões Trocar e Recolorir ignoram-no.
 papel são modos de desenho: recoloram todas as células que a ferramenta atual
 toca - umas poucas com um pincel pequeno, todas as que um retângulo preenchido
 cobre - e o espelho aplica-se. **Recolorir**, no botão Ferramenta de célula,
-recolora a célula inteira sob o ponteiro seja qual for a ferramenta, ignorando o
-tamanho do pincel e o espelho. **Trocar**, do mesmo botão, funciona igual e
+recolora a célula inteira sob o ponteiro seja qual for a ferramenta, ignorando o tamanho do pincel. **Trocar**, do mesmo botão, funciona igual e
 troca a Tinta e o Papel de cada célula. Qualquer um continua ligado até o desligares
 - escolhe Nenhuma, escolhe-o de novo, clica com o botão direito na tela ou
 escolhe uma ferramenta ou um modo de desenho - e a barra de estado di-lo
@@ -90,7 +89,7 @@ para arrumar uma imagem importada, salta as células em que outra camada também
 desenha e não é oferecido em ULAplus nem ULANext. Uma ferramenta de célula só é
 oferecida nos modos de ecrã em que pode funcionar: o botão Ferramenta de célula
 lista só as que servem (e fica escondido onde nenhuma serve), e Inverter píxeis
-também funciona em Timex Hi-res, onde os píxeis estão em células de 8 por 8.
+também funciona em Timex Hi-res, onde os píxeis estão em células de 8 por 8. Com o espelho ligado, cada ferramenta de célula, incluindo Trocar e Recolorir, atua também sobre a imagem espelhada de cada célula que toca: a célula espelhada recebe a mesma alteração nos seus próprios píxeis e atributos.
 
 **XOR / Sobre e XOR / Cada passagem** invertem os píxeis, de tinta para papel e
 de papel para tinta, em vez de desenharem píxeis de tinta, e ambos dão à célula

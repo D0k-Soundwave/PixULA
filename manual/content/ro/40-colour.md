@@ -65,7 +65,7 @@ cerneala și Recolorează hârtia sunt moduri de desen: recolorează fiecare cel
 atinsă de unealta curentă - câteva cu o pensulă mică, fiecare celulă acoperită
 de un dreptunghi plin - și Oglinda se aplică. **Recolorează**, din butonul
 Unealtă de celulă, recolorează întreaga celulă de sub cursor, orice unealtă ar
-fi aleasă, ignorând mărimea pensulei și Oglinda. **Schimbă**, din același buton,
+fi aleasă, ignorând mărimea pensulei. **Schimbă**, din același buton,
 funcționează la fel și schimbă Cerneala cu Hârtia fiecărei celule. Oricare
 rămâne pornit până îl oprești - alege Niciuna, alege-l din nou, fă clic dreapta
 pe pânză sau alege o unealtă ori un mod de desen - iar bara de stare spune asta
@@ -95,7 +95,7 @@ sare peste celulele în care desenează și alt strat și nu este oferit în ULA
 și ULANext. O unealtă de celulă este oferită doar în modurile de ecran în care
 poate funcționa: butonul Unealtă de celulă listează doar pe cele potrivite (și
 este ascuns acolo unde niciuna nu se potrivește), iar Inversează pixelii
-funcționează și în Timex Hi-res, unde pixelii sunt în celule de 8 pe 8.
+funcționează și în Timex Hi-res, unde pixelii sunt în celule de 8 pe 8. Cu Oglinda pornită, fiecare unealtă de celulă, inclusiv Schimbă și Recolorează, lucrează și pe imaginea în oglindă a fiecărei celule atinse: celula din oglindă primește aceeași schimbare a propriilor pixeli și atribute.
 
 **XOR / Peste și XOR / Fiecare trecere** inversează pixelii, din cerneală în
 hârtie și din hârtie în cerneală, în loc să deseneze pixeli de cerneală, și

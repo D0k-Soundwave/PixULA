@@ -63,7 +63,7 @@ Przekoloruj Papier to tryby rysowania: przekolorowują każdą komórkę, które
 dotyka bieżące narzędzie - kilka przy małym pędzlu, każdą, którą pokrywa
 wypełniony prostokąt - i obowiązuje Lustro. **Przekoloruj**, w przycisku
 Narzędzie komórki, przekolorowuje całą komórkę pod wskaźnikiem, jakiekolwiek
-narzędzie jest wybrane, bez względu na rozmiar pędzla i Lustro. **Zamień**, z
+narzędzie jest wybrane, bez względu na rozmiar pędzla. **Zamień**, z
 tego samego przycisku, działa tak samo i zamienia Tusz z Papierem w każdej
 komórce. Oba zostają włączone, dopóki ich nie wyłączysz - wybierz Brak, wybierz
 je ponownie, kliknij prawym przyciskiem płótno albo wybierz narzędzie lub tryb
@@ -91,7 +91,7 @@ których rysuje też inna warstwa, i nie jest dostępne w ULAplus i ULANext.
 Narzędzie komórki jest oferowane tylko w trybach ekranu, w których może działać:
 przycisk Narzędzie komórki wymienia tylko pasujące (i jest ukryty tam, gdzie
 żadne nie pasuje), a Odwróć piksele działa też w Timex Hi-res, gdzie piksele leżą
-w komórkach 8 na 8.
+w komórkach 8 na 8. Przy włączonym Lustrze każde narzędzie komórki, także Zamień i Przekoloruj, działa też na lustrzanym odbiciu każdej komórki, której dotknie: odbita komórka dostaje tę samą zmianę własnych pikseli i atrybutów.
 
 **XOR / Na wierzchu i XOR / Każde przejście** odwracają piksele, z tuszu na
 papier i z papieru na tusz, zamiast rysować piksele tuszu, i oba nadają komórce

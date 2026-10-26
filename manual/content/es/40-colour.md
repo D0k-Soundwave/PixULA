@@ -63,7 +63,7 @@ Recolorear papel son modos de dibujo: recolorean cada celda que toca la
 herramienta actual - unas pocas con un pincel pequeño, todas las que cubre un
 rectángulo relleno - y el espejo se aplica. **Recolorear**, en el botón
 Herramienta de celda, recolorea la celda entera bajo el puntero sea cual sea la
-herramienta, ignorando el tamaño del pincel y el espejo. **Intercambiar**, del
+herramienta, ignorando el tamaño del pincel. **Intercambiar**, del
 mismo botón, funciona igual e intercambia la Tinta y el Papel de cada celda.
 Cualquiera de los dos sigue activo hasta que lo apagues - elige Ninguna, elígelo
 de nuevo, haz clic derecho en el lienzo o elige una herramienta o un modo de
@@ -93,7 +93,7 @@ capa y no se ofrece en ULAplus ni ULANext. Una herramienta de celda solo se
 ofrece en los modos de pantalla donde puede funcionar: el botón Herramienta de
 celda lista solo las que valen (y se oculta donde ninguna vale), e Invertir
 píxeles también funciona en Timex Hi-res, donde los píxeles están en celdas de 8
-por 8.
+por 8. Con el espejo activado, cada herramienta de celda, Intercambiar y Recolorear incluidas, actúa también sobre la imagen reflejada de cada celda que toca: la celda reflejada recibe el mismo cambio en sus propios píxeles y atributos.
 
 **XOR / Encima y XOR / Cada pasada** invierten los píxeles, de tinta a papel y
 de papel a tinta, en lugar de dibujar píxeles de tinta, y los dos dan a la celda
