@@ -932,6 +932,13 @@ class GradientToolClass extends ToolBase {
       return;
     }
     const pixels = this._getShapeBorderPixels(rect);
+    // The outline is a guide, not a write: Mirror's copies of it, but no drawing-guide clip.
+    const sym = StateManager.getSymmetryMode ? StateManager.getSymmetryMode() : 'off';
+    if (sym !== 'off') {
+      for (let i = 0, n = pixels.length; i < n; i++) {
+        for (const m of PixelDrawRoutine.getMirrorPoints(pixels[i].x, pixels[i].y, sym)) pixels.push(m);
+      }
+    }
     GridOverlay.drawPreviewPixels(pixels, 'rgba(255, 255, 255, 0.9)');
   }
 
@@ -962,6 +969,7 @@ class GradientToolClass extends ToolBase {
     // will actually ADD show as pending ink. gradientPaprSet stays empty -
     // the gradient never clears a pixel, so nothing previews as erased.
     const mask = this._methodMask(rect, this.isReverseMode);
+    const xs = [], ys = [];
     for (let y = 0; y < rect.height; y++) {
       for (let x = 0; x < rect.width; x++) {
         const pixelX = rect.x + x;
@@ -982,10 +990,24 @@ class GradientToolClass extends ToolBase {
           if (!this._shouldBeInk(pixelX, pixelY, gradientPos)) continue;
         }
 
-        affectedCells.add(Math.floor(pixelX / ZX_SPECTRUM.CELL_WIDTH) + ',' + Math.floor(pixelY / ZX_SPECTRUM.CELL_HEIGHT));
-        gradientInkSet.add(pixelX + ',' + pixelY);
+        xs.push(pixelX);
+        ys.push(pixelY);
       }
     }
+
+    // Only the pixels the commit's draw() calls really write: Mirror's copies,
+    // the drawing guide and a locked layer included, as the shape tools
+    // preview (forEachStrokeTarget: strokeTargets without an object a pixel).
+    const cols = ZX_SPECTRUM.GRID_COLS;
+    const cellSeen = new Uint8Array(cols * ZX_SPECTRUM.GRID_ROWS);
+    PixelDrawRoutine.forEachStrokeTarget(xs, ys, (x, y) => {
+      const cx = Math.floor(x / ZX_SPECTRUM.CELL_WIDTH), cy = Math.floor(y / ZX_SPECTRUM.CELL_HEIGHT);
+      if (!cellSeen[cy * cols + cx]) {
+        cellSeen[cy * cols + cx] = 1;
+        affectedCells.add(cx + ',' + cy);
+      }
+      gradientInkSet.add(x + ',' + y);
+    });
 
     GridOverlay.drawGradientCellPreview(
       affectedCells, gradientInkSet, gradientPaprSet,

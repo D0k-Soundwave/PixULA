@@ -138,9 +138,12 @@ class PixelDrawRoutineClass {
   // mirrored counterparts when StateManager's symmetry mode is on. Axes come
   // from the active screen mode, never hardcoded. Every tool works with it:
   // stamps and text placed on the canvas mirror through draw() too, and the
-  // whole-cell tools mirror their cells via getMirrorCells(). Writes that are
-  // not a tool putting something down (transforms, menu commands on a
-  // selection, Flatten baking stamps) wrap their loops in suspendMirror().
+  // whole-cell tools mirror their cells via getMirrorCells(). The previews show
+  // the copies too: strokeTargets / forEachStrokeTarget for the shapes, curves,
+  // figures and the gradient, mirrorWritePlan for the write plans of a floating
+  // stamp or text and Type on canvas. Writes that are not a tool putting
+  // something down (transforms, menu commands on a selection, Flatten baking
+  // stamps) wrap their loops in suspendMirror().
 
   /**
    * Run fn with every TOOL-STROKE hook suspended — symmetry expansion and the
@@ -216,6 +219,38 @@ class PixelDrawRoutineClass {
     })).filter(c => c.x !== cx || c.y !== cy);
   }
 
+  /**
+   * A write plan as draw() will carry it out with Mirror on, for a preview that simulates a plan of draw() calls
+   * (a floating stamp or text, Type on canvas): each write's mirrored copies, then the write itself - draw() expands
+   * before it writes - and an XOR write only the first time it reaches a pixel, as the batch's XOR gate lets it.
+   * The drawing guide is not applied: those commits suspend it. The plan comes back as it was when Mirror is off
+   * or suspended.
+   * @param {Array<{x:number,y:number,sel:Object,mode:string}>} writes
+   * @returns {Array<{x:number,y:number,sel:Object,mode:string}>}
+   */
+  mirrorWritePlan(writes) {
+    const sym = window.StateManager && StateManager.getSymmetryMode
+      ? StateManager.getSymmetryMode() : 'off';
+    if (sym === 'off' || this._mirrorSuspend > 0) return writes;
+    const W = ZX_SPECTRUM.WIDTH;
+    const xorSeen = new Set();
+    const out = [];
+    const put = (x, y, w) => {
+      if (!Validators.isValidPixelCoord(x, y)) return;
+      if (w.mode === DRAW_MODE.XOR || w.mode === DRAW_MODE.XOR_PIXEL) {
+        const k = y * W + x;
+        if (xorSeen.has(k)) return;
+        xorSeen.add(k);
+      }
+      out.push(x === w.x && y === w.y ? w : { ...w, x, y });
+    };
+    for (const w of writes) {
+      for (const p of this.getMirrorPoints(w.x, w.y, sym)) put(p.x, p.y, w);
+      put(w.x, w.y, w);
+    }
+    return out;
+  }
+
   /** @private */
   _expandSymmetry(pixelX, pixelY, colorSelection, mode, options) {
     const sym = window.StateManager && StateManager.getSymmetryMode
@@ -236,7 +271,7 @@ class PixelDrawRoutineClass {
    * The pixels a stroke of `pixels` would actually be written to, read-only: the same bounds check,
    * symmetry expansion and drawing-guide clip that draw() applies, in the same order, and nothing
    * when the current layer is missing or locked. A live PREVIEW asks this so it shows what the
-   * commit will leave (the previews of the older tools show neither mirror nor clip).
+   * commit will leave.
    * Each mirrored copy counts as colour-core exactly when its source pixel does (see draw()).
    * The dither gate is not applied: no shape tool uses it.
    * @param {Array<{x:number,y:number}>} pixels
@@ -269,6 +304,41 @@ class PixelDrawRoutineClass {
       }
     }
     return { pixels: out, isCore: isCore ? (x, y) => core.has(y * W + x) : null };
+  }
+
+  /**
+   * strokeTargets for a stroke too big for an object per pixel (the gradient previews up to a whole screen):
+   * visit(x, y) once for each pixel the stroke's draw() calls would write - the same bounds check, Mirror copies
+   * (getMirrorPoints's geometry) and drawing-guide clip, and nothing when the current layer is missing or locked.
+   * @param {ArrayLike<number>} xs - the stroke's pixels, x
+   * @param {ArrayLike<number>} ys - and y
+   * @param {function(number, number)} visit
+   */
+  forEachStrokeTarget(xs, ys, visit) {
+    const layer = window.LayerManager ? LayerManager.getCurrentLayer() : null;
+    if (!layer || layer.locked) return;
+    const sym = window.StateManager && StateManager.getSymmetryMode ? StateManager.getSymmetryMode() : 'off';
+    const W = ZX_SPECTRUM.WIDTH;
+    const mx = ACTIVE_SCREEN_MODE.width - 1, my = ACTIVE_SCREEN_MODE.height - 1;
+    const across = sym === 'h' || sym === 'quad', down = sym === 'v' || sym === 'quad';
+    const clip = this._clipSuspend === 0;
+    const seen = new Uint8Array(W * ZX_SPECTRUM.HEIGHT);
+    const take = (x, y) => {
+      if (!Validators.isValidPixelCoord(x, y)) return;
+      const k = y * W + x;
+      if (seen[k]) return;
+      seen[k] = 1;
+      if (clip && this.isClipped(x, y)) return;
+      visit(x, y);
+    };
+    for (let i = 0; i < xs.length; i++) {
+      const x = xs[i], y = ys[i];
+      if (!Validators.isValidPixelCoord(x, y)) continue;
+      take(x, y);
+      if (across) take(mx - x, y);
+      if (down) take(x, my - y);
+      if (across && down) take(mx - x, my - y);
+    }
   }
 
   // ── Clip region (the drawing guide / barrier) ──────────────────────────────
