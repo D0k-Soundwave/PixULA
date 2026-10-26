@@ -321,10 +321,14 @@ class PixelDrawRoutineClass {
     const W = ZX_SPECTRUM.WIDTH;
     const mx = ACTIVE_SCREEN_MODE.width - 1, my = ACTIVE_SCREEN_MODE.height - 1;
     const across = sym === 'h' || sym === 'quad', down = sym === 'v' || sym === 'quad';
-    const clip = this._clipSuspend === 0;
-    const seen = new Uint8Array(W * ZX_SPECTRUM.HEIGHT);
+    // isClipped reads the guide's setting on every call: ask it only when the guide is on.
+    const clipMode = window.StateManager && StateManager.getClipMode ? StateManager.getClipMode() : 'off';
+    const clip = this._clipSuspend === 0 && clipMode !== 'off';
+    const HH = ZX_SPECTRUM.HEIGHT;
+    const seen = new Uint8Array(W * HH);
+    // Every point here is a whole number - a checked source pixel or its mirror - so the bounds are all to check.
     const take = (x, y) => {
-      if (!Validators.isValidPixelCoord(x, y)) return;
+      if (x < 0 || y < 0 || x >= W || y >= HH) return;
       const k = y * W + x;
       if (seen[k]) return;
       seen[k] = 1;

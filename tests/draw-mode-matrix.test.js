@@ -46,6 +46,8 @@ global.GridOverlay = new Proxy({}, {
     if (prop === 'getFunctionPreviewContext' || prop === 'getCompositePreviewContext') {
       return () => null;
     }
+    // the gradient fills a set of pending writes before it previews them
+    if (prop === 'newPixelMarks') return () => ({ marks: null, cells: [], mark() {} });
     return () => {};
   }
 });

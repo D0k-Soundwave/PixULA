@@ -1384,3 +1384,27 @@ preview 5.9-6.8 ms before; now 5.8-7.7 ms with Mirror off and 13.4-16.7 ms with 
 (38208 against 11781 [M]); a frame at 60 Hz is 16.7 ms [C: 1000 / 60]. A first version built an object per pixel and
 took 18.5-26.5 ms with H+V; forEachStrokeTarget replaced it. Floating stamp move 0.2-0.5 ms before, 2.0-3.8 ms with H+V.
 Gates [M, 2026-10-26]: run-all passes; check:manual up to date in 13 languages; whole browser suite 919 of 919.
+
+## Faster previews (2026-10-26)
+Owner: "is there a way to increase the speed of the preview function?" Profiled a full-screen gradient preview with
+Mirror H+V in Chrome's sampling profiler (30 calls, Standard, GigaScreen, Layer 2) [M, 2026-10-26]: about half the
+time went on "x,y" strings - the gradient built one per pending pixel into a Set, and the preview painter built
+another for every pixel of every touched cell to look it up (gradient callback 23-25 %, _renderCompositorPreview
+22-23 %, plus string hashing and garbage collection); the per-pixel bounds checks and drawing-guide setting read in
+forEachStrokeTarget were a further ~10 %.
+Change: the painter takes pending writes as one byte per picture pixel plus the list of touched cells
+(GridOverlay.newPixelMarks / drawMarksPreview, replacing drawGradientCellPreview), cells are numbered rather than
+"cx,cy" strings, and forEachStrokeTarget reads the guide setting once and checks only the bounds of mirrored points.
+drawCompositorPreview (shapes, curve, Figure) and drawWritesPreview (Type on canvas) use the same painter, so they
+gain too. No change to what any preview shows.
+Timings [M, 2026-10-26, Playwright Chromium 1228, median of 21 calls, 3 runs; full-screen gradient, a filled
+rectangle over 60 % of the picture through strokeTargets + drawCompositorPreview, a 96x64 floating stamp]:
+  gradient, Mirror off      4-5.5 ms   -> 1.5-2.6 ms
+  gradient, Mirror H+V      10-11 ms   -> 2.5-4.2 ms
+  filled rect, Mirror off   8.7-11.8 ms -> 3.2-4.7 ms
+  filled rect, Mirror H+V   18-20.5 ms -> 8.5-11.8 ms (was over the 16.7 ms of a 60 Hz frame [C: 1000 / 60])
+  stamp move                unchanged (0.3-0.7 ms off, 1.3-2.8 ms H+V)
+Checked: the preview-is-the-commit oracle (rectangle, gradient, Type on canvas; Normal and XOR; Mirror off and H+V)
+in all 18 screen modes, once, not kept; tests/browser/mirror-previews.spec.js and gradient-shapes.spec.js. Three unit
+tests' stand-in GridOverlay learned newPixelMarks.
+Gates [M, 2026-10-26]: run-all passes; check:manual up to date in 13 languages; whole browser suite 919 of 919.
