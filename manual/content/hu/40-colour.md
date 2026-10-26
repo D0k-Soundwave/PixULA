@@ -62,8 +62,7 @@ Felcserél és az Átszínezés gomb figyelmen kívül hagyja.
 a Papír átszínezése rajzmódok: minden cellát átszíneznek, amelyet az aktuális
 eszköz érint - kis ecsetnél néhányat, kitöltött téglalapnál mindet, amelyet
 lefed - és a tükrözés érvényes. Az **Átszínezés** a Celláeszköz gombban a mutató
-alatti teljes cellát színezi át, bármelyik eszköz van kiválasztva, az
-ecsetmérettől és a tükrözéstől függetlenül. A **Csere** ugyanabból a gombból
+alatti teljes cellát színezi át, bármelyik eszköz van kiválasztva, az ecsetmérettől függetlenül. A **Csere** ugyanabból a gombból
 ugyanígy működik, és felcseréli minden cella Tintáját és Papírját. Mindkettő
 addig marad bekapcsolva, amíg ki nem kapcsolod - válaszd a Nincs lehetőséget,
 válaszd újra, kattints jobb gombbal a vászonra, vagy válassz eszközt vagy
@@ -93,7 +92,7 @@ amelyekbe másik réteg is rajzol, és ULAplusban és ULANextben nem érhető el
 celláeszközök csak azokban a képernyőmódokban érhetők el, ahol működhetnek: a
 Celláeszköz gomb csak az érvényeseket sorolja fel (és el van rejtve ott, ahol
 egy sem érvényes), a Pixelek megfordítása pedig a Timex Hi-resben is működik,
-ahol a pixelek 8 × 8-as cellákban vannak.
+ahol a pixelek 8 × 8-as cellákban vannak. Bekapcsolt tükrözéssel minden celláeszköz, a Csere és az Átszínezés is, minden érintett cella tükörképén is dolgozik: a tükörcella ugyanazt a változást kapja a saját pixelein és attribútumain.
 
 **Az XOR / Fölé és az XOR / Minden áthaladás** megfordítja a pixeleket, a tintát
 papírrá, a papírt tintává, ahelyett, hogy tintapixeleket rajzolna, és mindkettő a választott attribútumokat adja a cellának. Az

@@ -1314,3 +1314,26 @@ checked independently; the checks found and fixed defects in their own commits (
 - This machine still has no installed Chrome (Playwright's channel 'chrome' is missing, and the headless shell is not
   installed), so the manual build and the browser suite ran on Playwright's own Chromium 1228 through channel
   'chromium', set by a temporary preload and config outside the repo; nothing in the repo was changed for it.
+
+## Mirror works with every tool (2026-10-26)
+Owner, after trying the new modes: "not all attribute modes and funcrions work with the "Mirror modes" toggled. all
+modes should work with this", and "the toggle should be available on all modes". The Mirror button was already shown
+and enabled in all 18 screen modes, with every tool and cell tool (checked in the running app). What did not follow it:
+- the five cell tools (Swap, Recolour, Copy colours, Invert Pixels, Invert Pixels and Attributes) changed only the
+  cell under the pointer. Now each mirror cell (PixelDrawRoutine.getMirrorCells) gets the same operation on its own
+  content, in one undo step; a drag across the mirror line still changes each cell once.
+- the Fade brush (size above 1) judged its dither again on the mirrored side, so the two sides differed and, in Ink
+  Recolour / Paper Recolour / Attributes Only, mirrored cells were missed. The gate now judges the original pixel and
+  each mirrored copy takes its verdict, as the size-1 fade already did.
+- a placed stamp, a placed text, rubber-stamping and Type on canvas switched Mirror off. They now mirror (the drawing
+  guide stays off for them, as before). Flatten still bakes waiting stamps as they are.
+Menu commands that act on a selection or the whole picture (Edit fill / delete / invert, Image > Pixels and
+Attributes, Transform) are not strokes and still ignore Mirror.
+Tests, each seen failing first: tests/symmetry-draw.test.js (dither gate under Mirror, 1 check);
+tests/browser/mirror-all-tools.spec.js (14 tests: the cell tools against a by-hand oracle in Standard, multicolour
+8x1, GigaScreen, ULAplus, ULANext and Timex hi-res; undo; Fade; text, stamp and Type on canvas; pattern, hatch, spray
+and round brushes; Flatten) - 12 of the first 12 failed on the old code. Manual colour chapter, 13 languages: Recolour
+no longer "ignores Mirror"; one sentence says every cell tool follows it.
+Gates [M, 2026-10-26, Playwright Chromium 1228, no installed Chrome]: run-all passes; check:manual up to date in 13
+languages; whole browser suite 910 of 911, the one failure the known undo-partial-capture.spec.js:67 timing check,
+which then passed 4 of 4 alone.

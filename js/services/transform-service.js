@@ -570,7 +570,8 @@ class TransformServiceClass {
     if (this.cellToolBlocked('apply') || !Validators.isValidCellCoord(cx, cy)) return false;
     const layer = LayerManager.getCurrentLayer();
     const px = ZX_COORDS.cellToPixel(cx, cy);
-    // The drawing guide is judged inside draw() for this one (as it always was); no symmetry.
+    // The drawing guide is judged inside draw() for this one (as it always was). No symmetry
+    // here: the cell tool's drag recolours each mirror cell itself (InputHandler).
     return !!PixelDrawRoutine.draw(px.x, px.y, ColorManager.getCurrentSelection(),
       DRAW_MODE.ATTRIBUTES_ONLY, { layer, mirror: false });
   }

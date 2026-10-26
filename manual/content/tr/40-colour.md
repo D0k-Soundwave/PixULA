@@ -63,8 +63,7 @@ Mürekkebi Yeniden Renklendir ve Kâğıdı Yeniden Renklendir çizim modlarıd�
 geçerli aracın dokunduğu her hücreyi yeniden renklendirirler - küçük bir
 fırçayla birkaç hücre, dolu bir dikdörtgenin kapladığı her hücre - ve Yansıtma
 uygulanır. Hücre aracı düğmesindeki **Yeniden Renklendir**, hangi araç seçili
-olursa olsun imlecin altındaki tüm hücreyi yeniden renklendirir, fırça boyutunu
-ve Yansıtmayı yok sayar. Aynı düğmedeki **Değiştir** de aynı şekilde çalışır ve
+olursa olsun imlecin altındaki tüm hücreyi yeniden renklendirir, fırça boyutunu yok sayar. Aynı düğmedeki **Değiştir** de aynı şekilde çalışır ve
 her hücrenin Mürekkebiyle Kâğıdını değiştirir. İkisi de siz kapatana kadar açık
 kalır - Yok'u seçin, onu yeniden seçin, tuvale sağ tıklayın ya da bir araç veya
 çizim modu seçin - ve açıkken durum çubuğu bunu söyler.
@@ -92,7 +91,7 @@ içe aktarılmış bir resmi düzeltmek içindir, başka bir katmanın da çizdi
 hücreleri atlar ve ULAplus ile ULANext'te sunulmaz. Bir hücre aracı yalnızca
 çalışabildiği ekran modlarında sunulur: Hücre aracı düğmesi yalnızca uygun
 olanları listeler (hiçbiri uygun değilse gizlenir) ve Pikselleri ters çevir,
-piksellerin 8'e 8 hücrelerde olduğu Timex Hi-res'te de çalışır.
+piksellerin 8'e 8 hücrelerde olduğu Timex Hi-res'te de çalışır. Yansıtma açıkken her hücre aracı, Değiştir ve Yeniden Renklendir de dahil, dokunduğu her hücrenin ayna görüntüsünde de çalışır: ayna hücre kendi piksellerinde ve özniteliklerinde aynı değişikliği alır.
 
 **XOR / Üzerine ve XOR / Her geçiş** mürekkep pikselleri çizmek yerine
 pikselleri mürekkepten kâğıda ve kâğıttan mürekkebe çevirir ve ikisi de hücreye

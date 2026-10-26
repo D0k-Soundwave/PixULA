@@ -65,7 +65,7 @@ umfärben sind Zeichenmodi: Sie färben jede Zelle um, die das aktuelle Werkzeug
 berührt - einige Zellen bei einem kleinen Pinsel, jede Zelle, die ein gefülltes
 Rechteck bedeckt - und Spiegeln gilt. **Umfärben** in der Schaltfläche
 Zellwerkzeug färbt die ganze Zelle unter dem Zeiger um, welches Werkzeug auch
-gewählt ist, unabhängig von Pinselgröße und Spiegeln. **Tauschen** aus derselben
+gewählt ist, unabhängig von der Pinselgröße. **Tauschen** aus derselben
 Schaltfläche funktioniert genauso und vertauscht Tinte und Papier jeder Zelle.
 Beides bleibt an, bis Sie es ausschalten - wählen Sie Keines, wählen Sie es
 erneut, klicken Sie mit rechts auf die Zeichenfläche oder wählen Sie ein
@@ -97,7 +97,7 @@ zeichnet, und wird in ULAplus und ULANext nicht angeboten. Ein Zellwerkzeug wird
 nur in den Bildschirmmodi angeboten, in denen es funktionieren kann: Die
 Schaltfläche Zellwerkzeug listet nur die passenden auf (und ist ausgeblendet, wo
 keines passt), und Pixel invertieren funktioniert auch in Timex Hi-Res, wo die
-Pixel in 8-mal-8-Zellen liegen.
+Pixel in 8-mal-8-Zellen liegen. Mit eingeschaltetem Spiegeln arbeitet jedes Zellwerkzeug, auch Tauschen und Umfärben, zusätzlich am Spiegelbild jeder Zelle, die es berührt: Die gespiegelte Zelle erhält dieselbe Änderung an ihren eigenen Pixeln und Attributen.
 
 **XOR / Über und XOR / Jeder Durchgang** kehren Pixel um, Tinte zu Papier und
 Papier zu Tinte, statt Tintenpixel zu zeichnen, und geben der Zelle beide die

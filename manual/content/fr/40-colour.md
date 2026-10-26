@@ -68,7 +68,7 @@ et Recolorer le papier sont des modes de dessin : ils recolorent chaque cellule
 que touche l'outil actuel - quelques cellules avec un petit pinceau, toutes
 celles que couvre un rectangle plein - et le miroir s'applique. **Recolorer**,
 dans le bouton Outil de cellule, recolore la cellule entière sous le pointeur
-quel que soit l'outil, sans tenir compte de la taille du pinceau ni du miroir.
+quel que soit l'outil, sans tenir compte de la taille du pinceau.
 **Échanger**, du même bouton, fonctionne de même et échange l'Encre et le Papier
 de chaque cellule. L'un comme l'autre reste actif jusqu'à ce que vous le coupiez
 - choisissez Aucun, choisissez-le à nouveau, faites un clic droit sur la zone de
@@ -100,7 +100,7 @@ cellules où une autre couche dessine aussi, et n'est pas proposé en ULAplus ni
 ULANext. Un outil de cellule n'est proposé que dans les modes d'écran où il peut
 fonctionner : le bouton Outil de cellule ne liste que ceux qui conviennent (et
 est masqué là où aucun ne convient), et Inverser les pixels fonctionne aussi en
-Timex Hi-res, où les pixels sont dans des cellules de 8 par 8.
+Timex Hi-res, où les pixels sont dans des cellules de 8 par 8. Avec le miroir activé, chaque outil de cellule, Échanger et Recolorer compris, agit aussi sur l'image miroir de chaque cellule qu'il touche : la cellule miroir reçoit le même changement sur ses propres pixels et attributs.
 
 **XOR / Superposer et XOR / Chaque passage** inversent les pixels, l'encre en
 papier et le papier en encre, au lieu de dessiner des pixels d'encre, et donnent

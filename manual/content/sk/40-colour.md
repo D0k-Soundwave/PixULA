@@ -60,8 +60,7 @@ ho neberú do úvahy.
 Prefarbiť Papier sú režimy kreslenia: prefarbujú každú bunku, ktorej sa nástroj
 dotkne - niekoľko pri malom štetci, každú, ktorú pokrýva vyplnený obdĺžnik - a
 platí Zrkadlenie. **Prefarbiť** v tlačidle Nástroj buniek prefarbuje celú bunku
-pod ukazovateľom bez ohľadu na zvolený nástroj, bez ohľadu na veľkosť štetca a
-Zrkadlenie. **Vymeniť** z toho istého tlačidla funguje rovnako a vymení Atrament
+pod ukazovateľom bez ohľadu na zvolený nástroj, bez ohľadu na veľkosť štetca. **Vymeniť** z toho istého tlačidla funguje rovnako a vymení Atrament
 s Papierom každej bunky. Oboje zostáva zapnuté, kým ho nevypnete - zvoľte
 Žiadny, zvoľte ho znova, kliknite pravým tlačidlom na plátno alebo vyberte
 nástroj či režim kreslenia - a stavový riadok to hlási, kým je zapnuté.
@@ -87,7 +86,7 @@ vyzerá rovnako; slúži na upratanie importovaného obrázka, preskakuje bunky,
 ktorých kreslí aj iná vrstva, a v ULAplus a ULANext sa neponúka. Nástroj pre
 bunky sa ponúka len v režimoch obrazovky, kde môže fungovať: tlačidlo Nástroj
 buniek uvádza len tie, ktoré platia (a je skryté tam, kde žiadny neplatí), a
-Invertovať pixely funguje aj v Timex Hi-res, kde sú pixely v bunkách 8 × 8.
+Invertovať pixely funguje aj v Timex Hi-res, kde sú pixely v bunkách 8 × 8. So zapnutým Zrkadlením každý nástroj buniek, vrátane Vymeniť a Prefarbiť, pracuje aj na zrkadlovom obraze každej bunky, ktorej sa dotkne: zrkadlová bunka dostane rovnakú zmenu svojich vlastných pixelov a atribútov.
 
 **XOR / Cez a XOR / Každý prejazd** pixely prepínajú, z atramentu na papier a z
 papiera na atrament, namiesto toho, aby kreslili pixely atramentu, a oba dajú
