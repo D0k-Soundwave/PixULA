@@ -34,6 +34,11 @@ class TAPFormatClass {
       INK: 0xD9,
       CLS: 0xFB,
       LOAD: 0xEF,
+      RANDOMIZE: 0xF9,
+      USR: 0xC0,
+      VAL: 0xB0,
+      PEEK: 0xBE,
+      REM: 0xEA,
       SCREEN$: 0xAA,
       PAUSE: 0xF2
     });
@@ -83,11 +88,173 @@ class TAPFormatClass {
       pos = blockStart + blockLen;
     }
 
+    // No screen on the tape: it may be a ULAplus palette tape (one program block that sets the
+    // 64 palette registers). Load the palette instead of failing.
+    if (this.findUlaplusPalette(bytes)) return this.loadUlaplusPalette(bytes);
+
     return {
       success: false,
-      error: Helpers.localizedMessage('err.noScreenBlock',
-          'No {size}-byte SCREEN$ block found in the {format} file', { size: this.SCREEN_SIZE, format: 'TAP' })
+      error: Helpers.localizedMessage('err.tapNoScreenOrPalette',
+          'No {size}-byte SCREEN$ block and no ULAplus palette found in the {format} file',
+          { size: this.SCREEN_SIZE, format: 'TAP' })
     };
+  }
+
+  // ── ULAplus palette tapes (Batch 6 part 6B) ───────────────────────────────
+
+  /**
+   * Whether opening this tape replaces the document. A tape that holds a screen does; a tape that
+   * holds only a ULAplus palette does not (it must not become the open file, or Ctrl+S would write a
+   * screen tape over it).
+   * @param {ArrayBuffer|Uint8Array} buffer
+   * @returns {boolean}
+   */
+  importsDocumentFor(buffer) {
+    const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+    let pos = 0;
+    while (pos + 2 <= bytes.length) {
+      const blockLen = bytes[pos] | (bytes[pos + 1] << 8);
+      const blockStart = pos + 2;
+      if (blockLen < 2 || blockStart + blockLen > bytes.length) break;
+      if (bytes[blockStart] >= 0x80 && blockLen - 2 === this.SCREEN_SIZE) return true;
+      pos = blockStart + blockLen;
+    }
+    return !this.findUlaplusPalette(bytes);
+  }
+
+  /**
+   * Build a ULAplus palette tape: 176 bytes. A Program header and a one-line BASIC program
+   *   10 RANDOMIZE USR (46 + PEEK 23635 + 256 * PEEK 23636): LOAD "": REM <routine> <64 palette bytes>
+   * The routine sits 46 bytes after the start of the program (4 bytes of line number and length,
+   * then the 42 bytes of BASIC), which is where PEEK 23635/6 (PROG) plus 46 points. It writes the 64
+   * registers to the ULAplus ports and switches the palette on; `LOAD ""` then loads whatever
+   * follows on the tape, so a palette tape can be put in front of a picture or game tape.
+   * ULAplus ports [P, ULAplus specification, sinclair.wiki.zxnet.co.uk/wiki/ULAplus]: register port
+   * 0xBF3B (bits 7-6 the group: 00 = palette entry 0-63, 01 = mode), data port 0xFF3B.
+   * [C] 176 = 21 (header block) + 2 + 1 + 151 (program) + 1 (checksum); 151 = 4 + 147;
+   * 147 = 42 (BASIC) + 40 (routine, 35 bytes plus 5 of padding) + 64 (palette) + 1 (0x0D).
+   * @param {Uint8Array|number[]} registers - the 64 G3R3B2 registers
+   * @param {string} [name] - tape name (up to 10 characters)
+   * @returns {Uint8Array}
+   */
+  buildUlaplusPaletteTap(registers, name) {
+    const T = this.TOKENS;
+    const q = (text) => [0x22, ...Array.from(text).map(c => c.charCodeAt(0)), 0x22];
+    // RANDOMIZE USR (VAL "46" + PEEK VAL "23635" + VAL "256" * PEEK VAL "23636"): LOAD "": REM
+    const basic = [
+      T.RANDOMIZE, T.USR, 0x28,
+      T.VAL, ...q('46'), 0x2B,
+      T.PEEK, T.VAL, ...q('23635'), 0x2B,
+      T.VAL, ...q('256'), 0x2A,
+      T.PEEK, T.VAL, ...q('23636'), 0x29,
+      0x3A, T.LOAD, 0x22, 0x22, 0x3A, T.REM
+    ];
+    // Z80, assembled by hand from the port specification above. USR enters with BC = its own
+    // address; IY and HL' are left alone, so BASIC carries on.
+    const routine = [
+      0x21, 0x28, 0x00,       // LD HL,40         palette is 40 bytes after the routine
+      0x09,                   // ADD HL,BC        HL -> the 64 palette bytes
+      0x0E, 0x3B,             // LD C,3Bh         low byte of both ports
+      0xAF,                   // XOR A            entry 0
+      0x06, 0xBF,             // loop: LD B,BFh   register port 0xBF3B
+      0xED, 0x79,             // OUT (C),A        select entry A
+      0x06, 0xFF,             // LD B,FFh         data port 0xFF3B
+      0x56,                   // LD D,(HL)
+      0xED, 0x51,             // OUT (C),D        write GGGRRRBB
+      0x23,                   // INC HL
+      0x3C,                   // INC A
+      0xFE, 0x40,             // CP 64
+      0x20, 0xF1,             // JR NZ,loop       back 15 bytes
+      0x06, 0xBF,             // LD B,BFh
+      0x3E, 0x40,             // LD A,40h         group 01 = mode register
+      0xED, 0x79,             // OUT (C),A
+      0x06, 0xFF,             // LD B,FFh
+      0x3E, 0x01,             // LD A,1           palette mode on, after the colours are in
+      0xED, 0x79,             // OUT (C),A
+      0xC9                    // RET
+    ];
+    const code = new Array(40).fill(0);
+    routine.forEach((b, i) => { code[i] = b; });
+    const regs = Array.from(registers, v => v & 0xFF);
+    if (regs.length !== 64) throw new Error('A ULAplus palette has 64 registers');
+
+    const lineBody = [...basic, ...code, ...regs, 0x0D];
+    const program = [0x00, 0x0A, lineBody.length & 0xFF, (lineBody.length >> 8) & 0xFF, ...lineBody];
+    const tapeName = this._tapeName(name || 'palette');
+    const blocks = [
+      this._block(0x00, this._header(0, tapeName, program.length, 10, program.length)),
+      this._block(0xFF, program)
+    ];
+    const out = new Uint8Array(blocks[0].length + blocks[1].length);
+    out.set(blocks[0], 0);
+    out.set(blocks[1], blocks[0].length);
+    return out;
+  }
+
+  /**
+   * The 64 palette bytes of a ULAplus palette tape, or null. Accepts the first Program header
+   * whose next block is a data block holding one BASIC line that ends in
+   *   REM <anything> <64 palette bytes> 0x0D
+   * Name, line number, autostart line and the loader code are all ignored, so ZX Paintbrush's
+   * tapes and PixULA's both read. Block checksums are not enforced (as on every TAP import here).
+   * @param {Uint8Array|ArrayBuffer} buffer
+   * @returns {?Uint8Array}
+   */
+  findUlaplusPalette(buffer) {
+    const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+    const blocks = [];
+    let pos = 0;
+    while (pos + 2 <= bytes.length) {
+      const blockLen = bytes[pos] | (bytes[pos + 1] << 8);
+      const start = pos + 2;
+      if (blockLen < 2 || start + blockLen > bytes.length) break;
+      blocks.push({ flag: bytes[start], payload: bytes.subarray(start + 1, start + blockLen - 1) });
+      pos = start + blockLen;
+    }
+    for (let i = 0; i + 1 < blocks.length; i++) {
+      const h = blocks[i], d = blocks[i + 1];
+      if (h.flag !== 0x00 || h.payload.length !== 17 || h.payload[0] !== 0 || d.flag < 0x80) continue;
+      const p = d.payload;
+      if (p.length < 4) continue;
+      const lineLen = p[2] | (p[3] << 8);               // line length counts everything after itself
+      const end = 4 + lineLen;                           // one past the 0x0D
+      // One line and nothing after it (the loader is a single line), so a longer program is never mistaken for one.
+      if (lineLen < 66 || end !== p.length || p[end - 1] !== 0x0D) continue;
+      let rem = -1;
+      for (let k = 4; k <= end - 66; k++) if (p[k] === this.TOKENS.REM) { rem = k; break; }
+      if (rem < 0) continue;
+      // A palette loader starts the machine code itself: a USR comes before the REM.
+      if (!p.subarray(4, rem).includes(this.TOKENS.USR)) continue;
+      return Uint8Array.from(p.subarray(end - 65, end - 1));
+    }
+    return null;
+  }
+
+  /**
+   * Put a tape's ULAplus palette into the document: one undo step, into the palette slot in use.
+   * Outside the ULAplus modes the palette is stored for when the mode is chosen, and the status bar
+   * says so.
+   * @param {Uint8Array|ArrayBuffer} buffer
+   * @returns {{success: boolean, error?: string}}
+   */
+  loadUlaplusPalette(buffer) {
+    const regs = this.findUlaplusPalette(buffer);
+    if (!regs) {
+      return { success: false, error: Helpers.localizedMessage('err.tapNoPalette',
+          'No ULAplus palette found in the {format} file', { format: 'TAP' }) };
+    }
+    UndoRedo.beginAction('Load palette');
+    ColorManager.setUlaplusRegisters(regs);
+    StateManager.markModified();
+    UndoRedo.endAction();
+    if (window.LayerManager) LayerManager.composeToCanvas();
+    if (ACTIVE_SCREEN_MODE.paletteModel !== 'ulaplus64') {
+      EventBus.emit(EVENTS.STATUS_NOTICE, { text: Helpers.localizedMessage('msg.ulaplusPaletteStored',
+          'ULAplus palette loaded; it shows when you choose a ULAplus mode.') });
+    }
+    Logger.info('TAPFormat', 'Loaded ULAplus palette from TAP');
+    EventBus.emit(EVENTS.FILE_IMPORT, { format: 'tap' });
+    return { success: true };
   }
 
   /**

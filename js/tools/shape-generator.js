@@ -133,7 +133,9 @@ const ICON_POSE = Object.freeze({
     // the one direction an arrow reads worst in.
     arrow:    { mode: 'radius', origin: [0, 0.5], dir: [1, 0], radius: 2 },
     spiral:   { mode: 'radius', dir: [1, 0] },
-    ring:     { mode: 'radius', dir: [1, 0] },
+    // Drawn from a centre with a width and a height like the ellipse; posed as the circle it was before it could be
+    // elliptic, so its button picture did not change.
+    ring:     { mode: 'disc' },
     moon:     { mode: 'radius', dir: [1, 0] },
     diamond:  { mode: 'radius', dir: [0, -1] },
     pentagon: POLYGON_POSE, hexagon:  POLYGON_POSE, heptagon: POLYGON_POSE,
@@ -361,6 +363,9 @@ class ShapeGeneratorClass {
      * @returns {Array<{x: number, y: number}>}
      */
     generateShape(shapeType, bounds, options = {}) {
+        // A Filled setting left on from a box shape means nothing to a shape with no inside (its Filled box is hidden):
+        // it must not change the outline, its thickness or its line style.
+        if (options.filled && ShapeGeneratorClass.UNFILLABLE.has(shapeType)) options = { ...options, filled: false };
         const { filled = false } = options;
 
         if (!shapeType || !bounds) {
@@ -368,7 +373,34 @@ class ShapeGeneratorClass {
             return [];
         }
 
-        const standardBounds = this._standardizeBounds(shapeType, bounds);
+        let standardBounds = this._standardizeBounds(shapeType, bounds);
+
+        // Rotation (0 by default, which changes nothing). The shapes drawn from a centre and a drag point turn
+        // their drag point round the start; the box shapes turn their outline round the box centre (_outlineOf).
+        const deg = ShapeGeneratorClass.rotationDeg(options.rotation);
+        const boxTurned = deg !== 0 && ShapeGeneratorClass.BOX_ROTATABLE.has(shapeType);
+        if (deg !== 0 && ShapeGeneratorClass.DRAG_ROTATABLE.has(shapeType)) {
+            standardBounds = this._standardizeBounds(shapeType, this._rotatedDragBounds(bounds, deg));
+        }
+
+        // Line style (solid by default, which changes nothing). Dashed, dotted and the two mixed styles
+        // are drawn on the 1-pixel outline only, so they apply at thickness 1 (a filled shape counts as
+        // 1); 'clear' draws no outline at any thickness. See _generateStyled.
+        const style = ShapeGeneratorClass.cleanLineStyle(options.lineStyle);
+        if (style !== 'solid') {
+            const thick = Helpers.clamp(Math.round(options.thickness || 1), 1, 16);
+            if (style === 'clear' || filled || thick === 1) {
+                return this._generateStyled(shapeType, standardBounds, options, style, deg);
+            }
+        }
+
+        if (boxTurned) {
+            // A turned box shape: fill the turned outline, or thicken it.
+            const turned = this._rotatedBoxOutline(shapeType, standardBounds, options, deg);
+            if (filled) return this._fillFromOutline(() => turned, standardBounds, options);
+            const th = Helpers.clamp(Math.round(options.thickness || 1), 1, 16);
+            return th > 1 ? this._thickenPoints(turned, th) : turned;
+        }
 
         if (filled && this.filledShapes.has(shapeType)) {
             return this.filledShapes.get(shapeType)(standardBounds, options);
@@ -386,6 +418,441 @@ class ShapeGeneratorClass {
         const points = generator(standardBounds, options);
         const thickness = Helpers.clamp(Math.round(options.thickness || 1), 1, 16);
         return thickness > 1 ? this._thickenPoints(points, thickness) : points;
+    }
+
+
+    // ===== ROTATION (Batch 7 part 7B) =====
+
+    /** Shapes whose start point is the CENTRE and whose drag point defines the radius (the others run corner to corner). */
+    static isCenterAnchored(shapeType) {
+        return ['circle', 'ellipse', 'ring', 'star', 'flower', 'gear', 'heart', 'x', 'plus', 'hourglass'].includes(shapeType);
+    }
+
+    /** Bounds for a centre-anchored shape: a box round the centre reaching the drag point. */
+    static centerAnchoredBounds(cx, cy, ex, ey) {
+        const dx = Math.abs(ex - cx), dy = Math.abs(ey - cy);
+        return { x1: cx - dx, y1: cy - dy, x2: cx + dx, y2: cy + dy };
+    }
+
+    /**
+     * The point a shape turns round when it is rotated: the box centre the generator uses for the box shapes, the start
+     * point for the shapes drawn from a centre and a drag point, null for a shape that has no rotation.
+     * @param {string} shapeType
+     * @param {{x1,y1,x2,y2}} bounds - raw drag bounds (as passed to generateShape)
+     * @param {Object} [options]
+     * @returns {?{x:number,y:number}}
+     */
+    rotationPivot(shapeType, bounds, options = {}) {
+        if (ShapeGeneratorClass.DRAG_ROTATABLE.has(shapeType)) return { x: bounds.x1, y: bounds.y1 };
+        if (ShapeGeneratorClass.SELF_ROTATING.has(shapeType)) {
+            const b = this._standardizeBounds(shapeType, bounds);
+            return { x: Math.round(b.centerX), y: Math.round(b.centerY) };
+        }
+        if (ShapeGeneratorClass.BOX_ROTATABLE.has(shapeType)) {
+            const box = this._boxVertices(shapeType, this._standardizeBounds(shapeType, bounds), options);
+            return box ? { x: box.cx, y: box.cy } : null;
+        }
+        return null;
+    }
+
+    /** Shapes with no inside to fill (open or one-dimensional outlines): Filled does not apply to them. */
+    static get UNFILLABLE() {
+        return new Set(['line', 'arc', 'spiral', 'x']);
+    }
+
+    /** Whether a shape is drawn filled: Filled is on and the shape has an inside. */
+    static fillsInside(shapeType, filled) {
+        return !!filled && !ShapeGeneratorClass.UNFILLABLE.has(shapeType);
+    }
+
+    /** Shapes drawn from a box that turn round the box centre. */
+    static get BOX_ROTATABLE() {
+        return new Set(['rectangle', 'square', 'rounded-rectangle', 'parallelogram', 'ellipse']);
+    }
+
+    /**
+     * Shapes whose own generator applies options.rotation, round the centre of their box. The ring is one: it has two
+     * outlines and a fill with a hole, which the box-shape path (turn one sampled outline, fill inside it) cannot make.
+     */
+    static get SELF_ROTATING() {
+        return new Set(['ring']);
+    }
+
+    /** Shapes drawn from a centre point and a drag point: turning them turns the drag point round the start. */
+    static get DRAG_ROTATABLE() {
+        return new Set(['arc', 'sector', 'triangle', 'diamond', 'pentagon', 'hexagon', 'heptagon', 'octagon',
+            'nonagon', 'decagon', 'dodecagon', 'polygon']);
+    }
+
+    /**
+     * The rotation in degrees, turned into the range -180 to 180 so that 360 is 0.
+     * Positive turns clockwise on screen. Anything that is not a finite number is 0.
+     */
+    static rotationDeg(v) {
+        const n = Number(v);
+        if (!Number.isFinite(n)) return 0;
+        let d = n % 360;
+        if (d > 180) d -= 360;
+        if (d < -180) d += 360;
+        return d;
+    }
+
+    /** Round a coordinate; floating-point noise at .5 is removed first so a .5 always rounds up. @private */
+    static _snap(v) {
+        return Math.round(Math.round(v * 1e6) / 1e6);
+    }
+
+    /**
+     * (x, y) turned by `deg` degrees (clockwise on screen) round (cx, cy). Quarter turns use exact sines
+     * and cosines. Not rounded.
+     * @private
+     */
+    static _rotateXY(x, y, cx, cy, deg) {
+        const q = ((deg % 360) + 360) % 360;
+        let c, s;
+        if (q === 0) { c = 1; s = 0; }
+        else if (q === 90) { c = 0; s = 1; }
+        else if (q === 180) { c = -1; s = 0; }
+        else if (q === 270) { c = 0; s = -1; }
+        else { const r = deg * Math.PI / 180; c = Math.cos(r); s = Math.sin(r); }
+        const dx = x - cx, dy = y - cy;
+        return { x: cx + dx * c - dy * s, y: cy + dx * s + dy * c };
+    }
+
+    /**
+     * Bounds with the drag point turned round the start point, for the shapes that are defined by a centre and a
+     * drag point (their own generators then do the rest).
+     * @private
+     */
+    _rotatedDragBounds(bounds, deg) {
+        const p = ShapeGeneratorClass._rotateXY(bounds.x2, bounds.y2, bounds.x1, bounds.y1, deg);
+        return { x1: bounds.x1, y1: bounds.y1,
+            x2: ShapeGeneratorClass._snap(p.x), y2: ShapeGeneratorClass._snap(p.y) };
+    }
+
+    /**
+     * The vertices (closed, in drawing order) of a box shape, before rotation, plus the centre it turns round.
+     * Polygons give their corners; the rounded rectangle and the ellipse are sampled so that neighbouring samples
+     * are no more than a pixel apart.
+     * @private
+     */
+    _boxVertices(shapeType, b, options) {
+        const left = b.left, right = b.right, top = b.top, bottom = b.bottom;
+        let cx = (left + right) / 2, cy = (top + bottom) / 2;
+        let verts;
+        let sampled = false;
+        if (shapeType === 'rectangle') {
+            verts = [[left, top], [right, top], [right, bottom], [left, bottom]];
+        } else if (shapeType === 'square') {
+            const size = Math.max(b.width, b.height);
+            verts = [[left, top], [left + size, top], [left + size, top + size], [left, top + size]];
+            cx = left + size / 2; cy = top + size / 2;
+        } else if (shapeType === 'parallelogram') {
+            const skew = Math.round((right - left) * 0.25);
+            const mirrored = (b.deltaX < 0) === (b.deltaY < 0);
+            const topLeft = mirrored ? left : left + skew;
+            const topRight = mirrored ? right - skew : right;
+            const bottomLeft = mirrored ? left + skew : left;
+            const bottomRight = mirrored ? right : right - skew;
+            verts = [[topLeft, top], [topRight, top], [bottomRight, bottom], [bottomLeft, bottom]];
+        } else if (shapeType === 'ellipse') {
+            const ecx = Math.round(b.centerX), ecy = Math.round(b.centerY);
+            const rx = Math.round(b.radiusX), ry = Math.round(b.radiusY);
+            const n = Math.max(12, Math.ceil(2 * Math.PI * Math.max(rx, ry)));
+            verts = [];
+            for (let i = 0; i < n; i++) {
+                const a = 2 * Math.PI * i / n;
+                verts.push([ecx + rx * Math.cos(a), ecy + ry * Math.sin(a)]);
+            }
+            cx = ecx; cy = ecy;
+            sampled = true;
+        } else if (shapeType === 'rounded-rectangle') {
+            const width = right - left, height = bottom - top;
+            if (width < 2 || height < 2) {
+                verts = [[left, top], [right, top], [right, bottom], [left, bottom]];
+            } else {
+                const r = this._cornerRadius(width, height, options);
+                if (r === 0) {
+                    verts = [[left, top], [right, top], [right, bottom], [left, bottom]];
+                } else {
+                    const steps = Math.max(4, Math.ceil(r * 1.6));
+                    const corners = [
+                        { cx: right - r, cy: top + r, a0: -Math.PI / 2 },
+                        { cx: right - r, cy: bottom - r, a0: 0 },
+                        { cx: left + r, cy: bottom - r, a0: Math.PI / 2 },
+                        { cx: left + r, cy: top + r, a0: Math.PI }
+                    ];
+                    verts = [];
+                    for (const c of corners) {
+                        for (let i = 0; i <= steps; i++) {
+                            const a = c.a0 + (Math.PI / 2) * (i / steps);
+                            verts.push([c.cx + r * Math.cos(a), c.cy + r * Math.sin(a)]);
+                        }
+                    }
+                    sampled = true;
+                }
+            }
+        } else {
+            return null;
+        }
+        return { verts, cx, cy, sampled };
+    }
+
+    /**
+     * The outline of a box shape turned by `deg` degrees round the box centre: the vertices are rotated, rounded
+     * to pixels and joined with straight lines. A sampled curve then has its one-pixel corners thinned, so it stays
+     * one pixel thick.
+     * @private
+     */
+    _rotatedBoxOutline(shapeType, b, options, deg) {
+        const box = this._boxVertices(shapeType, b, options);
+        if (!box) return [];
+        const pts = [];
+        for (const [x, y] of box.verts) {
+            const r = ShapeGeneratorClass._rotateXY(x, y, box.cx, box.cy, deg);
+            const p = { x: ShapeGeneratorClass._snap(r.x), y: ShapeGeneratorClass._snap(r.y) };
+            const last = pts[pts.length - 1];
+            if (!last || last.x !== p.x || last.y !== p.y) pts.push(p);
+        }
+        if (pts.length > 1) {
+            const f = pts[0], l = pts[pts.length - 1];
+            if (f.x === l.x && f.y === l.y) pts.pop();
+        }
+        if (pts.length === 1) return [pts[0]];
+        const seen = new Set();
+        const path = [];
+        const add = (x, y) => {
+            const k = y * 100003 + x;
+            if (seen.has(k)) return;
+            seen.add(k);
+            path.push({ x, y });
+        };
+        for (let i = 0; i < pts.length; i++) {
+            const a = pts[i], c = pts[(i + 1) % pts.length];
+            ToolBase.forEachLinePoint(a.x, a.y, c.x, c.y, add);
+        }
+        return box.sampled ? this._thinCorners(path) : path;
+    }
+
+    /**
+     * Drop an L-corner pixel from a closed one-pixel path: a pixel whose two path neighbours already touch each
+     * other. Keeps a sampled curve one pixel thick.
+     * @private
+     */
+    _thinCorners(path) {
+        const out = path.slice();
+        let changed = true;
+        while (changed && out.length > 4) {
+            changed = false;
+            for (let i = 0; i < out.length; i++) {
+                const a = out[(i + out.length - 1) % out.length], c = out[(i + 1) % out.length];
+                if (Math.abs(a.x - c.x) <= 1 && Math.abs(a.y - c.y) <= 1) {
+                    out.splice(i, 1);
+                    changed = true;
+                    break;
+                }
+            }
+        }
+        return out;
+    }
+
+    /**
+     * The rounded rectangle's corner radius for a width x height box. options.rounding is a fraction 0 to 1 of the
+     * largest radius there is (a stadium). 0.5, the default, is the radius the shape always had: a quarter of the
+     * smaller side. 0 gives 0, which means square corners.
+     * @private
+     */
+    _cornerRadius(width, height, options = {}) {
+        const f = (options.rounding === undefined || options.rounding === null) ? 0.5 : clamp(Number(options.rounding) || 0, 0, 1);
+        if (f === 0) return 0;
+        const minSide = Math.min(width, height);
+        return clamp(Math.round(minSide * f / 2), 1, Math.floor(minSide / 2));
+    }
+
+    /**
+     * The 1-pixel outline of a shape, honouring rotation: the box shapes turn round their centre, the shapes
+     * drawn from a centre and a drag point were handled by turning the drag point before this is called.
+     * @private
+     */
+    _outlineOf(shapeType, standardBounds, options, deg) {
+        if (deg !== 0 && ShapeGeneratorClass.BOX_ROTATABLE.has(shapeType)) {
+            return this._rotatedBoxOutline(shapeType, standardBounds, options, deg);
+        }
+        return this.shapes.get(shapeType)(standardBounds, options);
+    }
+
+    // ===== LINE STYLES (Batch 7 part 7B) =====
+
+    /**
+     * The line style names the option takes. 'clear' is not a pattern: it draws no outline.
+     * @const {string[]}
+     */
+    static get LINE_STYLES() {
+        return ['solid', 'dashed', 'dotted', 'dash-dot', 'dash-dot-dot', 'clear'];
+    }
+
+    /** @returns {string} a valid line style (anything else is 'solid') */
+    static cleanLineStyle(v) {
+        return ShapeGeneratorClass.LINE_STYLES.includes(v) ? v : 'solid';
+    }
+
+    /**
+     * Dash patterns as alternating on / off lengths in pixel steps along the outline, starting with an
+     * on run. Read from the line-style toolbar picture in the ZX Paintbrush help (a 16x16 rectangle,
+     * 60 outline pixels, one icon per style) [M, ZXPaintbrush.chm linestyletoolbar.jpg, 2026-10-10]:
+     *   dashed 18 on 6 off; dotted 3 on 3 off; dash-dot 9 on 6 off 3 on 6 off;
+     *   dash-dot-dot 9 on 3 off 3 on 3 off 3 on 3 off.
+     * That the canvas draws with the same pens as the toolbar icons is [A].
+     * @const {Object<string, number[]>}
+     */
+    static get LINE_PATTERNS() {
+        return {
+            'dashed': [18, 6],
+            'dotted': [3, 3],
+            'dash-dot': [9, 6, 3, 6],
+            'dash-dot-dot': [9, 3, 3, 3, 3, 3]
+        };
+    }
+
+    /**
+     * Split ordered runs of outline pixels into the pixels a pattern leaves on and the pixels it leaves
+     * off. The pattern advances one step per pixel along each run, carries on round corners, and starts
+     * afresh at the beginning of each run.
+     * @param {Array<Array<{x:number,y:number}>>} runs - ordered paths
+     * @param {string} style - 'dashed', 'dotted', 'dash-dot' or 'dash-dot-dot'
+     * @returns {{on: Array, off: Array}}
+     */
+    applyLineStyle(runs, style) {
+        const pattern = ShapeGeneratorClass.LINE_PATTERNS[style];
+        const on = [], off = [];
+        for (const run of runs) {
+            if (!pattern) { on.push(...run); continue; }
+            let seg = 0, left = pattern[0];
+            for (const p of run) {
+                if (left === 0) { seg = (seg + 1) % pattern.length; left = pattern[seg]; }
+                (seg % 2 === 0 ? on : off).push(p);
+                left--;
+            }
+        }
+        return { on, off };
+    }
+
+    /**
+     * Put an unordered 1-pixel outline (what most generators return) into the order a pen would draw it,
+     * so a pattern can run along it. It walks the pixels that are there, so the set is the same pixels.
+     *  - starts at a pixel with one neighbour (an end of an open outline); for a closed outline, at the
+     *    right end of the top row, heading left, which is where ZX Paintbrush starts its rectangle;
+     *  - steps to the unvisited neighbour that turns least, straight neighbours before diagonal ones, and
+     *    takes a straight neighbour that touches a diagonal target first so no corner pixel is skipped;
+     *  - when it gets stuck it jumps to the nearest unvisited pixel and carries on.
+     * @param {Array<{x:number,y:number}>} points
+     * @returns {Array<{x:number,y:number}>} the same pixels, in walking order
+     */
+    orderOutline(points) {
+        const key = (x, y) => y * 100003 + x;
+        const pos = new Map();
+        for (const p of points) if (!pos.has(key(p.x, p.y))) pos.set(key(p.x, p.y), { x: p.x, y: p.y });
+        if (pos.size <= 1) return Array.from(pos.values());
+        const visited = new Set();
+        const out = [];
+        const DIRS = [[-1, 0], [0, 1], [1, 0], [0, -1], [-1, -1], [-1, 1], [1, 1], [1, -1]];
+        const neighbours = (p) => {
+            const list = [];
+            for (const [dx, dy] of DIRS) {
+                const q = pos.get(key(p.x + dx, p.y + dy));
+                if (q) list.push({ q, dx, dy });
+            }
+            return list;
+        };
+        const unvisited = (p) => neighbours(p).filter(n => !visited.has(key(n.q.x, n.q.y)));
+
+        let start = null;
+        for (const p of pos.values()) {
+            if (neighbours(p).length === 1) { start = p; break; }
+        }
+        let heading = null;
+        if (!start) {
+            for (const p of pos.values()) {
+                if (!start || p.y < start.y || (p.y === start.y && p.x > start.x)) start = p;
+            }
+            heading = [-1, 0];
+        }
+        let cur = start;
+        visited.add(key(cur.x, cur.y));
+        out.push(cur);
+        while (out.length < pos.size) {
+            const cand = unvisited(cur);
+            let next = null;
+            if (cand.length) {
+                const h = heading;
+                const turn = (n) => {
+                    if (!h) return (n.dx === 0 || n.dy === 0) ? 0 : 1;
+                    const a = Math.atan2(h[1], h[0]), b = Math.atan2(n.dy, n.dx);
+                    let d = Math.abs(a - b);
+                    if (d > Math.PI) d = 2 * Math.PI - d;
+                    return d;
+                };
+                let best = null, bestTurn = Infinity;
+                for (const n of cand) {
+                    const tn = turn(n) + ((n.dx !== 0 && n.dy !== 0) ? 1e-6 : 0);
+                    if (tn < bestTurn - 1e-9) { best = n; bestTurn = tn; }
+                }
+                if (best.dx !== 0 && best.dy !== 0) {
+                    // a diagonal step: a straight neighbour of mine that also touches the target goes first
+                    const straight = cand.find(n => (n.dx === 0 || n.dy === 0) &&
+                        Math.abs(n.q.x - (cur.x + best.dx)) + Math.abs(n.q.y - (cur.y + best.dy)) === 1);
+                    if (straight) best = straight;
+                }
+                next = best;
+                heading = [next.dx, next.dy];
+            } else {
+                // stuck: jump to the nearest unvisited pixel
+                let nearest = null, nd = Infinity;
+                for (const p of pos.values()) {
+                    if (visited.has(key(p.x, p.y))) continue;
+                    const d = (p.x - cur.x) * (p.x - cur.x) + (p.y - cur.y) * (p.y - cur.y);
+                    if (d < nd) { nd = d; nearest = p; }
+                }
+                next = { q: nearest, dx: Math.sign(nearest.x - cur.x), dy: Math.sign(nearest.y - cur.y) };
+                heading = null;
+            }
+            cur = next.q;
+            visited.add(key(cur.x, cur.y));
+            out.push(cur);
+        }
+        return out;
+    }
+
+    /**
+     * A shape drawn in a line style other than solid. Unfilled: the pixels the pattern leaves on (nothing
+     * for 'clear'). Filled: the fill without the pixels the pattern leaves off (for 'clear', without the
+     * whole 1-pixel outline, so only the inside is drawn).
+     * @private
+     */
+    _generateStyled(shapeType, standardBounds, options, style, deg = 0) {
+        const generator = this.shapes.get(shapeType);
+        if (!generator) {
+            Logger.warn('ShapeGenerator', `Unknown shape: ${shapeType}`);
+            return [];
+        }
+        const outline = this._outlineOf(shapeType, standardBounds, options, deg);
+        const filled = !!options.filled;
+        const turned = deg !== 0 && ShapeGeneratorClass.BOX_ROTATABLE.has(shapeType);
+        const fillOf = () => {
+            if (turned) return this._fillFromOutline(() => outline, standardBounds, options);
+            return this.filledShapes.has(shapeType)
+                ? this.filledShapes.get(shapeType)(standardBounds, options)
+                : this._fillFromOutline(generator, standardBounds, options);
+        };
+        if (style === 'clear') {
+            if (!filled) return [];
+            const gone = new Set(outline.map(p => p.y * 100003 + p.x));
+            return fillOf().filter(p => !gone.has(p.y * 100003 + p.x));
+        }
+        const split = this.applyLineStyle([this.orderOutline(outline)], style);
+        if (!filled) return split.on;
+        const off = new Set(split.off.map(p => p.y * 100003 + p.x));
+        return fillOf().filter(p => !off.has(p.y * 100003 + p.x));
     }
 
     /**
@@ -450,6 +917,9 @@ class ShapeGeneratorClass {
             const oy = Math.round((pose.origin ? pose.origin[1] : 0.5) * max);
             const r = Math.round(c * (pose.radius || 1));
             bounds = { x1: ox, y1: oy, x2: ox + pose.dir[0] * r, y2: oy + pose.dir[1] * r };
+        } else if (pose.mode === 'disc') {
+            // A square box round the centre, half-side c: a centre-anchored shape drawn as a circle of radius c.
+            bounds = { x1: 0, y1: 0, x2: 2 * c, y2: 2 * c };
         } else if (pose.mode === 'half') {
             // Box of side c, centred: these read radius = diagonal / sqrt(2),
             // which for a square box is its SIDE — so side c fills the icon.
@@ -646,6 +1116,12 @@ class ShapeGeneratorClass {
                 samples[i - 1].x, samples[i - 1].y, samples[i].x, samples[i].y, add);
         }
 
+        // Line style: the points are already in path order, so the pattern runs along them. Dashes need a
+        // 1-pixel line; clear draws nothing.
+        const style = ShapeGeneratorClass.cleanLineStyle(options.lineStyle);
+        if (style === 'clear') return [];
+        if (style !== 'solid' && thickness === 1) return this.applyLineStyle([points], style).on;
+
         return thickness > 1 ? this._thickenPoints(points, thickness) : points;
     }
 
@@ -679,6 +1155,28 @@ class ShapeGeneratorClass {
         const t = Helpers.clamp(Math.round(thickness || 1), 1, 16);
         if (t <= 1) return [{ x, y }];
         return this._thickenPoints([{ x, y }], t);
+    }
+
+    /**
+     * The colour core of a line: a predicate (x, y) => boolean true for every
+     * pixel within `size` (1 or 4) of the line's centre-line points, using the
+     * same disc the line itself is thickened with, so the core always lies
+     * inside the line.
+     * @param {Array<{x: number, y: number}>} centrePoints - the thickness-1 raster
+     * @param {number} size - core width in pixels
+     * @returns {function(number, number): boolean}
+     */
+    corePredicate(centrePoints, size) {
+        const points = size > 1 ? this._thickenPoints(centrePoints, size) : centrePoints;
+        const W = ZX_SPECTRUM.WIDTH;
+        const keys = new Set();
+        for (const p of points) keys.add(p.y * W + p.x);
+        return (x, y) => keys.has(y * W + x);
+    }
+
+    /** The points of a line/outline thickened to `thickness` (the same disc stamp the line and nib use). */
+    thicken(points, thickness) {
+        return this._thickenPoints(points, thickness);
     }
 
     /** Stamp a disc of the given diameter over every point (deduplicated). @private */
@@ -755,8 +1253,8 @@ class ShapeGeneratorClass {
         // pixel: a 17 px rounded rectangle was a plain rectangle with the corner
         // pixels nicked off. The old floor could also exceed the cap on boxes
         // under 4 px, rounding a corner wider than the box's own half.
-        const minSide = Math.min(width, height);
-        const cornerRadius = clamp(Math.round(minSide * 0.25), 1, Math.floor(minSide / 2));
+        const cornerRadius = this._cornerRadius(width, height, options);
+        if (cornerRadius === 0) return this._generateRectangle(bounds);
 
         const points = [];
 
@@ -1514,66 +2012,64 @@ class ShapeGeneratorClass {
         return points;
     }
 
-    _generateRing(bounds, options = {}) {
+    /**
+     * The ring's geometry from its box (drawn from the centre like the ellipse): centre, outer radii, inner radii
+     * (Inner radius applies to both) and the turn in degrees. An ellipse is the same after a half turn, so the turn is
+     * taken into -90..90; a quarter turn swaps the radii instead of turning, and a circle does not turn at all, so
+     * those draw exactly as the unturned ring does.
+     * @private
+     */
+    _ringGeometry(bounds, options = {}) {
         const { innerRatio = 0.5 } = options;
-        const { x1, y1, x2, y2 } = bounds;
+        let rx = bounds.radiusX, ry = bounds.radiusY;
+        let deg = ShapeGeneratorClass.rotationDeg(options.rotation);
+        if (deg > 90) deg -= 180;
+        if (deg <= -90) deg += 180;
+        if (deg === 90) { const t = rx; rx = ry; ry = t; deg = 0; }
+        if (rx === ry) deg = 0;
+        return { cx: bounds.centerX, cy: bounds.centerY, rx, ry, irx: rx * innerRatio, iry: ry * innerRatio, deg };
+    }
 
-        const dx = x2 - x1;
-        const dy = y2 - y1;
-        const outerR = Math.sqrt(dx * dx + dy * dy);
+    /**
+     * Outline of the ring: the outer ellipse, then the inner one, each traced as samples joined by straight lines.
+     * With equal radii every expression is the one the circular ring always used, so it draws the same pixels.
+     */
+    _generateRing(bounds, options = {}) {
+        const { cx, cy, rx, ry, irx, iry, deg } = this._ringGeometry(bounds, options);
 
-        if (outerR <= 1) return [{ x: Math.round(x1), y: Math.round(y1) }];
-
-        const cx = x1;
-        const cy = y1;
-        const innerR = outerR * innerRatio;
+        if (rx <= 1 && ry <= 1) return [{ x: Math.round(cx), y: Math.round(cy) }];
 
         const points = [];
-        const steps = Math.max(60, Math.round(outerR * 4));
-
-        const isInsideCircle = (px, py, ccx, ccy, cr) => {
-            const ddx = px - ccx;
-            const ddy = py - ccy;
-            return (ddx * ddx + ddy * ddy) < (cr * cr);
+        const steps = Math.max(60, Math.round(Math.max(rx, ry) * 4));
+        const at = (angle, ax, ay) => {
+            if (deg === 0) return { x: Math.round(cx + ax * Math.cos(angle)), y: Math.round(cy + ay * Math.sin(angle)) };
+            const r = ShapeGeneratorClass._rotateXY(ax * Math.cos(angle), ay * Math.sin(angle), 0, 0, deg);
+            return { x: ShapeGeneratorClass._snap(cx + r.x), y: ShapeGeneratorClass._snap(cy + r.y) };
         };
 
-        // Trace outer circle, keep points outside inner circle
+        // Outer ellipse (the inner one lies wholly inside it: Inner radius is at most 90 percent)
         let prevOutside = null;
         for (let i = 0; i <= steps; i++) {
-            const angle = (2 * Math.PI * i) / steps;
-            const px = cx + outerR * Math.cos(angle);
-            const py = cy + outerR * Math.sin(angle);
-
-            if (!isInsideCircle(px, py, cx, cy, innerR)) {
-                const rx = Math.round(px);
-                const ry = Math.round(py);
-                if (prevOutside !== null) {
-                    points.push(...this._bresenhamLine(prevOutside.x, prevOutside.y, rx, ry));
-                }
-                prevOutside = { x: rx, y: ry };
-            } else {
-                prevOutside = null;
+            const p = at((2 * Math.PI * i) / steps, rx, ry);
+            if (prevOutside !== null) {
+                points.push(...this._bresenhamLine(prevOutside.x, prevOutside.y, p.x, p.y));
             }
+            prevOutside = p;
         }
-        // Close the outer circle
+        // Close the outer ellipse
         if (prevOutside !== null && points.length > 0) {
             const first = points[0];
             points.push(...this._bresenhamLine(prevOutside.x, prevOutside.y, first.x, first.y));
         }
 
-        // Trace inner circle (all points are inside outer, so draw all)
+        // Inner ellipse
         let prevInner = null;
         for (let i = 0; i <= steps; i++) {
-            const angle = (2 * Math.PI * i) / steps;
-            const px = cx + innerR * Math.cos(angle);
-            const py = cy + innerR * Math.sin(angle);
-            const rx = Math.round(px);
-            const ry = Math.round(py);
-
+            const p = at((2 * Math.PI * i) / steps, irx, iry);
             if (prevInner !== null) {
-                points.push(...this._bresenhamLine(prevInner.x, prevInner.y, rx, ry));
+                points.push(...this._bresenhamLine(prevInner.x, prevInner.y, p.x, p.y));
             }
-            prevInner = { x: rx, y: ry };
+            prevInner = p;
         }
 
         return points;
@@ -2076,19 +2572,22 @@ class ShapeGeneratorClass {
         return points;
     }
 
+    /**
+     * Filled ring: everything between the outer and the inner ellipse.
+     *
+     * A circular ring keeps the row-span fill it always had, pixel for pixel. An elliptic one, turned or not, tests
+     * every pixel of its box in the ring's own frame (inside the outer ellipse, not strictly inside the inner one) and
+     * keeps its outline too, so where the band is thinner than a pixel it stays joined. A flat ring (no width or no
+     * height) is its outline.
+     */
     _fillRing(bounds, options = {}) {
-        const { innerRatio = 0.5 } = options;
-        const { x1, y1, x2, y2 } = bounds;
+        const { cx, cy, rx, ry, irx, iry, deg } = this._ringGeometry(bounds, options);
 
-        const dx = x2 - x1;
-        const dy = y2 - y1;
-        const outerR = Math.sqrt(dx * dx + dy * dy);
+        if (rx <= 1 && ry <= 1) return [{ x: Math.round(cx), y: Math.round(cy) }];
+        if (rx !== ry) return this._fillEllipticRing(bounds, options, { cx, cy, rx, ry, irx, iry, deg });
 
-        if (outerR <= 1) return [{ x: Math.round(x1), y: Math.round(y1) }];
-
-        const cx = x1;
-        const cy = y1;
-        const innerR = outerR * innerRatio;
+        const outerR = rx;
+        const innerR = irx;
         const outerRSq = outerR * outerR;
         const innerRSq = innerR * innerR;
 
@@ -2127,6 +2626,45 @@ class ShapeGeneratorClass {
         return points;
     }
 
+    /** The elliptic case of _fillRing (radii differ), turned by g.deg round the centre. @private */
+    _fillEllipticRing(bounds, options, g) {
+        const { cx, cy, rx, ry, irx, iry, deg } = g;
+        const outline = this._generateRing(bounds, options);
+        if (rx === 0 || ry === 0) return outline;
+
+        // The turned box: half-extents of an ellipse turned by deg.
+        const rad = deg * Math.PI / 180;
+        const c = Math.cos(rad), s = Math.sin(rad);
+        const ex = Math.sqrt(rx * rx * c * c + ry * ry * s * s);
+        const ey = Math.sqrt(rx * rx * s * s + ry * ry * c * c);
+        const minX = Helpers.clamp(Math.floor(cx - ex), 0, ZX_SPECTRUM.WIDTH - 1);
+        const maxX = Helpers.clamp(Math.ceil(cx + ex), 0, ZX_SPECTRUM.WIDTH - 1);
+        const minY = Helpers.clamp(Math.floor(cy - ey), 0, ZX_SPECTRUM.HEIGHT - 1);
+        const maxY = Helpers.clamp(Math.ceil(cy + ey), 0, ZX_SPECTRUM.HEIGHT - 1);
+
+        const seen = new Set();
+        const points = [];
+        const add = (x, y) => {
+            const k = y * 100003 + x;
+            if (seen.has(k)) return;
+            seen.add(k);
+            points.push({ x, y });
+        };
+        for (let y = minY; y <= maxY; y++) {
+            for (let x = minX; x <= maxX; x++) {
+                // the pixel in the ring's own frame: turned back by deg
+                const dx = x - cx, dy = y - cy;
+                const u = dx * c + dy * s;
+                const v = -dx * s + dy * c;
+                if ((u / rx) * (u / rx) + (v / ry) * (v / ry) > 1) continue;
+                if (irx > 0 && iry > 0 && (u / irx) * (u / irx) + (v / iry) * (v / iry) < 1) continue;
+                add(x, y);
+            }
+        }
+        for (const p of outline) add(p.x, p.y);
+        return points;
+    }
+
     _fillPolygonScanline(shapeType, bounds, options) {
         const generator = this.shapes.get(shapeType);
         if (!generator) return [];
@@ -2137,8 +2675,42 @@ class ShapeGeneratorClass {
             // Fallback to outline-based fill for shapes without clean vertices
             return this._fillFromOutline(generator, bounds, options);
         }
+        return this.fillPolygon(vertices);
+    }
 
+    /**
+     * Grow the edge, active-edge and intersection buffers to hold a polygon of n vertices. The
+     * fixed-size buffers (128 edges, 64 active) are plenty for every built-in shape, but a
+     * hand-drawn figure can have hundreds of vertices, and a write past the end of a typed array
+     * is silently dropped.
+     * @private
+     */
+    _ensureEdgeBuffers(n) {
+        if (n <= this._edgeYMin.length && n <= this._activeIdx.length) return;
+        const size = Math.max(n + 8, this._edgeYMin.length);
+        this._edgeYMin = new Int16Array(size);
+        this._edgeYMax = new Int16Array(size);
+        this._edgeX = new Int16Array(size);
+        this._edgeDeltaX = new Int16Array(size);
+        this._edgeDeltaY = new Int16Array(size);
+        this._edgeXStep = new Int8Array(size);
+        this._edgeOrder = new Uint16Array(size);
+        this._activeIdx = new Uint16Array(size);
+        this._activeX = new Int16Array(size);
+        this._activeError = new Int16Array(size);
+        this._intersections = new Int16Array(size);
+    }
+
+    /**
+     * The points inside a polygon, by scanline, for ANY number of vertices (the buffers grow).
+     * Vertices must already be integer {x, y}. The shapes' own fill and the Figure tool both use it.
+     * @param {Array<{x:number,y:number}>} vertices
+     * @returns {Array<{x:number,y:number}>} the filled points, clipped to the canvas
+     */
+    fillPolygon(vertices) {
         const n = vertices.length;
+        if (n < 3) return [];
+        this._ensureEdgeBuffers(n);
 
         // Find Y bounds (vertices already rounded in _getShapeVertices)
         // Allow shapes to extend beyond canvas - we'll clip pixels when adding to buffer

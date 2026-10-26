@@ -68,6 +68,7 @@ loadModule('js/tools/tool-base.js');
 loadModule('js/tools/fill-tool.js');
 loadModule('js/tools/gradient-tool.js');
 loadModule('js/data/zx-rom-font.js');
+loadModule('js/utils/glyph-bits.js');
 loadModule('js/utils/font-codec.js');
 loadModule('js/services/font-service.js');
 

@@ -127,6 +127,52 @@ test('Layer menu: new/duplicate/delete/merge change the layer stack; flatten con
     expect(sawConfirm).toBe(true);
 });
 
+// A stamp hidden with its Show/hide switch stays out of the flattened picture,
+// as a hidden drawing layer does; a shown stamp is baked in.
+test('Layer > Flatten leaves out a hidden stamp and bakes in a shown one', async ({ page }) => {
+    await boot(page);
+    page.on('dialog', (d) => d.accept());
+    const result = await page.evaluate(() => {
+        const mask = Array.from({ length: 16 }, () => Array(16).fill(true));
+        const park = (x, y) => {
+            SelectionService.startFloatingPasteFromMask(mask, 16, 16, x, y, 'Probe stamp');
+            const layer = SelectionService.floatingPaste.floatingLayer;
+            SelectionService.endFloatingPaste();
+            return LayerManager.layers.indexOf(layer);
+        };
+        const hiddenIdx = park(100, 100);
+        LayerManager.setLayerVisibility(hiddenIdx, false);
+        park(40, 40);
+        const dots = (x0, y0) => {
+            let n = 0;
+            for (let y = y0; y < y0 + 16; y++) {
+                for (let x = x0; x < x0 + 16; x++) if (PixelDrawRoutine.getPixelState(x, y)?.isInk) n++;
+            }
+            return n;
+        };
+        MenuSystem._flattenImage();
+        return { hidden: dots(100, 100), shown: dots(40, 40),
+            stamps: LayerManager.layers.filter((l) => l.isStamp).length };
+    });
+    expect(result.hidden, 'the hidden stamp is not in the flattened picture').toBe(0);
+    expect(result.shown, 'the shown stamp is').toBe(256);
+    expect(result.stamps, 'no stamp layer is left').toBe(0);
+
+    // The layer the flattened picture lands in is shown, even when the
+    // drawing layer it reuses was hidden.
+    const shownAfter = await page.evaluate(() => {
+        LayerManager.addLayer();
+        // Draw on the top layer and hide layer 1, the one Flatten reuses.
+        LayerManager.setCurrentLayer(LayerManager.layers.length - 1);
+        PixelDrawRoutine.draw(5, 5, ColorManager.getCurrentSelection(), DRAW_MODE.NORMAL);
+        LayerManager.setLayerVisibility(1, false);
+        MenuSystem._flattenImage();
+        return { visible: LayerManager.layers[1].visible, dot: !!PixelDrawRoutine.getPixelState(5, 5)?.isInk };
+    });
+    expect(shownAfter.visible, 'the flattened layer is shown').toBe(true);
+    expect(shownAfter.dot, 'the dot of the shown layer is in it').toBe(true);
+});
+
 test('Image clear confirms; flips/rotate/invert run undoably', async ({ page }) => {
     await boot(page);
     await page.evaluate(() => {

@@ -26,6 +26,8 @@ const BOOT_MANIFEST = [
     ['Helpers',          'js/utils/helpers.js'],
     ['clamp',            'js/utils/helpers.js'],
     ['Validators',       'js/utils/validators.js'],
+    ['PointerInfo',      'js/utils/pointer-info.js'],
+    ['GridLines',        'js/utils/grid-lines.js'],
     ['MaskOps',          'js/utils/mask-ops.js'],
     ['CursorImage',      'js/utils/cursor-image.js'],
     ['BrushShapes',      'js/utils/brush-shapes.js'],
@@ -33,6 +35,9 @@ const BOOT_MANIFEST = [
     ['UiFit',            'js/utils/ui-fit.js'],
     ['PaletteOps',       'js/utils/palette-ops.js'],
     ['GigaQuant',        'js/utils/giga-quant.js'],
+    ['Dither',           'js/utils/dither.js'],
+    ['SnapGrid',         'js/utils/snap-grid.js'],
+    ['BitmapText',       'js/utils/bitmap-text.js'],
     ['Storage',          'js/utils/storage.js'],
     ['BackupService',    'js/services/backup-service.js'],
     ['ProjectFormat',    'js/io/project-format.js'],
@@ -52,6 +57,7 @@ const BOOT_MANIFEST = [
     ['CanvasSystem',     'js/core/canvas-system.js'],
     ['PixelDrawRoutine', 'js/core/pixel-draw-routine.js'],
     ['LayerManager',     'js/core/layer-manager.js'],
+    ['AxisLock',         'js/core/axis-lock.js'],
     ['InputHandler',     'js/core/input-handler.js'],
     ['PATTERN_BITMAPS',  'js/data/pattern-bitmaps.js'],
     ['UndoRedo',         'js/services/undo-redo.js'],
@@ -84,12 +90,16 @@ const BOOT_MANIFEST = [
     ['ShapeGenerator',   'js/tools/shape-generator.js'],
     ['BrushTool',        'js/tools/brush-tool.js'],
     ['BezierTool',       'js/tools/bezier-tool.js'],
+    ['FigureModel',      'js/tools/figure-model.js'],
+    ['FigureEditor',     'js/tools/figure-editor.js'],
+    ['FigureTool',       'js/tools/figure-tool.js'],
     ['EraserTool',       'js/tools/eraser-tool.js'],
     ['FillTool',         'js/tools/fill-tool.js'],
     ['ShapeTool',        'js/tools/shape-tool.js'],
     ['EyedropperTool',   'js/tools/eyedropper-tool.js'],
     ['SelectionTool',    'js/tools/selection-tool.js'],
     ['GradientTool',     'js/tools/gradient-tool.js'],
+    ['TextTyping',       'js/tools/text-typing.js'],
     ['TextTool',         'js/tools/text-tool.js'],
     ['MoveTool',         'js/tools/move-tool.js'],
     ['ZoomTool',         'js/tools/zoom-tool.js'],
@@ -110,14 +120,21 @@ const BOOT_MANIFEST = [
     ['ToolPresetBar',    'js/ui/components/tool-preset-bar.js'],
     ['ToolPresetPanel',  'js/ui/components/tool-preset-panel.js'],
     ['ToolPresetDialog', 'js/ui/components/tool-preset-dialog.js'],
+    ['ChangeAttributesDialog', 'js/ui/components/change-attributes-dialog.js'],
+    ['CustomGridDialog', 'js/ui/components/custom-grid-dialog.js'],
     ['ToolRail',         'js/ui/components/tool-rail.js'],
     ['ClutBar',          'js/ui/components/clut-bar.js'],
+    ['StripSelector', 'js/ui/components/strip-selector.js'],
     ['DrawModeBar',      'js/ui/components/draw-mode-bar.js'],
     ['ColorBarFit',      'js/ui/components/colorbar-fit.js'],
     ['ColorRailToggle',  'js/ui/components/colorrail-toggle.js'],
     ['TouchModeStatus',  'js/ui/components/touch-mode-status.js'],
     ['LayerPanel',       'js/ui/components/layer-panel.js'],
     ['TransformPanel',   'js/ui/components/transform-panel.js'],
+    ['PreviewPanel',     'js/ui/components/preview-panel.js'],
+    ['MapElementOverlay', 'js/ui/map-element-overlay.js'],
+    ['MapElementsPanel', 'js/ui/components/map-elements-panel.js'],
+    ['CanvasTextEntry',  'js/ui/components/canvas-text-entry.js'],
     ['AppSettings',      'js/ui/components/app-settings.js'],
     ['CanvasControls',   'js/ui/components/canvas-controls.js'],
     ['BorderControl',    'js/ui/border-control.js'],
@@ -196,6 +213,17 @@ class AppClass {
                 if (typeof prefs.confirmClear === 'boolean') StateManager.set('confirmClear', prefs.confirmClear);
                 if (typeof prefs.resetDrawModeOnTool === 'boolean') StateManager.set('resetDrawModeOnTool', prefs.resetDrawModeOnTool);
                 if (typeof prefs.nudgeStep === 'number') StateManager.set('nudgeStep', prefs.nudgeStep);
+                // Pointer readout (what it shows, which way Y counts) and the owner's grid colours
+                if (Array.isArray(prefs.standardColours)) StateManager.set('standardColours', prefs.standardColours);
+                StateManager.set('readout.detail', prefs.readoutDetail);
+                StateManager.set('readout.yDirection', prefs.yDirection);
+                if (prefs.gridColors && typeof prefs.gridColors === 'object') {
+                    const colours = {};
+                    for (const key of ['pixel', 'cell', 'block', 'custom']) {
+                        colours[key] = Validators.normaliseHexColour(prefs.gridColors[key]);
+                    }
+                    StateManager.set('gridColors', colours);
+                }
                 if (typeof prefs.showPresetsPanel === 'boolean') StateManager.set('showPresetsPanel', prefs.showPresetsPanel);
                 // Touch admission, layers 1 and 2 (js/utils/touch-policy.js).
                 // Layer 3, the drawing switch, has its own key below — it is
@@ -231,7 +259,23 @@ class AppClass {
             }
             // Grid snap persists under its own key (toggled outside the dialog)
             const snap = await Storage.get('gridSnap');
+            const snapStep = await Storage.get('gridSnapStep');
+            if (snapStep && typeof snapStep === 'object') StateManager.setGridSnapStep(snapStep);
             if (typeof snap === 'boolean') StateManager.setGridSnap(snap);
+            // The display-only view switches (View menu). Raw state only here:
+            // the compositor is not up yet, so _initManagers applies them.
+            for (const [key, field] of [['viewColoursOff', 'coloursOff'], ['viewStopFlashing', 'stopFlashing'],
+                ['viewColourGrid', 'colourGrid']]) {
+                const v = await Storage.get(key);
+                if (v === true) StateManager.set('view.' + field, true);
+            }
+            if (StateManager.get('view.coloursOff') && StateManager.get('view.colourGrid')) {
+                StateManager.set('view.colourGrid', false);
+            }
+            // The four grids as the last session left them (pixel, cell, block, custom
+            // and the custom steps). GridOverlay applies it when its canvases exist.
+            const gridState = await Storage.get('gridState');
+            if (gridState && typeof gridState === 'object') StateManager.set('grid.state', gridState);
             // Symmetry mode too (Phase 8 mirror-while-drawing)
             const sym = await Storage.get('symmetryMode');
             if (typeof sym === 'string') StateManager.setSymmetryMode(sym);
@@ -241,6 +285,9 @@ class AppClass {
             // Global draw mode (top-bar selector)
             const dm = await Storage.get('drawMode', Storage.STORES.PREFERENCES);
             if (typeof dm === 'string') StateManager.setDrawMode(dm);
+            // Inverse (the top strip's button), same store as the draw mode
+            const inv = await Storage.get('inverse', Storage.STORES.PREFERENCES);
+            if (inv === true) StateManager.setInverse(true);
             // The touch drawing switch, its own key for the same reason as grid
             // snap: the status-bar toggle writes it outside the dialog, which
             // saves `preferences` as one whole object. Last, so an explicit
@@ -259,7 +306,24 @@ class AppClass {
         // starting layer is named in it ('Ebene 1', not 'Layer 1').
         await I18n.init();
         LayerManager.initialize();
+        // The View menu's display-only switches: show them, and remember them
+        // per browser (a view setting, like grid snap - never in a project).
+        EventBus.on(EVENTS.GRID_VISIBILITY, (g) => {
+            Storage.set('gridState', {
+                pixel: !!g.pixel, cell: !!g.cell, block: !!g.block, custom: !!g.custom,
+                customX: g.customX, customY: g.customY
+            }).catch(() => {});
+        });
+        EventBus.on(EVENTS.DISPLAY_VIEW_CHANGED, (v) => {
+            LayerManager.setDisplayView(v);
+            Storage.set('viewColoursOff', !!v.coloursOff).catch(() => {});
+            Storage.set('viewStopFlashing', !!v.stopFlashing).catch(() => {});
+            Storage.set('viewColourGrid', !!v.colourGrid).catch(() => {});
+        });
         ColorManager.initialize();
+        // The remembered View switches apply before anything is drawn, so a
+        // restored picture never shows in colour first.
+        LayerManager.setDisplayView(StateManager.getDisplayView());
         UndoRedo.initialize();
         ReferenceLayerService.initialize(); // defers its work to CanvasSystem.onReady
     }
@@ -292,6 +356,7 @@ class AppClass {
         ToolManager.register(new FillTool());
         ToolManager.register(new ShapeTool());
         ToolManager.register(new BezierTool());
+        ToolManager.register(new FigureTool());
         ToolManager.register(new EyedropperTool());
         ToolManager.register(new SelectionTool());
         ToolManager.register(new GradientTool());
@@ -346,6 +411,10 @@ class AppClass {
         ToolPresetBar.init();  // save/load row at the foot of the tool options
         PatternPanel.init();   // dedicated Patterns panel (shown only for the brush's pattern type)
         TransformPanel.init();
+        CanvasTextEntry.init();   // the hidden text field Type on canvas types into
+        PreviewPanel.init();    // the map of the whole picture, hidden until View > Preview
+        MapElementOverlay.init();   // numbered covers over the places of the map elements
+        MapElementsPanel.init();    // find repeated elements (Edit > Find Map Element), hidden until used
         ToolPresetPanel.init(); // the Presets panel, last and preference-gated
         PanelSection.restore(); // persisted collapse states (async)
 
@@ -589,9 +658,14 @@ class AppClass {
                 ? Array.from(ColorManager.ulaplusRegisters) : null,
             nextRegisters: ColorManager.nextRegisters
                 ? Array.from(ColorManager.nextRegisters) : null,
+            // Written only once a palette slot has been used, so a document that never
+            // touched them saves exactly as it always did.
+            ...(ColorManager.exportPaletteSlots() ? { paletteSlots: ColorManager.exportPaletteSlots() } : {}),
             timexHiresInk: ColorManager.getTimexHiresInk(),
             timexHiresInkB: ColorManager.getTimexHiresInkB(),
             layers: LayerManager.getAllLayers({ packed }),
+            // the picture's map elements travel with the project and the autosave (owner decision 2026-10-14)
+            ...(window.MapService && MapService.elements.length ? { mapElements: MapService.getElements() } : {}),
             slices
         };
     }
@@ -606,15 +680,20 @@ class AppClass {
      * @private
      */
     async _loadProjectData(data) {
+        // An opened project is a new document: nothing before it can be undone (a partial snapshot of the old
+        // document would be put back onto the project's layers).
+        if (window.UndoRedo) UndoRedo.clear();
         // Mode first (raw — the layer data below already matches its
         // geometry), then the ULAplus palette it may reference.
         if (data.screenMode && data.screenMode !== ScreenModeService.getModeId()) {
             ScreenModeService.applyModeRaw(data.screenMode);
         }
-        if (data.ulaplusRegisters) {
+        // A saved null IS the pristine defaults: apply it too, or this document would inherit
+        // the palette of whatever was open before it.
+        if ('ulaplusRegisters' in data) {
             ColorManager.setUlaplusRegisters(data.ulaplusRegisters);
         }
-        if (data.nextRegisters) {
+        if ('nextRegisters' in data) {
             ColorManager.setNextRegisters(data.nextRegisters);
         }
         if (data.timexHiresInk !== undefined && data.timexHiresInk !== null) {
@@ -638,6 +717,10 @@ class AppClass {
             ColorManager.upgradeLegacyNextDefaults(LayerManager.usesPaletteIndices(
                 NEXTRGB333.FLASH_PAPER_FIRST, NEXTRGB333.FLASH_PAPER_LAST));
         }
+        // Palette slots last, so slots 2-4 of a file without slot data are copies of the
+        // palette AFTER the legacy-default upgrade above. Missing or damaged data gives
+        // slot 1 plus copies.
+        ColorManager.importPaletteSlots(data.paletteSlots);
 
         if (data.slices) {
             await PresetService.applyCapturedSlices(data.slices);
@@ -653,6 +736,9 @@ class AppClass {
             if (data.state.border !== undefined) ColorManager.setBorder(data.state.border);
             if (data.state.zoom) CanvasSystem.setZoom(data.state.zoom);
         }
+
+        // Map elements come back with the picture (a project from before elements has none)
+        if (window.MapService) MapService.setElements(data.mapElements);
 
         // The restored document is still unsaved work
         FileManager.markModified();

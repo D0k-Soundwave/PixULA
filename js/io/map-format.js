@@ -6,10 +6,10 @@
  *
  * Our own map file format, documented here:
  *
- *   A .zxtm file is UTF-8 JSON — exactly the MapCodec version-1 payload:
+ *   A .zxtm file is UTF-8 JSON - exactly the MapCodec payload (version 2; version 1 files, written before elements existed, still load):
  *
  *     {
- *       "v": 1,                 // codec version (checked on import)
+ *       "v": 2,                 // codec version (checked on import)
  *       "k": "ula-cell",        // tile kind (Phase 13 adds Next bank kinds)
  *       "name": "...",          // document name (≤ 64 chars)
  *       "tiles": [              // ordered tileset; index = map cell value
@@ -18,7 +18,13 @@
  *       "map": {
  *         "w": width, "h": height,          // in tiles
  *         "cells": "<base64: w*h u16le, tileIndex+1, 0 = empty>"
- *       }
+ *       },
+ *       "elements": [           // version 2: the results of "find repeated elements"
+ *         { "n": name, "w": cells, "h": cells, "s": 1 or 2 screens, "gw": picture grid width, "gh": picture grid height,
+ *           "m": "exact" | "dots" | "visual",
+ *           "b": "<base64: s*w*h*cellH dot bytes>", "a": "<base64: s*w*h attribute bytes>",
+ *           "p": "<base64: x,y byte pairs, the places, in cells>" }
+ *       ]
  *     }
  *
  * JSON over binary: the payload already exists as the persistence codec
@@ -29,6 +35,9 @@
  * handler is the FormatRegistry plumbing.
  */
 class MapFormatClass {
+  /** A map file fills the map, never the picture: no discard question, and the picture keeps its name (FileManager reads this). */
+  importsDocument = false;
+
   /**
    * Initialize and register with FormatRegistry
    */
@@ -56,7 +65,16 @@ class MapFormatClass {
       return { success: false, error: Helpers.localizedMessage('err.notValidVersion',
           'Not a valid {format} file (unknown version or corrupt data)', { format: '.zxtm' }) };
     }
+    // A version 1 file predates elements: it must not wipe the ones the picture has
+    // and a file with no elements leaves them alone; a file WITH elements asks first when the picture already has some (owner decision 2026-10-14)
+    if (payload.v < 2 || !doc.elements.length) {
+      delete doc.elements;
+    } else if (MapService.elements.length && window.FileManager && typeof FileManager._askDropElements === 'function' && !FileManager._askDropElements()) {
+      delete doc.elements;
+    }
     MapService.loadDocument(doc);
+    // the picture's elements were replaced: that is unsaved work (autosave, the warning on closing the tab)
+    if (doc.elements && window.FileManager && FileManager.markModified) FileManager.markModified();
     EventBus.emit(EVENTS.FILE_IMPORT, { format: 'zxtm' });
     Logger.info('MapFormat', 'ZXTM map loaded successfully');
     return { success: true };

@@ -175,14 +175,36 @@ class FileManagerClass {
   }
 
   /**
+   * Map elements (Edit > Find Map Element) belong to the picture they were found in. Before the picture is replaced, ask whether they can be
+   * abandoned (ZX Paintbrush does the same); the caller clears them only once the replacement has really happened.
+   * Before the picture is replaced: ONE question covering unsaved work and the map elements (never two in a row), clearing nothing.
+   * @returns {Promise<boolean>} true to go ahead
+   */
+  async _confirmReplace() {
+    const n = window.MapService ? MapService.elements.length : 0;
+    if (this.hasUnsavedChanges && n) {
+      return confirm(Helpers.localizedPlural('plural.confirmDiscardWithElements', n,
+        'one: You have unsaved changes, and this picture has {n} map element. Discard them all? | other: You have unsaved changes, and this picture has {n} map elements. Discard them all?'));
+    }
+    if (this.hasUnsavedChanges) return this._confirmDiscard();
+    return this._askDropElements();
+  }
+
+  /** Ask whether the picture's map elements can be abandoned, WITHOUT clearing them (a cancelled or failed Open must lose nothing). @returns {boolean} */
+  _askDropElements() {
+    const n = window.MapService ? MapService.elements.length : 0;
+    if (!n) return true;
+    return confirm(Helpers.localizedPlural('plural.confirmDropElements', n,
+      'one: This picture has {n} map element. Abandon it? | other: This picture has {n} map elements. Abandon them?'));
+  }
+
+  /**
    * Create a new file
    * @returns {Promise<boolean>} True if new file created
    */
   async newFile() {
-    if (this.hasUnsavedChanges) {
-      const confirmed = await this._confirmDiscard();
-      if (!confirmed) return false;
-    }
+    if (!(await this._confirmReplace())) return false;
+    if (window.MapService) MapService.clearElements();
 
     // New always produces a blank canvas with no further prompts, mirroring a
     // fresh page reload — Paper White, Ink Black. WHITE_PAPER is the
@@ -223,11 +245,69 @@ class FileManagerClass {
     this.hasUnsavedChanges = false;
     this._fileHandle = null;
 
+    // A new document has no history: undoing into the old one restored a partial snapshot onto the reset stack.
+    if (window.UndoRedo) UndoRedo.clear();
+
     EventBus.emit(EVENTS.FILE_NEW);
     // Refresh the layer panel and any order-dependent UI (the reset rebuilt the stack).
     EventBus.emit(EVENTS.LAYER_ORDER);
     Logger.info('FileManager', 'New file created (Paper White, Ink Black)');
 
+    return true;
+  }
+
+  /**
+   * Fit the selection to whole attribute cells, telling the person when that changed it (ZX Paintbrush's "Adjust selection
+   * to 8x8 pixels"; 8x4, 8x2 or 8x1 high in the multicolor modes).
+   * @returns {boolean} true if the selection changed
+   */
+  fitSelectionToCells() {
+    if (!window.SelectionService || !SelectionService.hasSelection()) return false;
+    const changed = SelectionService.snapToCells();
+    if (changed) {
+      const s = SelectionService.getSelection();
+      EventBus.emit(EVENTS.STATUS_NOTICE, { text: Helpers.localizedMessage('msg.selectionSnapped',
+        'Selection fitted to whole cells: {w} x {h}.', { w: s.width, h: s.height }) });
+    }
+    return changed;
+  }
+
+  /**
+   * Make the selection the whole picture (Edit > New Picture from Selection). The selection is first fitted to whole
+   * cells. The screen mode stays; every layer is kept and cropped to the block, moved to the top left, and the rest is
+   * empty (the background Paper White, as File > New leaves it). It asks first, and one Ctrl+Z gives the old picture back.
+   * @returns {Promise<boolean>} true if the picture was replaced
+   */
+  async newFromSelection() {
+    if (!window.SelectionService || !SelectionService.hasSelection() || SelectionService.isFloating()) return false;
+    // Ask FIRST: answering No must leave everything as it was (a waiting figure included), not already drawn
+    const ok = confirm(this._t('msg.confirmNewFromSelection',
+      'Make the selection the whole picture? You can undo it with Ctrl+Z.'));
+    if (!ok) return false;
+    // ask, but clear only once the crop has worked (a refused crop must lose nothing)
+    if (!this._askDropElements()) return false;
+    if (window.ToolManager) ToolManager.commitPending();
+    this.fitSelectionToCells();
+    const sel = SelectionService.getSelection();
+    if (!sel) return false;
+
+    const cw = ZX_SPECTRUM.CELL_WIDTH, ch = ZX_SPECTRUM.CELL_HEIGHT;
+    const elementsBefore = window.MapService ? MapService.elements.slice() : [];
+    UndoRedo.beginAction('New picture from selection');
+    const done = LayerManager.cropToCells(sel.x / cw, sel.y / ch, sel.width / cw, sel.height / ch);
+    SelectionService.clear();
+    UndoRedo.endAction();
+    if (!done) return false;
+    if (window.MapService) MapService.clearElements();
+    UndoRedo.attachMapElements(UndoRedo.peekLast(), elementsBefore);   // Ctrl+Z puts them back with the picture
+
+    this.currentFilename = null;
+    this._fileHandle = null;
+    this.hasUnsavedChanges = true;
+    if (window.StateManager) StateManager.markModified();
+    EventBus.emit(EVENTS.FILE_NEW);
+    EventBus.emit(EVENTS.LAYER_ORDER);
+    Logger.info('FileManager', 'New picture from selection');
     return true;
   }
 
@@ -324,15 +404,24 @@ class FileManagerClass {
       return false;
     }
 
-    const replacesDocument = handler.importsDocument !== false;
-
-    if (replacesDocument && this.hasUnsavedChanges) {
-      const confirmed = await this._confirmDiscard();
-      if (!confirmed) return false;
+    // A handler may decide from the bytes (a tape that holds only a ULAplus palette does not
+    // replace the document); the others decide from a flag.
+    let preRead = null;
+    let replacesDocument = handler.importsDocument !== false;
+    if (typeof handler.importsDocumentFor === 'function') {
+      try {
+        preRead = await file.arrayBuffer();
+        replacesDocument = handler.importsDocumentFor(preRead);
+      } catch (error) {
+        Logger.warn('FileManager', `Could not read ${file.name}: ${error.message}`);
+      }
     }
 
+    // Ask now, clear only once the file has really been read: cancelling the import dialog or a broken file must lose nothing
+    if (replacesDocument && !(await this._confirmReplace())) return false;
+
     try {
-      const buffer = await file.arrayBuffer();
+      const buffer = preRead || await file.arrayBuffer();
 
       // PNG/JPG/GIF imports go through the conversion dialog first (Phase 8):
       // live quantized preview + brightness/contrast/scaling/dither options.
@@ -346,12 +435,17 @@ class FileManagerClass {
         }
       }
 
+      const before = this._pictureBefore();
       const result = await handler.parse(buffer, parseOptions);
 
       if (!result.success) {
         Logger.error('FileManager', result.error);
         EventBus.emit(EVENTS.FILE_ERROR, { message: result.error });
         return false;
+      }
+
+      if (replacesDocument) {
+        this._pictureReplaced(before, { bringsElements: !!handler.importsElements, project: extension === 'pixula' });
       }
 
       if (!replacesDocument) {
@@ -383,11 +477,72 @@ class FileManagerClass {
   }
 
   /**
+   * What a picture replacement has to know about the picture it replaces: the last undo step and the map elements, so the step
+   * the replacement lands can put the old elements back on Ctrl+Z (owner decision 2026-10-18).
+   * @returns {{step: *, elements: Object[]}}
+   * @private
+   */
+  _pictureBefore() {
+    return {
+      step: window.UndoRedo ? UndoRedo.peekLast() : null,
+      elements: window.MapService ? MapService.elements.slice() : []
+    };
+  }
+
+  /**
+   * The picture has been replaced: its map elements go (unless the new picture brings its own: .zxm, project), the old list rides
+   * on the undo step the replacement landed, and a picture that is not a project opens on palette slot 1 with slots 2-4 copies
+   * of its palette (a project restores its own in App._loadProjectData).
+   * @param {{step: *, elements: Object[]}} before - from _pictureBefore()
+   * @param {{bringsElements?: boolean, project?: boolean}} [opts]
+   * @private
+   */
+  _pictureReplaced(before, opts = {}) {
+    if (window.MapService && !opts.bringsElements) MapService.clearElements();
+    if (window.UndoRedo && UndoRedo.peekLast() !== before.step) UndoRedo.attachMapElements(UndoRedo.peekLast(), before.elements);
+    if (!opts.project && window.ColorManager) ColorManager.resetPaletteSlots();
+  }
+
+  /**
+   * Replace the picture from somewhere other than a file of its own (File > Tape Blocks > Load), by File > Open's rules: ask
+   * first (unsaved work, map elements), and once the load has worked drop the old elements (Ctrl+Z brings them back with the
+   * old picture). The new picture is not a file of its own, so it has no name: Ctrl+S must not write it over the old picture's
+   * file, and it counts as unsaved work.
+   * @param {function(): (Object|Promise<Object>)} load - loads the picture; returns { success, error }
+   * @returns {Promise<boolean>} true if the picture was replaced
+   */
+  async replacePicture(load) {
+    if (!(await this._confirmReplace())) return false;
+    const before = this._pictureBefore();
+    let result;
+    try {
+      result = await load();
+    } catch (error) {
+      result = { success: false, error: Helpers.localizedMessage('err.loadFailed', 'Failed to load file: {reason}', { reason: error.message }) };
+    }
+    if (!result || !result.success) {
+      const message = (result && result.error) || Helpers.localizedMessage('err.loadFailed', 'Failed to load file: {reason}', { reason: '' });
+      Logger.error('FileManager', message);
+      EventBus.emit(EVENTS.FILE_ERROR, { message });
+      return false;
+    }
+    this._pictureReplaced(before);
+    this.currentFilename = null;
+    this._fileHandle = null;
+    this.hasUnsavedChanges = true;
+    if (window.StateManager) StateManager.markModified();
+    EventBus.emit(EVENTS.FILE_OPEN, { filename: null });
+    if (window.CanvasSystem) CanvasSystem.requestRender();
+    return true;
+  }
+
+  /**
    * Save current file (or Save As if no current file) - silent when a
    * handle is already open (repeat Ctrl+S), matching any desktop app.
    * @returns {Promise<boolean>} True if saved successfully
    */
   async save() {
+    if (window.ToolManager) ToolManager.commitPending();   // a figure still being edited is part of the picture
     if (this._fileHandle) {
       return this._writeProjectToHandle(this._fileHandle);
     }
@@ -417,6 +572,7 @@ class FileManagerClass {
    * @returns {Promise<boolean>} True if saved successfully
    */
   async saveAs() {
+    if (window.ToolManager) ToolManager.commitPending();
     const defaultName = this.currentFilename || 'image.pixula';
 
     if (typeof window.showSaveFilePicker !== 'function') {
@@ -602,6 +758,7 @@ class FileManagerClass {
    * @returns {boolean} True if exported successfully
    */
   async exportAs(format, options = {}) {
+    if (window.ToolManager) ToolManager.commitPending();
     const handler = FormatRegistry.getExportHandler(format);
 
     if (!handler) {
@@ -620,6 +777,50 @@ class FileManagerClass {
       return written !== false;
     } catch (error) {
       Logger.error('FileManager', `Export failed: ${error.message}`);
+      EventBus.emit(EVENTS.FILE_ERROR, { message: error.message });
+      return false;
+    }
+  }
+
+  /**
+   * The selection as a plain rectangle (a freehand or ellipse selection is its bounding box), or null.
+   * @returns {?{x:number,y:number,width:number,height:number}}
+   */
+  selectionRect() {
+    const s = window.SelectionService ? SelectionService.getSelection() : null;
+    return s ? { x: s.x, y: s.y, width: s.width, height: s.height } : null;
+  }
+
+  /**
+   * Save the selection in a format (File > Save Selection As). The format's rule decides: pictures take any rectangle,
+   * cell formats and ColorTiles take the selection fitted to whole cells / 16x16 tiles (said in the status bar), screen
+   * dumps only the whole screen. Nothing is written if the format cannot take it.
+   * @param {string} format - extension
+   * @returns {Promise<boolean>}
+   */
+  async exportSelectionAs(format) {
+    if (window.ToolManager) ToolManager.commitPending();
+    const handler = FormatRegistry.getExportHandler(format);
+    if (!handler) return false;
+    const fit = FormatRegistry.selectionFit(format, this.selectionRect());
+    if (!fit.ok) {
+      const key = { none: 'export.sel.none', mode: 'export.sel.mode', layout: 'export.sel.layout',
+        screenOnly: 'export.sel.screenOnly', notPicture: 'export.sel.notPicture' }[fit.reason];
+      EventBus.emit(EVENTS.FILE_ERROR, { message: this._t(key, 'This part cannot be saved in that format.',
+        { w: ZX_SPECTRUM.WIDTH, h: ZX_SPECTRUM.HEIGHT }) });
+      return false;
+    }
+    if (fit.snapped) {
+      SelectionService.setSelection(fit.rect);
+      EventBus.emit(EVENTS.STATUS_NOTICE, { text: Helpers.localizedMessage('msg.selectionSnapped',
+        'Selection fitted to whole cells: {w} x {h}.', { w: fit.rect.width, h: fit.rect.height }) });
+    }
+    const baseName = this.currentFilename ? this.currentFilename.replace(/\.[^.]+$/, '') : 'image';
+    try {
+      const written = await handler.exportAndDownload(`${baseName}-selection.${format}`, fit.rect ? { rect: fit.rect } : {});
+      return written !== false;
+    } catch (error) {
+      Logger.error('FileManager', `Selection export failed: ${error.message}`);
       EventBus.emit(EVENTS.FILE_ERROR, { message: error.message });
       return false;
     }

@@ -8,9 +8,9 @@ Kilka typowych zadań od początku do końca.
    256 na 192.
 2. Włącz siatkę komórek obok przycisków powiększenia, aby widzieć bloki 8 na 8,
    w których zapisywany jest kolor.
-3. Wybierz kolor tuszu na pasku kolorów lub klawiszami od 1 do 8, a kolor
-   papieru – prawym kliknięciem próbki.
-4. Rysuj **Pędzlem**. Lewy przycisk to tusz, prawy – papier.
+3. Wybierz kolor Tuszu na pasku kolorów lub klawiszami od 1 do 8, a kolor
+   Papieru – prawym kliknięciem próbki.
+4. Rysuj **Pędzlem**. Lewy przycisk to piksele tuszu, prawy – piksele papieru.
 5. Powiększaj klawiszami `+` i `-`. Przytrzymaj spację i przeciągnij, aby się
    przesunąć, albo użyj narzędzia **Przesuń widok**.
 6. `Ctrl+Z` cofa. `Ctrl+S` zapisuje projekt `.pixula`, który oprócz obrazu

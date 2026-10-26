@@ -22,6 +22,7 @@
 const EXPORT_FORMATS = Object.freeze([
     ['scr',   'ZX Spectrum Screen (.scr)'],
     ['zxp',   'ZX-Paintbrush Image (.zxp)'],
+    ['zxm',   'ZX-Paintbrush Map (.zxm)'],
     ['mlt',   'Timex/Multicolor Screen 8\u00d71 (.mlt)'],
     ['ifl',   'Multicolor Screen 8\u00d72 (.ifl)'],
     ['hrg',   'Timex Hi-res Screen (.hrg)'],
@@ -83,6 +84,8 @@ class MenuSystemClass {
             'tool-options-panel': 'panel-tools',
             'layer-panel':        'panel-layers',
             'transform-panel':    'panel-transform',
+            'preview-panel':      'panel-preview',
+            'map-elements-panel': 'panel-map-elements',
             'tool-preset-panel':  'panel-presets'
         };
     }
@@ -137,8 +140,10 @@ class MenuSystemClass {
         }
         this._updateModeToggles();
         this._updateExportAsMenuState();
+        this._updateExportSelectionMenuState();
         this._updateMirrorToggles();
         if (window.StateManager) this._updateToggleState('grid-snap', StateManager.getGridSnap());
+        this._updateDisplayViewMenuState();
 
         Logger.info('MenuSystem', 'Initialized');
     }
@@ -179,6 +184,139 @@ class MenuSystemClass {
     }
 
     /**
+     * The View > Colours Off / Stop Flashing / Colour Grid rows: checked from
+     * the stored choice, and greyed out (with the reason as a tooltip) in the
+     * screen modes where the switch cannot apply. A choice stays stored while
+     * its row is greyed out; it applies again in a mode that supports it.
+     * @private
+     */
+    _updateDisplayViewMenuState() {
+        if (!window.StateManager || !window.LayerManager || !this.element) return;
+        const v = StateManager.getDisplayView();
+        this._updateToggleState('colours-off', v.coloursOff);
+        this._updateToggleState('stop-flashing', v.stopFlashing);
+        this._updateToggleState('colour-grid', v.colourGrid);
+        const can = LayerManager.displayViewAvailability();
+        const noDots = ['view.display.noDots', 'Every pixel has its own colour in this screen mode, so there are no ink and paper pixels to show.'];
+        const noCells = ['view.display.noCells', 'This screen mode has no attribute cells.'];
+        const noFlash = ['view.display.noFlash', 'Nothing flashes in this screen mode.'];
+        const rows = [
+            ['colours-off', can.coloursOff, noDots],
+            ['colour-grid', can.colourGrid, can.indexed ? noDots : noCells],
+            ['stop-flashing', can.stopFlashing, noFlash]
+        ];
+        for (const [id, enabled, reason] of rows) {
+            this.setItemEnabled(id, enabled);
+            const item = this.element.querySelector(`[data-id="${id}"]`);
+            if (!item) continue;
+            if (enabled) item.removeAttribute('title');
+            else item.title = this._t(reason[0], reason[1]);
+        }
+    }
+
+    /**
+     * Grey out the Image > Attributes rows the current mode, stamp or locked
+     * layer blocks. The reason goes on the Attributes row tooltip: a disabled
+     * row takes no pointer events, so a tooltip on it would never show.
+     * @private
+     */
+    _updateAttributeMenuState() {
+        if (!window.TransformService) return;
+        const blocked = TransformService.attributeCommandsBlocked();
+        for (const id of ['attr-invert', 'attr-erase', 'attr-flip-h', 'attr-flip-v', 'attr-change']) {
+            this.setItemEnabled(id, !blocked);
+        }
+        const parent = this.element.querySelector('[data-id="attributes"]');
+        if (parent) {
+            const reasons = {
+                noCellAttributes: ['menu.image.attrNoCells', 'This screen mode has no cell attributes.'],
+                stamp: ['menu.image.attrStamp', 'Finish or cancel the stamp first.'],
+                locked: ['menu.image.attrLocked', 'This layer is locked.']
+            };
+            const r = reasons[blocked];
+            if (r) parent.title = this._t(r[0], r[1]);
+            else parent.removeAttribute('title');
+        }
+    }
+
+    /**
+     * Image > Palette: tick the slot in use, grey the rows out where the mode has a fixed palette
+     * (slots) or no ULAplus palette (the inverter). The reason goes on the Palette row tooltip: a
+     * disabled row takes no pointer events, so a tooltip on it would never show.
+     * @private
+     */
+    _updatePaletteMenuState() {
+        if (!window.TransformService || !window.ColorManager) return;
+        const b = TransformService.paletteCommandsBlocked();
+        const active = ColorManager.getPaletteSlot();
+        for (let i = 0; i < 4; i++) {
+            this.setItemEnabled(`palette-slot-${i + 1}`, !b.slots);
+            this._updateToggleState(`palette-slot-${i + 1}`, !b.slots && i === active);
+        }
+        this.setItemEnabled('palette-invert', !b.invert);
+        // File > Save Palette as TAP: a ULAplus palette only. A disabled row takes no pointer
+        // events, but the row title is still read by assistive technology and the status line.
+        const tapOk = ColorManager.paletteSlotKind() === 'ulaplus64';
+        this.setItemEnabled('save-palette-tap', tapOk);
+        const tapRow = this.element.querySelector('[data-id="save-palette-tap"]');
+        if (tapRow) {
+            if (tapOk) tapRow.removeAttribute('title');
+            else tapRow.title = this._t('mode.paletteTapNeedsUlaplus', 'The palette tape is for the ULAplus modes.');
+        }
+        const parent = this.element.querySelector('[data-id="palette-slots"]');
+        if (!parent) return;
+        const reason = b.slots ? ['menu.image.paletteFixed', 'This screen mode has fixed colours, so it has no palette slots.']
+            : (b.invert === 'nextPalette'
+                ? ['menu.image.invertPaletteNext', 'The palette inverter is for ULAplus palettes; the Next modes keep Ink and Paper in different parts of the palette.']
+                : null);
+        if (reason) parent.title = this._t(reason[0], reason[1]);
+        else parent.removeAttribute('title');
+    }
+
+    /**
+     * Grey out the Image > Dots rows the current state blocks (TransformService
+     * dotCommandsBlocked). The reasons go on the Dots row tooltip; a disabled
+     * row takes no pointer events, so the tooltip would never show on a row.
+     * @private
+     */
+    _updateDotMenuState() {
+        if (!window.TransformService) return;
+        const b = TransformService.dotCommandsBlocked();
+        this.setItemEnabled('dots-flip-h', !b.flip);
+        this.setItemEnabled('dots-flip-v', !b.flip);
+        this.setItemEnabled('dots-invert', !b.invert);
+        // Image > Flip / Rotate / Invert Dots act on the picture, or on a floating stamp; a
+        // stamp that carries its own cell colours cannot be reshaped, and a stamp layer is not
+        // the picture. Greyed out with the reason as a tooltip (the rows are pointer-reachable).
+        const stampBlock = (b.flip === 'stampAttrs' || b.flip === 'stamp') ? b.flip : null;
+        const stampReasons = {
+            stampAttrs: ['menu.image.dotsStampAttrs', 'This stamp keeps its own attributes, so it cannot be flipped here.'],
+            stamp: ['menu.image.attrStamp', 'Finish or cancel the stamp first.']
+        };
+        for (const id of ['flip-h', 'flip-v', 'rotate-90cw', 'rotate-90ccw', 'rotate-180', 'invert']) {
+            this.setItemEnabled(id, !stampBlock);
+            const row = this.element.querySelector(`[data-id="${id}"]`);
+            if (!row) continue;
+            if (stampBlock) row.title = this._t(stampReasons[stampBlock][0], stampReasons[stampBlock][1]);
+            else row.removeAttribute('title');
+        }
+        const parent = this.element.querySelector('[data-id="dots"]');
+        if (!parent) return;
+        const reasons = {
+            locked: ['menu.image.attrLocked', 'This layer is locked.'],
+            stamp: ['menu.image.attrStamp', 'Finish or cancel the stamp first.'],
+            stampAttrs: ['menu.image.dotsStampAttrs', 'This stamp keeps its own attributes, so it cannot be flipped here.'],
+            noCellAttributes: ['menu.image.dotsNoCells', 'Invert Pixels and Attributes needs cell attributes, which this screen mode does not have.'],
+            palette: ['menu.image.dotsPalette', 'Invert Pixels and Attributes needs the fixed 16 colours: in ULAplus and ULANext, swapping Ink and Paper would change how the picture looks.']
+        };
+        const texts = [b.flip, b.invert]
+            .filter((r, i, all) => r && all.indexOf(r) === i)
+            .map((r) => this._t(reasons[r][0], reasons[r][1]));
+        if (texts.length) parent.title = texts.join(' ');
+        else parent.removeAttribute('title');
+    }
+
+    /**
      * Disable each Save Image As leaf the active screen mode can't actually
      * export (e.g. nxi/sl2 need an indexed mode) — applied as
      * enabled/disabled rather than "listed at all", since a static menu tree
@@ -189,6 +327,31 @@ class MenuSystemClass {
         if (!window.FormatRegistry) return;
         for (const [ext] of EXPORT_FORMATS) {
             this.setItemEnabled('export-as-' + ext, FormatRegistry.isExportCompatible(ext));
+        }
+    }
+
+    /**
+     * Save Selection As: open each format whose rule lets the selection through, and say why the shut ones are shut.
+     * @private
+     */
+    _updateExportSelectionMenuState() {
+        if (!window.FormatRegistry || !window.FileManager) return;
+        const rect = FileManager.selectionRect();
+        const reasons = {
+            none: ['export.sel.none', 'Select part of the picture first.'],
+            mode: ['export.sel.mode', 'This screen mode cannot be saved in this format.'],
+            layout: ['export.sel.layout', 'This screen mode cannot save a part in this format.'],
+            screenOnly: ['export.sel.screenOnly', 'This format saves a whole screen: select all of it first.']
+        };
+        for (const [ext] of EXPORT_FORMATS) {
+            if (!FormatRegistry.selectionRule(ext)) continue;
+            const id = 'export-selection-' + ext;
+            const fit = FormatRegistry.selectionFit(ext, rect);
+            this.setItemEnabled(id, fit.ok);
+            const el = this.element.querySelector('[data-id="' + id + '"]');
+            if (!el) continue;
+            const r = reasons[fit.reason];
+            if (r) el.title = this._t(r[0], r[1]); else el.removeAttribute('title');
         }
     }
 
@@ -218,6 +381,13 @@ class MenuSystemClass {
                           id: 'export-as-' + ext, label, i18n: 'format.' + ext,
                           action: 'file:exportAs:' + ext
                       })) },
+                    // The same formats for just the selection: each leaf is open when its rule lets the selection
+                    // through (see FormatRegistry.selectionFit and _updateExportSelectionMenuState).
+                    { id: 'export-selection', label: 'Save Selection As', i18n: 'menu.file.exportSelection',
+                      items: EXPORT_FORMATS.filter(([ext]) => !['pal', 'npl'].includes(ext)).map(([ext, label]) => ({
+                          id: 'export-selection-' + ext, label, i18n: 'format.' + ext,
+                          action: 'file:exportSelection:' + ext
+                      })) },
                     { type: 'separator' },
                     { id: 'load-project', label: 'Load Project...', action: 'file:loadProject' },
                     { id: 'save', label: 'Save Project', shortcut: 'Ctrl+S', action: 'file:save' },
@@ -229,6 +399,7 @@ class MenuSystemClass {
                     // just two entries buried in the Export format list.
                     { id: 'load-palette', label: 'Load Palette...', action: 'file:loadPalette' },
                     { id: 'save-palette', label: 'Save Palette...', action: 'file:savePalette' },
+                    { id: 'save-palette-tap', label: 'Save Palette as TAP...', action: 'file:savePaletteTap', i18n: 'menu.file.savePaletteTap' },
                     { id: 'create-palette', label: 'Create Palette...', action: 'file:createPalette' },
                     { type: 'separator' },
                     { id: 'tape-blocks', label: 'Tape Blocks...', action: 'file:tapeBlocks' },
@@ -243,6 +414,8 @@ class MenuSystemClass {
                 items: [
                     { id: 'undo', label: 'Undo', shortcut: 'Ctrl+Z', action: 'edit:undo' },
                     { id: 'redo', label: 'Redo', shortcut: 'Ctrl+Y', action: 'edit:redo' },
+                    // Reopen the last drawn figure (Figure, Shape or Bezier) as a pending copy to move, turn or change.
+                    { id: 'clone-figure', label: 'Clone Last Figure', shortcut: 'Shift+C', action: 'edit:cloneFigure', i18n: 'menu.edit.cloneFigure' },
                     { type: 'separator' },
                     { id: 'cut', label: 'Cut', shortcut: 'Ctrl+X', action: 'edit:cut' },
                     { id: 'copy', label: 'Copy', shortcut: 'Ctrl+C', action: 'edit:copy' },
@@ -250,7 +423,11 @@ class MenuSystemClass {
                     { id: 'delete', label: 'Delete', shortcut: 'Del', action: 'edit:delete' },
                     { type: 'separator' },
                     { id: 'select-all', label: 'Select All', shortcut: 'Ctrl+A', action: 'edit:selectAll' },
-                    { id: 'deselect', label: 'Deselect', shortcut: 'Ctrl+D', action: 'edit:deselect' }
+                    { id: 'deselect', label: 'Deselect', shortcut: 'Ctrl+D', action: 'edit:deselect' },
+                    { type: 'separator' },
+                    { id: 'selection-to-cells', label: 'Fit Selection to Cells', action: 'edit:selectionToCells', i18n: 'menu.edit.selectionToCells' },
+                    { id: 'new-from-selection', label: 'New Picture from Selection', action: 'edit:newFromSelection', i18n: 'menu.edit.newFromSelection' },
+                    { id: 'find-map-element', label: 'Find Map Element', shortcut: 'Ctrl+F', action: 'edit:findMapElement', i18n: 'menu.edit.findMapElement' }
                 ]
             },
             {
@@ -265,7 +442,14 @@ class MenuSystemClass {
                     { type: 'separator' },
                     { id: 'grid', label: 'Show Grid', shortcut: 'Shift+G', action: 'view:toggleGrid', toggle: true },
                     { id: 'pixel-grid', label: 'Show Pixel Grid', action: 'view:togglePixelGrid', toggle: true },
+                    { id: 'custom-grid', label: 'Show Custom Grid', action: 'view:toggleCustomGrid', toggle: true, i18n: 'view.customGrid' },
+                    { id: 'custom-grid-settings', label: 'Custom Grid...', action: 'view:customGridSettings', i18n: 'view.customGridSettings' },
                     { id: 'grid-snap', label: 'Snap', shortcut: 'Shift+S', action: 'view:toggleSnap', toggle: true, i18n: 'view.snap' },
+                    { type: 'separator' },
+                    // Display-only: they change what the screen shows, never the picture.
+                    { id: 'colours-off', label: 'Attributes Off', action: 'view:toggleColoursOff', toggle: true, i18n: 'view.coloursOff' },
+                    { id: 'stop-flashing', label: 'Stop Flashing', action: 'view:toggleStopFlashing', toggle: true, i18n: 'view.stopFlashing' },
+                    { id: 'colour-grid', label: 'Colour Grid', action: 'view:toggleColourGrid', toggle: true, i18n: 'view.colourGrid' },
                     { type: 'separator' },
                     // The tool-stroke mirror modifier (rail: canvas-controls.js)
                     // as a radio group — bare "H"/"V" labels only make sense
@@ -288,6 +472,9 @@ class MenuSystemClass {
                     { id: 'panel-transform', label: 'Transform', action: 'view:toggleTransform', toggle: true, i18n: 'panels.transform' },
                     { id: 'panel-reference', label: 'Reference Panel', action: 'view:toggleReference', toggle: true },
                     { id: 'panel-tools', label: 'Tool Options', action: 'view:toggleToolOptions', toggle: true },
+                    { id: 'panel-preview', label: 'Preview', action: 'view:togglePreview', toggle: true, i18n: 'panels.preview' },
+                    { id: 'panel-map-elements', label: 'Map Elements', action: 'view:toggleMapElements', toggle: true, i18n: 'panels.mapElements' },
+                    { id: 'map-element-pictures', label: 'Map Element Pictures', shortcut: 'Shift+M', action: 'view:toggleMapElementPictures', toggle: true, i18n: 'menu.view.mapElementPictures' },
                     { id: 'panel-presets', label: 'Tool Presets', action: 'view:toggleToolPresets', toggle: true, i18n: 'panels.presets' }
                 ]
             },
@@ -317,8 +504,30 @@ class MenuSystemClass {
                     { id: 'rotate-90ccw', label: 'Rotate 90 CCW', action: 'image:rotate90ccw' },
                     { id: 'rotate-180', label: 'Rotate 180', action: 'image:rotate180' },
                     { type: 'separator' },
-                    { id: 'invert', label: 'Invert Colors', action: 'image:invert' },
+                    { id: 'invert', label: 'Invert Pixels', action: 'image:invert' },
                     { id: 'clear', label: 'Clear Canvas', action: 'image:clear' },
+                    { type: 'separator' },
+                    // Cell colours only (dots stay). Each row is greyed out where
+                    // the mode, a stamp or a locked layer blocks it; the reason
+                    // shows as the Attributes row tooltip (_updateAttributeMenuState).
+                    { id: 'attributes', label: 'Attributes', i18n: 'menu.image.attributes', items: [
+                        { id: 'attr-invert', label: 'Invert', action: 'image:attrInvert' },
+                        { id: 'attr-erase', label: 'Erase', action: 'image:attrErase' },
+                        { type: 'separator' },
+                        { id: 'attr-flip-h', label: 'Flip Horizontal', action: 'image:attrFlipH' },
+                        { id: 'attr-flip-v', label: 'Flip Vertical', action: 'image:attrFlipV' },
+                        { type: 'separator' },
+                        { id: 'attr-change', label: 'Change...', action: 'image:attrChange' }
+                    ]},
+                    // Dots only (the colours stay in their cells), except
+                    // Invert Dots and Colours, which inverts both. Reasons on
+                    // the Dots row as for Attributes (_updateDotMenuState).
+                    { id: 'dots', label: 'Pixels', i18n: 'menu.image.dots', items: [
+                        { id: 'dots-flip-h', label: 'Flip Horizontal', action: 'image:dotsFlipH' },
+                        { id: 'dots-flip-v', label: 'Flip Vertical', action: 'image:dotsFlipV' },
+                        { type: 'separator' },
+                        { id: 'dots-invert', label: 'Invert Pixels and Attributes', action: 'image:dotsInvert' }
+                    ]},
                     { type: 'separator' },
                     // Screen modes (Phase 12a/13) live in their own flyout —
                     // 18 radio-style toggles is a wall in a flat dropdown.
@@ -349,6 +558,17 @@ class MenuSystemClass {
                         { id: 'mode-lores_radastan', label: 'Radastan 128×96', action: 'image:modeLoresRadastan', toggle: true, i18n: 'mode.loresRadastan', mode: 'lores_radastan' }
                     ]},
                     { type: 'separator' },
+                    // Four palettes per palette kind (ULAplus, Next), and the ULAplus palette
+                    // inverter. Greyed out where the mode has a fixed palette; the reason shows
+                    // as the Palette row tooltip (_updatePaletteMenuState).
+                    { id: 'palette-slots', label: 'Palette', i18n: 'menu.image.palette', items: [
+                        { id: 'palette-slot-1', label: 'Slot 1', action: 'image:paletteSlot1', toggle: true, i18n: 'menu.image.paletteSlot1' },
+                        { id: 'palette-slot-2', label: 'Slot 2', action: 'image:paletteSlot2', toggle: true, i18n: 'menu.image.paletteSlot2' },
+                        { id: 'palette-slot-3', label: 'Slot 3', action: 'image:paletteSlot3', toggle: true, i18n: 'menu.image.paletteSlot3' },
+                        { id: 'palette-slot-4', label: 'Slot 4', action: 'image:paletteSlot4', toggle: true, i18n: 'menu.image.paletteSlot4' },
+                        { type: 'separator' },
+                        { id: 'palette-invert', label: 'Invert Palette', action: 'image:invertPalette', i18n: 'menu.image.invertPalette' }
+                    ]},
                     { id: 'edit-palette', label: 'Edit Palette...', action: 'image:editPalette' }
                 ]
             },
@@ -488,6 +708,9 @@ class MenuSystemClass {
         this.element.querySelectorAll('.menu-action:not(.menu-action--parent)').forEach(action => {
             action.addEventListener('click', (e) => {
                 e.stopPropagation();
+                // A greyed-out row that carries a reason (its tooltip) still
+                // receives the pointer so the reason can show; it does nothing.
+                if (action.classList.contains('disabled')) return;
                 this._executeAction(action.dataset.action);
                 this._closeAllMenus();
             });
@@ -539,6 +762,7 @@ class MenuSystemClass {
         EventBus.on(EVENTS.GRID_VISIBILITY, (state) => {
             this._updateToggleState('grid', !!state.cell);
             this._updateToggleState('pixel-grid', !!state.pixel);
+            this._updateToggleState('custom-grid', !!state.custom);
         });
 
         EventBus.on(EVENTS.THEME_CHANGED, ({ theme }) => this._updateThemeToggles(theme));
@@ -548,12 +772,26 @@ class MenuSystemClass {
         EventBus.on(EVENTS.SCREEN_MODE_CHANGED, () => {
             this._updateModeToggles();
             this._updateExportAsMenuState();
+            this._updateAttributeMenuState();
+            this._updateDotMenuState();
+            this._updatePaletteMenuState();
+            this._updateDisplayViewMenuState();
         });
+        EventBus.on(EVENTS.PALETTE_SLOT_CHANGED, () => this._updatePaletteMenuState());
 
         // Keep the View-menu Mirror radios and Snap toggle in sync with their
         // facts (both can also change from the canvas-controls rail).
         EventBus.on(EVENTS.SYMMETRY_CHANGED, ({ mode }) => this._updateMirrorToggles(mode));
         EventBus.on(EVENTS.GRID_SNAP_CHANGED, ({ snap }) => this._updateToggleState('grid-snap', !!snap));
+        EventBus.on(EVENTS.DISPLAY_VIEW_CHANGED, () => this._updateDisplayViewMenuState());
+        EventBus.on(EVENTS.MAP_ELEMENT_DISPLAY_CHANGED, ({ pictures }) => this._updateToggleState('map-element-pictures', !!pictures));
+        // The greyed-out reasons are written into tooltips; follow the language.
+        EventBus.on(EVENTS.UI_LANGUAGE_CHANGE, () => {
+            this._updateDisplayViewMenuState();
+            this._updateAttributeMenuState();
+            this._updateDotMenuState();
+            this._updatePaletteMenuState();
+        });
 
         // Keep each View-menu panel checkbox in sync with PanelSection's own
         // visibility fact — fired on creation, on restore() resolving
@@ -612,8 +850,15 @@ class MenuSystemClass {
     _showMenu(menuId) {
         this._closeAllMenus();
 
+        if (menuId === 'file') this._updatePaletteMenuState();
         if (menuId === 'edit') this._updateEditMenuState();
+        if (menuId === 'file') this._updateExportSelectionMenuState();
         if (menuId === 'view') this._updateViewMenuState();
+        if (menuId === 'image') {
+            this._updateAttributeMenuState();
+            this._updateDotMenuState();
+            this._updatePaletteMenuState();
+        }
 
         const menuItem = this.element.querySelector(`[data-menu="${menuId}"]`);
         const dropdown = this.element.querySelector(`#menu-${menuId}`);
@@ -636,6 +881,13 @@ class MenuSystemClass {
         // we cannot know synchronously whether an image is actually there
         const canPaste = !!(window.SelectionService && SelectionService.hasClipboard()) ||
             !!(navigator.clipboard && typeof navigator.clipboard.read === 'function');
+        // Clone Last Figure is open once a figure has been drawn.
+        const hasFigure = !!(window.FigureHistory && FigureHistory.has());
+        this.setItemEnabled('clone-figure', hasFigure);
+        // The selection becomes a new picture only when nothing is floating (a paste in flight would be lost).
+        const floating = !!(window.SelectionService && SelectionService.isFloating());
+        this.setItemEnabled('selection-to-cells', hasSel && !floating);
+        this.setItemEnabled('new-from-selection', hasSel && !floating);
         if (hasSel === this._lastHasSel && canPaste === this._lastHasClip) return;
         this._lastHasSel  = hasSel;
         this._lastHasClip = canPaste;
@@ -802,6 +1054,10 @@ class MenuSystemClass {
         // File > Save Image As leaves carry their format in the action id
         // itself ('file:exportAs:tap') rather than one switch case per
         // format — see the File menu's export-as submenu in _buildMenus().
+        if (actionId.startsWith('file:exportSelection:')) {
+            FileManager.exportSelectionAs(actionId.slice('file:exportSelection:'.length));
+            return;
+        }
         if (actionId.startsWith('file:exportAs:')) {
             FileManager.exportAs(actionId.slice('file:exportAs:'.length));
             return;
@@ -815,6 +1071,7 @@ class MenuSystemClass {
             case 'file:loadProject': FileManager.loadProjectFile(); break;
             case 'file:loadPalette': PaletteEditorDialog.loadFromFile(); break;
             case 'file:savePalette': PaletteEditorDialog.saveToFile(); break;
+            case 'file:savePaletteTap': PaletteEditorDialog.saveToFile('tap'); break;
             case 'file:createPalette': PaletteEditorDialog.create(); break;
             case 'file:import': FileManager.openFile(); break;
             case 'file:tapeBlocks': TapeBlockDialog.openForFile(); break;
@@ -823,8 +1080,9 @@ class MenuSystemClass {
             case 'file:spriteEditor': SpriteEditorDialog.open(); break;
 
             // Edit
-            case 'edit:undo': UndoRedo.undo(); break;
+            case 'edit:undo': ToolManager.undo(); break;
             case 'edit:redo': UndoRedo.redo(); break;
+            case 'edit:cloneFigure': FigureHistory.cloneLast(); break;
             case 'edit:cut':
                 SelectionService.copyOrCut(true);
                 break;
@@ -855,6 +1113,15 @@ class MenuSystemClass {
                 SelectionService.clear();
                 CanvasSystem.requestRender();
                 break;
+            case 'edit:selectionToCells':
+                FileManager.fitSelectionToCells();
+                break;
+            case 'edit:newFromSelection':
+                FileManager.newFromSelection();
+                break;
+            case 'edit:findMapElement':
+                MapElementsPanel.startFind();
+                break;
 
             // View — zoom goes through the canvas-controls path
             case 'view:zoomIn':  CanvasControls.stepZoom(1);  break;
@@ -876,8 +1143,23 @@ class MenuSystemClass {
             case 'view:togglePixelGrid':
                 GridOverlay.togglePixelGrid();
                 break;
+            case 'view:toggleCustomGrid':
+                GridOverlay.toggleCustomGrid();
+                break;
+            case 'view:customGridSettings':
+                CustomGridDialog.open();
+                break;
             case 'view:toggleSnap':
                 StateManager.setGridSnap(!StateManager.getGridSnap());
+                break;
+            case 'view:toggleColoursOff':
+                StateManager.setColoursOff(!StateManager.getDisplayView().coloursOff);
+                break;
+            case 'view:toggleStopFlashing':
+                StateManager.setStopFlashing(!StateManager.getDisplayView().stopFlashing);
+                break;
+            case 'view:toggleColourGrid':
+                StateManager.setColourGrid(!StateManager.getDisplayView().colourGrid);
                 break;
             case 'view:mirrorOff':  StateManager.setSymmetryMode('off');  break;
             case 'view:mirrorH':    StateManager.setSymmetryMode('h');    break;
@@ -890,6 +1172,9 @@ class MenuSystemClass {
             // fact any other caller of setVisible/toggleVisibility fires, so
             // the two paths can never disagree.
             case 'view:toggleReference':   PanelSection.toggleVisibility('reference-panel');    break;
+            case 'view:togglePreview':     PanelSection.toggleVisibility('preview-panel');      break;
+            case 'view:toggleMapElements': PanelSection.toggleVisibility('map-elements-panel'); break;
+            case 'view:toggleMapElementPictures': MapElementOverlay.togglePictures(); break;
             case 'view:toggleToolOptions': PanelSection.toggleVisibility('tool-options-panel'); break;
             case 'view:toggleLayers':      PanelSection.toggleVisibility('layer-panel');        break;
             case 'view:toggleTransform':   PanelSection.toggleVisibility('transform-panel');    break;
@@ -913,13 +1198,27 @@ class MenuSystemClass {
             case 'layer:moveDown':  LayerManager.moveLayerDown(LayerManager.currentLayerIndex); break;
 
             // Image
-            case 'image:flipH':       TransformService.flipHorizontal(); break;
-            case 'image:flipV':       TransformService.flipVertical();   break;
-            case 'image:rotate90cw':  TransformService.rotate90CW();     break;
-            case 'image:rotate90ccw': TransformService.rotate90CCW();    break;
-            case 'image:rotate180':   TransformService.rotate180();      break;
-            case 'image:invert':      TransformService.invert();         break;
+            // Through the Transform panel's one entry point, which sends a floating
+            // stamp to SelectionService.transformStamp instead of the picture.
+            case 'image:flipH':       TransformPanel.applyTransform('flipH');        break;
+            case 'image:flipV':       TransformPanel.applyTransform('flipV');        break;
+            case 'image:rotate90cw':  TransformPanel.applyTransform('rotate90CW');   break;
+            case 'image:rotate90ccw': TransformPanel.applyTransform('rotate90CCW');  break;
+            case 'image:rotate180':   TransformPanel.applyTransform('rotate180');    break;
+            case 'image:invert':      TransformPanel.applyTransform('invert');       break;
             case 'image:clear':       this._clearCanvas();               break;
+
+            // Image > Attributes (cell colours; dots untouched)
+            case 'image:attrInvert':   TransformService.invertAttributes();        break;
+            case 'image:attrErase':    TransformService.eraseAttributes();         break;
+            case 'image:attrFlipH':    TransformService.flipAttributesHorizontal(); break;
+            case 'image:attrFlipV':    TransformService.flipAttributesVertical();   break;
+            case 'image:attrChange':   ChangeAttributesDialog.open();              break;
+
+            // Image > Dots (dots only; Invert Dots and Colours inverts both)
+            case 'image:dotsFlipH':    TransformService.dotsFlip('h');             break;
+            case 'image:dotsFlipV':    TransformService.dotsFlip('v');             break;
+            case 'image:dotsInvert':   TransformService.invertDotsAndColours();    break;
 
             // Screen modes (Phase 12a)
             case 'image:modeStandardUla':   this.requestScreenMode('standard_ula');   break;
@@ -942,6 +1241,11 @@ class MenuSystemClass {
             case 'image:modeLores':         this.requestScreenMode('lores');          break;
             case 'image:modeLoresRadastan': this.requestScreenMode('lores_radastan'); break;
             case 'image:editPalette':       PaletteEditorDialog.open();               break;
+            case 'image:paletteSlot1':      TransformService.selectPaletteSlot(0);    break;
+            case 'image:paletteSlot2':      TransformService.selectPaletteSlot(1);    break;
+            case 'image:paletteSlot3':      TransformService.selectPaletteSlot(2);    break;
+            case 'image:paletteSlot4':      TransformService.selectPaletteSlot(3);    break;
+            case 'image:invertPalette':     TransformService.invertPalette();         break;
 
             // Settings
             case 'settings:preferences': PreferencesDialog.open(); break;
@@ -985,9 +1289,11 @@ class MenuSystemClass {
 
         UndoRedo.beginAction('Flatten');
 
-        // Bake any stamps into drawing layers first so their content is
-        // included in the flatten (commitAllStamps uses nested undo).
-        SelectionService.commitAllStamps();
+        // Bake the shown stamps into drawing layers first so their content is
+        // included in the flatten (commitAllStamps uses nested undo). A hidden
+        // stamp is left out, as flattenVisible leaves out a hidden layer, and
+        // goes with the other layers below.
+        SelectionService.commitAllStamps({ onlyVisible: true });
 
         const flatLayer = LayerManager.flattenVisible();
 
@@ -1002,6 +1308,8 @@ class MenuSystemClass {
         target.restoreAttributeData(flatLayer.cloneAttributeData());
         target.name = 'Flattened';
         target.isStamp = false;
+        // It may have been a hidden layer; the flattened picture is shown.
+        target.visible = true;
 
         LayerManager.selectedLayers.clear();
         LayerManager.selectedLayers.add(1);
@@ -1093,6 +1401,15 @@ class MenuSystemClass {
         shortcuts.push(['+/-', this._t('view.zoomIn', 'Zoom in') + '/' + this._t('view.zoomOut', 'Zoom out')]);
         // Bright, Flash and "use existing" - one list with the key handler
         for (const s of COLOUR_SHORTCUTS) shortcuts.push([s.keys, this._t(s.i18n, s.en)]);
+        // ULAplus CLUT keys - one list with the key handler
+        shortcuts.push([CLUT_SHORTCUTS.keys, this._t(CLUT_SHORTCUTS.i18n, CLUT_SHORTCUTS.en)]);
+        shortcuts.push(['X / Y', this._t('help.axisLock', 'Hold while drawing: keep to a horizontal (X) or vertical (Y) line. Tap X: swap Ink and Paper')]);
+        shortcuts.push(['Shift+C', this._t('menu.edit.cloneFigure', 'Clone Last Figure')]);
+        shortcuts.push(['Ctrl+F', this._t('menu.edit.findMapElement', 'Find Map Element')]);
+        shortcuts.push(['Shift+M', this._t('menu.view.mapElementPictures', 'Map Element Pictures')]);
+        shortcuts.push(['Enter / Shift+Enter / Esc', this._t('help.typeOnCanvas', 'Type on canvas: Enter draws, Shift+Enter new line, Esc cancels')]);
+        // Inverse - one list with the key handler
+        for (const s of MODE_SHORTCUTS) shortcuts.push([s.keys, this._t(s.i18n, s.en)]);
         // Preset recall — both the key range and the number in the description
         // are generated from the codec, so changing how many slots are keyed
         // cannot leave this row saying otherwise.

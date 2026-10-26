@@ -84,6 +84,14 @@ class BrushEngineClass {
         // Drawing session state
         this.drawingSessionActive = false;
 
+        // Colour core (PixelDrawRoutine.withColourCore): 'whole' | '1' | '4'. A thick
+        // solid stroke sets every dot but only the cells under its core take the
+        // colours. The mask is the stroke's own PATH widened by the core - not built
+        // from the stamps, which sit size / 2 apart and would leave gaps - and is
+        // made per stroke and dropped after.
+        this.colourCore = 'whole';
+        this._coreMask = null;
+
         this._initialized = false;
     }
 
@@ -276,6 +284,57 @@ class BrushEngineClass {
      * @param {boolean} isInk - True for ink, false for paper
      * @returns {boolean} True if any pixels were drawn
      */
+    /**
+     * The core width in pixels for a stamp of `effectiveSize`, or 0 when the
+     * whole stamp takes colours: option off, the stamp is no wider than the
+     * core, the brush is not a solid round/square one (spray, hatch, pattern
+     * and fade share the option value but draw no solid line), or the mode has
+     * no cell colours (a stored value must not act on Layer 2 or Timex hi-res).
+     * @param {number} effectiveSize
+     * @returns {number} 0, 1 or 4
+     */
+    coreSizeFor(effectiveSize) {
+        const size = this.colourCore === '1' ? 1 : this.colourCore === '4' ? 4 : 0;
+        if (!size || effectiveSize <= size) return 0;
+        if (this.currentBrush !== 'round' && this.currentBrush !== 'square') return 0;
+        if (!window.ColorManager || !ColorManager.hasCellAttributes()) return 0;
+        return size;
+    }
+
+    /** Add the core footprint around (x, y) to this stroke's mask. @private */
+    _markCore(x, y, size) {
+        const brush = this.brushes.get(this.currentBrush);
+        if (!brush) return;
+        const W = ZX_SPECTRUM.WIDTH, H = ZX_SPECTRUM.HEIGHT;
+        if (!this._coreMask || this._coreMask.length !== W * H) this._coreMask = new Uint8Array(W * H);
+        const mask = this._coreMask;
+        for (const o of brush.getFootprintOffsets(size)) {
+            const px = x + o.dx, py = y + o.dy;
+            if (px >= 0 && px < W && py >= 0 && py < H) mask[py * W + px] = 1;
+        }
+    }
+
+    /** The predicate PixelDrawRoutine.withColourCore wants, over this stroke's mask. @private */
+    _corePredicate() {
+        const mask = this._coreMask, W = ZX_SPECTRUM.WIDTH;
+        return (px, py) => mask[py * W + px] === 1;
+    }
+
+    /**
+     * The hover mark's core: the core footprint around the pointer, or null
+     * when the whole mark takes colours.
+     * @param {{x: number, y: number}} centre
+     * @returns {Function|null}
+     */
+    markCoreAround(centre) {
+        const size = this.coreSizeFor(this.currentSize);
+        const brush = this.brushes.get(this.currentBrush);
+        if (!size || !brush) return null;
+        const keys = new Set();
+        for (const o of brush.getFootprintOffsets(size)) keys.add((centre.x + o.dx) + ',' + (centre.y + o.dy));
+        return (px, py) => keys.has(px + ',' + py);
+    }
+
     applyBrush(x, y, pressure = 1.0, isInk = true) {
         this.drawingSessionActive = true;
 
@@ -338,7 +397,7 @@ class BrushEngineClass {
         // comes back over it (PixelDrawRoutine.nextPass).
         PixelDrawRoutine.nextPass(x, y, effectiveSize);
 
-        const applied = brush.apply(x, y, effectiveSize, effectiveFlow, colorSelection, {
+        const stamp = () => brush.apply(x, y, effectiveSize, effectiveFlow, colorSelection, {
             // Pressure is only a fact when the preference is on — otherwise a
             // pen would still modulate the density-driven brushes behind the
             // back of an unticked Pressure Sensitivity setting.
@@ -347,7 +406,11 @@ class BrushEngineClass {
             isInk: isInk
         });
 
-        return applied;
+        // Colour core: this point is on the stroke's path, so its core is core.
+        const coreSize = this.coreSizeFor(effectiveSize);
+        if (!coreSize) return stamp();
+        this._markCore(x, y, coreSize);
+        return PixelDrawRoutine.withColourCore(this._corePredicate(), stamp);
     }
 
     /**
@@ -377,6 +440,14 @@ class BrushEngineClass {
 
         let applied = false;
 
+        // Colour core: mark the whole path first, so every stamp already sees the
+        // centre line AHEAD of it (stamps are size / 2 apart; a core built from
+        // them would be dotted, and would miss the cells a corner clips).
+        const coreSize = this.coreSizeFor(this.currentSize);
+        if (coreSize) {
+            ToolBase.forEachLinePoint(fromX, fromY, toX, toY, (px, py) => this._markCore(px, py, coreSize));
+        }
+
         for (let i = 1; i <= steps; i++) {
             const t = i / steps;
             const x = Math.round(fromX + (toX - fromX) * t);
@@ -395,6 +466,7 @@ class BrushEngineClass {
      */
     startDrawingSession() {
         this.drawingSessionActive = true;
+        this._coreMask = null;
         this.currentSizeVariationValue = 0;
         this.variationDistance = 0;
         this.lastVariationX = null;
@@ -413,6 +485,7 @@ class BrushEngineClass {
      */
     endDrawingSession() {
         this.drawingSessionActive = false;
+        this._coreMask = null;
     }
 
     /**
@@ -690,7 +763,12 @@ class SprayBrush extends BaseBrush {
         this.description = 'Spray brush with scattered particles';
         this.consumesFlow = true;       // flow buys particles — see BaseBrush
         this.weighting = 0;             // -100 rim .. 0 even .. +100 centre (uniform)
-        this.distribution = 'uniform';  // 'uniform' polar scatter | 'poisson' blue-noise
+        this.distribution = 'uniform';  // 'uniform' polar scatter | 'poisson' blue-noise | 'pattern' whole figures
+
+        // Pattern sub-mode state (Batch 7 part 7C2).
+        this.patternShape = 'circle';   // 'circle' | 'square' | 'line'
+        this.patternSize = 5;           // width of one figure, or length of a line
+        this.patternFilled = false;     // solid figures, or outlines
 
         // Poisson sub-mode state.
         this.minDistance = 2;
@@ -720,9 +798,24 @@ class SprayBrush extends BaseBrush {
         this.weighting = clamp(value, -100, 100);
     }
 
-    /** @param {string} value - 'uniform' | 'poisson' */
+    /** @param {string} value - 'uniform' | 'poisson' | 'pattern' */
     setDistribution(value) {
-        this.distribution = value === 'poisson' ? 'poisson' : 'uniform';
+        this.distribution = value === 'poisson' || value === 'pattern' ? value : 'uniform';
+    }
+
+    /** @param {string} value - 'circle' | 'square' | 'line' */
+    setPatternShape(value) {
+        this.patternShape = value === 'square' || value === 'line' ? value : 'circle';
+    }
+
+    /** @param {number} value - Figure width in pixels (2..16) */
+    setPatternSize(value) {
+        this.patternSize = clamp(Math.round(value) || 5, 2, 16);
+    }
+
+    /** @param {boolean} value */
+    setPatternFilled(value) {
+        this.patternFilled = !!value;
     }
 
     /** @param {number} value - Minimum spacing between Poisson points (>= 1). */
@@ -742,9 +835,34 @@ class SprayBrush extends BaseBrush {
     apply(x, y, size, flow, colorSelection, options = {}) {
         if (size <= 1) return this.stampCentre(x, y, { ...options, colorSelection });
 
+        if (this.distribution === 'pattern') return this._applyPattern(x, y, size, flow, colorSelection, options);
         return this.distribution === 'poisson'
             ? this._applyPoisson(x, y, size, flow, colorSelection, options)
             : this._applyUniform(x, y, size, flow, colorSelection, options);
+    }
+
+    /**
+     * Whole little figures instead of dots: circles, squares or short lines, each inside the spray disc (see
+     * BrushShapes.patternStamps). Flow is the share of the disc the figures try to cover. @private
+     */
+    _applyPattern(x, y, size, flow, colorSelection, options) {
+        const isInk = options.isInk !== undefined ? options.isInk : true;
+        const mode = PixelDrawRoutine.resolveUserMode(isInk);
+        const radius = BrushShapes.radiusFor(size);
+        const n = this.patternSize;
+        // Flow is the share of the disc the figures try to cover: a solid figure covers n*n (a disc about 0.8 of that); an outline or a line far fewer dots, so count by the dots one figure really lays.
+        const dots = Math.max(1, BrushShapes.patternFigure(this.patternShape, n, this.patternFilled, 0).length);
+        const count = Math.max(1, Math.round(Math.PI * radius * radius * flow / dots));
+        let applied = false;
+
+        for (const figure of BrushShapes.patternStamps(radius, n, this.patternShape, this.patternFilled, count)) {
+            for (const c of figure) {
+                const pixelX = x + c.dx;
+                const pixelY = y + c.dy;
+                if (_inBounds(pixelX, pixelY) && PixelDrawRoutine.draw(pixelX, pixelY, colorSelection, mode)) applied = true;
+            }
+        }
+        return applied;
     }
 
     /** Polar scatter with independent per-axis rounding — see BrushShapes. @private */
@@ -908,10 +1026,10 @@ const CLUSTERED_8 = [
     [ 8,  0,  2, 14, 45, 59, 61, 51],
     [22,  6,  4, 16, 43, 57, 63, 53],
     [30, 20, 18, 28, 33, 41, 55, 39],
-    [34, 46, 48, 38, 25, 11, 13, 27],
+    [34, 46, 48, 36, 25, 11, 13, 27],
     [44, 58, 60, 50,  9,  1,  3, 15],
     [42, 56, 62, 52, 23,  7,  5, 17],
-    [32, 40, 54, 36, 31, 21, 19, 29]
+    [32, 40, 54, 38, 31, 21, 19, 29]
 ];
 
 const FADE_DITHERS = Object.freeze({

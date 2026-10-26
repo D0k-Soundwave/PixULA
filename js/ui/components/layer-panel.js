@@ -81,6 +81,12 @@ class LayerPanelClass {
         EventBus.on(EVENTS.LAYER_SELECTED,   rerenderAll);
         EventBus.on(EVENTS.LAYER_VISIBILITY, rerenderAll);
 
+        // A stamp that places its own colours ignores XOR: keep each stamp's X
+        // button honest without rebuilding the list (that would lose hover,
+        // focus and an open rename box).
+        EventBus.on(EVENTS.CANVAS_RENDER, () => this._syncStampXor());
+        EventBus.on(EVENTS.SCREEN_MODE_CHANGED, () => this._syncStampXor());
+
         rerenderAll();
 
         Logger.info('LayerPanel', 'Initialized');
@@ -369,6 +375,30 @@ class LayerPanelClass {
         ToolManager.selectTool(TOOLS.BRUSH);
     }
 
+    /**
+     * Mark the X (XOR) button of every stamp that places its own colours as
+     * ignored: the stored XOR value is kept (it works again after Pixels only),
+     * the button stays hoverable so its reason can show.
+     * @private
+     */
+    _syncStampXor() {
+        const list = this._stampList;
+        if (!list || !window.SelectionService) return;
+        list.querySelectorAll('.stamp-item').forEach((item) => {
+            const layer = LayerManager.layers[parseInt(item.dataset.layerIndex, 10)];
+            const btn = item.querySelector('.stamp-xor');
+            if (!layer || !btn) return;
+            const ctl = SelectionService.stampControls(layer);
+            const ignored = !!(ctl && ctl.ownColours);
+            if (btn.classList.contains('is-ignored') === ignored) return;
+            btn.classList.toggle('is-ignored', ignored);
+            btn.setAttribute('aria-disabled', ignored ? 'true' : 'false');
+            const key = ignored ? 'transform.colouredIgnoresXor' : 'stamp.xorMode';
+            btn.dataset.i18nTitle = key;
+            btn.title = this._t(key, ignored ? 'A stamp with its own attributes ignores XOR' : 'XOR mode');
+        });
+    }
+
     /** @private */
     _renderStampList() {
         const stampList = this._stampList;
@@ -418,6 +448,7 @@ class LayerPanelClass {
         if (this._stampEmpty) {
             this._stampEmpty.style.display = stampCount === 0 ? '' : 'none';
         }
+        this._syncStampXor();
     }
 
     /** @private */
@@ -441,6 +472,11 @@ class LayerPanelClass {
             // XOR-mode toggle — re-render any active floating preview
             if (e.target.closest('.stamp-xor')) {
                 e.stopPropagation();
+                const ctl = SelectionService.stampControls(layer);
+                if (ctl && ctl.ownColours) {
+                    EventBus.emit(EVENTS.STATUS_NOTICE, { text: this._t('transform.colouredIgnoresXor', 'A stamp with its own attributes ignores XOR') });
+                    return;
+                }
                 LayerManager.setLayerXorMode(layerIndex, !layer.xorMode);
                 if (window.SelectionService && SelectionService.isFloating() &&
                     SelectionService.floatingPaste &&

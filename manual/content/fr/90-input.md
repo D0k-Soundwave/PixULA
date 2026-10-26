@@ -2,9 +2,11 @@
 
 ### Souris
 
-Le bouton gauche dessine à l’encre et le droit au papier. Maj et clic droit
+Le bouton gauche dessine des pixels d’encre et le droit des pixels de papier. Maj et clic droit
 ouvrent le menu de la zone de dessin, qui permet d’accéder à couper, copier et
 coller quand un outil utilise le bouton droit pour dessiner.
+
+Maintenez **X** pendant le glissement pour garder le pinceau, la gomme, la forme ou la figure sur une ligne horizontale, ou **Y** pour une ligne verticale. La ligne passe par le point où vous avez appuyé sur le bouton (ou sur la touche) ; appuyez sur l'autre touche pour tourner à angle droit, et relâchez pour dessiner de nouveau librement. Un simple appui sur **X** sans glisser échange toujours l'Encre et le Papier, désormais au relâchement de la touche.
 
 ### Stylet
 
@@ -12,10 +14,10 @@ La pointe du stylet dessine avec l’outil choisi et ne peut pas être
 réattribuée. Toutes les autres commandes du stylet le peuvent, dans
 **Préférences > Stylet**.
 
-Par défaut, le bouton latéral dessine au papier, comme le bouton droit de la
+Par défaut, le bouton latéral dessine des pixels de papier, comme le bouton droit de la
 souris, et la gomme au bout du stylet efface. La liste des Préférences
 propose aussi la pipette, le déplacement de la vue, annuler, rétablir,
-l’échange des couleurs, le menu de la zone de dessin et le retour à l’outil
+l’échange de l’Encre et du Papier, le menu de la zone de dessin et le retour à l’outil
 précédent.
 
 La pression change la taille et le débit du pinceau dans la mesure que vous

@@ -103,6 +103,8 @@ const PROJECT_SLICE_IDS = Object.freeze(['tool', 'color', 'drawing', 'pattern', 
 class ProjectFormatClass {
     constructor() {
         this.extension = 'pixula';
+        // a project carries its own map elements (App._loadProjectData), so FileManager does not clear them after the read
+        this.importsElements = true;
         this.mimeType = 'application/gzip';
         // Instance properties, not class statics: window.ProjectFormat is
         // the singleton every caller actually holds, and a class-static

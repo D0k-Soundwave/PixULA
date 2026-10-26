@@ -94,6 +94,11 @@ class OptionControlsClass {
             if (data && data.tool === this.currentToolId) this.showOptionsForTool(data.tool);
         });
 
+        // A row that follows the screen mode ({ cells: true }) changes with it.
+        EventBus.on(EVENTS.SCREEN_MODE_CHANGED, () => this._applyVisibility());
+        // ...and a row that asks the tool about the fonts ({ toolIs }) with the font library and the working font.
+        EventBus.on(EVENTS.FONT_LIBRARY_CHANGED, () => this._applyVisibility());
+
         this._initialized = true;
 
         const current = ToolManager.getCurrentTool();
@@ -608,6 +613,23 @@ class OptionControlsClass {
             if (!entry.showIf) continue;
             rowEl.hidden = !this._evalShowIf(entry.showIf);
         }
+        this._applyDisabled();
+    }
+
+    /**
+     * Grey out the select options whose `disabledIf` condition holds (same grammar as showIf). A select may
+     * still HOLD a disabled value - a preset can bring one back - so the tool's own rule is what counts.
+     * @private
+     */
+    _applyDisabled() {
+        for (const { entry, rowEl } of this._rows) {
+            if (!Array.isArray(entry.options)) continue;
+            for (const opt of entry.options) {
+                if (!opt || !opt.disabledIf) continue;
+                const el = rowEl.querySelector(`option[value="${opt.value}"]`);
+                if (el) el.disabled = this._evalShowIf(opt.disabledIf);
+            }
+        }
     }
 
     /**
@@ -619,6 +641,28 @@ class OptionControlsClass {
     _evalShowIf(cond) {
         if (Array.isArray(cond.any)) return cond.any.some(c => this._evalShowIf(c));
         if (Array.isArray(cond.all)) return cond.all.every(c => this._evalShowIf(c));
+        // { cells: true }: the screen mode, not another option - cells have colours.
+        // { screenFits: true }: a whole 256x192 screen is smaller than the canvas (Layer 2 320 and 640).
+        // { bitmapFont: true }: the font in force is a bitmap font (ZX ROM or a saved one) - what Type on canvas needs.
+        if ('bitmapFont' in cond) {
+            const fam = this._values.fontFamily;
+            const bitmap = fam === 'ZX ROM' || (typeof fam === 'string' && fam.startsWith('zxfont:'));
+            return bitmap === !!cond.bitmapFont;
+        }
+        // { clearDotsNoEffect: true }: Clear background would write nothing with the draw mode in force.
+        if ('clearDotsNoEffect' in cond) return (window.SelectionService ? !SelectionService.clearDotsHasEffect() : false) === !!cond.clearDotsNoEffect;
+        // { toolIs: 'method' } / { toolIs: 'method', equals: v }: the tool's own answer (a rule only the tool knows, such as
+        // whether the font in force has coloured characters) - truthy, or equal to v.
+        if ('toolIs' in cond) {
+            const tool = window.ToolManager ? ToolManager.getTool(this.currentToolId) : null;
+            const answer = tool && typeof tool[cond.toolIs] === 'function' ? tool[cond.toolIs]() : null;
+            return 'equals' in cond ? answer === cond.equals : !!answer;
+        }
+        if ('screenFits' in cond) return SnapGrid.screenFits() === !!cond.screenFits;
+        if ('cells' in cond) {
+            const has = !window.ColorManager || ColorManager.hasCellAttributes();
+            return has === !!cond.cells;
+        }
         const actual = this._values[cond.key];
         if ('equals' in cond) return actual === cond.equals;
         if ('in' in cond)     return cond.in.includes(actual);

@@ -46,6 +46,14 @@ class CellGridEditor {
         this._getInk = opts.getInk || (() => ZX_PALETTE[0]);
         this._getPaper = opts.getPaper || (() => ZX_PALETTE[7]);
         this._onChange = opts.onChange || null;
+        // Optional hooks (Batch 10C2): paint over the finished picture (the Font Editor's shading), and learn that a stroke begins
+        // (its undo history). Hosts that pass neither are unaffected.
+        this._drawOverlay = opts.drawOverlay || null;
+        this._onStrokeStart = opts.onStrokeStart || null;
+        // Optional (coloured CHX characters): the colours of one pixel's cell - (x, y) => {ink, paper} CSS colours, or null for
+        // the default pair - and the 'pick' tool, which draws nothing and reports the clicked pixel to onPick(x, y, erase).
+        this._getPixelColours = opts.getPixelColours || null;
+        this._onPick = opts.onPick || null;
         // Indexed mode (Phase 13): values are palette indices
         this._indexed = !!opts.indexed;
         this._getColor = opts.getColor || null;
@@ -133,6 +141,16 @@ class CellGridEditor {
                     ctx.fillRect(x * sx, y * sy, sx, sy);
                 }
             }
+        } else if (this._getPixelColours) {
+            for (let y = 0; y < this._h; y++) {
+                for (let x = 0; x < this._w; x++) {
+                    const c = this._getPixelColours(x, y);
+                    const on = this._pixels[y * this._w + x];
+                    if (!c && !on) continue;
+                    ctx.fillStyle = c ? (on ? c.ink : c.paper) : this._getInk();
+                    ctx.fillRect(x * sx, y * sy, sx, sy);
+                }
+            }
         } else {
             ctx.fillStyle = this._getInk();
             for (let y = 0; y < this._h; y++) {
@@ -152,6 +170,8 @@ class CellGridEditor {
         for (let i = 0; i <= this._h; i++) {
             ctx.beginPath(); ctx.moveTo(0, i * sy); ctx.lineTo(this._canvasW, i * sy); ctx.stroke();
         }
+
+        if (this._drawOverlay) this._drawOverlay(ctx, sx, sy);
     }
 
     // ── Event wiring ───────────────────────────────────────────────────────
@@ -185,14 +205,24 @@ class CellGridEditor {
      * @private
      */
     _isErase(e) {
+        return CellGridEditor.isEraseEvent(e);
+    }
+
+    /** The same test without an instance, for other drawing surfaces (the Font Editor's map). */
+    static isEraseEvent(e) {
         return e.button === 2 || e.button === PEN_CONTROLS.ERASER.button ||
                (e.buttons & 2) !== 0 || (e.buttons & PEN_CONTROLS.ERASER.bit) !== 0;
     }
 
     _onPointerDown(e) {
         e.preventDefault();
-        this._isDrawing = true;
         const { x, y } = this._pixelCoord(e);
+        if (this._tool === 'pick') {
+            if (this._onPick) this._onPick(x, y, this._isErase(e));
+            return;
+        }
+        if (this._onStrokeStart) this._onStrokeStart();
+        this._isDrawing = true;
         if (this._tool === 'line') {
             this._lineStart = { x, y };
         } else if (this._tool === 'fill') {

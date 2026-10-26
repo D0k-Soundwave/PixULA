@@ -163,6 +163,7 @@
     --grid-pixel-color: #000000;
     --grid-cell-color:  #FF0000;
     --grid-block-color: #0000FF;
+    --grid-custom-color: #00AA00;
 
     /* ===== GLASSMORPHISM ===== */
     --glass-bg: rgba(26, 26, 26, 0.85);

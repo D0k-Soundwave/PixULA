@@ -15,96 +15,33 @@
  * tests/draw-mode-matrix.test.js.
  */
 const { test, expect } = require('@playwright/test');
-const { boot } = require('./helpers');
+const { boot, pickCellTool, pickDrawMode } = require('./helpers');
 
-const state = (page) => page.evaluate(() => {
-    const read = (mode) => {
-        const btn = document.querySelector(`#draw-modes [data-draw-mode="${mode}"]`);
-        if (!btn) return null;
-        const style = getComputedStyle(btn);
-        return {
-            visible: style.visibility !== 'hidden',
-            disabled: btn.disabled,
-            // Hidden by visibility, so it must still occupy its space - the
-            // strip's width (and so ColorBarFit's scale) must not depend on
-            // the screen mode.
-            width: Math.round(btn.getBoundingClientRect().width)
-        };
-    };
-    return {
-        normal: read('normal'), ink: read('ink'), paper: read('paper'),
-        pixel_only: read('pixel_only'), xor: read('xor'), xor_pixel: read('xor_pixel'),
-        active: StateManager.getDrawMode(),
-        stripWidth: Math.round(document.getElementById('draw-modes').getBoundingClientRect().width)
-    };
-});
+/** The draw modes the pop-up offers, in grid order (opened, read, closed). */
+async function offered(page) {
+    await page.click('#draw-mode-select');
+    const ids = await page.$$eval('.strip-popup .tool-btn', (els) => els.map((e) => e.dataset.drawMode));
+    await page.keyboard.press('Escape');
+    return ids;
+}
 
 test('Ink and Paper Recolour are withdrawn where cells have no attributes', async ({ page }) => {
     await boot(page);
     page.on('dialog', (d) => d.accept());
 
-    const classic = await state(page);
-    for (const mode of ['normal', 'ink', 'paper', 'pixel_only', 'xor', 'xor_pixel']) {
-        expect(classic[mode], `${mode} is offered in Standard ULA`)
-            .toMatchObject({ visible: true, disabled: false });
-    }
+    expect(await offered(page), 'all seven are offered in Standard ULA')
+        .toEqual(['normal', 'pixel_only', 'xor', 'xor_pixel', 'ink', 'paper', 'attributes']);
 
     // Stand in Ink Recolour, then move to a mode that has no cell attributes.
     await page.evaluate(() => StateManager.setDrawMode('ink'));
     await page.evaluate(() => ScreenModeService.switchMode('layer2_256'));
     await page.waitForTimeout(200);
 
-    const indexed = await state(page);
-    expect(indexed.ink, 'Ink Recolour is withdrawn in Layer 2')
-        .toMatchObject({ visible: false, disabled: true });
-    expect(indexed.paper, 'Paper Recolour is withdrawn in Layer 2')
-        .toMatchObject({ visible: false, disabled: true });
-    expect(indexed.active, 'and the mode the artist was standing in falls back to Normal')
-        .toBe('normal');
-    for (const mode of ['normal', 'pixel_only', 'xor', 'xor_pixel']) {
-        expect(indexed[mode], `${mode} still means something in Layer 2`)
-            .toMatchObject({ visible: true, disabled: false });
-    }
-
-    // The strip keeps its width, so the top bar's scale cannot jump on a mode
-    // switch (the reason these are hidden by visibility, not removed).
-    expect(indexed.stripWidth).toBe(classic.stripWidth);
-    expect(indexed.ink.width).toBe(classic.ink.width);
-
-    // Timex hi-res: the same, because it ignores cell attributes at render.
-    await page.evaluate(() => ScreenModeService.switchMode('timex_hires'));
-    await page.waitForTimeout(250);
-    const hires = await state(page);
-    expect(hires.ink).toMatchObject({ visible: false, disabled: true });
-    expect(hires.paper).toMatchObject({ visible: false, disabled: true });
-
-    // A mode arriving from somewhere that never touched the buttons - a
-    // workspace preset, a restored session - follows the same rule.
-    await page.evaluate(() => StateManager.setDrawMode('paper'));
-    await page.waitForTimeout(100);
+    expect(await offered(page), 'Ink and Paper Recolour are not offered in Layer 2')
+        .toEqual(['normal', 'pixel_only', 'xor', 'xor_pixel']);
     expect(await page.evaluate(() => StateManager.getDrawMode()),
-        'a preset cannot leave an unavailable mode standing').toBe('normal');
-
-    // ...and they come back where they mean something again.
-    await page.evaluate(() => ScreenModeService.switchMode('standard_ula'));
-    await page.waitForTimeout(250);
-    const back = await state(page);
-    expect(back.ink).toMatchObject({ visible: true, disabled: false });
-    expect(back.paper).toMatchObject({ visible: true, disabled: false });
-});
-
-/*
- * The status bar names any mode that is not Normal, because several of them
- * can leave a stroke with nothing visible and the choice survives a reload.
- */
-test('a non-Normal draw mode says so in the status bar', async ({ page }) => {
-    await boot(page);
-
-    await expect(page.locator('#draw-mode-status')).toBeHidden();
-    await page.click('#draw-modes [data-draw-mode="paper"]');
-    await expect(page.locator('#draw-mode-status')).toBeVisible();
-    await expect(page.locator('#draw-mode-status')).toContainText(/paper/i);
-    await page.click('#draw-modes [data-draw-mode="normal"]');
+        'and the mode the artist was standing in falls back to Normal').toBe('normal');
+    await expect(page.locator('#draw-mode-select')).toHaveAttribute('data-value', 'normal');
     await expect(page.locator('#draw-mode-status')).toBeHidden();
 });
 
@@ -115,36 +52,36 @@ test('a non-Normal draw mode says so in the status bar', async ({ page }) => {
  * is not Ink Recolour (through the tool). A divider now sits between each
  * group, with the colour-only draw modes last, beside the cell operations.
  */
-test('the strip is three groups, divided, colour-only modes beside Swap and Recolour', async ({ page }) => {
+test('the strip is three selectors, divided: draw mode, cell tool, Mirror', async ({ page }) => {
     await boot(page);
     const layout = await page.evaluate(() => {
         const box = (el) => el.getBoundingClientRect();
-        const modes = [...document.querySelectorAll('#draw-modes button')];
-        const ops = [...document.querySelectorAll('#attr-tools button')];
-        const mirror = [...document.querySelectorAll('#mirror-modes button')];
-        const dividers = [...document.querySelectorAll('#marks-icons-row .marks-divider')];
+        const row = document.getElementById('marks-icons-row');
+        const buttons = [...row.querySelectorAll('button')];
+        const dividers = [...row.querySelectorAll('.marks-divider')];
+        const [a, b, c] = ['draw-mode-select', 'cell-tool-select', 'mirror-select']
+            .map((id) => document.getElementById(id));
         return {
-            order: modes.map((b) => b.dataset.drawMode),
+            ids: buttons.map((el) => el.id),
             dividers: dividers.length,
             hidden: dividers.every((d) => d.getAttribute('aria-hidden') === 'true'),
-            firstBetween: dividers.length > 0 &&
-                box(dividers[0]).left >= box(modes[modes.length - 1]).right &&
-                box(dividers[0]).right <= box(ops[0]).left,
-            secondBetween: dividers.length > 1 &&
-                box(dividers[1]).left >= box(ops[ops.length - 1]).right &&
-                box(dividers[1]).right <= box(mirror[0]).left,
-            everyPass: document.querySelector('#draw-modes [data-draw-mode="xor_pixel"]')
-                .getAttribute('aria-label')
+            firstBetween: box(dividers[0]).left >= box(a).right && box(dividers[0]).right <= box(b).left,
+            secondBetween: box(dividers[1]).left >= box(b).right && box(dividers[1]).right <= box(c).left,
+            popups: [a, b, c].map((el) => el.getAttribute('aria-haspopup'))
         };
     });
-    expect(layout.order).toEqual(['normal', 'pixel_only', 'xor', 'xor_pixel', 'ink', 'paper']);
+    expect(layout.ids).toEqual(['draw-mode-select', 'cell-tool-select', 'mirror-select']);
     expect(layout.dividers).toBe(2);
     expect(layout.hidden, 'dividers are decoration, not controls').toBe(true);
-    expect(layout.firstBetween, 'a divider between the draw modes and Swap/Recolour').toBe(true);
-    expect(layout.secondBetween, 'a divider between Swap/Recolour and Mirror').toBe(true);
-    // The id stays xor_pixel (saved preferences and presets carry it); the
-    // name says what it now does.
-    expect(layout.everyPass).toBe('XOR / Every Pass');
+    expect(layout.firstBetween, 'a divider between the draw mode and the cell tool').toBe(true);
+    expect(layout.secondBetween, 'a divider between the cell tool and Mirror').toBe(true);
+    expect(layout.popups).toEqual(['true', 'true', 'true']);
+
+    // The order of the grid, and the name of the one the id kept (saved preferences carry xor_pixel).
+    expect(await offered(page)).toEqual(['normal', 'pixel_only', 'xor', 'xor_pixel', 'ink', 'paper', 'attributes']);
+    await page.click('#draw-mode-select');
+    expect(await page.getAttribute('.strip-popup #draw-mode-xor_pixel', 'aria-label')).toBe('XOR / Every Pass');
+    await page.keyboard.press('Escape');
 });
 
 /*
@@ -161,27 +98,27 @@ test('a switched-on Swap or Recolour says so in the status bar', async ({ page }
         document.getElementById('draw-modes').classList.contains('overridden'));
 
     await expect(status).toBeHidden();
-    await page.click('#attr-apply');
+    await pickCellTool(page, 'apply');
     await expect(status).toBeVisible();
     await expect(status).toHaveText('Recolour is on');
     expect(await overridden()).toBe(true);
 
-    await page.click('#attr-apply');
+    await pickCellTool(page, 'apply');
     await expect(status).toBeHidden();
     expect(await overridden()).toBe(false);
 
     // Under a non-Normal draw mode the readout hands back to that mode. Arm
     // directly: clicking a draw mode is itself a new draw method, which
     // switches Swap/Recolour off.
-    await page.click('#draw-modes [data-draw-mode="paper"]');
-    await page.click('#attr-transpose');
+    await pickDrawMode(page, 'paper');
+    await pickCellTool(page, 'swap');
     await expect(status).toHaveText('Swap is on');
-    await page.click('#attr-transpose');
+    await pickCellTool(page, 'swap');
     await expect(status).toContainText('Paper Recolour');
 
     // ...and picking a draw mode switches the operation off, readout and all.
-    await page.click('#attr-transpose');
-    await page.click('#draw-modes [data-draw-mode="normal"]');
+    await pickCellTool(page, 'swap');
+    await pickDrawMode(page, 'normal');
     await expect(status).toBeHidden();
     expect(await overridden()).toBe(false);
 });

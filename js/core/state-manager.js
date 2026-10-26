@@ -531,7 +531,105 @@ class StateManagerClass {
   /** @param {boolean} enabled */
   setGridSnap(enabled) {
     this.set('grid.snap', !!enabled);
-    EventBus.emit(EVENTS.GRID_SNAP_CHANGED, { snap: !!enabled });
+    EventBus.emit(EVENTS.GRID_SNAP_CHANGED, { snap: !!enabled, step: this.getGridSnapStep() });
+  }
+
+  /**
+   * The snap step as chosen: {kind: 'cell' | 'block16' | 'screen' | 'custom', x, y} (x, y are the custom step). The
+   * kind is kept as chosen; where it does not fit the canvas (Screen on a one-screen mode) getGridSnapSize() falls back.
+   * @returns {{kind: string, x: number, y: number}}
+   */
+  getGridSnapStep() {
+    const s = this.get('grid.snapStep');
+    const d = SnapGrid.DEFAULT_CUSTOM;
+    if (!s || typeof s !== 'object') return { kind: 'cell', x: d.x, y: d.y };
+    return { kind: SnapGrid.KINDS.includes(s.kind) ? s.kind : 'cell', x: Number.isFinite(s.x) ? s.x : d.x, y: Number.isFinite(s.y) ? s.y : d.y };
+  }
+
+  /**
+   * Choose the snap step. Whole numbers 1..1024 for the custom x and y (the canvas clamps them when used).
+   * @param {{kind?: string, x?: number, y?: number}} step - fields left out keep their value
+   */
+  setGridSnapStep(step) {
+    const cur = this.getGridSnapStep();
+    const kind = step && SnapGrid.KINDS.includes(step.kind) ? step.kind : cur.kind;
+    const n = (v, fallback) => (Number.isFinite(Number(v)) ? Helpers.clamp(Math.round(Number(v)), 1, 1024) : fallback);
+    const next = { kind, x: n(step && step.x, cur.x), y: n(step && step.y, cur.y) };
+    this.set('grid.snapStep', next);
+    EventBus.emit(EVENTS.GRID_SNAP_CHANGED, { snap: this.getGridSnap(), step: next });
+  }
+
+  /**
+   * The snap step in pixels on the canvas that is open: Cell follows the mode (8x8, 8x4 ...), Screen falls back to the cell
+   * where a whole screen does not fit, a custom step is clamped to the canvas.
+   * @returns {{w: number, h: number}}
+   */
+  getGridSnapSize() {
+    const s = this.getGridSnapStep();
+    return SnapGrid.sizeOf(s.kind, { x: s.x, y: s.y });
+  }
+
+  /**
+   * The three display-only view switches (View menu): Colours off, Stop
+   * flashing, Colour grid. They change what the screen SHOWS and nothing in
+   * the document, so they live in view state, never in a project. Colours off
+   * and Colour grid exclude each other; turning one on turns the other off.
+   * @returns {{coloursOff: boolean, stopFlashing: boolean, colourGrid: boolean}}
+   */
+  getDisplayView() {
+    return {
+      coloursOff: !!this.get('view.coloursOff'),
+      stopFlashing: !!this.get('view.stopFlashing'),
+      colourGrid: !!this.get('view.colourGrid')
+    };
+  }
+
+  /** @param {boolean} on */
+  setColoursOff(on) {
+    this.set('view.coloursOff', !!on);
+    if (on) this.set('view.colourGrid', false);
+    this._emitDisplayView();
+  }
+
+  /** @param {boolean} on */
+  setStopFlashing(on) {
+    this.set('view.stopFlashing', !!on);
+    this._emitDisplayView();
+  }
+
+  /** @param {boolean} on */
+  setColourGrid(on) {
+    this.set('view.colourGrid', !!on);
+    if (on) this.set('view.coloursOff', false);
+    this._emitDisplayView();
+  }
+
+  /**
+   * The pointer readout's two preferences (Preferences > Pointer readout).
+   *   detail      'position' | 'attribute' | 'addresses' (each shows the previous too)
+   *   yDirection  'screen' (0 at the top) | 'plot' (BASIC PLOT, 0 at the bottom)
+   * Display only: tools and coordinates elsewhere stay in screen terms.
+   * @returns {{detail: string, yDirection: string}}
+   */
+  getReadout() {
+    const d = this.get('readout.detail');
+    const y = this.get('readout.yDirection');
+    return {
+      detail: (d === 'attribute' || d === 'addresses') ? d : 'position',
+      yDirection: y === 'plot' ? 'plot' : 'screen'
+    };
+  }
+
+  /** @param {string} detail @param {string} yDirection */
+  setReadout(detail, yDirection) {
+    this.set('readout.detail', detail);
+    this.set('readout.yDirection', yDirection);
+    EventBus.emit(EVENTS.READOUT_CHANGED, this.getReadout());
+  }
+
+  /** One event per change, carrying all three so no listener sees half a pair. @private */
+  _emitDisplayView() {
+    EventBus.emit(EVENTS.DISPLAY_VIEW_CHANGED, this.getDisplayView());
   }
 
   /** @returns {'off'|'h'|'v'|'quad'} Mirror-while-drawing mode */
@@ -604,11 +702,32 @@ class StateManagerClass {
    * tool combines its pixels with what is already on the layer. High-level
    * values (resolved to a DRAW_MODE constant per left/right button via
    * PixelDrawRoutine.resolveUserMode): 'normal', 'ink', 'paper',
-   * 'pixel_only', 'xor', 'xor_pixel'.
+   * 'attributes', 'pixel_only', 'xor', 'xor_pixel'.
    * @returns {string}
    */
   getDrawMode() {
     return this.get('draw.mode') || 'normal';
+  }
+
+  /**
+   * Inverse (ZX Paintbrush's INVERSE 1): the two mouse buttons swap what they
+   * do. Left clears dots and right sets them, in every tool that asks
+   * PixelDrawRoutine.resolveUserMode. Independent of the draw mode, and
+   * remembered per browser like it.
+   * @returns {boolean}
+   */
+  getInverse() {
+    // A plain field, not get('draw.inverse'): resolveUserMode asks once per pixel
+    // (the gradient, a Layer 2 640x256 fill) and the keyed lookup showed in the timing.
+    return this._inverse === true;
+  }
+
+  /** @param {boolean} on */
+  setInverse(on) {
+    const next = on === true;
+    this._inverse = next;
+    this.set('draw.inverse', next);
+    EventBus.emit(EVENTS.INVERSE_CHANGED, { inverse: next });
   }
 
   /**
@@ -617,10 +736,15 @@ class StateManagerClass {
    * op, and because the mode PERSISTS, a document left in it would otherwise
    * come back after the reload with no button to leave by — every stroke
    * writing attributes and no pixels, which reads as a broken app.
+   *
+   * 'attributes' (Attributes Only, 2026-10-19) brings that job back as a draw
+   * mode with its own button, under a NEW id: a preference or preset still
+   * holding the retired 'attributes_only' keeps coming back Normal rather than
+   * reviving a mode its owner left months ago.
    * @param {string} mode
    */
   setDrawMode(mode) {
-    const valid = ['normal', 'ink', 'paper', 'pixel_only', 'xor', 'xor_pixel'];
+    const valid = ['normal', 'ink', 'paper', 'attributes', 'pixel_only', 'xor', 'xor_pixel'];
     const next = valid.includes(mode) ? mode : 'normal';
     this.set('draw.mode', next);
     EventBus.emit(EVENTS.DRAW_MODE_CHANGED, { mode: next });

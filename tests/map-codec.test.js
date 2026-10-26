@@ -65,6 +65,15 @@ for (const [t, w, h] of [[1, 1, 1], [4, 32, 24], [17, 100, 3], [64, 256, 256]]) 
     enc.v === MapCodec.VERSION && enc.k === MapCodec.TILE_KINDS.ULA_CELL);
 }
 
+// -- a literal version-1 payload (recorded from the encoder BEFORE elements, Batch 11A) must keep decoding forever
+{
+  const v1 = {"v":1,"k":"ula-cell","name":"pin","tiles":[{"b":"AQIDBAUGBwg=","a":56},{"b":"/wD/AP8A/wA=","a":70}],"map":{"w":3,"h":2,"cells":"AQACAAAAAgABAAEA"}};
+  const dec = MapCodec.decode(JSON.parse(JSON.stringify(v1)));
+  check('a version-1 payload from before elements still decodes', !!dec && dec.name === 'pin' && dec.tiles.length === 2 && dec.map.width === 3 && dec.map.height === 2);
+  check('...with its tiles and cells intact', dec && dec.tiles[0].attr === 56 && dec.tiles[1].bitmap[0] === 255 && Array.from(dec.map.cells).join() === '0,1,-1,1,0,0');
+  check('...and, once elements exist, no elements', dec && (!dec.elements || dec.elements.length === 0));
+}
+
 // ── rejection paths ─────────────────────────────────────────────────────────
 check('encode rejects null', MapCodec.encode(null) === null);
 check('encode rejects unknown tile kind',

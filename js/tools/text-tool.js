@@ -40,6 +40,33 @@ class TextToolClass extends ToolBase {
     { id: 'right',  i18n: 'opt.align.right' }
   ];
 
+  /** Which way the shadow falls, relative to the letters. Down-right is the original shadow. */
+  static SHADOW_DIRS = [
+    { id: 'down-right', i18n: 'opt.shadowDir.downRight' },
+    { id: 'down-left',  i18n: 'opt.shadowDir.downLeft' },
+    { id: 'up-right',   i18n: 'opt.shadowDir.upRight' },
+    { id: 'up-left',    i18n: 'opt.shadowDir.upLeft' }
+  ];
+
+  /** How a shadow or contour is drawn: in the letters' own dot state (the original), or the opposite (ZX Paintbrush's). */
+  static EFFECT_DOTS = [
+    { id: 'same',     i18n: 'opt.effectDots.same' },
+    { id: 'opposite', i18n: 'opt.effectDots.opposite' }
+  ];
+
+  /** Which point of the text block the click is: nine, Centre being where text has always landed. */
+  static ANCHORS = [
+    { id: 'top-left',     i18n: 'opt.anchor.topLeft' },
+    { id: 'top',          i18n: 'opt.anchor.top' },
+    { id: 'top-right',    i18n: 'opt.anchor.topRight' },
+    { id: 'left',         i18n: 'opt.anchor.left' },
+    { id: 'center',       i18n: 'opt.anchor.center' },
+    { id: 'right',        i18n: 'opt.anchor.right' },
+    { id: 'bottom-left',  i18n: 'opt.anchor.bottomLeft' },
+    { id: 'bottom',       i18n: 'opt.anchor.bottom' },
+    { id: 'bottom-right', i18n: 'opt.anchor.bottomRight' }
+  ];
+
   /**
    * Split typed text into lines, tolerating any line ending.
    *
@@ -73,12 +100,27 @@ class TextToolClass extends ToolBase {
     // `preset: false` — the typed string is CONTENT, not a setting. A preset
     // restores how you were working, and nobody wants yesterday's caption back
     // along with their font and their outline settings.
+    // Type on canvas (Batch 10B): click the picture, type on it, Enter draws it. Bitmap fonts only.
+    { type: 'check', key: 'typeOnCanvas', i18n: 'opt.typeOnCanvas', value: false, syncEvent: EVENTS.TOOL_OPTIONS },
+    { type: 'hint', i18n: 'text.typeHint', showIf: { key: 'typeOnCanvas', equals: true } },
+    { type: 'hint', i18n: 'text.typeBitmapOnly',
+      showIf: { all: [ { key: 'typeOnCanvas', equals: true }, { bitmapFont: false } ] } },
+    { type: 'range', key: 'charWidth', i18n: 'opt.charWidth', min: 1, max: 64, value: 8, unit: 'px',
+      showIf: { all: [ { key: 'typeOnCanvas', equals: true }, { bitmapFont: true } ] } },
+    { type: 'range', key: 'charHeight', i18n: 'opt.charHeight', min: 1, max: 64, value: 8, unit: 'px',
+      showIf: { all: [ { key: 'typeOnCanvas', equals: true }, { bitmapFont: true } ] } },
+    { type: 'range', key: 'charSpacing', i18n: 'opt.charSpacing', min: -8, max: 32, value: 0, unit: 'px',
+      showIf: { all: [ { key: 'typeOnCanvas', equals: true }, { bitmapFont: true } ] } },
+    { type: 'range', key: 'lineSpacing', i18n: 'opt.lineSpacing', min: -8, max: 32, value: 0, unit: 'px',
+      showIf: { all: [ { key: 'typeOnCanvas', equals: true }, { bitmapFont: true } ] } },
     { type: 'textarea', key: 'textContent', setter: 'setText', i18n: 'opt.text',
-      placeholderI18n: 'opt.textPlaceholder', rows: 3, value: '', preset: false },
-    { type: 'select', key: 'fontFamily', setter: 'setFontFamily', i18n: 'opt.font', value: 'ZX ROM',
+      placeholderI18n: 'opt.textPlaceholder', rows: 3, value: '', preset: false,
+      showIf: { key: 'typeOnCanvas', equals: false } },
+    { type: 'select', key: 'fontFamily', setter: 'setFontFamily', i18n: 'opt.font', value: 'ZX ROM', applyFirst: true,
       options: [{ value: 'ZX ROM', i18n: 'opt.font.zxRom', label: 'ZX ROM (8\u00d78 bitmap)' }],
       dynamic: '_enumerateFonts' },
     { type: 'select', key: 'textSize', setter: 'setTextSize', i18n: 'opt.size', value: 16,
+      showIf: { key: 'typeOnCanvas', equals: false },
       options: [8, 16, 24, 32, 48, 64].map(s => ({ value: s, label: s + 'px' })),
       dynamic: 'getSizesForFont' },
     { type: 'check', key: 'fontBold',   i18n: 'opt.bold',   value: false },
@@ -88,11 +130,17 @@ class TextToolClass extends ToolBase {
     // sides, which is not what "vertical text" means on a sign - and no
     // amount of rotating gets you a column of upright letters.
     { type: 'select', key: 'textLayout', i18n: 'opt.layout', value: 'horizontal',
+      showIf: { key: 'typeOnCanvas', equals: false },
       options: TextToolClass.LAYOUTS.map(l => ({ value: l.id, i18n: l.i18n })) },
     // Alignment moves a line along the axis it RUNS on, so under the two
     // column layouts these read as top/middle/bottom.
     { type: 'select', key: 'textAlign', i18n: 'opt.align', value: 'left',
       options: TextToolClass.ALIGNMENTS.map(a => ({ value: a.id, i18n: a.i18n })) },
+    // Which point of the finished text block the click is. Centre is where text has always landed; it is separate from
+    // Alignment, which only lines the lines up inside the block.
+    { type: 'select', key: 'textAnchor', i18n: 'opt.anchor', value: 'center',
+      showIf: { key: 'typeOnCanvas', equals: false },
+      options: TextToolClass.ANCHORS.map(a => ({ value: a.id, i18n: a.i18n })) },
     // Multiples of 90 are exact (MaskOps takes the transpose path); the
     // diagonals resample, so they are worth more pixels of text size.
     { type: 'select', key: 'textDirection', i18n: 'opt.direction', value: 0,
@@ -101,7 +149,42 @@ class TextToolClass extends ToolBase {
     { type: 'check', key: 'textMirrorH', i18n: 'opt.mirrorH', value: false },
     { type: 'check', key: 'textMirrorV', i18n: 'opt.mirrorV', value: false },
     { type: 'check', key: 'textShadow',  i18n: 'opt.shadow',  value: false },
+    // Which way the shadow falls, relative to the letters (it turns with Direction). Down-right is the original shadow.
+    { type: 'select', key: 'textShadowDir', i18n: 'opt.shadowDir', value: 'down-right',
+      showIf: { key: 'textShadow', equals: true },
+      options: TextToolClass.SHADOW_DIRS.map(d => ({ value: d.id, i18n: d.i18n })) },
+    // ZX Paintbrush draws shading and contour in the OPPOSITE dot state to the letters (a white shade behind black text).
+    // Same dots is PixULA's original behaviour. Each effect has its own switch.
+    { type: 'select', key: 'textShadowDots', i18n: 'opt.shadowDots', value: 'same',
+      showIf: { key: 'textShadow', equals: true }, options: TextToolClass.EFFECT_DOTS.map(d => ({ value: d.id, i18n: d.i18n })) },
     { type: 'check', key: 'textOutline', i18n: 'opt.outline', value: false },
+    { type: 'select', key: 'textOutlineDots', i18n: 'opt.outlineDots', value: 'same',
+      showIf: { key: 'textOutline', equals: true }, options: TextToolClass.EFFECT_DOTS.map(d => ({ value: d.id, i18n: d.i18n })) },
+    // The opposite dots are written like Clear background: the opposite of the draw mode in force, nothing in the modes
+    // that have no opposite (XOR, Ink only, Paper only) - say so there instead of silently drawing nothing.
+    { type: 'hint', i18n: 'transform.clearDots.noEffectHint',
+      showIf: { all: [ { any: [ { all: [ { key: 'textShadow', equals: true }, { key: 'textShadowDots', equals: 'opposite' } ] },
+                                { all: [ { key: 'textOutline', equals: true }, { key: 'textOutlineDots', equals: 'opposite' } ] } ] },
+                       { clearDotsNoEffect: true } ] } },
+    // Clear background = the stamp's Clear dots (Transform panel): the box's clear dots are written as well as the
+    // letters, so the text sits on a cleared patch. Inverse gives reset-dot text in the same way.
+    { type: 'select', key: 'textBackground', i18n: 'opt.textBackground', value: 'transparent',
+      syncEvent: EVENTS.STAMP_OPTIONS_CHANGED,
+      options: [{ value: 'transparent', i18n: 'transform.clearDots.transparent' },
+                { value: 'overlap', i18n: 'transform.clearDots.overlap' }] },
+    { type: 'hint', i18n: 'transform.clearDots.noEffectHint',
+      showIf: { all: [ { key: 'textBackground', equals: 'overlap' }, { clearDotsNoEffect: true } ] } },
+    // Coloured CHX characters (owner decision 2026-10-19): a saved font with coloured characters can place each letter's own
+    // attributes, like a stamp's Own attributes. Only in modes with 8x8 attribute cells; refused, with the reason, where the
+    // letters' blocks would not land on the picture's cells.
+    { type: 'select', key: 'textColours', i18n: 'opt.textColours', value: 'rail',
+      syncEvent: EVENTS.STAMP_OPTIONS_CHANGED, showIf: { toolIs: 'textColoursOffered', manual: 'manual.showIf.colouredFont' },
+      options: [{ value: 'rail', i18n: 'opt.textColours.rail' },
+                { value: 'own', i18n: 'opt.textColours.own', disabledIf: { toolIs: 'textColoursBlocked' } }] },
+    { type: 'hint', i18n: 'text.coloursEffects',
+      showIf: { toolIs: 'textColoursBlocked', equals: 'effects', manual: 'manual.showIf.coloursEffects' } },
+    { type: 'hint', i18n: 'text.coloursGeometry',
+      showIf: { toolIs: 'textColoursBlocked', equals: 'geometry', manual: 'manual.showIf.coloursGeometry' } },
     { type: 'hint', i18n: 'text.hint' }
   ];
 
@@ -119,7 +202,21 @@ class TextToolClass extends ToolBase {
     this._textMirrorH     = false;  // mirror left-right (MaskOps.flipH, exact)
     this._textMirrorV     = false;  // mirror top-bottom (MaskOps.flipV, exact)
     this._textShadow      = false;  // drop shadow (MaskOps offset-OR)
+    this._textShadowDots  = 'same';         // 'same' | 'opposite' (EFFECT_DOTS)
+    this._textOutlineDots = 'same';
+    this._textShadowDir   = 'down-right';   // which way it falls (TextToolClass.SHADOW_DIRS)
+    this._textAnchor      = 'center';       // which point of the block the click is (ANCHORS)
     this._textOutline     = false;  // hollow contour (MaskOps dilate-minus-glyph)
+    this._typeOnCanvas    = false;  // Type on canvas (Batch 10B)
+    this._charW           = 8;      // typed text: character cell width and height in picture pixels
+    this._charH           = 8;
+    this._charSpacing     = 0;
+    this._lineSpacing     = 0;
+    // (a quiet stand-in where the typing module is not loaded, as in tests of other things)
+    this._typing          = window.TextTyping ? new TextTyping(this) : { active: false, preview() {}, cancel() {}, commit() { return true; } };
+    this._fontH0          = 8;           // cell height of the font the character size was set for (keeps the zoom on a font change)
+    this._textBackground  = 'transparent';  // 'overlap' = Clear background: the box's clear dots are written too
+    this._textColours     = 'rail';         // 'own' = a coloured font's letters place their own attributes
     this._fixedSize       = 16;   // px height; always > 0 (selected from dropdown)
     this._cachedFonts     = null;
     this._sizeCache       = new Map(); // fontFamily -> number[] of clean sizes
@@ -131,11 +228,44 @@ class TextToolClass extends ToolBase {
     // Saved bitmap fonts feed the font list — drop the cache when the
     // font editor's library changes so the next open re-enumerates.
     EventBus.on(EVENTS.FONT_LIBRARY_CHANGED, () => { this._cachedFonts = null; });
+    EventBus.on(EVENTS.UI_LANGUAGE_CHANGE, () => { this._cachedFonts = null; });
+
+    // Type on canvas: the hidden text field (canvas-text-entry.js) reports what it holds; the picture it would leave is
+    // redrawn whenever something it depends on changes.
+    EventBus.on(EVENTS.TEXT_ENTRY_CHANGED, (d) => this._onEntryChanged(d));
+    EventBus.on(EVENTS.TEXT_ENTRY_COMMIT, () => this._onEntryCommit());
+    EventBus.on(EVENTS.TEXT_ENTRY_CANCEL, () => this.cancelPending());
+    EventBus.on(EVENTS.TEXT_ENTRY_NEWLINE, () => this._typeNewline());
+    const redrawTyping = () => { if (this._typing.active) this._typing.preview(); };
+    for (const name of ['COLOR_INK', 'COLOR_PAPER', 'COLOR_BRIGHT', 'COLOR_FLASH', 'PALETTE_CHANGED', 'PALETTE_SLOT_CHANGED',
+      'DRAW_MODE_CHANGED', 'INVERSE_CHANGED', 'SYMMETRY_CHANGED', 'CLIP_CHANGED', 'LAYER_SELECTED', 'LAYER_VISIBILITY',
+      'HISTORY_UNDO', 'HISTORY_REDO', 'CANVAS_ZOOM', 'SCREEN_MODE_CHANGED']) {
+      if (EVENTS[name]) EventBus.on(EVENTS[name], redrawTyping);
+    }
+    for (const name of ['FILE_NEW', 'FILE_OPEN']) {
+      if (EVENTS[name]) EventBus.on(EVENTS[name], () => { if (this._typing.active) this.cancelPending(); });
+    }
+
+    // The Transform panel's Clear dots changes the very same setting of the waiting stamp: follow it, so the two controls
+    // never disagree. (Only for the stamp this tool made - fontInfo is set by no one else.)
+    EventBus.on(EVENTS.STAMP_OPTIONS_CHANGED, () => {
+      const fp = window.SelectionService ? SelectionService.floatingPaste : null;
+      if (!fp || !fp.fontInfo) return;
+      const v = SelectionService.stampOptions(fp).clearDots;
+      if (v !== this._textBackground) this._textBackground = v;
+      // ...and the Transform panel's Attributes (Pixels only / Own attributes) of a text stamp that has a coloured font's
+      if (fp.attrs) {
+        const want = SelectionService.stampOptions(fp).colours === 'coloured' ? 'own' : 'rail';
+        if (want !== this._textColours) this._textColours = want;
+      }
+    });
 
     // Drive stamp cursor-following.  This event fires on every pointermove
     // (including hover, no button needed).
     EventBus.on(EVENTS.INPUT_POINTER_MOVE, (data) => {
       if (!window.ToolManager || ToolManager.getCurrentTool()?.id !== TOOLS.TEXT) return;
+      // Type on canvas hides the Text box: text left in it must not float back as a stamp (the click would place it).
+      if (this._typeOnCanvas) return;
       if (!this._fixedSize || !this._text.trim()) return;
       if (this._disengaged) return;
       if (!window.SelectionService) return;
@@ -154,7 +284,21 @@ class TextToolClass extends ToolBase {
   setText(v)       { this._text = v || '';             this._disengaged = false; this._updatePreviewIfActive(); }
 
   getFontFamily()  { return this._fontFamily; }
-  setFontFamily(v) { this._fontFamily = v || 'ZX ROM'; this._disengaged = false; this._updatePreviewIfActive(); }
+  setFontFamily(v) {
+    this._fontFamily = v || 'ZX ROM';
+    this._disengaged = false;
+    // Keep the zoom: the character size is a multiple of the font's own cell, so a switch to a font of another height carries the
+    // same multiple (ZX ROM stretched to 16 high is 2x; a 16 high font then comes up 32 high). A font with other-width glyphs keeps
+    // the letters' proportions: width follows height * w0 / h0.
+    const g = this._glyphSource();
+    if (g) {
+      const zoom = this._charH / (this._fontH0 || 8);
+      this._charH = Helpers.clamp(Math.round(zoom * g.h0), 1, 64);
+      this._charW = Helpers.clamp(Math.round(g.w0 * this._charH / g.h0), 1, 64);
+    }
+    if (g) this._fontH0 = g.h0;   // a system font has no cell: the zoom is remembered for the bitmap font you come back to
+    this._updatePreviewIfActive();
+  }
 
   getFontSize()    { return this._fontSize; }
   setFontSize(v)   { this._fontSize = clamp(parseInt(v, 10) || 16, 4, 128); }
@@ -198,6 +342,222 @@ class TextToolClass extends ToolBase {
   getTextShadow()     { return this._textShadow; }
   setTextShadow(v)    { this._textShadow = !!v;  this._disengaged = false; this._updatePreviewIfActive(); }
 
+  getTextShadowDots()  { return this._textShadowDots; }
+  setTextShadowDots(v) {
+    if (!TextToolClass.EFFECT_DOTS.some(d => d.id === v)) return;
+    this._textShadowDots = v;  this._disengaged = false;  this._updatePreviewIfActive();
+  }
+
+  getTextOutlineDots()  { return this._textOutlineDots; }
+  setTextOutlineDots(v) {
+    if (!TextToolClass.EFFECT_DOTS.some(d => d.id === v)) return;
+    this._textOutlineDots = v;  this._disengaged = false;  this._updatePreviewIfActive();
+  }
+
+  getTextShadowDir()  { return this._textShadowDir; }
+  setTextShadowDir(v) {
+    if (!TextToolClass.SHADOW_DIRS.some(d => d.id === v)) return;
+    this._textShadowDir = v;  this._disengaged = false;  this._updatePreviewIfActive();
+  }
+
+  // ── Type on canvas (Batch 10B) ────────────────────────────────────────────
+
+  getTypeOnCanvas() { return this._typeOnCanvas; }
+  /** Turning it on needs a bitmap font and takes the tool's own waiting stamp away; turning it off draws what is typed. */
+  setTypeOnCanvas(v) {
+    const on = !!v;
+    if (on === this._typeOnCanvas) return;
+    if (on) {
+      if (!this.isBitmapFont(this._fontFamily)) {
+        EventBus.emit(EVENTS.STATUS_NOTICE, { text: Helpers.localizedMessage('text.typeBitmapOnly',
+          'Type on canvas needs a bitmap font (ZX ROM or a saved font).') });
+        EventBus.emit(EVENTS.TOOL_OPTIONS);
+        return;
+      }
+      if (this._ownStampFloating()) SelectionService.cancelFloatingPaste();
+      this._textStampActive = false;
+      this._typeOnCanvas = true;
+    } else {
+      this.commitPending();
+      this._typeOnCanvas = false;
+    }
+    this._disengaged = false;
+  }
+
+  getCharWidth()  { return this._charW; }
+  setCharWidth(v)  { this._charW = Helpers.clamp(Math.round(Number(v)) || 1, 1, 64); this._updatePreviewIfActive(); }
+  getCharHeight() { return this._charH; }
+  setCharHeight(v) { this._charH = Helpers.clamp(Math.round(Number(v)) || 1, 1, 64); this._updatePreviewIfActive(); }
+  getCharSpacing() { return this._charSpacing; }
+  setCharSpacing(v) { const n = Math.round(Number(v)); this._charSpacing = Helpers.clamp(Number.isFinite(n) ? n : 0, -8, 32); this._updatePreviewIfActive(); }
+  getLineSpacing() { return this._lineSpacing; }
+  setLineSpacing(v) { const n = Math.round(Number(v)); this._lineSpacing = Helpers.clamp(Number.isFinite(n) ? n : 0, -8, 32); this._updatePreviewIfActive(); }
+
+  /**
+   * The glyph source of a bitmap font family: { glyphOf(char) -> row bytes | null, spanOf, fw, w0, h0, proportional }, or null
+   * (ZX ROM has full 8 x 8 cells; a library font brings its own size and, if it has shading, its letters' saved widths).
+   * @private
+   */
+  _glyphSourceFor(family) {
+    if (family === 'ZX ROM') {
+      return { glyphOf: (c) => this.charBitmaps[c] || null, spanOf: null, coloursOf: () => null, coloured: false, cols: 1,
+               fw: 8, w0: 8, h0: 8, proportional: false };
+    }
+    if (!String(family).startsWith('zxfont:')) return null;
+    const font = window.FontService ? FontService.getLibraryFont(family.slice('zxfont:'.length)) : null;
+    return font ? BitmapText.fontSource(font) : null;
+  }
+
+  /** The glyph source of the current bitmap font. @private */
+  _glyphSource() {
+    return this._glyphSourceFor(this._fontFamily);
+  }
+
+  /** Everything BitmapText.layout needs for the text being typed. @private */
+  _typeLayoutOptions() {
+    const g = this._glyphSource() || { glyphOf: () => null, w0: 8, h0: 8 };
+    return {
+      glyphOf: g.glyphOf, spanOf: g.spanOf || null, fw: g.fw || g.w0, w0: g.w0, h0: g.h0, W: this._charW, H: this._charH, sx: this._charSpacing, sy: this._lineSpacing,
+      align: this._textAlign, bold: this._fontBold, italic: this._fontItalic,
+      style: (p, w, h, b, i) => this._styleBitmapMask(p, w, h, b, i)
+    };
+  }
+
+  /** Whether a typing session is open. */
+  get hasPending() { return !!(this._typing && this._typing.active); }
+
+  /** The pointer is not pre-rounded to the snap step while typing: the tool floors the press itself. */
+  get snapsPointer() { return !this._typeOnCanvas; }
+
+  /** Open a typing session at a picture point (the press, dropped to the snap cell when Snap is on). @private */
+  _startTyping(x, y) {
+    // Nowhere to draw (no layer chosen, or it is locked): say so now, not after the text has been typed
+    if (window.SelectionService && SelectionService.activeWriteTarget && !SelectionService.activeWriteTarget()) {
+      EventBus.emit(EVENTS.STATUS_NOTICE, { text: Helpers.localizedMessage('text.cannotDraw',
+        'There is no unlocked drawing layer to draw the text on.') });
+      return;
+    }
+    if (window.StateManager && StateManager.getGridSnap()) {
+      const st = StateManager.getGridSnapSize();
+      x = SnapGrid.floor(x, st.w);
+      y = SnapGrid.floor(y, st.h);
+    }
+    this._typing.open(x, y);
+    EventBus.emit(EVENTS.TEXT_ENTRY_OPEN, { text: '', caret: 0, x, y, refocus: true });
+    this._typing.preview();
+  }
+
+  /** The text field changed. @private */
+  _onEntryChanged(d) {
+    if (!this._typing.active || !d) return;
+    const g = this._glyphSource();
+    let text = d.text, caret = d.caret;
+    if (g) {
+      const f = BitmapText.filterTyped(text, g.glyphOf);
+      if (f.text !== text) {
+        // characters the font cannot draw are refused, and the person is told which
+        caret = Helpers.clamp(caret - (text.length - f.text.length), 0, f.text.length);
+        text = f.text;
+        EventBus.emit(EVENTS.STATUS_NOTICE, { text: Helpers.localizedMessage('text.noGlyph',
+          'This font has no {char}.', { char: f.refused.join(' ') }) });
+        EventBus.emit(EVENTS.TEXT_ENTRY_OPEN, { text, caret, x: this._typing.x, y: this._typing.y, refocus: false });
+      }
+    }
+    this._typing.setBuffer(text, caret);
+    this._typing.preview();
+    // what is typed can decide whether a coloured font's attributes line up (alignment): keep the panel's reason current
+    const blocked = this.textColoursBlocked();
+    if (blocked !== this._lastColourBlock) {
+      this._lastColourBlock = blocked;
+      EventBus.emit(EVENTS.TOOL_OPTIONS);
+    }
+  }
+
+  /** Enter in the text field, or the Draw button. @private */
+  _onEntryCommit() {
+    if (!this._typing.active) return;
+    this.commitPending();
+  }
+
+  /** The New line button. @private */
+  _typeNewline() {
+    if (!this._typing.active) return;
+    this._typing.insert('\n');
+    EventBus.emit(EVENTS.TEXT_ENTRY_OPEN, { text: this._typing.text, caret: this._typing.caret, x: this._typing.x, y: this._typing.y, refocus: true });
+    this._typing.preview();
+  }
+
+  /** Draw what is typed (save, tool switch, click elsewhere, Draw). A session that cannot be drawn says why and stays open. */
+  commitPending() {
+    if (!this._typing.active) return;
+    if (this._typing.commit()) {
+      EventBus.emit(EVENTS.TEXT_ENTRY_CLOSE);
+    } else {
+      EventBus.emit(EVENTS.STATUS_NOTICE, { text: Helpers.localizedMessage('text.cannotDraw',
+        'There is no unlocked drawing layer to draw the text on.') });
+    }
+  }
+
+  /** Escape / Cancel: throw the typed text away. */
+  cancelPending() {
+    if (!this._typing.active) return;
+    this._typing.cancel();
+    EventBus.emit(EVENTS.TEXT_ENTRY_CLOSE);
+  }
+
+  /** The keys the tool may claim when the text field does not hold the keyboard (it is the fallback: the field handles them itself). */
+  handleKey(key) {
+    if (!this._typing.active) return false;
+    if (key === 'Enter') { this.commitPending(); return true; }
+    if (key === 'Backspace') { this.undoPending(); return true; }
+    return false;
+  }
+
+  /** Edit > Undo while typing and the field is not focused: take back the last character. */
+  undoPending() {
+    if (!this._typing.active) return false;
+    this._typing.backspace();
+    if (!this._typing.text) { this.cancelPending(); return true; }
+    EventBus.emit(EVENTS.TEXT_ENTRY_OPEN, { text: this._typing.text, caret: this._typing.caret, x: this._typing.x, y: this._typing.y, refocus: false });
+    this._typing.preview();
+    return true;
+  }
+
+  /** Cursor keys while the field is not focused: move the whole text. */
+  nudgePending(dx, dy) {
+    if (!this._typing.active) return false;
+    this._typing.nudge(dx, dy);
+    this._typing.preview();
+    return true;
+  }
+
+  getTextBackground() { return this._textBackground; }
+  /** 'transparent' (Leave background) | 'overlap' (Clear background). Patches the waiting stamp, no undo entry. */
+  setTextBackground(v) {
+    if (v !== 'transparent' && v !== 'overlap') return;
+    this._textBackground = v;
+    this._disengaged = false;
+    if (this._textStampActive && this._ownStampFloating()) {
+      SelectionService.refreshTextStamp(null, null, 0, 0, { clearDots: v });
+    }
+  }
+
+  /**
+   * The settings a new text stamp (or typed text) starts with: null unless Clear background is on or the text places a
+   * coloured font's own attributes (`plan` from _colourPlan).
+   * @private
+   */
+  _stampOpts(plan = null) {
+    const o = { ...(this._textBackground === 'overlap' ? { clearDots: 'overlap' } : {}), ...(this._colourOpts(plan) || {}) };
+    return Object.keys(o).length ? o : null;
+  }
+
+  getTextAnchor()     { return this._textAnchor; }
+  setTextAnchor(v) {
+    if (!TextToolClass.ANCHORS.some(a => a.id === v)) return;
+    this._textAnchor = v;  this._disengaged = false;  this._updatePreviewIfActive();
+  }
+
   getTextOutline()    { return this._textOutline; }
   setTextOutline(v)   { this._textOutline = !!v; this._disengaged = false; this._updatePreviewIfActive(); }
 
@@ -223,6 +583,11 @@ class TextToolClass extends ToolBase {
       mirrorH:   this._textMirrorH,
       mirrorV:   this._textMirrorV,
       shadow:    this._textShadow,
+      shadowDir: this._textShadowDir,
+      shadowDots: this._textShadowDots,
+      outlineDots: this._textOutlineDots,
+      // Where the click sits in the finished block: SelectionService keeps it when the stamp is re-rendered or moved.
+      anchor:    this._textAnchor,
       outline:   this._textOutline
     };
   }
@@ -241,14 +606,18 @@ class TextToolClass extends ToolBase {
            (typeof family === 'string' && family.startsWith('zxfont:'));
   }
 
-  /** Saved-font select entries ({ value, label }). @private */
+  /** Saved-font select entries ({ value, label }): "Name (16x16)" or "Name (16x16, proportional)". @private */
   _libraryFontOptions() {
     if (!window.FontService) return [];
     return FontService.listLibrary().map(name => {
       const font = FontService.getLibraryFont(name);
+      if (!font) return { value: 'zxfont:' + name, label: name };
+      const h = font.height === undefined ? 8 : font.height;
+      const prop = BitmapText.fontSource(font).proportional;
       return {
         value: 'zxfont:' + name,
-        label: font ? `${name} (${font.width}×8)` : name
+        label: Helpers.localizedMessage(prop ? 'text.fontLabelProportional' : 'text.fontLabel',
+          prop ? '{name} ({w}x{h}, proportional)' : '{name} ({w}x{h})', { name, w: font.width, h })
       };
     });
   }
@@ -289,6 +658,27 @@ class TextToolClass extends ToolBase {
   // ── Canvas interaction ────────────────────────────────────────────────────
 
   onPointerDown(pixelX, pixelY, e) {
+    if (this._typeOnCanvas) {
+      if (e && e.button === 2) { this.cancelPending(); return; }
+      // A press on the text already typed moves the caret to it; a press anywhere else draws the text and starts a new one.
+      if (this._typing.active) {
+        const slot = this._typing.slotAt(pixelX, pixelY);
+        if (slot !== null) {
+          this._typing.caret = slot;
+          EventBus.emit(EVENTS.TEXT_ENTRY_OPEN, { text: this._typing.text, caret: slot, x: this._typing.x, y: this._typing.y, refocus: true });
+          this._typing.preview();
+          return;
+        }
+        if (!this._typing.commit()) {
+          EventBus.emit(EVENTS.STATUS_NOTICE, { text: Helpers.localizedMessage('text.cannotDraw',
+            'There is no unlocked drawing layer to draw the text on.') });
+          return;
+        }
+        EventBus.emit(EVENTS.TEXT_ENTRY_CLOSE);
+      }
+      this._startTyping(pixelX, pixelY);
+      return;
+    }
     // When the text tool's OWN stamp is the current stamp, pointer-down is
     // handled entirely by input-handler and this method is NOT called. We
     // reach here either with no stamp engaged, or with some OTHER tool's
@@ -329,6 +719,12 @@ class TextToolClass extends ToolBase {
   }
 
   deactivate() {
+    // Typed text is drawn when you leave the tool (as a waiting figure is), not lost
+    if (this._typing && this._typing.active) {
+      this.commitPending();
+      // It could not be drawn (the layer is locked): the tool is going away, so the session cannot stay open behind it
+      if (this._typing.active) this.cancelPending();
+    }
     this._textStampActive = false;
     super.deactivate();
   }
@@ -353,20 +749,26 @@ class TextToolClass extends ToolBase {
 
     // Direction + shadow/contour as pure mask post-processing, BEFORE the
     // stamp is created — the floating preview is exactly the committed result.
-    const pixels = window.MaskOps
-      ? MaskOps.process(result.pixels, fontInfo)
-      : result.pixels;
+    const layers = window.MaskOps ? MaskOps.processLayers(result.pixels, fontInfo) : { pixels: result.pixels, clearMask: null };
+    const pixels = layers.pixels;
     const width  = pixels[0] ? pixels[0].length : result.width;
     const height = pixels.length;
 
-    // Centre stamp on cursor position
-    const px = x - Math.floor(width  / 2);
-    const py = y - Math.floor(height / 2);
+    // Put the anchor point of the finished block on the cursor (Centre = the old centring)
+    const a = window.MaskOps ? MaskOps.anchorOffset(this._textAnchor, width, height)
+      : { x: Math.floor(width / 2), y: Math.floor(height / 2) };
+    let px = x - a.x;
+    let py = y - a.y;
+
+    // A coloured font's own attributes: the block goes on the cell grid, as an own-attributes stamp does
+    const plan = this._colourPlan(result.letters, width, height);
+    const colours = plan && plan.attrs ? { attrs: plan.attrs, attrGrid: plan.attrGrid } : null;
+    if (colours) { px = Math.floor(px / 8) * 8; py = Math.floor(py / 8) * 8; }
 
     if (window.SelectionService) {
       SelectionService.startFloatingPasteFromMask(
         pixels, width, height,
-        px, py, 'Text', fontInfo, 'none'
+        px, py, 'Text', fontInfo, 'none', this._stampOpts(plan), { w: result.width, h: result.height }, layers.clearMask, colours
       );
       this._textStampActive = true;
     }
@@ -375,6 +777,7 @@ class TextToolClass extends ToolBase {
   // ── Live option preview ───────────────────────────────────────────────────
 
   _updatePreviewIfActive() {
+    if (this._typing && this._typing.active) { this._typing.preview(); return; }
     if (!this._textStampActive) return;
     if (!window.SelectionService || !SelectionService.isFloating()) {
       this._textStampActive = false;
@@ -394,13 +797,14 @@ class TextToolClass extends ToolBase {
     };
 
     let targetW = 0, targetH = 0;
+    let plan = null;
     if (this._fixedSize > 0) {
       if (this.isBitmapFont(this._fontFamily)) {
-        const src = this._buildTextMask(text, this._fontFamily);
-        const scale = Math.max(1, Math.round(this._fixedSize / 8));
+        const src = this._rasterizeAtFixedSize(text, this._fixedSize);
         if (src) {
-          targetW = src.width * scale;
-          targetH = src.height * scale;
+          targetW = src.width;
+          targetH = src.height;
+          plan = this._colourPlan(src.letters, src.width, src.height);
         }
       } else {
         const src = this._rasterizeWithFont(text, this._fontFamily, this._fixedSize, this._fontBold, this._fontItalic);
@@ -408,7 +812,10 @@ class TextToolClass extends ToolBase {
       }
     }
 
-    SelectionService.refreshTextStamp(fontInfo, null, targetW, targetH);
+    // The attributes follow the text: placed when they line up, dropped otherwise (no undo entry - a tool option is not an edit)
+    const colours = plan && plan.attrs ? { attrs: plan.attrs, attrGrid: plan.attrGrid } : null;
+    SelectionService.refreshTextStamp(fontInfo, null, targetW, targetH,
+      { colours: colours ? 'coloured' : undefined, uncoloured: colours ? 'rail' : undefined }, colours);
   }
 
   // ── Rasterization helpers ─────────────────────────────────────────────────
@@ -417,11 +824,121 @@ class TextToolClass extends ToolBase {
     if (this.isBitmapFont(this._fontFamily)) {
       const src = this._buildTextMask(text, this._fontFamily);
       if (!src) return null;
-      const scale = Math.max(1, Math.round(targetHeight / src.height));
-      return this._scaleToFit(src.pixels, src.width, src.height,
+      // The Size is a multiple of the font's own cell height - NOT of the block's height, which grows with every extra line (or
+      // letter, in a column): that made two-line and vertical text land at half size and jump when any option changed.
+      const scale = Math.max(1, Math.round(targetHeight / this._fontCellHeight(this._fontFamily)));
+      const out = this._scaleToFit(src.pixels, src.width, src.height,
         src.width * scale, src.height * scale);
+      // each letter's cell at the final size, and the part of its glyph it shows (BitmapText.blockRects' shape)
+      if (out) out.letters = src.letters.map(L => ({ ch: L.ch, x: L.x * scale, y: L.y * scale, w: L.w * scale, h: L.h * scale,
+                                                      srcX0: L.x0, srcW: L.w, srcH: L.h }));
+      return out;
     }
     return this._rasterizeWithFont(text, this._fontFamily, targetHeight, this._fontBold, this._fontItalic);
+  }
+
+  // -- Attributes of a coloured font (CHX, owner decision 2026-10-19) -------
+
+  getTextColours() { return this._textColours; }
+  /** 'rail' (the attribute bar, as always) | 'own' (a coloured character places its blocks' own attributes). */
+  setTextColours(v) {
+    if (v !== 'rail' && v !== 'own') return;
+    this._textColours = v;
+    this._disengaged = false;
+    this._updatePreviewIfActive();
+  }
+
+  /**
+   * Whether the Attributes choice means anything: the font is a saved one with coloured characters, and the screen mode has
+   * 8x8 attribute cells (Standard, ULAplus, ULANext, GigaScreen). Hidden everywhere else.
+   */
+  textColoursOffered(family = this._fontFamily) {
+    const src = this.isBitmapFont(family) ? this._glyphSourceFor(family) : null;
+    if (!src || !src.coloured) return false;
+    return !!(window.ColorManager && ColorManager.hasCellAttributes()) &&
+      ZX_SPECTRUM.CELL_WIDTH === 8 && ZX_SPECTRUM.CELL_HEIGHT === 8;
+  }
+
+  /**
+   * Why Own attributes cannot be used with the settings in force, or null if they can (or the choice is not offered):
+   * 'effects' - something moves the pixels off the letters' blocks (Direction, a mirror, italic, Shadow, Contour, or a
+   * Transform panel scale, rotation or warp of the waiting text); 'geometry' - the blocks do not land on the picture's 8x8
+   * cells (character size, spacing, alignment, a vertical layout). Then the text is drawn with the attribute bar.
+   * @returns {?string}
+   */
+  textColoursBlocked() {
+    if (!this.textColoursOffered()) return null;
+    if (this._colourEffects()) return 'effects';
+    let plan = null;
+    if (this._typeOnCanvas) {
+      const text = this._typing.active && this._typing.text ? this._typing.text : this._colouredSample();
+      plan = this._typedColourPlan(BitmapText.layout(text, this._typeLayoutOptions()), true);
+    } else {
+      const text = this._text.trim();
+      const r = text && this._fixedSize ? this._rasterizeAtFixedSize(text, this._fixedSize) : null;
+      plan = r ? this._colourPlan(r.letters, r.width, r.height, true) : null;
+    }
+    return plan && plan.blocked ? plan.blocked : null;
+  }
+
+  /** Two of the font's coloured characters (what the blocked check measures while nothing is typed yet). @private */
+  _colouredSample() {
+    const font = window.FontService ? FontService.getLibraryFont(String(this._fontFamily).slice('zxfont:'.length)) : null;
+    if (!font || !font.colours) return '';
+    const i = font.colours.findIndex(Boolean);
+    const ch = i < 0 ? '' : String.fromCharCode(font.firstCode + i);
+    return ch + ch;
+  }
+
+  /** True if an effect moves pixels off the letters' 8x8 blocks. @private */
+  _colourEffects() {
+    if (this._textDirection || this._textMirrorH || this._textMirrorV || this._textShadow || this._textOutline || this._fontItalic) return true;
+    const fp = this._ownStampFloating() ? SelectionService.floatingPaste : null;
+    return !!(fp && (fp._scaleX !== 1 || fp._scaleY !== 1 || fp._rotation || (fp._warpEffect && fp._warpEffect !== 'none')));
+  }
+
+  /**
+   * The attributes text in a coloured font places: { attrs, attrGrid } (one attribute per 8x8 cell of the text block, null
+   * where the attribute bar is used), { blocked } when Own attributes cannot be used, or null when they are not asked for or
+   * no letter of the text is coloured.
+   * @param {Array<Object>} letters - each letter's slot and shown glyph part (BitmapText.blockRects' shape)
+   * @param {number} w - the text block's width
+   * @param {number} h - its height
+   * @param {boolean} [ignoreChoice] - work it out even if Attribute bar is chosen (for the hint)
+   * @private
+   */
+  _colourPlan(letters, w, h, ignoreChoice = false) {
+    if ((!ignoreChoice && this._textColours !== 'own') || !this.textColoursOffered()) return null;
+    if (this._colourEffects()) return { blocked: 'effects' };
+    const src = this._glyphSource();
+    const rects = [];
+    for (const L of letters || []) {
+      const attrs = src.coloursOf(L.ch);
+      if (!attrs) continue;
+      const r = BitmapText.blockRects(L, attrs, src.cols);
+      if (!r) return { blocked: 'geometry' };
+      for (const q of r) rects.push(q);
+    }
+    if (!rects.length) return null;
+    const cells = BitmapText.attrCells(rects, w, h);
+    if (cells.blocked) return cells;
+    return { attrs: cells.attrs, attrGrid: { cols: cells.cols, rows: cells.rows, cw: 8, ch: 8, ox: 0, oy: 0 } };
+  }
+
+  /** _colourPlan for a Type on canvas layout (BitmapText.layout). @private */
+  _typedColourPlan(lay, ignoreChoice = false) {
+    return lay ? this._colourPlan(BitmapText.layoutLetters(lay), lay.width, lay.height, ignoreChoice) : null;
+  }
+
+  /** The stamp settings that make a coloured text block place its attributes and draw the rest with the bar. @private */
+  _colourOpts(plan) {
+    return plan && plan.attrs ? { colours: 'coloured', uncoloured: 'rail' } : null;
+  }
+
+  /** Height of one cell of a bitmap font (8 for ZX ROM and the classic sizes). @private */
+  _fontCellHeight(family) {
+    const g = this._glyphSourceFor(family);
+    return g ? g.h0 : 8;
   }
 
   _scaleToFit(pixels, srcW, srcH, maxW, maxH) {
@@ -488,6 +1005,8 @@ class TextToolClass extends ToolBase {
     const width  = vertical ? total : crossMax;
     const height = vertical ? crossMax : total;
     const pixels = Array.from({ length: height }, () => new Array(width).fill(false));
+    // Where every letter of a glyph-byte line ended up (coloured fonts place each letter's attributes by it)
+    const letters = [];
 
     for (let i = 0; i < masks.length; i++) {
       const m = masks[i];
@@ -496,6 +1015,10 @@ class TextToolClass extends ToolBase {
       const off = align === 'center' ? Math.floor(slack / 2)
                 : align === 'right'  ? slack
                 : 0;
+      if (m.letters) {
+        const dx = vertical ? at[i] : off, dy = vertical ? off : at[i];
+        for (const L of m.letters) letters.push({ ...L, x: L.x + dx, y: L.y + dy });
+      }
       for (let y = 0; y < m.height; y++) {
         const row = m.pixels[y];
         for (let x = 0; x < m.width; x++) {
@@ -506,7 +1029,7 @@ class TextToolClass extends ToolBase {
         }
       }
     }
-    return { pixels, width, height };
+    return { pixels, width, height, letters };
   }
 
   /**
@@ -515,34 +1038,25 @@ class TextToolClass extends ToolBase {
    * The advance width is the font's glyph width (8 for ZX ROM, 4/6/8 for
    * library fonts), so narrow Sinclair fonts keep their tight spacing.
    * Characters outside the font take no space, like unknown ZX ROM chars.
+   * `letters` gives each drawn letter's cell in the block ({ch, x, y, w, h}) and the glyph column its saved part starts at
+   * (x0), for placing a coloured font's attributes.
    * @param {string} text
    * @param {string} [family] - defaults to the tool's current family
-   * @returns {{ pixels: boolean[][], width: number, height: number }|null}
+   * @returns {{ pixels: boolean[][], width: number, height: number, letters: Object[] }|null}
    */
   _buildTextMask(text, family = this._fontFamily, bold = this._fontBold,
                  italic = this._fontItalic, layout = this._textLayout,
                  align = this._textAlign) {
-    const charH = 8;
-    let charW = 8;
-    let glyphOf; // char -> row byte array (MSB = left), or null
-
-    if (family === 'ZX ROM' || !family.startsWith('zxfont:')) {
-      glyphOf = (c) => this.charBitmaps[c] || null;
-    } else {
-      const font = window.FontService
-        ? FontService.getLibraryFont(family.slice('zxfont:'.length))
-        : null;
-      if (!font) return null;
-      charW = font.width;
-      glyphOf = (c) => {
-        const i = c.charCodeAt(0) - font.firstCode;
-        return i >= 0 && i < font.glyphs.length ? font.glyphs[i] : null;
-      };
-    }
+    const src = (family === 'ZX ROM' || !family.startsWith('zxfont:'))
+      ? this._glyphSourceFor('ZX ROM')
+      : this._glyphSourceFor(family);
+    if (!src) return null;
+    const charH = src.h0;
+    const charW = src.w0;
 
     const vertical = TextToolClass._isVertical(layout);
     const masks = TextToolClass._splitLines(text)
-      .map((line) => this._buildLineMask(line, glyphOf, charW, charH, bold, italic, layout));
+      .map((line) => this._buildLineMask(line, src, bold, italic, layout));
 
     // Rows advance by the cell height exactly - ZX ROM cells already carry
     // their own spacing, and this is how the Spectrum stacks its text rows.
@@ -561,36 +1075,30 @@ class TextToolClass extends ToolBase {
    *   null when the line has no drawable glyph
    * @private
    */
-  _buildLineMask(text, glyphOf, charW, charH, bold, italic, layout) {
-    // The glyphs that will actually be drawn, in PLACEMENT order.
-    const glyphs = [];
-    for (let i = 0; i < text.length; i++) {
-      const bitmap = glyphOf(text[i]);
-      if (bitmap) glyphs.push(bitmap);
-    }
-    if (!glyphs.length) return null;
-    // Both backwards layouts are the same operation on the ORDER of the
-    // glyphs; the letterforms themselves are never touched, which is what
-    // separates 'reversed' from a mirror.
-    if (layout === 'reversed' || layout === 'vertical-up') glyphs.reverse();
-
+  _buildLineMask(text, src, bold, italic, layout) {
+    // Both backwards layouts are the same operation on the ORDER of the glyphs; the letterforms themselves are never touched,
+    // which is what separates 'reversed' from a mirror.
+    const reverse = layout === 'reversed' || layout === 'vertical-up';
     if (TextToolClass._isVertical(layout)) {
-      return this._stackGlyphs(glyphs, charW, charH, bold, italic);
-    }
-
-    const totalWidth = glyphs.length * charW;
-    const pixels = Array.from({ length: charH }, () => new Array(totalWidth).fill(false));
-    let curX = 0;
-    for (const bitmap of glyphs) {
-      for (let row = 0; row < charH; row++) {
-        for (let col = 0; col < charW; col++) {
-          if ((bitmap[row] >> (7 - col)) & 1) pixels[row][curX + col] = true;
-        }
+      // the glyphs that will actually be drawn, in PLACEMENT order
+      const recs = [];
+      for (let i = 0; i < text.length; i++) {
+        const g = src.glyphOf(text[i]);
+        if (!g) continue;
+        const sp = (src.spanOf && src.spanOf(text[i])) || { x0: 0, w: src.w0 };
+        recs.push({ g, x0: sp.x0, w: sp.w, ch: text[i] });
       }
-      curX += charW;
+      if (!recs.length) return null;
+      if (reverse) recs.reverse();
+      return this._stackGlyphs(recs, src.fw || src.w0, src.h0, bold, italic);
     }
-    if (!bold && !italic) return { pixels, width: totalWidth, height: charH };
-    return this._styleBitmapMask(pixels, totalWidth, charH, bold, italic);
+    const native = BitmapText.nativeLine(text, {
+      glyphOf: src.glyphOf, spanOf: src.spanOf, fw: src.fw || src.w0, w0: src.w0, h0: src.h0, reverse,
+      bold, italic, style: (p, w, h, b, it) => this._styleBitmapMask(p, w, h, b, it)
+    });
+    if (!native) return null;
+    const letters = native.letters.map(L => ({ ch: L.ch, x: L.x, y: 0, w: L.w, h: src.h0, x0: L.x0 }));
+    return { pixels: native.pixels, width: native.width, height: native.height, letters };
   }
 
   /**
@@ -603,34 +1111,36 @@ class TextToolClass extends ToolBase {
    * shears it by up to 13px and smears the whole thing into a diagonal streak
    * instead of slanting each letter by 2px. Pinned by tests/text-layout.test.js.
    *
-   * @param {Array<Uint8Array|number[]>} glyphs - row bytes, MSB = left
-   * @param {number} charW
+   * @param {Array<{g: Uint8Array, x0: number, w: number}>} recs - glyph bytes and the saved span of each letter
+   * @param {number} fw - row width of the glyph bytes
    * @param {number} charH
    * @param {boolean} bold
    * @param {boolean} italic
    * @returns {{ pixels: boolean[][], width: number, height: number }}
    * @private
    */
-  _stackGlyphs(glyphs, charW, charH, bold, italic) {
-    const cells = glyphs.map((bitmap) => {
+  _stackGlyphs(recs, fw, charH, bold, italic) {
+    const cells = recs.map((r) => {
       const pixels = Array.from({ length: charH }, (_, row) =>
-        Array.from({ length: charW }, (_, col) => !!((bitmap[row] >> (7 - col)) & 1)));
+        Array.from({ length: r.w }, (_, col) => !!BitmapText.bit(r.g, fw, r.x0 + col, row)));
       return (bold || italic)
-        ? this._styleBitmapMask(pixels, charW, charH, bold, italic)
-        : { pixels, width: charW, height: charH };
+        ? this._styleBitmapMask(pixels, r.w, charH, bold, italic)
+        : { pixels, width: r.w, height: charH };
     });
 
     const width = cells.reduce((w, c) => Math.max(w, c.width), 0);
     const out = [];
-    for (const cell of cells) {
+    const letters = [];
+    cells.forEach((cell, k) => {
       const pad = Math.floor((width - cell.width) / 2);
+      letters.push({ ch: recs[k].ch, x: pad, y: out.length, w: recs[k].w, h: charH, x0: recs[k].x0 });
       for (const row of cell.pixels) {
         const line = new Array(width).fill(false);
         for (let x = 0; x < cell.width; x++) if (row[x]) line[pad + x] = true;
         out.push(line);
       }
-    }
-    return { pixels: out, width, height: out.length };
+    });
+    return { pixels: out, width, height: out.length, letters };
   }
 
   /**
@@ -950,7 +1460,10 @@ class TextToolClass extends ToolBase {
    * @returns {Promise<number[]>}
    */
   async getSizesForFont(fontFamily = this._fontFamily) {
-    if (this.isBitmapFont(fontFamily)) return [8, 16, 24, 32, 48, 64];
+    if (this.isBitmapFont(fontFamily)) {
+      const h0 = this._fontCellHeight(fontFamily);
+      return h0 === 8 ? [8, 16, 24, 32, 48, 64] : [1, 2, 3, 4].map(k => k * h0);
+    }
     if (this._sizeCache.has(fontFamily)) return this._sizeCache.get(fontFamily);
     const sizes = this._qualityScan(fontFamily);
     this._sizeCache.set(fontFamily, sizes);

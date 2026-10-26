@@ -1,6 +1,12 @@
 'use strict';
 (function() {
 
+/** Shift button type -> the TransformService direction it moves in. */
+const SHIFT_DIRECTION = {
+    shiftUp: 'up', shiftDown: 'down', shiftLeft: 'left', shiftRight: 'right',
+    shiftUpLeft: 'upLeft', shiftUpRight: 'upRight', shiftDownLeft: 'downLeft', shiftDownRight: 'downRight'
+};
+
 /**
  * TransformPanel — the permanent Transform sidebar section.
  *
@@ -18,6 +24,10 @@ class TransformPanelClass {
         this._outlineGap = 1;
         this._outlineSize = 1;
         this._shiftWrap = true;
+        // The step the user last chose. The step select is forced to one
+        // cell while Move is "Pixels and attributes" or "Attributes only"; this value
+        // is what comes back when it is free again.
+        this._shiftStep = '1';
     }
 
     init() {
@@ -38,6 +48,7 @@ class TransformPanelClass {
 
         EventBus.on(EVENTS.CANVAS_RENDER,  () => this._sync());
         EventBus.on(EVENTS.LAYER_SELECTED, () => this._sync());
+        EventBus.on(EVENTS.SCREEN_MODE_CHANGED, () => { this._syncShiftControls(); this._sync(); });
         this._sync();
 
         Logger.info('TransformPanel', 'Initialized');
@@ -55,6 +66,36 @@ class TransformPanelClass {
           <div class="tp-stamp-section" hidden>
             <div class="tool-option">
               <label><input type="checkbox" class="tp-xor" id="tp-xor" name="tp-xor" data-i18n-title-name="transform.xorMode" data-i18n-title="transform.xorMode.hint"> <span data-i18n="transform.xorMode">XOR Mode</span></label>
+              <span class="tool-option-hint tp-stamp-xor-ignored" data-i18n="transform.colouredIgnoresXor" hidden>A stamp with its own attributes ignores XOR</span>
+            </div>
+            <div class="tp-stamp-controls" hidden>
+              <div class="tool-option tp-colours-row">
+                <label for="tp-stamp-colours" data-i18n="transform.stampColours">Attributes</label>
+                <select class="tp-stamp-colours" id="tp-stamp-colours" name="tp-stamp-colours" data-i18n-title-name="transform.stampColours" data-i18n-title="transform.stampColours.hint">
+                  <option value="pixels" data-i18n="transform.stampColours.pixels">Pixels only</option>
+                  <option value="coloured" data-i18n="transform.stampColours.own">Own attributes</option>
+                </select>
+                <span class="tool-option-hint tp-stamp-colours-geometry" data-i18n="transform.stampColours.geometryHint" hidden>This stamp's attribute cells are a different size from this screen mode's, so it can only place its pixels</span>
+              </div>
+              <div class="tool-option tp-show-through-row" hidden>
+                <span class="tp-show-through-heading" data-i18n="transform.showThrough">Show through</span>
+              <label class="tp-st-box"><input type="checkbox" class="tp-st" id="tp-st-ink" name="tp-st-ink" data-st="ink" data-i18n-title-name="transform.showThrough.ink" data-i18n-title="transform.showThrough.ink.hint"> <span data-i18n="transform.st.ink">Ink</span></label>
+              <label class="tp-st-box"><input type="checkbox" class="tp-st" id="tp-st-paper" name="tp-st-paper" data-st="paper" data-i18n-title-name="transform.showThrough.paper" data-i18n-title="transform.showThrough.paper.hint"> <span data-i18n="transform.st.paper">Paper</span></label>
+              <label class="tp-st-box"><input type="checkbox" class="tp-st" id="tp-st-bright" name="tp-st-bright" data-st="bright" data-i18n-title-name="transform.showThrough.bright" data-i18n-title="transform.showThrough.bright.hint"> <span data-i18n="transform.st.bright">Bright</span></label>
+              <label class="tp-st-box"><input type="checkbox" class="tp-st" id="tp-st-flash" name="tp-st-flash" data-st="flash" data-i18n-title-name="transform.showThrough.flash" data-i18n-title="transform.showThrough.flash.hint"> <span data-i18n="transform.st.flash">Flash</span></label>
+              <label class="tp-st-box"><input type="checkbox" class="tp-st" id="tp-st-clut" name="tp-st-clut" data-st="clut" data-i18n-title-name="transform.showThrough.clut" data-i18n-title="transform.showThrough.clut.hint"> <span data-i18n="transform.st.clut">CLUT</span></label>
+              </div>
+              <div class="tool-option tp-clear-dots-row">
+                <label for="tp-clear-dots" data-i18n="transform.clearDots">Paper pixels</label>
+                <select class="tp-clear-dots" id="tp-clear-dots" name="tp-clear-dots" data-i18n-title-name="transform.clearDots" data-i18n-title="transform.clearDots.hint">
+                  <option value="transparent" data-i18n="transform.clearDots.transparent">Leave background</option>
+                  <option value="overlap" data-i18n="transform.clearDots.overlap">Clear background</option>
+                </select>
+                <span class="tool-option-hint tp-clear-dots-none" data-i18n="transform.clearDots.noEffectHint" hidden>The draw mode in force has no opposite, so Clear background changes nothing here</span>
+              </div>
+              <div class="tool-option tp-convert-row">
+                <button type="button" class="panel-button small tp-stamp-convert" id="tp-stamp-convert" data-i18n="transform.stampConvert" data-i18n-title-name="transform.stampConvert" data-i18n-title="transform.stampConvert.hint">Convert to pixels only</button>
+              </div>
             </div>
             <hr class="tool-option-separator">
             <div class="tool-option">
@@ -86,6 +127,7 @@ class TransformPanelClass {
             </div>
             <div class="tool-option">
               <button type="button" class="panel-button small tp-reset" data-i18n="transform.reset" data-i18n-title-name="transform.reset" data-i18n-title="transform.reset.hint">Reset</button>
+              <span class="tool-option-hint tp-stamp-reshape-blocked" data-i18n="transform.colouredNoReshape" hidden>A stamp with its own attributes cannot be scaled, rotated, bent, flipped, inverted or outlined; switch it to Pixels only first</span>
             </div>
             <hr class="tool-option-separator">
           </div>
@@ -114,6 +156,16 @@ class TransformPanelClass {
           <div class="tool-option tp-group tp-shift-group">
             <span class="tp-shift-heading" data-i18n="transform.shift">Shift</span>
             <div class="dir-pad-slot"></div>
+            <div class="tool-option tp-shift-move-row">
+              <label for="tp-shift-move" data-i18n="transform.shiftMove">Move</label>
+              <select class="tp-shift-move" id="tp-shift-move" name="tp-shift-move" data-i18n-title-name="transform.shiftMove" data-i18n-title="transform.shiftMove.hint">
+                <option value="both" data-i18n="transform.shiftMove.both">Pixels and attributes</option>
+                <option value="dots" data-i18n="transform.shiftMove.dots">Pixels only</option>
+                <option value="colours" data-i18n="transform.shiftMove.colours">Attributes only</option>
+              </select>
+              <span class="tool-option-hint tp-shift-move-stamp" data-i18n="transform.shiftMove.stampHint" hidden>Shifts move the whole stamp</span>
+              <span class="tool-option-hint tp-shift-move-cell" data-i18n="transform.shiftMove.cellHint" hidden>Pixels and attributes move a whole cell at a time</span>
+            </div>
             <div class="tp-shift-opts">
               <select class="tp-shift-step" id="tp-shift-step" name="tp-shift-step" data-i18n-aria-label="transform.shiftStep" aria-label="Shift step" data-i18n-title-name="transform.shiftStep" data-i18n-title="transform.shiftStep.hint">
                 <option value="1" data-i18n="transform.shiftStep.pixel">1 pixel</option>
@@ -124,11 +176,11 @@ class TransformPanelClass {
           </div>
         `;
 
-        const { element: pad, zones } = Helpers.buildDirPad();
-        zones.up.dataset.tpTransform = 'shiftUp';
-        zones.left.dataset.tpTransform = 'shiftLeft';
-        zones.right.dataset.tpTransform = 'shiftRight';
-        zones.down.dataset.tpTransform = 'shiftDown';
+        // Three by three: the four edges plus the four diagonals, centre empty.
+        const { element: pad, zones } = Helpers.buildDirPad({ nine: true });
+        for (const dir of Object.keys(zones)) {
+            zones[dir].dataset.tpTransform = 'shift' + dir[0].toUpperCase() + dir.slice(1);
+        }
         content.querySelector('.dir-pad-slot').replaceWith(pad);
 
         // Unlike every other task in this batch, this class has no _t()
@@ -152,11 +204,37 @@ class TransformPanelClass {
         });
 
         content.querySelector('.tp-xor').addEventListener('change', (e) => {
-            const layer = LayerManager.getCurrentLayer();
-            const stamp = (layer && layer.isStamp) ? layer : null;
+            const stamp = this._stampTarget();
             if (!stamp) return;
+            const ctl = SelectionService.stampControls(stamp);
+            if (ctl && ctl.ownColours) { e.target.checked = !!stamp.xorMode; return; }
             LayerManager.setLayerXorMode(stamp.index, e.target.checked);
             CanvasSystem.requestRender();
+        });
+
+        // The stamp's settings (batch 5 part 5B). Each control sends one patch to
+        // SelectionService.setStampOptions, which is one undo step and redraws.
+        content.querySelector('.tp-stamp-colours').addEventListener('change', (e) => {
+            const stamp = this._stampTarget();
+            if (stamp) SelectionService.setStampOptions({ colours: e.target.value }, stamp);
+        });
+        content.querySelector('.tp-clear-dots').addEventListener('change', (e) => {
+            const stamp = this._stampTarget();
+            if (stamp) SelectionService.setStampOptions({ clearDots: e.target.value }, stamp);
+        });
+        content.querySelectorAll('.tp-st').forEach((box) => {
+            box.addEventListener('change', () => {
+                const stamp = this._stampTarget();
+                if (!stamp) return;
+                const on = box.checked;
+                // ULAplus has one box for Bright and Flash together (they are the CLUT).
+                const part = box.dataset.st === 'clut' ? { bright: on, flash: on } : { [box.dataset.st]: on };
+                SelectionService.setStampOptions({ showThrough: part }, stamp);
+            });
+        });
+        content.querySelector('.tp-stamp-convert').addEventListener('click', () => {
+            const stamp = this._stampTarget();
+            if (stamp) SelectionService.convertStampToPixels(stamp);
         });
 
         content.querySelector('.tp-sx').addEventListener('input', (e) => {
@@ -224,16 +302,28 @@ class TransformPanelClass {
             this._shiftWrap = e.target.checked;
         });
 
-        // The shift amount, resolved at the moment of each step rather than
-        // once: 'cell' is per-axis because cells are not square in multicolor
-        // modes (CELL_HEIGHT is 8/4/2/1).
-        const shiftAmount = (type) => {
+        content.querySelector('.tp-shift-move').addEventListener('change', () => this._syncShiftControls());
+
+        // Only the user's own choice is remembered; a forced "1 cell" is not.
+        content.querySelector('.tp-shift-step').addEventListener('change', (e) => {
+            this._shiftStep = e.target.value;
+            this._syncShiftControls();
+        });
+
+        // The shift amount per axis, resolved at the moment of each step.
+        // 'cell' is per-axis because cells are not square in multicolor modes
+        // (CELL_HEIGHT is 8/4/2/1). The service ignores the axis a direction
+        // does not use, so both are always returned.
+        const shiftAmount = () => {
             const step = content.querySelector('.tp-shift-step').value;
             return step === 'cell'
-                ? ((type === 'shiftLeft' || type === 'shiftRight')
-                    ? ZX_SPECTRUM.CELL_WIDTH : ZX_SPECTRUM.CELL_HEIGHT)
-                : (parseInt(step, 10) || 1);
+                ? { x: ZX_SPECTRUM.CELL_WIDTH, y: ZX_SPECTRUM.CELL_HEIGHT }
+                : { x: 1, y: 1 };
         };
+        // What a shift moves: the Move choice on a picture with cell colours,
+        // everything in the other modes.
+        const shiftContent = () => (ColorManager.hasCellAttributes()
+            ? content.querySelector('.tp-shift-move').value : 'both');
 
         content.querySelectorAll('button[data-tp-transform]').forEach((btn) => {
             const type = btn.dataset.tpTransform;
@@ -257,7 +347,7 @@ class TransformPanelClass {
             // own inner actions join this one instead of committing.
             let applied = 0;
             Helpers.attachRepeatPress(btn,
-                () => { if (this.applyTransform(type, shiftAmount(type)) !== false) applied++; },
+                () => { if (this.applyTransform(type, shiftAmount(), shiftContent()) !== false) applied++; },
                 {
                     onStart: () => { applied = 0; UndoRedo.beginAction('Shift'); },
                     // A gesture that moved nothing - no work area - must not
@@ -430,18 +520,28 @@ class TransformPanelClass {
      *   shifts can answer false (no work area); see the held direction pad in
      *   _wire, which uses this to avoid leaving an empty undo entry.
      */
-    applyTransform(type, amountOverride) {
+    applyTransform(type, amountOverride, content = 'both') {
         // Clear the transient pattern-capture overlay only — an armed
         // Swap/Recolour operation is sticky and survives a transform.
         if (window.InputHandler && typeof InputHandler.exitPatternCaptureMode === 'function') {
             InputHandler.exitPatternCaptureMode();
         }
         const amount = amountOverride !== undefined ? amountOverride : 1;
+        const amt = typeof amount === 'object' ? amount : { x: amount, y: amount };
         const outlineGap  = this._outlineGap;
         const outlineSize = this._outlineSize;
 
         if (SelectionService.isFloating()) {
-            SelectionService.transformStamp(type, amount, outlineGap, outlineSize);
+            // A stamp has no diagonal step: a diagonal is its horizontal move
+            // then its vertical move, each with its own axis amount.
+            if (SHIFT_DIRECTION[type]) {
+                const h = /Left/.test(type) ? 'shiftLeft' : /Right/.test(type) ? 'shiftRight' : null;
+                const v = /Up/.test(type) ? 'shiftUp' : /Down/.test(type) ? 'shiftDown' : null;
+                if (h) SelectionService.transformStamp(h, amt.x, outlineGap, outlineSize);
+                if (v) SelectionService.transformStamp(v, amt.y, outlineGap, outlineSize);
+            } else {
+                SelectionService.transformStamp(type, amount, outlineGap, outlineSize);
+            }
             return true;
         }
 
@@ -451,16 +551,15 @@ class TransformPanelClass {
         // discards the undo action in the second case. Everything else always
         // acts, so it answers true.
         let applied = true;
-        switch (type) {
+        const shiftDir = SHIFT_DIRECTION[type];
+        if (shiftDir) {
+            applied = TransformService.shift(shiftDir, amt, this._shiftWrap, content);
+        } else switch (type) {
             case 'flipH':       TransformService.flipHorizontal();                 break;
             case 'flipV':       TransformService.flipVertical();                   break;
             case 'rotate90CW':  TransformService.rotate90CW();                     break;
             case 'rotate90CCW': TransformService.rotate90CCW();                    break;
             case 'rotate180':   TransformService.rotate180();                      break;
-            case 'shiftUp':     applied = TransformService.shiftUp(amount, this._shiftWrap);    break;
-            case 'shiftDown':   applied = TransformService.shiftDown(amount, this._shiftWrap); break;
-            case 'shiftLeft':   applied = TransformService.shiftLeft(amount, this._shiftWrap); break;
-            case 'shiftRight':  applied = TransformService.shiftRight(amount, this._shiftWrap);break;
             case 'invert':      TransformService.invert();                         break;
             case 'outline':     TransformService.outline(outlineGap, outlineSize); break;
         }
@@ -468,16 +567,115 @@ class TransformPanelClass {
         return applied;
     }
 
+    /**
+     * What a shift moves right now, for the arrow keys (InputHandler): the
+     * Move choice (both where the mode has no cell colours), and whether the
+     * step is locked to one whole cell.
+     * @returns {{content: string, locked: boolean}}
+     */
+    shiftMove() {
+        const cells = ColorManager.hasCellAttributes();
+        const move = (this._content && cells) ? this._content.querySelector('.tp-shift-move').value : 'both';
+        return { content: cells ? move : 'both', locked: cells && move !== 'dots' };
+    }
+
+    /**
+     * Enable, hide and force the Move and step controls to the current state.
+     * Move is hidden where the mode has no cell colours, and disabled while a
+     * stamp moves (a stamp shift moves the whole stamp). With Dots and colours
+     * or Colours only, the step is one whole cell and locked; otherwise the
+     * step is the user's own choice. Writes only what changed: it runs on
+     * every render.
+     * @private
+     */
+    _syncShiftControls() {
+        const c = this._content;
+        if (!c) return;
+        const set = (el, prop, val) => { if (el && el[prop] !== val) el[prop] = val; };
+        const cells = ColorManager.hasCellAttributes();
+        const layer = LayerManager.getCurrentLayer();
+        const stampActive = SelectionService.isFloating() || !!(layer && layer.isStamp);
+        const move = c.querySelector('.tp-shift-move');
+        const step = c.querySelector('.tp-shift-step');
+        const locked = cells && !stampActive && move.value !== 'dots';
+
+        set(c.querySelector('.tp-shift-move-row'), 'hidden', !cells);
+        set(move, 'disabled', stampActive);
+        set(c.querySelector('.tp-shift-move-stamp'), 'hidden', !(cells && stampActive));
+        set(c.querySelector('.tp-shift-move-cell'), 'hidden', !locked);
+        set(step, 'disabled', locked);
+        const want = locked ? 'cell' : this._shiftStep;
+        if (step.value !== want) step.value = want;
+    }
+
+    /**
+     * The stamp the panel shows and edits: the current layer if it is a stamp,
+     * else the floating stamp's layer (the layer panel can make a drawing layer
+     * current while a stamp floats). Null if neither.
+     * @private
+     */
+    _stampTarget() {
+        const layer = LayerManager.getCurrentLayer();
+        if (layer && layer.isStamp) return layer;
+        const fp = SelectionService.floatingPaste;
+        return (fp && fp.floatingLayer && fp.floatingLayer.isStamp) ? fp.floatingLayer : null;
+    }
+
+    /**
+     * Draw what SelectionService.stampControls says: which of Colours, Show
+     * through, Clear dots and Convert show, their values, and - for a stamp that
+     * places its own colours - which controls cannot act on it (XOR and the
+     * reshaping ones), each with a visible reason. Writes only what changed: it
+     * runs on every render and an open drop-down must not be disturbed.
+     * @private
+     */
+    _syncStampControls() {
+        const c = this._content;
+        const set = (el, prop, val) => { if (el && el[prop] !== val) el[prop] = val; };
+        const stamp = this._stampTarget();
+        const ctl = stamp ? SelectionService.stampControls(stamp) : null;
+        const own = !!(ctl && ctl.ownColours);
+
+        set(c.querySelector('.tp-stamp-controls'), 'hidden', !ctl);
+        // Controls a stamp with its own colours cannot use (see setStampScale etc.)
+        const blockedEls = c.querySelectorAll('.tp-xor, .tp-sx, .tp-sy, .tp-rot, .tp-warp, .tp-reset, .tp-og, .tp-os, [data-tp-transform]');
+        blockedEls.forEach((el) => set(el, 'disabled', own));
+        set(c.querySelector('.tp-stamp-xor-ignored'), 'hidden', !own);
+        set(c.querySelector('.tp-stamp-reshape-blocked'), 'hidden', !own);
+        if (!ctl) return;
+
+        const colours = c.querySelector('.tp-stamp-colours');
+        set(c.querySelector('.tp-colours-row'), 'hidden', !ctl.colours.visible);
+        set(colours, 'value', ctl.colours.value);
+        set(colours, 'disabled', !ctl.colours.enabled);
+        set(c.querySelector('.tp-stamp-colours-geometry'), 'hidden', !ctl.colours.geometry);
+        set(c.querySelector('.tp-convert-row'), 'hidden', !ctl.convert.visible);
+
+        set(c.querySelector('.tp-show-through-row'), 'hidden', !ctl.showThrough.visible);
+        const shown = new Map(ctl.showThrough.parts.map((p) => [p.key, p.on]));
+        c.querySelectorAll('.tp-st').forEach((box) => {
+            const key = box.dataset.st;
+            set(box.closest('.tp-st-box'), 'hidden', !shown.has(key));
+            if (shown.has(key)) set(box, 'checked', shown.get(key));
+        });
+
+        set(c.querySelector('.tp-clear-dots'), 'value', ctl.clearDots.value);
+        set(c.querySelector('.tp-clear-dots-none'), 'hidden', !ctl.clearDots.noEffect);
+    }
+
     /** Sync the panel's live values to the current floating stamp state. @private */
     _sync() {
         const content = this._content;
         if (!content) return;
+        this._syncShiftControls();
 
         const focusedLayer  = LayerManager.getCurrentLayer();
         const engagedStamp  = (focusedLayer && focusedLayer.isStamp) ? focusedLayer : null;
         const isFloating    = SelectionService.isFloating();
         const fp            = isFloating ? SelectionService.floatingPaste : null;
         const isReallyFloat = isFloating && fp && fp._isBrushStamp !== true;
+
+        this._syncStampControls();
 
         const stampSection = content.querySelector('.tp-stamp-section');
         stampSection.hidden = !(engagedStamp || isReallyFloat);

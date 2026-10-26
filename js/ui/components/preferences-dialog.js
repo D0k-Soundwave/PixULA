@@ -1,6 +1,11 @@
 'use strict';
 (function() {
 
+/** The eight colour names (black to white), for the standard-colour pickers' tooltips. */
+const COLOUR_KEYS = ['color.black', 'color.blue', 'color.red', 'color.magenta', 'color.green', 'color.cyan', 'color.yellow', 'color.white'];
+const COLOUR_FALLBACKS = ['Black', 'Blue', 'Red', 'Magenta', 'Green', 'Cyan', 'Yellow', 'White'];
+const UNDO_HINT_FALLBACK = 'How many steps Undo can go back, {min} to {max}. Lowering it forgets the oldest steps at once. Undo also keeps within a {mb} MB memory cap, so on a big picture it can keep fewer steps than set.';
+
 /**
  * PreferencesDialog — Settings > Preferences… and Reset All Preferences.
  *
@@ -44,6 +49,12 @@ class PreferencesDialogClass {
 
     /** Settings > Preferences… */
     open() {
+        // The Undo steps hint names the range and the memory cap from the figures themselves.
+        const undoParams = {
+            min: ZX_SPECTRUM.MIN_UNDO_LIMIT,
+            max: ZX_SPECTRUM.MAX_UNDO_LIMIT,
+            mb: Math.round(UndoRedo.constructor.MAX_HISTORY_BYTES / (1024 * 1024))
+        };
         const content = document.createElement('div');
         content.className = 'preferences-dialog-body';
         content.innerHTML = `
@@ -70,6 +81,15 @@ class PreferencesDialogClass {
                 <input type="checkbox" id="pref-confirm-clear" name="pref-confirm-clear" checked>
                 <span data-i18n="pref.confirmClear">${this._t('pref.confirmClear', 'Confirm before clearing')}</span>
             </label>
+            <label class="pref-row">
+                <span data-i18n="pref.undoLimit">${this._t('pref.undoLimit', 'Undo steps')}</span>
+                <input type="number" id="pref-undo-limit" name="pref-undo-limit"
+                       min="${ZX_SPECTRUM.MIN_UNDO_LIMIT}" max="${ZX_SPECTRUM.MAX_UNDO_LIMIT}" step="1"
+                       value="${ZX_SPECTRUM.DEFAULT_UNDO_LIMIT}">
+            </label>
+            <div class="pref-block__hint" id="pref-undo-limit-hint" data-i18n="pref.undoLimitHint"
+                 data-i18n-param-min="${undoParams.min}" data-i18n-param-max="${undoParams.max}"
+                 data-i18n-param-mb="${undoParams.mb}">${this._t('pref.undoLimitHint', UNDO_HINT_FALLBACK, undoParams)}</div>
             <div class="pref-block" id="pref-backup">
                 <div class="pref-block__label" data-i18n="pref.backupFolder">${this._t('pref.backupFolder', 'Backup folder')}</div>
                 <div class="pref-block__hint" data-i18n="pref.backupHint">${this._t('pref.backupHint', 'Each autosave also writes the whole document here as a numbered version, so you can go back to any of them.')}</div>
@@ -97,6 +117,19 @@ class PreferencesDialogClass {
                 <span data-i18n="pref.nudgeStep">${this._t('pref.nudgeStep', 'Arrow-key nudge distance (pixels)')}</span>
                 <input type="number" id="pref-nudge-step" name="pref-nudge-step" min="1" max="32" value="1">
             </label>
+            <label class="pref-row">
+                <span data-i18n="pref.snapStepX">${this._t('pref.snapStepX', 'Custom snap step, across (pixels)')}</span>
+                <input type="number" id="pref-snap-x" name="pref-snap-x" min="1" max="640" value="24">
+            </label>
+            <label class="pref-row">
+                <span data-i18n="pref.snapStepY">${this._t('pref.snapStepY', 'Custom snap step, down (pixels)')}</span>
+                <input type="number" id="pref-snap-y" name="pref-snap-y" min="1" max="256" value="24">
+            </label>
+            <label class="pref-row">
+                <input type="checkbox" id="pref-inverse" name="pref-inverse">
+                <span data-i18n="pref.inverse">${this._t('pref.inverse', 'Inverse: swap the mouse buttons')}</span>
+            </label>
+            <div class="pref-block__hint" data-i18n="pref.inverseHint">${this._t('pref.inverseHint', 'The left button draws paper pixels and the right button draws ink pixels, like BASIC\'s INVERSE 1. Shift+I switches it from the keyboard, and the status bar says when it is on. It changes nothing in the Ink Recolour, Paper Recolour, Attributes Only and XOR draw modes.')}</div>
             <h3 data-i18n="pref.input">${this._t('pref.input', 'Input')}</h3>
             <label class="pref-row">
                 <input type="checkbox" id="pref-touch-draw" name="pref-touch-draw">
@@ -161,6 +194,58 @@ class PreferencesDialogClass {
                 </div>
                 <div class="pref-block__hint" data-i18n="pref.privacyClearHint">${this._t('pref.privacyClearHint', 'Empties everything listed above and reloads. Files you saved yourself, including backup versions, are left alone.')}</div>
             </div>
+            <h3 data-i18n="pref.standardColours">${this._t('pref.standardColours', 'Standard colours')}</h3>
+            <div class="pref-block" id="pref-standard-colours">
+                <div class="pref-block__hint" data-i18n="pref.standardColoursHint">${this._t('pref.standardColoursHint', 'The 15 colours the standard, Multicolor, GigaScreen and Timex modes show, and image exports (PNG, GIF, BMP, JPG) use. Bright black is always black. They never change .scr or .tap files, and ULAplus and Next palettes are separate. Kept in this browser.')}</div>
+                <div class="pref-block__label" data-i18n="pref.standardColours.normal">${this._t('pref.standardColours.normal', 'Normal')}</div>
+                <div class="pref-row pref-std-row">
+                    ${[0, 1, 2, 3, 4, 5, 6, 7].map((n) => `<input type="color" class="pref-std" id="pref-std-${n}" name="pref-std-${n}" data-std="${n}" value="#000000" title="${this._t(COLOUR_KEYS[n], COLOUR_FALLBACKS[n])}">`).join('')}
+                </div>
+                <div class="pref-block__label" data-i18n="color.bright">${this._t('color.bright', 'Bright')}</div>
+                <div class="pref-row pref-std-row">
+                    ${[9, 10, 11, 12, 13, 14, 15].map((n) => `<input type="color" class="pref-std" id="pref-std-${n}" name="pref-std-${n}" data-std="${n}" value="#000000" title="${this._t(COLOUR_KEYS[n - 8], COLOUR_FALLBACKS[n - 8])}">`).join('')}
+                </div>
+                <div class="pref-row">
+                    <button type="button" class="panel-button" id="pref-std-load" data-i18n="pref.standardColours.load">${this._t('pref.standardColours.load', 'Load .pal...')}</button>
+                    <button type="button" class="panel-button" id="pref-std-save" data-i18n="pref.standardColours.save">${this._t('pref.standardColours.save', 'Save .pal...')}</button>
+                    <button type="button" class="panel-button" id="pref-std-reset" data-i18n="pref.standardColours.reset">${this._t('pref.standardColours.reset', 'Reset to standard')}</button>
+                    <input type="file" id="pref-std-file" name="pref-std-file" accept=".pal" hidden>
+                </div>
+                <div class="pref-block__hint" id="pref-std-note" hidden></div>
+            </div>
+            <h3 data-i18n="pref.pointerAndGrids">${this._t('pref.pointerAndGrids', 'Pointer readout and grids')}</h3>
+            <label class="pref-row">
+                <span data-i18n="pref.readoutDetail">${this._t('pref.readoutDetail', 'Pointer readout shows')}</span>
+                <select id="pref-readout-detail" name="pref-readout-detail">
+                    <option value="position" data-i18n="pref.readoutDetail.position">${this._t('pref.readoutDetail.position', 'Position only')}</option>
+                    <option value="attribute" data-i18n="pref.readoutDetail.attribute">${this._t('pref.readoutDetail.attribute', 'Position and attribute')}</option>
+                    <option value="addresses" data-i18n="pref.readoutDetail.addresses">${this._t('pref.readoutDetail.addresses', 'Position, attribute and memory addresses')}</option>
+                </select>
+            </label>
+            <label class="pref-row">
+                <span data-i18n="pref.yDirection">${this._t('pref.yDirection', 'Y counts from')}</span>
+                <select id="pref-y-direction" name="pref-y-direction">
+                    <option value="screen" data-i18n="pref.yDirection.screen">${this._t('pref.yDirection.screen', 'The top (screen)')}</option>
+                    <option value="plot" data-i18n="pref.yDirection.plot">${this._t('pref.yDirection.plot', 'The bottom (BASIC PLOT)')}</option>
+                </select>
+            </label>
+            <div class="pref-block__hint" data-i18n="pref.yDirectionHint">${this._t('pref.yDirectionHint', 'Changes the readout only. PLOT numbers (0 to 175, 0 at the bottom) exist over the top 176 rows of a 256x192 screen; elsewhere the readout shows a dash.')}</div>
+            <div class="pref-block" id="pref-grid-colours">
+                <div class="pref-block__label" data-i18n="pref.gridColours">${this._t('pref.gridColours', 'Grid colours')}</div>
+                ${['pixel', 'cell', 'block', 'custom'].map((k) => `
+                <div class="pref-row">
+                    <span data-i18n="pref.gridColour.${k}">${this._t('pref.gridColour.' + k, { pixel: 'Pixel grid', cell: 'Cell grid', block: 'Block grid', custom: 'Custom grid' }[k])}</span>
+                    <input type="color" id="pref-gridcolour-${k}" name="pref-gridcolour-${k}" value="#808080">
+                    <label class="pref-inline">
+                        <input type="checkbox" id="pref-gridcolour-${k}-theme" name="pref-gridcolour-${k}-theme">
+                        <span data-i18n="pref.gridColour.theme">${this._t('pref.gridColour.theme', 'Theme colour')}</span>
+                    </label>
+                </div>`).join('')}
+                <div class="pref-row">
+                    <button type="button" id="pref-gridcolours-reset"
+                            data-i18n="pref.gridColour.reset">${this._t('pref.gridColour.reset', 'Reset to theme colours')}</button>
+                </div>
+            </div>
             <h3 data-i18n="pref.accessibility">${this._t('pref.accessibility', 'Accessibility')}</h3>
             <label class="pref-row">
                 <input type="checkbox" id="tts-toggle" name="tts-toggle">
@@ -199,10 +284,18 @@ class PreferencesDialogClass {
         if (restoreOnBoot) restoreOnBoot.checked = StateManager.get('restoreOnBoot') !== false;
         const confirmClear = content.querySelector('#pref-confirm-clear');
         if (confirmClear) confirmClear.checked = StateManager.get('confirmClear') !== false;
+        const undoLimit = content.querySelector('#pref-undo-limit');
+        if (undoLimit) undoLimit.value = String(UndoRedo.getMaxStates());
         const resetDrawMode = content.querySelector('#pref-reset-draw-mode');
         if (resetDrawMode) resetDrawMode.checked = StateManager.get('resetDrawModeOnTool') === true;
+        const inverse = content.querySelector('#pref-inverse');
+        if (inverse) inverse.checked = StateManager.getInverse();
         const nudgeStep = content.querySelector('#pref-nudge-step');
         if (nudgeStep) nudgeStep.value = String(clamp(parseInt(StateManager.get('nudgeStep'), 10) || 1, 1, 32));
+        const snapX = content.querySelector('#pref-snap-x');
+        const snapY = content.querySelector('#pref-snap-y');
+        if (snapX) snapX.value = String(StateManager.getGridSnapStep().x);
+        if (snapY) snapY.value = String(StateManager.getGridSnapStep().y);
         const touchDraw = content.querySelector('#pref-touch-draw');
         if (touchDraw) touchDraw.checked = StateManager.get('touchDrawing') !== false;
         const touchNoDouble = content.querySelector('#pref-touch-no-double');
@@ -212,6 +305,8 @@ class PreferencesDialogClass {
             touchLockout.value = String(TouchPolicy.normalizeLockout(StateManager.get('touchLockoutMs')));
         }
         this._initPressurePreferences(content);
+        this._initReadoutAndGridPreferences(content);
+        this._initStandardColours(content);
 
         Dialog.open({
             id: 'preferences-dialog',
@@ -230,6 +325,127 @@ class PreferencesDialogClass {
                 this._releaseOnClose = [];
             }
         });
+    }
+
+    /**
+     * The pointer-readout selects and the grid-colour pickers. A grid's colour
+     * is the owner's only while its "Theme colour" box is off: with it on the
+     * grid follows the theme (so changing theme still recolours it) and the
+     * picker is just showing what the theme gives. OK stores the choices;
+     * Cancel stores nothing.
+     * @private
+     */
+    _initReadoutAndGridPreferences(root) {
+        const readout = StateManager.getReadout();
+        const detail = root.querySelector('#pref-readout-detail');
+        const yDir = root.querySelector('#pref-y-direction');
+        if (detail) detail.value = readout.detail;
+        if (yDir) yDir.value = readout.yDirection;
+
+        const own = StateManager.get('gridColors') || {};
+        for (const key of ['pixel', 'cell', 'block', 'custom']) {
+            const picker = root.querySelector(`#pref-gridcolour-${key}`);
+            const theme = root.querySelector(`#pref-gridcolour-${key}-theme`);
+            if (!picker || !theme) continue;
+            const mine = Validators.normaliseHexColour(own[key]);
+            const themed = window.GridOverlay ? GridOverlay.themeGridColour(key) : '#808080';
+            picker.value = mine || themed;
+            theme.checked = !mine;
+            theme.addEventListener('change', () => {
+                if (theme.checked) picker.value = themed;
+            });
+            // Choosing a colour is choosing not to follow the theme.
+            picker.addEventListener('input', () => { theme.checked = false; });
+        }
+        const reset = root.querySelector('#pref-gridcolours-reset');
+        if (reset) {
+            reset.addEventListener('click', () => {
+                for (const key of ['pixel', 'cell', 'block', 'custom']) {
+                    const theme = root.querySelector(`#pref-gridcolour-${key}-theme`);
+                    if (theme) {
+                        theme.checked = true;
+                        theme.dispatchEvent(new Event('change'));
+                    }
+                }
+            });
+        }
+    }
+
+    /**
+     * The standard-colours section (Batch 6 part 6B). The pickers edit a WORKING copy; OK applies it
+     * (ColorManager.setStandardColours) and stores it with the other preferences, Cancel discards it.
+     * Load .pal and Save .pal use ZX Paintbrush's 256-byte layout (NextPaletteFormat).
+     * @private
+     */
+    _initStandardColours(root) {
+        this._stdWork = ColorManager.getStandardColours();
+        const pickers = Array.from(root.querySelectorAll('.pref-std'));
+        const note = root.querySelector('#pref-std-note');
+        const show = () => {
+            for (const p of pickers) p.value = this._stdWork[parseInt(p.dataset.std, 10)].toLowerCase();
+        };
+        const say = (key, fallback) => {
+            if (!note) return;
+            note.hidden = !key;
+            note.textContent = key ? this._t(key, fallback) : '';
+        };
+        show();
+        for (const p of pickers) {
+            p.addEventListener('input', () => {
+                const n = parseInt(p.dataset.std, 10);
+                const hex = Validators.normaliseHexColour(p.value);
+                if (!hex) return;
+                this._stdWork[n] = hex.toUpperCase();
+                if (n === 0) { this._stdWork[8] = this._stdWork[0]; }
+                say(null);
+            });
+        }
+        const reset = root.querySelector('#pref-std-reset');
+        if (reset) reset.addEventListener('click', () => { this._stdWork = ZX_PALETTE.slice(); show(); say(null); });
+        const file = root.querySelector('#pref-std-file');
+        const load = root.querySelector('#pref-std-load');
+        if (load && file) load.addEventListener('click', () => file.click());
+        if (file) {
+            file.addEventListener('change', async () => {
+                const f = file.files[0];
+                file.value = '';
+                if (!f) return;
+                try {
+                    const decoded = NextPaletteFormat.decodeStandardColours(
+                        new Uint8Array(await Helpers.readFileAsArrayBuffer(f)));
+                    if (!decoded) { say('pref.standardColours.loadFailed', 'That is not a ZX Paintbrush standard-colours .pal file (256 bytes).'); return; }
+                    this._stdWork = decoded.hex16;
+                    show();
+                    if (decoded.brightBlackDropped) {
+                        say('pref.standardColours.brightBlackDropped', 'Bright black is always black here, so that file\'s bright black was not used.');
+                    } else say(null);
+                } catch (error) {
+                    Logger.warn('PreferencesDialog', 'Standard colours load failed', error);
+                    say('pref.standardColours.loadFailed', 'That is not a ZX Paintbrush standard-colours .pal file (256 bytes).');
+                }
+            });
+        }
+        const save = root.querySelector('#pref-std-save');
+        if (save) {
+            save.addEventListener('click', async () => {
+                try {
+                    await FormatRegistry.download(NextPaletteFormat.encodeStandardColours(this._stdWork), 'standard-colours.pal');
+                } catch (error) {
+                    Logger.warn('PreferencesDialog', 'Standard colours save failed', error);
+                }
+            });
+        }
+    }
+
+    /** The grid colours the dialog shows, as stored: "#rrggbb", or null for the theme. @private */
+    _readGridColours(dialog) {
+        const out = {};
+        for (const key of ['pixel', 'cell', 'block', 'custom']) {
+            const picker = dialog.querySelector(`#pref-gridcolour-${key}`);
+            const theme = dialog.querySelector(`#pref-gridcolour-${key}-theme`);
+            out[key] = (picker && theme && !theme.checked) ? Validators.normaliseHexColour(picker.value) : null;
+        }
+        return out;
     }
 
     /**
@@ -636,6 +852,7 @@ class PreferencesDialogClass {
         const restoreOnBoot = dialog.querySelector('#pref-restore-on-boot');
         const confirmClear = dialog.querySelector('#pref-confirm-clear');
         const resetDrawMode = dialog.querySelector('#pref-reset-draw-mode');
+        const inverseEl = dialog.querySelector('#pref-inverse');
         const nudgeStepEl = dialog.querySelector('#pref-nudge-step');
         const nudgeStep = nudgeStepEl ? clamp(parseInt(nudgeStepEl.value, 10) || 1, 1, 32) : 1;
         const touchDraw = dialog.querySelector('#pref-touch-draw');
@@ -661,6 +878,12 @@ class PreferencesDialogClass {
         if (confirmClear) StateManager.set('confirmClear', confirmClear.checked);
         if (resetDrawMode) StateManager.set('resetDrawModeOnTool', resetDrawMode.checked);
         if (nudgeStepEl) StateManager.set('nudgeStep', nudgeStep);
+        // The custom snap step has its own storage key (see CanvasControls), written when the step changes.
+        const snapXEl = dialog.querySelector('#pref-snap-x');
+        const snapYEl = dialog.querySelector('#pref-snap-y');
+        if (snapXEl && snapYEl) StateManager.setGridSnapStep({ x: parseInt(snapXEl.value, 10), y: parseInt(snapYEl.value, 10) });
+        // Inverse is remembered under its own key (DrawModeBar), like grid snap, so it is not in `stored`.
+        if (inverseEl && inverseEl.checked !== StateManager.getInverse()) StateManager.setInverse(inverseEl.checked);
         // The drawing switch has a second home in the status bar, so it goes
         // through InputHandler — the single writer — rather than being set here
         // and left to drift out of step with the button.
@@ -676,6 +899,22 @@ class PreferencesDialogClass {
             StateManager.set('pressureSensitivityExplicit', true);
         }
         if (pressureStrengthEl) StateManager.set('pressureStrength', pressureStrength);
+
+        // Pointer readout and grid colours. The select values are checked by
+        // getReadout, which falls back to the defaults on anything else.
+        const readoutDetailEl = dialog.querySelector('#pref-readout-detail');
+        const yDirectionEl = dialog.querySelector('#pref-y-direction');
+        if (readoutDetailEl && yDirectionEl) StateManager.setReadout(readoutDetailEl.value, yDirectionEl.value);
+        // Standard colours: applied only if they changed, so OK on an untouched dialog recomposes nothing.
+        if (dialog.querySelector('#pref-standard-colours') && this._stdWork) {
+            const now = ColorManager.getStandardColours();
+            if (this._stdWork.some((c, i) => c.toUpperCase() !== now[i])) {
+                ColorManager.setStandardColours(this._stdWork);
+                if (window.LayerManager) LayerManager.composeToCanvas();
+            }
+        }
+        const gridColours = dialog.querySelector('#pref-grid-colours') ? this._readGridColours(dialog) : null;
+        if (gridColours && window.GridOverlay) GridOverlay.setGridColorOverrides(gridColours);
 
         // The folder itself was set by its own button (it needs the click as a
         // gesture); only the count is an ordinary field. BackupService owns
@@ -708,13 +947,31 @@ class PreferencesDialogClass {
             touchLockoutMs: touchLockout,
             pressureSensitivity: pressureEnabled?.checked,
             pressureStrength,
+            readoutDetail: StateManager.getReadout().detail,
+            yDirection: StateManager.getReadout().yDirection,
+            gridColors: gridColours || undefined,
+            // Only when edited, so the record stays as it was for everybody else.
+            standardColours: ColorManager.isStandardEdited() ? ColorManager.getStandardColours() : undefined,
             penProfile: pen?.profile,
             penCustom: pen?.custom,
             penActions: pen?.actions
         };
 
+        // Undo steps: stored under its own key by UndoRedo, and only when it changed, so an untouched
+        // dialog leaves a never-set depth following DEFAULT_UNDO_LIMIT. A typed value is held to the
+        // range like the other number fields; an emptied field keeps the depth it had. The number is
+        // read as the browser reads it (valueAsNumber), not with parseInt, which takes 1e3 for 1 and
+        // would throw away all but one step; a fraction rounds to the nearest whole step.
+        const undoLimitEl = dialog.querySelector('#pref-undo-limit');
+        const typedDepth = undoLimitEl ? Math.round(undoLimitEl.valueAsNumber) : NaN;
+        const depth = !Number.isFinite(typedDepth) ? UndoRedo.getMaxStates()
+            : clamp(typedDepth, ZX_SPECTRUM.MIN_UNDO_LIMIT, ZX_SPECTRUM.MAX_UNDO_LIMIT);
+        let depthStored = true;
+        if (depth !== UndoRedo.getMaxStates()) depthStored = await UndoRedo.setMaxStates(depth);
+
         try {
             await Storage.set('preferences', stored);
+            if (!depthStored) throw new Error('Undo steps not stored');
             Logger.info('PreferencesDialog', 'Preferences saved');
         } catch (error) {
             // The new values are live for this session either way; only the
@@ -736,6 +993,13 @@ class PreferencesDialogClass {
                 Storage.delete('preferences'),
                 Storage.delete('theme'),
                 Storage.delete('gridSnap'),
+                Storage.delete('gridSnapStep'),
+                Storage.delete('pref.undoLimit'),
+                Storage.delete('gridState'),
+                Storage.delete('inverse', Storage.STORES.PREFERENCES),
+                Storage.delete('viewColoursOff'),
+                Storage.delete('viewStopFlashing'),
+                Storage.delete('viewColourGrid'),
                 Storage.delete('touchDrawing'),
                 Storage.delete('colorrailCollapsed'),
                 Storage.delete('panelCollapse', Storage.STORES.WINDOW_STATE),

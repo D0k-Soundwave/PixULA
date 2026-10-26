@@ -144,18 +144,23 @@ class PNGFormatClass {
    */
   async export(options = {}) {
     const scale = options.scale || 1;
-    const width = ZX_SPECTRUM.WIDTH * scale;
-    const height = ZX_SPECTRUM.HEIGHT * scale;
+
+    // Get current canvas image data; Save Selection As passes the part to keep (options.rect)
+    let imageData = LayerManager.stillImageData();
+    if (options.rect) imageData = Helpers.cropImageData(imageData, options.rect);
+    const width = imageData.width * scale;
+    const height = imageData.height * scale;
 
     const canvas = Helpers.createCanvas(width, height);
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
 
-    // Get current canvas image data
-    const imageData = LayerManager.stillImageData();
-
     if (scale === 1) {
       ctx.putImageData(imageData, 0, 0);
+    } else if (options.rect) {
+      const part = Helpers.createCanvas(imageData.width, imageData.height);
+      part.getContext('2d').putImageData(imageData, 0, 0);
+      ctx.drawImage(part, 0, 0, width, height);
     } else {
       // Scale up using temp canvas
       this.tempCtx.putImageData(imageData, 0, 0);
@@ -314,9 +319,9 @@ class PNGFormatClass {
    * @returns {{pick:Object, result:Object}}
    * @private
    */
-  _gigaCell(hiresPick, decideRGB, cellRGB, dithering, w, h) {
+  _gigaCell(hiresPick, decideRGB, cellRGB, dithering, w, h, ox = 0, oy = 0) {
     const pick = hiresPick || GigaQuant.chooseCell(decideRGB);
-    return { pick, result: GigaQuant.renderCell(cellRGB, pick, dithering, w, h) };
+    return { pick, result: GigaQuant.renderCell(cellRGB, pick, dithering, w, h, undefined, ox, oy) };
   }
 
   /**
@@ -391,7 +396,7 @@ class PNGFormatClass {
         // written (docs/superpowers/specs/2026-09-26-gigascreen-photo-import-design.md)
         if (twoScreens) {
           const { pick, result } =
-            this._gigaCell(hiresPick, decideRGB, cellRGB, dithering, cw, ch);
+            this._gigaCell(hiresPick, decideRGB, cellRGB, dithering, cw, ch, cellX * cw, cellY * ch);
           layer.setCell(cellX, cellY, {
             ink: pick.a.ink, paper: pick.a.paper, bright: pick.a.bright, flash: false,
             pixels: result.pixelsA,
@@ -404,7 +409,7 @@ class PNGFormatClass {
         let attrs, pixels;
         if (ulaplus) {
           const pick = this._chooseCellPairUlaplus(decideRGB, paletteRGBs);
-          pixels = this._renderCellMask(cellRGB, pick, dithering, cw, ch);
+          pixels = this._renderCellMask(cellRGB, pick, dithering, cw, ch, cellX * cw, cellY * ch);
           attrs = {
             ink: pick.inkSlot,
             paper: pick.paperSlot,
@@ -412,8 +417,8 @@ class PNGFormatClass {
             flash: (pick.clut & 2) !== 0
           };
         } else {
-          const pair = this._chooseCellPair(decideRGB);
-          pixels = this._renderCellMask(cellRGB, pair, dithering, cw, ch);
+          const pair = this._cellPair(decideRGB);
+          pixels = this._renderCellMask(cellRGB, pair, dithering, cw, ch, cellX * cw, cellY * ch);
           attrs = {
             ink: pair.ink % 8,
             paper: pair.paper % 8,
@@ -532,7 +537,12 @@ class PNGFormatClass {
    */
   previewRenderer(imageData, scaling) {
     const prepared = this._preparePreview(imageData, scaling);
-    return (id) => this._quantizePrepared(prepared, IMPORT_METHODS.find((m) => m.id === id));
+    return (id, dithering) => {
+      const spec = IMPORT_METHODS.find((m) => m.id === id);
+      // The chosen Dither method drives Smooth and Sharp; Flat is "no dither" by definition. (The dialog hands Sharp a method only once one
+      // was chosen, so Sharp as first shown is unchanged.)
+      return this._quantizePrepared(prepared, dithering && id !== 'flat' ? { ...spec, dithering } : spec);
+    };
   }
 
   /**
@@ -610,7 +620,7 @@ class PNGFormatClass {
         // Two-screen modes: the Average blend of the cell's steady slots,
         // from the same _gigaCell the import writes with
         if (prepared.giga) {
-          const { result } = this._gigaCell(prepared.hiresPick, decideRGB, cellRGB, dithering, cw, ch);
+          const { result } = this._gigaCell(prepared.hiresPick, decideRGB, cellRGB, dithering, cw, ch, cellX * cw, cellY * ch);
           const start = ZX_COORDS.cellToPixel(cellX, cellY);
           for (let dy = 0; dy < ch; dy++) {
             for (let dx = 0; dx < cw; dx++) {
@@ -625,14 +635,19 @@ class PNGFormatClass {
         let rows, inkRGB, paperRGB;
         if (paletteRGBs) {
           const pick = this._chooseCellPairUlaplus(decideRGB, paletteRGBs);
-          rows = this._renderCellMask(cellRGB, pick, dithering, cw, ch);
+          rows = this._renderCellMask(cellRGB, pick, dithering, cw, ch, cellX * cw, cellY * ch);
           inkRGB = pick.inkRGB;
           paperRGB = pick.paperRGB;
         } else {
-          const pair = this._chooseCellPair(decideRGB);
-          rows = this._renderCellMask(cellRGB, pair, dithering, cw, ch);
-          inkRGB = ZX_PALETTE_RGB[pair.ink];
-          paperRGB = ZX_PALETTE_RGB[pair.paper];
+          const pair = this._cellPair(decideRGB);
+          rows = this._renderCellMask(cellRGB, pair, dithering, cw, ch, cellX * cw, cellY * ch);
+          // Which pixels are ink is decided against the hardware colours (so an import gives the
+          // same bytes in every browser); the preview is PAINTED with the standard colours the
+          // person has set in Preferences, so it matches the picture they will get.
+          const shown = (i) => (window.ColorManager && ColorManager.getStandardColoursRGB
+            ? ColorManager.getStandardColoursRGB()[i] : ZX_PALETTE_RGB[i]);
+          inkRGB = shown(pair.ink);
+          paperRGB = shown(pair.paper);
         }
 
         const start = ZX_COORDS.cellToPixel(cellX, cellY);
@@ -666,6 +681,19 @@ class PNGFormatClass {
     const paletteRGB = paletteOverride ||
       Array.from({ length: ZX_SPECTRUM.PALETTE_SIZE }, (_, i) => ColorManager.getRGB(i));
     const n = paletteRGB.length;
+    // Any Dither method (all 31 of ZX Paintbrush's) places each pixel between its two nearest palette colours, over the whole screen as
+    // one block - Dither.paletteIndices. The importer's own Floyd-Steinberg diffusion (the default) is kept exactly as it was, and a name
+    // that is no method falls back to it.
+    if (this._isDitherMethod(dithering)) {
+      const rgb = new Float32Array(W * H * 3);
+      for (let i = 0; i < W * H; i++) {
+        rgb[i * 3] = imageData.data[i * 4];
+        rgb[i * 3 + 1] = imageData.data[i * 4 + 1];
+        rgb[i * 3 + 2] = imageData.data[i * 4 + 2];
+      }
+      return Int16Array.from(Dither.paletteIndices(rgb, paletteRGB, dithering, W, H, 0, 0));
+    }
+    if (dithering !== 'none') dithering = 'floyd-steinberg';
 
     // Float working copy for error diffusion
     const work = new Float32Array(W * H * 3);
@@ -1050,9 +1078,21 @@ class PNGFormatClass {
    * @returns {Uint8Array} h ZX pixel rows, MSB = leftmost pixel
    * @private
    */
-  _renderCellMask(cellRGB, pair, dithering, w = CS, h = CS) {
+  _renderCellMask(cellRGB, pair, dithering, w = CS, h = CS, ox = 0, oy = 0) {
     const inkRGB = pair.inkRGB || ZX_PALETTE_RGB[pair.ink];
     const paperRGB = pair.paperRGB || ZX_PALETTE_RGB[pair.paper];
+    if (this._isDitherMethod(dithering)) {
+      // Any Dither method but the importer's own Floyd-Steinberg (kept exactly as it was): see Dither.paletteIndices.
+      const same = inkRGB[0] === paperRGB[0] && inkRGB[1] === paperRGB[1] && inkRGB[2] === paperRGB[2];
+      const idx = same ? null : Dither.paletteIndices(cellRGB, [inkRGB, paperRGB], dithering, w, h, ox, oy);
+      const rows = new Uint8Array(h);
+      for (let y = 0; y < h; y++) {
+        let rowByte = 0;
+        for (let x = 0; x < w; x++) if (!idx || idx[y * w + x] === 0) rowByte |= (1 << (w - 1 - x));
+        rows[y] = rowByte;
+      }
+      return rows;
+    }
     const buf = Float32Array.from(cellRGB);
     const pixels = new Uint8Array(h);
     const diffuse = dithering === 'floyd-steinberg';
@@ -1081,6 +1121,82 @@ class PNGFormatClass {
     }
 
     return pixels;
+  }
+
+  /**
+   * The ink / paper pair a cell is drawn with. Everywhere but single-screen Timex hi-res that is the best pair for the
+   * cell. Hi-res ignores cell attributes: every bit is drawn with the screen-wide scheme (ink n on paper n ^ 7, both
+   * bright), so the dots must be decided against THAT pair or a cell whose majority colour sits on the scheme's ink
+   * side comes out inverted. @private
+   */
+  _cellPair(decideRGB) {
+    if (ACTIVE_SCREEN_MODE.paletteModel === 'timexMono') {
+      const s = (window.ColorManager && ColorManager.getTimexHiresInk ? ColorManager.getTimexHiresInk() : 0) & 7;
+      return { ink: 8 + s, paper: 8 + (s ^ 7), bright: true };
+    }
+    return this._chooseCellPair(decideRGB);
+  }
+
+  /**
+   * A pattern tile (a fill) from a picture, as a size x size list of 0 / 1 with 1 = ink (the dark side), the same
+   * convention as the pattern library. Pure: no canvas, so the tile is the same in every browser.
+   *
+   * The picture is box-averaged onto the tile (alpha laid over white paper), then brightness / contrast, then luma and
+   * one Dither.apply. `scaling`: 'fit' shows the whole picture with paper around it, 'stretch' fills the tile with it,
+   * 'crop' fills the tile from the middle square.
+   * @param {{width:number,height:number,data:Uint8ClampedArray}} imageData
+   * @param {{size?:number, dithering?:string, brightness?:number, contrast?:number, scaling?:string}} [options]
+   * @returns {Uint8Array}
+   */
+  patternFromImage(imageData, options = {}) {
+    const { size = 32, dithering = 'floyd-steinberg', brightness = 0, contrast = 0, scaling = 'crop' } = options;
+    if (![8, 16, 32].includes(size)) throw new Error('patternFromImage: size must be 8, 16 or 32');
+    const w = imageData.width, h = imageData.height;
+    // The window of the picture the tile shows
+    let wx = 0, wy = 0, ww = w, wh = h;
+    if (scaling === 'crop') { const s = Math.min(w, h); wx = (w - s) / 2; wy = (h - s) / 2; ww = wh = s; }
+    else if (scaling === 'fit') { const L = Math.max(w, h); wx = (w - L) / 2; wy = (h - L) / 2; ww = wh = L; }
+    const tile = { width: size, height: size, data: new Uint8ClampedArray(size * size * 4) };
+    const src = imageData.data;
+    for (let dy = 0; dy < size; dy++) {
+      const y0 = wy + dy * wh / size, y1 = wy + (dy + 1) * wh / size;
+      for (let dx = 0; dx < size; dx++) {
+        const x0 = wx + dx * ww / size, x1 = wx + (dx + 1) * ww / size;
+        let r = 0, g = 0, b = 0, covered = 0;
+        const iy0 = y0 > 0 ? Math.floor(y0) : 0, iy1 = y1 < h ? Math.ceil(y1) : h;
+        const ix0 = x0 > 0 ? Math.floor(x0) : 0, ix1 = x1 < w ? Math.ceil(x1) : w;
+        for (let sy = iy0; sy < iy1; sy++) {
+          const wyv = (sy + 1 < y1 ? sy + 1 : y1) - (sy > y0 ? sy : y0);
+          if (wyv <= 0) continue;
+          for (let sx = ix0; sx < ix1; sx++) {
+            const wxv = (sx + 1 < x1 ? sx + 1 : x1) - (sx > x0 ? sx : x0);
+            if (wxv <= 0) continue;
+            const o = (sy * w + sx) * 4, a = src[o + 3] / 255, wt = wxv * wyv;
+            r += wt * (src[o] * a + 255 * (1 - a));
+            g += wt * (src[o + 1] * a + 255 * (1 - a));
+            b += wt * (src[o + 2] * a + 255 * (1 - a));
+            covered += wt;
+          }
+        }
+        const area = (x1 - x0) * (y1 - y0);
+        const white = Math.max(0, area - covered) * 255;       // outside the picture: paper
+        const o = (dy * size + dx) * 4;
+        tile.data[o] = Math.round((r + white) / area);
+        tile.data[o + 1] = Math.round((g + white) / area);
+        tile.data[o + 2] = Math.round((b + white) / area);
+        tile.data[o + 3] = 255;
+      }
+    }
+    const adj = (brightness || contrast) ? this.applyBrightnessContrast(tile, brightness, contrast) : tile;
+    const gray = new Float64Array(size * size);
+    for (let i = 0; i < gray.length; i++) gray[i] = Dither.luma(adj.data[i * 4], adj.data[i * 4 + 1], adj.data[i * 4 + 2]);
+    return Dither.apply(gray, size, size, dithering === 'none' ? 'threshold-50' : dithering);
+  }
+
+  /** True for a Dither method other than the importer's own Floyd-Steinberg and 'none'. @private */
+  _isDitherMethod(dithering) {
+    return !!dithering && dithering !== 'none' && dithering !== 'floyd-steinberg' &&
+      !!window.Dither && !!Dither.get(dithering);
   }
 
   /**

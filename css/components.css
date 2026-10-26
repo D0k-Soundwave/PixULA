@@ -81,6 +81,25 @@
     pointer-events: none;
 }
 
+/* A greyed-out row that explains itself (its title) must still get the
+   pointer for the tooltip to show; the click handler ignores it. */
+.menu-action.disabled[title] {
+    pointer-events: auto;
+    cursor: not-allowed;
+}
+
+.menu-action.disabled[title]:hover {
+    background: transparent;
+}
+
+/* A ticked row that the current screen mode greys out must not read as active:
+   the ticked style is more specific than the greyed one, so say it again. */
+.menu-action.menu-toggle.checked.disabled,
+.menu-action.menu-toggle.checked.disabled:hover {
+    color: var(--text-muted);
+    background: transparent;
+}
+
 /* The checked state highlights the whole row (same translucent-tint
    convention as the current-layer row, .layer-item.current) rather than
    drawing a glyph — a glyph needed its own gutter reserved on every toggle
@@ -340,6 +359,9 @@
 .tool-btn[data-draw-mode="xor"]:not(.active)        { color: var(--tool-color-dm-xor); }
 #attr-transpose:not(.active)                        { color: var(--tool-color-attr-swap); }
 #attr-apply:not(.active)                            { color: var(--tool-color-attr-recolour); }
+#attr-copy:not(.active)                             { color: var(--tool-color-attr-recolour); }
+#attr-invert-dots:not(.active),
+#attr-invert-both:not(.active)                      { color: var(--tool-color-attr-swap); }
 
 /* Bright/Flash toggles (clut-bar.js) are <label class="flash-btn"> wrapping
    a checkbox, not .tool-btn, and already switch to accent bg + on-accent
@@ -565,6 +587,62 @@
    that used to read as one undivided run (2026-10-07). As tall as the
    buttons beside it (the row aligns to flex-end) and a hair of space either
    side, so it costs the strip as little width as a divider can. */
+/* The top strip's group selectors (js/ui/components/strip-selector.js): one button per group
+   showing the choice in force, with a small corner marker saying "opens a list". */
+.strip-selector {
+    position: relative;
+}
+
+.strip-selector::after {
+    content: '';
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-top: 4px solid currentColor;
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* The pop-up grid: floats over the page on <body>, two icons wide, so opening it moves nothing.
+   Item size comes from the strip button it opened from (--strip-item-w/h, set in JS), because
+   the strip is zoomed and this layer is not. Below the shared tooltip (--z-tooltip) so the
+   hover tag can show over it. */
+.strip-popup {
+    position: fixed;
+    z-index: var(--z-dropdown);
+    display: grid;
+    grid-template-columns: repeat(2, var(--strip-item-w, 44px));
+    gap: 4px;
+    padding: 4px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.strip-popup-item {
+    width: var(--strip-item-w, 44px);
+    height: var(--strip-item-h, 44px);
+    min-height: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.strip-popup-item .tool-icon {
+    width: 60%;
+    height: 60%;
+}
+
+@media (forced-colors: active) {
+    .strip-popup {
+        background: Canvas;
+        border-color: CanvasText;
+    }
+}
+
 .marks-divider {
     align-self: stretch;
     width: 1px;
@@ -1368,6 +1446,23 @@
 .dir-pad-zone-down  { clip-path: polygon(50% 50%, 100% 100%, 0 100%); }
 .dir-pad-zone-left  { clip-path: polygon(50% 50%, 0 100%, 0 0); }
 
+/* Three-by-three variant (the Transform panel's shift pad). Each zone is
+   clipped to its own ninth, so the boundaries are straight lines between
+   ninths rather than wedges from the centre. The glyph fills the whole pad,
+   because each icon-dirpad9-* symbol is drawn inside its own ninth. The
+   centre ninth has no zone, so it stays empty. */
+.dir-pad--nine .dir-pad-zone { clip-path: none; }
+.dir-pad--nine .dir-pad-glyph { inset: 0; width: 100%; height: 100%; }
+.dir-pad--nine .dir-pad-zone-upLeft    { clip-path: inset(0 66.67% 66.67% 0); }
+.dir-pad--nine .dir-pad-zone-up        { clip-path: inset(0 33.33% 66.67% 33.33%); }
+.dir-pad--nine .dir-pad-zone-upRight   { clip-path: inset(0 0 66.67% 66.67%); }
+.dir-pad--nine .dir-pad-zone-left      { clip-path: inset(33.33% 66.67% 33.33% 0); }
+.dir-pad--nine .dir-pad-zone-right     { clip-path: inset(33.33% 0 33.33% 66.67%); }
+.dir-pad--nine .dir-pad-zone-downLeft  { clip-path: inset(66.67% 66.67% 0 0); }
+.dir-pad--nine .dir-pad-zone-down      { clip-path: inset(66.67% 33.33% 0 33.33%); }
+.dir-pad--nine .dir-pad-zone-downRight { clip-path: inset(66.67% 0 0 66.67%); }
+.tp-shift-move-row[hidden], .tp-shift-move-row span[hidden] { display: none; }
+
 /* Each zone owns its own quarter of icon-move (see the icon-dirpad-* symbols
    in index.html — the same path data icon-move uses, split so each quadrant
    is its own glyph) rather than sharing one always-filled background icon.
@@ -1557,6 +1652,29 @@
 .layer-checkbox.checked,
 .stamp-xor.active {
     color: var(--accent-primary);
+}
+
+/* A stamp that places its own colours ignores XOR: the button stays, dimmed. */
+.stamp-xor.is-ignored {
+    opacity: 0.4;
+}
+
+/* Stamp settings in the Transform panel: the show-through boxes sit in a row that wraps. */
+.tp-show-through-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+}
+
+.tp-show-through-heading {
+    flex-basis: 100%;
+}
+
+.tp-st-box {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .layer-visibility:not(.visible),
@@ -3396,3 +3514,163 @@
     flex: 1;
     min-height: 0;
 }
+
+/* Image > Attributes > Change... (change-attributes-dialog.js) */
+.attr-change {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    min-width: min(90vw, 440px);
+}
+
+.attr-change-scope,
+.attr-change-count {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.attr-change-side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.attr-change-side-title {
+    margin: 0;
+    font-size: var(--font-size-md);
+}
+
+.attr-change-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+}
+
+.attr-change-caption {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.attr-change-field {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs);
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.attr-change-field legend {
+    width: 100%;
+    padding: 0;
+    font-size: var(--font-size-sm);
+}
+
+.attr-change-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: var(--font-size-sm);
+}
+
+.attr-change-swatch {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 1px solid var(--border-color);
+    border-radius: 2px;
+}
+
+/* ── Font editor: all-characters map (Batch 10C2b) ────────────────────── */
+
+.font-editor-dialog.fe-wide {
+    width: min(1100px, 96vw);
+}
+
+.fe-map-tools {
+    display: inline-flex;
+    gap: var(--space-xs);
+    align-items: center;
+}
+
+.fe-map-viewport {
+    max-width: 100%;
+    max-height: 60vh;
+    max-height: 60dvh;
+    overflow: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--input-bg);
+}
+
+.fe-map-viewport:focus-visible {
+    outline: 2px solid var(--accent-color, #3b82f6);
+    outline-offset: 1px;
+}
+
+.fe-map-canvas {
+    display: block;
+    image-rendering: pixelated;
+    touch-action: none;
+}
+
+.fe-glyph-grid:focus-visible {
+    outline: 2px solid var(--accent-color, #3b82f6);
+    outline-offset: 1px;
+}
+
+.fe-shade-bar .fe-shade-title,
+.fe-shade-state {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+/* New Big Font / Fill from font dialogs */
+.fe-fill-dialog {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    min-width: min(320px, 90vw);
+}
+
+.fe-fill-field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+}
+
+.fe-fill-field select,
+.fe-fill-field input[type="number"] {
+    min-width: 0;
+    max-width: 60%;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 2px 4px;
+}
+
+.fe-fill-dialog .panel-button {
+    align-self: flex-end;
+}
+
+/* Map Elements panel (Batch 11B) */
+.mapel-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); font-size: var(--font-size-xs); color: var(--text-secondary); }
+.mapel-row select { min-width: 0; max-width: 65%; background: var(--input-bg); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: var(--font-size-xs); padding: 2px 4px; }
+.mapel-count, .mapel-place, .mapel-idle { margin: var(--space-xs) 0; font-size: var(--font-size-xs); color: var(--text-secondary); }
+.mapel-buttons { display: flex; gap: var(--space-xs); margin-top: var(--space-xs); }
+.mapel-buttons .panel-button { flex: 1 1 0; min-width: 0; }
+.mapel-list { list-style: none; margin: var(--space-xs) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-xs); }
+.mapel-item { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-xs); font-size: var(--font-size-xs); color: var(--text-primary); }
+.mapel-item-label { flex: 1 1 100%; min-width: 0; }
+.mapel-item-off { opacity: 0.6; }
+.mapel-item .panel-button { flex: 1 1 0; }

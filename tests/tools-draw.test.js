@@ -102,12 +102,15 @@ loadModule('js/core/pixel-draw-routine.js');
 
 // ── Real tool layer ────────────────────────────────────────────────────────
 loadModule('js/data/zx-rom-font.js'); // TextTool builds its charset from this
+loadModule('js/utils/bitmap-text.js');
 loadModule('js/tools/tool-base.js');
 loadModule('js/tools/tool-manager.js');
 loadModule('js/utils/brush-shapes.js');
 loadModule('js/tools/brush-engine.js');
 loadModule('js/tools/shape-generator.js');
 
+loadModule('js/tools/figure-model.js');
+loadModule('js/tools/figure-editor.js');
 const TOOL_FILES = [
   ['brush-tool.js', 'BrushTool'], ['eraser-tool.js', 'EraserTool'],
   ['fill-tool.js', 'FillTool'], ['shape-tool.js', 'ShapeTool'],

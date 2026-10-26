@@ -648,6 +648,13 @@ class LayerManagerClass {
     // render with INK/PAPER swapped. Toggled by the flash clock.
     this._flashInverted = false;
     this._flashClockId = null;
+    // Display-only view switches (View menu): Colours off, Colour grid, Stop
+    // flashing. `_dispRaw` is what the user chose; `_disp` is what applies in
+    // the ACTIVE mode, recomputed by _refreshDisplayFlags so the per-cell code
+    // reads three booleans and nothing else. View state only - never stored in
+    // a document, never in an export (see stillImageData).
+    this._dispRaw = { coloursOff: false, colourGrid: false, stopFlashing: false };
+    this._disp = { mono: false, grid: false, noFlash: false };
     // GigaScreen display: 'average' (the per-channel blend), 'flicker' (the
     // two screens alternating), 'a' or 'b'. What the canvas SHOWS, never where
     // a stroke goes - every stroke writes both screens. Session view state,
@@ -684,6 +691,126 @@ class LayerManagerClass {
         this.deferCellCompose(cx, cy);
       }
     }, 320);
+  }
+
+  /** Stop the flash clock; the cells it was driving are shown in the normal phase. @private */
+  _stopFlashClock() {
+    if (this._flashClockId === null) return;
+    clearInterval(this._flashClockId);
+    this._flashClockId = null;
+    this._flashInverted = false;
+    for (const key of this._flashingCells) {
+      const comma = key.indexOf(',');
+      this.deferCellCompose(key.substring(0, comma) | 0, key.substring(comma + 1) | 0);
+    }
+  }
+
+  /**
+   * Run the flash clock exactly while something can flash on screen: not while
+   * Stop flashing applies, and not while the colours are hidden (Colours off
+   * and Colour grid show no ink or paper to swap).
+   * @private
+   */
+  _syncFlashClock() {
+    const d = this._disp;
+    if (d.noFlash || d.mono || d.grid) this._stopFlashClock();
+    else this._startFlashClock();
+  }
+
+  /**
+   * Recompute which view switches apply in the ACTIVE screen mode.
+   *   mono   Colours off: every mode with dots (not the indexed modes)
+   *   grid   Colour grid: only where cells have attributes (not Timex hi-res,
+   *          not the indexed modes: there are no cells to show)
+   *   noFlash  Stop flashing: only where the palette flashes (fixed16)
+   * Called on a view change and before every full compose, so a screen-mode
+   * switch (which always ends in a full compose) cannot leave stale flags.
+   * @private
+   */
+  _refreshDisplayFlags() {
+    const r = this._dispRaw;
+    const d = this._disp;
+    const can = this.displayViewAvailability();
+    d.mono = r.coloursOff && can.coloursOff;
+    d.grid = r.colourGrid && can.colourGrid;
+    d.noFlash = r.stopFlashing && can.stopFlashing;
+  }
+
+  /**
+   * Which of the three view switches the ACTIVE screen mode can show. The one
+   * place this is decided: the compositor and the View menu both ask here.
+   *   coloursOff    every mode with dots (the indexed modes have none)
+   *   colourGrid    only where cells have attributes (not Timex hi-res)
+   *   stopFlashing  only where the palette flashes
+   * @returns {{indexed: boolean, coloursOff: boolean, colourGrid: boolean, stopFlashing: boolean}}
+   */
+  displayViewAvailability() {
+    const indexed = ZX_SPECTRUM.PIXEL_DEPTH > 1;
+    const model = ACTIVE_SCREEN_MODE.paletteModel;
+    return {
+      indexed,
+      coloursOff: !indexed,
+      colourGrid: !indexed && model !== 'timexMono',
+      stopFlashing: model === 'fixed16'
+    };
+  }
+
+  /**
+   * The GigaScreen display actually drawn. Flicker is a 50 Hz strobe between
+   * the two screens; with the colours hidden it would be a black and white
+   * flash with screen A only and screen B only looking the same, so while
+   * Colours off or Colour grid applies it shows the Average (the grey levels).
+   * @returns {string} 'average' | 'flicker' | 'a' | 'b'
+   * @private
+   */
+  _effectiveGigaView() {
+    const v = this._gigaView;
+    return (v === 'flicker' && (this._disp.mono || this._disp.grid)) ? 'average' : v;
+  }
+
+  /**
+   * Apply the three display-only view switches and repaint.
+   * @param {{coloursOff?: boolean, colourGrid?: boolean, stopFlashing?: boolean}} v
+   */
+  setDisplayView(v) {
+    this._dispRaw = {
+      coloursOff: !!(v && v.coloursOff),
+      colourGrid: !!(v && v.colourGrid),
+      stopFlashing: !!(v && v.stopFlashing)
+    };
+    this._refreshDisplayFlags();
+    this._syncFlashClock();
+    this._syncGigaFlicker();
+    this.composeToCanvas();
+  }
+
+  /**
+   * The ink a cell shows. THE display-colour rule: the four places that
+   * resolve a cell's colours (composeCellToCanvas, previewCellColours, the
+   * single-screen and blended GigaScreen paths) all ask here, so the view
+   * switches cannot apply in one path and not another.
+   * Colours off / Colour grid: black. Otherwise the cell's own ink, swapped
+   * with its paper in the FLASH inverted phase unless Stop flashing applies.
+   * @param {{ink: Uint8Array, paper: Uint8Array, flashing: boolean}} res
+   * @returns {Uint8Array} RGB triplet
+   * @private
+   */
+  _cellInk(res) {
+    const d = this._disp;
+    if (d.mono || d.grid) return DISPLAY_VIEW_COLOURS.BLACK;
+    return (res.flashing && this._flashInverted && !d.noFlash) ? res.paper : res.ink;
+  }
+
+  /**
+   * The paper a cell shows (see _cellInk). Colour grid alternates white and a
+   * light grey by cell, like a chessboard.
+   * @private
+   */
+  _cellPaper(res, cellX, cellY) {
+    const d = this._disp;
+    if (d.mono) return DISPLAY_VIEW_COLOURS.WHITE;
+    if (d.grid) return ((cellX + cellY) & 1) ? DISPLAY_VIEW_COLOURS.CELL_ALT : DISPLAY_VIEW_COLOURS.WHITE;
+    return (res.flashing && this._flashInverted && !d.noFlash) ? res.ink : res.paper;
   }
 
   /**
@@ -738,6 +865,50 @@ class LayerManagerClass {
    * Set the background paper color
    * @param {number} colorIndex - Color index (0-15, where 0-7 are normal, 8-15 are bright)
    */
+  /**
+   * Make the picture the part of it inside a block of whole cells (New picture from selection). Every layer keeps its
+   * cells for that block, moved to the top left; the cells that are left over are empty, or on the background layer
+   * Paper White, as File > New leaves them. The screen mode and the canvas size do not change. The caller wraps this in an
+   * undo action (the snapshot holds every layer), as ScreenModeService.switchMode does when it replaces the grids.
+   * @param {number} cx - first cell column
+   * @param {number} cy - first cell row
+   * @param {number} cols
+   * @param {number} rows
+   * @returns {boolean} false if the block is empty or outside the grid
+   */
+  cropToCells(cx, cy, cols, rows) {
+    if (!(cols > 0 && rows > 0) || cx < 0 || cy < 0 || cx + cols > ZX_SPECTRUM.GRID_COLS || cy + rows > ZX_SPECTRUM.GRID_ROWS) return false;
+    const cellW = ZX_SPECTRUM.CELL_WIDTH, cellH = ZX_SPECTRUM.CELL_HEIGHT;
+    const WHITE_PAPER = 7;
+    for (const layer of this.layers) {
+      const old = layer.attributeData;
+      layer._initializeAttributeData();
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) layer.attributeData[y][x] = old[cy + y][cx + x];
+      }
+      if (layer.isBackground) {
+        for (let y = 0; y < ZX_SPECTRUM.GRID_ROWS; y++) {
+          for (let x = 0; x < ZX_SPECTRUM.GRID_COLS; x++) {
+            if (x < cols && y < rows) continue;
+            const cell = layer.attributeData[y][x];
+            cell.paper = WHITE_PAPER;
+            cell.ink = 0;
+            cell.bright = false;
+            if (cell.indices) cell.indices.fill(Helpers.clamp(WHITE_PAPER, 0, ZX_SPECTRUM.PALETTE_SIZE - 1));
+          }
+        }
+      }
+      if (layer.isStamp && layer.stamp) {
+        layer.stamp.x -= cx * cellW;
+        layer.stamp.y -= cy * cellH;
+      }
+    }
+    if (window.AttributeSystem) AttributeSystem.clearAll();
+    this.composeToCanvas();
+    if (window.CanvasSystem && CanvasSystem.markAllDirty) CanvasSystem.markAllDirty();
+    return true;
+  }
+
   setBackgroundColor(colorIndex) {
     const bgLayer = this.layers[0];
     if (!bgLayer) return;
@@ -1509,8 +1680,12 @@ class LayerManagerClass {
     newLayer.locked = source.locked;
     newLayer.isStamp = source.isStamp;
     newLayer.xorMode = source.xorMode;
-    newLayer.stamp = this._plainStamp(source.stamp);
+    // The stamp's live data (it may be the one being dragged, or a fresh
+    // paste with no parked copy), and none of the preview cells it drew.
+    const live = window.SelectionService ? SelectionService.getStampData(source) : source.stamp;
+    newLayer.stamp = this._plainStamp(live || source.stamp);
     newLayer.restoreAttributeData(source.cloneAttributeData());
+    if (newLayer.isStamp && newLayer.stamp) newLayer.clear();
 
     return newLayer;
   }
@@ -1531,6 +1706,14 @@ class LayerManagerClass {
     // active mode descriptor and GRID_COLS/GRID_ROWS each perform a division,
     // so leaving them in the loop conditions re-derives both on every one of
     // the 768 (or 2,560) iterations.
+    this._refreshDisplayFlags();
+    this._syncFlashClock();
+    this._composeAll();
+    CanvasSystem.requestRender();
+  }
+
+  /** Compose every cell with the flags and clock as they are. @private */
+  _composeAll() {
     const rows = ZX_SPECTRUM.GRID_ROWS;
     const cols = ZX_SPECTRUM.GRID_COLS;
     for (let cellY = 0; cellY < rows; cellY++) {
@@ -1538,7 +1721,6 @@ class LayerManagerClass {
         this.composeCellToCanvas(cellX, cellY);
       }
     }
-    CanvasSystem.requestRender();
   }
 
   /**
@@ -1640,17 +1822,13 @@ class LayerManagerClass {
       this._flashingCells.delete(flashKey);
     }
 
-    let inkColor = resolved.ink;
-    let paperColor = resolved.paper;
-
     // ZX FLASH: during the inverted phase, flagged cells render with INK and
-    // PAPER swapped. Only the render colours are swapped — the cell's stored
-    // attributes are untouched so export/undo see the true base values.
-    if (resolved.flashing && this._flashInverted) {
-      const tmp = inkColor;
-      inkColor = paperColor;
-      paperColor = tmp;
-    }
+    // PAPER swapped. Only the render colours are swapped - the cell's stored
+    // attributes are untouched so export/undo see the true base values. The
+    // display-only view switches (Colours off, Colour grid, Stop flashing)
+    // are applied in the same two calls.
+    const inkColor = this._cellInk(resolved);
+    const paperColor = this._cellPaper(resolved, cellX, cellY);
 
     // Render the cell (rows are one byte wide — attrCellW is 8 in every
     // classic mode, MSB = leftmost pixel). The two resolved colours are
@@ -1854,7 +2032,7 @@ class LayerManagerClass {
     const altered = this._previewAltered(cellX, cellY, overrideLayer, overrideCell, null);
 
     if (ZX_SPECTRUM.SCREENS === 2) {
-      return this._gigaCellColours(altered, bgCell, cellW, cellH).colours;
+      return this._gigaCellColours(altered, bgCell, cellW, cellH, cellX, cellY).colours;
     }
 
     const rgbOf = (index) => (window.ColorManager
@@ -1869,9 +2047,8 @@ class LayerManagerClass {
 
     const { attrs, pixels } = this._composeCellData(altered, bgCell, cellH);
     const resolved = this._resolveCellColors(attrs);
-    let ink = resolved.ink;
-    let paper = resolved.paper;
-    if (resolved.flashing && this._flashInverted) { const t = ink; ink = paper; paper = t; }
+    const ink = this._cellInk(resolved);
+    const paper = this._cellPaper(resolved, cellX, cellY);
     for (let row = 0; row < cellH; row++) {
       for (let col = 0; col < cellW; col++) {
         out[row * cellW + col] = ((pixels[row] >> (cellW - 1 - col)) & 1) ? ink : paper;
@@ -1912,6 +2089,22 @@ class LayerManagerClass {
       out.pixelsB = b.pixels;
     }
     return out;
+  }
+
+  /**
+   * The composited palette indices of one cell with `overrideCell` standing in
+   * for `overrideLayer`'s and `excludeLayer` left out - previewCellData for the
+   * indexed modes. The floating stamp's "clear dots overlap" preview uses it:
+   * the stamp layer's cell holds the whole picture the commit would leave.
+   * @returns {Int16Array} cellW*cellH indices, none transparent
+   */
+  previewCellIndices(cellX, cellY, overrideLayer, overrideCell, excludeLayer) {
+    const bgLayer = this.layers[0];
+    const bgCell = (overrideCell && overrideLayer === bgLayer)
+      ? overrideCell
+      : (bgLayer ? bgLayer.getCell(cellX, cellY) : null);
+    const altered = this._previewAltered(cellX, cellY, overrideLayer, overrideCell, excludeLayer);
+    return this._composeIndexedCellData(altered, bgCell, ZX_SPECTRUM.CELL_WIDTH, ZX_SPECTRUM.CELL_HEIGHT, false);
   }
 
   /**
@@ -2053,7 +2246,7 @@ class LayerManagerClass {
    * @private
    */
   _composeGigaCell(cellX, cellY, alteredLayers, bgCell, cellW, cellH, baseX, baseY) {
-    const view = this._gigaView;
+    const view = this._effectiveGigaView();
     // One screen at a time (A, B, or a flicker frame) is an ordinary
     // two-colour cell, so it takes the classic blit - the flicker display
     // recomposes every frame and cannot afford 64 setPixel calls per cell.
@@ -2062,15 +2255,14 @@ class LayerManagerClass {
       const data = this._composeCellData(alteredLayers, bgCell, cellH, plane);
       const res = this._resolveCellColors(data.attrs, plane);
       this._trackFlash(cellX, cellY, res.flashing);
-      let ink = res.ink, paper = res.paper;
-      if (res.flashing && this._flashInverted) { const t = ink; ink = paper; paper = t; }
+      const ink = this._cellInk(res), paper = this._cellPaper(res, cellX, cellY);
       CanvasSystem.blitCellBits(baseX, baseY, cellW, cellH, data.pixels,
         CanvasSystem.packRGB(ink), CanvasSystem.packRGB(paper));
       CanvasSystem.markCellDirty(cellX, cellY);
       return;
     }
 
-    const { colours, flashing } = this._gigaCellColours(alteredLayers, bgCell, cellW, cellH);
+    const { colours, flashing } = this._gigaCellColours(alteredLayers, bgCell, cellW, cellH, cellX, cellY);
     this._trackFlash(cellX, cellY, flashing);
 
     for (let row = 0; row < cellH; row++) {
@@ -2101,26 +2293,31 @@ class LayerManagerClass {
    * @returns {{colours: Array<Uint8Array>, flashing: boolean}}
    * @private
    */
-  _gigaCellColours(alteredLayers, bgCell, cellW, cellH) {
+  _gigaCellColours(alteredLayers, bgCell, cellW, cellH, cellX = 0, cellY = 0) {
     const a = this._composeCellData(alteredLayers, bgCell, cellH, 0);
     const b = this._composeCellData(alteredLayers, bgCell, cellH, 1);
     const resA = this._resolveCellColors(a.attrs, 0);
     const resB = this._resolveCellColors(b.attrs, 1);
 
-    let inkA = resA.ink, paperA = resA.paper;
-    if (resA.flashing && this._flashInverted) { const t = inkA; inkA = paperA; paperA = t; }
-    let inkB = resB.ink, paperB = resB.paper;
-    if (resB.flashing && this._flashInverted) { const t = inkB; inkB = paperB; paperB = t; }
+    const inkA = this._cellInk(resA), paperA = this._cellPaper(resA, cellX, cellY);
+    const inkB = this._cellInk(resB), paperB = this._cellPaper(resB, cellX, cellY);
 
-    const view = this._gigaView === 'flicker'
+    const shownView = this._effectiveGigaView();
+    const view = shownView === 'flicker'
       ? (this._gigaFlickerPhase ? 'b' : 'a')
-      : this._gigaView;
+      : shownView;
     // The 4 possible blended colours of this cell, indexed bitA*2 + bitB
     // (GIGA_SLOTS)
-    const blends = view === 'average' ? [
+    // Colours off / Colour grid show the dots as grey levels instead: no dot
+    // is the cell's paper, a dot on one screen only is a grey, on both black.
+    const shown = this._disp.mono || this._disp.grid;
+    const blends = view !== 'average' ? null : shown ? [
+      paperA, DISPLAY_VIEW_COLOURS.SCREEN_B_ONLY,
+      DISPLAY_VIEW_COLOURS.SCREEN_A_ONLY, DISPLAY_VIEW_COLOURS.BLACK
+    ] : [
       this._blendRGB(paperA, paperB), this._blendRGB(paperA, inkB),
       this._blendRGB(inkA, paperB), this._blendRGB(inkA, inkB)
-    ] : null;
+    ];
 
     const colours = new Array(cellW * cellH);
     for (let row = 0; row < cellH; row++) {
@@ -2199,26 +2396,48 @@ class LayerManagerClass {
   /**
    * The canvas as a still picture, for the image exporters (PNG, BMP, JPG).
    *
-   * The canvas buffer is whatever was last composed, and under the Flicker
-   * display that is whichever screen the last frame showed - so an export
-   * would come out as screen A or screen B at random. A still picture cannot
-   * flicker, so it gets the Average, which is what the eye sees; every other
-   * display (Average, A, B) exports as shown, exactly as before.
-   * @returns {ImageData} the live buffer, or a copy rendered in Average
+   * The canvas buffer is whatever was last composed, so three things would
+   * leak into an export, and each is taken out:
+   *  - the Flicker display (the buffer holds whichever screen the last frame
+   *    showed): a still picture gets the Average, which is what the eye sees;
+   *  - the display-only view switches (Colours off, Colour grid): an export
+   *    is the picture, not the way it is being looked at;
+   *  - a FLASH cell caught in its inverted phase: exports show the normal one.
+   * Every other display (Average, A, B) exports as shown, exactly as before.
+   * @returns {ImageData} the live buffer, or a copy rendered as above
    */
   stillImageData() {
-    if (ZX_SPECTRUM.SCREENS !== 2 || this._gigaView !== 'flicker') {
-      return CanvasSystem.getImageData();
+    // The buffer must be current first: the flash clock and queued strokes
+    // only mark cells for the next frame.
+    this.flushPendingCompose();
+    const d = this._disp;
+    const viewSwitch = d.mono || d.grid;
+    const flicker = ZX_SPECTRUM.SCREENS === 2 && this._gigaView === 'flicker';
+    const midFlash = this._flashInverted && this._flashingCells.size > 0;
+    if (!viewSwitch && !flicker && !midFlash) return CanvasSystem.getImageData();
+
+    const savedRaw = this._dispRaw;
+    const savedPhase = this._flashInverted;
+    const savedView = this._gigaView;
+    try {
+      this._dispRaw = { coloursOff: false, colourGrid: false, stopFlashing: false };
+      this._flashInverted = false;
+      if (flicker) this._gigaView = 'average';
+      this._refreshDisplayFlags();
+      this._composeAll();
+      const live = CanvasSystem.getImageData();
+      const copy = Helpers.createCanvas(live.width, live.height).getContext('2d')
+        .createImageData(live.width, live.height);
+      copy.data.set(live.data);
+      return copy;
+    } finally {
+      // Put the screen back as the user has it, whatever happened above.
+      this._dispRaw = savedRaw;
+      this._flashInverted = savedPhase;
+      this._gigaView = savedView;
+      this._refreshDisplayFlags();
+      this._composeAll();
     }
-    this._gigaView = 'average';
-    this.composeToCanvas();
-    const live = CanvasSystem.getImageData();
-    const copy = Helpers.createCanvas(live.width, live.height).getContext('2d')
-      .createImageData(live.width, live.height);
-    copy.data.set(live.data);
-    this._gigaView = 'flicker';
-    this.composeToCanvas();
-    return copy;
   }
 
   /**
@@ -2227,7 +2446,8 @@ class LayerManagerClass {
    * change and on every mode switch.
    */
   _syncGigaFlicker() {
-    const want = this._gigaView === 'flicker' && ZX_SPECTRUM.SCREENS === 2;
+    const want = this._gigaView === 'flicker' && ZX_SPECTRUM.SCREENS === 2 &&
+      !(this._disp.mono || this._disp.grid);
     const raf = typeof window !== 'undefined' && window.requestAnimationFrame;
     if (!want || !raf) {
       if (this._gigaFlickerId !== null && window.cancelAnimationFrame) {
@@ -2247,7 +2467,7 @@ class LayerManagerClass {
     // two refreshes; an emulator on the same display does exactly that.
     const frameMs = LayerManagerClass.GIGA_FRAME_MS;
     const tick = (now) => {
-      if (this._gigaView !== 'flicker' || ZX_SPECTRUM.SCREENS !== 2) {
+      if (this._gigaView !== 'flicker' || ZX_SPECTRUM.SCREENS !== 2 || this._disp.mono || this._disp.grid) {
         this._gigaFlickerId = null;
         this._gigaFlickerPhase = 0;
         return;
@@ -2714,13 +2934,61 @@ class LayerManagerClass {
    */
   _plainStamp(s) {
     if (!s || !Array.isArray(s.mask) || s.mask.length === 0) return null;
-    return {
+    const out = {
       x: s.x, y: s.y, w: s.w, h: s.h,
       colorSelection: s.colorSelection ? { ...s.colorSelection } : null,
       mask: s.mask.map(row => Array.from(row, Boolean)),
       indices: s.indices ? s.indices.map(row => Array.from(row)) : null,
       attrs: s.attrs ? Array.from(s.attrs) : null
     };
+    // Written only when set, so a stamp without settings saves as it always did.
+    if (s.attrGrid) out.attrGrid = { ...s.attrGrid };
+    // The dots a text stamp CLEARS (its opposite-dot shade / contour). Only when there is one, and only if it has the
+    // mask's shape, so every other stamp saves byte for byte as before.
+    if (Array.isArray(s.clearMask) && s.clearMask.length === s.mask.length &&
+        s.clearMask.every((row, i) => row && row.length === s.mask[i].length) &&
+        s.clearMask.some(row => Array.from(row).some(Boolean))) {
+      out.clearMask = s.clearMask.map(row => Array.from(row, Boolean));
+    }
+    if (s.opts) {
+      out.opts = { ...s.opts };
+      if (s.opts.showThrough) out.opts.showThrough = { ...s.opts.showThrough };
+    }
+    return out;
+  }
+
+  /**
+   * The per-stamp settings of a file's stamp, cleaned: only allowed values
+   * survive and anything else falls back to the default (null).
+   * @private
+   */
+  _readStampOpts(o) {
+    if (!o || typeof o !== 'object') return null;
+    const out = {};
+    if (o.colours === 'pixels' || o.colours === 'coloured') out.colours = o.colours;
+    if (o.clearDots === 'transparent' || o.clearDots === 'overlap') out.clearDots = o.clearDots;
+    // 'rail': a cell without attributes of its own is drawn with the attribute bar (a coloured-font text stamp), not a hole
+    if (o.uncoloured === 'rail') out.uncoloured = 'rail';
+    if (o.showThrough && typeof o.showThrough === 'object') {
+      out.showThrough = {};
+      for (const k of ['ink', 'paper', 'bright', 'flash']) out.showThrough[k] = o.showThrough[k] === true;
+    }
+    return Object.keys(out).length ? out : null;
+  }
+
+  /**
+   * The attribute grid of a file's stamp, or null if it does not hold
+   * together with the attrs it describes.
+   * @private
+   */
+  _readStampAttrGrid(g, attrs) {
+    if (!g || typeof g !== 'object' || !Array.isArray(attrs)) return null;
+    const ints = [g.cols, g.rows, g.cw, g.ch, g.ox, g.oy];
+    if (!ints.every(Number.isInteger)) return null;
+    if (g.cols < 1 || g.rows < 1 || g.cw < 1 || g.ch < 1) return null;
+    if (g.cols * g.rows !== attrs.length) return null;
+    if (g.ox < 0 || g.ox >= g.cw || g.oy < 0 || g.oy >= g.ch) return null;
+    return { cols: g.cols, rows: g.rows, cw: g.cw, ch: g.ch, ox: g.ox, oy: g.oy };
   }
 
   /**
@@ -2745,7 +3013,10 @@ class LayerManagerClass {
       mask: s.mask,
       colorSelection: s.colorSelection && typeof s.colorSelection === 'object' ? s.colorSelection : null,
       indices: rowsOk(s.indices) ? s.indices : null,
-      attrs: Array.isArray(s.attrs) ? s.attrs : null
+      attrs: Array.isArray(s.attrs) ? s.attrs : null,
+      attrGrid: this._readStampAttrGrid(s.attrGrid, s.attrs),
+      opts: this._readStampOpts(s.opts),
+      clearMask: rowsOk(s.clearMask) ? s.clearMask : null
     });
   }
 

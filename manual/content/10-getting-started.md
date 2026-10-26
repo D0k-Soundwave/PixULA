@@ -40,7 +40,7 @@ what they do to the picture.*
 
 ![The colour rail](img/colour-rail.png)
 
-*The colour rail: ink on the left, paper on the right, with bright and flash
+*The colour rail: Ink on the left, Paper on the right, with Bright and Flash
 above them.*
 
 ![The colour bar](img/colour-bar.png)

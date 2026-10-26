@@ -10,7 +10,7 @@ Einige häufige Aufgaben, von Anfang bis Ende.
    8×8-Blöcke sehen, in denen die Farbe gespeichert wird.
 3. Wählen Sie eine Tintenfarbe in der Farbleiste oder mit den Zifferntasten 1
    bis 8 und eine Papierfarbe per Rechtsklick auf ein Farbfeld.
-4. Zeichnen Sie mit dem **Pinsel**. Linke Taste für Tinte, rechte für Papier.
+4. Zeichnen Sie mit dem **Pinsel**. Linke Taste für Tintenpixel, rechte für Papierpixel.
 5. Zoomen Sie mit `+` und `-`. Halten Sie die Leertaste und ziehen Sie, um sich
    zu bewegen, oder nutzen Sie das Werkzeug **Ansicht verschieben**.
 6. `Strg+Z` macht rückgängig. `Strg+S` speichert ein `.pixula`-Projekt, das

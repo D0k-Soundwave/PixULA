@@ -29,6 +29,11 @@ class ColorManagerClass {
         // needs a palette colour reads it from here, never from a second copy.
         this.palette = ZX_PALETTE.slice();
         this.paletteRGB = ZX_PALETTE_RGB.slice();
+        // The STANDARD colours the fixed palette modes show (Batch 6 part 6B): ZX_PALETTE unless the
+        // person has edited them in Preferences. A per-browser setting, not document state. ZX_PALETTE
+        // stays frozen as the default and the reset target.
+        this._stdHex = ZX_PALETTE.slice();
+        this._stdRGB = ZX_PALETTE_RGB.map(c => Uint8Array.from(c));
         // ULAplus register file (Uint8Array(64), G3R3B2) — document state,
         // lazily seeded from the default set the first time ULAplus mode
         // activates; carried by undo snapshots, autosave and the SCR variant.
@@ -49,6 +54,16 @@ class ColorManagerClass {
         // shared by Layer 2 / LoRes / ULANext. Carried by undo snapshots,
         // autosave and the .nxi/.npl/.pal palette blocks.
         this.nextRegisters = null;
+        // Palette SLOTS (Batch 6 part 6A): four palettes per palette kind. The live
+        // register file above IS the active slot; the other three are stored aside
+        // here. A stored file is NEVER changed in place (an undo snapshot may hold
+        // the same array), every change replaces the kind's object. `touched` is
+        // false until a slot has been used, so an untouched document saves no
+        // slot data. null in `stored` = the pristine defaults.
+        this._slots = {
+            ulaplus64: { active: 0, stored: [null, null, null, null], touched: false },
+            rgb333: { active: 0, stored: [null, null, null, null], touched: false }
+        };
         // Indexed-mode drawing state (pixelDepth > 1): the palette index the
         // brush paints (nextInk) and the index ERASE/PAPER writes on the
         // background layer (nextPaper). Tool state like ink/paper, not
@@ -71,6 +86,9 @@ class ColorManagerClass {
      * Initialize color manager from stored state
      */
     initialize() {
+        // The standard colours set in Preferences (a per-browser setting read at boot).
+        const savedStandard = StateManager.get('standardColours');
+        if (Array.isArray(savedStandard)) this.setStandardColours(savedStandard);
         const colorState = StateManager.getSection('color');
         if (colorState) {
             this.ink = colorState.ink;
@@ -107,8 +125,8 @@ class ColorManagerClass {
         } else if (ACTIVE_SCREEN_MODE.paletteModel === 'rgb333') {
             this._deriveNextPalette();
         } else {
-            this.palette = ZX_PALETTE.slice();
-            this.paletteRGB = ZX_PALETTE_RGB.slice();
+            this.palette = this._stdHex.slice();
+            this.paletteRGB = this._stdRGB.slice();
         }
         // Keep the indexed drawing indices inside the active palette
         this.nextInk = clamp(this.nextInk, 0, this.palette.length - 1);
@@ -143,14 +161,14 @@ class ColorManagerClass {
     _deriveTimexMonoPalette() {
         const ink = this.timexHiresInk & 7;
         const paper = ink ^ 7;
-        this.palette = [ZX_PALETTE[paper + 8], ZX_PALETTE[ink + 8]];
-        this.paletteRGB = [ZX_PALETTE_RGB[paper + 8], ZX_PALETTE_RGB[ink + 8]];
+        this.palette = [this._stdHex[paper + 8], this._stdHex[ink + 8]];
+        this.paletteRGB = [this._stdRGB[paper + 8], this._stdRGB[ink + 8]];
         // The hi-res pair: screen B's [paper, ink] follow at entries 2 and 3
         if (ZX_SPECTRUM.SCREENS === 2) {
             const inkB = this.timexHiresInkB & 7;
             const paperB = inkB ^ 7;
-            this.palette.push(ZX_PALETTE[paperB + 8], ZX_PALETTE[inkB + 8]);
-            this.paletteRGB.push(ZX_PALETTE_RGB[paperB + 8], ZX_PALETTE_RGB[inkB + 8]);
+            this.palette.push(this._stdHex[paperB + 8], this._stdHex[inkB + 8]);
+            this.paletteRGB.push(this._stdRGB[paperB + 8], this._stdRGB[inkB + 8]);
         }
     }
 
@@ -205,8 +223,8 @@ class ColorManagerClass {
         // their own tokens so the UI never hardcodes colours.
         if (ACTIVE_SCREEN_MODE.paletteModel === 'timexMono') {
             for (let n = 0; n < 8; n++) {
-                root.style.setProperty(`--zx-scheme-ink-${n}`, ZX_PALETTE[n + 8]);
-                root.style.setProperty(`--zx-scheme-paper-${n}`, ZX_PALETTE[(n ^ 7) + 8]);
+                root.style.setProperty(`--zx-scheme-ink-${n}`, this._stdHex[n + 8]);
+                root.style.setProperty(`--zx-scheme-paper-${n}`, this._stdHex[(n ^ 7) + 8]);
             }
         } else {
             for (let n = 0; n < 8; n++) {
@@ -231,9 +249,9 @@ class ColorManagerClass {
         // own scheme's paper, so the display alternates them; the colour
         // shown is the Average view's blend of the two.
         if (model === 'timexMono') {
-            const paperA = ZX_PALETTE_RGB[((this.timexHiresInk & 7) ^ 7) + 8];
-            if (ZX_SPECTRUM.SCREENS !== 2) return ZX_PALETTE[((this.timexHiresInk & 7) ^ 7) + 8];
-            const paperB = ZX_PALETTE_RGB[((this.timexHiresInkB & 7) ^ 7) + 8];
+            const paperA = this._stdRGB[((this.timexHiresInk & 7) ^ 7) + 8];
+            if (ZX_SPECTRUM.SCREENS !== 2) return this._stdHex[((this.timexHiresInk & 7) ^ 7) + 8];
+            const paperB = this._stdRGB[((this.timexHiresInkB & 7) ^ 7) + 8];
             return '#' + [0, 1, 2].map((k) => ((paperA[k] + paperB[k]) >> 1)
                 .toString(16).padStart(2, '0')).join('').toUpperCase();
         }
@@ -241,7 +259,7 @@ class ColorManagerClass {
         if (model === 'rgb333' && ZX_SPECTRUM.PIXEL_DEPTH === 1 && this.palette[128 + n]) {
             return this.palette[128 + n];
         }
-        return ZX_PALETTE[n & 7];
+        return this._stdHex[n & 7];
     }
 
     /**
@@ -386,6 +404,164 @@ class ColorManagerClass {
             this.applyScreenMode();
         }
         StateManager.markModified();
+    }
+
+    // ─── Standard colours (a per-browser setting, Batch 6 part 6B) ─────────
+
+    /** The 16 standard colours as '#RRGGBB' (a copy). Index 8 (bright black) is always black. */
+    getStandardColours() {
+        return this._stdHex.slice();
+    }
+
+    /** The 16 standard colours as [r, g, b] arrays (copies). */
+    getStandardColoursRGB() {
+        return this._stdRGB.map(c => Uint8Array.from(c));
+    }
+
+    /** True when the standard colours differ from ZX_PALETTE. */
+    isStandardEdited() {
+        return this._stdHex.some((c, i) => c !== ZX_PALETTE[i]);
+    }
+
+    /**
+     * Replace the standard colours. 16 '#rgb' or '#rrggbb' values; index 8 (bright black) is forced
+     * to follow index 0, because black is black however bright (see attrToIndices). null restores
+     * ZX_PALETTE. Re-derives the palette, the CSS tokens and announces PALETTE_CHANGED, so the rail,
+     * the canvas and the image exports follow; never touches the document, .scr or .tap bytes.
+     * @param {?string[]} colours
+     * @returns {boolean} false (and nothing changes) when the input is not 16 valid colours
+     */
+    setStandardColours(colours) {
+        let hex;
+        if (colours === null) {
+            hex = ZX_PALETTE.slice();
+        } else {
+            if (!Array.isArray(colours) || colours.length !== 16) return false;
+            hex = [];
+            for (const c of colours) {
+                const n = Validators.normaliseHexColour(c);
+                if (!n) return false;
+                hex.push(n.toUpperCase());
+            }
+            hex[8] = hex[0];
+        }
+        this._stdHex = hex;
+        this._stdRGB = hex.map(h => Uint8Array.from([1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16))));
+        this.applyScreenMode();
+        return true;
+    }
+
+    // ─── Palette slots (document state in ulaplus64 and rgb333 modes) ──────
+
+    /** Which kind of slots the active mode has: 'ulaplus64', 'rgb333' or null (fixed palette). */
+    paletteSlotKind() {
+        const m = ACTIVE_SCREEN_MODE.paletteModel;
+        return (m === 'ulaplus64' || m === 'rgb333') ? m : null;
+    }
+
+    /** The active slot, 0-3 (0 when the mode has none). */
+    getPaletteSlot() {
+        const kind = this.paletteSlotKind();
+        return kind ? this._slots[kind].active : 0;
+    }
+
+    /** A copy of the live register file of a kind (pristine defaults when never seeded). @private */
+    _liveRegisterCopy(kind) {
+        if (kind === 'ulaplus64') return Uint8Array.from(this.ulaplusRegisters || ULAPLUS.defaultRegisters());
+        return Uint16Array.from(this.nextRegisters || NEXTRGB333.defaultRegisters());
+    }
+
+    /**
+     * Make slot `index` (0-3) the live palette. The live file goes aside into the slot being left;
+     * the chosen slot's file becomes live, which re-derives the palette and the CSS tokens. Attribute
+     * bytes are never touched. Returns false when there is nothing to do.
+     * @param {number} index
+     * @returns {boolean}
+     */
+    selectPaletteSlot(index) {
+        const kind = this.paletteSlotKind();
+        if (!kind || !Number.isInteger(index) || index < 0 || index > 3) return false;
+        const cur = this._slots[kind];
+        if (index === cur.active) return false;
+        const stored = cur.stored.slice();
+        stored[cur.active] = this._liveRegisterCopy(kind);
+        const incoming = stored[index];
+        stored[index] = null;
+        this._slots[kind] = { active: index, stored, touched: true };
+        if (kind === 'ulaplus64') this.setUlaplusRegisters(incoming);
+        else this.setNextRegisters(incoming);
+        StateManager.markModified();
+        EventBus.emit(EVENTS.PALETTE_SLOT_CHANGED, { kind, slot: index });
+        return true;
+    }
+
+    /** The slot bookkeeping, for an undo snapshot (references only; stored files are immutable). */
+    getPaletteSlotState() {
+        const one = (s) => ({ active: s.active, stored: s.stored.slice(), touched: s.touched });
+        return { ulaplus64: one(this._slots.ulaplus64), rgb333: one(this._slots.rgb333) };
+    }
+
+    /** Restore the bookkeeping from an undo snapshot. Does not touch the live files (the snapshot restores those). */
+    setPaletteSlotState(state) {
+        if (!state) return;
+        const one = (s) => ({ active: s.active, stored: s.stored.slice(), touched: !!s.touched });
+        if (state.ulaplus64) this._slots.ulaplus64 = one(state.ulaplus64);
+        if (state.rgb333) this._slots.rgb333 = one(state.rgb333);
+        EventBus.emit(EVENTS.PALETTE_SLOT_CHANGED, { kind: this.paletteSlotKind(), slot: this.getPaletteSlot() });
+    }
+
+    /**
+     * Slot 1 active, slots 2-4 copies of the live palette (what a document without slot data gets).
+     * A palette still at the pristine defaults is stored as null.
+     */
+    resetPaletteSlots() {
+        const make = (kind) => {
+            const live = kind === 'ulaplus64' ? this.ulaplusRegisters : this.nextRegisters;
+            const copy = live ? this._liveRegisterCopy(kind) : null;
+            return { active: 0, stored: [null, copy, copy ? copy.slice() : null, copy ? copy.slice() : null], touched: false };
+        };
+        this._slots = { ulaplus64: make('ulaplus64'), rgb333: make('rgb333') };
+    }
+
+    /**
+     * The slots as plain data for a project file, or null while no slot has been used (so a
+     * document that never touched them saves exactly as it always did).
+     * @returns {?{version:number, ulaplus:Object, next:Object}}
+     */
+    exportPaletteSlots() {
+        const s = this._slots;
+        if (!s.ulaplus64.touched && !s.rgb333.touched) return null;
+        const one = (kind, defaults) => {
+            const st = s[kind];
+            const slots = st.stored.map((f, i) => {
+                if (i === st.active) return Array.from(this._liveRegisterCopy(kind));
+                return Array.from(f || defaults());
+            });
+            return { active: st.active, slots };
+        };
+        return { version: 1, ulaplus: one('ulaplus64', () => ULAPLUS.defaultRegisters()),
+                 next: one('rgb333', () => NEXTRGB333.defaultRegisters()) };
+    }
+
+    /**
+     * Load slots from a project file. The live files are already set from the file's own register
+     * fields; this adds the other three of each kind. Anything missing or damaged falls back to
+     * slot 1 plus copies, for that kind.
+     * @param {?Object} data - from exportPaletteSlots, via JSON
+     */
+    importPaletteSlots(data) {
+        this.resetPaletteSlots();
+        if (!data || typeof data !== 'object') return;
+        const read = (src, kind, len, mask, Type) => {
+            if (!src || !Number.isInteger(src.active) || src.active < 0 || src.active > 3) return;
+            if (!Array.isArray(src.slots) || src.slots.length !== 4) return;
+            if (!src.slots.every(f => Array.isArray(f) && f.length === len)) return;
+            const stored = src.slots.map(f => Type.from(f.map(v => (Number(v) | 0) & mask)));
+            stored[src.active] = null;
+            this._slots[kind] = { active: src.active, stored, touched: true };
+        };
+        read(data.ulaplus, 'ulaplus64', 64, 0xFF, Uint8Array);
+        read(data.next, 'rgb333', 256, 0x1FF, Uint16Array);
     }
 
     // ─── Next RGB333 register file (document state in rgb333 modes) ────────
@@ -746,6 +922,29 @@ class ColorManagerClass {
     hasCellAttributes() {
         return ZX_SPECTRUM.PIXEL_DEPTH === 1
             && ACTIVE_SCREEN_MODE.paletteModel !== 'timexMono';
+    }
+
+    /**
+     * Does a whole-cell paint tool exist in the ACTIVE screen mode? The one table
+     * ClutBar (the buttons), InputHandler (an armed tool the mode switch makes
+     * meaningless) and TransformService read.
+     *   swap, apply, copy ... cells have colours
+     *   invertDots ......... any mode with dots (Timex hi-res too: its cells are 8x8);
+     *                        not the indexed modes
+     *   invertBoth ......... cells with colours AND the fixed 16 colours: only there is
+     *                        ink and paper a pair that can be swapped without changing
+     *                        the look. In ULAplus ink reads CLUT entries 0-7 and paper
+     *                        8-15; in ULANext paper is 128 + paper + 8 * bright +
+     *                        16 * flash; swapping the numbers would recolour the cell.
+     * @param {string} op - 'swap' | 'apply' | 'copy' | 'invertDots' | 'invertBoth'
+     * @returns {boolean}
+     */
+    cellToolAvailable(op) {
+        if (op === 'invertDots') return ZX_SPECTRUM.PIXEL_DEPTH === 1;
+        if (op === 'invertBoth') {
+            return this.hasCellAttributes() && ACTIVE_SCREEN_MODE.paletteModel === 'fixed16';
+        }
+        return this.hasCellAttributes();
     }
 
     /**

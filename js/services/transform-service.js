@@ -8,6 +8,12 @@
  * All operations work on the current selection or entire canvas.
  */
 
+// Dot movement per shift direction, as [dx, dy] steps.
+const SHIFT_VECTORS = {
+  up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0],
+  upLeft: [-1, -1], upRight: [1, -1], downLeft: [-1, 1], downRight: [1, 1]
+};
+
 class TransformServiceClass {
   constructor() {
     this.tempBuffer = null;
@@ -309,6 +315,7 @@ class TransformServiceClass {
    * Flip horizontally (mirror left-right)
    */
   flipHorizontal() {
+    if (this._onStampLayer()) return;
     const area = this._getWorkArea();
     const buffer = this._copyToBufferWithAttrs(area);
     if (!buffer) return;
@@ -326,6 +333,7 @@ class TransformServiceClass {
    * Flip vertically (mirror top-bottom)
    */
   flipVertical() {
+    if (this._onStampLayer()) return;
     const area = this._getWorkArea();
     const buffer = this._copyToBufferWithAttrs(area);
     if (!buffer) return;
@@ -337,6 +345,295 @@ class TransformServiceClass {
     PixelDrawRoutine.endBatch();
 
     Logger.debug('TransformService', 'Flip vertical applied');
+  }
+
+  /**
+   * Mirror the dots left-right; each cell keeps its colours (the Image >
+   * Dots > Flip Horizontal command). Indexed and Timex modes have no cell
+   * colours and flip as Flip Horizontal does.
+   */
+  flipDotsHorizontal() {
+    this._flipDots('h');
+  }
+
+  /** Mirror the dots top-bottom; colours stay in their cells. */
+  flipDotsVertical() {
+    this._flipDots('v');
+  }
+
+  /** @private */
+  _flipDots(axis) {
+    const layer = LayerManager.getCurrentLayer();
+    if (!layer || layer.locked) return;
+    if (!ColorManager.hasCellAttributes()) {
+      if (axis === 'h') this.flipHorizontal(); else this.flipVertical();
+      return;
+    }
+    const area = this._getWorkArea();
+    const before = this._dotGrid(area);
+    if (!before) return;
+    const after = axis === 'h'
+      ? before.map(row => row.slice().reverse())
+      : before.slice().reverse();
+
+    PixelDrawRoutine.beginBatch();
+    this._writeDots(area, before, after);
+    PixelDrawRoutine.endBatch();
+  }
+
+  /**
+   * Why each Image > Dots command is unavailable right now, or null.
+   * `flip` is a stamp with its own cell colours or a locked/absent layer;
+   * `invert` is every reason the attribute commands are blocked, plus a
+   * floating stamp (its dots live on the stamp, not the picture).
+   * @returns {{flip: (string|null), invert: (string|null)}}
+   */
+  dotCommandsBlocked() {
+    const layer = LayerManager.getCurrentLayer();
+    const stamp = this._engagedStamp();
+    let flip = null;
+    if (!layer || layer.locked) flip = 'locked';
+    else if (stamp) flip = stamp.floating ? (stamp.ownColours ? 'stampAttrs' : null) : 'stamp';
+    let invert = this.attributeCommandsBlocked();
+    if (!invert && stamp) invert = 'stamp';
+    // Swapping ink and paper leaves the picture looking the same only with the
+    // fixed 16 colours (see ColorManager.cellToolAvailable).
+    if (!invert && !ColorManager.cellToolAvailable('invertBoth')) invert = 'palette';
+    return { flip, invert };
+  }
+
+  /**
+   * Mirror the dots of the picture, or of a floating stamp. A stamp is flipped
+   * by SelectionService.transformStamp so the stamp is never written through
+   * the picture's cells (the Image menu's own Flip does that; see the batch
+   * 2 log). Blocked cases are reported by dotCommandsBlocked and do nothing.
+   * @param {'h'|'v'} axis
+   */
+  dotsFlip(axis) {
+    if (this.dotCommandsBlocked().flip) return;
+    const fp = this._floatingPaste();
+    if (fp) {
+      SelectionService.transformStamp(axis === 'h' ? 'flipH' : 'flipV');
+      return;
+    }
+    this._flipDots(axis);
+  }
+
+  /**
+   * Is the current layer a stamp layer (the one a floating stamp draws its
+   * preview into)? Picture-wide transforms must never write into it: the stamp
+   * is moved and transformed by SelectionService.transformStamp, which the
+   * Transform panel and the Image menu route to while a stamp floats.
+   * @private
+   */
+  _onStampLayer() {
+    const layer = LayerManager.getCurrentLayer();
+    return !!(layer && layer.isStamp);
+  }
+
+  /** The floating stamp, or null. @private */
+  _floatingPaste() {
+    if (!window.SelectionService || !SelectionService.isFloating()) return null;
+    return SelectionService.floatingPaste || null;
+  }
+
+  /**
+   * Invert the dots and swap ink and paper of each whole cell the work area
+   * touches, so the picture looks the same. Cells that are see-through on an
+   * upper layer, and cells another visible layer also touches, are left alone
+   * (see _canInvertBoth). Blocked on a stamp, a locked layer and modes where
+   * the swap would change the look. One undo step.
+   * @returns {number} cells changed
+   */
+  invertDotsAndColours() {
+    if (this.dotCommandsBlocked().invert) return 0;
+    const rect = this._attributeCellRect(this._getWorkArea());
+    PixelDrawRoutine.beginBatch();
+    let result;
+    try {
+      result = PixelDrawRoutine.suspendClip(() => this._invertBothCells(rect));
+    } finally {
+      PixelDrawRoutine.endBatch();
+    }
+    Logger.debug('TransformService', `Invert dots and colours: ${result.writes} cells`);
+    return result.writes;
+  }
+
+  /**
+   * Can this cell be inverted (dots and colours) and still look the same? Dots
+   * from every visible layer are OR-ed and the colours come from the topmost
+   * layer that owns the cell, so inverting one layer's cell only leaves the
+   * picture alone when it is the only visible layer that touches the cell. An
+   * upper-layer cell the layer does not own is see-through: inverting it would
+   * fill it.
+   * @private
+   */
+  _canInvertBoth(layer, cx, cy) {
+    if (!layer.isBackground && !layer.isCellAltered(cx, cy)) return false;
+    for (const other of LayerManager.layers) {
+      if (other === layer || other.isBackground || !other.visible) continue;
+      if (other.isCellAltered(cx, cy)) return false;
+    }
+    return true;
+  }
+
+  /**
+   * The work of invertDotsAndColours on a cell rectangle, with NO batch of its
+   * own: the Image > Dots command wraps it in one, and the paint tool calls it
+   * for one cell inside its drag's (PixelDrawRoutine.beginBatch does not nest).
+   * @param {{x0:number, y0:number, x1:number, y1:number}} rect
+   * @returns {{writes: number, processed: number}} colour writes made, cells not skipped
+   * @private
+   */
+  _invertBothCells(rect) {
+    const layer = LayerManager.getCurrentLayer();
+    const pixels = {
+      x: rect.x0 * ZX_SPECTRUM.CELL_WIDTH,
+      y: rect.y0 * ZX_SPECTRUM.CELL_HEIGHT,
+      width: (rect.x1 - rect.x0 + 1) * ZX_SPECTRUM.CELL_WIDTH,
+      height: (rect.y1 - rect.y0 + 1) * ZX_SPECTRUM.CELL_HEIGHT
+    };
+    const skip = (cx, cy) => !this._canInvertBoth(layer, cx, cy);
+    const before = this._dotGrid(pixels);
+    if (!before) return { writes: 0, processed: 0 };
+    const giga = ZX_SPECTRUM.SCREENS === 2;
+    let processed = 0;
+    for (let cy = rect.y0; cy <= rect.y1; cy++) {
+      for (let cx = rect.x0; cx <= rect.x1; cx++) if (!skip(cx, cy)) processed++;
+    }
+    const after = before.map((row, py) => row.map((v, px) => {
+      const cx = Math.floor(px / ZX_SPECTRUM.CELL_WIDTH) + rect.x0;
+      const cy = Math.floor(py / ZX_SPECTRUM.CELL_HEIGHT) + rect.y0;
+      if (skip(cx, cy)) return v;
+      return giga ? GIGA_SLOTS.INK_INK - v : !v;
+    }));
+
+    const writes = this._planCellWrites(rect, (cx, cy, grid) => {
+      const c = grid[cy - rect.y0][cx - rect.x0];
+      return skip(cx, cy) ? { ...c } : this._swapInkPaper(c);
+    });
+    PixelDrawRoutine.suspendMirror(() => {
+      this._applyCellWrites(writes);
+      this._writeDots(pixels, before, after);
+    });
+    return { writes: writes.length, processed };
+  }
+
+  // -- The whole-cell paint tools (Copy colours, Invert dots, Invert dots and colours) --
+  //
+  // InputHandler owns the drag: it picks on the press, walks the cells under the
+  // pointer, and holds the ONE batch. Everything below is work on one cell and
+  // opens no batch (they would not nest: an inner endBatch closes the drag's).
+
+  /**
+   * Why a whole-cell tool cannot run now, or null. 'locked' (or no layer),
+   * 'stamp' (a stamp layer, or a floating stamp), 'mode' (the tool does not
+   * exist in this screen mode, see ColorManager.cellToolAvailable).
+   * @param {string} op - 'copy' | 'invertDots' | 'invertBoth'
+   * @returns {string|null}
+   */
+  cellToolBlocked(op) {
+    const layer = LayerManager.getCurrentLayer();
+    if (!layer || layer.locked) return 'locked';
+    if (this._engagedStamp()) return 'stamp';
+    if (!ColorManager.cellToolAvailable(op)) return 'mode';
+    return null;
+  }
+
+  /** Is the cell's top-left pixel outside the drawing guide? Same judgement Swap and Recolour get. @private */
+  _cellClipped(cx, cy) {
+    const px = ZX_COORDS.cellToPixel(cx, cy);
+    return PixelDrawRoutine.isClipped(px.x, px.y);
+  }
+
+  /**
+   * Swap the ink and paper of one whole cell (the Swap button). The same plan and write
+   * as Image > Attributes > Invert, so the two cannot drift apart. Caller holds the batch.
+   * @returns {boolean} whether the cell changed
+   */
+  swapCellColours(cx, cy) {
+    if (this.cellToolBlocked('swap') || !Validators.isValidCellCoord(cx, cy) ||
+        this._cellClipped(cx, cy)) return false;
+    const writes = this._planCellWrites({ x0: cx, y0: cy, x1: cx, y1: cy },
+      (x, y, grid) => this._swapInkPaper(grid[0][0]));
+    if (writes.length === 0) return false;
+    this._applyCellWrites(writes);
+    return true;
+  }
+
+  /**
+   * Give one whole cell the current colours, dots untouched (the Recolour button). "Use
+   * existing" boxes are honoured by the gate. Caller holds the batch.
+   * @returns {boolean} whether a write was made
+   */
+  recolourCell(cx, cy) {
+    if (this.cellToolBlocked('apply') || !Validators.isValidCellCoord(cx, cy)) return false;
+    const layer = LayerManager.getCurrentLayer();
+    const px = ZX_COORDS.cellToPixel(cx, cy);
+    // The drawing guide is judged inside draw() for this one (as it always was). No symmetry
+    // here: the cell tool's drag recolours each mirror cell itself (InputHandler).
+    return !!PixelDrawRoutine.draw(px.x, px.y, ColorManager.getCurrentSelection(),
+      DRAW_MODE.ATTRIBUTES_ONLY, { layer, mirror: false });
+  }
+
+  /**
+   * What the page SHOWS at a cell (the topmost layer that owns it; both screens
+   * on GigaScreen) - the colours Copy picks up.
+   * @returns {Object|null} {ink, paper, bright, flash[, inkB, paperB, brightB, flashB]}
+   */
+  pickCellColours(cx, cy) {
+    if (!Validators.isValidCellCoord(cx, cy) || !ColorManager.cellToolAvailable('copy')) return null;
+    const a = LayerManager.attrsShowing(cx, cy);
+    const e = { ink: a.ink, paper: a.paper, bright: a.bright, flash: a.flash };
+    if (ZX_SPECTRUM.SCREENS === 2) {
+      const b = LayerManager.attrsShowing(cx, cy, 1);
+      e.inkB = b.ink; e.paperB = b.paper; e.brightB = b.bright; e.flashB = b.flash;
+    }
+    return e;
+  }
+
+  /**
+   * Write picked colours to one cell, dots untouched. A cell that already shows
+   * them is left alone (so a see-through cell stays see-through and a click adds
+   * no undo step). Caller holds the batch.
+   * @returns {boolean} whether the cell changed
+   */
+  paintCellColours(cx, cy, picked) {
+    if (!picked || this.cellToolBlocked('copy') || !Validators.isValidCellCoord(cx, cy) ||
+        this._cellClipped(cx, cy)) return false;
+    const writes = this._planCellWrites({ x0: cx, y0: cy, x1: cx, y1: cy }, () => picked);
+    if (writes.length === 0) return false;
+    this._applyCellWrites(writes);
+    return true;
+  }
+
+  /**
+   * Invert the dots of one whole cell; its colours stay. GigaScreen: slot s
+   * becomes 3 - s. A blank upper-layer cell fills (Transform > Invert does too).
+   * Caller holds the batch.
+   * @returns {boolean} whether any dot changed
+   */
+  invertCellDots(cx, cy) {
+    if (this.cellToolBlocked('invertDots') || !Validators.isValidCellCoord(cx, cy) ||
+        this._cellClipped(cx, cy)) return false;
+    const px = ZX_COORDS.cellToPixel(cx, cy);
+    const area = { x: px.x, y: px.y, width: ZX_SPECTRUM.CELL_WIDTH, height: ZX_SPECTRUM.CELL_HEIGHT };
+    const before = this._dotGrid(area);
+    if (!before) return false;
+    const giga = ZX_SPECTRUM.SCREENS === 2;
+    const after = before.map(row => row.map(v => (giga ? GIGA_SLOTS.INK_INK - v : !v)));
+    return this._writeDots(area, before, after);
+  }
+
+  /**
+   * Invert the dots of one cell and swap its ink and paper: the cell looks the
+   * same. Skipped where that cannot hold (see _canInvertBoth). Caller holds the batch.
+   * @returns {boolean} whether the cell was inverted
+   */
+  invertCellDotsAndColours(cx, cy) {
+    if (this.cellToolBlocked('invertBoth') || !Validators.isValidCellCoord(cx, cy) ||
+        this._cellClipped(cx, cy)) return false;
+    return this._invertBothCells({ x0: cx, y0: cy, x1: cx, y1: cy }).processed > 0;
   }
 
   /** Is this buffer entry a marked pixel? Indexed entries carry `idx`. */
@@ -488,6 +785,7 @@ class TransformServiceClass {
    * shifts or, as a last resort, shrinks rather than clipping.
    */
   rotate90CW() {
+    if (this._onStampLayer()) return;
     const area = this._getWorkArea();
     const src = this._copyToBufferWithAttrs(area);
     if (!src) return;
@@ -516,6 +814,7 @@ class TransformServiceClass {
    * Rotate 90 degrees counter-clockwise
    */
   rotate90CCW() {
+    if (this._onStampLayer()) return;
     const area = this._getWorkArea();
     const src = this._copyToBufferWithAttrs(area);
     if (!src) return;
@@ -544,6 +843,7 @@ class TransformServiceClass {
    * Rotate 180 degrees
    */
   rotate180() {
+    if (this._onStampLayer()) return;
     const area = this._getWorkArea();
     const buffer = this._copyToBufferWithAttrs(area);
     if (!buffer) return;
@@ -655,20 +955,188 @@ class TransformServiceClass {
   }
 
   /**
-   * Shift pixels in a direction (preserves cell colour attributes).
-   * wrap=true rolls pixels around the edge (ZX-PB "rolling"); wrap=false
-   * scrolls them out and feeds in background (paper) rows/columns.
-   * @param {string} direction - 'up', 'down', 'left', 'right'
-   * @param {number} amount - Pixels to shift (default 1)
-   * @param {boolean} wrap - Roll around the edge (default true)
-   * @returns {boolean} whether a shift was actually applied - false when
-   *   there is no work area to shift. The Transform panel brackets a held
-   *   direction pad in ONE undo action and needs to tell a gesture that did
-   *   nothing from one that did, so it can discard the action rather than
-   *   leave a dead entry that Ctrl+Z steps over without visible effect.
+   * Shift the work area. Dots move; what travels with them depends on content:
+   *   'both'    - dots move. On a whole-cell step each cell's colours move too
+   *               (paper included); otherwise only the ink follows the dots.
+   *   'dots'    - dots move one step; every cell keeps its colours.
+   *   'colours' - cell colours move one cell per step; dots stay put.
+   * Modes without cell colours always act as 'both'.
+   * Diagonals are one horizontal pass then one vertical pass.
+   * @param {string} direction - up, down, left, right, upLeft, upRight, downLeft, downRight
+   * @param {number|{x:number,y:number}} amount - pixels (a number applies to both axes)
+   * @param {boolean} wrap - roll around the edge (default true)
+   * @param {string} content - 'both' (default), 'dots' or 'colours'
+   * @returns {boolean} whether anything changed. False when there is no
+   *   layer, the layer is locked, or the step moved nothing; the Transform
+   *   panel uses it to drop an undo entry that did nothing.
    */
-  shift(direction, amount = 1, wrap = true) {
+  shift(direction, amount = 1, wrap = true, content = 'both') {
+    const vec = SHIFT_VECTORS[direction];
+    const layer = LayerManager.getCurrentLayer();
+    if (!vec || !layer || layer.locked || layer.isStamp) return false;
+
     const area = this._getWorkArea();
+    const stepX = typeof amount === 'object' ? amount.x : amount;
+    const stepY = typeof amount === 'object' ? amount.y : amount;
+    const useContent = ColorManager.hasCellAttributes() ? content : 'both';
+
+    const passes = [];
+    if (vec[0]) passes.push([vec[0] * stepX, 0]);
+    if (vec[1]) passes.push([0, vec[1] * stepY]);
+
+    let changed = false;
+    PixelDrawRoutine.beginBatch();
+    for (const [vx, vy] of passes) {
+      if (this._shiftPass(area, vx, vy, wrap, useContent)) changed = true;
+    }
+    PixelDrawRoutine.endBatch();
+
+    Logger.debug('TransformService', `Shift ${direction} (${useContent}, ${wrap ? 'wrap' : 'no-wrap'}) ${changed ? 'applied' : 'no change'}`);
+    return changed;
+  }
+
+  /**
+   * One axis-aligned pass of a shift. Caller holds the batch.
+   * @param {Object} area - { x, y, width, height }
+   * @param {number} vx - dot movement in pixels (horizontal)
+   * @param {number} vy - dot movement in pixels (vertical)
+   * @returns {boolean} whether anything changed
+   * @private
+   */
+  _shiftPass(area, vx, vy, wrap, content) {
+    if (content === 'dots') return this._shiftDots(area, vx, vy, wrap);
+    if (content === 'colours') {
+      // Colours move whole cells: a pixel step becomes at least one cell.
+      const cells = (v, size) => Math.sign(v) * Math.max(1, Math.round(Math.abs(v) / size));
+      return this._shiftColours(area,
+        vx ? cells(vx, ZX_SPECTRUM.CELL_WIDTH) : 0,
+        vy ? cells(vy, ZX_SPECTRUM.CELL_HEIGHT) : 0, wrap);
+    }
+    // 'both': a whole-cell step moves dots and colours together; anything
+    // finer is today's pixel shift, where the paper stays in its cell.
+    const aligned = vx % ZX_SPECTRUM.CELL_WIDTH === 0 && vy % ZX_SPECTRUM.CELL_HEIGHT === 0;
+    if (!ColorManager.hasCellAttributes() || !aligned) return this._shiftBuffer(area, vx, vy, wrap);
+    // Dots and colours must share one rectangle, or a dot wraps into a cell
+    // whose colours did not travel with it. Round the selection out to whole
+    // cells: a whole cell moves, its dots included, even outside the marquee.
+    const whole = this._cellPixelRect(area);
+    const dots = this._shiftDots(whole, vx, vy, wrap);
+    const cells = this._shiftColours(whole, vx / ZX_SPECTRUM.CELL_WIDTH, vy / ZX_SPECTRUM.CELL_HEIGHT, wrap);
+    return dots || cells;
+  }
+
+  /**
+   * The dots of an area: pixel states (bool), or GigaScreen blend slots.
+   * @returns {Array[][]|null}
+   * @private
+   */
+  _dotGrid(area) {
+    return ZX_SPECTRUM.SCREENS === 2 ? this._copySlots(area) : this._copyToBuffer(area);
+  }
+
+  /** The value meaning "no dot" in a dot grid. @private */
+  _offDot() {
+    return ZX_SPECTRUM.SCREENS === 2 ? GIGA_SLOTS.PAPER_PAPER : false;
+  }
+
+  /**
+   * Write a dot grid over an area, touching only pixels whose value changed.
+   * Colours are never written (PIXEL_ONLY and ERASE leave them), so every cell
+   * keeps its colours and a see-through cell stays see-through. Caller holds
+   * the batch.
+   * @param {Object} area
+   * @param {Array[][]} before - grid as read
+   * @param {Array[][]} after - grid to write
+   * @returns {boolean} whether any pixel changed
+   * @private
+   */
+  _writeDots(area, before, after) {
+    const sel = ColorManager.getCurrentSelection();
+    const giga = ZX_SPECTRUM.SCREENS === 2;
+    let changed = false;
+    PixelDrawRoutine.suspendMirror(() => {
+      for (let py = 0; py < after.length; py++) {
+        for (let px = 0; px < after[py].length; px++) {
+          const pixelX = area.x + px, pixelY = area.y + py;
+          if (!Validators.isValidPixelCoord(pixelX, pixelY)) continue;
+          const v = after[py][px];
+          if (v === before[py][px]) continue;
+          changed = true;
+          if (giga) {
+            if (v === GIGA_SLOTS.PAPER_PAPER) {
+              PixelDrawRoutine.draw(pixelX, pixelY, sel, DRAW_MODE.ERASE);
+            } else {
+              PixelDrawRoutine.draw(pixelX, pixelY, { ...sel, gigaSlot: v }, DRAW_MODE.PIXEL_ONLY);
+            }
+          } else {
+            PixelDrawRoutine.draw(pixelX, pixelY, sel, v ? DRAW_MODE.PIXEL_ONLY : DRAW_MODE.ERASE);
+          }
+        }
+      }
+    });
+    return changed;
+  }
+
+  /**
+   * Move the dots of an area by (vx, vy) pixels; colours stay in their cells.
+   * @returns {boolean} whether anything changed
+   * @private
+   */
+  _shiftDots(area, vx, vy, wrap) {
+    const before = this._dotGrid(area);
+    if (!before) return false;
+    const h = before.length, w = before[0].length;
+    const off = this._offDot();
+    const after = [];
+    for (let py = 0; py < h; py++) {
+      const row = [];
+      for (let px = 0; px < w; px++) {
+        const srcX = px - vx, srcY = py - vy;
+        if (wrap) {
+          row.push(before[((srcY % h) + h) % h][((srcX % w) + w) % w]);
+        } else {
+          row.push((srcX >= 0 && srcX < w && srcY >= 0 && srcY < h) ? before[srcY][srcX] : off);
+        }
+      }
+      after.push(row);
+    }
+    return this._writeDots(area, before, after);
+  }
+
+  /**
+   * Move cell colours by (cvx, cvy) whole cells within the cell rectangle the
+   * area touches. A no-wrap cell with no source keeps its own colours.
+   * Caller holds the batch.
+   * @returns {boolean} whether any cell changed
+   * @private
+   */
+  _shiftColours(area, cvx, cvy, wrap) {
+    if (this.attributeCommandsBlocked()) return false;
+    const rect = this._attributeCellRect(area);
+    const w = rect.x1 - rect.x0 + 1, h = rect.y1 - rect.y0 + 1;
+    const writes = this._planCellWrites(rect, (cx, cy, grid) => {
+      const ox = cx - rect.x0, oy = cy - rect.y0;
+      let sx = ox - cvx, sy = oy - cvy;
+      if (wrap) {
+        sx = ((sx % w) + w) % w;
+        sy = ((sy % h) + h) % h;
+      } else if (sx < 0 || sx >= w || sy < 0 || sy >= h) {
+        return { ...grid[oy][ox] };
+      }
+      return { ...grid[sy][sx] };
+    });
+    if (writes.length === 0) return false;
+    this._applyCellWrites(writes);
+    return true;
+  }
+
+  /**
+   * The legacy whole-pixel shift: dots and their cell colours (ink) move
+   * together; paper stays in its cell. Caller holds the batch.
+   * @returns {boolean} true (the area was shifted)
+   * @private
+   */
+  _shiftBuffer(area, vx, vy, wrap) {
     const buffer = this._copyToBufferWithAttrs(area);
     if (!buffer) return false;
 
@@ -682,32 +1150,18 @@ class TransformServiceClass {
     for (let py = 0; py < h; py++) {
       const row = [];
       for (let px = 0; px < w; px++) {
-        let srcX = px, srcY = py;
-        switch (direction) {
-          case 'up':    srcY = py + amount; break;
-          case 'down':  srcY = py - amount; break;
-          case 'left':  srcX = px + amount; break;
-          case 'right': srcX = px - amount; break;
-        }
+        const srcX = px - vx, srcY = py - vy;
         if (wrap) {
-          srcX = ((srcX % w) + w) % w;
-          srcY = ((srcY % h) + h) % h;
-          row.push(buffer[srcY][srcX]);
+          row.push(buffer[((srcY % h) + h) % h][((srcX % w) + w) % w]);
         } else {
-          row.push(
-            (srcX >= 0 && srcX < w && srcY >= 0 && srcY < h)
-              ? buffer[srcY][srcX] : background
-          );
+          row.push((srcX >= 0 && srcX < w && srcY >= 0 && srcY < h)
+            ? buffer[srcY][srcX] : background);
         }
       }
       shifted.push(row);
     }
 
-    PixelDrawRoutine.beginBatch();
     this._applyBufferWithAttrs(shifted, area);
-    PixelDrawRoutine.endBatch();
-
-    Logger.debug('TransformService', `Shift ${direction} by ${amount} (${wrap ? 'wrap' : 'no-wrap'}) applied`);
     return true;
   }
 
@@ -873,6 +1327,7 @@ class TransformServiceClass {
    * @param {number} [outlineSize=1] - Thickness of the ink outline ring
    */
   outline(gap = 1, outlineSize = 1) {
+    if (this._onStampLayer()) return;
     const area = this._getWorkArea();
     const buffer = this._copyToBuffer(area);
     if (!buffer) return;
@@ -906,10 +1361,13 @@ class TransformServiceClass {
   /**
    * Invert all pixels in the area. GigaScreen inverts each screen on its own:
    * slot s becomes 3 - s, so inverting twice gives the picture back.
+   * Only dots change: in the modes with cell colours every cell keeps its own
+   * ink, paper, bright and flash (the rail's colours are never written).
    */
   invert() {
+    if (this._onStampLayer()) return;
     const area = this._getWorkArea();
-    const buffer = ZX_SPECTRUM.SCREENS === 2 ? this._copySlots(area) : this._copyToBuffer(area);
+    const buffer = this._dotGrid(area);
     if (!buffer) return;
 
     const inverted = ZX_SPECTRUM.SCREENS === 2
@@ -917,10 +1375,429 @@ class TransformServiceClass {
       : buffer.map(row => row.map(pixel => !pixel));
 
     PixelDrawRoutine.beginBatch();
-    this._applyBuffer(inverted, area);
+    if (ColorManager.hasCellAttributes()) this._writeDots(area, buffer, inverted);
+    else this._applyBuffer(inverted, area);
     PixelDrawRoutine.endBatch();
 
     Logger.debug('TransformService', 'Invert applied');
+  }
+
+  // -- Attribute commands (Image > Attributes) -----------------------------
+  // They change cell colours and leave every dot where it is. The work area
+  // is rounded out to whole cells, and each command is one undo step.
+
+  /**
+   * Why the attribute commands cannot run now, or null when they can.
+   * Checked in the service too, so a shortcut or a stale menu cannot bypass it.
+   * @returns {string|null} 'noCellAttributes' | 'stamp' | 'locked' | null
+   */
+  attributeCommandsBlocked() {
+    if (!ColorManager.hasCellAttributes()) return 'noCellAttributes';
+    const layer = LayerManager.getCurrentLayer();
+    const stamp = this._engagedStamp();
+    // A stamp that places its own colours has cell colours the commands can
+    // work on; any other stamp is in the way.
+    if (stamp) return stamp.ownColours ? null : 'stamp';
+    if (!layer) return 'stamp';
+    if (layer.locked) return 'locked';
+    return null;
+  }
+
+  /**
+   * Where the Attributes commands act: the picture (the selection's cells, or
+   * all of them) or - while a stamp places its own colours - the whole stamp.
+   * Null when blocked. For a stamp the grid is the stamp's own colour cells;
+   * a hole (null) is never read, written or counted.
+   * @returns {?{kind:string, rect:Object, stamp:?Object}}
+   * @private
+   */
+  _attributeScope() {
+    if (this.attributeCommandsBlocked()) return null;
+    const stamp = this._engagedStamp();
+    if (stamp && stamp.ownColours) {
+      const data = SelectionService.getStampData(stamp.layer);
+      const g = SelectionService.stampAttrGrid(data);
+      if (!data || !g) return null;
+      return { kind: 'stamp', rect: { x0: 0, y0: 0, x1: g.cols - 1, y1: g.rows - 1 },
+               stamp: { layer: stamp.layer, data, g } };
+    }
+    return { kind: 'picture', rect: this._attributeCellRect(this._getWorkArea()), stamp: null };
+  }
+
+  // ─── Palette slots and the palette inverter (Batch 6 part 6A) ──────────
+
+  /**
+   * Why the palette commands cannot run now, or null.
+   *   slots  - 'fixedPalette' where the mode's colours are the fixed standard ones
+   *   invert - 'fixedPalette', or 'nextPalette' in the Next modes (ink and paper do not map
+   *            one to one there: 8 ink entries against 32 paper entries in ULANext)
+   * @returns {{slots: (string|null), invert: (string|null)}}
+   */
+  paletteCommandsBlocked() {
+    const kind = ColorManager.paletteSlotKind();
+    const slots = kind ? null : 'fixedPalette';
+    let invert = null;
+    if (!kind) invert = 'fixedPalette';
+    else if (kind === 'rgb333') invert = 'nextPalette';
+    return { slots, invert };
+  }
+
+  /**
+   * Make palette slot `index` (0-3) the one in use. One undo step; the picture's attribute bytes
+   * never change, only the colours it is shown with. Picking the slot in use does nothing.
+   * @returns {boolean} whether the slot changed
+   */
+  selectPaletteSlot(index) {
+    if (this.paletteCommandsBlocked().slots) return false;
+    if (!Number.isInteger(index) || index < 0 || index > 3 || index === ColorManager.getPaletteSlot()) return false;
+    UndoRedo.beginAction('Palette slot');
+    ColorManager.selectPaletteSlot(index);
+    UndoRedo.endAction();
+    LayerManager.composeToCanvas();
+    return true;
+  }
+
+  /**
+   * Swap the ink and paper halves of each of the four CLUTs in the live ULAplus palette. One undo
+   * step. For a ULAplus picture follow it with Image > Attributes > Invert (the help's recipe).
+   * @returns {boolean} whether the palette changed
+   */
+  invertPalette() {
+    if (this.paletteCommandsBlocked().invert) return false;
+    const before = ColorManager.getUlaplusRegisters();
+    const next = PaletteOps.invertUlaplusHalves(before);
+    if (next.every((v, i) => v === before[i])) return false;
+    UndoRedo.beginAction('Invert palette');
+    ColorManager.setUlaplusRegisters(next);
+    StateManager.markModified();
+    UndoRedo.endAction();
+    LayerManager.composeToCanvas();
+    return true;
+  }
+
+  /** True while the Attributes commands act on a stamp's own colours. */
+  stampScope() {
+    const scope = this._attributeScope();
+    return !!(scope && scope.kind === 'stamp');
+  }
+
+  /** The stamp in the way (floating, or the current layer), or null. @private */
+  _engagedStamp() {
+    return window.SelectionService ? SelectionService.engagedStamp() : null;
+  }
+
+  /**
+   * The pixel rectangle of the whole cells the area touches.
+   * @returns {{x:number, y:number, width:number, height:number}}
+   * @private
+   */
+  _cellPixelRect(area) {
+    const r = this._attributeCellRect(area);
+    return {
+      x: r.x0 * ZX_SPECTRUM.CELL_WIDTH,
+      y: r.y0 * ZX_SPECTRUM.CELL_HEIGHT,
+      width: (r.x1 - r.x0 + 1) * ZX_SPECTRUM.CELL_WIDTH,
+      height: (r.y1 - r.y0 + 1) * ZX_SPECTRUM.CELL_HEIGHT
+    };
+  }
+
+  /**
+   * The cell rectangle the work area touches, clamped to the grid.
+   * @returns {{x0:number, y0:number, x1:number, y1:number}}
+   * @private
+   */
+  _attributeCellRect(area) {
+    const a = ZX_COORDS.pixelToCell(area.x, area.y);
+    const b = ZX_COORDS.pixelToCell(area.x + area.width - 1, area.y + area.height - 1);
+    return {
+      x0: Math.max(0, a.x),
+      y0: Math.max(0, a.y),
+      x1: Math.min(ZX_SPECTRUM.GRID_COLS - 1, b.x),
+      y1: Math.min(ZX_SPECTRUM.GRID_ROWS - 1, b.y)
+    };
+  }
+
+  /**
+   * The colours a cell shows: screen A, and screen B on GigaScreen.
+   * @private
+   */
+  _readCellAttrs(layer, cx, cy) {
+    const a = LayerManager.attrsAsSeen(layer, cx, cy);
+    const e = { ink: a.ink, paper: a.paper, bright: a.bright, flash: a.flash };
+    if (ZX_SPECTRUM.SCREENS === 2) {
+      const b = LayerManager.attrsAsSeen(layer, cx, cy, 1);
+      e.inkB = b.ink; e.paperB = b.paper; e.brightB = b.bright; e.flashB = b.flash;
+    }
+    return e;
+  }
+
+  /** Write one cell's colours with ATTRIBUTES_ONLY (dots are never touched). @private */
+  _writeCellAttrs(layer, cx, cy, e) {
+    const px = ZX_COORDS.cellToPixel(cx, cy);
+    const sel = { ink: e.ink, paper: e.paper, bright: e.bright, flash: e.flash };
+    if (ZX_SPECTRUM.SCREENS === 2) {
+      sel.inkB = e.inkB; sel.paperB = e.paperB; sel.brightB = e.brightB; sel.flashB = e.flashB;
+    }
+    PixelDrawRoutine.draw(px.x, px.y, sel, DRAW_MODE.ATTRIBUTES_ONLY, { layer });
+  }
+
+  /** True when two attribute sets agree on every field the target carries. @private */
+  _sameAttrs(next, cur) {
+    for (const k of Object.keys(next)) {
+      if (next[k] !== cur[k]) return false;
+    }
+    return true;
+  }
+
+  /**
+   * Rewrite the colours of a cell rectangle. Every source is read before the
+   * first write, so a flip never reads a cell it has already changed. Cells
+   * whose colours would not change are skipped, so no-op commands add no undo
+   * step and see-through upper-layer cells stay see-through.
+   * @param {{x0,y0,x1,y1}} rect - cell rectangle
+   * @param {Function} targetOf - (cx, cy, grid, rect) => attrs to write there
+   * @returns {number} cells changed
+   * @private
+   */
+  _rewriteCells(rect, targetOf, scope = null) {
+    const writes = this._planCellWrites(rect, targetOf, scope);
+    if (writes.length === 0) return 0;
+
+    if (scope && scope.kind === 'stamp') {
+      const { layer, data, g } = scope.stamp;
+      const attrs = data.attrs.slice();
+      for (const w of writes) attrs[w.cy * g.cols + w.cx] = SelectionService.packStampAttr(w.next);
+      SelectionService.setStampAttrs(attrs, layer);
+      return writes.length;
+    }
+
+    PixelDrawRoutine.beginBatch();
+    this._applyCellWrites(writes);
+    PixelDrawRoutine.endBatch();
+    return writes.length;
+  }
+
+  /**
+   * Read the cell rectangle and say what each cell should become. Reads
+   * everything before returning, so no write can change a source. Makes no
+   * writes and opens no batch, so a caller may use it inside its own batch
+   * (PixelDrawRoutine.beginBatch does not nest).
+   * @returns {Array<{cx:number, cy:number, next:Object}>} cells that change
+   * @private
+   */
+  _planCellWrites(rect, targetOf, scope = null) {
+    const stamp = scope && scope.kind === 'stamp' ? scope.stamp : null;
+    const layer = LayerManager.getCurrentLayer();
+    if (!layer && !stamp) return [];
+    const grid = [];
+    for (let cy = rect.y0; cy <= rect.y1; cy++) {
+      const row = [];
+      for (let cx = rect.x0; cx <= rect.x1; cx++) {
+        if (stamp) {
+          const a = stamp.data.attrs[cy * stamp.g.cols + cx];
+          row.push(a == null ? null : SelectionService.unpackStampAttr(a));
+        } else {
+          row.push(this._readCellAttrs(layer, cx, cy));
+        }
+      }
+      grid.push(row);
+    }
+    const writes = [];
+    for (let cy = rect.y0; cy <= rect.y1; cy++) {
+      for (let cx = rect.x0; cx <= rect.x1; cx++) {
+        const cur = grid[cy - rect.y0][cx - rect.x0];
+        if (cur === null) continue; // a hole in a stamp: nothing to read or write
+        const next = targetOf(cx, cy, grid, rect);
+        if (!this._sameAttrs(next, cur)) writes.push({ cx, cy, next });
+      }
+    }
+    return writes;
+  }
+
+  /**
+   * Write planned cell colours. Caller holds the batch.
+   * @private
+   */
+  _applyCellWrites(writes) {
+    const layer = LayerManager.getCurrentLayer();
+    if (!layer) return;
+    PixelDrawRoutine.suspendMirror(() => {
+      for (const w of writes) this._writeCellAttrs(layer, w.cx, w.cy, w.next);
+    });
+  }
+
+  /** Swap ink and paper of one cell's colours; bright and flash stay. @private */
+  _swapInkPaper(c) {
+    const next = { ink: c.paper, paper: c.ink, bright: c.bright, flash: c.flash };
+    if (c.inkB !== undefined) {
+      next.inkB = c.paperB; next.paperB = c.inkB;
+      next.brightB = c.brightB; next.flashB = c.flashB;
+    }
+    return next;
+  }
+
+  /**
+   * Swap ink and paper of each cell; bright and flash stay. GigaScreen swaps
+   * each screen's own pair. Running it twice gives the picture back.
+   * @returns {number} cells changed
+   */
+  invertAttributes() {
+    const scope = this._attributeScope();
+    if (!scope) return 0;
+    const rect = scope.rect;
+    return this._rewriteCells(rect, (cx, cy, grid) =>
+      this._swapInkPaper(grid[cy - rect.y0][cx - rect.x0]), scope);
+  }
+
+  /**
+   * Write the current colours to each cell. "Use existing" boxes are honoured:
+   * a kept part keeps what each cell shows.
+   * @returns {number} cells changed
+   */
+  eraseAttributes() {
+    const scope = this._attributeScope();
+    if (!scope) return 0;
+    const rect = scope.rect;
+    const rail = ColorManager.getCurrentSelection();
+    return this._rewriteCells(rect, (cx, cy, grid) => {
+      const c = grid[cy - rect.y0][cx - rect.x0];
+      const next = {
+        ink: rail.inkTransparent ? c.ink : rail.ink,
+        paper: rail.paperTransparent ? c.paper : rail.paper,
+        bright: rail.brightTransparent ? c.bright : rail.bright,
+        flash: rail.flashTransparent ? c.flash : rail.flash
+      };
+      if (c.inkB !== undefined) {
+        next.inkB = rail.inkTransparent ? c.inkB : (rail.inkB != null ? rail.inkB : rail.ink);
+        next.paperB = rail.paperTransparent ? c.paperB : (rail.paperB != null ? rail.paperB : rail.paper);
+        next.brightB = rail.brightTransparent ? c.brightB : (rail.brightB != null ? rail.brightB : rail.bright);
+        next.flashB = rail.flashTransparent ? c.flashB : (rail.flashB != null ? rail.flashB : rail.flash);
+      }
+      return next;
+    }, scope);
+  }
+
+  /**
+   * Mirror the cell colours left-right across the work area's cell rectangle.
+   * @returns {number} cells changed
+   */
+  flipAttributesHorizontal() {
+    const scope = this._attributeScope();
+    if (!scope) return 0;
+    const rect = scope.rect;
+    return this._rewriteCells(rect, (cx, cy, grid) => {
+      const mx = rect.x0 + rect.x1 - cx;
+      // a hole opposite keeps this cell's own colours
+      return { ...(grid[cy - rect.y0][mx - rect.x0] || grid[cy - rect.y0][cx - rect.x0]) };
+    }, scope);
+  }
+
+  /**
+   * Mirror the cell colours top-bottom across the work area's cell rectangle.
+   * @returns {number} cells changed
+   */
+  flipAttributesVertical() {
+    const scope = this._attributeScope();
+    if (!scope) return 0;
+    const rect = scope.rect;
+    return this._rewriteCells(rect, (cx, cy, grid) => {
+      const my = rect.y0 + rect.y1 - cy;
+      return { ...(grid[my - rect.y0][cx - rect.x0] || grid[cy - rect.y0][cx - rect.x0]) };
+    }, scope);
+  }
+
+  /**
+   * The attribute fields a cell carries in this mode: ink, paper, bright and
+   * flash, plus the screen B four on GigaScreen.
+   * @returns {string[]}
+   * @private
+   */
+  _attrKeys(stamp = false) {
+    const keys = ['ink', 'paper', 'bright', 'flash'];
+    // A stamp holds one colour set, used on both screens.
+    return (ZX_SPECTRUM.SCREENS === 2 && !stamp) ? keys.concat(['inkB', 'paperB', 'brightB', 'flashB']) : keys;
+  }
+
+  /**
+   * Check one find or replace set. Each field is null (any, or keep) or a
+   * value: ink and paper 0-7, bright and flash booleans. B fields are dropped
+   * outside GigaScreen. Returns null when a colour is out of range.
+   * @returns {Object|null}
+   * @private
+   */
+  _cleanAttrSet(set, keys = this._attrKeys()) {
+    const out = {};
+    for (const k of keys) {
+      const v = set ? set[k] : null;
+      if (v == null) { out[k] = null; continue; }
+      if (k.startsWith('ink') || k.startsWith('paper')) {
+        if (!Validators.isValidBaseColor(v)) return null;
+        out[k] = v;
+      } else {
+        out[k] = !!v;
+      }
+    }
+    return out;
+  }
+
+  /**
+   * The rectangle and the per-cell target that Change Attributes uses. Shared
+   * by the preview and the apply, so the count shown is the count written.
+   * A cell matches when every non-null find field equals its shown value; a
+   * matching cell takes the non-null replace fields and keeps its other
+   * fields, so GigaScreen screen B is carried. Other cells return themselves,
+   * so they are skipped.
+   * @returns {{rect:Object, targetOf:Function}|null} null when blocked or invalid
+   * @private
+   */
+  _changeAttributesPlan(find, replace) {
+    const scope = this._attributeScope();
+    if (!scope) return null;
+    const keys = this._attrKeys(scope.kind === 'stamp');
+    const f = this._cleanAttrSet(find, keys);
+    const r = this._cleanAttrSet(replace, keys);
+    if (!f || !r) {
+      Logger.warn('TransformService', 'changeAttributes: colour out of range');
+      return null;
+    }
+    const rect = scope.rect;
+    const targetOf = (cx, cy, grid) => {
+      const cur = grid[cy - rect.y0][cx - rect.x0];
+      for (const k of keys) {
+        if (f[k] !== null && cur[k] !== f[k]) return cur;
+      }
+      const next = { ...cur };
+      for (const k of keys) {
+        if (r[k] !== null) next[k] = r[k];
+      }
+      return next;
+    };
+    return { rect, targetOf, scope };
+  }
+
+  /**
+   * How many cells Change Attributes would change, with nothing written.
+   * @param {Object} find - { ink, paper, bright, flash, inkB, ... }, null = any
+   * @param {Object} replace - the same shape, null = keep
+   * @returns {number}
+   */
+  previewChangeAttributes(find, replace) {
+    const plan = this._changeAttributesPlan(find, replace);
+    if (!plan) return 0;
+    return this._planCellWrites(plan.rect, plan.targetOf, plan.scope).length;
+  }
+
+  /**
+   * Find and replace cell colours over the work area (selection or whole
+   * picture), cells rounded out. One undo step; dots never change.
+   * @param {Object} find - { ink, paper, bright, flash, inkB, ... }, null = any
+   * @param {Object} replace - the same shape, null = keep
+   * @returns {number} cells changed
+   */
+  changeAttributes(find, replace) {
+    const plan = this._changeAttributesPlan(find, replace);
+    if (!plan) return 0;
+    return this._rewriteCells(plan.rect, plan.targetOf, plan.scope);
   }
 
 }

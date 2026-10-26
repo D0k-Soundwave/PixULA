@@ -8,9 +8,9 @@ Some common jobs, start to finish.
    screen.
 2. Switch on the cell grid, next to the zoom controls, so you can see the 8 by
    8 blocks the colour is stored in.
-3. Choose an ink colour from the colour rail or with the number keys 1 to 8,
-   and a paper colour by right-clicking a swatch.
-4. Draw with the **brush**. Left button for ink, right for paper.
+3. Choose an Ink colour from the colour rail or with the number keys 1 to 8,
+   and a Paper colour by right-clicking a swatch.
+4. Draw with the **brush**. Left button for ink pixels, right for paper pixels.
 5. Zoom with `+` and `-`. Hold the space bar and drag to move around, or use
    the **pan** tool.
 6. `Ctrl+Z` undoes. `Ctrl+S` saves a `.pixula` project, which keeps your layers

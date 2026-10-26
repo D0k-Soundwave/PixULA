@@ -2,18 +2,20 @@
 
 ### Mouse
 
-Butonul stâng desenează cu cerneală, iar cel drept cu hârtie. Shift și clic
+Butonul stâng desenează pixeli de cerneală, iar cel drept pixeli de hârtie. Shift și clic
 dreapta deschid meniul pânzei, prin care ajungeți la tăiere, copiere și lipire în
 timp ce un instrument folosește butonul drept pentru desen.
+
+Ține apăsat **X** în timp ce tragi ca pensula, radiera, forma sau figura să rămână pe o linie orizontală, sau **Y** pentru una verticală. Linia trece prin punctul în care ai apăsat butonul (sau tasta); apasă cealaltă tastă ca să faci colț și eliberează ca să desenezi iar liber. O atingere a lui **X** fără tragere tot schimbă Cerneala cu Hârtia, acum la eliberarea tastei.
 
 ### Stilou
 
 Vârful stiloului desenează cu instrumentul selectat și nu poate fi reatribuit.
 Toate celelalte comenzi ale stiloului pot fi, în **Preferințe > Stilou**.
 
-Implicit, butonul lateral desenează cu hârtie, ca butonul drept al mouse-ului,
+Implicit, butonul lateral desenează pixeli de hârtie, ca butonul drept al mouse-ului,
 iar capătul radieră șterge. Lista din Preferințe mai oferă pipeta, deplasarea
-vederii, anularea, refacerea, schimbarea culorilor între ele, meniul pânzei și
+vederii, anularea, refacerea, schimbarea Cernelii cu Hârtia, meniul pânzei și
 revenirea la instrumentul anterior.
 
 Presiunea schimbă dimensiunea și fluxul pensulei în măsura pe care o setați.

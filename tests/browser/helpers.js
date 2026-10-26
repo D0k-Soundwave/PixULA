@@ -154,5 +154,24 @@ function fontSubstitute(family) {
     }
 }
 
-module.exports = { APP_URL, boot, reload, collectConsole, app, selectMode, findInstalledFont, FONT_CANDIDATES,
+/**
+ * The top strip is three selector buttons (js/ui/components/strip-selector.js): each shows the choice
+ * in force and opens a small grid of the others, which closes on a pick. These open the right one and
+ * click the icon, so a spec says WHAT it picks and not how the grid is reached.
+ */
+async function pickFromStrip(page, selectId, itemId) {
+    const sel = page.locator('#' + selectId);
+    if ((await sel.getAttribute('aria-expanded')) !== 'true') await sel.click();
+    await page.locator('.strip-popup #' + itemId).click();
+}
+/** @param {string} mode - 'normal' | 'pixel_only' | 'xor' | 'xor_pixel' | 'ink' | 'paper' | 'attributes' */
+const pickDrawMode = (page, mode) => pickFromStrip(page, 'draw-mode-select', `draw-mode-${mode}`);
+/** @param {string} mode - 'off' | 'h' | 'v' | 'quad' */
+const pickMirror = (page, mode) => pickFromStrip(page, 'mirror-select', `symmetry-${mode}-toggle`);
+const CELL_TOOL_IDS = { none: 'attr-none', swap: 'attr-transpose', apply: 'attr-apply', copy: 'attr-copy',
+    invertDots: 'attr-invert-dots', invertBoth: 'attr-invert-both' };
+/** @param {string} op - 'none' | 'swap' | 'apply' | 'copy' | 'invertDots' | 'invertBoth' */
+const pickCellTool = (page, op) => pickFromStrip(page, 'cell-tool-select', CELL_TOOL_IDS[op]);
+
+module.exports = { pickFromStrip, pickDrawMode, pickMirror, pickCellTool, CELL_TOOL_IDS, APP_URL, boot, reload, collectConsole, app, selectMode, findInstalledFont, FONT_CANDIDATES,
     installedFontFamilies, minDetectedFonts, fontSubstitute };

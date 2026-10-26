@@ -5,7 +5,7 @@
  * (S:7) in docs/superpowers/specs/2026-08-25-colour-rail-design.md.
  */
 const { test, expect } = require('@playwright/test');
-const { boot } = require('./helpers');
+const { boot, pickCellTool, pickDrawMode, pickMirror } = require('./helpers');
 
 const rectOf = (page, selector) => page.evaluate((s) => {
     const el = document.querySelector(s);
@@ -53,15 +53,15 @@ test('clicking a draw mode does not retrigger ColorBarFit or resize the top stri
         getComputedStyle(document.getElementById('color-bar'))
             .getPropertyValue('--colorbar-scale').trim());
     const barBefore = await outerRectOf(page, 'color-bar');
-    const buttonBefore = await rectOf(page, '#draw-modes button[data-draw-mode="xor"]');
+    const buttonBefore = await rectOf(page, '#draw-mode-select');
 
-    await page.click('#draw-modes button[data-draw-mode="xor"]');
+    await pickDrawMode(page, 'xor');
 
     const scaleAfter = await page.evaluate(() =>
         getComputedStyle(document.getElementById('color-bar'))
             .getPropertyValue('--colorbar-scale').trim());
     const barAfter = await outerRectOf(page, 'color-bar');
-    const buttonAfter = await rectOf(page, '#draw-modes button[data-draw-mode="xor"]');
+    const buttonAfter = await rectOf(page, '#draw-mode-select');
 
     expect(scaleAfter).toBe(scaleBefore);
     expect(barAfter).toEqual(barBefore);
@@ -72,8 +72,8 @@ test('toggling Mirror and engaging Swap/Recolour do not resize the top strip', a
     await boot(page);
     const barBefore = await outerRectOf(page, 'color-bar');
 
-    await page.click('#symmetry-h-toggle');
-    await page.click('#attr-transpose');
+    await pickMirror(page, 'h');
+    await pickCellTool(page, 'swap');
 
     const barAfter = await outerRectOf(page, 'color-bar');
     expect(barAfter).toEqual(barBefore);

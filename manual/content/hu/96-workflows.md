@@ -8,9 +8,9 @@ Néhány gyakori feladat az elejétől a végéig.
    256×192-es képernyővel.
 2. Kapcsold be a cellarácsot a nagyításvezérlők mellett, hogy lásd a 8×8-as
    blokkokat, amelyekben a szín tárolódik.
-3. Válassz tintaszínt a színsávon vagy az 1–8 billentyűkkel, papírszínt pedig
+3. Válassz Tinta-színt a színsávon vagy az 1–8 billentyűkkel, Papír-színt pedig
    egy mintára való jobb kattintással.
-4. Rajzolj az **Ecsettel**. Bal gomb a tinta, jobb a papír.
+4. Rajzolj az **Ecsettel**. Bal gomb a tintapixelek, jobb a papírpixelek.
 5. Nagyíts a `+` és a `-` billentyűvel. Tartsd lenyomva a szóközt és húzd, hogy
    mozogj, vagy használd a **Nézet mozgatása** eszközt.
 6. A `Ctrl+Z` visszavon. A `Ctrl+S` egy `.pixula` projektet ment, amely a képen

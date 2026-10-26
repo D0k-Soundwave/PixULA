@@ -12,6 +12,7 @@ installStubs({
   }
 });
 loadModule('js/data/zx-rom-font.js');
+loadModule('js/utils/glyph-bits.js');
 loadModule('js/utils/font-codec.js');
 loadModule('js/services/font-service.js');
 

@@ -26,6 +26,7 @@ loadModule('js/utils/helpers.js');
 loadModule('js/utils/validators.js');
 loadModule('js/core/event-bus.js');
 loadModule('js/core/state-manager.js');
+loadModule('js/utils/snap-grid.js');
 loadModule('js/core/attribute-system.js');
 
 global.CanvasSystem = {
@@ -82,10 +83,18 @@ loadModule('js/utils/brush-shapes.js');
 loadModule('js/tools/brush-engine.js');
 loadModule('js/tools/brush-tool.js');
 loadModule('js/tools/eraser-tool.js');
+loadModule('js/tools/figure-model.js');
+loadModule('js/tools/figure-editor.js');
 loadModule('js/tools/shape-tool.js');
+loadModule('js/tools/figure-model.js');
+loadModule('js/tools/figure-editor.js');
 loadModule('js/tools/bezier-tool.js');
+loadModule('js/tools/figure-model.js');
+loadModule('js/tools/figure-editor.js');
+loadModule('js/tools/figure-tool.js');
 loadModule('js/tools/fill-tool.js');
 loadModule('js/tools/gradient-tool.js');
+loadModule('js/utils/bitmap-text.js');
 loadModule('js/tools/text-tool.js');
 loadModule('js/tools/selection-tool.js');
 loadModule('js/tools/zoom-tool.js');
@@ -94,7 +103,7 @@ loadModule('js/services/preset-service.js');
 
 const TOOL_CLASSES = [
   ['brush', global.BrushTool], ['eraser', global.EraserTool],
-  ['shape', global.ShapeTool], ['bezier', global.BezierTool],
+  ['shape', global.ShapeTool], ['bezier', global.BezierTool], ['figure', global.FigureTool],
   ['fill', global.FillTool], ['gradient', global.GradientTool],
   ['text', global.TextTool], ['selection', global.SelectionTool],
   ['zoom', global.ZoomTool]
@@ -295,6 +304,75 @@ check('every slice has a label key for the dialogs',
     c.indexOf('brightKeep:true') > Math.max(last('bright'), last('clut')) &&
     c.indexOf('flashKeep:false') > Math.max(last('flash'), last('clut')),
     c.join(','));
+}
+
+// Inverse travels with the drawing-settings slice (so with .pixula projects too).
+{
+  const drawing = global.PresetService.getSlice('drawing');
+  global.StateManager.setInverse(true);
+  const captured = drawing.capture();
+  check('the drawing slice captures Inverse', captured.inverse === true, JSON.stringify(captured));
+  global.StateManager.setInverse(false);
+  drawing.apply(captured);
+  check('...and applies it back', global.StateManager.getInverse() === true);
+  drawing.apply({ drawMode: 'normal', inverse: 'yes' });
+  check('a value that is not a boolean is ignored', global.StateManager.getInverse() === true);
+  drawing.apply({ inverse: false });
+  check('...and an older preset without Inverse leaves it alone, one with false clears it',
+    global.StateManager.getInverse() === false);
+}
+
+// The snap step (Batch 9 part 9A) travels with the same slice.
+{
+  const SM = global.StateManager;
+  const drawing = global.PresetService.getSlice('drawing');
+  check('the default snap step is the cell', SM.getGridSnapStep().kind === 'cell');
+  SM.setGridSnapStep({ kind: 'custom', x: 12, y: 20 });
+  SM.setGridSnap(true);
+  const cap = drawing.capture();
+  check('the drawing slice captures the step', cap.snapStep && cap.snapStep.kind === 'custom' && cap.snapStep.x === 12 && cap.snapStep.y === 20, JSON.stringify(cap.snapStep));
+  SM.setGridSnapStep({ kind: 'cell' });
+  drawing.apply(cap);
+  check('...and applies it back', SM.getGridSnapStep().kind === 'custom' && SM.getGridSnapStep().y === 20);
+  SM.setGridSnapStep({ kind: 'block16' });
+  drawing.apply({ snap: true });
+  check('an older preset with Snap but no step gets the cell', SM.getGridSnapStep().kind === 'cell');
+  SM.setGridSnapStep({ kind: 'block16' });
+  drawing.apply({ drawMode: 'normal' });
+  check('a value with neither key leaves the step alone', SM.getGridSnapStep().kind === 'block16');
+  SM.setGridSnapStep({ kind: 'nonsense', x: 'no', y: 99999 });
+  const st = SM.getGridSnapStep();
+  check('junk kind keeps the old kind; junk numbers keep the old numbers or clamp', st.kind === 'block16' && st.x === 12 && st.y === 1024, JSON.stringify(st));
+  let got = null;
+  const off = global.EventBus.on(global.EVENTS.GRID_SNAP_CHANGED, (d) => { got = d; });
+  SM.setGridSnapStep({ kind: 'screen' });
+  check('changing the step emits GRID_SNAP_CHANGED with the step', got && got.step && got.step.kind === 'screen' && got.snap === true, JSON.stringify(got));
+  if (typeof off === 'function') off();
+  SM.setGridSnap(false);
+}
+
+// -- Text tool: the font is restored BEFORE the character size and Type on canvas (group C review) ------------------------------------
+{
+  const big = { name: 'P', width: 16, height: 16, firstCode: 32, glyphs: Array.from({ length: 96 }, () => new Uint8Array(32)), shade: null };
+  const savedFS = global.FontService;
+  global.FontService = { getLibraryFont: (n) => (n === 'P' ? big : null), listLibrary: () => ['P'] };
+  const tt = new global.TextTool();
+  const savedTM = global.ToolManager.getTool;
+  global.ToolManager.getTool = (id) => (id === 'text' ? tt : savedTM.call(global.ToolManager, id));
+  tt.setFontFamily('zxfont:P'); tt.setCharHeight(16); tt.setCharWidth(16); tt.setTypeOnCanvas(true);
+  const saved = PS.captureToolOptions('text');
+  check('text preset holds the big font, 16 x 16 and Type on canvas', saved.fontFamily === 'zxfont:P' && saved.charWidth === 16 && saved.charHeight === 16 && saved.typeOnCanvas === true);
+  tt.setTypeOnCanvas(false); tt.setFontFamily('ZX ROM'); tt.setCharHeight(8); tt.setCharWidth(8);
+  PS.applyToolOptions('text', saved);
+  check('restored over ZX ROM: 16 x 16 (not doubled to 32 x 32) with Type on canvas on', tt._charW === 16 && tt._charH === 16 && tt._typeOnCanvas === true, `${tt._charW}x${tt._charH}`);
+  tt.setTypeOnCanvas(false); tt.setFontFamily('Arial');
+  PS.applyToolOptions('text', saved);
+  check('restored over a system font: font, size and Type on canvas all come back', tt._fontFamily === 'zxfont:P' && tt._charW === 16 && tt._charH === 16 && tt._typeOnCanvas === true);
+  tt.setTypeOnCanvas(false); tt.setFontFamily('zxfont:P'); tt.setCharHeight(16); tt.setCharWidth(16);
+  tt.setFontFamily('Arial'); tt.setFontFamily('zxfont:P');
+  check('big font -> system font -> big font keeps 16 x 16', tt._charW === 16 && tt._charH === 16, `${tt._charW}x${tt._charH}`);
+  global.ToolManager.getTool = savedTM;
+  global.FontService = savedFS;
 }
 
 summary();

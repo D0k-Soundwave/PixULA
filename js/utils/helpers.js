@@ -196,7 +196,7 @@ const Helpers = {
     assertClassicPixelModel() {
         if (!this.hasClassicPixelModel()) {
             throw new Error(this.localizedMessage('mode.needsClassicPixels',
-                'This works in the classic ink/paper modes only - the current mode uses indexed pixels.'));
+                'This works in the classic Ink/Paper modes only - the current mode uses indexed pixels.'));
         }
     },
 
@@ -470,6 +470,25 @@ const Helpers = {
      * @param {number} height
      * @returns {HTMLCanvasElement}
      */
+    /**
+     * A copy of part of an image (the selection, for Save Selection As). The source is never touched.
+     * @param {{width:number,height:number,data:Uint8ClampedArray}} img
+     * @param {{x:number,y:number,width:number,height:number}} rect - clamped to the image
+     * @returns {{width:number,height:number,data:Uint8ClampedArray}} an ImageData where the platform has one
+     */
+    cropImageData(img, rect) {
+        const x0 = Helpers.clamp(Math.round(rect.x), 0, img.width - 1);
+        const y0 = Helpers.clamp(Math.round(rect.y), 0, img.height - 1);
+        const w = Helpers.clamp(Math.round(rect.width), 1, img.width - x0);
+        const h = Helpers.clamp(Math.round(rect.height), 1, img.height - y0);
+        const out = new Uint8ClampedArray(w * h * 4);
+        for (let y = 0; y < h; y++) {
+            const from = ((y0 + y) * img.width + x0) * 4;
+            out.set(img.data.subarray(from, from + w * 4), y * w * 4);
+        }
+        return typeof ImageData !== 'undefined' ? new ImageData(out, w, h) : { width: w, height: h, data: out };
+    },
+
     createCanvas(width, height) {
         const canvas = document.createElement('canvas');
         canvas.width = width;
@@ -838,11 +857,28 @@ const Helpers = {
         });
     },
 
-    buildDirPad() {
+    /**
+     * A four-way direction pad, or with `nine: true` a three-by-three one with
+     * the four diagonals and an empty centre. The nine variant clips each zone
+     * to its ninth (css .dir-pad--nine) and uses icon-dirpad9-* glyphs drawn
+     * inside their own ninth. Zones come back in reading order.
+     * @param {{nine?: boolean}} [options]
+     * @returns {{element: HTMLElement, zones: Object<string, HTMLButtonElement>}}
+     */
+    buildDirPad(options = {}) {
         const pad = document.createElement('div');
-        pad.className = 'dir-pad';
+        pad.className = options.nine ? 'dir-pad dir-pad--nine' : 'dir-pad';
 
-        const ZONES = [
+        const ZONES = options.nine ? [
+            { dir: 'upLeft',    icon: 'icon-dirpad9-upleft',    i18n: 'dirpad.upLeft',    fallback: 'Shift up left' },
+            { dir: 'up',        icon: 'icon-dirpad9-up',        i18n: 'dirpad.up',        fallback: 'Shift up' },
+            { dir: 'upRight',   icon: 'icon-dirpad9-upright',   i18n: 'dirpad.upRight',   fallback: 'Shift up right' },
+            { dir: 'left',      icon: 'icon-dirpad9-left',      i18n: 'dirpad.left',      fallback: 'Shift left' },
+            { dir: 'right',     icon: 'icon-dirpad9-right',     i18n: 'dirpad.right',     fallback: 'Shift right' },
+            { dir: 'downLeft',  icon: 'icon-dirpad9-downleft',  i18n: 'dirpad.downLeft',  fallback: 'Shift down left' },
+            { dir: 'down',      icon: 'icon-dirpad9-down',      i18n: 'dirpad.down',      fallback: 'Shift down' },
+            { dir: 'downRight', icon: 'icon-dirpad9-downright', i18n: 'dirpad.downRight', fallback: 'Shift down right' }
+        ] : [
             { dir: 'up',    icon: 'icon-dirpad-up',    i18n: 'dirpad.up',    fallback: 'Shift up' },
             { dir: 'left',  icon: 'icon-dirpad-left',  i18n: 'dirpad.left',  fallback: 'Shift left' },
             { dir: 'right', icon: 'icon-dirpad-right', i18n: 'dirpad.right', fallback: 'Shift right' },

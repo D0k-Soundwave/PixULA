@@ -20,6 +20,7 @@
 
 class PixelDrawRoutineClass {
   constructor() {
+    this._colourCore = null; // see withColourCore
     this.pendingChanges = new Map(); // key: cellY*GRID_COLS+cellX -> {cellX,cellY}
     this.isInBatch = false;
     this._inMirror = false;        // reentrancy guard for symmetry expansion
@@ -65,13 +66,84 @@ class PixelDrawRoutineClass {
     }
   }
 
+  // -- Colour core (batch 4 part 4A) ------------------------------------------
+  //
+  // ZX Paintbrush's "colour attribute line thickness": a thick line sets ALL
+  // its dots, but only the cells under its 1- or 4-pixel-wide core take the
+  // colours, so thick lines clash less. Like the dither gate, the rule sits
+  // where every write already passes; the TOOL says which pixels are the core
+  // (a predicate over canvas coordinates) and the gate says what a pixel
+  // outside it may write.
+
+  /**
+   * Run fn with a colour-core predicate installed. A write whose pixel the
+   * predicate rejects keeps its dot but loses its colours (see classifyCore).
+   * Installed only where cells have colours; anywhere else, or with no
+   * predicate, fn runs unchanged. Nested calls restore the outer one.
+   * @param {Function|null} isCore - (x, y) => boolean, true if (x, y) is core
+   * @param {Function} fn
+   */
+  withColourCore(isCore, fn) {
+    const previous = this._colourCore;
+    const usable = typeof isCore === 'function' && window.ColorManager &&
+      ColorManager.hasCellAttributes();
+    this._colourCore = usable ? isCore : null;
+    try {
+      return fn();
+    } finally {
+      this._colourCore = previous;
+    }
+  }
+
+  /**
+   * What a write at (x, y) becomes under a colour core. THE one rule, used by
+   * draw() and by every preview, so a preview cannot disagree with its commit.
+   *   in the core, or no core ... unchanged
+   *   Normal, left button ...... Pixels Only (the dot, no colours)
+   *   Normal, right button ..... Erase (the dot cleared, colours kept)
+   *   Ink / Paper / Attributes . dropped (they write no dots, only colours)
+   *   XOR modes ................ the same mode, writing no colours (keepColours):
+   *                              XOR does stamp the cell's colours, and its
+   *                              once-per-stroke gate needs the mode unchanged
+   * @param {number} x
+   * @param {number} y
+   * @param {string} mode - DRAW_MODE value
+   * @param {Object} sel - colour selection
+   * @param {Function|null} [isCore] - defaults to the installed predicate
+   * @returns {{mode: string, sel: Object}|null} null = write nothing
+   */
+  classifyCore(x, y, mode, sel, isCore = this._colourCore) {
+    if (!isCore || isCore(x, y)) return { mode, sel };
+    switch (mode) {
+      case DRAW_MODE.NORMAL:       return { mode: DRAW_MODE.PIXEL_ONLY, sel };
+      case DRAW_MODE.NORMAL_ERASE: return { mode: DRAW_MODE.ERASE, sel };
+      case DRAW_MODE.INK:
+      case DRAW_MODE.PAPER:
+      case DRAW_MODE.ATTRIBUTES_ONLY:
+        return null;
+      case DRAW_MODE.XOR:
+      case DRAW_MODE.XOR_PIXEL:
+        // keepColours: _applyXOR leaves the cell's colours exactly as they are. (Marking
+        // every part "use existing" is not the same: that resolves against what the
+        // page showed when the stroke began, and would undo colours the core just set.)
+        return { mode, sel: { ...sel, keepColours: true } };
+      default:
+        return { mode, sel };
+    }
+  }
+
   // ── Symmetry (mirror-while-drawing) ────────────────────────────────────────
   //
   // The one hook every tool inherits: draw() expands each write into its
   // mirrored counterparts when StateManager's symmetry mode is on. Axes come
-  // from the active screen mode, never hardcoded. Services whose writes are
-  // NOT freehand drawing (stamp commit/erase, transforms, attr paint) wrap
-  // their loops in suspendMirror() so symmetry stays a tool-stroke feature.
+  // from the active screen mode, never hardcoded. Every tool works with it:
+  // stamps and text placed on the canvas mirror through draw() too, and the
+  // whole-cell tools mirror their cells via getMirrorCells(). The previews show
+  // the copies too: strokeTargets / forEachStrokeTarget for the shapes, curves,
+  // figures and the gradient, mirrorWritePlan for the write plans of a floating
+  // stamp or text and Type on canvas. Writes that are not a tool putting
+  // something down (transforms, menu commands on a selection, Flatten baking
+  // stamps) wrap their loops in suspendMirror().
 
   /**
    * Run fn with every TOOL-STROKE hook suspended — symmetry expansion and the
@@ -125,6 +197,60 @@ class PixelDrawRoutineClass {
     return points.filter(p => p.x !== x || p.y !== y);
   }
 
+  /**
+   * The mirrored counterparts of a whole CELL for the active symmetry mode, for the
+   * whole-cell tools (Swap, Recolour, Copy colours, the two inverts): they work on
+   * cells, not through draw(), so they ask here. The picture is a whole number of
+   * cells across and down in every mode, so a cell's mirror image is exactly one
+   * cell - the one that holds the mirror of any of its pixels. Empty when Mirror
+   * is off; the cell itself is not included.
+   * @param {number} cx
+   * @param {number} cy
+   * @returns {Array<{x: number, y: number}>}
+   */
+  getMirrorCells(cx, cy) {
+    const sym = window.StateManager && StateManager.getSymmetryMode
+      ? StateManager.getSymmetryMode() : 'off';
+    if (sym === 'off' || this._mirrorSuspend > 0) return [];
+    const px = cx * ZX_SPECTRUM.CELL_WIDTH, py = cy * ZX_SPECTRUM.CELL_HEIGHT;
+    return this.getMirrorPoints(px, py, sym).map(p => ({
+      x: Math.floor(p.x / ZX_SPECTRUM.CELL_WIDTH),
+      y: Math.floor(p.y / ZX_SPECTRUM.CELL_HEIGHT)
+    })).filter(c => c.x !== cx || c.y !== cy);
+  }
+
+  /**
+   * A write plan as draw() will carry it out with Mirror on, for a preview that simulates a plan of draw() calls
+   * (a floating stamp or text, Type on canvas): each write's mirrored copies, then the write itself - draw() expands
+   * before it writes - and an XOR write only the first time it reaches a pixel, as the batch's XOR gate lets it.
+   * The drawing guide is not applied: those commits suspend it. The plan comes back as it was when Mirror is off
+   * or suspended.
+   * @param {Array<{x:number,y:number,sel:Object,mode:string}>} writes
+   * @returns {Array<{x:number,y:number,sel:Object,mode:string}>}
+   */
+  mirrorWritePlan(writes) {
+    const sym = window.StateManager && StateManager.getSymmetryMode
+      ? StateManager.getSymmetryMode() : 'off';
+    if (sym === 'off' || this._mirrorSuspend > 0) return writes;
+    const W = ZX_SPECTRUM.WIDTH;
+    const xorSeen = new Set();
+    const out = [];
+    const put = (x, y, w) => {
+      if (!Validators.isValidPixelCoord(x, y)) return;
+      if (w.mode === DRAW_MODE.XOR || w.mode === DRAW_MODE.XOR_PIXEL) {
+        const k = y * W + x;
+        if (xorSeen.has(k)) return;
+        xorSeen.add(k);
+      }
+      out.push(x === w.x && y === w.y ? w : { ...w, x, y });
+    };
+    for (const w of writes) {
+      for (const p of this.getMirrorPoints(w.x, w.y, sym)) put(p.x, p.y, w);
+      put(w.x, w.y, w);
+    }
+    return out;
+  }
+
   /** @private */
   _expandSymmetry(pixelX, pixelY, colorSelection, mode, options) {
     const sym = window.StateManager && StateManager.getSymmetryMode
@@ -138,6 +264,84 @@ class PixelDrawRoutineClass {
       }
     } finally {
       this._inMirror = false;
+    }
+  }
+
+  /**
+   * The pixels a stroke of `pixels` would actually be written to, read-only: the same bounds check,
+   * symmetry expansion and drawing-guide clip that draw() applies, in the same order, and nothing
+   * when the current layer is missing or locked. A live PREVIEW asks this so it shows what the
+   * commit will leave.
+   * Each mirrored copy counts as colour-core exactly when its source pixel does (see draw()).
+   * The dither gate is not applied: no shape tool uses it.
+   * @param {Array<{x:number,y:number}>} pixels
+   * @param {?function(number, number): boolean} [isCore] - the colour-core predicate, or null
+   * @returns {{pixels: Array<{x:number,y:number}>, isCore: ?function(number, number): boolean}}
+   */
+  strokeTargets(pixels, isCore = null) {
+    const layer = window.LayerManager ? LayerManager.getCurrentLayer() : null;
+    if (!layer || layer.locked) return { pixels: [], isCore: isCore ? () => false : null };
+    const sym = window.StateManager && StateManager.getSymmetryMode ? StateManager.getSymmetryMode() : 'off';
+    const W = ZX_SPECTRUM.WIDTH;
+    const seen = new Set();
+    const core = new Set();
+    const out = [];
+    const take = (x, y, coreOfSource) => {
+      if (!Validators.isValidPixelCoord(x, y)) return;
+      if (this._clipSuspend === 0 && this.isClipped(x, y)) return;
+      const k = y * W + x;
+      if (coreOfSource) core.add(k);
+      if (seen.has(k)) return;
+      seen.add(k);
+      out.push({ x, y });
+    };
+    for (const p of pixels) {
+      if (!Validators.isValidPixelCoord(p.x, p.y)) continue;
+      const c = isCore ? !!isCore(p.x, p.y) : false;
+      take(p.x, p.y, c);
+      if (sym !== 'off') {
+        for (const m of this.getMirrorPoints(p.x, p.y, sym)) take(m.x, m.y, c);
+      }
+    }
+    return { pixels: out, isCore: isCore ? (x, y) => core.has(y * W + x) : null };
+  }
+
+  /**
+   * strokeTargets for a stroke too big for an object per pixel (the gradient previews up to a whole screen):
+   * visit(x, y) once for each pixel the stroke's draw() calls would write - the same bounds check, Mirror copies
+   * (getMirrorPoints's geometry) and drawing-guide clip, and nothing when the current layer is missing or locked.
+   * @param {ArrayLike<number>} xs - the stroke's pixels, x
+   * @param {ArrayLike<number>} ys - and y
+   * @param {function(number, number)} visit
+   */
+  forEachStrokeTarget(xs, ys, visit) {
+    const layer = window.LayerManager ? LayerManager.getCurrentLayer() : null;
+    if (!layer || layer.locked) return;
+    const sym = window.StateManager && StateManager.getSymmetryMode ? StateManager.getSymmetryMode() : 'off';
+    const W = ZX_SPECTRUM.WIDTH;
+    const mx = ACTIVE_SCREEN_MODE.width - 1, my = ACTIVE_SCREEN_MODE.height - 1;
+    const across = sym === 'h' || sym === 'quad', down = sym === 'v' || sym === 'quad';
+    // isClipped reads the guide's setting on every call: ask it only when the guide is on.
+    const clipMode = window.StateManager && StateManager.getClipMode ? StateManager.getClipMode() : 'off';
+    const clip = this._clipSuspend === 0 && clipMode !== 'off';
+    const HH = ZX_SPECTRUM.HEIGHT;
+    const seen = new Uint8Array(W * HH);
+    // Every point here is a whole number - a checked source pixel or its mirror - so the bounds are all to check.
+    const take = (x, y) => {
+      if (x < 0 || y < 0 || x >= W || y >= HH) return;
+      const k = y * W + x;
+      if (seen[k]) return;
+      seen[k] = 1;
+      if (clip && this.isClipped(x, y)) return;
+      visit(x, y);
+    };
+    for (let i = 0; i < xs.length; i++) {
+      const x = xs[i], y = ys[i];
+      if (!Validators.isValidPixelCoord(x, y)) continue;
+      take(x, y);
+      if (across) take(mx - x, y);
+      if (down) take(x, my - y);
+      if (across && down) take(mx - x, my - y);
     }
   }
 
@@ -229,6 +433,11 @@ class PixelDrawRoutineClass {
   resolveUserMode(isInk) {
     const dm = (window.StateManager && StateManager.getDrawMode)
       ? StateManager.getDrawMode() : 'normal';
+    // Inverse swaps the buttons: left clears, right sets. Only the modes that
+    // read isInk are affected (Normal and Pixels Only); Ink, Paper, Attributes
+    // and the XOR modes give both buttons the same job, so there is nothing to swap.
+    // Patterns follow too: their gap mode comes from resolveUserMode(false).
+    if (window.StateManager && StateManager.getInverse && StateManager.getInverse()) isInk = !isInk;
     switch (dm) {
       // Pixels Only means exactly that on BOTH buttons, so its right button
       // keeps the attribute-preserving primitive.
@@ -237,6 +446,10 @@ class PixelDrawRoutineClass {
       // button (they never place or clear a pixel).
       case 'ink':             return DRAW_MODE.INK;
       case 'paper':           return DRAW_MODE.PAPER;
+      // Attributes Only: ZX Paintbrush with pixel drawing off - the cell takes
+      // Ink, Paper, Bright and Flash, each "use existing" box keeping its own
+      // (_resolveTransparent), and no pixel is written.
+      case 'attributes':      return DRAW_MODE.ATTRIBUTES_ONLY;
       case 'xor':             return DRAW_MODE.XOR;
       case 'xor_pixel':       return DRAW_MODE.XOR_PIXEL;
       default:                return isInk ? DRAW_MODE.NORMAL : DRAW_MODE.NORMAL_ERASE;
@@ -291,7 +504,7 @@ class PixelDrawRoutineClass {
    * @param {boolean} [opts.live] - a stroke is in progress
    * @returns {function(number, number): (string|null)} CSS colour, or null
    */
-  markColours(tool, pixels, { live = false } = {}) {
+  markColours(tool, pixels, { live = false, centre = null } = {}) {
     const kind = (tool && tool.markColour) || 'paint';
     if (kind === 'none' || !window.LayerManager || !window.ColorManager) return () => null;
 
@@ -300,6 +513,12 @@ class PixelDrawRoutineClass {
     const simulate = kind === 'paint' && !live && !!layer &&
       typeof tool.markWrite === 'function';
 
+    const selection = simulate ? ColorManager.getCurrentSelection() : null;
+    // A tool with a colour core says which pixels of this mark are the core;
+    // the rest lose their colours here exactly as they will in the stroke.
+    const core = simulate && centre && typeof tool.markCore === 'function'
+      ? tool.markCore(centre) : null;
+
     // Every footprint write, grouped by the cell it lands in.
     let byCell = null;
     if (simulate) {
@@ -307,15 +526,21 @@ class PixelDrawRoutineClass {
       for (let i = 0; i < pixels.length; i++) {
         const p = pixels[i];
         if (!Validators.isValidPixelCoord(p.x, p.y)) continue;
-        const mode = tool.markWrite(p.x, p.y);
+        let mode = tool.markWrite(p.x, p.y);
         if (!mode) continue;
+        let sel;
+        if (core) {
+          const kept = this.classifyCore(p.x, p.y, mode, selection, core);
+          if (kept === null) continue;
+          mode = kept.mode;
+          if (kept.sel !== selection) sel = kept.sel;
+        }
         const key = Math.floor(p.y / ch) * cols + Math.floor(p.x / cw);
         let list = byCell.get(key);
         if (!list) byCell.set(key, (list = []));
-        list.push({ localX: p.x % cw, localY: p.y % ch, mode });
+        list.push({ localX: p.x % cw, localY: p.y % ch, mode, sel });
       }
     }
-    const selection = simulate ? ColorManager.getCurrentSelection() : null;
     const cells = new Map();
     const css = (rgb) => `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
 
@@ -445,6 +670,27 @@ class PixelDrawRoutineClass {
       return false;
     }
 
+    // Colour core: classify the ORIGINAL pixel before it is mirrored, so each
+    // mirrored copy takes its original's treatment (the core is the stroke's
+    // own line, mirrored, not a second thing to measure).
+    if (this._colourCore && !this._inMirror) {
+      const kept = this.classifyCore(pixelX, pixelY, mode, colorSelection);
+      if (kept === null) return false;
+      mode = kept.mode;
+      colorSelection = kept.sel;
+    }
+
+    // The dither gate thins a stroke to a density. It judges the ORIGINAL
+    // pixel, before the symmetry expansion, and each mirrored copy takes that
+    // verdict (as it takes its colour-core treatment above): judged again at
+    // its own coordinates, the mirrored side of a fade came out a different
+    // pattern and, in the attribute draw modes, missed cells the drawn side
+    // coloured. The size-1 fade already judged before draw().
+    if (this._ditherGate && options.dither !== false && !this._inMirror &&
+        !this._ditherGate(pixelX, pixelY)) {
+      return false;
+    }
+
     // Symmetry: expand this write into its mirrored counterparts. The
     // _inMirror guard stops recursion; suspendMirror() exempts non-stroke
     // callers; options.mirror === false exempts a single call.
@@ -458,15 +704,6 @@ class PixelDrawRoutineClass {
     // stroke that strays outside stops producing its mirror inside".
     if (this._clipSuspend === 0 && options.clip !== false &&
         this.isClipped(pixelX, pixelY)) {
-      return false;
-    }
-
-    // The dither gate thins a stroke to a density. Placed after the symmetry
-    // expansion for the same reason as the clip: each mirrored counterpart is
-    // judged at its own coordinates, so the dither pattern stays continuous
-    // across the mirror instead of copying the original's holes.
-    if (this._ditherGate && options.dither !== false &&
-        !this._ditherGate(pixelX, pixelY)) {
       return false;
     }
 
@@ -1314,7 +1551,7 @@ class PixelDrawRoutineClass {
 
   /**
    * Apply attributes only (change colors, don't modify pixels) - the Recolour
-   * attribute op and the attribute flood fill.
+   * attribute op, the attribute flood fill and the Attributes Only draw mode.
    *
    * The attributes follow _stampAttributes exactly - with both boxes on "use
    * existing" it changes bright and flash and nothing else.
@@ -1381,7 +1618,7 @@ class PixelDrawRoutineClass {
   _applyXOR(cell, localX, localY, colorSelection) {
     const bitPosition = 7 - localX;
     cell.pixels[localY] ^= (1 << bitPosition);
-    this._stampAttributes(cell, colorSelection);
+    if (!(colorSelection && colorSelection.keepColours)) this._stampAttributes(cell, colorSelection);
     cell.altered = true;
   }
 

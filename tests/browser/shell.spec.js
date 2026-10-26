@@ -5,7 +5,7 @@
  * against the booted DOM; visual look stays a manual concern.
  */
 const { test, expect } = require('@playwright/test');
-const { boot, reload } = require('./helpers');
+const { boot, reload, pickDrawMode } = require('./helpers');
 
 test('header: menu bar, language/size selectors, Border', async ({ page }) => {
     await boot(page);
@@ -73,12 +73,12 @@ test('colour rail: flash, 2×8 CLUT; left rail = tool registry; top strip keeps 
         colorBarHasNoSelect: document.querySelectorAll('#color-bar select').length === 0,
         borderSelectInHeader: [...document.querySelectorAll('#header-controls select')]
             .some((s) => s.id === 'border-select'),
-        attrOps: [...document.querySelectorAll('#attr-tools button')].length
+        attrOps: [...document.querySelectorAll('#attr-tools button')].length   // the one cell-tool selector
     }));
     expect(rail.wells).toBeGreaterThanOrEqual(2);
     expect(rail.colorBarHasNoSelect).toBe(true);
     expect(rail.borderSelectInHeader).toBe(true);
-    expect(rail.attrOps).toBeGreaterThanOrEqual(2); // Swap + Apply (cycle buttons removed 2026-07-08)
+    expect(rail.attrOps).toBe(1); // the cell-tool selector (Swap, Recolour and the rest open from it)
 
     // Tool rail is generated from the TOOLS registry — assert it matches.
     // `variantOf` entries are reached from another tool's options (the bezier
@@ -121,9 +121,7 @@ test('every row of the top strip sits on one baseline and one pitch', async ({ p
     // Grouped by kind since 2026-10-07: the draw modes (dots first, the two
     // colour-only modes last), then the Swap/Recolour cell operations they
     // get mistaken for, then Mirror.
-    expect(split.marks).toEqual(['normal', 'pixel_only', 'xor', 'xor_pixel', 'ink', 'paper',
-        'attr-transpose', 'attr-apply',
-        'symmetry-h-toggle', 'symmetry-v-toggle', 'symmetry-quad-toggle']);
+    expect(split.marks).toEqual(['draw-mode-select', 'cell-tool-select', 'mirror-select']);
     expect(split.colorBarHasNoSelect).toBe(true);
     expect(split.borderInHeader).toBe(true);
     expect(split.bitsMovedOut).toBe(0); // Bright/Flash live in #color-rail, Border in the header
@@ -140,7 +138,7 @@ test('every row of the top strip sits on one baseline and one pitch', async ({ p
             labelAboveIcons: label ? rect(label).bottom <= rect(cells[0]).top + 1 : false
         };
     });
-    expect(pitch.n).toBe(11);        // Swap, Recolour + 6 draw modes + 3 mirror toggles
+    expect(pitch.n).toBe(3);         // the draw mode, cell tool and Mirror selectors; their choices open in a pop-up
     expect(pitch.widths).toHaveLength(1);
     expect(pitch.labelText).toBeTruthy();
     expect(pitch.labelAboveIcons).toBe(true);
@@ -235,9 +233,9 @@ test('top strip icons match the Ink/Paper preview size', async ({ page }) => {
 
     const info = await page.evaluate(() => {
         const preview = document.getElementById('ink-color').getBoundingClientRect();
-        const drawModeBtn = document.querySelector('#draw-modes button').getBoundingClientRect();
-        const mirrorBtn = document.querySelector('#mirror-modes button').getBoundingClientRect();
-        const attrBtn = document.querySelector('#attr-tools button').getBoundingClientRect();
+        const drawModeBtn = document.querySelector('#draw-mode-select').getBoundingClientRect();
+        const mirrorBtn = document.querySelector('#mirror-select').getBoundingClientRect();
+        const attrBtn = document.querySelector('#cell-tool-select').getBoundingClientRect();
         return {
             previewSize: preview.height,
             drawModeHeight: drawModeBtn.height,
@@ -352,6 +350,9 @@ test.describe('ColorBarFit keeps the top strip at one row across interface sizes
                                 hasHorizontalOverflow: bar.scrollWidth > bar.clientWidth + 1
                             };
                         });
+                        // Three selector buttons since the strip was folded into pop-up
+                        // grids (the earlier 12-15 button strip wrapped to two rows at 1024px
+                        // and the 200% interface size): one row everywhere, again.
                         expect(result.rows).toBe(1);
                         expect(result.hasHorizontalOverflow).toBe(false);
                     });
@@ -413,8 +414,10 @@ test('top bar: global draw-mode selector drives StateManager and persists', asyn
     // No attributes_only: it did the same job as the Recolour attribute op and
     // was retired with it. StateManager rejects the value, so a document saved
     // in that mode comes back Normal rather than in a mode with no way out.
-    const modes = await page.$$eval('#draw-modes button[data-draw-mode]', b => b.map(x => x.dataset.drawMode));
-    expect(modes).toEqual(['normal', 'pixel_only', 'xor', 'xor_pixel', 'ink', 'paper']);
+    await page.click('#draw-mode-select');
+    const modes = await page.$$eval('.strip-popup .tool-btn', b => b.map(x => x.dataset.drawMode));
+    await page.keyboard.press('Escape');
+    expect(modes).toEqual(['normal', 'pixel_only', 'xor', 'xor_pixel', 'ink', 'paper', 'attributes']);
     const retired = await page.evaluate(() => {
         StateManager.setDrawMode('attributes_only');
         return StateManager.getDrawMode();
@@ -426,13 +429,13 @@ test('top bar: global draw-mode selector drives StateManager and persists', asyn
         .filter(n => window[n] && (window[n].optionsSchema || []).some(o => o.key === 'drawMode')));
     expect(perTool).toEqual([]);
 
-    await page.click('#draw-modes button[data-draw-mode="xor"]');
+    await pickDrawMode(page, 'xor');
     const st = await page.evaluate(() => ({
         dm: StateManager.getDrawMode(),
-        active: document.querySelector('#draw-modes button.active')?.dataset.drawMode
+        shown: document.getElementById('draw-mode-select').dataset.value
     }));
     expect(st.dm).toBe('xor');
-    expect(st.active).toBe('xor');
+    expect(st.shown, 'the selector shows the mode in force').toBe('xor');
 
     await page.waitForTimeout(300); // persistence debounce (fire-and-forget Storage.set)
     await reload(page);
@@ -453,16 +456,16 @@ test.describe('the global draw mode can never hide', () => {
         // Every mode button is inside the viewport — the bar wraps, not scrolls.
         const offscreen = await page.evaluate(() => {
             const vw = document.documentElement.clientWidth;
-            return [...document.querySelectorAll('#draw-modes button[data-draw-mode]')]
+            return [...document.querySelectorAll('#color-bar-controls button')]
                 .filter(b => { const r = b.getBoundingClientRect(); return r.right > vw || r.left < 0; })
-                .map(b => b.dataset.drawMode);
+                .map(b => b.id);
         });
         expect(offscreen).toEqual([]);
 
         // Normal is the quiet default: no readout.
         await expect(page.locator('#draw-mode-status')).toBeHidden();
 
-        await page.click('#draw-modes button[data-draw-mode="paper"]');
+        await pickDrawMode(page, 'paper');
         await expect(page.locator('#draw-mode-status')).toBeVisible();
         await expect(page.locator('#draw-mode-status')).toContainText('Paper Recolour');
 
@@ -486,11 +489,15 @@ test.describe('the global draw mode can never hide', () => {
 // Presets is last and preference-gated (Preferences > General, off by
 // default), so it stays in the DOM (for its own specs) but is not laid out
 // unless that preference is on.
-test('right sidebar order: Reference -> Layers -> Tool Options -> Patterns -> Transform -> Presets (collapsed)', async ({ page }) => {
+test('right sidebar order: Reference -> Layers -> Tool Options -> Patterns -> Transform -> Preview (hidden) -> Presets (collapsed)', async ({ page }) => {
     await boot(page);
     const panels = await page.$$eval('#panels > section', els => els.map(e => e.id));
     expect(panels).toEqual(['reference-panel', 'layer-panel', 'tool-options-panel',
-        'patterns-panel', 'transform-panel', 'tool-preset-panel']);
+        'patterns-panel', 'transform-panel', 'preview-panel', 'map-elements-panel', 'tool-preset-panel']);
+    // The Map Elements panel (Batch 11B) is in the DOM but hidden until a find starts or View > Map Elements
+    expect(await page.evaluate(() => getComputedStyle(document.getElementById('map-elements-panel')).display)).toBe('none');
+    // The Preview map is in the DOM but hidden until View > Preview (Batch 9 part 9B)
+    expect(await page.evaluate(() => getComputedStyle(document.getElementById('preview-panel')).display)).toBe('none');
     const refCollapsed = await page.evaluate(() =>
         window.PanelSection ? PanelSection.isCollapsed('reference-panel') : null);
     if (refCollapsed !== null) expect(refCollapsed).toBe(true);

@@ -14,7 +14,8 @@
  * actually changed (see LayerManager.packAttributeData / dropUnchangedLayers).
  * Measured 2026-08-07: a one-layer stroke is 8,448 B at STANDARD_ULA and
  * 212,480 B at LAYER2_640, the largest mode. The history is bounded twice —
- * DEFAULT_UNDO_LIMIT entries and MAX_HISTORY_BYTES — because an action that
+ * maxStates entries (Preferences > Undo steps, DEFAULT_UNDO_LIMIT to start)
+ * and MAX_HISTORY_BYTES — because an action that
  * touches every layer costs 32x one that touches a single layer.
  *
  * Public API:
@@ -42,13 +43,21 @@ class UndoRedoManagerClass {
     this._pendingLabel = null;
   }
 
+  /**
+   * Read the stored depth (Preferences > Undo steps). Anything outside the
+   * range is ignored and the default stays. Prunes after loading, in case
+   * steps were made before the stored value arrived.
+   * @returns {Promise<void>}
+   */
   initialize() {
-    Storage.get('pref.undoLimit').then(limit => {
+    Logger.info('UndoRedo', `Initialized with max ${this.maxStates} states`);
+    return Promise.resolve(Storage.get('pref.undoLimit')).then(limit => {
       if (limit && Validators.isValidUndoLimit(limit)) {
         this.maxStates = limit;
+        this._pruneStack();
+        this._updateState();
       }
-    });
-    Logger.info('UndoRedo', `Initialized with max ${this.maxStates} states`);
+    }).catch((e) => Logger.warn('UndoRedo', `Undo limit not read: ${e && e.message}`));
   }
 
   // ─── Action API ──────────────────────────────────────────────────────────
@@ -186,6 +195,19 @@ class UndoRedoManagerClass {
     return true;
   }
 
+  /**
+   * Let an entry also put back the map elements (Edit > Find Map Element) as they were before it. Only the steps that replace the
+   * picture carry them - opening a file, New Picture from Selection - because Accept and Delete of an element are not undo steps
+   * (owner decision): an ordinary stroke must never bring back or take away an element. The list is shared, not copied: element
+   * objects are never changed in place, and one picture's list is bounded by MapCodec.MAX_JSON_BYTES.
+   * @param {Object} entry - the entry the step landed (peekLast() right after it)
+   * @param {Object[]} list - MapService.elements as it was before the step
+   */
+  attachMapElements(entry, list) {
+    if (!entry || entry !== this.peekLast() || !entry.before || !Array.isArray(list)) return;
+    entry.before.mapElements = list.slice();
+  }
+
   /** True if currently inside an open action. */
   isActionOpen() {
     return this._actionDepth > 0;
@@ -242,6 +264,9 @@ class UndoRedoManagerClass {
 
     this._restoreSnapshot(entry.before);
     this._dropUnchangedFrom(counterpart);   // see undo(): same reason
+    // The depth can be lowered while steps wait on the redo side (Preferences >
+    // Undo steps), so a redo must hold the undo side to it as a new step does.
+    this._pruneStack();
     this._updateState();
     EventBus.emit(EVENTS.HISTORY_REDO);
   }
@@ -249,7 +274,7 @@ class UndoRedoManagerClass {
   canUndo() { return this.undoStack.length > 0; }
   canRedo() { return this.redoStack.length > 0; }
 
-  /** Drop all history. Called by the undo-limit setter and by file-new flows. */
+  /** Drop all history. Called by file-new flows. */
   clear() {
     this.undoStack = [];
     this.redoStack = [];
@@ -262,13 +287,28 @@ class UndoRedoManagerClass {
   getUndoCount() { return this.undoStack.length; }
   getRedoCount() { return this.redoStack.length; }
 
+  /** How many steps Undo keeps at most (the byte budget may keep fewer). */
+  getMaxStates() { return this.maxStates; }
+
+  /**
+   * Set the undo depth (Preferences > Undo steps) and store it for the next
+   * visit. Applies at once: a lower depth drops the oldest steps straight
+   * away, not at the next action. Redo is left alone, as pruning always has.
+   * @param {number} limit - whole number, ZX_SPECTRUM.MIN_UNDO_LIMIT..MAX_UNDO_LIMIT
+   * @returns {Promise<boolean>} true once stored; false when refused or the
+   *   write failed (the depth still applies for this session then)
+   */
   setMaxStates(limit) {
-    if (Validators.isValidUndoLimit(limit)) {
-      this.maxStates = limit;
-      this._pruneStack();
-      Promise.resolve(Storage.set('pref.undoLimit', limit))
-        .catch((e) => Logger.warn('UndoRedo', `Undo limit not stored: ${e && e.message}`));
-    }
+    if (!Validators.isValidUndoLimit(limit)) return Promise.resolve(false);
+    this.maxStates = limit;
+    this._pruneStack();
+    this._updateState();
+    return Promise.resolve(Storage.set('pref.undoLimit', limit))
+      .then(() => true)
+      .catch((e) => {
+        Logger.warn('UndoRedo', `Undo limit not stored: ${e && e.message}`);
+        return false;
+      });
   }
 
   // ─── Snapshot capture / restore ──────────────────────────────────────────
@@ -300,6 +340,7 @@ class UndoRedoManagerClass {
       // (mode-switch seeding, a .pal import) survives its own undo.
       ulaplusRegisters: null,
       nextRegisters: null,
+      paletteSlots: null,
       timexHiresInk: null,
       timexHiresInkB: null,
       background: null,
@@ -307,6 +348,11 @@ class UndoRedoManagerClass {
       floatingPaste: null,
       selection: null
     };
+    // Which palette slot is live (Batch 6 part 6A). References only: a stored slot file is never
+    // changed in place, so sharing them costs nothing and cannot go stale.
+    if (window.ColorManager && typeof ColorManager.getPaletteSlotState === 'function') {
+      snap.paletteSlots = ColorManager.getPaletteSlotState();
+    }
     if (window.ColorManager && ColorManager.ulaplusRegisters) {
       snap.ulaplusRegisters = Array.from(ColorManager.ulaplusRegisters);
     }
@@ -331,6 +377,8 @@ class UndoRedoManagerClass {
       const bg = LayerManager.getBackgroundLayer();
       if (bg && !(partial && !restoring.background)) snap.background = bg.packAttributeData();
     }
+    // The counterpart of a step that carries the map elements carries them too, so redo puts them back as undo found them
+    if (restoring && restoring.mapElements && window.MapService) snap.mapElements = MapService.elements.slice();
     if (window.SelectionService) {
       if (typeof SelectionService.captureFloatingState === 'function') {
         snap.floatingPaste = SelectionService.captureFloatingState();
@@ -357,6 +405,10 @@ class UndoRedoManagerClass {
     if (snap.screenModeId && window.ScreenModeService
         && snap.screenModeId !== ACTIVE_SCREEN_MODE.id) {
       ScreenModeService.applyModeRaw(snap.screenModeId);
+    }
+    if (window.ColorManager && snap.paletteSlots
+        && typeof ColorManager.setPaletteSlotState === 'function') {
+      ColorManager.setPaletteSlotState(snap.paletteSlots);
     }
     if (window.ColorManager && 'ulaplusRegisters' in snap
         && typeof ColorManager.setUlaplusRegisters === 'function') {
@@ -386,6 +438,7 @@ class UndoRedoManagerClass {
       }
       LayerManager.restoreAllLayersState(snap.layers);
     }
+    if (snap.mapElements && window.MapService) MapService.restoreElements(snap.mapElements);
     if (window.SelectionService) {
       if (typeof SelectionService.restoreFloatingState === 'function') {
         SelectionService.restoreFloatingState(snap.floatingPaste);
