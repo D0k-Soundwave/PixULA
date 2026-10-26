@@ -175,11 +175,6 @@ class GradientToolClass extends ToolBase {
     // Cached reference to the active matrix — avoids object lookup in hot pixel loop
     this._activeDitherMatrix = this.ditherPatterns[8];
 
-    // Pre-allocated Sets for preview — cleared and reused each frame to avoid GC pressure
-    this._previewCellSet = new Set();
-    this._previewInkSet  = new Set();
-    this._previewPaprSet = new Set();
-
     // Shape fill: constrain gradient to flood-filled region from start point
     this._shapeConstraint = false;
     // Cached flood-fill region (Set of encoded pixel keys)
@@ -953,21 +948,14 @@ class GradientToolClass extends ToolBase {
       return;
     }
 
-    const affectedCells   = this._previewCellSet;
-    const gradientInkSet  = this._previewInkSet;
-    const gradientPaprSet = this._previewPaprSet;
-    affectedCells.clear();
-    gradientInkSet.clear();
-    gradientPaprSet.clear();
-
     const colorSelection = ColorManager.getCurrentSelection();
     const region         = this._cachedFloodRegion;
     const encodeKey      = region ? (x, y) => (y << 16) | x : null;
     const checkShape     = !this._shapeConstraint && this._fillShape !== 'none';
 
     // Additive preview, mirroring _drawGradient: only the pixels the gradient
-    // will actually ADD show as pending ink. gradientPaprSet stays empty -
-    // the gradient never clears a pixel, so nothing previews as erased.
+    // will actually ADD show as pending ink. Nothing is marked paper - the
+    // gradient never clears a pixel, so nothing previews as erased.
     const mask = this._methodMask(rect, this.isReverseMode);
     const xs = [], ys = [];
     for (let y = 0; y < rect.height; y++) {
@@ -998,21 +986,10 @@ class GradientToolClass extends ToolBase {
     // Only the pixels the commit's draw() calls really write: Mirror's copies,
     // the drawing guide and a locked layer included, as the shape tools
     // preview (forEachStrokeTarget: strokeTargets without an object a pixel).
-    const cols = ZX_SPECTRUM.GRID_COLS;
-    const cellSeen = new Uint8Array(cols * ZX_SPECTRUM.GRID_ROWS);
-    PixelDrawRoutine.forEachStrokeTarget(xs, ys, (x, y) => {
-      const cx = Math.floor(x / ZX_SPECTRUM.CELL_WIDTH), cy = Math.floor(y / ZX_SPECTRUM.CELL_HEIGHT);
-      if (!cellSeen[cy * cols + cx]) {
-        cellSeen[cy * cols + cx] = 1;
-        affectedCells.add(cx + ',' + cy);
-      }
-      gradientInkSet.add(x + ',' + y);
-    });
+    const pending = GridOverlay.newPixelMarks();
+    PixelDrawRoutine.forEachStrokeTarget(xs, ys, (x, y) => pending.mark(x, y, 1));
 
-    GridOverlay.drawGradientCellPreview(
-      affectedCells, gradientInkSet, gradientPaprSet,
-      colorSelection, LayerManager.activeDrawLayerIndex
-    );
+    GridOverlay.drawMarksPreview(pending, colorSelection, LayerManager.activeDrawLayerIndex);
   }
 
   // 1-pixel border pixels for the current shape, clamped to canvas bounds.

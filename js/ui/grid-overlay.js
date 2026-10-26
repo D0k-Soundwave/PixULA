@@ -972,53 +972,71 @@ class GridOverlayClass {
         const canvas = this.compositePreviewCanvas;
         if (!ctx || !canvas) return;
 
-        const inkSet = inkPixels instanceof Set
-            ? inkPixels
-            : new Set((inkPixels || []).map(p => p.x + ',' + p.y));
-        const paperSet = erasePixels instanceof Set
-            ? erasePixels
-            : new Set((erasePixels || []).map(p => p.x + ',' + p.y));
-
-        if (inkSet.size === 0 && paperSet.size === 0) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            return;
-        }
-
-        // Derive affected cells from all touched pixels
-        const cellW = ZX_SPECTRUM.CELL_WIDTH;
-        const cellH = ZX_SPECTRUM.CELL_HEIGHT;
-        const affectedCells = new Set();
-        const addCell = key => {
-            const c = key.indexOf(',');
-            affectedCells.add(
-                Math.floor(parseInt(key.slice(0, c), 10) / cellW) + ',' +
-                Math.floor(parseInt(key.slice(c + 1), 10) / cellH)
-            );
+        const pending = this.newPixelMarks();
+        const put = (list, value) => {
+            if (!list) return;
+            for (const p of list) {
+                if (typeof p === 'string') {
+                    const c = p.indexOf(',');
+                    pending.mark(parseInt(p.slice(0, c), 10), parseInt(p.slice(c + 1), 10), value);
+                } else {
+                    pending.mark(p.x, p.y, value);
+                }
+            }
         };
-        for (const k of inkSet)   addCell(k);
-        for (const k of paperSet) addCell(k);
+        put(inkPixels, 1);
+        put(erasePixels, 2);
 
-        const colorSelection = ColorManager.getCurrentSelection();
-        const activeLayerIndex = LayerManager.currentLayerIndex;
-
-        this._renderCompositorPreview(ctx, canvas, affectedCells, inkSet, paperSet, colorSelection, activeLayerIndex);
+        this._renderCompositorPreview(ctx, canvas, pending,
+            ColorManager.getCurrentSelection(), LayerManager.currentLayerIndex);
     }
 
     /**
-     * Gradient-specific entry point — accepts pre-built Sets and explicit colour
-     * selection (gradient may differ from current ColorManager state mid-drag).
+     * A blank set of pending writes for drawMarksPreview, one byte a picture
+     * pixel: mark(x, y, 1) for an ink write, mark(x, y, 2) for a paper (erase)
+     * write; the first mark on a pixel stands. It keeps the cells it touched,
+     * so the preview visits only those. Numbers, not "x,y" strings: a
+     * full-screen gradient built and looked up some 49,000 of those strings
+     * on every redraw, half of its preview's time (profiled 2026-10-26).
+     * @returns {{marks: Uint8Array, cells: number[], mark: function(number, number, number)}}
+     *   cells are cy * GRID_COLS + cx
      */
-    drawGradientCellPreview(affectedCells, gradientInkSet, gradientPaprSet, colorSelection, activeLayerIndex) {
+    newPixelMarks() {
+        const W = ZX_SPECTRUM.WIDTH;
+        const cellW = ZX_SPECTRUM.CELL_WIDTH, cellH = ZX_SPECTRUM.CELL_HEIGHT, cols = ZX_SPECTRUM.GRID_COLS;
+        const marks = new Uint8Array(W * ZX_SPECTRUM.HEIGHT);
+        const cellSeen = new Uint8Array(cols * ZX_SPECTRUM.GRID_ROWS);
+        const cells = [];
+        return {
+            marks,
+            cells,
+            mark(x, y, value) {
+                if (!Validators.isValidPixelCoord(x, y)) return;
+                const k = y * W + x;
+                if (!marks[k]) marks[k] = value;
+                const c = Math.floor(y / cellH) * cols + Math.floor(x / cellW);
+                if (!cellSeen[c]) { cellSeen[c] = 1; cells.push(c); }
+            }
+        };
+    }
+
+    /**
+     * Preview pending writes made with newPixelMarks, with an explicit colour
+     * selection and layer (the gradient's).
+     * @param {Object} pending - from newPixelMarks
+     * @param {Object} colorSelection
+     * @param {number} activeLayerIndex
+     */
+    drawMarksPreview(pending, colorSelection, activeLayerIndex) {
         if (!this._initialized) return;
         const ctx = this.compositePreviewCtx;
         const canvas = this.compositePreviewCanvas;
         if (!ctx || !canvas) return;
-        this._renderCompositorPreview(ctx, canvas, affectedCells, gradientInkSet, gradientPaprSet, colorSelection, activeLayerIndex);
+        this._renderCompositorPreview(ctx, canvas, pending, colorSelection, activeLayerIndex);
     }
 
     /**
-     * Shared preview used by both drawCompositorPreview and
-     * drawGradientCellPreview.
+     * Shared preview used by both drawCompositorPreview and drawMarksPreview.
      *
      * It does not reimplement the drawing rules: it SIMULATES the pending
      * write through the real gate (PixelDrawRoutine.simulateCell) and asks the
@@ -1030,12 +1048,15 @@ class GridOverlayClass {
      * actually about to happen (2026-09-16).
      * @private
      */
-    _renderCompositorPreview(ctx, canvas, affectedCells, inkSet, paperSet, colorSelection, activeLayerIndex) {
+    _renderCompositorPreview(ctx, canvas, pending, colorSelection, activeLayerIndex) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        if (affectedCells.size === 0) return;
+        if (pending.cells.length === 0) return;
 
         const cellW = ZX_SPECTRUM.CELL_WIDTH;
         const cellH = ZX_SPECTRUM.CELL_HEIGHT;
+        const cols = ZX_SPECTRUM.GRID_COLS;
+        const W = ZX_SPECTRUM.WIDTH;
+        const marks = pending.marks;
         const layer = LayerManager.layers[activeLayerIndex];
         if (!layer) return;
         // The modes the tools really commit with: left button for the ink
@@ -1046,18 +1067,16 @@ class GridOverlayClass {
         // The pending writes that fall inside each cell, in the tools' own
         // terms: which pixel, and which button's mode.
         const cellWrites = new Map();
-        for (const key of affectedCells) {
-            const comma = key.indexOf(',');
-            const cellX = parseInt(key.slice(0, comma), 10);
-            const cellY = parseInt(key.slice(comma + 1), 10);
-            const baseX = cellX * cellW;
-            const baseY = cellY * cellH;
+        for (const c of pending.cells) {
+            const baseX = (c % cols) * cellW;
+            const baseY = Math.floor(c / cols) * cellH;
             const writes = [];
             for (let row = 0; row < cellH; row++) {
+                const line = (baseY + row) * W + baseX;
                 for (let col = 0; col < cellW; col++) {
-                    const pixKey = (baseX + col) + ',' + (baseY + row);
-                    const wanted = inkSet.has(pixKey) ? inkMode : paperSet.has(pixKey) ? paperMode : null;
-                    if (!wanted) continue;
+                    const m = marks[line + col];
+                    if (!m) continue;
+                    const wanted = m === 1 ? inkMode : paperMode;
                     // Under a colour core the pixels outside it keep their dot but
                     // not their colours: the same rule the commit applies.
                     const kept = PixelDrawRoutine.classifyCore(baseX + col, baseY + row, wanted, colorSelection);
@@ -1066,7 +1085,7 @@ class GridOverlayClass {
                         sel: kept.sel !== colorSelection ? kept.sel : undefined });
                 }
             }
-            cellWrites.set(key, writes);
+            cellWrites.set(c, writes);
         }
         this._paintCellWrites(ctx, cellWrites, layer, colorSelection);
     }
@@ -1088,8 +1107,7 @@ class GridOverlayClass {
         const cellW = ZX_SPECTRUM.CELL_WIDTH, cellH = ZX_SPECTRUM.CELL_HEIGHT;
         const cellWrites = new Map();
         for (const w of writes) {
-            const cx = Math.floor(w.x / cellW), cy = Math.floor(w.y / cellH);
-            const key = cx + ',' + cy;
+            const key = Math.floor(w.y / cellH) * ZX_SPECTRUM.GRID_COLS + Math.floor(w.x / cellW);
             let list = cellWrites.get(key);
             if (!list) { list = []; cellWrites.set(key, list); }
             list.push({ localX: w.x % cellW, localY: w.y % cellH, mode: w.mode, sel: w.sel });
@@ -1099,12 +1117,13 @@ class GridOverlayClass {
 
     /**
      * Paint the cells' result of simulating their writes: one buffer, one putImageData, whatever the pixel count.
-     * @param {Map<string, Array>} cellWrites - "cx,cy" -> [{localX, localY, mode, sel}]
+     * @param {Map<number, Array>} cellWrites - cell (cy * GRID_COLS + cx) -> [{localX, localY, mode, sel}]
      * @private
      */
     _paintCellWrites(ctx, cellWrites, layer, colorSelection) {
         const cellW = ZX_SPECTRUM.CELL_WIDTH;
         const cellH = ZX_SPECTRUM.CELL_HEIGHT;
+        const cols = ZX_SPECTRUM.GRID_COLS;
 
         // Every touched pixel is written straight into one RGBA buffer and
         // painted with a single putImageData, instead of a fillStyle+fillRect
@@ -1117,9 +1136,8 @@ class GridOverlayClass {
         // cleared that area).
         let minCX = Infinity, minCY = Infinity, maxCX = -Infinity, maxCY = -Infinity;
         for (const key of cellWrites.keys()) {
-            const comma = key.indexOf(',');
-            const cellX = parseInt(key.slice(0, comma), 10);
-            const cellY = parseInt(key.slice(comma + 1), 10);
+            const cellX = key % cols;
+            const cellY = Math.floor(key / cols);
             if (cellX < minCX) minCX = cellX;
             if (cellX > maxCX) maxCX = cellX;
             if (cellY < minCY) minCY = cellY;
@@ -1134,9 +1152,8 @@ class GridOverlayClass {
         const buf = imgData.data;
 
         for (const [key, writes] of cellWrites) {
-            const comma = key.indexOf(',');
-            const cellX = parseInt(key.slice(0, comma), 10);
-            const cellY = parseInt(key.slice(comma + 1), 10);
+            const cellX = key % cols;
+            const cellY = Math.floor(key / cols);
             const baseX = cellX * cellW;
             const baseY = cellY * cellH;
 
