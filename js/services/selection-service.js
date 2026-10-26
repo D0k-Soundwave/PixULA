@@ -55,6 +55,8 @@ class SelectionServiceClass {
     EventBus.on(EVENTS.DRAW_MODE_CHANGED, () => this.refreshStampColor());
     EventBus.on(EVENTS.INVERSE_CHANGED,   () => this.refreshStampColor());
     EventBus.on(EVENTS.LAYER_SELECTED,    () => this.refreshStampColor());
+    // Mirror decides where its copies land, so the preview shows them as it changes.
+    EventBus.on(EVENTS.SYMMETRY_CHANGED,  () => this.refreshStampColor());
   }
 
   /**
@@ -1435,6 +1437,9 @@ class SelectionServiceClass {
     this.floatingPaste = null;
     if (fp.floatingLayer) {
       LayerManager.removeLayer(fp.floatingLayer.index, false);
+      // The page still shows the preview's cells until it is composed again
+      // without them (as endFloatingPaste does after clearing them).
+      LayerManager.composeToCanvas();
     }
     EventBus.emit(EVENTS.CANVAS_RENDER);
   }
@@ -2094,6 +2099,7 @@ class SelectionServiceClass {
 
   /**
    * The writes a mask would make, as a list - the stamp write plan without a stamp layer, for a preview that is not a layer.
+   * Mirror's copies are in it, in the order bakeMask's draw() calls make them.
    * @param {Object} data - { mask, indices?, clearMask?, opts?, x, y, w, h }
    * @param {?Layer} [target]
    * @returns {Array<{x:number,y:number,sel:Object,mode:number}>}
@@ -2109,7 +2115,7 @@ class SelectionServiceClass {
     } else {
       this._forEachStampWrite(data, plain, tgt, (x, y, sel, mode) => out.push({ x, y, sel, mode }));
     }
-    return out;
+    return PixelDrawRoutine.mirrorWritePlan(out);
   }
 
   /**
@@ -2503,72 +2509,85 @@ class SelectionServiceClass {
     const endCellY = Math.min(ZX_SPECTRUM.GRID_ROWS - 1, ZX_COORDS.pixelToCell(x, y + height - 1).y);
 
     // The writes the stamp would make, grouped by cell: the SAME plan the
-    // placement walks (_forEachStampWrite), so the preview is the commit.
-    const byCell = new Map();
-    this._forEachStampWrite(this.getStampData(floatingLayer), floatingLayer, writeLayer,
-      (px, py, sel, m) => {
-        const key = Math.floor(py / CH) * ZX_SPECTRUM.GRID_COLS + Math.floor(px / CW);
-        let list = byCell.get(key);
-        if (!list) { list = []; byCell.set(key, list); }
-        list.push({ localX: px % CW, localY: py % CH, mode: m, sel });
-      });
+    // placement walks (_forEachStampWrite), mirror copies included, so the
+    // preview is the commit.
+    const byCell = this._planByCell(this._mirroredStampPlan(floatingLayer, writeLayer));
+    this._clearStalePreviewCells(byCell);
 
+    // The stamp's own cells, and any cell only a mirror copy reaches.
+    const cells = [];
     for (let cy = startCellY; cy <= endCellY; cy++) {
-      for (let cx = startCellX; cx <= endCellX; cx++) {
-        const fpCell = floatingLayer.getCell(cx, cy);
-        if (!fpCell) continue;
-        const writes = byCell.get(cy * ZX_SPECTRUM.GRID_COLS + cx) || [];
+      for (let cx = startCellX; cx <= endCellX; cx++) cells.push(cy * ZX_SPECTRUM.GRID_COLS + cx);
+    }
+    for (const key of byCell.keys()) {
+      const cx = key % ZX_SPECTRUM.GRID_COLS, cy = Math.floor(key / ZX_SPECTRUM.GRID_COLS);
+      if (cx < startCellX || cx > endCellX || cy < startCellY || cy > endCellY) cells.push(key);
+    }
 
-        if (writes.length === 0) {
-          fpCell.xorReplace = false;
-          continue;
-        }
+    for (const key of cells) {
+      const cx = key % ZX_SPECTRUM.GRID_COLS, cy = Math.floor(key / ZX_SPECTRUM.GRID_COLS);
+      const fpCell = floatingLayer.getCell(cx, cy);
+      if (!fpCell) continue;
+      const writes = byCell.get(key) || [];
 
-        const simulated = PixelDrawRoutine.simulateCell(
-          writeLayer, cx, cy, writes, colorSelection);
-        const composed = LayerManager.previewCellData(
-          cx, cy, writeLayer, simulated, excludeLayer);
-
-        fpCell.pixels.set(composed.pixels);
-        fpCell.ink = composed.attrs.ink;
-        fpCell.paper = composed.attrs.paper;
-        fpCell.bright = composed.attrs.bright;
-        fpCell.flash = composed.attrs.flash;
-        // GigaScreen: the preview is the composite of BOTH screens
-        if (fpCell.pixelsB && composed.pixelsB) {
-          fpCell.pixelsB.set(composed.pixelsB);
-          fpCell.inkB = composed.attrsB.ink;
-          fpCell.paperB = composed.attrsB.paper;
-          fpCell.brightB = composed.attrsB.bright;
-          fpCell.flashB = composed.attrsB.flash;
-        }
-        fpCell.altered = true;
-        // This cell IS the final composite for its position - never OR'd with
-        // the layers below (LayerManager._composeCellData's xorReplace check).
-        fpCell.xorReplace = true;
-        LayerManager.deferCellCompose(cx, cy);
+      if (writes.length === 0) {
+        fpCell.xorReplace = false;
+        continue;
       }
+
+      const simulated = PixelDrawRoutine.simulateCell(
+        writeLayer, cx, cy, writes, colorSelection);
+      const composed = LayerManager.previewCellData(
+        cx, cy, writeLayer, simulated, excludeLayer);
+
+      fpCell.pixels.set(composed.pixels);
+      fpCell.ink = composed.attrs.ink;
+      fpCell.paper = composed.attrs.paper;
+      fpCell.bright = composed.attrs.bright;
+      fpCell.flash = composed.attrs.flash;
+      // GigaScreen: the preview is the composite of BOTH screens
+      if (fpCell.pixelsB && composed.pixelsB) {
+        fpCell.pixelsB.set(composed.pixelsB);
+        fpCell.inkB = composed.attrsB.ink;
+        fpCell.paperB = composed.attrsB.paper;
+        fpCell.brightB = composed.attrsB.bright;
+        fpCell.flashB = composed.attrsB.flash;
+      }
+      fpCell.altered = true;
+      // This cell IS the final composite for its position - never OR'd with
+      // the layers below (LayerManager._composeCellData's xorReplace check).
+      fpCell.xorReplace = true;
+      LayerManager.deferCellCompose(cx, cy);
     }
   }
 
-  /** The overlap half of the indexed preview. @private */
-  _drawFloatingLayerIndexedOverlap(mode) {
+  /**
+   * Indexed-mode stamp preview (Phase 13), the indexed half of the classic
+   * one: walk the write plan the placement walks (_forEachIndexedStampWrite,
+   * the plan _paintIndexedStamp draws), mirror copies included, simulate each
+   * cell on the layer the stamp would land on, and write the composite of the
+   * stack into the stamp layer's cell. It used to write each pixel's own new
+   * index straight into the stamp layer, which shows the commit only where
+   * the new index is a colour: where an XOR or Inverse write clears a pixel of
+   * an upper layer to the transparency index, the stamp layer's -1 let the
+   * pixel's OLD colour show through instead of the layer below it (8 pixels
+   * of an XOR "HI" in Layer 2, found 2026-10-26). The composite has no such
+   * hole, and Clear dots overlap and the stamp's clear dots come with it.
+   * @private
+   */
+  _drawFloatingLayerIndexed() {
     const fp = this.floatingPaste;
     const floatingLayer = fp.floatingLayer;
-    const CW = ZX_SPECTRUM.CELL_WIDTH;
-    const CH = ZX_SPECTRUM.CELL_HEIGHT;
     const color = ColorManager.getCurrentSelection();
+    const mode = PixelDrawRoutine.resolveUserMode(true);
     const targetLayer = this._findTargetBelow(floatingLayer);
     const writeLayer = targetLayer || floatingLayer;
     const excludeLayer = targetLayer ? floatingLayer : null;
-    const byCell = new Map();
+    const plan = [];
     this._forEachIndexedStampWrite(this.getStampData(floatingLayer), color, mode,
-      (px, py, sel, m) => {
-        const key = Math.floor(py / CH) * ZX_SPECTRUM.GRID_COLS + Math.floor(px / CW);
-        let list = byCell.get(key);
-        if (!list) { list = []; byCell.set(key, list); }
-        list.push({ localX: px % CW, localY: py % CH, mode: m, sel });
-      });
+      (x, y, sel, m) => plan.push({ x, y, sel, mode: m }));
+    const byCell = this._planByCell(PixelDrawRoutine.mirrorWritePlan(plan));
+    this._clearStalePreviewCells(byCell);
     for (const [key, writes] of byCell) {
       const cx = key % ZX_SPECTRUM.GRID_COLS, cy = Math.floor(key / ZX_SPECTRUM.GRID_COLS);
       const fpCell = floatingLayer.getCell(cx, cy);
@@ -2582,84 +2601,56 @@ class SelectionServiceClass {
   }
 
   /**
-   * Indexed-mode stamp preview (Phase 13): write the stamp's palette
-   * indices (or the mask at the current indexed ink) into the floating
-   * layer's cell index grids; the compositor's indexed branch then shows
-   * the exact committed result. Draw-mode aware like the classic branch:
-   * NORMAL/Pixels Only/Ink Recolour all collapse to painting the ink index
-   * (indexed cells have no separate ink/paper attribute — _applyIndexed
-   * already collapses these three the same way), Paper Recolour paints the
-   * paper index, and XOR/XOR_PIXEL toggle per pixel against the target's
-   * CURRENT index (a stamp touches each pixel once, so the two share this
-   * one preview path — the once-per-stroke gate that tells them apart never
-   * comes into play here). Unlike the classic XOR case this needs no
-   * compositor "replace" flag: indexed compositing already treats a negative
-   * index as transparent/pass-through per pixel, so writing the computed
-   * final value (including −1) is already correct.
+   * The classic stamp's write plan, as the commit will carry it out: _forEachStampWrite's writes with Mirror's copies
+   * (PixelDrawRoutine.mirrorWritePlan), as _writeStampInto's draw() calls make them.
    * @private
    */
-  _drawFloatingLayerIndexed() {
-    const { pixels, indices, width, height, x, y, floatingLayer } = this.floatingPaste;
+  _mirroredStampPlan(floatingLayer, writeLayer) {
+    const plan = [];
+    this._forEachStampWrite(this.getStampData(floatingLayer), floatingLayer, writeLayer,
+      (x, y, sel, mode) => plan.push({ x, y, sel, mode }));
+    return PixelDrawRoutine.mirrorWritePlan(plan);
+  }
+
+  /**
+   * A write plan grouped by cell (key cy * GRID_COLS + cx) in the terms simulateCell takes, in plan order.
+   * @private
+   */
+  _planByCell(plan) {
     const CW = ZX_SPECTRUM.CELL_WIDTH;
     const CH = ZX_SPECTRUM.CELL_HEIGHT;
-    const inkIdx = ColorManager.getIndexedInk();
-    const mode = PixelDrawRoutine.resolveUserMode(true);
-
-    // "Clear dots overlap" changes pixels the stamp does not cover, so the
-    // direct per-pixel preview below cannot show it. Walk the same write
-    // plan the placement walks, simulate each cell on the layer the stamp
-    // would land on, and show the composite - as the classic preview does.
-    if (this.stampOptions(this.floatingPaste).clearDots === 'overlap' || this.floatingPaste.clearMask) {
-      this._drawFloatingLayerIndexedOverlap(mode);
-      return;
+    const byCell = new Map();
+    for (const w of plan) {
+      const key = Math.floor(w.y / CH) * ZX_SPECTRUM.GRID_COLS + Math.floor(w.x / CW);
+      let list = byCell.get(key);
+      if (!list) { list = []; byCell.set(key, list); }
+      list.push({ localX: w.x % CW, localY: w.y % CH, mode: w.mode, sel: w.sel });
     }
+    return byCell;
+  }
 
-    let paperIdx = 0, targetLayer = null;
-    if (mode === DRAW_MODE.PAPER || mode === DRAW_MODE.XOR || mode === DRAW_MODE.XOR_PIXEL ||
-        mode === DRAW_MODE.NORMAL_ERASE || mode === DRAW_MODE.ERASE) {
-      paperIdx = ColorManager.getIndexedPaper();
-      targetLayer = this._findTargetBelow(floatingLayer);
-    }
-
-    for (let py = 0; py < height; py++) {
-      const maskRow = pixels[py];
-      const idxRow = indices ? indices[py] : null;
-      if (!maskRow && !idxRow) continue;
-      const cy = y + py;
-      if (cy < 0 || cy >= ZX_SPECTRUM.HEIGHT) continue;
-      for (let px = 0; px < width; px++) {
-        const masked = (idxRow && idxRow[px] != null && idxRow[px] >= 0) || (!idxRow && maskRow && maskRow[px]);
-        if (!masked) continue;
-        const cx = x + px;
-        if (cx < 0 || cx >= ZX_SPECTRUM.WIDTH) continue;
-
-        const carried = (idxRow && idxRow[px] != null && idxRow[px] >= 0) ? idxRow[px] : null;
-        let value;
-        if (mode === DRAW_MODE.PAPER || mode === DRAW_MODE.NORMAL_ERASE) {
-          value = paperIdx;
-        } else if (mode === DRAW_MODE.ERASE) {
-          // Inverse in Pixels Only: the commit clears to the transparency
-          // index on an upper layer, to paper on the background.
-          value = (targetLayer && targetLayer.isBackground) ? paperIdx : -1;
-        } else if (mode === DRAW_MODE.XOR || mode === DRAW_MODE.XOR_PIXEL) {
-          const cand = carried != null ? carried : inkIdx;
-          const eraseIdx = (targetLayer && targetLayer.isBackground) ? paperIdx : -1;
-          const tCell = targetLayer ? targetLayer.getCell(Math.floor(cx / CW), Math.floor(cy / CH)) : null;
-          const current = (tCell && tCell.indices) ? tCell.indices[(cy % CH) * CW + (cx % CW)] : eraseIdx;
-          value = current === cand ? eraseIdx : cand;
-        } else {
-          // NORMAL / PIXEL_ONLY / INK all paint the ink index (or the
-          // stamp's own carried index) — identical outcome, so one branch.
-          value = carried != null ? carried : inkIdx;
-        }
-
-        const cell = floatingLayer.getCell(Math.floor(cx / CW), Math.floor(cy / CH));
-        if (!cell || !cell.indices) continue;
-        cell.indices[(cy % CH) * CW + (cx % CW)] = value;
-        cell.altered = true;
-        LayerManager.deferCellCompose(Math.floor(cx / CW), Math.floor(cy / CH));
+  /**
+   * Mirror copies land outside the stamp's own box, where clearing the box before a redraw (_clearFloatingFootprint)
+   * never reaches: clear the cells the last preview drew and this one does not, so a copy left behind by a move, or by
+   * Mirror going off, does not stay on the picture.
+   * @param {Map<number, Array>} byCell - the cells this preview draws
+   * @private
+   */
+  _clearStalePreviewCells(byCell) {
+    const fp = this.floatingPaste;
+    const last = fp._previewCells;
+    if (last) {
+      for (const key of last) {
+        if (byCell.has(key)) continue;
+        const cx = key % ZX_SPECTRUM.GRID_COLS, cy = Math.floor(key / ZX_SPECTRUM.GRID_COLS);
+        const cell = fp.floatingLayer.getCell(cx, cy);
+        if (!cell) continue;
+        fp.floatingLayer.clearCell(cx, cy);
+        cell.xorReplace = false;
+        LayerManager.deferCellCompose(cx, cy);
       }
     }
+    fp._previewCells = new Set(byCell.keys());
   }
 
   // ─── Clipboard ────────────────────────────────────────────────────────────

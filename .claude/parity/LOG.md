@@ -1352,3 +1352,35 @@ Also checked once, not kept as tests (about 25 minutes of browser time): every d
 mismatch. The gradient, stamp and text previews still show no mirror copies before they are drawn.
 Gates [M, 2026-10-26]: run-all passes; check:manual up to date in 13 languages; whole browser suite 910 of 911, the
 one failure the known undo-partial-capture.spec.js:67 timing check, which then passed 4 of 4 alone.
+
+## Every preview shows the mirror copies (2026-10-26)
+Owner: "they should all show on previews". Shapes, the curve and the Figure tool already previewed Mirror's copies;
+the gradient, a floating stamp or text and Type on canvas showed only the original. Now:
+- gradient: the preview passes its pixels through PixelDrawRoutine.forEachStrokeTarget (strokeTargets without an
+  object per pixel), so it shows Mirror's copies and the drawing-guide clip, and nothing on a locked layer, as the
+  commit; the phase-1 outline shows its mirrored copies too.
+- floating stamp / text (classic and indexed) and Type on canvas: the write plan goes through
+  PixelDrawRoutine.mirrorWritePlan - each write's copies, then the write, and an XOR write once per pixel, as the
+  commit's draw() calls and the batch's XOR gate make them. Cells only a copy reaches are drawn and cleared again
+  when the copy moves away (_clearStalePreviewCells); turning Mirror on or off redraws a floating stamp.
+Two older bugs found by the new test, fixed with it:
+- Layer 2 / LoRes: where an XOR or Inverse stamp cleared a pixel of an upper layer, the preview showed the pixel's
+  old colour (8 pixels of an XOR "HI"). The indexed preview now always simulates the plan and shows the composite.
+- Escape on a floating stamp left its preview cells on the screen until something else redrew the picture
+  (10 pixels of a 2x2 stamp's cell); cancelFloatingPaste now recomposes.
+Tests, each seen failing first: tests/browser/mirror-previews.spec.js (8 tests: the page as the preview shows it -
+main canvas plus the composite-preview canvas - must equal the page after the commit, for the gradient, a floating
+text, a floating stamp and Type on canvas in Standard, GigaScreen and Layer 2, draw modes and H / V / H+V; a shape
+control; Mirror toggled under a floating stamp and Escape); tests/symmetry-draw.test.js (6 checks: the mirrored plan
+applied as a simulation applies it leaves the commit's picture - red without the XOR rule; forEachStrokeTarget names
+strokeTargets' pixels). Checked once, not kept (9.1 min): the same oracle in all 18 screen modes, every draw mode each
+offers, H / V / H+V, for the gradient, text plain / with clear dots / with the stamp's XOR / with Clear dots overlap,
+a pasted stamp, a stamp with its own colours (not coloured in the GigaScreen and Timex modes, where it ran as a plain
+stamp) and Type on canvas - no mismatch.
+Manual, 13 languages: the Text and Mirror paragraph no longer says the preview shows only the text; the gradient
+paragraph says its preview shows the mirrored copies and keeps inside the drawing guide.
+Cost [M, 2026-10-26, Playwright Chromium 1228, median of 15 calls, full-screen gradient / 96x64 stamp]: gradient
+preview 5.9-6.8 ms before; now 5.8-7.7 ms with Mirror off and 13.4-16.7 ms with H+V, which shows 3.2x the pixels
+(38208 against 11781 [M]); a frame at 60 Hz is 16.7 ms [C: 1000 / 60]. A first version built an object per pixel and
+took 18.5-26.5 ms with H+V; forEachStrokeTarget replaced it. Floating stamp move 0.2-0.5 ms before, 2.0-3.8 ms with H+V.
+Gates [M, 2026-10-26]: run-all passes; check:manual up to date in 13 languages; whole browser suite 919 of 919.
