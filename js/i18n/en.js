@@ -796,9 +796,9 @@ const en = {
     'attr.colourOps': 'Attribute Ops',
     'attr.cellOps': 'Cell Ops',
     'attr.transpose': 'Swap',
-    'attr.transpose.hint': 'Swaps the Ink and Paper of each whole cell you click or drag over, ignoring brush size and Mirror. Right-click the picture, choose None in the cell-tool list, or pick a tool or a draw mode, to stop',
+    'attr.transpose.hint': 'Swaps the Ink and Paper of each whole cell you click or drag over, ignoring brush size. Right-click the picture, choose None in the cell-tool list, or pick a tool or a draw mode, to stop',
     'attr.apply': 'Recolour',
-    'attr.apply.hint': 'Gives each whole cell you click or drag over your Ink, Paper, Bright and Flash, without touching a pixel and ignoring brush size and Mirror. Right-click the picture, choose None in the cell-tool list, or pick a tool or a draw mode, to stop. With Bright or Flash on "use existing", each cell keeps its own',
+    'attr.apply.hint': 'Gives each whole cell you click or drag over your Ink, Paper, Bright and Flash, without touching a pixel and ignoring brush size. Right-click the picture, choose None in the cell-tool list, or pick a tool or a draw mode, to stop. With Bright or Flash on "use existing", each cell keeps its own',
     // Patterns
     'pattern.apply': 'Apply',
     'pattern.applyAll': 'Apply to Canvas',

@@ -1337,3 +1337,18 @@ no longer "ignores Mirror"; one sentence says every cell tool follows it.
 Gates [M, 2026-10-26, Playwright Chromium 1228, no installed Chrome]: run-all passes; check:manual up to date in 13
 languages; whole browser suite 910 of 911, the one failure the known undo-partial-capture.spec.js:67 timing check,
 which then passed 4 of 4 alone.
+
+## Text under Mirror: a true mirror image (2026-10-26)
+Owner asked "what about text?". Checked in the running app [M, 2026-10-26, Playwright Chromium 1228]: a placed text and
+Type on canvas follow Mirror in all 18 screen modes, every draw mode each offers, and H / V / H+V - drawn, and every
+copy identical to the mirror image of the original. Asked whether the copies should stay a true mirror image or read
+normally; owner: "true mirror". That is what the app already does, so no code changed. Two follow-ups:
+- the Swap and Recolour tooltips still said "ignoring brush size and Mirror", stale since the Mirror fix; "and
+  Mirror" removed in all 13 languages;
+- manual tool chapter, 13 languages: a "Text and Mirror" paragraph after Type on canvas - each copy is a true mirror
+  image, shadow and outline included, and the preview of a waiting text shows only the text itself.
+Also checked once, not kept as tests (about 25 minutes of browser time): every drag tool, all 30 shapes, the curve, the
+7 Figure shapes, gradient and fill under Mirror, in the 13 attribute modes and the 5 Layer 2 / LoRes modes - no
+mismatch. The gradient, stamp and text previews still show no mirror copies before they are drawn.
+Gates [M, 2026-10-26]: run-all passes; check:manual up to date in 13 languages; whole browser suite 910 of 911, the
+one failure the known undo-partial-capture.spec.js:67 timing check, which then passed 4 of 4 alone.
