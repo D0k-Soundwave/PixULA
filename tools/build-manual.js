@@ -82,7 +82,9 @@ const VIEWPORT = { width: 1600, height: 900 };
  */
 async function withApp(fn) {
     const { chromium } = require('@playwright/test');
-    const browser = await chromium.launch({ channel: 'chrome', headless: true });
+    // The installed Chrome when there is one, else Playwright's own Chromium.
+    const browser = await chromium.launch({ channel: 'chrome', headless: true })
+        .catch(() => chromium.launch({ channel: 'chromium', headless: true }));
     try {
         const context = await browser.newContext({ viewport: VIEWPORT });
         const page = await context.newPage();

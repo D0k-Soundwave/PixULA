@@ -331,6 +331,7 @@ class AppClass {
     /** Phase 3: I/O (FileManager initializes the registry and every format handler) */
     async _initIO() {
         FileManager.initialize();
+        AnimationService.init();
         await PatternService.initialize();
         // Persistent internal clipboard (Phase 9): restore before the UI's
         // first render so Edit > Paste enable-state is right from boot
@@ -414,7 +415,9 @@ class AppClass {
         CanvasTextEntry.init();   // the hidden text field Type on canvas types into
         PreviewPanel.init();    // the map of the whole picture, hidden until View > Preview
         MapElementOverlay.init();   // numbered covers over the places of the map elements
+        AnimationWindowOverlay.init();   // the open sprite animation's window, outlined
         MapElementsPanel.init();    // find repeated elements (Edit > Find Map Element), hidden until used
+        AnimationPanel.init();      // frames and play controls, hidden until there is an animation
         ToolPresetPanel.init(); // the Presets panel, last and preference-gated
         PanelSection.restore(); // persisted collapse states (async)
 
@@ -666,6 +669,8 @@ class AppClass {
             layers: LayerManager.getAllLayers({ packed }),
             // the picture's map elements travel with the project and the autosave (owner decision 2026-10-14)
             ...(window.MapService && MapService.elements.length ? { mapElements: MapService.getElements() } : {}),
+            // Written only when there are animations, so a still picture saves exactly as before.
+            ...(window.AnimationService && AnimationService.hasAnimations() ? { animations: AnimationService.serialize() } : {}),
             slices
         };
     }
@@ -709,6 +714,8 @@ class AppClass {
             // the layer panel re-renders (same fact menu-system emits).
             EventBus.emit(EVENTS.LAYER_ORDER);
         }
+        // Over the restored layers (a project from before animations has none).
+        if (window.AnimationService) AnimationService.load(data.animations);
 
         // Once the pixels are in: a Next palette saved unedited before
         // 2026-09-23 moves to today's defaults unless the picture uses the

@@ -227,6 +227,10 @@ class UndoRedoManagerClass {
     }
 
     const entry = this.undoStack.pop();
+    // First show, in every animation, the frame the step was made on: the
+    // entry keeps only the grids its action changed and trusts the live layers
+    // for the rest, which holds only while that frame is live.
+    if (window.AnimationService) AnimationService.alignTo(entry.before.animation);
     const currentSnapshot = this._captureSnapshot(entry.before);
     const counterpart = { timestamp: entry.timestamp, label: entry.label,
                           before: currentSnapshot };
@@ -257,6 +261,7 @@ class UndoRedoManagerClass {
     }
 
     const entry = this.redoStack.pop();
+    if (window.AnimationService) AnimationService.alignTo(entry.before.animation);   // see undo()
     const currentSnapshot = this._captureSnapshot(entry.before);
     const counterpart = { timestamp: entry.timestamp, label: entry.label,
                           before: currentSnapshot };
@@ -377,6 +382,8 @@ class UndoRedoManagerClass {
       const bg = LayerManager.getBackgroundLayer();
       if (bg && !(partial && !restoring.background)) snap.background = bg.packAttributeData();
     }
+    // The animations' structure: frames are immutable, so this is a copy of references.
+    if (window.AnimationService) snap.animation = AnimationService.captureState();
     // The counterpart of a step that carries the map elements carries them too, so redo puts them back as undo found them
     if (restoring && restoring.mapElements && window.MapService) snap.mapElements = MapService.elements.slice();
     if (window.SelectionService) {
@@ -438,6 +445,7 @@ class UndoRedoManagerClass {
       }
       LayerManager.restoreAllLayersState(snap.layers);
     }
+    if (snap.animation && window.AnimationService) AnimationService.restoreState(snap.animation);
     if (snap.mapElements && window.MapService) MapService.restoreElements(snap.mapElements);
     if (window.SelectionService) {
       if (typeof SelectionService.restoreFloatingState === 'function') {

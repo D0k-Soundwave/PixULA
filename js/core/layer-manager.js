@@ -396,14 +396,19 @@ class LayerClass {
    * Indices carry -1 for transparent, which does not fit a byte alongside
    * 0..255, so transparency travels as its own bitmask rather than widening
    * every index to 16 bits for the sake of one sentinel.
+   * @param {?{cx:number, cy:number, cw:number, ch:number}} [rect] - a block of cells; the whole grid when omitted
    * @returns {Object} packed grid
    */
-  packAttributeData() {
-    const rows = ZX_SPECTRUM.GRID_ROWS, cols = ZX_SPECTRUM.GRID_COLS;
+  packAttributeData(rect = null) {
+    // A block of cells (an animation frame's window) packs in exactly the same
+    // form; `ox`/`oy` record where it came from and are written only then, so
+    // a whole-grid pack is byte for byte what it always was.
+    const ox = rect ? rect.cx : 0, oy = rect ? rect.cy : 0;
+    const rows = rect ? rect.ch : ZX_SPECTRUM.GRID_ROWS, cols = rect ? rect.cw : ZX_SPECTRUM.GRID_COLS;
     const cells = rows * cols;
     const cellH = ZX_SPECTRUM.CELL_HEIGHT;
 
-    const probe = this.attributeData[0] && this.attributeData[0][0];
+    const probe = this.attributeData[oy] && this.attributeData[oy][ox];
     const tile = probe && probe.indices ? probe.indices.length : 0;
     // GigaScreen's plane B packs beside plane A in the same form.
     const giga = !!(probe && probe.pixelsB);
@@ -432,11 +437,12 @@ class LayerClass {
       flagsB: giga ? new Uint8Array(cells) : null,
       pixelsB: giga ? new Uint8Array(cells * cellH) : null
     };
+    if (rect) { packed.ox = ox; packed.oy = oy; }
 
     let c = 0;
     for (let y = 0; y < rows; y++) {
       for (let x = 0; x < cols; x++, c++) {
-        const cell = this.attributeData[y][x];
+        const cell = this.attributeData[y + oy][x + ox];
         const defined = cell.ink !== undefined;
         if (defined) {
           packed.ink[c] = cell.ink;
@@ -481,14 +487,16 @@ class LayerClass {
    */
   unpackAttributeData(p) {
     if (!p || !p.packed) return;
-    const rows = Math.min(p.rows, ZX_SPECTRUM.GRID_ROWS);
-    const cols = Math.min(p.cols, ZX_SPECTRUM.GRID_COLS);
+    // A block packed with a rect goes back where it came from.
+    const ox = p.ox || 0, oy = p.oy || 0;
+    const rows = Math.min(p.rows, ZX_SPECTRUM.GRID_ROWS - oy);
+    const cols = Math.min(p.cols, ZX_SPECTRUM.GRID_COLS - ox);
     const cellH = p.cellH;
 
     for (let y = 0; y < rows; y++) {
       for (let x = 0; x < cols; x++) {
         const c = y * p.cols + x;
-        const cell = this.attributeData[y][x];
+        const cell = this.attributeData[y + oy] && this.attributeData[y + oy][x + ox];
         if (!cell) continue;
 
         const flags = p.flags[c];
@@ -1686,6 +1694,7 @@ class LayerManagerClass {
     newLayer.stamp = this._plainStamp(live || source.stamp);
     newLayer.restoreAttributeData(source.cloneAttributeData());
     if (newLayer.isStamp && newLayer.stamp) newLayer.clear();
+    EventBus.emit(EVENTS.LAYER_DUPLICATED, { fromId: source.id, toId: newLayer.id });
 
     return newLayer;
   }
@@ -2441,6 +2450,54 @@ class LayerManagerClass {
   }
 
   /**
+   * Render a block of cells that are NOT the live stack - an animation
+   * frame's stored contents - into ABGR words (CanvasSystem.packRGB order),
+   * through the same primitives the live compose uses. Nothing live is read
+   * or written except the palette and the display view.
+   *
+   * Classic cells give their plain Ink and Paper (no FLASH phase, no view
+   * switch): a still picture of the frame. GigaScreen gives the view shown.
+   * @param {{cx:number, cy:number, cw:number, ch:number}} rect - cells
+   * @param {Function} cellsAt - (cellX, cellY) => { entries: [{layer, cell, index}] bottom to top, bgCell }
+   * @param {Uint32Array} out - (rect.cw x CELL_WIDTH) x (rect.ch x CELL_HEIGHT) words, row by row
+   */
+  renderCellsToWords(rect, cellsAt, out) {
+    const cellW = ZX_SPECTRUM.CELL_WIDTH, cellH = ZX_SPECTRUM.CELL_HEIGHT;
+    const stride = rect.cw * cellW;
+    const indexed = ZX_SPECTRUM.PIXEL_DEPTH > 1;
+    const giga = ZX_SPECTRUM.SCREENS === 2;
+    const words = indexed ? this._paletteWords() : null;
+    for (let cy = 0; cy < rect.ch; cy++) {
+      for (let cx = 0; cx < rect.cw; cx++) {
+        const x = rect.cx + cx, y = rect.cy + cy;
+        const { entries, bgCell } = cellsAt(x, y);
+        const base = cy * cellH * stride + cx * cellW;
+        if (indexed) {
+          const idx = this._composeIndexedCellData(entries, bgCell, cellW, cellH, false);
+          for (let p = 0; p < idx.length; p++) {
+            const v = idx[p];
+            out[base + ((p / cellW) | 0) * stride + (p % cellW)] = words[v >= 0 ? v : NEXTRGB333.DEFAULT_PAPER];
+          }
+        } else if (giga) {
+          const { colours } = this._gigaCellColours(entries, bgCell, cellW, cellH, x, y);
+          for (let row = 0; row < cellH; row++)
+            for (let col = 0; col < cellW; col++)
+              out[base + row * stride + col] = CanvasSystem.packRGB(colours[row * cellW + col]);
+        } else {
+          const { attrs, pixels } = this._composeCellData(entries, bgCell, cellH);
+          const res = this._resolveCellColors(attrs);
+          const ink = CanvasSystem.packRGB(res.ink), paper = CanvasSystem.packRGB(res.paper);
+          for (let row = 0; row < cellH; row++) {
+            const bits = pixels[row];
+            for (let col = 0; col < cellW; col++)
+              out[base + row * stride + col] = ((bits >> (cellW - 1 - col)) & 1) ? ink : paper;
+          }
+        }
+      }
+    }
+  }
+
+  /**
    * Run the flicker display's frame loop exactly while it is wanted: the
    * display says flicker AND the mode has two screens. Called on a view
    * change and on every mode switch.
@@ -2694,6 +2751,7 @@ class LayerManagerClass {
     }
 
     if (window.UndoRedo) UndoRedo.beginAction('Merge down');
+    EventBus.emit(EVENTS.LAYERS_MERGING, { targetId: lower.id, sourceIds: [upper.id], flatten: false });
 
     // Merge upper into lower following compositing rules
     const cellH = ZX_SPECTRUM.CELL_HEIGHT;
@@ -2757,6 +2815,11 @@ class LayerManagerClass {
     // Target is the bottommost selected regular layer (lowest index, never background).
     const targetIndex = regularIndices[0];
     const targetLayer = this.layers[targetIndex];
+    EventBus.emit(EVENTS.LAYERS_MERGING, {
+      targetId: targetLayer.id,
+      sourceIds: regularIndices.slice(1).map(i => this.layers[i]).filter(l => l.visible).map(l => l.id),
+      flatten: false
+    });
 
     // Process from bottom to top, OR-stacking pixels and taking attributes
     // from the topmost (highest-index) altered cell.
@@ -3210,7 +3273,8 @@ LayerManagerClass.PACKED_KEYS = Object.freeze([
 
 LayerManagerClass.packedGridsEqual = function(a, b) {
     if (!a || !b) return false;
-    if (a.rows !== b.rows || a.cols !== b.cols || a.cellH !== b.cellH || a.tile !== b.tile) {
+    if (a.rows !== b.rows || a.cols !== b.cols || a.cellH !== b.cellH || a.tile !== b.tile ||
+        (a.ox || 0) !== (b.ox || 0) || (a.oy || 0) !== (b.oy || 0)) {
         return false;
     }
 
