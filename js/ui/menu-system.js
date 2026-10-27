@@ -492,7 +492,10 @@ class MenuSystemClass {
                     { id: 'layer-flatten', label: 'Flatten Image', action: 'layer:flatten' },
                     { type: 'separator' },
                     { id: 'layer-up', label: 'Move Up', action: 'layer:moveUp' },
-                    { id: 'layer-down', label: 'Move Down', action: 'layer:moveDown' }
+                    { id: 'layer-down', label: 'Move Down', action: 'layer:moveDown' },
+                    { type: 'separator' },
+                    { id: 'layer-preview-prev', label: 'New Preview Layer: Previous Frame', action: 'layer:previewPrevious' },
+                    { id: 'layer-preview-next', label: 'New Preview Layer: Next Frame', action: 'layer:previewNext' }
                 ]
             },
             {
@@ -1219,6 +1222,9 @@ class MenuSystemClass {
             case 'layer:moveUp':    LayerManager.moveLayerUp(LayerManager.currentLayerIndex); break;
             case 'layer:moveDown':  LayerManager.moveLayerDown(LayerManager.currentLayerIndex); break;
 
+            case 'layer:previewPrevious':   this._newPreviewLayer(-1); break;
+            case 'layer:previewNext':       this._newPreviewLayer(1); break;
+
             // Animation
             case 'animation:newScreen':             AnimationService.createScreen(); break;
             case 'animation:newSprite':             NewSpriteDialog.open(); break;
@@ -1316,6 +1322,16 @@ class MenuSystemClass {
      * Flatten image (merge all layers). Confirms first.
      * @private
      */
+    /** Layer > New Preview Layer: needs an open animation, and says so when there is none. @private */
+    _newPreviewLayer(relative) {
+        if (!AnimationService.getOpen()) {
+            EventBus.emit(EVENTS.STATUS_NOTICE, { text: this._t('anim.needAnimation',
+                'Preview layers show other frames of an animation. Start one from the Animation menu first.') });
+            return;
+        }
+        AnimationService.addPreview({ relative });
+    }
+
     _flattenImage() {
         if (!confirm(this._t('msg.confirmFlatten', 'Flatten all layers into one? This cannot be separated again.'))) {
             return;

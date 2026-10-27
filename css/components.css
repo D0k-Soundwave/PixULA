@@ -1841,6 +1841,41 @@
     width: 4.5em;
 }
 
+.layer-btn.layer-animated.active,
+.layer-btn.preview-tint.active {
+    color: var(--accent-primary);
+}
+
+.layer-item.layer-preview {
+    flex-wrap: wrap;
+    border-style: dashed;
+}
+
+.layer-item.layer-preview .layer-name {
+    font-style: italic;
+}
+
+.layer-item.layer-preview .preview-opacity {
+    flex: 1 1 60px;
+    min-width: 40px;
+}
+
+.anim-trace {
+    padding: 0 4px;
+    font-size: var(--font-size-xs);
+    line-height: 1.4;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.anim-trace.active {
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
 .new-sprite-quick {
     flex-wrap: wrap;
     gap: var(--space-xs);

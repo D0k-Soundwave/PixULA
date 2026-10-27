@@ -644,6 +644,7 @@ class LayerManagerClass {
     // at its collection loop for why the entries are pooled rather than
     // allocated fresh. Never handed to anything that outlives the call.
     this._composeScratch = [];
+    this._displayHook = null;   // display-only drawing after each cell (setDisplayHook)
     this._composePool = [];
     // Reusable index buffer + packed-palette cache for the indexed compose
     this._indexedScratch = null;
@@ -1745,6 +1746,24 @@ class LayerManagerClass {
    * @param {number} cellY - Cell Y coordinate
    */
   composeCellToCanvas(cellX, cellY) {
+    this._composeCell(cellX, cellY);
+    // Display-only layers over the composed cell (an animation's preview
+    // layers). Never in the picture's data; stillImageData() leaves them out.
+    if (this._displayHook) this._displayHook(cellX, cellY, this._composeScratch);
+  }
+
+  /**
+   * Install (or with null remove) the display hook: called with
+   * (cellX, cellY, the cell's visible altered layers) after every cell is
+   * composed, to draw display-only content into the display buffer.
+   * @param {?Function} fn
+   */
+  setDisplayHook(fn) {
+    this._displayHook = typeof fn === 'function' ? fn : null;
+  }
+
+  /** @private The cell compose itself (see composeCellToCanvas). */
+  _composeCell(cellX, cellY) {
     const cellW = ZX_SPECTRUM.CELL_WIDTH;
     const cellH = ZX_SPECTRUM.CELL_HEIGHT;
     const baseX = cellX * cellW;
@@ -2423,12 +2442,16 @@ class LayerManagerClass {
     const viewSwitch = d.mono || d.grid;
     const flicker = ZX_SPECTRUM.SCREENS === 2 && this._gigaView === 'flicker';
     const midFlash = this._flashInverted && this._flashingCells.size > 0;
-    if (!viewSwitch && !flicker && !midFlash) return CanvasSystem.getImageData();
+    // Display-only layers (an animation's preview layers) are not the picture.
+    const overlay = !!this._displayHook;
+    if (!viewSwitch && !flicker && !midFlash && !overlay) return CanvasSystem.getImageData();
 
     const savedRaw = this._dispRaw;
     const savedPhase = this._flashInverted;
     const savedView = this._gigaView;
+    const savedHook = this._displayHook;
     try {
+      this._displayHook = null;
       this._dispRaw = { coloursOff: false, colourGrid: false, stopFlashing: false };
       this._flashInverted = false;
       if (flicker) this._gigaView = 'average';
@@ -2441,6 +2464,7 @@ class LayerManagerClass {
       return copy;
     } finally {
       // Put the screen back as the user has it, whatever happened above.
+      this._displayHook = savedHook;
       this._dispRaw = savedRaw;
       this._flashInverted = savedPhase;
       this._gigaView = savedView;

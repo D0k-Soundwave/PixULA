@@ -120,3 +120,76 @@ test('a stopped animation leaves nothing scheduled', async ({ page }) => {
     expect(counts.playing).toBe(false);
     expect(counts.extra).toBeLessThanOrEqual(0);
 });
+
+test('preview layers: a traced frame shows faded on screen only, under ink above it, and follows the frame shown', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(String(e)));
+    await boot(page);
+    const r = await page.evaluate(() => {
+        const out = {};
+        const L = LayerManager, S = AnimationService;
+        const draw = (layer, x, y) => {
+            UndoRedo.beginAction('test');
+            const c = layer.getCell(x >> 3, y >> 3);
+            c.pixels[y & 7] |= 0x80 >> (x & 7); c.altered = true;
+            L.composeToCanvas();
+            UndoRedo.endAction();
+        };
+        const shown = (x, y) => { L.flushPendingCompose(); return CanvasSystem.pixels[y * ZX_SPECTRUM.WIDTH + x] >>> 0; };
+        const still = (x, y) => { const d = L.stillImageData().data; const i = (y * ZX_SPECTRUM.WIDTH + x) * 4; return [d[i], d[i + 1], d[i + 2]].join(','); };
+        S.createScreen();
+        draw(L.layers[1], 10, 10);              // frame 1: an ink pixel at 10,10
+        const paper = shown(20, 20);
+        const inkWord = shown(10, 10);
+        S.addFrame();                            // frame 2, blank
+        out.blankHere = shown(10, 10) === paper;
+        L.setCurrentLayer(1);
+        const p = S.addPreview({ frame: 0 });
+        out.previewAnchoredUnder = p.anchorId === L.layers[0].id;
+        const blended = shown(10, 10);
+        out.blendShows = blended !== paper && blended !== inkWord;
+        out.stillHasNoPreview = still(10, 10) === still(20, 20);
+        S.updatePreview(p.id, { opacity: 100, tint: false });
+        out.fullOpacityIsInk = shown(10, 10) === inkWord;
+        S.updatePreview(p.id, { opacity: 0 });
+        out.zeroOpacityIsPaper = shown(10, 10) === paper;
+        S.updatePreview(p.id, { opacity: 50 });
+        // Ink drawn on the layer above the preview covers it
+        draw(L.layers[1], 10, 10);
+        out.inkAboveCovers = shown(10, 10) === inkWord;
+        // Moved above the drawing layer, it is faded over that ink instead
+        S.updatePreview(p.id, { tint: true });
+        S.movePreview(p.id, 1);
+        out.movedAboveTints = shown(10, 10) !== inkWord;
+        S.updatePreview(p.id, { visible: false });
+        out.hiddenGone = shown(10, 10) === inkWord;
+        S.updatePreview(p.id, { visible: true });
+        // Previous follows the frame shown
+        S.addFrame();   // frame 3, blank
+        const prev = S.addPreview({ relative: -1 });
+        out.prevShowsFrame2 = S.previewFrameIndex(S.getOpen(), prev) === 1;
+        S.goTo(1);
+        out.prevFollows = S.previewFrameIndex(S.getOpen(), prev) === 0;
+        // Undo removes the preview; saving keeps previews
+        UndoRedo.undo();
+        out.undoRemoved = !S.getPreviews().some(x => x.id === prev.id);
+        const data = App._getProjectData({ packed: true });
+        out.savedPreviews = data.animations.list[0].previews.length === 1;
+        out.layerRows = document.querySelectorAll('#layer-list .layer-preview').length;
+        out.animatedButtons = document.querySelectorAll('#layer-list .layer-animated.active').length;
+        // Shared switch
+        const l2 = L.addLayer('Backdrop');
+        S.setLayerAnimated(l2.id, false);
+        out.sharedOk = !S.isLayerAnimated(l2.id);
+        S.setOnionSkin(true);
+        out.onion = S.isOnionSkin();
+        return out;
+    });
+    for (const [name, value] of Object.entries(r)) {
+        if (name === 'layerRows' || name === 'animatedButtons') continue;
+        expect(value, name).toBe(true);
+    }
+    expect(r.layerRows).toBe(1);
+    expect(r.animatedButtons).toBe(1);
+    expect(errors).toEqual([]);
+});

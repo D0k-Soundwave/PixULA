@@ -38,8 +38,17 @@ function makeFrame(delayTicks, cels) {
 }
 
 function copyAnimation(a) {
-    return Object.assign({}, a, { rect: Object.assign({}, a.rect), layerIds: a.layerIds.slice(), frames: a.frames.slice() });
+    return Object.assign({}, a, {
+        rect: Object.assign({}, a.rect), layerIds: a.layerIds.slice(), frames: a.frames.slice(),
+        previews: (a.previews || []).slice()
+    });
 }
+
+/** [A] A new preview layer's opacity; a starting value only, set per layer. */
+const DEFAULT_PREVIEW_OPACITY = 40;
+/** [A] Tints: earlier frames red, later frames blue (the usual onion-skin colours); each preview can switch its tint off. */
+const TINT_EARLIER = [224, 64, 64];
+const TINT_LATER = [64, 128, 224];
 
 class AnimationServiceClass {
     constructor() {
@@ -195,6 +204,7 @@ class AnimationServiceClass {
     }
 
     _emitChanged() {
+        this._syncHook();
         EventBus.emit(EVENTS.ANIMATION_CHANGED, { openId: this.openId, count: this.animations.length });
         this._emitFrame();
     }
@@ -317,6 +327,7 @@ class AnimationServiceClass {
             rect: AnimationServiceClass.fullRect(),
             layerIds: ids,
             frames: [makeFrame(DEFAULT_DELAY_TICKS, {})],
+            previews: [],
             current: 0
         };
         this.animations.push(anim);
@@ -363,6 +374,7 @@ class AnimationServiceClass {
             rect: Object.assign({}, rect),
             layerIds: [layer.id],
             frames: [],
+            previews: [],
             current: 0
         };
         const count = Math.max(1, frames | 0);
@@ -626,6 +638,255 @@ class AnimationServiceClass {
         this._emitChanged();
     }
 
+    // ── Preview layers (tracing frames) ─────────────────────────────────────
+    //
+    // A preview is a row in the Layers panel that shows another frame faded
+    // over the picture, by the layer system's own transparency rule: its paper
+    // pixels and empty cells are clear, ink of the layers above it covers it.
+    // It is display only - never a layer, never drawn on, never in an export:
+    // LayerManager calls `_blendPreviews` after composing each cell, and
+    // stillImageData() leaves it out exactly as it leaves out FLASH and the
+    // view switches.
+
+    /** The frame index a preview shows, or -1 (none, or the frame being drawn). */
+    previewFrameIndex(anim, p) {
+        if (!anim || !p) return -1;
+        const n = anim.frames.length;
+        const i = p.frameRef.relative !== undefined ? anim.current + p.frameRef.relative : p.frameRef.frame;
+        return i >= 0 && i < n && i !== anim.current ? i : -1;
+    }
+
+    getPreviews(anim = this.getOpen()) { return anim ? anim.previews : []; }
+
+    /** Name shown in the Layers panel. */
+    previewName(p) {
+        if (p.name) return p.name;
+        if (p.frameRef.relative === -1) return Helpers.localizedMessage('anim.previewPrevious', 'Trace: previous frame');
+        if (p.frameRef.relative === 1) return Helpers.localizedMessage('anim.previewNext', 'Trace: next frame');
+        return Helpers.localizedMessage('anim.previewFrame', 'Trace: frame {n}', { n: p.frameRef.frame + 1 });
+    }
+
+    /** By default a preview sits just under the layer being drawn on, so new ink covers it. @private */
+    _defaultAnchor() {
+        const cur = LayerManager.getCurrentLayer();
+        const below = cur && cur.index > 0 ? LayerManager.layers[cur.index - 1] : LayerManager.layers[0];
+        return below ? below.id : LayerManager.layers[0].id;
+    }
+
+    /** Layer > New Preview Layer, the Trace toggle and the onion skin switch. */
+    addPreview(frameRef, { visible = true } = {}) {
+        const a = this.getOpen();
+        if (!a || (window.UndoRedo && UndoRedo.isActionOpen())) return null;
+        UndoRedo.beginAction('New preview layer');
+        const p = Object.freeze({
+            id: this._nextId++, name: null, frameRef: Object.freeze(Object.assign({}, frameRef)), source: 'animated',
+            opacity: DEFAULT_PREVIEW_OPACITY, tint: true, visible, anchorId: this._defaultAnchor()
+        });
+        a.previews = a.previews.concat([p]);
+        UndoRedo.endAction();
+        this._previewsChanged(a);
+        return p;
+    }
+
+    removePreview(id) {
+        const a = this.getOpen();
+        if (!a || !a.previews.some(p => p.id === id)) return;
+        UndoRedo.beginAction('Delete preview layer');
+        a.previews = a.previews.filter(p => p.id !== id);
+        UndoRedo.endAction();
+        this._previewsChanged(a);
+    }
+
+    /**
+     * Change a preview. Opacity, tint and show/hide are view settings and are
+     * not undo steps; source and name are.
+     */
+    updatePreview(id, patch) {
+        const a = this.getOpen();
+        const p = a && a.previews.find(x => x.id === id);
+        if (!p) return;
+        const next = Object.assign({}, p, patch);
+        next.opacity = Helpers.clamp(Math.round(Number(next.opacity)) || 0, 0, 100);
+        const step = ('source' in patch) || ('name' in patch);
+        if (step) UndoRedo.beginAction('Preview layer');
+        a.previews = a.previews.map(x => (x.id === id ? Object.freeze(next) : x));
+        if (step) UndoRedo.endAction();
+        this._previewsChanged(a);
+    }
+
+    /** Move a preview one layer up (+1) or down (-1) in the stack. */
+    movePreview(id, dir) {
+        const a = this.getOpen();
+        const p = a && a.previews.find(x => x.id === id);
+        if (!p) return;
+        const stack = LayerManager.layers.filter(l => !l.isStamp);
+        const at = stack.findIndex(l => l.id === p.anchorId);
+        const to = at + (dir > 0 ? 1 : -1);
+        if (at < 0 || to < 0 || to >= stack.length) return;
+        UndoRedo.beginAction('Move preview layer');
+        a.previews = a.previews.map(x => (x.id === id ? Object.freeze(Object.assign({}, x, { anchorId: stack[to].id })) : x));
+        UndoRedo.endAction();
+        this._previewsChanged(a);
+    }
+
+    /** The Trace toggle on frame `index`: add a preview of it, or take it away. */
+    toggleTrace(index) {
+        const a = this.getOpen();
+        if (!a) return;
+        const p = a.previews.find(x => x.frameRef.frame === index);
+        if (p) this.removePreview(p.id); else this.addPreview({ frame: index });
+    }
+
+    isTraced(index, anim = this.getOpen()) {
+        return !!anim && anim.previews.some(x => x.frameRef.frame === index);
+    }
+
+    /** The onion skin: the Previous and Next previews, shown or hidden together. */
+    isOnionSkin(anim = this.getOpen()) {
+        return !!anim && anim.previews.some(x => x.frameRef.relative !== undefined && x.visible);
+    }
+
+    setOnionSkin(on) {
+        const a = this.getOpen();
+        if (!a) return;
+        const rel = a.previews.filter(x => x.frameRef.relative !== undefined);
+        if (on && !rel.length) {
+            this.addPreview({ relative: -1 });
+            this.addPreview({ relative: 1 });
+            return;
+        }
+        for (const p of rel) this.updatePreview(p.id, { visible: !!on });
+    }
+
+    /** Recompose and announce after a preview change. @private */
+    _previewsChanged(a) {
+        this._syncHook();
+        this._compose(a);
+        this._emitChanged();
+    }
+
+    /**
+     * Install the compositor's display hook only while some preview could be
+     * seen, so a picture without previews composes exactly as before.
+     */
+    _syncHook() {
+        const a = this.getOpen();
+        const want = !!a && !this._playing && (a.previews || []).some(p => p.visible && p.opacity > 0);
+        LayerManager.setDisplayHook(want ? this._hook || (this._hook = (x, y, entries) => this._blendPreviews(x, y, entries)) : null);
+    }
+
+    /** The traced frame's Animated layers merged into one layer, cached by frame identity. @private */
+    _previewLayer(anim, p, index) {
+        const frame = anim.frames[index];
+        if (!this._previewCache) this._previewCache = new WeakMap();
+        let byFrame = this._previewCache.get(frame);
+        if (!byFrame) { byFrame = new Map(); this._previewCache.set(frame, byFrame); }
+        const key = ACTIVE_SCREEN_MODE.id + '|' + p.source + '|' + anim.layerIds.join(',');
+        let merged = byFrame.get(key);
+        if (merged) return merged;
+        merged = new Layer(0, '', false, -1);
+        const packRect = this._packRect(anim);
+        const r = anim.rect;
+        const cellH = ZX_SPECTRUM.CELL_HEIGHT;
+        const sources = anim.layerIds
+            .map(id => LayerManager.getLayerById(id))
+            .filter(l => l && !l.isBackground && (p.source === 'animated' || l.id === p.source))
+            .sort((x, y) => x.index - y.index);
+        const tmp = new Layer(0, '', false, -1);
+        for (const l of sources) {
+            tmp.unpackAttributeData(frame.cels[l.id] || this._blankCel(packRect, false));
+            for (let y = r.cy; y < r.cy + r.ch; y++)
+                for (let x = r.cx; x < r.cx + r.cw; x++)
+                    LayerManager._mergeCellInto(merged.getCell(x, y), tmp.getCell(x, y), cellH);
+        }
+        byFrame.set(key, merged);
+        return merged;
+    }
+
+    /**
+     * LayerManager's display hook: blend each visible preview into one cell
+     * the compositor has just written. Only the preview's ink pixels, only
+     * where no visible layer above its place in the stack has ink, at its
+     * opacity. Writes the display buffer only.
+     * @param {number} cellX
+     * @param {number} cellY
+     * @param {Array} entries - the cell's visible altered layers [{layer, cell, index}], bottom to top
+     * @private
+     */
+    _blendPreviews(cellX, cellY, entries) {
+        const a = this.getOpen();
+        if (!a || this._playing) return;
+        const r = a.rect;
+        if (cellX < r.cx || cellY < r.cy || cellX >= r.cx + r.cw || cellY >= r.cy + r.ch) return;
+        const px = CanvasSystem.pixels;
+        if (!px) return;
+        const cellW = ZX_SPECTRUM.CELL_WIDTH, cellH = ZX_SPECTRUM.CELL_HEIGHT;
+        const W = ZX_SPECTRUM.WIDTH;
+        const indexed = ZX_SPECTRUM.PIXEL_DEPTH > 1;
+        const giga = ZX_SPECTRUM.SCREENS === 2;
+        const baseX = cellX * cellW, baseY = cellY * cellH;
+        let stackIndex = null;
+        for (const p of a.previews) {
+            if (!p.visible || p.opacity <= 0) continue;
+            const fi = this.previewFrameIndex(a, p);
+            if (fi < 0) continue;
+            const cell = this._previewLayer(a, p, fi).getCell(cellX, cellY);
+            if (!cell || !cell.altered) continue;
+            if (!stackIndex) stackIndex = new Map(LayerManager.layers.map((l, i) => [l.id, i]));
+            const anchorAt = stackIndex.has(p.anchorId) ? stackIndex.get(p.anchorId) : 0;
+            let colour = null;
+            if (p.tint) {
+                colour = fi < a.current ? TINT_EARLIER : TINT_LATER;
+            } else if (!indexed) {
+                // FLASH follows the picture's phase; a flashing cell joins the flash clock's set.
+                const res = LayerManager._resolveCellColors(cell, 0);
+                if (res.flashing) LayerManager._trackFlash(cellX, cellY, true);
+                const inverted = res.flashing && LayerManager._flashInverted && !LayerManager._disp.noFlash;
+                colour = inverted ? res.paper : res.ink;
+            }
+            const alpha = p.opacity / 100;
+            const words = indexed && !colour ? LayerManager._paletteWords() : null;
+            for (let row = 0; row < cellH; row++) {
+                let above = 0, ink = 0;
+                if (!indexed) {
+                    for (const e of entries) {
+                        if (e.index <= anchorAt) continue;
+                        above |= e.cell.pixels[row] | (giga && e.cell.pixelsB ? e.cell.pixelsB[row] : 0);
+                    }
+                    ink = cell.pixels[row] | (giga && cell.pixelsB ? cell.pixelsB[row] : 0);
+                    if (!(ink & ~above & 0xFF)) continue;
+                }
+                for (let col = 0; col < cellW; col++) {
+                    let rgb = colour;
+                    if (indexed) {
+                        const k = row * cellW + col;
+                        const v = cell.indices[k];
+                        if (v < 0) continue;
+                        let covered = false;
+                        for (const e of entries) {
+                            if (e.index > anchorAt && e.cell.indices && e.cell.indices[k] >= 0) { covered = true; break; }
+                        }
+                        if (covered) continue;
+                        if (!rgb) {
+                            const w = words[v];
+                            rgb = [w & 0xFF, (w >> 8) & 0xFF, (w >> 16) & 0xFF];
+                        }
+                    } else {
+                        const bit = 1 << (cellW - 1 - col);
+                        if (!(ink & bit) || (above & bit)) continue;
+                    }
+                    const at = (baseY + row) * W + baseX + col;
+                    const d = px[at];
+                    const R = d & 0xFF, G = (d >> 8) & 0xFF, B = (d >> 16) & 0xFF;
+                    px[at] = (255 << 24) |
+                        (Math.round(B + (rgb[2] - B) * alpha) << 16) |
+                        (Math.round(G + (rgb[1] - G) * alpha) << 8) |
+                        Math.round(R + (rgb[0] - R) * alpha);
+                }
+            }
+        }
+    }
+
     // ── Undo ────────────────────────────────────────────────────────────────
 
     /** Everything undo needs, as cheap copies: frames are immutable, so the arrays hold references. */
@@ -695,6 +956,13 @@ class AnimationServiceClass {
             rect: Object.assign({}, a.rect),
             layers: a.layerIds.filter(id => place.has(id)).map(id => place.get(id)),
             current: a.current,
+            previews: (a.previews || []).map(p => ({
+                name: p.name,
+                frameRef: Object.assign({}, p.frameRef),
+                source: p.source !== 'animated' && place.has(p.source) ? place.get(p.source) : 'animated',
+                opacity: p.opacity, tint: p.tint, visible: p.visible,
+                anchor: place.has(p.anchorId) ? place.get(p.anchorId) : 0
+            })),
             frames: a.frames.map(f => {
                 const c = {};
                 for (const id of Object.keys(f.cels)) {
@@ -731,6 +999,18 @@ class AnimationServiceClass {
                 rect: s.rect && s.kind === 'sprite' ? Object.assign({}, s.rect) : AnimationServiceClass.fullRect(),
                 layerIds,
                 frames,
+                previews: (Array.isArray(s.previews) ? s.previews : []).map(p => Object.freeze({
+                    id: this._nextId++,
+                    name: p.name || null,
+                    frameRef: Object.freeze(p.frameRef && p.frameRef.relative !== undefined
+                        ? { relative: p.frameRef.relative < 0 ? -1 : 1 }
+                        : { frame: Helpers.clamp((p.frameRef && p.frameRef.frame) | 0, 0, frames.length - 1) }),
+                    source: p.source === 'animated' || !layers[p.source] ? 'animated' : layers[p.source].id,
+                    opacity: Helpers.clamp(Math.round(Number(p.opacity)) || 0, 0, 100),
+                    tint: p.tint !== false,
+                    visible: p.visible !== false,
+                    anchorId: layers[p.anchor] ? layers[p.anchor].id : layers[0].id
+                })),
                 current: Helpers.clamp(s.current | 0, 0, frames.length - 1)
             });
         }
@@ -786,6 +1066,7 @@ class AnimationServiceClass {
         if (window.UndoRedo && UndoRedo.isActionOpen()) return false;
         this.flushAll();
         this._playing = true;
+        this._syncHook();   // previews are hidden while playing
         this._dir = 1;
         this._playStart = a.current;
         const { from, to } = this.getRange(a);
@@ -821,6 +1102,9 @@ class AnimationServiceClass {
         this._timer = null;
         if (!this._playing) return;
         this._playing = false;
+        this._syncHook();
+        const a = this.getOpen();
+        if (a && a.previews.length) this._compose(a);   // the previews come back
         this._emitFrame();
     }
 
