@@ -323,3 +323,16 @@ test('Stamps to Frames: each parked stamp becomes a new frame where it is parked
     expect(r).toEqual({ added: 1, frames: 2, current: 1, stampsKept: true, stampLanded: true, frame1Intact: true });
     expect(errors).toEqual([]);
 });
+
+test('a new blank frame keeps the picture\'s background', async ({ page }) => {
+    await boot(page);
+    const r = await page.evaluate(() => {
+        LayerManager.setBackgroundColor(2);   // red paper
+        AnimationService.createScreen();
+        AnimationService.addFrame();
+        const bg = LayerManager.getBackgroundLayer().getCell(5, 5);
+        const a = AnimationService.getOpen();
+        return { paper: bg.paper, sharesBackground: a.frames[0].cels[LayerManager.getBackgroundLayer().id] === a.frames[1].cels[LayerManager.getBackgroundLayer().id] };
+    });
+    expect(r).toEqual({ paper: 2, sharesBackground: true });
+});

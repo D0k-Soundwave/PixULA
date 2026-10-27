@@ -1062,3 +1062,26 @@ better than drawn ones.
 
 The weight-bearing guesses are not among these: what decisions rested on was
 measured first (section "Animation sizing").
+
+### Animation autosave, frames stored once each - measured 2026-10-27
+
+Method: a scratch Playwright script on this machine (Playwright's Chromium), one sitting, back to back. One
+Animated drawing layer plus the background, 500 frames, every cell of each frame drawn differently, so every frame
+is a full-size distinct cel (Layer 2 640: 212,480 B each, about 106 MB in all [C: 500 x 212,480 B]). "Old" is the
+previous autosave, the whole project as one IndexedDB record (median of 3). "New" is `App._autosaveNow()` with the
+record naming cels by key and `AnimationService.storeAutosaveCels` writing only new cels, one record each (median
+of 3 autosaves, each after one changed frame) [M].
+
+| Case | Old: one record | New: an autosave after a change | New: first autosave (every cel) | Longest single write |
+|---|---|---|---|---|
+| Layer 2 640, 500 frames | 152 ms (236 ms in an earlier run, same sitting) | 27.6 ms | 1,429 ms in all, as 501 writes | 15.3 ms |
+| Standard, 500 frames | 12.3 ms | 5.8 ms | 204 ms in all | 4.7 ms |
+
+An autosave after a change is now under the 100 ms limit [P: Nielsen 1993] at this size: 27.6 ms, about a fifth
+of the old write [C: 27.6 / 152 = 0.18]. The first autosave of a big animation writes every frame, but as one small
+transaction per cel, so the page never waits longer than the longest single write (15.3 ms). Untouched layers now
+share one blank cel and a new blank frame keeps the frame's background, so 500 frames store 501 cels, not 1,000
+(found by this measurement: blank frames had each stored a copy of a default background).
+
+Still open: a disk backup (`BackupService`) is a whole `.pixula` file and still encodes every frame each time -
+about 0.85-0.9 s at 106 MB (section "Animation sizing").
