@@ -560,8 +560,8 @@ class InputHandlerClass {
   _onPointerDown(e) {
     this._notePreciseInput(e);
 
-    // Nothing is drawn while an animation plays: a press on the picture pauses it.
-    if (window.AnimationService && AnimationService.isPlaying()) {
+    // Nothing is drawn while an animation plays (a press pauses it) or an export steps through its frames.
+    if (window.AnimationService && AnimationService.isBusy()) {
       e.preventDefault();
       AnimationService.pause();
       return;

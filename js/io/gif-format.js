@@ -71,91 +71,76 @@ class GIFFormatClass {
       ? ColorManager.getStandardColoursRGB() : ZX_PALETTE_RGB;
   }
 
-  export(options = {}) {
+  /**
+   * The picture shown, as palette indices per display phase: the two FLASH
+   * phases (fixed16 with Flash cells), the two screens (two-screen modes), or
+   * one still. What export() encodes, and what an animation's GIF strings
+   * together frame by frame.
+   * @returns {{palette: Array, kind: 'still'|'flash'|'giga', phases: Uint8Array[]}}
+   */
+  phases() {
     // Two-screen modes (GigaScreen, MultiGigaScreen, the hi-res pair): the
     // two screens ARE the animation - a fast two-frame loop approximates the
-    // hardware flicker blend. The 'animated' option is implied; FLASH phases
-    // are not layered on top. 8x8 GigaScreen keeps its byte-tested SCR
-    // path; the others decode each plane of the flattened document against
-    // the live palette (the hi-res pair's 4-entry [paperA, inkA, paperB,
-    // inkB] table).
+    // hardware flicker blend. FLASH phases are not layered on top. 8x8
+    // GigaScreen keeps its byte-tested SCR path; the others decode each plane
+    // of the flattened document against the live palette (the hi-res pair's
+    // 4-entry [paperA, inkA, paperB, inkB] table).
     if ((ACTIVE_SCREEN_MODE.screens || 1) === 2) {
-      let frames, palette;
       // One flatten serves both frames: it composites every layer
       const flat = LayerManager.flattenVisible();
       if (ACTIVE_SCREEN_MODE === SCREEN_MODES.GIGASCREEN) {
-        frames = [
-          { indices: this.screenToIndices(GigascreenFormat.subScreenBytes(0, flat), 0), delayCs: this.GIGA_DELAY_CS },
-          { indices: this.screenToIndices(GigascreenFormat.subScreenBytes(1, flat), 0), delayCs: this.GIGA_DELAY_CS }
-        ];
-        palette = this._fixedPalette();
-      } else {
-        frames = [
-          { indices: this.layerToIndices(flat, 0, 0), delayCs: this.GIGA_DELAY_CS },
-          { indices: this.layerToIndices(flat, 0, 1), delayCs: this.GIGA_DELAY_CS }
-        ];
-        palette = ACTIVE_SCREEN_MODE.paletteModel === 'fixed16'
-          ? this._fixedPalette() : ColorManager.paletteRGB;
+        return { palette: this._fixedPalette(), kind: 'giga', phases: [
+          this.screenToIndices(GigascreenFormat.subScreenBytes(0, flat), 0),
+          this.screenToIndices(GigascreenFormat.subScreenBytes(1, flat), 0)
+        ] };
       }
-      const gigaGif = this.encode({
-        width: ZX_SPECTRUM.WIDTH,
-        height: ZX_SPECTRUM.HEIGHT,
-        palette,
-        frames,
-        loop: 0
-      });
-      Logger.info('GIFFormat', `Exported GigaScreen GIF (${gigaGif.length} bytes)`);
-      return gigaGif;
+      return {
+        palette: ACTIVE_SCREEN_MODE.paletteModel === 'fixed16' ? this._fixedPalette() : ColorManager.paletteRGB,
+        kind: 'giga',
+        phases: [this.layerToIndices(flat, 0, 0), this.layerToIndices(flat, 0, 1)]
+      };
     }
 
     const model = ACTIVE_SCREEN_MODE.paletteModel;
 
-    // Classic 8×8 fixed16: the byte-tested SCR path
+    // Classic 8x8 fixed16: the byte-tested SCR path
     if (model === 'fixed16' && ZX_SPECTRUM.CELL_HEIGHT === 8) {
       const scr = SCRFormat.export();
-      const animated = !!options.animated && this.screenHasFlash(scr);
-
-      const frames = [{ indices: this.screenToIndices(scr, 0), delayCs: this.FLASH_DELAY_CS }];
-      if (animated) {
-        frames.push({ indices: this.screenToIndices(scr, 1), delayCs: this.FLASH_DELAY_CS });
-      }
-
-      const gif = this.encode({
-        width: ZX_SPECTRUM.WIDTH,
-        height: ZX_SPECTRUM.HEIGHT,
-        palette: this._fixedPalette(),
-        frames,
-        loop: 0 // loop forever (only written for multi-frame output)
-      });
-
-      Logger.info('GIFFormat', `Exported GIF (${gif.length} bytes, ${frames.length} frame(s))`);
-      return gif;
+      const phases = [this.screenToIndices(scr, 0)];
+      if (this.screenHasFlash(scr)) phases.push(this.screenToIndices(scr, 1));
+      return { palette: this._fixedPalette(), kind: phases.length > 1 ? 'flash' : 'still', phases };
     }
 
     // Every other mode: decode the flattened document against the LIVE
-    // palette — the colour table IS the source mode's palette (multicolor
+    // palette - the colour table IS the source mode's palette (multicolor
     // cell heights, ULAplus 64, timexMono 2, the rgb333 window 16/256).
     // FLASH only animates in fixed16 models; ULAplus reads the flash bit
     // as a CLUT bit and the rest never flash.
     const layer = LayerManager.flattenVisible();
     const palette = model === 'fixed16' ? this._fixedPalette() : ColorManager.paletteRGB;
-    const animated = model === 'fixed16' && !!options.animated && this.layerHasFlash(layer);
+    const phases = [this.layerToIndices(layer, 0)];
+    if (model === 'fixed16' && this.layerHasFlash(layer)) phases.push(this.layerToIndices(layer, 1));
+    return { palette, kind: phases.length > 1 ? 'flash' : 'still', phases };
+  }
 
-    const frames = [{ indices: this.layerToIndices(layer, 0), delayCs: this.FLASH_DELAY_CS }];
-    if (animated) {
-      frames.push({ indices: this.layerToIndices(layer, 1), delayCs: this.FLASH_DELAY_CS });
+  export(options = {}) {
+    const { palette, kind, phases } = this.phases();
+    let frames;
+    if (kind === 'giga') {
+      // The 'animated' option is implied: the two screens loop at 2 cs.
+      frames = phases.map(indices => ({ indices, delayCs: this.GIGA_DELAY_CS }));
+    } else {
+      frames = [{ indices: phases[0], delayCs: this.FLASH_DELAY_CS }];
+      if (options.animated && kind === 'flash') frames.push({ indices: phases[1], delayCs: this.FLASH_DELAY_CS });
     }
-
     const gif = this.encode({
       width: ZX_SPECTRUM.WIDTH,
       height: ZX_SPECTRUM.HEIGHT,
       palette,
       frames,
-      loop: 0
+      loop: 0 // loop forever (only written for multi-frame output)
     });
-
-    Logger.info('GIFFormat',
-      `Exported ${model} GIF (${gif.length} bytes, ${frames.length} frame(s), ${palette.length} colours)`);
+    Logger.info('GIFFormat', `Exported ${kind} GIF (${gif.length} bytes, ${frames.length} frame(s), ${palette.length} colours)`);
     return gif;
   }
 
@@ -315,7 +300,8 @@ class GIFFormatClass {
    *   them, so a 16-colour palette encodes byte-identically to before)
    * @param {Array<{indices: Uint8Array, delayCs?: number}>} spec.frames -
    *   width*height palette indices per frame; delayCs in 1/100 s (animation only)
-   * @param {number} [spec.loop] - Animation loop count, 0 = forever
+   * @param {?number} [spec.loop] - Animation loop count, 0 = forever; null
+   *   writes no loop block, so the animation plays once
    * @returns {Uint8Array}
    */
   encode({ width, height, palette, frames, loop = 0 }) {
@@ -347,7 +333,7 @@ class GIFFormatClass {
 
     const animated = frames.length > 1;
 
-    if (animated) {
+    if (animated && loop !== null) {
       // NETSCAPE2.0 application extension — loop count
       bytes.push(0x21, 0xFF, 0x0B);
       for (const ch of 'NETSCAPE2.0') bytes.push(ch.charCodeAt(0));
