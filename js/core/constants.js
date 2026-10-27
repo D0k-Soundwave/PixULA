@@ -1233,6 +1233,15 @@ const EVENTS = Object.freeze({
     LAYER_SELECTED: 'layer:selected',
     LAYER_VISIBILITY: 'layer:visibility',
     LAYER_ORDER: 'layer:order',
+    // Inside the duplicate's undo action: { fromId, toId }. An animation copies the source's frames.
+    LAYER_DUPLICATED: 'layer:duplicated',
+    // Inside a merge's or flatten's undo action, BEFORE the live layers change:
+    // { targetId, sourceIds (bottom to top, visible ones), flatten }. An animation merges every stored frame.
+    LAYERS_MERGING: 'layer:merging',
+
+    // Animation events (facts from AnimationService)
+    ANIMATION_CHANGED: 'animation:changed',   // the list, the open animation, frames, delays or layers
+    ANIMATION_FRAME: 'animation:frame',       // the frame shown, or playing / paused
 
     // Tool events
     TOOL_SELECTED: 'tool:selected',

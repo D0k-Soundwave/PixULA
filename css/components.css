@@ -1749,6 +1749,103 @@
     margin: 0 2px;
 }
 
+/* ===== Animation panel (anim-*) ===== */
+
+.anim-transport,
+.anim-frame-controls {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+    margin: var(--space-xs) 0;
+}
+
+.anim-buttons { display: flex; gap: var(--space-xs); margin: var(--space-xs) 0; }
+.anim-buttons .panel-button { flex: 1 1 0; min-width: 0; }
+
+.anim-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    margin: var(--space-xs) 0;
+    font-size: var(--font-size-xs);
+}
+
+.anim-transport .layer-ctrl-btn { flex: 1 1 0; height: 28px; }
+
+.anim-transport .layer-ctrl-btn.active {
+    background: var(--accent-bg);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+.anim-picker-row select,
+.anim-scrub-row .anim-scrub {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.anim-readout {
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+}
+
+.anim-strip {
+    display: flex;
+    gap: var(--space-xs);
+    overflow-x: auto;
+    padding: var(--space-xs) 0;
+}
+
+.anim-frame {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    background: var(--btn-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.anim-frame.current {
+    background: var(--accent-bg);
+    border-color: var(--accent-primary);
+}
+
+.anim-thumb {
+    display: block;
+    width: auto;
+    height: 40px;
+    max-width: 64px;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+
+.anim-frame-label {
+    display: flex;
+    gap: var(--space-xs);
+    font-size: var(--font-size-xs);
+    line-height: 1;
+}
+
+.anim-frame-label small {
+    color: var(--text-muted);
+}
+
+.anim-delay-row .anim-delay,
+.anim-range-row input {
+    width: 4.5em;
+}
+
+.new-sprite-quick {
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+}
+
 /* ===== Pattern browser (psb-*) ===== */
 
 .psb {
