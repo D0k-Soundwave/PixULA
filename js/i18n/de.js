@@ -1865,6 +1865,9 @@ const de = {
     'anim.export.tapeMode': 'Bänder enthalten nur Standard-Bildschirme.',
     'anim.export.sprShape': 'Next-Sprites sind 16 x 16 in den Modi Layer 2 und LoRes: dort eine 16 x 16 Sprite-Animation anlegen.',
     'anim.export.sprFrames': 'Ein Sprite-Bogen fasst höchstens {n} Sprites.',
+    'menu.animation.stampsToFrames': 'Stempel als Bilder',
+    'anim.noStamps': 'Es gibt keine Stempel, aus denen Bilder werden könnten. Kopieren oder fügen Sie zuerst etwas ein.',
+    'anim.stampsToFramesDone': '{n} Bilder aus den Stempeln hinzugefügt.',
     // Animation (frames, sprites, play controls)
     'menu.animation': 'Animation',
     'menu.animation.newScreen': 'Neue Bildschirmanimation',

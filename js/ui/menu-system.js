@@ -514,6 +514,7 @@ class MenuSystemClass {
                     { id: 'anim-dup-frame', label: 'Duplicate Frame', action: 'animation:duplicateFrame' },
                     { id: 'anim-del-frame', label: 'Delete Frame', action: 'animation:deleteFrame' },
                     { id: 'anim-frame-stamp', label: 'Frame to Stamp', action: 'animation:frameToStamp' },
+                    { id: 'anim-stamps-frames', label: 'Stamps to Frames', action: 'animation:stampsToFrames' },
                     { type: 'separator' },
                     { id: 'anim-export', label: 'Export Animation', i18n: 'menu.animation.export', items: [
                         { id: 'anim-export-screens', label: 'Numbered Screens...', action: 'animation:exportScreens' },
@@ -1248,6 +1249,7 @@ class MenuSystemClass {
             case 'animation:deleteFrame':           AnimationService.deleteFrame(); break;
             case 'animation:delete':                AnimationPanel.confirmDeleteOpen(); break;
             case 'animation:frameToStamp':          AnimationService.frameToStamp(); break;
+            case 'animation:stampsToFrames':        AnimationService.stampsToFrames(); break;
             case 'animation:exportScreens':         AnimationExportDialog.open(); break;
             case 'animation:exportGif':             AnimationExport.exportGif(); break;
             case 'animation:exportSheet':           AnimationExport.exportSheet(); break;

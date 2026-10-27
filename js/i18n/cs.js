@@ -1865,6 +1865,9 @@ const cs = {
     'anim.export.tapeMode': 'Pásky obsahují jen standardní obrazovky.',
     'anim.export.sprShape': 'Sprity pro Next mají 16 x 16 v režimech Layer 2 a LoRes: vytvořte tam animaci spritu 16 x 16.',
     'anim.export.sprFrames': 'Arch spritů pojme nejvýše {n} spritů.',
+    'menu.animation.stampsToFrames': 'Razítka na snímky',
+    'anim.noStamps': 'Nejsou žádná razítka, ze kterých by vznikly snímky. Nejprve něco zkopírujte nebo vložte.',
+    'anim.stampsToFramesDone': 'Přidáno snímků z razítek: {n}.',
     // Animation (frames, sprites, play controls)
     'menu.animation': 'Animace',
     'menu.animation.newScreen': 'Nová animace obrazovky',

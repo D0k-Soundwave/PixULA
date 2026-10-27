@@ -1865,6 +1865,9 @@ const sk = {
     'anim.export.tapeMode': 'Pásky obsahujú iba štandardné obrazovky.',
     'anim.export.sprShape': 'Sprity pre Next majú 16 x 16 v režimoch Layer 2 a LoRes: vytvorte tam animáciu spritu 16 x 16.',
     'anim.export.sprFrames': 'Hárok pojme najviac {n} spritov.',
+    'menu.animation.stampsToFrames': 'Pečiatky na snímky',
+    'anim.noStamps': 'Nie sú žiadne pečiatky, z ktorých by vznikli snímky. Najprv niečo skopírujte alebo vložte.',
+    'anim.stampsToFramesDone': 'Pridané snímky z pečiatok: {n}.',
     // Animation (frames, sprites, play controls)
     'menu.animation': 'Animácia',
     'menu.animation.newScreen': 'Nová animácia obrazovky',

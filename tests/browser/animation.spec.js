@@ -293,3 +293,33 @@ test('exports: numbered screens byte-identical to single saves (zip), GIF timing
     }
     expect(errors).toEqual([]);
 });
+
+test('Stamps to Frames: each parked stamp becomes a new frame where it is parked, and the stamps stay', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(String(e)));
+    await boot(page);
+    const r = await page.evaluate(() => {
+        const L = LayerManager, S = AnimationService;
+        const ink = (x, y) => { const c = L.layers[1].getCell(x >> 3, y >> 3); return (c.pixels[y & 7] >> (7 - (x & 7))) & 1; };
+        UndoRedo.beginAction('test');
+        const c = L.layers[1].getCell(2, 2); c.pixels[0] = 0xFF; c.altered = true;
+        L.composeToCanvas();
+        UndoRedo.endAction();
+        S.createScreen();
+        // A stamp of that cell, parked where it was copied from
+        SelectionService.setSelection({ x: 16, y: 16, width: 8, height: 8 });
+        SelectionService.copyOrCut(false);
+        SelectionService.endFloatingPaste();
+        const stampsBefore = L.layers.filter(l => l.isStamp).length;
+        const added = S.stampsToFrames();
+        const a = S.getOpen();
+        return {
+            added, frames: a.frames.length, current: a.current,
+            stampsKept: L.layers.filter(l => l.isStamp).length === stampsBefore,
+            stampLanded: ink(16, 16) === 1 && ink(23, 16) === 1,
+            frame1Intact: (S.goTo(0), ink(16, 16) === 1)
+        };
+    });
+    expect(r).toEqual({ added: 1, frames: 2, current: 1, stampsKept: true, stampLanded: true, frame1Intact: true });
+    expect(errors).toEqual([]);
+});

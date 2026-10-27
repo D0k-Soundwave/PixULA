@@ -1865,6 +1865,9 @@ const ro = {
     'anim.export.tapeMode': 'Casetele conțin doar ecrane standard.',
     'anim.export.sprShape': 'Sprite-urile Next au 16 x 16 în modurile Layer 2 și LoRes: fă acolo o animație de sprite 16 x 16.',
     'anim.export.sprFrames': 'O foaie ține cel mult {n} sprite-uri.',
+    'menu.animation.stampsToFrames': 'Ștampile în cadre',
+    'anim.noStamps': 'Nu există ștampile din care să faci cadre. Copiază sau lipește întâi ceva.',
+    'anim.stampsToFramesDone': 'S-au adăugat {n} cadre din ștampile.',
     // Animation (frames, sprites, play controls)
     'menu.animation': 'Animație',
     'menu.animation.newScreen': 'Animație nouă de ecran',

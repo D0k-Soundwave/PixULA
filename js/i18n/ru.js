@@ -1833,7 +1833,7 @@ const ru = {
     'anim.previewPrevious': 'Калька: предыдущий кадр',
     'anim.previewNext': 'Калька: следующий кадр',
     'anim.previewFrame': 'Калька: кадр {n}',
-    'anim.onion': 'Калька',
+    'anim.onion': 'Луковая кожура',
     'anim.onion.hint': 'Показывать соседние кадры бледно, как слои просмотра в панели «Слои» (непрозрачность задаётся там)',
     'anim.trace': 'Калька',
     'anim.trace.hint': 'Показывать этот кадр бледно, пока рисуете другие (слой просмотра в панели «Слои»)',
@@ -1865,6 +1865,9 @@ const ru = {
     'anim.export.tapeMode': 'Ленты хранят только стандартные экраны.',
     'anim.export.sprShape': 'Спрайты Next имеют размер 16 x 16 в режимах Layer 2 и LoRes: сделайте там анимацию спрайта 16 x 16.',
     'anim.export.sprFrames': 'Лист вмещает не больше {n} спрайтов.',
+    'menu.animation.stampsToFrames': 'Штампы в кадры',
+    'anim.noStamps': 'Нет штампов, из которых можно сделать кадры. Сначала что-нибудь скопируйте или вставьте.',
+    'anim.stampsToFramesDone': 'Добавлено кадров из штампов: {n}.',
     // Animation (frames, sprites, play controls)
     'menu.animation': 'Анимация',
     'menu.animation.newScreen': 'Новая анимация экрана',

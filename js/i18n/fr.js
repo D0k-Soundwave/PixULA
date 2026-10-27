@@ -1865,6 +1865,9 @@ const fr = {
     'anim.export.tapeMode': 'Les cassettes ne contiennent que des écrans standard.',
     'anim.export.sprShape': 'Les sprites Next font 16 x 16 dans les modes Layer 2 et LoRes : créez-y une animation de sprite 16 x 16.',
     'anim.export.sprFrames': 'Une planche contient au plus {n} sprites.',
+    'menu.animation.stampsToFrames': 'Tampons en images',
+    'anim.noStamps': 'Il n\'y a pas de tampons pour faire des images. Copiez ou collez d\'abord quelque chose.',
+    'anim.stampsToFramesDone': '{n} images ajoutées à partir des tampons.',
     // Animation (frames, sprites, play controls)
     'menu.animation': 'Animation',
     'menu.animation.newScreen': 'Nouvelle animation d\'écran',
