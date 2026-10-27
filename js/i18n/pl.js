@@ -1865,6 +1865,9 @@ const pl = {
     'anim.export.tapeMode': 'Taśmy mieszczą tylko standardowe ekrany.',
     'anim.export.sprShape': 'Sprite\'y Next mają 16 x 16 w trybach Layer 2 i LoRes: utwórz tam animację sprite\'a 16 x 16.',
     'anim.export.sprFrames': 'Arkusz mieści najwyżej {n} sprite\'ów.',
+    'menu.animation.stampsToFrames': 'Stemple na klatki',
+    'anim.noStamps': 'Nie ma stempli, z których powstałyby klatki. Najpierw coś skopiuj lub wklej.',
+    'anim.stampsToFramesDone': 'Dodano klatek ze stempli: {n}.',
     // Animation (frames, sprites, play controls)
     'menu.animation': 'Animacja',
     'menu.animation.newScreen': 'Nowa animacja ekranu',

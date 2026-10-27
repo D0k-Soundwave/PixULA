@@ -1865,6 +1865,9 @@ const pt = {
     'anim.export.tapeMode': 'As cassetes só contêm ecrãs padrão.',
     'anim.export.sprShape': 'Os sprites Next têm 16 x 16 nos modos Layer 2 e LoRes: crie lá uma animação de sprite de 16 x 16.',
     'anim.export.sprFrames': 'Uma folha guarda no máximo {n} sprites.',
+    'menu.animation.stampsToFrames': 'Carimbos para fotogramas',
+    'anim.noStamps': 'Não há carimbos para fazer fotogramas. Copie ou cole algo primeiro.',
+    'anim.stampsToFramesDone': 'Adicionados {n} fotogramas a partir dos carimbos.',
     // Animation (frames, sprites, play controls)
     'menu.animation': 'Animação',
     'menu.animation.newScreen': 'Nova animação de ecrã',

@@ -30,7 +30,7 @@
 const TICK_MS = 20;
 /** [A] Starting delay of a new animation's frames (100 ms); a default only, set per frame. */
 const DEFAULT_DELAY_TICKS = 5;
-/** Longest delay a frame can be given: [A] about 41 minutes, only a guard against nonsense input. */
+/** Longest delay a frame can be given: [A] a guard against nonsense input only [C: 65,535 x 20 ms = about 22 minutes]. */
 const MAX_DELAY_TICKS = 0xFFFF;
 
 function makeFrame(delayTicks, cels) {
@@ -526,6 +526,43 @@ class AnimationServiceClass {
             width: r.cw * ZX_SPECTRUM.CELL_WIDTH, height: r.ch * ZX_SPECTRUM.CELL_HEIGHT
         });
         return SelectionService.copyOrCut(false);
+    }
+
+    /**
+     * Animation > Stamps to Frames: each parked stamp in the Stamps list becomes
+     * a new frame after the one shown, placed where it is parked, on the
+     * animation's layer. A copy of the stamp is committed, so the stamps stay.
+     * @returns {number} frames added
+     */
+    stampsToFrames() {
+        const a = this.getOpen();
+        if (!a || !window.SelectionService || (window.UndoRedo && UndoRedo.isActionOpen())) return 0;
+        const stamps = LayerManager.layers.filter(l => l.isStamp && l.stamp);
+        if (!stamps.length) {
+            this._notice('anim.noStamps', 'There are no stamps to make frames from. Copy or paste something first.');
+            return 0;
+        }
+        this.pause();
+        if (SelectionService.isFloating()) SelectionService.endFloatingPaste();
+        // The stamps land on an Animated layer of this animation: the one being drawn on, or its top one.
+        const cur = LayerManager.getCurrentLayer();
+        let target = cur && a.layerIds.includes(cur.id) && !cur.isBackground ? cur : null;
+        if (!target) {
+            target = a.layerIds.map(id => LayerManager.getLayerById(id))
+                .filter(l => l && !l.isBackground).sort((p, q) => q.index - p.index)[0] || null;
+        }
+        if (!target) return 0;
+        let added = 0;
+        for (const stamp of stamps) {
+            LayerManager.setCurrentLayer(target.index);
+            if (!this.addFrame()) break;
+            const copy = LayerManager.duplicateLayer(stamp.index);
+            if (!copy) break;
+            LayerManager.setCurrentLayer(target.index);
+            if (SelectionService.commitStamp(copy, { mirror: false })) added++;
+        }
+        this._notice('anim.stampsToFramesDone', 'Added {n} frames from the stamps.', { n: added });
+        return added;
     }
 
     // ── Layers: Animated or Shared ──────────────────────────────────────────

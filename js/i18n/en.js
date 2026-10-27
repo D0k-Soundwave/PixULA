@@ -1888,6 +1888,9 @@ const en = {
     'anim.export.tapeMode': 'Tapes hold Standard screens only.',
     'anim.export.sprShape': 'Next sprites are 16 x 16 in the Layer 2 and LoRes modes: make a 16 x 16 sprite animation there.',
     'anim.export.sprFrames': 'A sprite sheet holds at most {n} sprites.',
+    'menu.animation.stampsToFrames': 'Stamps to Frames',
+    'anim.noStamps': 'There are no stamps to make frames from. Copy or paste something first.',
+    'anim.stampsToFramesDone': 'Added {n} frames from the stamps.',
     // Animation (frames, sprites, play controls)
     'menu.animation': 'Animation',
     'menu.animation.newScreen': 'New Screen Animation',

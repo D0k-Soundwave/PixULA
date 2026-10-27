@@ -1865,6 +1865,9 @@ const hu = {
     'anim.export.tapeMode': 'A kazetták csak szabványos képernyőt tartalmaznak.',
     'anim.export.sprShape': 'A Next sprite-ok 16 x 16-osak a Layer 2 és LoRes módokban: ott készíts 16 x 16-os sprite-animációt.',
     'anim.export.sprFrames': 'Egy sprite-lap legfeljebb {n} sprite-ot tárol.',
+    'menu.animation.stampsToFrames': 'Bélyegzőkből képkockák',
+    'anim.noStamps': 'Nincs bélyegző, amelyből képkocka lehetne. Előbb másolj vagy illessz be valamit.',
+    'anim.stampsToFramesDone': '{n} képkocka hozzáadva a bélyegzőkből.',
     // Animation (frames, sprites, play controls)
     'menu.animation': 'Animáció',
     'menu.animation.newScreen': 'Új képernyőanimáció',

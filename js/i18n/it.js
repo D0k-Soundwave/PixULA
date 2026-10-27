@@ -1865,6 +1865,9 @@ const it = {
     'anim.export.tapeMode': 'I nastri contengono solo schermate standard.',
     'anim.export.sprShape': 'Gli sprite Next sono 16 x 16 nelle modalità Layer 2 e LoRes: crea lì un\'animazione sprite 16 x 16.',
     'anim.export.sprFrames': 'Un foglio contiene al massimo {n} sprite.',
+    'menu.animation.stampsToFrames': 'Timbri in fotogrammi',
+    'anim.noStamps': 'Non ci sono timbri da cui fare fotogrammi. Copia o incolla prima qualcosa.',
+    'anim.stampsToFramesDone': 'Aggiunti {n} fotogrammi dai timbri.',
     // Animation (frames, sprites, play controls)
     'menu.animation': 'Animazione',
     'menu.animation.newScreen': 'Nuova animazione schermo',

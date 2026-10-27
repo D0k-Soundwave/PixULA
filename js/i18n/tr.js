@@ -1865,6 +1865,9 @@ const tr = {
     'anim.export.tapeMode': 'Kasetler yalnızca standart ekran tutar.',
     'anim.export.sprShape': 'Next sprite\'ları Layer 2 ve LoRes modlarında 16 x 16\'dır: orada 16 x 16 bir sprite animasyonu yapın.',
     'anim.export.sprFrames': 'Bir sprite sayfası en fazla {n} sprite tutar.',
+    'menu.animation.stampsToFrames': 'Damgalardan kareler',
+    'anim.noStamps': 'Kare yapılacak damga yok. Önce bir şey kopyalayın ya da yapıştırın.',
+    'anim.stampsToFramesDone': 'Damgalardan {n} kare eklendi.',
     // Animation (frames, sprites, play controls)
     'menu.animation': 'Animasyon',
     'menu.animation.newScreen': 'Yeni ekran animasyonu',

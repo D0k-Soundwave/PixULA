@@ -1866,6 +1866,9 @@ const es = {
     'anim.export.tapeMode': 'Las cintas solo contienen pantallas estándar.',
     'anim.export.sprShape': 'Los sprites de Next miden 16 x 16 en los modos Layer 2 y LoRes: crea allí una animación de sprite de 16 x 16.',
     'anim.export.sprFrames': 'Una hoja de sprites admite como mucho {n} sprites.',
+    'menu.animation.stampsToFrames': 'Sellos a fotogramas',
+    'anim.noStamps': 'No hay sellos con los que hacer fotogramas. Copia o pega algo primero.',
+    'anim.stampsToFramesDone': 'Añadidos {n} fotogramas a partir de los sellos.',
     // Animation (frames, sprites, play controls)
     'menu.animation': 'Animación',
     'menu.animation.newScreen': 'Nueva animación de pantalla',

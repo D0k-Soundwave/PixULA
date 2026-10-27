@@ -15,6 +15,8 @@ class NewSpriteDialogClass {
     constructor() {
         /** [A] Quick picks: common square sprite sizes. Any size that fits can be typed. */
         this.QUICK_SIZES = [8, 16, 24, 32, 48];
+        /** [A] Most frames to start with: an input guard only; frames can be added afterwards. */
+        this.MAX_START_FRAMES = 999;
     }
 
     _t(key, fallback, params) {
@@ -70,7 +72,7 @@ class NewSpriteDialogClass {
             </label>
             <label class="pref-row">
                 <span data-i18n="anim.startFrames">${this._t('anim.startFrames', 'Frames to start with')}</span>
-                <input type="number" id="new-sprite-frames" min="1" max="999" step="1" value="1">
+                <input type="number" id="new-sprite-frames" min="1" max="${this.MAX_START_FRAMES}" step="1" value="1">
             </label>
             <div class="pref-row">
                 <button type="button" id="new-sprite-use-sel" data-i18n="anim.useSelection" ${sel ? '' : 'disabled'}>${this._t('anim.useSelection', 'Use selection')}</button>
@@ -120,7 +122,7 @@ class NewSpriteDialogClass {
                     onClick: () => {
                         const rect = read();
                         if (!rect) { show(); return false; }   // stays open, saying why
-                        const frames = Helpers.clamp(Math.round(Number($('new-sprite-frames').value)) || 1, 1, 999);
+                        const frames = Helpers.clamp(Math.round(Number($('new-sprite-frames').value)) || 1, 1, this.MAX_START_FRAMES);
                         const fromLayer = fromSelection ? LayerManager.getCurrentLayer() : null;
                         const anim = AnimationService.createSprite({
                             name: $('new-sprite-name').value.trim() || null,

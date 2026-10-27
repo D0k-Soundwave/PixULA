@@ -1036,3 +1036,29 @@ What these settle (the plan's three guesses):
 
 The gzipped file sizes this run printed are not given: the synthetic frames are near-identical and compress far
 better than drawn ones.
+
+### Animation figures in the code - 2026-10-27
+
+| Figure | Value | Tag | Provenance |
+|---|---|---|---|
+| Animation tick (`AnimationService` TICK_MS) | 20 ms | P | the ULA's 50 Hz frame interrupt, as `GIGA_FRAME_MS` |
+| GIF time per tick (`CS_PER_TICK`) | 2 cs | C | 20 ms / 10 ms per hundredth |
+| FLASH swap in ticks (`FLASH_TICKS`) | 16 | C | 320 ms (P, section on the FLASH clock) / 20 ms |
+| Default frame delay (`DEFAULT_DELAY_TICKS`) | 5 ticks, 100 ms | A | a starting value, set per frame; nothing depends on it |
+| Longest delay (`MAX_DELAY_TICKS`) | 65,535 ticks, about 22 minutes | A | a guard against nonsense input only [C: 65,535 x 20 ms = 1,310.7 s] |
+| Speeds offered | x0.25, x0.5, x1, x2, x4 | A | menu choices; the real floor is one tick a frame |
+| New preview layer opacity (`DEFAULT_PREVIEW_OPACITY`) | 40 % | A | a starting value, set per preview (taken from the 2026-09-28 onion-skin design, A there too) |
+| Preview tints | (224,64,64) earlier, (64,128,224) later | A | the usual onion-skin colours; each preview can switch its tint off |
+| Thumbnail refresh while drawing (`THUMB_REFRESH_MS`) | 250 ms | A | four times a second; a strip being glanced at, not a measured need |
+| Thumbnails drawn per idle moment (`THUMBS_PER_CHUNK`) | 8 | A | keeps a long strip from holding up the page; not measured |
+| New-sprite quick sizes | 8, 16, 24, 32, 48 square | A | shortcuts; any size that fits can be typed |
+| New-sprite starting frames, most | 999 | A | an input guard |
+| Numbered-file digits, default | 3, more when the last number needs them | A | a naming habit; widened automatically |
+| PNG sheet frames across (`SHEET_COLUMNS`) | 16 | A | a layout choice, not a limit |
+| `.sev` frames, most (`SEVFormat.MAX_FRAMES`) | 32 | P | SevenuP's loader checks P2 = frames - 1 against 31 |
+| Next sprites per sheet | 64 | P | `SpriteService` MAX_SPRITES (the Next's pattern memory) |
+| Zip entries without zip64 (`ZipStore.MAX_ENTRIES`) | 65,535 | P | PKWARE APPNOTE 4.4.21, a 2-byte count |
+| Tape name | 10 characters | P | Spectrum tape header; frames are named base (up to 7) + 3 digits |
+
+The weight-bearing guesses are not among these: what decisions rested on was
+measured first (section "Animation sizing").
