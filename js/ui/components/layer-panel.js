@@ -65,7 +65,7 @@ class LayerPanelClass {
             titleI18n: 'panels.layers',
             title: 'Layers',
             hintI18n: 'panels.layers.hint',
-            hint: 'Add, delete, reorder and merge layers, and set each one\'s opacity and blend mode. Right-click this header to move the whole panel up or down'
+            hint: 'Add, delete, reorder and merge layers. Only an animation\'s preview layers have an opacity. Right-click this header to move the whole panel up or down'
         });
         if (!panel) return;
 
@@ -80,6 +80,8 @@ class LayerPanelClass {
         EventBus.on(EVENTS.LAYER_ORDER,      rerenderAll);
         EventBus.on(EVENTS.LAYER_SELECTED,   rerenderAll);
         EventBus.on(EVENTS.LAYER_VISIBILITY, rerenderAll);
+        // Animated / Shared switches and preview layers (not while an opacity slider is dragged).
+        EventBus.on(EVENTS.ANIMATION_CHANGED, () => { if (!this._draggingOpacity) this._renderLayerList(); });
 
         // A stamp that places its own colours ignores XOR: keep each stamp's X
         // button honest without rebuilding the list (that would lose hover,
@@ -160,11 +162,20 @@ class LayerPanelClass {
 
         layerList.textContent = '';
 
+        // An open animation's preview layers sit in the list above the layer
+        // they are anchored to (AnimationService draws them; they are not layers).
+        const anim = window.AnimationService ? AnimationService.getOpen() : null;
+        const previews = anim ? AnimationService.getPreviews(anim) : [];
+        const previewsAbove = (layerId) => {
+            for (const p of previews) if (p.anchorId === layerId) layerList.appendChild(this._previewRow(p));
+        };
+
         // Render in reverse order (top layer first visually).
         // Skip layer 0 (background) and stamps (they live in the Stamps section).
         for (let i = layers.length - 1; i >= 1; i--) {
             const layer = layers[i];
             if (layer.isStamp) continue;
+            previewsAbove(layer.id);
             const isCurrent = i === currentIndex;
             const isDrawTarget = showDrawTarget && i === drawTargetIndex;
             const isSelected = LayerManager.isLayerSelected(i);
@@ -190,11 +201,57 @@ class LayerPanelClass {
                 <button type="button" class="layer-btn layer-lock ${layer.locked ? 'locked' : ''}"
                         title="${this._t(layer.locked ? 'layer.lock.unlock' : 'layer.lock.lock', layer.locked ? 'Unlock layer' : 'Lock layer')}" data-i18n-title="${layer.locked ? 'layer.lock.unlock' : 'layer.lock.lock'}"
                         aria-label="${this._t('a11y.toggleLayerLock', 'Toggle layer lock')}" data-i18n-aria-label="a11y.toggleLayerLock">${svgUse(layer.locked ? 'icon-lock' : 'icon-unlock')}</button>
+                ${this._animatedButton(layer, anim)}
             `;
             layerList.appendChild(item);
         }
+        previewsAbove(layers[0] ? layers[0].id : null);
 
         this._updateLayerButtons();
+    }
+
+    /**
+     * The Animated / Shared switch: lit when the layer has its own contents in
+     * each frame. Shown while an animation is open, or on a layer that is
+     * Animated in one. @private
+     */
+    _animatedButton(layer, anim) {
+        const owner = window.AnimationService ? AnimationService.animationOfLayer(layer.id) : null;
+        if (!anim && !owner) return '';
+        const on = !!owner;
+        const key = on ? 'layer.animated.on' : 'layer.animated.off';
+        const text = on ? 'Animated: this layer has its own contents in each frame. Click to make it Shared'
+                        : 'Shared: this layer looks the same in every frame. Click to make it Animated';
+        return `<button type="button" class="layer-btn layer-animated ${on ? 'active' : ''}" aria-pressed="${on}"
+                        title="${Helpers.escapeHTML(this._t(key, text))}" data-i18n-title="${key}"
+                        aria-label="${Helpers.escapeHTML(this._t('layer.animated', 'Animated layer'))}" data-i18n-aria-label="layer.animated">${svgUse('icon-anim-layer')}</button>`;
+    }
+
+    /** One preview layer's row: show/hide, its name, opacity, tint, move up/down, delete. @private */
+    _previewRow(p) {
+        const item = document.createElement('div');
+        item.className = 'layer-item layer-preview';
+        item.dataset.previewId = String(p.id);
+        item.setAttribute('role', 'option');
+        item.setAttribute('aria-selected', 'false');
+        const name = AnimationService.previewName(p);
+        const t = (k, f) => Helpers.escapeHTML(this._t(k, f));
+        item.innerHTML = `
+            <button type="button" class="layer-btn preview-visibility ${p.visible ? 'visible' : ''}"
+                    title="${t(p.visible ? 'layer.visibility.hide' : 'layer.visibility.show', p.visible ? 'Hide layer' : 'Show layer')}"
+                    aria-label="${t('a11y.toggleLayerVisibility', 'Toggle layer visibility')}">${svgUse(p.visible ? 'icon-eye' : 'icon-eye-off')}</button>
+            <span class="layer-name" title="${t('layer.preview.hint', 'A frame shown faded for tracing. It is never part of the picture or an export; go to that frame to change it')}">${Helpers.escapeHTML(name)}</span>
+            <input type="range" class="preview-opacity" min="0" max="100" step="1" value="${p.opacity}"
+                   title="${t('layer.opacity', 'Opacity')}: ${p.opacity}%" aria-label="${t('layer.opacity', 'Opacity')}">
+            <button type="button" class="layer-btn preview-tint ${p.tint ? 'active' : ''}" aria-pressed="${p.tint}"
+                    title="${t('layer.preview.tint', 'Tint: earlier frames red, later frames blue')}"
+                    aria-label="${t('layer.preview.tint', 'Tint: earlier frames red, later frames blue')}">${svgUse('icon-attr-tools')}</button>
+            <button type="button" class="layer-btn preview-up" title="${t('layer.moveUp', 'Move Up')}" aria-label="${t('layer.moveUp', 'Move Up')}">${svgUse('icon-arrow-up')}</button>
+            <button type="button" class="layer-btn preview-down" title="${t('layer.moveDown', 'Move Down')}" aria-label="${t('layer.moveDown', 'Move Down')}">${svgUse('icon-arrow-down')}</button>
+            <button type="button" class="layer-btn preview-delete" title="${t('layer.preview.delete', 'Delete preview layer (the frame stays)')}"
+                    aria-label="${t('layer.preview.delete', 'Delete preview layer (the frame stays)')}">${svgUse('icon-trash')}</button>
+        `;
+        return item;
     }
 
     /** Enable/disable the control buttons for the current state. @private */
@@ -226,6 +283,20 @@ class LayerPanelClass {
         const layerList = this._layerList;
 
         layerList.addEventListener('click', (e) => {
+            const previewItem = e.target.closest('.layer-preview');
+            if (previewItem) {
+                e.stopPropagation();
+                const id = Number(previewItem.dataset.previewId);
+                const p = AnimationService.getPreviews().find(x => x.id === id);
+                if (!p) return;
+                if (e.target.closest('.preview-visibility')) AnimationService.updatePreview(id, { visible: !p.visible });
+                else if (e.target.closest('.preview-tint')) AnimationService.updatePreview(id, { tint: !p.tint });
+                else if (e.target.closest('.preview-up')) AnimationService.movePreview(id, 1);
+                else if (e.target.closest('.preview-down')) AnimationService.movePreview(id, -1);
+                else if (e.target.closest('.preview-delete')) AnimationService.removePreview(id);
+                return;
+            }
+
             const layerItem = e.target.closest('.layer-item');
             if (!layerItem) return;
 
@@ -250,6 +321,18 @@ class LayerPanelClass {
                 return;
             }
 
+            if (e.target.closest('.layer-animated')) {
+                e.stopPropagation();
+                const layer = LayerManager.getLayer(layerIndex);
+                if (!layer) return;
+                const animated = AnimationService.isLayerAnimated(layer.id);
+                if (animated && !confirm(Helpers.localizedMessage('layer.animated.confirmShared',
+                    'Make "{name}" Shared? It keeps the frame shown in every frame; its other frames are lost (Undo brings them back).',
+                    { name: layer.name }))) return;
+                AnimationService.setLayerAnimated(layer.id, !animated);
+                return;
+            }
+
             if (e.target.closest('.layer-lock')) {
                 e.stopPropagation();
                 const layer = LayerManager.getLayer(layerIndex);
@@ -262,6 +345,17 @@ class LayerPanelClass {
 
             // Layer row click with modifier keys (Krita/GIMP style)
             LayerManager.handleLayerClick(layerIndex, e.ctrlKey || e.metaKey, e.shiftKey);
+        });
+
+        // A preview's opacity follows the drag without rebuilding the list.
+        layerList.addEventListener('input', (e) => {
+            const slider = e.target.closest('.preview-opacity');
+            if (!slider) return;
+            const item = slider.closest('.layer-preview');
+            this._draggingOpacity = true;
+            AnimationService.updatePreview(Number(item.dataset.previewId), { opacity: Number(slider.value) });
+            this._draggingOpacity = false;
+            slider.title = `${this._t('layer.opacity', 'Opacity')}: ${slider.value}%`;
         });
 
         // Double-click on a layer's name enters rename mode
@@ -282,7 +376,7 @@ class LayerPanelClass {
         // Keyboard navigation
         layerList.addEventListener('keydown', (e) => {
             const layerItem = e.target.closest('.layer-item');
-            if (!layerItem) return;
+            if (!layerItem || layerItem.classList.contains('layer-preview')) return;
 
             const layerIndex = parseInt(layerItem.dataset.layerIndex, 10);
 

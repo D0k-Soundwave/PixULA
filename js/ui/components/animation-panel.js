@@ -149,6 +149,11 @@ class AnimationPanelClass {
                     <input type="number" class="anim-to" min="1" step="1"
                            aria-label="${t('anim.rangeToFrame', 'Last frame to play')}" data-i18n-aria-label="anim.rangeToFrame">
                 </div>
+                <label class="anim-row" data-i18n-title="anim.onion.hint"
+                       title="${t('anim.onion.hint', 'Show the frames before and after faded, as preview layers in the Layers panel (set their opacity there)')}">
+                    <input type="checkbox" class="anim-onion">
+                    <span data-i18n="anim.onion">${t('anim.onion', 'Onion skin')}</span>
+                </label>
             </div>
         `;
         const q = (s) => content.querySelector(s);
@@ -161,7 +166,8 @@ class AnimationPanelClass {
             add: q('.anim-add'), dup: q('.anim-dup'), delFrame: q('.anim-del'),
             earlier: q('.anim-earlier'), later: q('.anim-later'),
             delay: q('.anim-delay'), delayAll: q('.anim-delay-all'),
-            repeat: q('.anim-repeat'), speed: q('.anim-speed'), from: q('.anim-from'), to: q('.anim-to')
+            repeat: q('.anim-repeat'), speed: q('.anim-speed'), from: q('.anim-from'), to: q('.anim-to'),
+            onion: q('.anim-onion')
         };
         const e = this._el;
         const S = AnimationService;
@@ -193,9 +199,18 @@ class AnimationPanelClass {
         };
         e.from.addEventListener('change', range);
         e.to.addEventListener('change', range);
+        e.onion.addEventListener('change', () => S.setOnionSkin(e.onion.checked));
         e.strip.addEventListener('click', (ev) => {
             const item = ev.target.closest('.anim-frame');
             if (!item) return;
+            if (ev.target.closest('.anim-trace')) { S.toggleTrace(Number(item.dataset.index)); return; }
+            S.pause();
+            S.goTo(Number(item.dataset.index));
+        });
+        e.strip.addEventListener('keydown', (ev) => {
+            const item = ev.target.closest('.anim-frame');
+            if (!item || (ev.key !== 'Enter' && ev.key !== ' ')) return;
+            ev.preventDefault();
             S.pause();
             S.goTo(Number(item.dataset.index));
         });
@@ -235,6 +250,7 @@ class AnimationPanelClass {
             e.picker.appendChild(o);
         }
         e.repeat.value = S.getRepeat();
+        e.onion.checked = S.isOnionSkin();
         e.speed.value = String(S.getSpeed());
         this._renderStrip();
         this._renderFrameState();
@@ -281,10 +297,10 @@ class AnimationPanelClass {
         this._fillTimer = null;
         if (!a) return;
         a.frames.forEach((f, i) => {
-            const item = document.createElement('button');
-            item.type = 'button';
+            const item = document.createElement('div');
             item.className = 'anim-frame';
             item.dataset.index = String(i);
+            item.tabIndex = 0;
             item.setAttribute('role', 'option');
             const canvas = document.createElement('canvas');
             canvas.className = 'anim-thumb';
@@ -297,8 +313,15 @@ class AnimationPanelClass {
             const delay = document.createElement('small');
             delay.textContent = String(f.delayTicks);
             label.append(num, delay);
+            const trace = document.createElement('button');
+            trace.type = 'button';
+            const traced = AnimationService.isTraced(i, a);
+            trace.className = 'anim-trace' + (traced ? ' active' : '');
+            trace.setAttribute('aria-pressed', String(traced));
+            trace.textContent = Helpers.tr('anim.trace', 'Trace');
+            trace.title = Helpers.tr('anim.trace.hint', 'Show this frame faded while you draw the others (a preview layer in the Layers panel)');
             item.title = Helpers.localizedMessage('anim.frameTitle', 'Frame {n}, delay {delay}/50 s', { n: i + 1, delay: f.delayTicks });
-            item.append(canvas, label);
+            item.append(canvas, label, trace);
             e.strip.appendChild(item);
         });
         this._fillThumbs(a, 0);
