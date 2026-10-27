@@ -26,6 +26,8 @@ const SCREEN_EXTS = ['scr', 'zxp', 'mlt', 'ifl', 'hrg', 'img', 'mg8', 'mg4', 'mg
 const FLASH_TICKS = 16;
 /** [C] One tick in GIF hundredths of a second: 20 ms / 10 ms. */
 const CS_PER_TICK = AnimationServiceClass.TICK_MS / 10;
+/** [P] A GIF frame's delay is a 16-bit count of hundredths (GIF89a, Graphic Control Extension); a longer run is split. */
+const MAX_DELAY_CS = 0xFFFF;
 /** [A] Frames across a PNG sheet before it starts a new row; a layout choice, not a limit. */
 const SHEET_COLUMNS = 16;
 /** [P] Next sprites: 16 x 16 pixels, at most 64 in a sheet (SpriteService). */
@@ -205,7 +207,7 @@ class AnimationExportClass {
                 const phase = s.kind === 'giga' ? (t & 1) : s.kind === 'flash' ? (Math.floor(t / FLASH_TICKS) & 1) : 0;
                 const indices = s.phases[Math.min(phase, s.phases.length - 1)];
                 const prev = out[out.length - 1];
-                if (prev && prev.indices === indices) prev.delayCs += CS_PER_TICK;
+                if (prev && prev.indices === indices && prev.delayCs + CS_PER_TICK <= MAX_DELAY_CS) prev.delayCs += CS_PER_TICK;
                 else out.push({ indices, delayCs: CS_PER_TICK });
             }
         }

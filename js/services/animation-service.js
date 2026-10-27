@@ -119,6 +119,14 @@ class AnimationServiceClass {
         return { cx, cy, cw: wc, ch: hc };
     }
 
+    /** A window read from a file, as whole cells kept on the grid (a damaged file cannot reach past it). */
+    static onGrid(rect) {
+        const cols = ZX_SPECTRUM.GRID_COLS, rows = ZX_SPECTRUM.GRID_ROWS;
+        const int = (v, lo, hi) => Helpers.clamp(Math.round(Number(v)) || 0, lo, hi);
+        const cw = int(rect.cw, 1, cols), ch = int(rect.ch, 1, rows);
+        return { cx: int(rect.cx, 0, cols - cw), cy: int(rect.cy, 0, rows - ch), cw, ch };
+    }
+
     /** The cells a pixel selection covers, every partly covered cell included. */
     static rectFromSelection(sel) {
         if (!sel || !(sel.width > 0) || !(sel.height > 0)) return null;
@@ -702,6 +710,8 @@ class AnimationServiceClass {
                 if (b !== a) b.layerIds = b.layerIds.filter(id => id !== targetId && !sourceIds.includes(id));
             }
         }
+        // An animation whose every layer was merged into another's has nothing left to animate.
+        for (const b of this.animations.filter(x => !x.layerIds.length)) this._dropAnimation(b);
         this._emitChanged();
     }
 
@@ -1067,10 +1077,12 @@ class AnimationServiceClass {
     }
 
     /**
-     * After an autosave record with `celRefs` is built: write the cels it names
-     * that are not stored yet, and delete stored cels no record names any more.
+     * Before an autosave record with `celRefs` is written: write the cels it
+     * names that are not stored yet. Nothing is deleted here - the record on
+     * disk still names the old cels until the new one is safely written
+     * (pruneAutosaveCels, after).
      * @param {Object} data - serialize(..., { celRefs: true }) output
-     * @returns {Promise<{written:number, deleted:number}>}
+     * @returns {Promise<number>} cels written
      */
     async storeAutosaveCels(data) {
         if (!this._storedCels) this._storedCels = new Set();
@@ -1078,21 +1090,34 @@ class AnimationServiceClass {
         for (const a of this.animations) {
             for (const f of a.frames) for (const id of Object.keys(f.cels)) byKey.set(this.celKey(f.cels[id]), f.cels[id]);
         }
-        const wanted = new Set(data && data.celRefs ? data.cels : []);
-        let written = 0, deleted = 0;
-        for (const key of wanted) {
+        let written = 0;
+        for (const key of (data && data.celRefs ? data.cels : [])) {
             if (this._storedCels.has(key) || !byKey.has(key)) continue;
             await Storage.set(key, byKey.get(key), Storage.STORES.ANIM_CELS);
             this._storedCels.add(key);
             written++;
         }
+        return written;
+    }
+
+    /**
+     * After the autosave record naming `data`'s cels is written: delete the
+     * stored cels it no longer names. Called only once the record is on disk,
+     * so a failed write leaves the last good record whole.
+     * @param {?Object} data - the written record's `animations` (none: every cel goes)
+     * @returns {Promise<number>} cels deleted
+     */
+    async pruneAutosaveCels(data) {
+        if (!this._storedCels) return 0;
+        const wanted = new Set(data && data.celRefs ? data.cels : []);
+        let deleted = 0;
         for (const key of [...this._storedCels]) {
             if (wanted.has(key)) continue;
             await Storage.delete(key, Storage.STORES.ANIM_CELS);
             this._storedCels.delete(key);
             deleted++;
         }
-        return { written, deleted };
+        return deleted;
     }
 
     /**
@@ -1142,7 +1167,7 @@ class AnimationServiceClass {
                 id: this._nextId++,
                 name: String(s.name || this._defaultName(s.kind)),
                 kind: s.kind === 'sprite' ? 'sprite' : 'screen',
-                rect: s.rect && s.kind === 'sprite' ? Object.assign({}, s.rect) : AnimationServiceClass.fullRect(),
+                rect: s.rect && s.kind === 'sprite' ? AnimationServiceClass.onGrid(s.rect) : AnimationServiceClass.fullRect(),
                 layerIds,
                 frames,
                 previews: (Array.isArray(s.previews) ? s.previews : []).map(p => Object.freeze({

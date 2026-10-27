@@ -1339,10 +1339,6 @@ class MenuSystemClass {
         if (item.getAttribute('role') === 'menuitemcheckbox') item.setAttribute('aria-checked', String(!!active));
     }
 
-    /**
-     * Flatten image (merge all layers). Confirms first.
-     * @private
-     */
     /** Layer > New Preview Layer: needs an open animation, and says so when there is none. @private */
     _newPreviewLayer(relative) {
         if (!AnimationService.getOpen()) {
@@ -1353,6 +1349,10 @@ class MenuSystemClass {
         AnimationService.addPreview({ relative });
     }
 
+    /**
+     * Flatten image (merge all layers). Confirms first.
+     * @private
+     */
     _flattenImage() {
         if (!confirm(this._t('msg.confirmFlatten', 'Flatten all layers into one? This cannot be separated again.'))) {
             return;

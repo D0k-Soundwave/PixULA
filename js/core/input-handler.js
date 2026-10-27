@@ -1825,6 +1825,11 @@ class InputHandlerClass {
         return;
       }
       if (this._isTypingTarget(e.target)) return;
+      // An export is stepping through the frames: a key that changes the frame or the picture would land in the file.
+      if (window.AnimationService && AnimationService.isBusy() && !AnimationService.isPlaying()) {
+        e.preventDefault();
+        return;
+      }
       this.keysDown.add(e.key);
       this._updateModifiers(e);
       // Bare X / Y: hold to lock a stroke to an axis. X's colour swap moved to the key coming up (a tap).
