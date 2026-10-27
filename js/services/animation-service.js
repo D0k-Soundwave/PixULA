@@ -84,6 +84,12 @@ class AnimationServiceClass {
     getAnimation(id) { return this.animations.find(a => a.id === id) || null; }
     isPlaying() { return this._playing; }
 
+    /** Playing, or an export stepping through the frames: drawing waits. */
+    isBusy() { return this._playing || !!this._busy; }
+
+    /** AnimationExport holds drawing off while it shows each frame in turn. */
+    setBusy(on) { this._busy = !!on; }
+
     /** The animation a layer is Animated in, or null when it is Shared everywhere. */
     animationOfLayer(layerId) {
         return this.animations.find(a => a.layerIds.includes(layerId)) || null;
@@ -345,7 +351,7 @@ class AnimationServiceClass {
      * @param {{name?:string, rect:{cx,cy,cw,ch}, frames?:number, fromLayer?:Object}} opts
      * @returns {Object|null}
      */
-    createSprite({ name = null, rect, frames = 1, fromLayer = null } = {}) {
+    createSprite({ name = null, rect, frames = 1, fromLayer = null, moreFrames = null } = {}) {
         if (window.UndoRedo && UndoRedo.isActionOpen()) return null;
         if (!rect || rect.cw < 1 || rect.ch < 1) return null;
         this.pause();
@@ -379,6 +385,8 @@ class AnimationServiceClass {
         };
         const count = Math.max(1, frames | 0);
         for (let i = 0; i < count; i++) anim.frames.push(makeFrame(DEFAULT_DELAY_TICKS, {}));
+        // Frames that arrive with their contents (a multi-frame import): block-packed cels for the new layer.
+        for (const cel of moreFrames || []) anim.frames.push(makeFrame(DEFAULT_DELAY_TICKS, { [layer.id]: cel }));
         this.animations.push(anim);
         this.openId = anim.id;
         this.flush(anim);
@@ -502,6 +510,22 @@ class AnimationServiceClass {
         if (!a) return false;
         const t = AnimationServiceClass.clampDelay(ticks);
         return this._frameAction('Frame delays', (x) => { x.frames = x.frames.map(f => makeFrame(t, f.cels)); });
+    }
+
+    /**
+     * Animation > Frame to Stamp: the frame's window becomes a stamp to carry
+     * into another frame - Edit > Copy of the window, on the layer being drawn.
+     */
+    frameToStamp() {
+        const a = this.getOpen();
+        if (!a || !window.SelectionService || (window.UndoRedo && UndoRedo.isActionOpen())) return false;
+        this.pause();
+        const r = a.rect;
+        SelectionService.setSelection({
+            x: r.cx * ZX_SPECTRUM.CELL_WIDTH, y: r.cy * ZX_SPECTRUM.CELL_HEIGHT,
+            width: r.cw * ZX_SPECTRUM.CELL_WIDTH, height: r.ch * ZX_SPECTRUM.CELL_HEIGHT
+        });
+        return SelectionService.copyOrCut(false);
     }
 
     // ── Layers: Animated or Shared ──────────────────────────────────────────

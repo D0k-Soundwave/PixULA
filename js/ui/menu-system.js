@@ -513,6 +513,17 @@ class MenuSystemClass {
                     { id: 'anim-add-frame', label: 'Add Frame', action: 'animation:addFrame' },
                     { id: 'anim-dup-frame', label: 'Duplicate Frame', action: 'animation:duplicateFrame' },
                     { id: 'anim-del-frame', label: 'Delete Frame', action: 'animation:deleteFrame' },
+                    { id: 'anim-frame-stamp', label: 'Frame to Stamp', action: 'animation:frameToStamp' },
+                    { type: 'separator' },
+                    { id: 'anim-export', label: 'Export Animation', i18n: 'menu.animation.export', items: [
+                        { id: 'anim-export-screens', label: 'Numbered Screens...', action: 'animation:exportScreens' },
+                        { id: 'anim-export-gif', label: 'Animated GIF (.gif)', action: 'animation:exportGif' },
+                        { id: 'anim-export-sheet', label: 'PNG Sprite Sheet (.png)', action: 'animation:exportSheet' },
+                        { id: 'anim-export-sev', label: 'SevenuP, All Frames (.sev)', action: 'animation:exportSev' },
+                        { id: 'anim-export-tap', label: 'Tape, a Screen per Frame (.tap)', action: 'animation:exportTap' },
+                        { id: 'anim-export-tzx', label: 'Tape, a Screen per Frame (.tzx)', action: 'animation:exportTzx' },
+                        { id: 'anim-export-spr', label: 'Next Sprites (.spr)', action: 'animation:exportSpr' }
+                    ]},
                     { type: 'separator' },
                     { id: 'anim-delete', label: 'Delete Animation', action: 'animation:delete' }
                 ]
@@ -1236,6 +1247,14 @@ class MenuSystemClass {
             case 'animation:duplicateFrame':        AnimationService.duplicateFrame(); break;
             case 'animation:deleteFrame':           AnimationService.deleteFrame(); break;
             case 'animation:delete':                AnimationPanel.confirmDeleteOpen(); break;
+            case 'animation:frameToStamp':          AnimationService.frameToStamp(); break;
+            case 'animation:exportScreens':         AnimationExportDialog.open(); break;
+            case 'animation:exportGif':             AnimationExport.exportGif(); break;
+            case 'animation:exportSheet':           AnimationExport.exportSheet(); break;
+            case 'animation:exportSev':             AnimationExport.exportSev(); break;
+            case 'animation:exportTap':             AnimationExport.exportTape('tap'); break;
+            case 'animation:exportTzx':             AnimationExport.exportTape('tzx'); break;
+            case 'animation:exportSpr':             AnimationExport.exportSpr(); break;
 
             // Image
             // Through the Transform panel's one entry point, which sends a floating

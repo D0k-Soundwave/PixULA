@@ -61,11 +61,35 @@ class FormatRegistryClass {
    * @returns {Promise<boolean>} false only if the artist cancelled the native picker
    */
   async download(data, filename, mimeType = 'application/octet-stream', handle = null) {
+    // While captureDownloads runs, the bytes are handed back instead of saved.
+    if (this._captured) {
+      this._captured.push({ data, filename, mimeType });
+      return true;
+    }
     const saved = await Helpers.downloadFile(data, filename, mimeType, handle);
     if (!saved) return false;
     EventBus.emit(EVENTS.FILE_EXPORT, { format: this.getExtension(filename), filename });
     Logger.info('FormatRegistry', `Download triggered: ${filename}`);
     return true;
+  }
+
+  /**
+   * Run `fn` - a format's own export-and-download - and collect what it would
+   * have saved instead of saving it. Used to write each animation frame
+   * through the exact path File > Save Image As uses, so every file is
+   * byte for byte what a single save would write.
+   * @param {Function} fn - may be async
+   * @returns {Promise<Array<{data: Uint8Array|Blob, filename: string, mimeType: string}>>}
+   */
+  async captureDownloads(fn) {
+    if (this._captured) throw new Error('captureDownloads does not nest');
+    this._captured = [];
+    try {
+      await fn();
+      return this._captured;
+    } finally {
+      this._captured = null;
+    }
   }
 
   /**

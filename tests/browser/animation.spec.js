@@ -193,3 +193,103 @@ test('preview layers: a traced frame shows faded on screen only, under ink above
     expect(r.animatedButtons).toBe(1);
     expect(errors).toEqual([]);
 });
+
+test('exports: numbered screens byte-identical to single saves (zip), GIF timing with FLASH, SevenuP round trip, tape, sheet', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(String(e)));
+    await boot(page);
+    const r = await page.evaluate(async () => {
+        const out = {};
+        const L = LayerManager, S = AnimationService;
+        const saved = [];
+        Helpers.downloadFile = async (data, name) => {
+            const bytes = data instanceof Uint8Array ? data : new Uint8Array(await data.arrayBuffer());
+            saved.push({ name, bytes });
+            return true;
+        };
+        const draw = (x, y, flash = false) => {
+            UndoRedo.beginAction('test');
+            const c = L.layers[1].getCell(x >> 3, y >> 3);
+            c.pixels[y & 7] |= 0x80 >> (x & 7); c.altered = true;
+            if (flash) { c.flash = true; c.ink = 2; c.paper = 7; }
+            L.composeToCanvas();
+            UndoRedo.endAction();
+        };
+        S.createScreen();
+        draw(10, 10);
+        S.addFrame(); draw(20, 20, true);
+        S.addFrame(); draw(30, 30);
+        // what a single save of each frame gives
+        const single = [];
+        for (let i = 0; i < 3; i++) { S.goTo(i); single.push(SCRFormat.export().slice()); }
+        S.goTo(1);
+        const n = await AnimationExport.exportNumbered({ ext: 'scr', folder: false });
+        out.numbered = n === 3;
+        const zip = saved.pop();
+        out.zipName = zip.name;
+        // read the zip back: local headers in order
+        const z = zip.bytes, dv = new DataView(z.buffer, z.byteOffset, z.byteLength);
+        let p = 0; const entries = [];
+        while (dv.getUint32(p, true) === 0x04034B50) {
+            const size = dv.getUint32(p + 18, true), nameLen = dv.getUint16(p + 26, true), crc = dv.getUint32(p + 14, true);
+            const name = new TextDecoder().decode(z.subarray(p + 30, p + 30 + nameLen));
+            const data = z.subarray(p + 30 + nameLen, p + 30 + nameLen + size);
+            entries.push({ name, data, crcOk: ZipStore.crc32(data) === crc });
+            p += 30 + nameLen + size;
+        }
+        out.zipEntries = entries.map(e => e.name).join(',');
+        out.zipCrc = entries.every(e => e.crcOk);
+        out.byteIdentical = entries.length === 3 && entries.every((e, i) => e.data.length === single[i].length && e.data.every((b, k) => b === single[i][k]));
+        out.backOnFrame = S.getOpen().current === 1;
+        out.flashKept = (entries[1].data[6144 + (20 >> 3) * 32 + (20 >> 3)] & 0x80) !== 0;
+        // GIF
+        S.setDelay(5, 0); S.setDelay(20, 1); S.setDelay(5, 2);
+        await AnimationExport.exportGif();
+        const gif = saved.pop();
+        out.gifHeader = String.fromCharCode(...gif.bytes.subarray(0, 6)) === 'GIF89a';
+        // timeline: frame 0 (5 ticks), frame 1 flashes (20 ticks: phases at 16-tick boundaries), frame 2 (5)
+        const shots = [];
+        await AnimationExport._eachFrame([0, 1, 2], async (i) => { const g = GIFFormat.phases(); shots.push({ delayTicks: S.getOpen().frames[i].delayTicks, kind: g.kind, phases: g.phases }); });
+        const tl = AnimationExport.timeline(shots);
+        out.timeline = tl.map(f => f.delayCs).join(',');
+        // SevenuP round trip
+        await AnimationExport.exportSev();
+        const sev = saved.pop();
+        out.sevFrames = sev.bytes[8] === 2;
+        const before = S.animations.length;
+        S.deleteAnimation(S.getOpen().id);
+        const res = SEVFormat.parse(sev.bytes.buffer.slice(sev.bytes.byteOffset, sev.bytes.byteOffset + sev.bytes.length));
+        out.sevImported = res.success && S.getOpen() && S.getOpen().frames.length === 3 && S.getOpen().kind === 'sprite';
+        // Tape
+        S.deleteAnimation(S.getOpen().id);
+        S.createScreen(); S.addFrame(); S.addFrame();
+        await AnimationExport.exportTape('tap');
+        const tap = saved.pop();
+        const blocks = TAPFormat.listBlocks(tap.bytes);
+        out.tapBlocks = blocks.success && blocks.blocks.length === 6 && blocks.blocks.filter(b => b.isScreen).length === 3;
+        out.tapNames = blocks.blocks.filter(b => b.name).map(b => b.name.trim()).join(',');
+        await AnimationExport.exportTape('tzx');
+        const tzx = saved.pop();
+        const tb = TZXFormat.listBlocks(tzx.bytes);
+        out.tzxBlocks = tb.success && tb.blocks.length === 6;
+        await AnimationExport.exportSheet();
+        out.sheet = saved.pop().name;
+        out.sprRefused = AnimationExport.refusal('spr') !== null;
+        // Frame to stamp
+        out.frameToStamp = S.frameToStamp() && SelectionService.isFloating();
+        return out;
+    });
+    const expected = {
+        zipEntries: 'Animation 1_001.scr,Animation 1_002.scr,Animation 1_003.scr',
+        zipName: 'Animation 1.zip',
+        // frame 1 for 5 ticks, frame 2 for 20 ticks split at the 16-tick FLASH swap, frame 3 for 5 ticks (in 1/100 s)
+        timeline: '10,22,18,10',
+        tapNames: 'Animati001,Animati002,Animati003',
+        sheet: 'Animation 1-sheet.png'
+    };
+    for (const [name, value] of Object.entries(r)) {
+        if (name in expected) expect(value, name).toBe(expected[name]);
+        else expect(value, name).toBe(true);
+    }
+    expect(errors).toEqual([]);
+});
