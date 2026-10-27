@@ -475,6 +475,7 @@ class AppClass {
      * sitting in storage the day they turn this back on.
      */
     async _checkAutosave() {
+        let restored = false;
         try {
             const autosaveData = await Storage.get('autosave');
             if (!autosaveData || !autosaveData.timestamp) return;
@@ -500,6 +501,7 @@ class AppClass {
 
             if (confirm(I18n.t('msg.autosaveFound', { age: ageText }))) {
                 await this._loadProjectData(autosaveData);
+                restored = true;
                 Logger.info('App', 'Autosave restored');
             } else {
                 // User declined, clear the stale autosave
@@ -507,6 +509,9 @@ class AppClass {
             }
         } catch (error) {
             Logger.warn('App', 'Failed to check autosave', error);
+        } finally {
+            // Frames stored for an autosave that is not coming back are dropped with it.
+            if (!restored && window.AnimationService) await AnimationService.clearAutosaveCels();
         }
     }
 
@@ -558,11 +563,14 @@ class AppClass {
         if (this._autosaveInFlight) return;
         this._autosaveInFlight = true;
         try {
-            const project = this._getProjectData({ packed: true });
+            // The record names animation frames by key; the frames themselves
+            // are written once each, when new (AnimationService.storeAutosaveCels).
+            const project = this._getProjectData({ packed: true, celRefs: true });
 
             // The database record FIRST and on its own try: it is the crash
             // recovery, and it must not be lost to a folder that went away.
             try {
+                if (project.animations) await AnimationService.storeAutosaveCels(project.animations);
                 await Storage.set('autosave', project);
                 Logger.debug('App', 'Autosaved');
             } catch (error) {
@@ -572,7 +580,9 @@ class AppClass {
             // Versioned copies on disk are additive - better artefacts, but
             // allowed to fail. BackupService announces its own failures.
             if (window.BackupService && BackupService.isActive) {
-                await BackupService.writeVersion(project, this._backupBaseName());
+                // A backup is a whole .pixula file, so it carries every frame.
+                const full = project.animations ? this._getProjectData({ packed: true }) : project;
+                await BackupService.writeVersion(full, this._backupBaseName());
             }
         } finally {
             this._autosaveInFlight = false;
@@ -639,7 +649,7 @@ class AppClass {
      * @param {{packed?: boolean}} [opts]
      * @private
      */
-    _getProjectData({ packed = false } = {}) {
+    _getProjectData({ packed = false, celRefs = false } = {}) {
         // embedReferenceAsset keeps the image inline on slices.reference.
         // assetData rather than lifted into a separate returned `asset` -
         // there is no content-addressed store to lift it into here.
@@ -670,7 +680,7 @@ class AppClass {
             // the picture's map elements travel with the project and the autosave (owner decision 2026-10-14)
             ...(window.MapService && MapService.elements.length ? { mapElements: MapService.getElements() } : {}),
             // Written only when there are animations, so a still picture saves exactly as before.
-            ...(window.AnimationService && AnimationService.hasAnimations() ? { animations: AnimationService.serialize() } : {}),
+            ...(window.AnimationService && AnimationService.hasAnimations() ? { animations: AnimationService.serialize(LayerManager.layers, { celRefs }) } : {}),
             slices
         };
     }
@@ -715,7 +725,11 @@ class AppClass {
             EventBus.emit(EVENTS.LAYER_ORDER);
         }
         // Over the restored layers (a project from before animations has none).
-        if (window.AnimationService) AnimationService.load(data.animations);
+        // An autosave record names its frames by key: fetch them first.
+        if (window.AnimationService) {
+            await AnimationService.resolveAutosaveCels(data.animations);
+            AnimationService.load(data.animations);
+        }
 
         // Once the pixels are in: a Next palette saved unedited before
         // 2026-09-23 moves to today's defaults unless the picture uses the

@@ -150,8 +150,11 @@ class AnimationServiceClass {
         for (const id of anim.layerIds) {
             const layer = LayerManager.getLayerById(id);
             if (!layer) continue;
-            const cel = layer.packAttributeData(rect);
+            let cel = layer.packAttributeData(rect);
             if (!LayerManagerClass.packedGridsEqual(cel, frame.cels[id])) {
+                // A layer with nothing drawn shares the one blank cel, so empty frames cost nothing to keep or save.
+                const blank = this._blankCel(rect, layer.isBackground);
+                if (LayerManagerClass.packedGridsEqual(cel, blank)) cel = blank;
                 cels[id] = cel;
                 changed = true;
             }
@@ -456,7 +459,10 @@ class AnimationServiceClass {
     addFrame({ copy = false } = {}) {
         return this._frameAction('Add frame', (a) => {
             const cur = a.frames[a.current];
-            a.frames.splice(a.current + 1, 0, copy ? cur : makeFrame(cur.delayTicks, {}));
+            // A blank frame is blank on the drawing layers; it keeps the frame's background.
+            const bg = LayerManager.getBackgroundLayer();
+            const keep = bg && a.layerIds.includes(bg.id) && cur.cels[bg.id] ? { [bg.id]: cur.cels[bg.id] } : {};
+            a.frames.splice(a.current + 1, 0, copy ? cur : makeFrame(cur.delayTicks, keep));
             a.current++;
         }, { reload: true });
     }
@@ -1001,7 +1007,7 @@ class AnimationServiceClass {
      * cel is written once, so shared and unchanged frames cost nothing extra.
      * @param {Object[]} layers - LayerManager.layers, in saved order
      */
-    serialize(layers = LayerManager.layers) {
+    serialize(layers = LayerManager.layers, { celRefs = false } = {}) {
         if (!this.animations.length) return null;
         this.flushAll();
         const cels = [];
@@ -1033,7 +1039,86 @@ class AnimationServiceClass {
             })
         }));
         const open = this.animations.findIndex(a => a.id === this.openId);
+        // The autosave record carries keys; storeAutosaveCels writes the cels themselves, each once.
+        if (celRefs) return { version: 1, celRefs: true, cels: cels.map(c => this.celKey(c)), list, open };
         return { version: 1, cels, list, open };
+    }
+
+    // ── Autosave: frames stored once each ───────────────────────────────────
+    //
+    // One autosave used to write the whole project as one IndexedDB record,
+    // every frame included: 85-175 ms at about 100 MB of frames (M,
+    // FIGURES.md), over the 100 ms an interface may stall (P, Nielsen 1993).
+    // Frames are immutable, so a frame written once never needs writing
+    // again: the record holds each cel's key, and only new cels are written,
+    // one small record each, to Storage.STORES.ANIM_CELS.
+
+    /** A cel's key in the autosave store, given the first time it is asked for. */
+    celKey(cel) {
+        if (!this._celKeys) this._celKeys = new WeakMap();
+        let key = this._celKeys.get(cel);
+        if (!key) {
+            if (!this._celSession) this._celSession = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+            this._celCounter = (this._celCounter || 0) + 1;
+            key = this._celSession + '-' + this._celCounter;
+            this._celKeys.set(cel, key);
+        }
+        return key;
+    }
+
+    /**
+     * After an autosave record with `celRefs` is built: write the cels it names
+     * that are not stored yet, and delete stored cels no record names any more.
+     * @param {Object} data - serialize(..., { celRefs: true }) output
+     * @returns {Promise<{written:number, deleted:number}>}
+     */
+    async storeAutosaveCels(data) {
+        if (!this._storedCels) this._storedCels = new Set();
+        const byKey = new Map();
+        for (const a of this.animations) {
+            for (const f of a.frames) for (const id of Object.keys(f.cels)) byKey.set(this.celKey(f.cels[id]), f.cels[id]);
+        }
+        const wanted = new Set(data && data.celRefs ? data.cels : []);
+        let written = 0, deleted = 0;
+        for (const key of wanted) {
+            if (this._storedCels.has(key) || !byKey.has(key)) continue;
+            await Storage.set(key, byKey.get(key), Storage.STORES.ANIM_CELS);
+            this._storedCels.add(key);
+            written++;
+        }
+        for (const key of [...this._storedCels]) {
+            if (wanted.has(key)) continue;
+            await Storage.delete(key, Storage.STORES.ANIM_CELS);
+            this._storedCels.delete(key);
+            deleted++;
+        }
+        return { written, deleted };
+    }
+
+    /**
+     * Before an autosave record is loaded: turn its cel keys back into cels
+     * from the store. The cels keep their keys, so the next autosave does not
+     * write them again.
+     * @param {Object} data - the record's `animations`
+     */
+    async resolveAutosaveCels(data) {
+        if (!data || !data.celRefs) return;
+        const records = await Storage.getAll(Storage.STORES.ANIM_CELS);
+        const byKey = new Map(records.map(r => [r.key, r.value]));
+        if (!this._celKeys) this._celKeys = new WeakMap();
+        this._storedCels = new Set(byKey.keys());
+        data.cels = data.cels.map((key) => {
+            const cel = byKey.get(key) || null;
+            if (cel) this._celKeys.set(cel, key);
+            return cel;
+        });
+        delete data.celRefs;
+    }
+
+    /** No autosave to restore (declined, stale or absent): its stored cels go too. */
+    async clearAutosaveCels() {
+        this._storedCels = new Set();
+        try { await Storage.clear(Storage.STORES.ANIM_CELS); } catch (e) { /* the store may not exist in a fallback */ }
     }
 
     /** Read `serialize` output back over freshly restored layers. */
