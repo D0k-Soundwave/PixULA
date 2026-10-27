@@ -889,13 +889,12 @@ class ScreenModeServiceClass {
         const from = ACTIVE_SCREEN_MODE;
         if (target === from) return false;
 
-        // Frames are stored in this mode's cell geometry and are not converted
-        // (yet): a document with animations keeps its mode.
-        if (window.AnimationService && AnimationService.hasAnimations()) {
-            EventBus.emit(EVENTS.STATUS_NOTICE, { text: Helpers.localizedMessage('anim.modeLocked',
-                'The screen mode cannot change while the picture has animations. Delete them first, or start a new picture.') });
-            return false;
-        }
+        // Every caller replaces the document next (a new picture, an opened
+        // project, an imported screen, an undo step), so the animations go
+        // with the old content: their frames are in the old mode's cells.
+        // Inside an undo action (an import) Undo brings them back; an undo
+        // step puts its own animations back after this.
+        if (window.AnimationService && AnimationService.hasAnimations()) AnimationService.reset();
 
         __setActiveScreenMode(target.id);
         // Content is about to be replaced by the caller; reset every

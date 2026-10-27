@@ -572,6 +572,8 @@ class AppClass {
             try {
                 if (project.animations) await AnimationService.storeAutosaveCels(project.animations);
                 await Storage.set('autosave', project);
+                // Only now, with the new record on disk, may cels the old one named go.
+                if (window.AnimationService) await AnimationService.pruneAutosaveCels(project.animations);
                 Logger.debug('App', 'Autosaved');
             } catch (error) {
                 Logger.error('App', 'Autosave failed', error);
