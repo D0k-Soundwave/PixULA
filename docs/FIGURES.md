@@ -998,3 +998,41 @@ preview adds its drawing. Nothing was changed on the strength of these figures.
 
 The sample count of each ellipse, max(60, round(4 x the larger radius)), is the old circular ring's count with the
 larger radius in place of its one radius [C: existing code]; it is not a limit.
+
+### Animation sizing, before the animation system - measured 2026-10-27
+
+Method: `node tools/anim-bench.js <mode> <layers> <frames>` on this machine, Playwright's Chromium (no installed
+Chrome here), median of 11 runs after 3 warmup, saves 3 runs, all runs back to back in one sitting [M]. Every drawing
+layer carries altered cells. A "frame change" is the stand-in for showing another frame: pack every drawing layer,
+unpack a different grid into each, recompose. "Stored frames" are distinct packed grids of every drawing layer added
+to the autosave record. The timer resolution in this browser is 0.1 ms.
+
+| Case | Frame change | Autosave IndexedDB write | `.pixula` encode (backup) | Stored frames |
+|---|---|---|---|---|
+| Standard, 1 layer, 32 frames | 0.40 ms | 0.5 ms | 3.6 ms | 0.3 MB |
+| Standard, 2 layers, 100 frames | 0.60 ms | 2.6 ms | 17.5 ms | 1.7 MB |
+| Standard, 31 layers, 500 frames | 2.10 ms | 175 ms | 817 ms | 130.9 MB |
+| 8x1 multicolour, 8 layers | 4.50 ms | - | - | - |
+| GigaScreen, 8 layers | 2.70 ms | - | - | - |
+| MultiGiga 8x1, 8 layers | 13.90 ms | - | - | - |
+| Layer 2 640, 1 layer, 500 frames | 1.20 ms | 108 ms | 847 ms | 106.2 MB |
+| Layer 2 640, 8 layers | 7.60 ms | - | - | - |
+| Layer 2 640, 31 layers, 16 frames | 34.30 ms (pack 10.1, unpack 12.8, compose 12.3) | 85 ms | 904 ms | 105.4 MB |
+
+Screen updates requested while stepping 10 frames a second: a `setTimeout` clock 9.5-10 a second, an
+animation-frame loop 154-155.5 a second [M, same sitting]. The 2026-09-28 figures (11 and 73, another machine) agree
+in direction; the playback clock is `setTimeout`.
+
+What these settle (the plan's three guesses):
+
+1. **A frame change fits in one 20 ms tick** [P: 50 Hz] everywhere measured except Layer 2 640 at 31 layers
+   (34.3 ms): there a frame with a 1-tick delay is shown late. 8 layers there take 7.6 ms.
+2. **Autosave passes the 100 ms limit** [P: 0.1 s for a response to feel immediate, Nielsen 1993] at about 100 MB of
+   stored frames: 85-175 ms for the IndexedDB write [M], about 1.3 ms per MB [C: 175 / 130.9]. The `.pixula` encode a
+   backup does costs 6.5-8.6 ms per MB [C: 847 / 106.2, 904 / 105.4], so a backup passes 100 ms at about 12-15 MB.
+   A typical animation (Standard, 2 layers, 100 frames, 1.7 MB) costs 2.6 ms and 17.5 ms. Both large-animation
+   costs are recorded as open work, not as limits.
+3. **The `setTimeout` clock stays.**
+
+The gzipped file sizes this run printed are not given: the synthetic frames are near-identical and compress far
+better than drawn ones.
