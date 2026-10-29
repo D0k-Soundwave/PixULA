@@ -114,6 +114,68 @@ const clearClashDemo = async (page) => {
 };
 
 /**
+ * Build the animation the Animation chapter's pictures show: a ball bouncing
+ * over the ground in six frames. The ground is drawn once on a Shared layer
+ * and the ball on an Animated one, so the Layers panel shows both kinds of
+ * row; Onion skin is on, so it shows the two preview
+ * layers too.
+ */
+const buildAnimDemo = async (page) => {
+    await page.evaluate(() => {
+        const L = LayerManager, S = AnimationService;
+        window.__manualInk = [ColorManager.ink, ColorManager.paper];
+        const draw = (x, y) => PixelDrawRoutine.draw(
+            x, y, ColorManager.getCurrentSelection(), DRAW_MODE.NORMAL);
+        const ground = L.layers.find((l) => !l.isBackground && !l.isStamp);
+        L.setCurrentLayer(ground.index);
+        UndoRedo.beginAction('manual: ground');
+        ColorManager.setPaper(7);
+        ColorManager.setInk(4);
+        for (let y = 168; y < ZX_SPECTRUM.HEIGHT; y++) {
+            for (let x = 0; x < ZX_SPECTRUM.WIDTH; x++) draw(x, y);
+        }
+        UndoRedo.endAction();
+
+        S.createScreen();
+        S.setLayerAnimated(ground.id, false);
+        const ball = L.addLayer('Ball');
+        L.setCurrentLayer(ball.index);
+        ColorManager.setInk(2);
+        // Centre heights of one bounce: high, falling, on the ground, rising
+        const heights = [36, 76, 120, 148, 120, 76];
+        heights.forEach((cy, i) => {
+            if (i > 0) S.addFrame();
+            const cx = 48 + i * 32, r = 20;
+            UndoRedo.beginAction('manual: ball');
+            for (let y = -r; y <= r; y++) {
+                for (let x = -r; x <= r; x++) if (x * x + y * y <= r * r) draw(cx + x, cy + y);
+            }
+            UndoRedo.endAction();
+        });
+        S.goTo(2);
+        S.setOnionSkin(true);
+        L.composeToCanvas();
+    });
+    await page.waitForTimeout(600);   // the frame strip draws its thumbnails when idle
+};
+
+/** Undo the whole demo, close its panel and give the colours back. */
+const clearAnimDemo = async (page) => {
+    await closeAll(page);
+    await page.evaluate(() => {
+        AnimationService.setOnionSkin(false);
+        while (UndoRedo.canUndo()) UndoRedo.undo();
+        UndoRedo.clear();
+        AnimationService.reset();
+        PanelSection.setVisible(AnimationPanel.ID, false);
+        ColorManager.setInk(window.__manualInk[0]);
+        ColorManager.setPaper(window.__manualInk[1]);
+        LayerManager.composeToCanvas();
+    });
+    await page.waitForTimeout(200);
+};
+
+/**
  * @type {Array<{id: string, crop: ?string, reach: ?Function, after: ?Function}>}
  *   `crop` is a selector to shoot; null means the whole viewport.
  *   `reach` puts the app into the state; `after` puts it back.
@@ -181,6 +243,33 @@ const SHOTS = [
         crop: '.app-dialog',
         reach: openDialog('file', 'file:spriteEditor'),
         after: closeAll
+    },
+
+    // The Animation chapter. Each shot builds the demo and takes it down
+    // again, so any one of them can be re-taken alone (--shots=).
+    {
+        id: 'menu-animation',
+        crop: '#menu-animation',
+        reach: async (page) => { await buildAnimDemo(page); await openMenu('animation')(page); },
+        after: clearAnimDemo
+    },
+    {
+        id: 'dialog-new-sprite',
+        crop: '.app-dialog',
+        reach: openDialog('animation', 'animation:newSprite'),
+        after: closeAll
+    },
+    {
+        id: 'animation-panel',
+        crop: '#animation-panel',
+        reach: buildAnimDemo,
+        after: clearAnimDemo
+    },
+    {
+        id: 'animation-layers',
+        crop: '#layer-panel',
+        reach: buildAnimDemo,
+        after: clearAnimDemo
     },
 
     // File > Tape Blocks is deliberately absent. It opens the OS file picker

@@ -9,6 +9,10 @@ unei celule.
 
 ### Pornirea unei animații
 
+![Meniul Animație](img/menu-animation.png)
+
+![Dialogul Animație nouă de sprite](img/dialog-new-sprite.png)
+
 **Animație > Animație nouă de ecran** face din imagine cadrul 1. Fiecare strat
 devine animat: are conținut propriu în fiecare cadru.
 
@@ -26,6 +30,8 @@ Animație alege pe cea deschisă. Modul de ecran nu se poate schimba cât timp
 imaginea are animații.
 
 ### Cadre
+
+![Panoul Animație cu cele șase cadre ale unei mingi care sare](img/animation-panel.png)
 
 Panoul Animație arată fiecare cadru ca o imagine mică, cu numărul și
 întârzierea lui. Fă clic pe unul ca să mergi la el, sau apasă `,` și `.` pentru
@@ -45,6 +51,8 @@ cadrul următor și pune ștampila. Anularea unui pas făcut pe alt cadru te duc
 lista Ștampile, pusă acolo unde stă ștampila; ștampilele rămân.
 
 ### Straturi într-o animație
+
+![Panoul Straturi cu un strat animat, unul comun și cele două straturi de previzualizare ale foii de ceapă](img/animation-layers.png)
 
 Cât timp o animație e deschisă, fiecare rând al panoului Straturi are un
 comutator Animat / Comun. Un strat animat are conținut propriu în fiecare

@@ -8,6 +8,10 @@ nigdy nie dzieli atrybutów komórki.
 
 ### Rozpoczęcie animacji
 
+![Menu Animacja](img/menu-animation.png)
+
+![Okno Nowa animacja sprite'a](img/dialog-new-sprite.png)
+
 **Animacja > Nowa animacja ekranu** robi z obrazu klatkę 1. Każda warstwa staje
 się animowana: ma własną treść w każdej klatce.
 
@@ -24,6 +28,8 @@ Obraz może mieć kilka animacji; wybór na górze panelu Animacja decyduje, kt�
 jest otwarta. Trybu ekranu nie można zmienić, dopóki obraz ma animacje.
 
 ### Klatki
+
+![Panel Animacja z sześcioma klatkami odbijającej się piłki](img/animation-panel.png)
 
 Panel Animacja pokazuje każdą klatkę jako mały obrazek z numerem i
 opóźnieniem. Kliknij jedną, aby do niej przejść, albo naciśnij `,` i `.`, aby
@@ -43,6 +49,8 @@ powrotem na tę klatkę.
 Stemple, położonego tam, gdzie stempel stoi; stemple zostają.
 
 ### Warstwy w animacji
+
+![Panel Warstwy z warstwą animowaną, warstwą wspólną i dwiema warstwami podglądu kalki cebulowej](img/animation-layers.png)
 
 Dopóki animacja jest otwarta, każdy wiersz panelu Warstwy ma przełącznik
 Animowana / Wspólna. Warstwa animowana ma własną treść w każdej klatce; wspólna

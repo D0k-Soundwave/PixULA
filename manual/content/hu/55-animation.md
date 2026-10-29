@@ -8,6 +8,10 @@ attribútumcellákból áll, így sosem vágja ketté egy cella attribútumait.
 
 ### Animáció indítása
 
+![Az Animáció menü](img/menu-animation.png)
+
+![Az Új sprite-animáció párbeszédablak](img/dialog-new-sprite.png)
+
 Az **Animáció > Új képernyőanimáció** a képet az 1. képkockává teszi. Minden
 réteg animált lesz: minden képkockában saját tartalma van.
 
@@ -25,6 +29,8 @@ dönti el, melyik nyitott. A képernyőmód nem változhat, amíg a képnek anim
 vannak.
 
 ### Képkockák
+
+![Az Animáció panel egy pattogó labda hat képkockájával](img/animation-panel.png)
 
 Az Animáció panel minden képkockát kis képként mutat, a számával és a
 késleltetésével. Kattints egyre, hogy odamenj, vagy nyomd meg a `,` és a `.`
@@ -47,6 +53,8 @@ bélyegzőjéből új képkockát készít, oda téve, ahol a bélyegző áll; a
 bélyegzők megmaradnak.
 
 ### Rétegek egy animációban
+
+![A Rétegek panel egy animált és egy közös réteggel, valamint a hagymahéj két előnézeti rétegével](img/animation-layers.png)
 
 Amíg egy animáció nyitva van, a Rétegek panel minden sorában van egy Animált /
 Közös kapcsoló. Az animált rétegnek minden képkockában saját tartalma van; a

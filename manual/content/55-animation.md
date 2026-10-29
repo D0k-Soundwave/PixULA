@@ -8,6 +8,10 @@ cells, so it never splits a cell's attributes.
 
 ### Starting an animation
 
+![The Animation menu](img/menu-animation.png)
+
+![The New Sprite Animation dialog](img/dialog-new-sprite.png)
+
 **Animation > New Screen Animation** turns the picture into frame 1. Every
 layer becomes Animated: it has its own contents in each frame.
 
@@ -26,6 +30,8 @@ picture has animations.
 
 ### Frames
 
+![The Animation panel with the six frames of a bouncing ball](img/animation-panel.png)
+
 The Animation panel shows each frame as a small picture with its number and
 delay. Click one to go to it, or press `,` and `.` for the frame before and
 after. You draw on the frame shown with every tool, exactly as on a still
@@ -43,6 +49,8 @@ Undoing a step made on another frame takes you back to that frame.
 Stamps list, placed where the stamp is parked; the stamps stay.
 
 ### Layers in an animation
+
+![The Layers panel with an Animated and a Shared layer, and the two Onion skin preview layers](img/animation-layers.png)
 
 While an animation is open, every row of the Layers panel has an Animated /
 Shared switch. An Animated layer has its own contents in each frame; a Shared

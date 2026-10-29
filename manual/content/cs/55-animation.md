@@ -8,6 +8,10 @@ nikdy nerozdělí atributy buňky.
 
 ### Začátek animace
 
+![Nabídka Animace](img/menu-animation.png)
+
+![Dialog Nová animace spritu](img/dialog-new-sprite.png)
+
 **Animace > Nová animace obrazovky** udělá z obrázku snímek 1. Každá vrstva se
 stane animovanou: má v každém snímku vlastní obsah.
 
@@ -23,6 +27,8 @@ Obrázek může mít několik animací; výběr nahoře v panelu Animace určí,
 otevřená. Režim obrazovky se nemůže změnit, dokud má obrázek animace.
 
 ### Snímky
+
+![Panel Animace se šesti snímky skákajícího míče](img/animation-panel.png)
 
 Panel Animace ukazuje každý snímek jako malý obrázek s číslem a prodlevou.
 Kliknutím na něj na něj přejdete, nebo stiskněte `,` a `.` pro předchozí a
@@ -42,6 +48,8 @@ na ten snímek.
 nový snímek, položený tam, kde razítko stojí; razítka zůstanou.
 
 ### Vrstvy v animaci
+
+![Panel Vrstvy s animovanou a sdílenou vrstvou a dvěma náhledovými vrstvami cibulové slupky](img/animation-layers.png)
 
 Dokud je otevřená animace, má každý řádek panelu Vrstvy přepínač Animovaná /
 Sdílená. Animovaná vrstva má v každém snímku vlastní obsah; sdílená vypadá ve

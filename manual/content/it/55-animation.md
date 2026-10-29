@@ -9,6 +9,10 @@ attributi di una cella.
 
 ### Iniziare un'animazione
 
+![Il menu Animazione](img/menu-animation.png)
+
+![La finestra Nuova animazione sprite](img/dialog-new-sprite.png)
+
 **Animazione > Nuova animazione schermo** trasforma l'immagine nel
 fotogramma 1. Ogni livello diventa animato: ha un contenuto proprio in ogni
 fotogramma.
@@ -29,6 +33,8 @@ l'immagine ha animazioni.
 
 ### Fotogrammi
 
+![Il pannello Animazione con i sei fotogrammi di una palla che rimbalza](img/animation-panel.png)
+
 Il pannello Animazione mostra ogni fotogramma in piccolo, con numero e
 ritardo. Clicca su uno per andarci, o premi `,` e `.` per il fotogramma prima e
 dopo. Disegni sul fotogramma mostrato con ogni strumento, esattamente come su
@@ -47,6 +53,8 @@ Annullare un passo fatto su un altro fotogramma ti riporta a quel fotogramma.
 dell'elenco Timbri, posato dove il timbro è parcheggiato; i timbri restano.
 
 ### Livelli in un'animazione
+
+![Il pannello Livelli con un livello animato, uno condiviso e i due livelli di anteprima della buccia di cipolla](img/animation-layers.png)
 
 Finché un'animazione è aperta, ogni riga del pannello Livelli ha un interruttore
 Animato / Condiviso. Un livello animato ha un contenuto proprio in ogni

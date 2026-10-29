@@ -8,6 +8,10 @@ hücrelerinden oluşur, bu yüzden bir hücrenin özniteliklerini asla bölmez.
 
 ### Animasyon başlatmak
 
+![Animasyon menüsü](img/menu-animation.png)
+
+![Yeni sprite animasyonu penceresi](img/dialog-new-sprite.png)
+
 **Animasyon > Yeni ekran animasyonu** resmi 1. kare yapar. Her katman
 animasyonlu olur: her karede kendi içeriği vardır.
 
@@ -24,6 +28,8 @@ Bir resimde birkaç animasyon olabilir; Animasyon panelinin üstündeki seçici
 açık olanı belirler. Resimde animasyon varken ekran modu değişemez.
 
 ### Kareler
+
+![Zıplayan bir topun altı karesiyle Animasyon paneli](img/animation-panel.png)
 
 Animasyon paneli her kareyi numarası ve gecikmesiyle küçük bir resim olarak
 gösterir. Gitmek için birine tıklayın ya da önceki ve sonraki kare için `,` ve
@@ -43,6 +49,8 @@ sizi o kareye geri götürür.
 bekletildiği yere konmuş yeni bir kare yapar; damgalar kalır.
 
 ### Animasyondaki katmanlar
+
+![Animasyonlu ve ortak bir katman ile soğan zarının iki önizleme katmanını gösteren Katmanlar paneli](img/animation-layers.png)
 
 Bir animasyon açıkken, Katmanlar panelinin her satırında Animasyonlu / Ortak
 anahtarı vardır. Animasyonlu bir katmanın her karede kendi içeriği vardır;

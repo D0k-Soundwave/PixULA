@@ -9,6 +9,10 @@ attributs d'une cellule.
 
 ### Commencer une animation
 
+![Le menu Animation](img/menu-animation.png)
+
+![La boîte de dialogue Nouvelle animation de sprite](img/dialog-new-sprite.png)
+
 **Animation > Nouvelle animation d'écran** fait de l'image l'image 1. Chaque
 calque devient animé : il a son propre contenu dans chaque image.
 
@@ -28,6 +32,8 @@ tant que l'image a des animations.
 
 ### Les images
 
+![Le panneau Animation avec les six images d'une balle qui rebondit](img/animation-panel.png)
+
 Le panneau Animation montre chaque image en petit, avec son numéro et son
 délai. Cliquez sur l'une pour y aller, ou appuyez sur `,` et `.` pour l'image
 d'avant et d'après. Vous dessinez sur l'image affichée avec chaque outil,
@@ -46,6 +52,8 @@ sur une autre image vous ramène à cette image.
 la liste Tampons, posé là où il est garé ; les tampons restent.
 
 ### Les calques dans une animation
+
+![Le panneau Calques avec un calque animé, un calque partagé et les deux calques d'aperçu de la pelure d'oignon](img/animation-layers.png)
 
 Tant qu'une animation est ouverte, chaque ligne du panneau Calques a un
 interrupteur Animé / Partagé. Un calque animé a son propre contenu dans chaque
