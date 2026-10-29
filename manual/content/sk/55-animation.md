@@ -8,6 +8,10 @@ nikdy nerozdelí atribúty bunky.
 
 ### Začiatok animácie
 
+![Ponuka Animácia](img/menu-animation.png)
+
+![Dialóg Nová animácia spritu](img/dialog-new-sprite.png)
+
 **Animácia > Nová animácia obrazovky** urobí z obrázka snímku 1. Každá vrstva
 sa stane animovanou: má v každej snímke vlastný obsah.
 
@@ -23,6 +27,8 @@ Obrázok môže mať niekoľko animácií; výber hore v paneli Animácia určí
 otvorená. Režim obrazovky sa nemôže zmeniť, kým má obrázok animácie.
 
 ### Snímky
+
+![Panel Animácia so šiestimi snímkami skákajúcej lopty](img/animation-panel.png)
 
 Panel Animácia ukazuje každú snímku ako malý obrázok s číslom a oneskorením.
 Kliknutím na ňu na ňu prejdete, alebo stlačte `,` a `.` pre predchádzajúcu a
@@ -42,6 +48,8 @@ snímke vás vráti na tú snímku.
 novú snímku, položenú tam, kde pečiatka stojí; pečiatky zostanú.
 
 ### Vrstvy v animácii
+
+![Panel Vrstvy s animovanou a spoločnou vrstvou a dvoma náhľadovými vrstvami cibuľovej šupky](img/animation-layers.png)
 
 Kým je otvorená animácia, má každý riadok panelu Vrstvy prepínač Animovaná /
 Spoločná. Animovaná vrstva má v každej snímke vlastný obsah; spoločná vyzerá

@@ -8,6 +8,9 @@
  *   node tools/build-manual.js --check    build to memory and diff; non-zero
  *                                         exit if the committed manual is
  *                                         stale (what CI would run)
+ *   node tools/build-manual.js --shots=a,b
+ *                                         as the first, but re-take only the
+ *                                         screenshots named; --no-shots none
  *
  * The manual speaks every language the app does. English prose lives in
  * manual/content/*.md and each translation in manual/content/<code>/ under the
@@ -102,18 +105,25 @@ async function withApp(fn) {
 }
 
 /**
- * Take every screenshot in tools/manual-shots.js.
+ * Take every screenshot in tools/manual-shots.js, or only the ones named.
  *
  * A missing crop target is FATAL rather than skipped: a shot that quietly
- * fails to happen leaves a broken image in a manual nobody re-checks.
+ * fails to happen leaves a broken image in a manual nobody re-checks. So is a
+ * name in `only` that no shot has.
  * @param {Object} page
+ * @param {?string[]} [only] - shot ids to take; the others keep their files
  * @returns {Promise<Array<{id: string, bytes: number}>>}
  */
-async function captureShots(page) {
+async function captureShots(page, only = null) {
     const { SHOTS } = require('./manual-shots.js');
+    if (only) {
+        const unknown = only.filter((id) => !SHOTS.some((s) => s.id === id));
+        if (unknown.length) throw new Error('no such shot: ' + unknown.join(', '));
+    }
     fs.mkdirSync(IMG_DIR, { recursive: true });
     const taken = [];
     for (const shot of SHOTS) {
+        if (only && !only.includes(shot.id)) continue;
         if (shot.reach) await shot.reach(page);
         const file = path.join(IMG_DIR, shot.id + '.png');
         if (shot.crop) {
@@ -462,13 +472,17 @@ async function main() {
     // --no-shots rebuilds the text from the existing screenshots. Prose edits
     // are the common case and do not need fifteen fresh captures.
     const wantShots = !process.argv.includes('--no-shots') && !check;
+    // --shots=a,b takes only those, leaving every other picture as it was:
+    // a new chapter's pictures need not re-take the rest on another browser.
+    const onlyArg = process.argv.find((a) => a.startsWith('--shots='));
+    const onlyShots = onlyArg ? onlyArg.slice('--shots='.length).split(',').filter(Boolean) : null;
 
     let shots = [];
     let locales = [];
     const extracted = {};
     await withApp(async (page) => {
         extracted.en = await page.evaluate(extractManualData);
-        if (wantShots) shots = await captureShots(page);
+        if (wantShots) shots = await captureShots(page, onlyShots);
         locales = await page.evaluate(() => I18n.supportedLocales.filter((c) => c !== 'en'));
         // The same running app, switched language by language - exactly what a
         // reader gets from the language selector.

@@ -9,6 +9,10 @@ de uma célula.
 
 ### Começar uma animação
 
+![O menu Animação](img/menu-animation.png)
+
+![A caixa de diálogo Nova animação de sprite](img/dialog-new-sprite.png)
+
 **Animação > Nova animação de ecrã** faz da imagem o fotograma 1. Cada camada
 passa a animada: tem conteúdo próprio em cada fotograma.
 
@@ -26,6 +30,8 @@ escolhe a que está aberta. O modo de ecrã não pode mudar enquanto a imagem
 tiver animações.
 
 ### Fotogramas
+
+![O painel Animação com os seis fotogramas de uma bola a saltar](img/animation-panel.png)
 
 O painel Animação mostra cada fotograma em pequeno, com o número e o atraso.
 Clique num para ir até ele, ou carregue em `,` e `.` para o fotograma anterior
@@ -45,6 +51,8 @@ noutro fotograma leva-o de volta a esse fotograma.
 da lista Carimbos, posto onde o carimbo está estacionado; os carimbos ficam.
 
 ### Camadas numa animação
+
+![O painel Camadas com uma camada animada, uma partilhada e as duas camadas de pré-visualização do papel vegetal](img/animation-layers.png)
 
 Enquanto há uma animação aberta, cada linha do painel Camadas tem um
 interruptor Animada / Partilhada. Uma camada animada tem conteúdo próprio em

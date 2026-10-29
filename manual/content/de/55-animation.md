@@ -8,6 +8,10 @@ aus ganzen Attributzellen und teilt daher nie die Attribute einer Zelle.
 
 ### Eine Animation beginnen
 
+![Das Menü Animation](img/menu-animation.png)
+
+![Der Dialog Neue Sprite-Animation](img/dialog-new-sprite.png)
+
 **Animation > Neue Bildschirmanimation** macht das Bild zu Bild 1. Jede Ebene
 wird animiert: sie hat in jedem Bild eigenen Inhalt.
 
@@ -25,6 +29,8 @@ bestimmt die geöffnete. Der Bildschirmmodus kann sich nicht ändern, solange da
 Bild Animationen hat.
 
 ### Bilder
+
+![Das Bedienfeld Animation mit den sechs Bildern eines springenden Balls](img/animation-panel.png)
 
 Das Feld Animation zeigt jedes Bild als kleines Bild mit Nummer und
 Verzögerung. Klicken Sie eines an, um hinzugehen, oder drücken Sie `,` und `.`
@@ -45,6 +51,8 @@ zu diesem Bild zurück.
 ein neues Bild, gesetzt dort, wo der Stempel abgelegt ist; die Stempel bleiben.
 
 ### Ebenen in einer Animation
+
+![Das Bedienfeld Ebenen mit einer animierten und einer gemeinsamen Ebene und den zwei Vorschauebenen der Zwiebelhaut](img/animation-layers.png)
 
 Solange eine Animation geöffnet ist, hat jede Zeile im Feld Ebenen einen
 Schalter Animiert / Gemeinsam. Eine animierte Ebene hat in jedem Bild eigenen

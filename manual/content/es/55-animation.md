@@ -9,6 +9,10 @@ parte los atributos de una celda.
 
 ### Empezar una animación
 
+![El menú Animación](img/menu-animation.png)
+
+![El diálogo Nueva animación de sprite](img/dialog-new-sprite.png)
+
 **Animación > Nueva animación de pantalla** convierte la imagen en el
 fotograma 1. Cada capa pasa a ser animada: tiene su propio contenido en cada
 fotograma.
@@ -29,6 +33,8 @@ mientras la imagen tenga animaciones.
 
 ### Fotogramas
 
+![El panel Animación con los seis fotogramas de una pelota que rebota](img/animation-panel.png)
+
 El panel Animación muestra cada fotograma en pequeño, con su número y su
 retardo. Haz clic en uno para ir a él, o pulsa `,` y `.` para el fotograma
 anterior y el siguiente. Dibujas en el fotograma mostrado con cada herramienta,
@@ -47,6 +53,8 @@ paso hecho en otro fotograma te lleva de vuelta a ese fotograma.
 la lista Sellos, colocado donde está aparcado; los sellos se quedan.
 
 ### Capas en una animación
+
+![El panel Capas con una capa animada, una compartida y las dos capas de vista previa del papel cebolla](img/animation-layers.png)
 
 Mientras hay una animación abierta, cada fila del panel Capas tiene un
 interruptor Animada / Compartida. Una capa animada tiene su propio contenido en
