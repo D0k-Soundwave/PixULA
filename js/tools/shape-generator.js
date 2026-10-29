@@ -478,6 +478,14 @@ class ShapeGeneratorClass {
         return new Set(['ring']);
     }
 
+    /**
+     * Shapes drawn inside the drag box with both corners included, so a drag from x1 to x2 covers |x2 - x1| + 1
+     * pixels. The rest are drawn from a centre or out to a vertex at the drag point.
+     */
+    static get CORNER_BOX() {
+        return new Set(['rectangle', 'square', 'rounded-rectangle', 'parallelogram', 'trapezoid', 'bowtie']);
+    }
+
     /** Shapes drawn from a centre point and a drag point: turning them turns the drag point round the start. */
     static get DRAG_ROTATABLE() {
         return new Set(['arc', 'sector', 'triangle', 'diamond', 'pentagon', 'hexagon', 'heptagon', 'octagon',
