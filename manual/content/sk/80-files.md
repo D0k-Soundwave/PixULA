@@ -7,6 +7,8 @@ režim obrazovky, vaše nástroje a ich nastavenia, referenčný obrázok a mies
 kam ste sa pozerali. Je to súbor `.pixula`, ktorý zapisuje **Súbor > Uložiť
 projekt**, a je to to pravé, kým je obrázok rozpracovaný.
 
+Projekt s animáciou sa ukladá novším spôsobom, ktorý každú snímku zabalí len raz, a preto sa neotvorí v PixULA 0.1.0-beta.2 ani staršom. Projekt bez animácie sa otvorí v každej verzii.
+
 **Obrázok** je jedna zlúčená obrazovka vo formáte, ktorému rozumie iný program –
 `.scr` pre emulátor, `.png` na ukázanie, `.tap` na nahranie na skutočný hardvér.
 Zapisuje ich **Súbor > Uložiť obrázok ako**. Obsahujú len obrázok a nič iné –

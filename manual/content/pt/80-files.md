@@ -8,6 +8,8 @@ referência e o sítio para onde estava a olhar. É um ficheiro `.pixula`, escri
 por **Ficheiro > Guardar projeto**, e é o que deve usar enquanto uma imagem
 ainda está em curso.
 
+Um projeto que contém uma animação é guardado de uma forma mais recente que comprime cada fotograma uma só vez, por isso não abre no PixULA 0.1.0-beta.2 ou anterior. Um projeto sem animação abre em todas as versões.
+
 **Uma imagem** é um único ecrã achatado num formato que outro programa entende
 – um `.scr` para um emulador, um `.png` para mostrar a alguém, um `.tap` para
 carregar em hardware real. **Ficheiro > Guardar imagem como** escreve-os.

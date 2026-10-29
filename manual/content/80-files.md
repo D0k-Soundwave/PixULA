@@ -8,6 +8,8 @@ screen mode, your tools and their settings, the reference image and where you
 were looking. This is a `.pixula` file, written by **File > Save Project**, and
 it is what to use while a picture is still in progress.
 
+A project that holds an animation is saved in a newer way that keeps each frame packed once, so it does not open in PixULA 0.1.0-beta.2 or earlier. A project without an animation opens in every version.
+
 **A picture** is one flattened screen in a format another program understands -
 a `.scr` for an emulator, a `.png` to show someone, a `.tap` to load on real
 hardware. **File > Save Image As** writes those. They hold the image and nothing
