@@ -10,6 +10,8 @@
  */
 const { test, expect } = require('@playwright/test');
 const { boot } = require('./helpers');
+const fs = require('fs');
+const path = require('path');
 
 test('animations: frames, undo across frames, merging, saving, playback, sprites', async ({ page }) => {
     const errors = [];
@@ -335,4 +337,80 @@ test('a new blank frame keeps the picture\'s background', async ({ page }) => {
         return { paper: bg.paper, sharesBackground: a.frames[0].cels[LayerManager.getBackgroundLayer().id] === a.frames[1].cels[LayerManager.getBackgroundLayer().id] };
     });
     expect(r).toEqual({ paper: 2, sharesBackground: true });
+});
+
+test('numbered screens written into a chosen folder: every frame, byte-identical to a single save; cancel writes nothing', async ({ page }) => {
+    /*
+     * The folder picker is native and no automation can drive it, so it is
+     * answered with a real FileSystemDirectoryHandle: the browser's private
+     * origin folder (OPFS). Everything after the pick - getFileHandle,
+     * createWritable, write, close - is the same code a folder on disk runs.
+     * The browser keeps that folder from file:// pages, so this one test
+     * serves the app's own files at http://localhost instead (a secure
+     * context), straight from the working tree.
+     */
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(String(e)));
+    const ROOT = path.resolve(__dirname, '..', '..');
+    await page.route('http://localhost/**', (route) => {
+        const rel = decodeURIComponent(new URL(route.request().url()).pathname).replace(/^\/+/, '');
+        const file = path.join(ROOT, rel || 'index.html');
+        if (!file.startsWith(ROOT) || !fs.existsSync(file)) return route.fulfill({ status: 404, body: '' });
+        return route.fulfill({ path: file });
+    });
+    await page.goto('http://localhost/index.html');
+    await page.waitForSelector('html[data-app-ready]', { timeout: 15000 });
+    const r = await page.evaluate(async () => {
+        const out = {};
+        const L = LayerManager, S = AnimationService;
+        const root = await navigator.storage.getDirectory();
+        const dir = await root.getDirectoryHandle('pixula-numbered-test', { create: true });
+        const zips = [];
+        Helpers.downloadFile = async (data, name) => { zips.push(name); return true; };
+        const draw = (x, y) => {
+            UndoRedo.beginAction('test');
+            const c = L.layers[1].getCell(x >> 3, y >> 3);
+            c.pixels[y & 7] |= 0x80 >> (x & 7); c.altered = true;
+            L.composeToCanvas();
+            UndoRedo.endAction();
+        };
+        S.createScreen();
+        draw(10, 10);
+        S.addFrame(); draw(20, 20);
+        S.addFrame(); draw(30, 30);
+        const single = [];
+        for (let i = 0; i < 3; i++) { S.goTo(i); single.push(SCRFormat.export().slice()); }
+        const names = async () => {
+            const n = [];
+            for await (const [name] of dir.entries()) n.push(name);
+            return n.sort();
+        };
+
+        // Cancelled picker: nothing written, nothing downloaded
+        window.showDirectoryPicker = async () => { throw new DOMException('cancelled', 'AbortError'); };
+        out.cancelled = await AnimationExport.exportNumbered({ ext: 'scr', base: 'walk' });
+        out.afterCancel = await names();
+
+        window.showDirectoryPicker = async () => dir;
+        out.written = await AnimationExport.exportNumbered({ ext: 'scr', base: 'walk' });
+        out.names = await names();
+        out.identical = [];
+        for (let i = 0; i < 3; i++) {
+            const file = await (await dir.getFileHandle(out.names[i])).getFile();
+            const bytes = new Uint8Array(await file.arrayBuffer());
+            out.identical.push(bytes.length === single[i].length && bytes.every((b, k) => b === single[i][k]));
+        }
+        out.zips = zips;
+        await root.removeEntry('pixula-numbered-test', { recursive: true });
+        return out;
+    });
+    expect(r).toEqual({
+        cancelled: 0,
+        afterCancel: [],
+        written: 3,
+        names: ['walk_001.scr', 'walk_002.scr', 'walk_003.scr'],
+        identical: [true, true, true],
+        zips: []
+    });
+    expect(errors).toEqual([]);
 });
