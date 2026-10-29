@@ -16,7 +16,7 @@ const Storage = {
      * release, changing either needs a migration that copies every store
      * across first. */
     DB_NAME: 'pixula',
-    DB_VERSION: 7,
+    DB_VERSION: 8,
     STORES: {
         PREFERENCES: 'preferences',
         PATTERNS: 'patterns',
@@ -27,7 +27,9 @@ const Storage = {
         FONTS: 'fonts',
         PRESETS: 'presets',
         PRESET_ASSETS: 'preset-assets',
-        TOOL_PRESETS: 'tool-presets'
+        TOOL_PRESETS: 'tool-presets',
+        // v8: the recovery autosave's animation frames, one record per cel
+        ANIM_CELS: 'anim-cels'
     },
 
     db: null,
@@ -146,6 +148,15 @@ const Storage = {
                 // will eventually be read wrong.
                 if (!db.objectStoreNames.contains(this.STORES.TOOL_PRESETS)) {
                     db.createObjectStore(this.STORES.TOOL_PRESETS, { keyPath: 'key' });
+                }
+
+                // v8: the autosave's animation frames. Each packed cel is its
+                // own record, written once when it is new, so an autosave of a
+                // big animation no longer rewrites every frame (measured
+                // 85-175 ms at about 100 MB of frames, FIGURES.md); the
+                // autosave record itself carries only the cels' keys.
+                if (!db.objectStoreNames.contains(this.STORES.ANIM_CELS)) {
+                    db.createObjectStore(this.STORES.ANIM_CELS, { keyPath: 'key' });
                 }
             };
         });

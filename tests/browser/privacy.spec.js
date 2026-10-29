@@ -129,7 +129,7 @@ test('clearing empties every store and every pixula- key', async ({ page }) => {
     // restating it, so a silently-added store cannot leave this passing
     // against a stale number.
     expect(r.cleared.stores).toBe(r.storeCount);
-    expect(r.storeCount).toBe(10); // 10 as of DB v7; a new store is a deliberate edit here
+    expect(r.storeCount).toBe(11); // 11 as of DB v8 (anim-cels); a new store is a deliberate edit here
     // Withdrawal deletes OUR data, not everything on the origin
     expect(r.ourKeyGone).toBe(true);
     expect(r.theirKeyKept).toBe(true);

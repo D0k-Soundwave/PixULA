@@ -445,6 +445,35 @@ class ShapeFigure extends FigureModel {
     }
 
     /**
+     * Move handle `i` to the grid point `p` under Snap, for a box shape or a line drawn one pixel short of its far grid
+     * line (ShapeGenerator.snapStopsShort). Worked on the grid points the shape came from and stopped short again, so
+     * it keeps covering whole steps whichever way the handle crosses the other. The start handle of a line or a bowtie
+     * moves the whole shape, as in movePoint. A turned shape has no corners on the grid: false, and movePoint applies.
+     * @returns {boolean} whether this applied
+     */
+    moveGridPoint(i, p) {
+        const G = ShapeGenerator.constructor;
+        if (!G.snapStopsShort(this.shapeType) || this.getRotation() !== 0) return false;
+        let [a, b] = G.gridPoints(this.points[0], this.points[1]);
+        if (i === 0 && !G.BOX_ROTATABLE.has(this.shapeType)) {
+            const dx = p.x - a.x, dy = p.y - a.y;
+            a = { x: a.x + dx, y: a.y + dy };
+            b = { x: b.x + dx, y: b.y + dy };
+        } else {
+            const fixed = i === 0 ? b : a;
+            let q = { x: p.x, y: p.y };
+            if (this.shapeType === 'square') {
+                // the opposite corner stays; the side is the longer reach, as when the square is drawn
+                const s = Math.max(Math.abs(q.x - fixed.x), Math.abs(q.y - fixed.y));
+                q = { x: fixed.x + (q.x < fixed.x ? -s : s), y: fixed.y + (q.y < fixed.y ? -s : s) };
+            }
+            if (i === 0) a = q; else b = q;
+        }
+        this.points = G.stopShort(a, b);
+        return true;
+    }
+
+    /**
      * A square's corner handle: the opposite corner stays where it is drawn and the square grows from it towards the
      * pointer, its side the pointer's reach along the square's diagonal (measured in the square's own, unturned frame,
      * so a turned square stays square). Worked from the unrounded corner, so moving a handle to where it is drawn

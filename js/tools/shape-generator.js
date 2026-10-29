@@ -478,6 +478,38 @@ class ShapeGeneratorClass {
         return new Set(['ring']);
     }
 
+    /**
+     * Shapes drawn inside the drag box with both corners included, so a drag from x1 to x2 covers |x2 - x1| + 1
+     * pixels. The rest are drawn from a centre or out to a vertex at the drag point.
+     */
+    static get CORNER_BOX() {
+        return new Set(['rectangle', 'square', 'rounded-rectangle', 'parallelogram', 'trapezoid', 'bowtie']);
+    }
+
+    /**
+     * Snap puts drag points on grid lines, and a box shape or a line includes its far end, so a drag across six cells
+     * (24 to 72) would reach one pixel into the seventh. Under Snap these stop one pixel short of the far grid line on
+     * each axis and cover whole steps, as a selection does; a line drawn on from the end of the last starts where that
+     * one stopped. Shapes drawn from a centre or out to a vertex keep the grid points.
+     * @param {string} shapeType
+     * @returns {boolean}
+     */
+    static snapStopsShort(shapeType) {
+        return shapeType === 'line' || ShapeGeneratorClass.CORNER_BOX.has(shapeType);
+    }
+
+    /** Two grid points as the shape covers them: on each axis the larger stops one pixel short. */
+    static stopShort(a, b) {
+        const s = (p, q) => (p > q ? p - 1 : p);
+        return [{ x: s(a.x, b.x), y: s(a.y, b.y) }, { x: s(b.x, a.x), y: s(b.y, a.y) }];
+    }
+
+    /** The grid points two stopped-short points came from (the inverse of stopShort). */
+    static gridPoints(a, b) {
+        const g = (p, q) => (p > q ? p + 1 : p);
+        return [{ x: g(a.x, b.x), y: g(a.y, b.y) }, { x: g(b.x, a.x), y: g(b.y, a.y) }];
+    }
+
     /** Shapes drawn from a centre point and a drag point: turning them turns the drag point round the start. */
     static get DRAG_ROTATABLE() {
         return new Set(['arc', 'sector', 'triangle', 'diamond', 'pentagon', 'hexagon', 'heptagon', 'octagon',

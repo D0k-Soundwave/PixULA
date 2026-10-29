@@ -129,7 +129,7 @@ class PNGFormatClass {
     // the original RGB against those two colours. The Detail method also
     // hands down the unscaled image, so the colour choice sees real detail
     // rather than its 4x4 average.
-    this._applyToLayer(scaled, dithering, method === 'detail' ? imageData : null);
+    this._applyToLayer(scaled, dithering, method === 'detail' ? this._detailSource(imageData, scaling) : null);
 
     Logger.info('PNGFormat', 'PNG imported successfully');
     EventBus.emit(EVENTS.FILE_IMPORT, { format: 'png' });
@@ -251,8 +251,8 @@ class PNGFormatClass {
    * @returns {ImageData}
    * @private
    */
-  _scaleImage(imageData, mode) {
-    const canvas = Helpers.createCanvas(ZX_SPECTRUM.WIDTH, ZX_SPECTRUM.HEIGHT);
+  _scaleImage(imageData, mode, outW = ZX_SPECTRUM.WIDTH, outH = ZX_SPECTRUM.HEIGHT) {
+    const canvas = Helpers.createCanvas(outW, outH);
     const ctx = canvas.getContext('2d');
 
     /*
@@ -279,35 +279,56 @@ class PNGFormatClass {
     srcCtx.putImageData(imageData, 0, 0);
 
     if (mode === 'stretch') {
-      ctx.drawImage(srcCanvas, 0, 0, ZX_SPECTRUM.WIDTH, ZX_SPECTRUM.HEIGHT);
+      ctx.drawImage(srcCanvas, 0, 0, outW, outH);
     } else if (mode === 'fit') {
       const scale = Math.min(
-        ZX_SPECTRUM.WIDTH / imageData.width,
-        ZX_SPECTRUM.HEIGHT / imageData.height
+        outW / imageData.width,
+        outH / imageData.height
       );
       const newWidth = imageData.width * scale;
       const newHeight = imageData.height * scale;
-      const x = (ZX_SPECTRUM.WIDTH - newWidth) / 2;
-      const y = (ZX_SPECTRUM.HEIGHT - newHeight) / 2;
+      const x = (outW - newWidth) / 2;
+      const y = (outH - newHeight) / 2;
 
       // Letterbox in ZX black (palette index 0)
       ctx.fillStyle = ZX_PALETTE[0];
-      ctx.fillRect(0, 0, ZX_SPECTRUM.WIDTH, ZX_SPECTRUM.HEIGHT);
+      ctx.fillRect(0, 0, outW, outH);
       ctx.drawImage(srcCanvas, x, y, newWidth, newHeight);
     } else { // crop
       const scale = Math.max(
-        ZX_SPECTRUM.WIDTH / imageData.width,
-        ZX_SPECTRUM.HEIGHT / imageData.height
+        outW / imageData.width,
+        outH / imageData.height
       );
       const newWidth = imageData.width * scale;
       const newHeight = imageData.height * scale;
-      const x = (ZX_SPECTRUM.WIDTH - newWidth) / 2;
-      const y = (ZX_SPECTRUM.HEIGHT - newHeight) / 2;
+      const x = (outW - newWidth) / 2;
+      const y = (outH - newHeight) / 2;
 
       ctx.drawImage(srcCanvas, x, y, newWidth, newHeight);
     }
 
-    return ctx.getImageData(0, 0, ZX_SPECTRUM.WIDTH, ZX_SPECTRUM.HEIGHT);
+    return ctx.getImageData(0, 0, outW, outH);
+  }
+
+  /**
+   * The original, laid out the way the Scaling choice lays it on the screen
+   * but at a whole multiple of the screen size, for the Detail (Sharp) method.
+   *
+   * _sampleCellHiRes maps each screen cell straight onto its source in
+   * proportion. Handed the raw original that is Stretch geometry whatever
+   * Scaling says, so Sharp ignored Fit and Crop - in the preview and in the
+   * import. Laid out here first, the proportional mapping is right for every
+   * mode, letterbox bars included. The multiple is the original's own detail,
+   * rounded up and capped at SOURCE_OVERSAMPLE, so no source pixel is lost.
+   * @param {ImageData} imageData - the ORIGINAL decoded image
+   * @param {string} mode - 'fit', 'stretch', or 'crop'
+   * @returns {ImageData}
+   * @private
+   */
+  _detailSource(imageData, mode) {
+    const k = Helpers.clamp(Math.ceil(Math.max(imageData.width / ZX_SPECTRUM.WIDTH,
+      imageData.height / ZX_SPECTRUM.HEIGHT)), 1, SOURCE_OVERSAMPLE);
+    return this._scaleImage(imageData, mode, ZX_SPECTRUM.WIDTH * k, ZX_SPECTRUM.HEIGHT * k);
   }
 
   /**
@@ -556,8 +577,9 @@ class PNGFormatClass {
                     imageData.height === ZX_SPECTRUM.HEIGHT)
       ? imageData
       : this._scaleImage(imageData, scaling);
-    // The Detail method needs the unscaled image for the per-cell colour choice
-    const source = imageData !== scaled ? imageData : null;
+    // The Detail method needs the full-resolution image for the per-cell
+    // colour choice, laid out by the same Scaling as the screen copy
+    const source = imageData !== scaled ? this._detailSource(imageData, scaling) : null;
 
     // Indexed Next modes (Phase 13): the same generated palette the import
     // would load — WITHOUT touching the document's registers.

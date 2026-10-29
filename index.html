@@ -468,6 +468,14 @@
         <symbol id="icon-undo" viewBox="0 0 24 24"><path d="M3 8h9a6 6 0 1 1 0 12H7M6 4L2 8l4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
         <symbol id="icon-redo" viewBox="0 0 24 24"><path d="M21 8h-9a6 6 0 1 0 0 12h5M18 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
         <!-- Layer / stamp row controls -->
+        <symbol id="icon-anim-layer" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v14M16 5v14M4 9h4M4 15h4M16 9h4M16 15h4" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+        <symbol id="icon-anim-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor"/></symbol>
+        <symbol id="icon-anim-pause" viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" fill="currentColor"/></symbol>
+        <symbol id="icon-anim-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1" fill="currentColor"/></symbol>
+        <symbol id="icon-anim-prev" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+        <symbol id="icon-anim-next" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+        <symbol id="icon-anim-first" viewBox="0 0 24 24"><path d="M17 5l-7 7 7 7M7 5v14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+        <symbol id="icon-anim-last" viewBox="0 0 24 24"><path d="M7 5l7 7-7 7M17 5v14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
         <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
         <symbol id="icon-minus" viewBox="0 0 24 24"><path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
         <symbol id="icon-duplicate" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 16V6a2 2 0 012-2h10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
@@ -551,6 +559,7 @@
     <script defer src="js/utils/snap-grid.js"></script>
     <script defer src="js/utils/bitmap-text.js"></script>
     <script defer src="js/utils/storage.js"></script>
+    <script defer src="js/utils/zip-store.js"></script>
     <script defer src="js/utils/font-probe.js"></script>
     <script defer src="js/utils/image-source.js"></script>
     <script defer src="js/utils/font-rasterizer.js"></script>
@@ -592,6 +601,7 @@
     <script defer src="js/services/file-access-provider.js"></script>
     <script defer src="js/services/browser-fsa-provider.js"></script>
     <script defer src="js/services/backup-service.js"></script>
+    <script defer src="js/services/animation-service.js"></script>
 
     <script defer src="js/io/format-registry.js"></script>
     <script defer src="js/io/scr-format.js"></script>
@@ -617,6 +627,7 @@
     <script defer src="js/io/spr-format.js"></script>
     <script defer src="js/io/preset-format.js"></script>
     <script defer src="js/io/project-format.js"></script>
+    <script defer src="js/io/animation-export.js"></script>
     <script defer src="js/io/file-manager.js"></script>
 
     <script defer src="js/tools/tool-base.js"></script>
@@ -677,7 +688,11 @@
     <script defer src="js/ui/components/transform-panel.js"></script>
     <script defer src="js/ui/components/preview-panel.js"></script>
     <script defer src="js/ui/map-element-overlay.js"></script>
+    <script defer src="js/ui/animation-window-overlay.js"></script>
     <script defer src="js/ui/components/map-elements-panel.js"></script>
+    <script defer src="js/ui/components/animation-panel.js"></script>
+    <script defer src="js/ui/components/new-sprite-dialog.js"></script>
+    <script defer src="js/ui/components/animation-export-dialog.js"></script>
     <script defer src="js/ui/components/canvas-text-entry.js"></script>
     <script defer src="js/ui/components/app-settings.js"></script>
     <script defer src="js/ui/components/canvas-controls.js"></script>

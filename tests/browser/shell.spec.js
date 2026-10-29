@@ -11,7 +11,7 @@ test('header: menu bar, language/size selectors, Border', async ({ page }) => {
     await boot(page);
     const menus = await page.$$eval('#menu-bar .menu-item .menu-label',
         els => els.map(e => e.textContent.trim()));
-    expect(menus).toEqual(['File', 'Edit', 'View', 'Layer', 'Image', 'Settings', 'Help']);
+    expect(menus).toEqual(['File', 'Edit', 'View', 'Layer', 'Animation', 'Image', 'Settings', 'Help']);
     expect(await page.$$eval('#language-selector option', o => o.length)).toBe(13);
     // Theme has no header control — Settings > Theme is the sole picker
     // (see i18n-themes.spec.js).
@@ -493,9 +493,11 @@ test('right sidebar order: Reference -> Layers -> Tool Options -> Patterns -> Tr
     await boot(page);
     const panels = await page.$$eval('#panels > section', els => els.map(e => e.id));
     expect(panels).toEqual(['reference-panel', 'layer-panel', 'tool-options-panel',
-        'patterns-panel', 'transform-panel', 'preview-panel', 'map-elements-panel', 'tool-preset-panel']);
+        'patterns-panel', 'transform-panel', 'preview-panel', 'map-elements-panel', 'animation-panel', 'tool-preset-panel']);
     // The Map Elements panel (Batch 11B) is in the DOM but hidden until a find starts or View > Map Elements
     expect(await page.evaluate(() => getComputedStyle(document.getElementById('map-elements-panel')).display)).toBe('none');
+    // The Animation panel is in the DOM but hidden until there is an animation or View > Animation
+    expect(await page.evaluate(() => getComputedStyle(document.getElementById('animation-panel')).display)).toBe('none');
     // The Preview map is in the DOM but hidden until View > Preview (Batch 9 part 9B)
     expect(await page.evaluate(() => getComputedStyle(document.getElementById('preview-panel')).display)).toBe('none');
     const refCollapsed = await page.evaluate(() =>
