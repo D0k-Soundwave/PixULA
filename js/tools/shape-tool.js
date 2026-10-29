@@ -366,16 +366,15 @@ class ShapeToolClass extends ToolBase {
   }
 
   /**
-   * The drag as the shape uses it. Snap puts both ends on grid lines, and a box shape includes its far edge, so a drag
-   * across six cells (24 to 72) would reach one pixel into the seventh. Under Snap a box shape stops one pixel short of
-   * its far grid line on each axis and covers whole steps, as a selection does. Shapes drawn from a centre or out to a
-   * vertex keep the grid points.
+   * The drag as the shape uses it: under Snap a box shape or a line stops one pixel short of its far grid line
+   * (ShapeGenerator.snapStopsShort says why).
    * @private
    */
   _dragBox(x1, y1, x2, y2) {
-    if (window.StateManager && StateManager.getGridSnap() && ShapeGenerator.constructor.CORNER_BOX.has(this.shapeType)) {
-      if (x2 > x1) x2--; else if (x1 > x2) x1--;
-      if (y2 > y1) y2--; else if (y1 > y2) y1--;
+    const G = ShapeGenerator.constructor;
+    if (window.StateManager && StateManager.getGridSnap() && G.snapStopsShort(this.shapeType)) {
+      const [a, b] = G.stopShort({ x: x1, y: y1 }, { x: x2, y: y2 });
+      return { x1: a.x, y1: a.y, x2: b.x, y2: b.y };
     }
     return { x1, y1, x2, y2 };
   }

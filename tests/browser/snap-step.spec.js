@@ -90,10 +90,72 @@ test('Snap on the cell step: a square covers whole cells', async ({ page }) => {
     expect(await drawShape(page, 'square', [21, 19], [75, 61])).toEqual({ x0: 24, y0: 16, x1: 71, y1: 63 });
 });
 
-test('Snap on the cell step: a line still runs grid point to grid point', async ({ page }) => {
+test('Snap on the cell step: a line stops one pixel short of its far grid point, inside the cells', async ({ page }) => {
     await boot(page);
     await page.click('#grid-snap-toggle');
-    expect(await drawShape(page, 'line', [21, 19], [75, 61])).toEqual({ x0: 24, y0: 16, x1: 72, y1: 64 });
+    // Before 2026-10-29 it ran to (72, 64), the first pixel of the next cell.
+    expect(await drawShape(page, 'line', [21, 19], [75, 61])).toEqual({ x0: 24, y0: 16, x1: 71, y1: 63 });
+});
+
+test('Snap on the cell step: a line drawn on from the end of the last neither leaves a gap nor doubles a pixel', async ({ page }) => {
+    await boot(page);
+    await page.click('#grid-snap-toggle');
+    await drawShape(page, 'line', [24, 16], [72, 16]);
+    const box = await drawShape(page, 'line', [72, 16], [120, 16]);
+    expect(box).toEqual({ x0: 24, y0: 16, x1: 119, y1: 16 });
+    // 96 pixels in a row from 24, each drawn once: one shape left none unset between them.
+    const row = await page.evaluate(() => {
+        const layer = LayerManager.getCurrentLayer();
+        let n = 0;
+        for (let x = 0; x < ZX_SPECTRUM.WIDTH; x++) {
+            const c = layer.getCell(x >> 3, 2);
+            if (c && ((c.pixels[0] >> (7 - (x & 7))) & 1)) n++;
+        }
+        return n;
+    });
+    expect(row).toBe(96);
+});
+
+// Keep editable: draw the shape, drag handle `index` to pixel `to`, press Enter to draw it.
+async function editHandle(page, shape, from, to, handleAt, dest) {
+    await page.click('#grid-snap-toggle');
+    await page.click('.tool-btn[data-tool="shape"]');
+    await page.click(`#tool-options-panel .tool-btn[data-value="${shape}"]`);
+    await page.evaluate(() => ToolManager.getCurrentTool().setPointMode(true));
+    const a = await pixelPoint(page, ...from), b = await pixelPoint(page, ...to);
+    await page.mouse.move(a.x, a.y);
+    await page.mouse.down();
+    await page.mouse.move(b.x, b.y, { steps: 5 });
+    await page.mouse.up();
+    const h = await pixelPoint(page, ...handleAt), d = await pixelPoint(page, ...dest);
+    await page.mouse.move(h.x, h.y);
+    await page.mouse.down();
+    await page.mouse.move(d.x, d.y, { steps: 5 });
+    await page.mouse.up();
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(400);
+    return inkBox(page);
+}
+
+test('Keep editable under Snap: dragging a rectangle corner keeps it on whole cells', async ({ page }) => {
+    await boot(page);
+    // drawn 24..71 x 16..63; its bottom-right handle sits on (71, 63) and goes to the grid point (96, 88)
+    expect(await editHandle(page, 'rectangle', [21, 19], [75, 61], [71, 63], [95, 85]))
+        .toEqual({ x0: 24, y0: 16, x1: 95, y1: 87 });
+});
+
+test('Keep editable under Snap: a corner dragged past the other one still covers whole cells', async ({ page }) => {
+    await boot(page);
+    // the bottom-right corner goes up and left of the top-left (24, 16) to (0, 0): the cells 0..23 x 0..15
+    expect(await editHandle(page, 'rectangle', [21, 19], [75, 61], [71, 63], [2, 2]))
+        .toEqual({ x0: 0, y0: 0, x1: 23, y1: 15 });
+});
+
+test('Keep editable under Snap: a line moved by its start handle stays on the grid', async ({ page }) => {
+    await boot(page);
+    // drawn (24, 16) to (71, 63); the start handle moves the whole line, to start at (40, 32)
+    expect(await editHandle(page, 'line', [21, 19], [75, 61], [24, 16], [41, 33]))
+        .toEqual({ x0: 40, y0: 32, x1: 87, y1: 79 });
 });
 
 test('Snap off: a rectangle runs pointer to pointer', async ({ page }) => {
