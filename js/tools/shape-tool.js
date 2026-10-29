@@ -279,14 +279,12 @@ class ShapeToolClass extends ToolBase {
 
     // Generate pixel-accurate preview for all shapes
     if (window.GridOverlay) {
-      const pixels = this._getShapePixels(
-        this.startPoint.x, this.startPoint.y,
-        pixelX, pixelY
-      );
+      const b = this._dragBox(this.startPoint.x, this.startPoint.y, pixelX, pixelY);
+      const pixels = this._getShapePixels(b.x1, b.y1, b.x2, b.y2);
 
       // Only the pixels the commit would really write: mirror copies, the drawing guide and a locked layer
       // included (PixelDrawRoutine.strokeTargets), so the preview is the commit.
-      const core = this._coreFor(this.startPoint.x, this.startPoint.y, pixelX, pixelY);
+      const core = this._coreFor(b.x1, b.y1, b.x2, b.y2);
       const shown = PixelDrawRoutine.strokeTargets(pixels, core);
       PixelDrawRoutine.withColourCore(shown.isCore, () => {
         if (this.isEraseMode) {
@@ -325,10 +323,11 @@ class ShapeToolClass extends ToolBase {
     this.previewActive = false;
 
     this.clearPreview();
+    const b = this._dragBox(this.startPoint.x, this.startPoint.y, pixelX, pixelY);
 
     // Keep editable: build the shape as a ShapeFigure and leave it pending instead of drawing it.
     if (this._pointMode) {
-      this._editor.open(this._buildFigure(this.startPoint.x, this.startPoint.y, pixelX, pixelY), this.isEraseMode);
+      this._editor.open(this._buildFigure(b.x1, b.y1, b.x2, b.y2), this.isEraseMode);
       this._pending = true;
       this.startPoint = null;
       this.isEraseMode = false;
@@ -342,12 +341,9 @@ class ShapeToolClass extends ToolBase {
     const color = ColorManager.getCurrentSelection();
 
     // Get all pixels for the shape
-    const pixels = this._getShapePixels(
-      this.startPoint.x, this.startPoint.y,
-      pixelX, pixelY
-    );
+    const pixels = this._getShapePixels(b.x1, b.y1, b.x2, b.y2);
 
-    const core = this._coreFor(this.startPoint.x, this.startPoint.y, pixelX, pixelY);
+    const core = this._coreFor(b.x1, b.y1, b.x2, b.y2);
 
     PixelDrawRoutine.beginBatch();
 
@@ -362,11 +358,25 @@ class ShapeToolClass extends ToolBase {
     PixelDrawRoutine.endBatch();
 
     // Remember it for Edit > Clone Last Figure.
-    FigureHistory.record({ tool: 'shape', model: this._buildFigure(this.startPoint.x, this.startPoint.y, pixelX, pixelY),
+    FigureHistory.record({ tool: 'shape', model: this._buildFigure(b.x1, b.y1, b.x2, b.y2),
       erase: this.isEraseMode });
 
     this.startPoint = null;
     this.isEraseMode = false;
+  }
+
+  /**
+   * The drag as the shape uses it: under Snap a box shape or a line stops one pixel short of its far grid line
+   * (ShapeGenerator.snapStopsShort says why).
+   * @private
+   */
+  _dragBox(x1, y1, x2, y2) {
+    const G = ShapeGenerator.constructor;
+    if (window.StateManager && StateManager.getGridSnap() && G.snapStopsShort(this.shapeType)) {
+      const [a, b] = G.stopShort({ x: x1, y: y1 }, { x: x2, y: y2 });
+      return { x1: a.x, y1: a.y, x2: b.x, y2: b.y };
+    }
+    return { x1, y1, x2, y2 };
   }
 
   /** The shape as an editable ShapeFigure, from a drag. @private */

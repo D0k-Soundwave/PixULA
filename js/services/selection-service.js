@@ -57,6 +57,8 @@ class SelectionServiceClass {
     EventBus.on(EVENTS.LAYER_SELECTED,    () => this.refreshStampColor());
     // Mirror decides where its copies land, so the preview shows them as it changes.
     EventBus.on(EVENTS.SYMMETRY_CHANGED,  () => this.refreshStampColor());
+    // Another animation frame is another page under the stamp.
+    EventBus.on(EVENTS.ANIMATION_FRAME,   () => this.refreshStampColor());
   }
 
   /**

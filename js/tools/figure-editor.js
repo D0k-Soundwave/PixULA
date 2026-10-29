@@ -196,6 +196,8 @@ class FigureEditor {
         const piv = m.pivot();
         this._drag = {
             mode: hit.mode, index: hit.index, last: { x, y }, moved: false, snapshot: m.clone(),
+            // the pointer arrives on grid points: a shape kept short of them moves by them (ShapeFigure.moveGridPoint)
+            grid: !!(window.StateManager && StateManager.getGridSnap()),
             startAngle: Math.atan2(y - piv.y, x - piv.x) * 180 / Math.PI, startRotation: m.getRotation()
         };
     }
@@ -210,7 +212,7 @@ class FigureEditor {
             // Each move starts again from the figure as it was when the drag began, so the rounding of one move cannot
             // build on the last: on a turned box shape that walked the opposite corner away over a slow drag.
             const from = d.snapshot.clone();
-            from.movePoint(d.index, { x, y });
+            if (!(d.grid && from.moveGridPoint && from.moveGridPoint(d.index, { x, y }))) from.movePoint(d.index, { x, y });
             this.model = from;
         } else if (d.mode === 'move') {
             m.translate(x - d.last.x, y - d.last.y);

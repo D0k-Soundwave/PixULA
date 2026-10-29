@@ -18,9 +18,11 @@
  *                 followed by 1 standard ZX attribute byte; if P1 == 2 the
  *                 frame is followed by 8 mask bytes per cell (no attributes).
  *
- * Export writes a full-screen single-frame v0.8 file (P1=1, P2=0).
- * Import accepts all three versions, loads the FIRST frame and ignores any
- * mask/extra frames (documented assumption — we have no mask/sprite model);
+ * Export writes a full-screen single-frame v0.8 file (P1=1, P2=0); an
+ * animation writes all its frames (Animation > Export, up to 32).
+ * Import accepts all three versions and loads the FIRST frame into the
+ * picture; a file of several frames also opens as a sprite animation of them
+ * (masks are skipped - there is no mask model);
  * graphics smaller than the screen land at the top-left on a blank screen
  * with SevenuP's default attribute 0x38 (black ink on white paper).
  */
@@ -65,8 +67,55 @@ class SEVFormatClass {
     if (result.success) {
       Logger.info('SEVFormat', 'SEV file loaded successfully');
       EventBus.emit(EVENTS.FILE_IMPORT, { format: 'sev' });
+      // A file of several frames opens as a sprite animation over its block of cells
+      if (decoded.frames.length > 1 && window.AnimationService && Helpers.hasStandardScreenLayout()) {
+        this._importFrames(decoded);
+      }
     }
     return result;
+  }
+
+  /**
+   * The frames after the first, as a sprite animation: frame 1 is the block the
+   * picture now holds (moved onto the animation's own layer), the rest are
+   * filled from the file.
+   * @private
+   */
+  _importFrames(decoded) {
+    const rect = { cx: 0, cy: 0, cw: decoded.cols, ch: decoded.rows };
+    const scratch = new Layer(0, '', false, -1);
+    const more = decoded.frames.slice(1).map((scr) => {
+      this.fillLayerFromScreen(scratch, scr, rect);
+      return scratch.packAttributeData(rect);
+    });
+    const target = LayerManager.getCurrentLayer();
+    AnimationService.createSprite({
+      rect, frames: 1, moreFrames: more,
+      fromLayer: target && !target.isStamp ? target : null
+    });
+  }
+
+  /**
+   * Write a block of an SCR screen into a layer's cells: pixels, attributes,
+   * and every cell marked drawn.
+   * @param {Object} layer - LayerClass
+   * @param {Uint8Array} scr - SCR screen bytes
+   * @param {{cx:number, cy:number, cw:number, ch:number}} rect - cells
+   */
+  fillLayerFromScreen(layer, scr, rect) {
+    const COLS = this.COLS;
+    for (let cy = rect.cy; cy < rect.cy + rect.ch; cy++) {
+      for (let cx = rect.cx; cx < rect.cx + rect.cw; cx++) {
+        const cell = layer.getCell(cx, cy);
+        for (let j = 0; j < this.CELL; j++) cell.pixels[j] = scr[this._scrRowOffset(cx, cy, j)];
+        const a = scr[this.BITMAP_SIZE + cy * COLS + cx];
+        cell.ink = a & 7;
+        cell.paper = (a >> 3) & 7;
+        cell.bright = (a & 0x40) !== 0;
+        cell.flash = (a & 0x80) !== 0;
+        cell.altered = true;
+      }
+    }
   }
 
   /**
@@ -122,26 +171,45 @@ class SEVFormatClass {
    * @returns {Uint8Array}
    */
   encodeScreen(scr, part = null) {
+    return this.encodeFrames([scr], part);
+  }
+
+  /** [P] Most frames one .sev holds: P2 = frame count - 1 is checked against 31 by SevenuP's loader. */
+  get MAX_FRAMES() { return 32; }
+
+  /**
+   * Encode several SCR-format screens as the frames of one SEV file (an
+   * animation's frames), each frame the same block of cells.
+   * @param {Uint8Array[]} screens - SCR screen bytes, one per frame (1..32)
+   * @param {?{cx:number,cy:number,cols:number,rows:number}} [part] - the block (default: the whole screen)
+   * @returns {Uint8Array}
+   */
+  encodeFrames(screens, part = null) {
+    if (!screens.length || screens.length > this.MAX_FRAMES) throw new Error('SEV: 1 to 32 frames');
     const COLS = ZX_SPECTRUM.GRID_COLS;
     const CELL = ZX_SPECTRUM.CELL_SIZE;
     const p0 = part || { cx: 0, cy: 0, cols: COLS, rows: ZX_SPECTRUM.GRID_ROWS };
     const W = p0.cols * CELL, H = p0.rows * CELL;
+    const frameBytes = p0.cols * p0.rows * (CELL + 1);
+    const n = screens.length - 1;
 
-    const out = new Uint8Array(14 + p0.cols * p0.rows * (CELL + 1));
+    const out = new Uint8Array(14 + frameBytes * screens.length);
     out[0] = 0x53; out[1] = 0x65; out[2] = 0x76; out[3] = 0x00; // "Sev\0"
     out[4] = 0; out[5] = 8;         // v0.8
     out[6] = 1; out[7] = 0;         // P1 = 1 (plain graphic)
-    out[8] = 0; out[9] = 0;         // P2 = 0 (single frame)
+    out[8] = n & 0xFF; out[9] = (n >> 8) & 0xFF;   // P2 = frames - 1
     out[10] = W & 0xFF; out[11] = (W >> 8) & 0xFF;
     out[12] = H & 0xFF; out[13] = (H >> 8) & 0xFF;
 
     let p = 14;
-    for (let cy = p0.cy; cy < p0.cy + p0.rows; cy++) {
-      for (let cx = p0.cx; cx < p0.cx + p0.cols; cx++) {
-        for (let j = 0; j < CELL; j++) {
-          out[p++] = scr[this._scrRowOffset(cx, cy, j)];
+    for (const scr of screens) {
+      for (let cy = p0.cy; cy < p0.cy + p0.rows; cy++) {
+        for (let cx = p0.cx; cx < p0.cx + p0.cols; cx++) {
+          for (let j = 0; j < CELL; j++) {
+            out[p++] = scr[this._scrRowOffset(cx, cy, j)];
+          }
+          out[p++] = scr[ZX_SPECTRUM.BITMAP_SIZE + cy * COLS + cx];
         }
-        out[p++] = scr[ZX_SPECTRUM.BITMAP_SIZE + cy * COLS + cx];
       }
     }
     return out;
@@ -183,19 +251,25 @@ class SEVFormatClass {
       return { success: false, error: Helpers.localizedMessage('err.sevTruncated', 'Truncated SEV file') };
     }
 
-    const scr = new Uint8Array(this.SCREEN_SIZE);
-    scr.fill(this.DEFAULT_ATTR, this.BITMAP_SIZE);
-
-    let p = 14; // first frame only
-    for (let cy = 0; cy < cSY; cy++) {
-      for (let cx = 0; cx < cSX; cx++) {
-        for (let j = 0; j < CELL; j++) {
-          scr[this._scrRowOffset(cx, cy, j)] = bytes[p++];
+    // Every frame the file holds (a masked file keeps 8 mask bytes per cell after each frame; they are skipped)
+    const maskBytes = p1 === 2 ? cSX * cSY * CELL : 0;
+    const frames = [];
+    for (let f = 0; f <= p2; f++) {
+      let p = 14 + f * (frameBytes + maskBytes);
+      if (p + frameBytes > bytes.length) break;
+      const scr = new Uint8Array(this.SCREEN_SIZE);
+      scr.fill(this.DEFAULT_ATTR, this.BITMAP_SIZE);
+      for (let cy = 0; cy < cSY; cy++) {
+        for (let cx = 0; cx < cSX; cx++) {
+          for (let j = 0; j < CELL; j++) {
+            scr[this._scrRowOffset(cx, cy, j)] = bytes[p++];
+          }
+          scr[this.BITMAP_SIZE + cy * COLS + cx] = bytes[p++];
         }
-        scr[this.BITMAP_SIZE + cy * COLS + cx] = bytes[p++];
       }
+      frames.push(scr);
     }
-    return { success: true, scr };
+    return { success: true, scr: frames[0], frames, cols: cSX, rows: cSY };
   }
 
   /**

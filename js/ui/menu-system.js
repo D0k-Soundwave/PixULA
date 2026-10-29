@@ -86,6 +86,7 @@ class MenuSystemClass {
             'transform-panel':    'panel-transform',
             'preview-panel':      'panel-preview',
             'map-elements-panel': 'panel-map-elements',
+            'animation-panel':    'panel-animation',
             'tool-preset-panel':  'panel-presets'
         };
     }
@@ -474,6 +475,7 @@ class MenuSystemClass {
                     { id: 'panel-tools', label: 'Tool Options', action: 'view:toggleToolOptions', toggle: true },
                     { id: 'panel-preview', label: 'Preview', action: 'view:togglePreview', toggle: true, i18n: 'panels.preview' },
                     { id: 'panel-map-elements', label: 'Map Elements', action: 'view:toggleMapElements', toggle: true, i18n: 'panels.mapElements' },
+                    { id: 'panel-animation', label: 'Animation', action: 'view:toggleAnimation', toggle: true, i18n: 'panels.animation' },
                     { id: 'map-element-pictures', label: 'Map Element Pictures', shortcut: 'Shift+M', action: 'view:toggleMapElementPictures', toggle: true, i18n: 'menu.view.mapElementPictures' },
                     { id: 'panel-presets', label: 'Tool Presets', action: 'view:toggleToolPresets', toggle: true, i18n: 'panels.presets' }
                 ]
@@ -490,7 +492,41 @@ class MenuSystemClass {
                     { id: 'layer-flatten', label: 'Flatten Image', action: 'layer:flatten' },
                     { type: 'separator' },
                     { id: 'layer-up', label: 'Move Up', action: 'layer:moveUp' },
-                    { id: 'layer-down', label: 'Move Down', action: 'layer:moveDown' }
+                    { id: 'layer-down', label: 'Move Down', action: 'layer:moveDown' },
+                    { type: 'separator' },
+                    { id: 'layer-preview-prev', label: 'New Preview Layer: Previous Frame', action: 'layer:previewPrevious' },
+                    { id: 'layer-preview-next', label: 'New Preview Layer: Next Frame', action: 'layer:previewNext' }
+                ]
+            },
+            {
+                id: 'animation',
+                label: 'Animation',
+                items: [
+                    { id: 'anim-new-screen', label: 'New Screen Animation', action: 'animation:newScreen' },
+                    { id: 'anim-new-sprite', label: 'New Sprite Animation...', action: 'animation:newSprite' },
+                    { id: 'anim-new-sprite-sel', label: 'New Sprite Animation from Selection', action: 'animation:newSpriteFromSelection' },
+                    { type: 'separator' },
+                    { id: 'anim-play', label: 'Play or Pause', shortcut: 'Enter', action: 'animation:play' },
+                    { id: 'anim-prev', label: 'Previous Frame', shortcut: ',', action: 'animation:previous' },
+                    { id: 'anim-next', label: 'Next Frame', shortcut: '.', action: 'animation:next' },
+                    { type: 'separator' },
+                    { id: 'anim-add-frame', label: 'Add Frame', action: 'animation:addFrame' },
+                    { id: 'anim-dup-frame', label: 'Duplicate Frame', action: 'animation:duplicateFrame' },
+                    { id: 'anim-del-frame', label: 'Delete Frame', action: 'animation:deleteFrame' },
+                    { id: 'anim-frame-stamp', label: 'Frame to Stamp', action: 'animation:frameToStamp' },
+                    { id: 'anim-stamps-frames', label: 'Stamps to Frames', action: 'animation:stampsToFrames' },
+                    { type: 'separator' },
+                    { id: 'anim-export', label: 'Export Animation', i18n: 'menu.animation.export', items: [
+                        { id: 'anim-export-screens', label: 'Numbered Screens...', action: 'animation:exportScreens' },
+                        { id: 'anim-export-gif', label: 'Animated GIF (.gif)', action: 'animation:exportGif' },
+                        { id: 'anim-export-sheet', label: 'PNG Sprite Sheet (.png)', action: 'animation:exportSheet' },
+                        { id: 'anim-export-sev', label: 'SevenuP, All Frames (.sev)', action: 'animation:exportSev' },
+                        { id: 'anim-export-tap', label: 'Tape, a Screen per Frame (.tap)', action: 'animation:exportTap' },
+                        { id: 'anim-export-tzx', label: 'Tape, a Screen per Frame (.tzx)', action: 'animation:exportTzx' },
+                        { id: 'anim-export-spr', label: 'Next Sprites (.spr)', action: 'animation:exportSpr' }
+                    ]},
+                    { type: 'separator' },
+                    { id: 'anim-delete', label: 'Delete Animation', action: 'animation:delete' }
                 ]
             },
             {
@@ -1173,6 +1209,7 @@ class MenuSystemClass {
             // the two paths can never disagree.
             case 'view:toggleReference':   PanelSection.toggleVisibility('reference-panel');    break;
             case 'view:togglePreview':     PanelSection.toggleVisibility('preview-panel');      break;
+            case 'view:toggleAnimation':   PanelSection.toggleVisibility('animation-panel');    break;
             case 'view:toggleMapElements': PanelSection.toggleVisibility('map-elements-panel'); break;
             case 'view:toggleMapElementPictures': MapElementOverlay.togglePictures(); break;
             case 'view:toggleToolOptions': PanelSection.toggleVisibility('tool-options-panel'); break;
@@ -1196,6 +1233,30 @@ class MenuSystemClass {
             case 'layer:flatten':   this._flattenImage(); break;
             case 'layer:moveUp':    LayerManager.moveLayerUp(LayerManager.currentLayerIndex); break;
             case 'layer:moveDown':  LayerManager.moveLayerDown(LayerManager.currentLayerIndex); break;
+
+            case 'layer:previewPrevious':   this._newPreviewLayer(-1); break;
+            case 'layer:previewNext':       this._newPreviewLayer(1); break;
+
+            // Animation
+            case 'animation:newScreen':             AnimationService.createScreen(); break;
+            case 'animation:newSprite':             NewSpriteDialog.open(); break;
+            case 'animation:newSpriteFromSelection': NewSpriteDialog.open({ fromSelection: true }); break;
+            case 'animation:play':                  AnimationService.togglePlay(); break;
+            case 'animation:previous':              AnimationService.pause(); AnimationService.previous(); break;
+            case 'animation:next':                  AnimationService.pause(); AnimationService.next(); break;
+            case 'animation:addFrame':              AnimationService.addFrame(); break;
+            case 'animation:duplicateFrame':        AnimationService.duplicateFrame(); break;
+            case 'animation:deleteFrame':           AnimationService.deleteFrame(); break;
+            case 'animation:delete':                AnimationPanel.confirmDeleteOpen(); break;
+            case 'animation:frameToStamp':          AnimationService.frameToStamp(); break;
+            case 'animation:stampsToFrames':        AnimationService.stampsToFrames(); break;
+            case 'animation:exportScreens':         AnimationExportDialog.open(); break;
+            case 'animation:exportGif':             AnimationExport.exportGif(); break;
+            case 'animation:exportSheet':           AnimationExport.exportSheet(); break;
+            case 'animation:exportSev':             AnimationExport.exportSev(); break;
+            case 'animation:exportTap':             AnimationExport.exportTape('tap'); break;
+            case 'animation:exportTzx':             AnimationExport.exportTape('tzx'); break;
+            case 'animation:exportSpr':             AnimationExport.exportSpr(); break;
 
             // Image
             // Through the Transform panel's one entry point, which sends a floating
@@ -1278,6 +1339,16 @@ class MenuSystemClass {
         if (item.getAttribute('role') === 'menuitemcheckbox') item.setAttribute('aria-checked', String(!!active));
     }
 
+    /** Layer > New Preview Layer: needs an open animation, and says so when there is none. @private */
+    _newPreviewLayer(relative) {
+        if (!AnimationService.getOpen()) {
+            EventBus.emit(EVENTS.STATUS_NOTICE, { text: this._t('anim.needAnimation',
+                'Preview layers show other frames of an animation. Start one from the Animation menu first.') });
+            return;
+        }
+        AnimationService.addPreview({ relative });
+    }
+
     /**
      * Flatten image (merge all layers). Confirms first.
      * @private
@@ -1294,6 +1365,16 @@ class MenuSystemClass {
         // stamp is left out, as flattenVisible leaves out a hidden layer, and
         // goes with the other layers below.
         SelectionService.commitAllStamps({ onlyVisible: true });
+
+        // An animation flattens every stored frame too (the live one follows below).
+        const drawing = LayerManager.layers.filter((l, i) => i >= 1 && !l.isStamp);
+        if (drawing.length) {
+            EventBus.emit(EVENTS.LAYERS_MERGING, {
+                targetId: LayerManager.layers[1].id,
+                sourceIds: drawing.filter(l => l !== LayerManager.layers[1] && l.visible).map(l => l.id),
+                flatten: true
+            });
+        }
 
         const flatLayer = LayerManager.flattenVisible();
 
@@ -1407,6 +1488,8 @@ class MenuSystemClass {
         shortcuts.push(['Shift+C', this._t('menu.edit.cloneFigure', 'Clone Last Figure')]);
         shortcuts.push(['Ctrl+F', this._t('menu.edit.findMapElement', 'Find Map Element')]);
         shortcuts.push(['Shift+M', this._t('menu.view.mapElementPictures', 'Map Element Pictures')]);
+        shortcuts.push([', / .', this._t('menu.animation.previous', 'Previous Frame') + ' / ' + this._t('menu.animation.next', 'Next Frame')]);
+        shortcuts.push(['Enter', this._t('help.animationPlay', 'Animation: play or pause (a floating stamp is placed first)')]);
         shortcuts.push(['Enter / Shift+Enter / Esc', this._t('help.typeOnCanvas', 'Type on canvas: Enter draws, Shift+Enter new line, Esc cancels')]);
         // Inverse - one list with the key handler
         for (const s of MODE_SHORTCUTS) shortcuts.push([s.keys, this._t(s.i18n, s.en)]);

@@ -560,6 +560,13 @@ class InputHandlerClass {
   _onPointerDown(e) {
     this._notePreciseInput(e);
 
+    // Nothing is drawn while an animation plays (a press pauses it) or an export steps through its frames.
+    if (window.AnimationService && AnimationService.isBusy()) {
+      e.preventDefault();
+      AnimationService.pause();
+      return;
+    }
+
     // ── Touch admission (js/utils/touch-policy.js) ──
     // Decided FIRST, before any bookkeeping: a rejected contact must not even
     // reach this.touches, or two palm contacts would start a pinch.
@@ -1818,6 +1825,11 @@ class InputHandlerClass {
         return;
       }
       if (this._isTypingTarget(e.target)) return;
+      // An export is stepping through the frames: a key that changes the frame or the picture would land in the file.
+      if (window.AnimationService && AnimationService.isBusy() && !AnimationService.isPlaying()) {
+        e.preventDefault();
+        return;
+      }
       this.keysDown.add(e.key);
       this._updateModifiers(e);
       // Bare X / Y: hold to lock a stroke to an axis. X's colour swap moved to the key coming up (a tap).
@@ -1894,6 +1906,12 @@ class InputHandlerClass {
    */
   _handleEscape(e) {
     e.preventDefault();
+
+    // Escape pauses a playing animation and does nothing else.
+    if (window.AnimationService && AnimationService.isPlaying()) {
+      AnimationService.pause();
+      return;
+    }
 
     // 0. A tool holding an unfinished figure drops it BEFORE the tool is switched below
     //    (switching tools commits a pending figure).
@@ -2045,6 +2063,23 @@ class InputHandlerClass {
         MenuSystem.showShortcuts();
       }
       return;
+    }
+
+    // Animation keys (Aseprite's): , and . step a frame, Enter plays and
+    // pauses. Enter still commits a floating stamp first (below), and the keys
+    // do nothing without an open animation.
+    if (!ctrl && !e.altKey && window.AnimationService && AnimationService.getOpen()) {
+      if (key === ',' || key === '.') {
+        e.preventDefault();
+        AnimationService.pause();
+        if (key === ',') AnimationService.previous(); else AnimationService.next();
+        return;
+      }
+      if (key === 'enter' && !SelectionService.isFloating()) {
+        e.preventDefault();
+        AnimationService.togglePlay();
+        return;
+      }
     }
 
     // Enter commits the floating paste/stamp

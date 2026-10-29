@@ -998,3 +998,90 @@ preview adds its drawing. Nothing was changed on the strength of these figures.
 
 The sample count of each ellipse, max(60, round(4 x the larger radius)), is the old circular ring's count with the
 larger radius in place of its one radius [C: existing code]; it is not a limit.
+
+### Animation sizing, before the animation system - measured 2026-10-27
+
+Method: `node tools/anim-bench.js <mode> <layers> <frames>` on this machine, Playwright's Chromium (no installed
+Chrome here), median of 11 runs after 3 warmup, saves 3 runs, all runs back to back in one sitting [M]. Every drawing
+layer carries altered cells. A "frame change" is the stand-in for showing another frame: pack every drawing layer,
+unpack a different grid into each, recompose. "Stored frames" are distinct packed grids of every drawing layer added
+to the autosave record. The timer resolution in this browser is 0.1 ms.
+
+| Case | Frame change | Autosave IndexedDB write | `.pixula` encode (backup) | Stored frames |
+|---|---|---|---|---|
+| Standard, 1 layer, 32 frames | 0.40 ms | 0.5 ms | 3.6 ms | 0.3 MB |
+| Standard, 2 layers, 100 frames | 0.60 ms | 2.6 ms | 17.5 ms | 1.7 MB |
+| Standard, 31 layers, 500 frames | 2.10 ms | 175 ms | 817 ms | 130.9 MB |
+| 8x1 multicolour, 8 layers | 4.50 ms | - | - | - |
+| GigaScreen, 8 layers | 2.70 ms | - | - | - |
+| MultiGiga 8x1, 8 layers | 13.90 ms | - | - | - |
+| Layer 2 640, 1 layer, 500 frames | 1.20 ms | 108 ms | 847 ms | 106.2 MB |
+| Layer 2 640, 8 layers | 7.60 ms | - | - | - |
+| Layer 2 640, 31 layers, 16 frames | 34.30 ms (pack 10.1, unpack 12.8, compose 12.3) | 85 ms | 904 ms | 105.4 MB |
+
+Screen updates requested while stepping 10 frames a second: a `setTimeout` clock 9.5-10 a second, an
+animation-frame loop 154-155.5 a second [M, same sitting]. The 2026-09-28 figures (11 and 73, another machine) agree
+in direction; the playback clock is `setTimeout`.
+
+What these settle (the plan's three guesses):
+
+1. **A frame change fits in one 20 ms tick** [P: 50 Hz] everywhere measured except Layer 2 640 at 31 layers
+   (34.3 ms): there a frame with a 1-tick delay is shown late. 8 layers there take 7.6 ms.
+2. **Autosave passes the 100 ms limit** [P: 0.1 s for a response to feel immediate, Nielsen 1993] at about 100 MB of
+   stored frames: 85-175 ms for the IndexedDB write [M], about 1.3 ms per MB [C: 175 / 130.9]. The `.pixula` encode a
+   backup does costs 6.5-8.6 ms per MB [C: 847 / 106.2, 904 / 105.4], so a backup passes 100 ms at about 12-15 MB.
+   A typical animation (Standard, 2 layers, 100 frames, 1.7 MB) costs 2.6 ms and 17.5 ms. Both large-animation
+   costs are recorded as open work, not as limits.
+3. **The `setTimeout` clock stays.**
+
+The gzipped file sizes this run printed are not given: the synthetic frames are near-identical and compress far
+better than drawn ones.
+
+### Animation figures in the code - 2026-10-27
+
+| Figure | Value | Tag | Provenance |
+|---|---|---|---|
+| Animation tick (`AnimationService` TICK_MS) | 20 ms | P | the ULA's 50 Hz frame interrupt, as `GIGA_FRAME_MS` |
+| GIF time per tick (`CS_PER_TICK`) | 2 cs | C | 20 ms / 10 ms per hundredth |
+| FLASH swap in ticks (`FLASH_TICKS`) | 16 | C | 320 ms (P, section on the FLASH clock) / 20 ms |
+| Default frame delay (`DEFAULT_DELAY_TICKS`) | 5 ticks, 100 ms | A | a starting value, set per frame; nothing depends on it |
+| Longest delay (`MAX_DELAY_TICKS`) | 65,535 ticks, about 22 minutes | A | a guard against nonsense input only [C: 65,535 x 20 ms = 1,310.7 s] |
+| Speeds offered | x0.25, x0.5, x1, x2, x4 | A | menu choices; the real floor is one tick a frame |
+| New preview layer opacity (`DEFAULT_PREVIEW_OPACITY`) | 40 % | A | a starting value, set per preview (taken from the 2026-09-28 onion-skin design, A there too) |
+| Preview tints | (224,64,64) earlier, (64,128,224) later | A | the usual onion-skin colours; each preview can switch its tint off |
+| Thumbnail refresh while drawing (`THUMB_REFRESH_MS`) | 250 ms | A | four times a second; a strip being glanced at, not a measured need |
+| Thumbnails drawn per idle moment (`THUMBS_PER_CHUNK`) | 8 | A | keeps a long strip from holding up the page; not measured |
+| New-sprite quick sizes | 8, 16, 24, 32, 48 square | A | shortcuts; any size that fits can be typed |
+| New-sprite starting frames, most | 999 | A | an input guard |
+| Numbered-file digits, default | 3, more when the last number needs them | A | a naming habit; widened automatically |
+| PNG sheet frames across (`SHEET_COLUMNS`) | 16 | A | a layout choice, not a limit |
+| `.sev` frames, most (`SEVFormat.MAX_FRAMES`) | 32 | P | SevenuP's loader checks P2 = frames - 1 against 31 |
+| Next sprites per sheet | 64 | P | `SpriteService` MAX_SPRITES (the Next's pattern memory) |
+| Zip entries without zip64 (`ZipStore.MAX_ENTRIES`) | 65,535 | P | PKWARE APPNOTE 4.4.21, a 2-byte count |
+| Tape name | 10 characters | P | Spectrum tape header; frames are named base (up to 7) + 3 digits |
+
+The weight-bearing guesses are not among these: what decisions rested on was
+measured first (section "Animation sizing").
+
+### Animation autosave, frames stored once each - measured 2026-10-27
+
+Method: a scratch Playwright script on this machine (Playwright's Chromium), one sitting, back to back. One
+Animated drawing layer plus the background, 500 frames, every cell of each frame drawn differently, so every frame
+is a full-size distinct cel (Layer 2 640: 212,480 B each, about 106 MB in all [C: 500 x 212,480 B]). "Old" is the
+previous autosave, the whole project as one IndexedDB record (median of 3). "New" is `App._autosaveNow()` with the
+record naming cels by key and `AnimationService.storeAutosaveCels` writing only new cels, one record each (median
+of 3 autosaves, each after one changed frame) [M].
+
+| Case | Old: one record | New: an autosave after a change | New: first autosave (every cel) | Longest single write |
+|---|---|---|---|---|
+| Layer 2 640, 500 frames | 152 ms (236 ms in an earlier run, same sitting) | 27.6 ms | 1,429 ms in all, as 501 writes | 15.3 ms |
+| Standard, 500 frames | 12.3 ms | 5.8 ms | 204 ms in all | 4.7 ms |
+
+An autosave after a change is now under the 100 ms limit [P: Nielsen 1993] at this size: 27.6 ms, about a fifth
+of the old write [C: 27.6 / 152 = 0.18]. The first autosave of a big animation writes every frame, but as one small
+transaction per cel, so the page never waits longer than the longest single write (15.3 ms). Untouched layers now
+share one blank cel and a new blank frame keeps the frame's background, so 500 frames store 501 cels, not 1,000
+(found by this measurement: blank frames had each stored a copy of a default background).
+
+Still open: a disk backup (`BackupService`) is a whole `.pixula` file and still encodes every frame each time -
+about 0.85-0.9 s at 106 MB (section "Animation sizing").

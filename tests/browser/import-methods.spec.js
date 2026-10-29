@@ -143,6 +143,41 @@ test('the sharp method reads the original, not the downscaled copy', async ({ pa
     expect(r.detail).toBeGreaterThan(0.2);
 });
 
+test('the sharp method follows the Scaling choice like the other two', async ({ page }) => {
+    await boot(page);
+
+    /*
+     * Sharp reads the original rather than the screen copy, and used to map
+     * cells onto it by straight proportion - Stretch, whatever Scaling said.
+     * A picture twice as wide as the screen's shape tells the three apart:
+     * Fit leaves black bars above and below, Crop cuts the sides off, Stretch
+     * squashes it.
+     */
+    await decodeToImageData(page, await makeImage(page, 768, 192));
+    const r = await page.evaluate(() => {
+        const sharp = (scaling) => PNGFormat.quantizePreviewSet(window.__src, { scaling })
+            .find((s) => s.id === 'sharp').preview;
+        const hash = (q) => {
+            let h = 0;
+            for (let i = 0; i < q.data.length; i += 4) {
+                h = (h * 31 + q.data[i] + q.data[i + 1] * 3 + q.data[i + 2] * 7) | 0;
+            }
+            return h;
+        };
+        const fit = sharp('fit');
+        // Fit draws the picture 64 screen rows tall (192 * 256/768), centred:
+        // the top 64 rows are letterbox
+        let barLit = 0;
+        for (let i = 0; i < 256 * 64 * 4; i += 4) {
+            if (fit.data[i] || fit.data[i + 1] || fit.data[i + 2]) barLit++;
+        }
+        return { hashes: [fit, sharp('stretch'), sharp('crop')].map(hash), barLit };
+    });
+
+    expect(new Set(r.hashes).size).toBe(3);
+    expect(r.barLit).toBe(0);
+});
+
 test('the dialog shows one preview per method and the pick reaches the import',
     async ({ page }) => {
         await boot(page);
