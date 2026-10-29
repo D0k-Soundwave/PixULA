@@ -7,6 +7,8 @@ palettát, a képernyőmódot, az eszközeidet és beállításaikat, a referenc
 és azt, ahová néztél. Ez egy `.pixula` fájl, amelyet a **Fájl > Projekt
 mentése** ír, és ezt érdemes használni, amíg egy kép még készül.
 
+Az animációt tartalmazó projekt újabb módon mentődik, amely minden képkockát csak egyszer tömörít, ezért nem nyílik meg a PixULA 0.1.0-beta.2-es vagy régebbi változatában. Az animáció nélküli projekt minden változatban megnyílik.
+
 **A kép** egyetlen összeolvasztott képernyő egy olyan formátumban, amelyet egy
 másik program is ért – `.scr` emulátorhoz, `.png` megmutatáshoz, `.tap`
 valódi hardveren való betöltéshez. Ezeket a **Fájl > Kép mentése másként** írja.

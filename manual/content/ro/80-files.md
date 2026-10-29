@@ -7,6 +7,8 @@ de ecran, instrumentele și setările lor, imaginea de referință și locul în
 priveați. Este un fișier `.pixula`, scris de **Fișier > Salvează proiectul**, și
 pe el îl folosiți cât timp o imagine este încă în lucru.
 
+Un proiect care conține o animație este salvat într-un mod mai nou, care comprimă fiecare cadru o singură dată, așa că nu se deschide în PixULA 0.1.0-beta.2 sau mai vechi. Un proiect fără animație se deschide în orice versiune.
+
 **O imagine** este un singur ecran aplatizat într-un format pe care alt program
 îl înțelege – un `.scr` pentru un emulator, un `.png` de arătat, un `.tap` de
 încărcat pe hardware real. **Fișier > Salvează imaginea ca** le scrie. Conțin

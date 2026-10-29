@@ -7,6 +7,8 @@ modunu, araçlarınızı ve ayarlarını, referans resmini ve baktığınız yer
 **Dosya > Projeyi kaydet** ile yazılan bir `.pixula` dosyasıdır ve bir resim
 henüz sürerken kullanmanız gereken budur.
 
+Animasyon içeren bir proje, her kareyi yalnızca bir kez sıkıştıran daha yeni bir yolla kaydedilir; bu yüzden PixULA 0.1.0-beta.2 veya daha eski sürümlerde açılmaz. Animasyonsuz bir proje her sürümde açılır.
+
 **Bir resim**, başka bir programın anladığı bir biçimde düzleştirilmiş tek bir
 ekrandır – emülatör için `.scr`, birine göstermek için `.png`, gerçek donanımda
 yüklemek için `.tap`. Bunları **Dosya > Resmi farklı kaydet** yazar. Yalnızca

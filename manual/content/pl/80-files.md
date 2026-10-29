@@ -7,6 +7,8 @@ ekranu, narzędzia i ich ustawienia, obraz referencyjny i miejsce, na które
 patrzyłeś. To plik `.pixula` zapisywany przez **Plik > Zapisz projekt** i
 właśnie jego używaj, dopóki obraz jest w toku.
 
+Projekt z animacją jest zapisywany nowszym sposobem, który pakuje każdą klatkę tylko raz, więc nie otworzy się w PixULA 0.1.0-beta.2 ani starszym. Projekt bez animacji otwiera się w każdej wersji.
+
 **Obraz** to jeden spłaszczony ekran w formacie zrozumiałym dla innego
 programu – `.scr` dla emulatora, `.png`, żeby komuś pokazać, `.tap` do
 wczytania na prawdziwym sprzęcie. Zapisuje je **Plik > Zapisz obraz jako**.
