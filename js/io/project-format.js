@@ -62,6 +62,21 @@
  * still opens - `App._loadProjectData()` still reads a pre-slices file's
  * `state` block for exactly that reason.
  *
+ * A PROJECT WITH ANIMATIONS IS FRAMED (container 2). One gzip of the whole
+ * JSON compressed every frame again on every backup: 500 distinct Layer 2 640
+ * frames took about 3.0 s, 2.5 s of it gzip, and froze the page for 2.4 s
+ * each time (M, 2026-10-29, Playwright's Chromium). Joining separately
+ * gzipped pieces into one gzip stream would have kept the file a plain gzip,
+ * but DecompressionStream stops at the first member (M, same day). So such a
+ * file is FRAMED_MAGIC, a part count, then length-prefixed gzip parts: the
+ * document with `animations.cels` replaced by the number of cels, then one
+ * part per cel. A cel never changes once made (frames are frozen and
+ * replaced, never edited), so each cel is compressed once and its part kept
+ * (_celParts) for every later backup and save. A document without animations
+ * is still container 1, byte for byte as before. 0.1.0-beta.2 and older read
+ * only container 1, and refuse a framed file as not a project rather than
+ * misreading it.
+ *
  * NOT A PICTURE FORMAT. No emulator or converter reads this - it is ours. Use
  * SCR/PNG/NXI to hand the artwork to anything else.
  */
@@ -89,6 +104,13 @@ const GZIP_MAGIC = [0x1F, 0x8B];
 /** Bumped only for a change decode cannot infer; the payload carries its own `version`. */
 const CONTAINER_VERSION = 1;
 
+/** Container 2, a project with animation frames: see "A PROJECT WITH ANIMATIONS IS FRAMED" above. */
+const FRAMED_VERSION = 2;
+/* PNG's trick: a high byte first and CR LF, SUB, LF after, so a text-mode
+ * copy that mangles line ends is caught. Not gzip (1f 8b) and not JSON ({). */
+const FRAMED_MAGIC = Object.freeze([0x89, 0x50, 0x58, 0x55, 0x0D, 0x0A, 0x1A, 0x0A]);   // 0x89 'PXU' CR LF SUB LF
+
+
 /*
  * The embedded reference image's size/quality cap - see the doc comment
  * above ("THE REFERENCE IMAGE IS EMBEDDED, NOT LINKED") for the reasoning
@@ -113,6 +135,9 @@ class ProjectFormatClass {
         this.REFERENCE_IMAGE_MAX_PX = REFERENCE_IMAGE_MAX_PX;
         this.REFERENCE_IMAGE_QUALITY = REFERENCE_IMAGE_QUALITY;
         this.SLICE_IDS = PROJECT_SLICE_IDS;
+        this.FRAMED_VERSION = FRAMED_VERSION;
+        /** cel -> Promise of its gzipped part. Weak, so a deleted frame's part goes with it. */
+        this._celParts = new WeakMap();
     }
 
     /** Is the platform's gzip available? @returns {boolean} */
@@ -130,6 +155,10 @@ class ProjectFormatClass {
             Logger.warn('ProjectFormat', 'Nothing to encode');
             return null;
         }
+
+        const cels = project.animations && Array.isArray(project.animations.cels)
+            ? project.animations.cels : null;
+        if (cels && cels.length && this.canCompress) return this._encodeFramed(project, cels);
 
         const json = JSON.stringify(
             { ...project, container: CONTAINER_VERSION }, ProjectFormatClass.replacer);
@@ -153,6 +182,7 @@ class ProjectFormatClass {
     async decode(data) {
         let bytes = data instanceof Uint8Array ? data : new Uint8Array(data || []);
         if (!bytes.length) return null;
+        if (FRAMED_MAGIC.every((b, i) => bytes[i] === b)) return this._decodeFramed(bytes);
 
         if (bytes[0] === GZIP_MAGIC[0] && bytes[1] === GZIP_MAGIC[1]) {
             try {
@@ -175,6 +205,97 @@ class ProjectFormatClass {
             return project;
         } catch (error) {
             Logger.error('ProjectFormat', 'Could not parse project', error);
+            return null;
+        }
+    }
+
+    /**
+     * Container 2: the document part, then one part per cel, each cel's part
+     * made once and kept.
+     * @private
+     */
+    async _encodeFramed(project, cels) {
+        const head = {
+            ...project,
+            container: FRAMED_VERSION,
+            animations: { ...project.animations, cels: cels.length }
+        };
+        const parts = [await this._gzip(new TextEncoder().encode(
+            JSON.stringify(head, ProjectFormatClass.replacer)))];
+        for (const cel of cels) parts.push(await this._celPart(cel));
+
+        const total = FRAMED_MAGIC.length + 4 + parts.reduce((n, p) => n + 4 + p.length, 0);
+        const out = new Uint8Array(total);
+        const view = new DataView(out.buffer);
+        out.set(FRAMED_MAGIC, 0);
+        let at = FRAMED_MAGIC.length;
+        view.setUint32(at, parts.length, true);
+        at += 4;
+        for (const p of parts) {
+            view.setUint32(at, p.length, true);
+            out.set(p, at + 4);
+            at += 4 + p.length;
+        }
+        return out;
+    }
+
+    /**
+     * One cel's gzipped JSON, made the first time it is asked for. A new one
+     * waits a task first, so a first backup of many new frames leaves the
+     * page room between them instead of compressing them all in one block.
+     * @private
+     */
+    _celPart(cel) {
+        if (!cel || typeof cel !== 'object') {
+            return this._gzip(new TextEncoder().encode(JSON.stringify(cel === undefined ? null : cel)));
+        }
+        let part = this._celParts.get(cel);
+        if (!part) {
+            part = new Promise((resolve) => setTimeout(resolve, 0))
+                .then(() => this._gzip(new TextEncoder().encode(
+                    JSON.stringify(cel, ProjectFormatClass.replacer))));
+            // A failed compression is not kept: the next save tries again
+            part.catch(() => this._celParts.delete(cel));
+            this._celParts.set(cel, part);
+        }
+        return part;
+    }
+
+    /** Container 2 back to a document; null if the framing does not hold together. @private */
+    async _decodeFramed(bytes) {
+        try {
+            const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+            let at = FRAMED_MAGIC.length;
+            const count = view.getUint32(at, true);
+            at += 4;
+            const parse = async (len) => {
+                if (at + len > bytes.length) throw new Error('part runs past the end of the file');
+                const text = new TextDecoder().decode(await this._gunzip(bytes.subarray(at, at + len)));
+                at += len;
+                return JSON.parse(text, ProjectFormatClass.reviver);
+            };
+            const parts = [];
+            for (let i = 0; i < count; i++) {
+                const len = view.getUint32(at, true);
+                at += 4;
+                parts.push(await parse(len));
+            }
+            const project = parts[0];
+            if (!project || !Array.isArray(project.layers)) {
+                Logger.warn('ProjectFormat', 'Not a project file (no layers)');
+                return null;
+            }
+            if (project.container > FRAMED_VERSION) {
+                Logger.warn('ProjectFormat', `Project container ${project.container} is newer than this build reads`);
+                return null;
+            }
+            if (project.animations) {
+                if (project.animations.cels !== count - 1) throw new Error('cel count does not match its parts');
+                project.animations.cels = parts.slice(1);
+            }
+            return project;
+        } catch (error) {
+            Logger.error('ProjectFormat', 'Could not read framed project', error);
             return null;
         }
     }

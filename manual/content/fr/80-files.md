@@ -9,6 +9,8 @@ référence et l’endroit que vous regardiez. C’est un fichier `.pixula`, éc
 par **Fichier > Enregistrer le projet**, et c’est ce qu’il faut utiliser tant
 qu’une image est en cours.
 
+Un projet qui contient une animation est enregistré d’une façon plus récente qui ne compresse chaque image qu’une fois ; il ne s’ouvre donc pas dans PixULA 0.1.0-beta.2 ou plus ancien. Un projet sans animation s’ouvre dans toutes les versions.
+
 **Une image** est un seul écran aplati dans un format qu’un autre programme
 comprend – un `.scr` pour un émulateur, un `.png` à montrer, un `.tap` à
 charger sur une vraie machine. **Fichier > Enregistrer l’image sous** les

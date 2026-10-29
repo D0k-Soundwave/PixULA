@@ -9,6 +9,8 @@ la zona que estabas mirando. Es un archivo `.pixula`, escrito con
 **Archivo > Guardar proyecto**, y es lo que debes usar mientras una imagen
 sigue en curso.
 
+Un proyecto que contiene una animación se guarda de una forma más reciente que comprime cada fotograma una sola vez, así que no se abre en PixULA 0.1.0-beta.2 ni anteriores. Un proyecto sin animación se abre en todas las versiones.
+
 **Una imagen** es una sola pantalla aplanada en un formato que entiende otro
 programa: un `.scr` para un emulador, un `.png` para enseñarla, un `.tap` para
 cargarla en hardware real. **Archivo > Guardar imagen como** los escribe.

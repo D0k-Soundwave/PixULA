@@ -9,6 +9,8 @@ Referenzbild und den Bildausschnitt. Das ist eine `.pixula`-Datei, geschrieben
 von **Datei > Projekt speichern**, und sie ist das Richtige, solange ein Bild
 noch in Arbeit ist.
 
+Ein Projekt mit einer Animation wird auf eine neuere Art gespeichert, die jedes Bild nur einmal packt; es lässt sich darum nicht in PixULA 0.1.0-beta.2 oder älter öffnen. Ein Projekt ohne Animation öffnet sich in jeder Version.
+
 **Ein Bild** ist ein einzelner, zusammengeführter Bildschirm in einem Format,
 das ein anderes Programm versteht – eine `.scr` für einen Emulator, eine `.png`
 zum Herzeigen, eine `.tap` zum Laden auf echter Hardware. Diese schreibt

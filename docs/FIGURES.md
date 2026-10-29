@@ -1083,5 +1083,45 @@ transaction per cel, so the page never waits longer than the longest single writ
 share one blank cel and a new blank frame keeps the frame's background, so 500 frames store 501 cels, not 1,000
 (found by this measurement: blank frames had each stored a copy of a default background).
 
-Still open: a disk backup (`BackupService`) is a whole `.pixula` file and still encodes every frame each time -
+Was open until 2026-10-29 (next section): a disk backup (`BackupService`) is a whole `.pixula` file and still encodes every frame each time -
 about 0.85-0.9 s at 106 MB (section "Animation sizing").
+
+### Disk backups, each frame compressed once - measured 2026-10-29
+
+Method: a scratch Playwright script on this machine (Playwright's Chromium 149), one sitting, back to back. Layer 2
+640, one Animated drawing layer, 500 frames, every cell of every frame filled with pseudo-random pixels and colour
+indices, so no two frames are alike and they compress badly - the worst case, unlike the near-identical frames of
+the "Animation sizing" run. "Longest freeze" is the largest gap between `setTimeout(0)` ticks while the encode ran
+[M].
+
+Before: one gzip of the whole project's JSON, as `ProjectFormat.encode` did (3 runs):
+
+| Step | Time |
+|---|---|
+| `App._getProjectData` | 1.7-2.8 ms |
+| `JSON.stringify` with the typed-array replacer | 377-397 ms |
+| UTF-8 encode (142.7 MB of JSON) | 152-162 ms |
+| gzip (`CompressionStream`, one block) | 2,482-2,498 ms |
+| **Whole encode** | **3,029-3,041 ms** |
+| **Longest freeze** | **2,391-2,422 ms** |
+| File | 23.3 MB |
+
+The 0.85-0.9 s of the "Animation sizing" run was the same work on frames that compress far better, so it understated
+what a real animation costs.
+
+Joining separately gzipped pieces into one gzip stream (RFC 1952 allows several members) would have kept the file
+a plain gzip: `DecompressionStream('gzip')` in Chromium 149 fails on the second member [M, same sitting]. So a
+project with animations became container 2 (`js/io/project-format.js`): the document part, then one gzip part per
+cel, each cel's part made once and kept.
+
+After, same animation:
+
+| Case | Whole encode | Longest freeze | File |
+|---|---|---|---|
+| First backup, every frame new | 4,357 ms | 32.4 ms | 23.0 MB |
+| Backup after one frame changed (3 runs) | 18.3-19.7 ms | 6.3-6.5 ms | 23.0 MB |
+
+A backup after a change is about a 155th of the old one [C: 3,030 / 19.5], under the 100 ms limit [P: Nielsen
+1993]. The first backup of a big animation compresses every frame, one per task, so it takes longer in all but the
+page never waits more than 32.4 ms. A container-2 file does not open in 0.1.0-beta.2 or older; a project without
+animations is still container 1.

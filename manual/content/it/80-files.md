@@ -9,6 +9,8 @@ l’immagine di riferimento e il punto che stavi guardando. È un file `.pixula`
 scritto da **File > Salva progetto**, ed è quello da usare finché un’immagine è
 in lavorazione.
 
+Un progetto che contiene un’animazione viene salvato in un modo più recente che comprime ogni fotogramma una sola volta, quindi non si apre in PixULA 0.1.0-beta.2 o precedenti. Un progetto senza animazione si apre in ogni versione.
+
 **Un’immagine** è un solo schermo appiattito in un formato che un altro
 programma comprende: un `.scr` per un emulatore, un `.png` da mostrare, un
 `.tap` da caricare sull’hardware reale. Li scrive **File > Salva immagine con
