@@ -274,28 +274,12 @@ class ReferenceLayerServiceClass {
         this.ctx.save();
         this.ctx.globalAlpha = this.opacity / 100;
 
-        const scaleValue = this.scale / 100;
-        const imgWidth = this.image.naturalWidth * scaleValue;
-        const imgHeight = this.image.naturalHeight * scaleValue;
-
-        const centerX = this.offsetX + imgWidth / 2;
-        const centerY = this.offsetY + imgHeight / 2;
-
-        this.ctx.translate(centerX, centerY);
-
-        if (this.rotation !== 0) {
-            this.ctx.rotate((this.rotation * Math.PI) / 180);
-        }
-
-        this.ctx.scale(this.flipX ? -1 : 1, this.flipY ? -1 : 1);
-
-        this.ctx.drawImage(
-            this.image,
-            -imgWidth / 2,
-            -imgHeight / 2,
-            imgWidth,
-            imgHeight
-        );
+        // The one placement drawing, shared with the Import dialog so a copied
+        // placement lands on the same pixels
+        Placement.draw(this.ctx, this.image, this.image.naturalWidth, this.image.naturalHeight, {
+            scale: this.scale, offsetX: this.offsetX, offsetY: this.offsetY,
+            rotation: this.rotation, flipX: this.flipX, flipY: this.flipY
+        });
 
         this.ctx.restore();
     }
@@ -514,37 +498,11 @@ class ReferenceLayerServiceClass {
         const canvasWidth = ZX_SPECTRUM.WIDTH;
         const canvasHeight = ZX_SPECTRUM.HEIGHT;
 
-        let newScale = 100;
-        let newOffsetX = 0;
-        let newOffsetY = 0;
-
-        switch (mode) {
-            case 'contain': {
-                const scaleX = canvasWidth / imgWidth;
-                const scaleY = canvasHeight / imgHeight;
-                newScale = Math.min(scaleX, scaleY) * 100;
-                break;
-            }
-            case 'cover': {
-                const scaleX = canvasWidth / imgWidth;
-                const scaleY = canvasHeight / imgHeight;
-                newScale = Math.max(scaleX, scaleY) * 100;
-                break;
-            }
-            case 'stretch': {
-                newScale = 100;
-                break;
-            }
-            case 'none':
-            default:
-                newScale = 100;
-                break;
-        }
-
-        const scaledWidth = imgWidth * (newScale / 100);
-        const scaledHeight = imgHeight * (newScale / 100);
-        newOffsetX = (canvasWidth - scaledWidth) / 2;
-        newOffsetY = (canvasHeight - scaledHeight) / 2;
+        // 'stretch' and 'none' have always meant natural size, centred
+        const newScale = Placement.fitScale(mode, imgWidth, imgHeight, canvasWidth, canvasHeight);
+        const centred = Placement.centredOffset(newScale, imgWidth, imgHeight, canvasWidth, canvasHeight);
+        const newOffsetX = centred.x;
+        const newOffsetY = centred.y;
 
         this.scale = newScale;
         this.offsetX = newOffsetX;
@@ -572,12 +530,9 @@ class ReferenceLayerServiceClass {
         // the offset NaN - which is how a placement ends up in a corner.
         if (!this.image.naturalWidth || !this.image.naturalHeight) return;
 
-        const scaleValue = this.scale / 100;
-        const imgWidth = this.image.naturalWidth * scaleValue;
-        const imgHeight = this.image.naturalHeight * scaleValue;
-
-        this.offsetX = (ZX_SPECTRUM.WIDTH - imgWidth) / 2;
-        this.offsetY = (ZX_SPECTRUM.HEIGHT - imgHeight) / 2;
+        const centred = Placement.centredOffset(this.scale, this.image.naturalWidth, this.image.naturalHeight);
+        this.offsetX = centred.x;
+        this.offsetY = centred.y;
 
         this._render();
         this._saveState();

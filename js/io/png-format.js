@@ -105,7 +105,8 @@ class PNGFormatClass {
       scaling = 'fit',
       brightness = 0,
       contrast = 0,
-      method = 'standard'
+      method = 'standard',
+      placement = null
     } = options;
 
     // Sniff the real type so GIF/JPG buffers delegated here decode with an
@@ -123,13 +124,13 @@ class PNGFormatClass {
     }
 
     // Scale to the screen resolution
-    const scaled = this._scaleImage(imageData, scaling);
+    const scaled = this._scaleImage(imageData, scaling, undefined, undefined, placement);
 
     // Per-cell: choose the best same-bank ink/paper pair, then dither
     // the original RGB against those two colours. The Detail method also
     // hands down the unscaled image, so the colour choice sees real detail
     // rather than its 4x4 average.
-    this._applyToLayer(scaled, dithering, method === 'detail' ? this._detailSource(imageData, scaling) : null);
+    this._applyToLayer(scaled, dithering, method === 'detail' ? this._detailSource(imageData, scaling, placement) : null);
 
     Logger.info('PNGFormat', 'PNG imported successfully');
     EventBus.emit(EVENTS.FILE_IMPORT, { format: 'png' });
@@ -248,10 +249,15 @@ class PNGFormatClass {
    * Scale image to the screen resolution
    * @param {ImageData} imageData - Source image
    * @param {string} mode - 'fit', 'stretch', or 'crop'
+   * @param {number} [outW]
+   * @param {number} [outH]
+   * @param {?Object} [placement] - a Placement (scale, offset, rotation, flips) chosen in the Import dialog; when
+   *   given it replaces `mode`, laid out in screen pixels and multiplied up to outW. What it leaves uncovered is ZX
+   *   black, as Fit's bars are.
    * @returns {ImageData}
    * @private
    */
-  _scaleImage(imageData, mode, outW = ZX_SPECTRUM.WIDTH, outH = ZX_SPECTRUM.HEIGHT) {
+  _scaleImage(imageData, mode, outW = ZX_SPECTRUM.WIDTH, outH = ZX_SPECTRUM.HEIGHT, placement = null) {
     const canvas = Helpers.createCanvas(outW, outH);
     const ctx = canvas.getContext('2d');
 
@@ -269,8 +275,11 @@ class PNGFormatClass {
      * the screen size is being enlarged or left alone, and those want the hard
      * edges.
      */
-    ctx.imageSmoothingEnabled =
-        imageData.width > ZX_SPECTRUM.WIDTH || imageData.height > ZX_SPECTRUM.HEIGHT;
+    // A placement says the size outright: smooth when it draws the picture
+    // smaller than its own pixels.
+    ctx.imageSmoothingEnabled = placement
+      ? Math.abs(placement.scale) / 100 * (outW / ZX_SPECTRUM.WIDTH) < 1
+      : imageData.width > ZX_SPECTRUM.WIDTH || imageData.height > ZX_SPECTRUM.HEIGHT;
     ctx.imageSmoothingQuality = 'high';
 
     // Create source canvas
@@ -278,7 +287,11 @@ class PNGFormatClass {
     const srcCtx = srcCanvas.getContext('2d');
     srcCtx.putImageData(imageData, 0, 0);
 
-    if (mode === 'stretch') {
+    if (placement) {
+      ctx.fillStyle = ZX_PALETTE[0];
+      ctx.fillRect(0, 0, outW, outH);
+      Placement.draw(ctx, srcCanvas, imageData.width, imageData.height, placement, outW / ZX_SPECTRUM.WIDTH);
+    } else if (mode === 'stretch') {
       ctx.drawImage(srcCanvas, 0, 0, outW, outH);
     } else if (mode === 'fit') {
       const scale = Math.min(
@@ -322,13 +335,14 @@ class PNGFormatClass {
    * rounded up and capped at SOURCE_OVERSAMPLE, so no source pixel is lost.
    * @param {ImageData} imageData - the ORIGINAL decoded image
    * @param {string} mode - 'fit', 'stretch', or 'crop'
+   * @param {?Object} [placement] - see _scaleImage
    * @returns {ImageData}
    * @private
    */
-  _detailSource(imageData, mode) {
+  _detailSource(imageData, mode, placement = null) {
     const k = Helpers.clamp(Math.ceil(Math.max(imageData.width / ZX_SPECTRUM.WIDTH,
       imageData.height / ZX_SPECTRUM.HEIGHT)), 1, SOURCE_OVERSAMPLE);
-    return this._scaleImage(imageData, mode, ZX_SPECTRUM.WIDTH * k, ZX_SPECTRUM.HEIGHT * k);
+    return this._scaleImage(imageData, mode, ZX_SPECTRUM.WIDTH * k, ZX_SPECTRUM.HEIGHT * k, placement);
   }
 
   /**
@@ -521,12 +535,12 @@ class PNGFormatClass {
    * Input already at screen size skips the (canvas-based) scaling step, so
    * this path is pure math end to end.
    * @param {ImageData|{width:number,height:number,data:Uint8ClampedArray}} imageData
-   * @param {Object} [options] - { dithering, scaling, method }
+   * @param {Object} [options] - { dithering, scaling, method, placement }
    * @returns {{width:number,height:number,data:Uint8ClampedArray}}
    */
   quantizeForPreview(imageData, options = {}) {
-    const { dithering = 'floyd-steinberg', scaling = 'fit', method = 'standard' } = options;
-    return this._quantizePrepared(this._preparePreview(imageData, scaling),
+    const { dithering = 'floyd-steinberg', scaling = 'fit', method = 'standard', placement = null } = options;
+    return this._quantizePrepared(this._preparePreview(imageData, scaling, placement),
       { method, dithering });
   }
 
@@ -539,11 +553,11 @@ class PNGFormatClass {
    * Looping quantizeForPreview instead re-scaled the whole photo and rebuilt
    * the palette three times per slider tick.
    * @param {ImageData|{width:number,height:number,data:Uint8ClampedArray}} imageData
-   * @param {Object} [options] - { scaling }
+   * @param {Object} [options] - { scaling, placement }
    * @returns {Array<{id:string,preview:{width:number,height:number,data:Uint8ClampedArray}}>}
    */
   quantizePreviewSet(imageData, options = {}) {
-    const render = this.previewRenderer(imageData, options.scaling || 'fit');
+    const render = this.previewRenderer(imageData, options.scaling || 'fit', options.placement || null);
     return IMPORT_METHODS.map((m) => ({ id: m.id, preview: render(m.id) }));
   }
 
@@ -554,10 +568,11 @@ class PNGFormatClass {
    * slider rests, so a drag redraws one preview per frame, not three.
    * @param {ImageData|{width:number,height:number,data:Uint8ClampedArray}} imageData
    * @param {string} scaling
+   * @param {?Object} [placement] - see _scaleImage
    * @returns {function(string): {width:number,height:number,data:Uint8ClampedArray}}
    */
-  previewRenderer(imageData, scaling) {
-    const prepared = this._preparePreview(imageData, scaling);
+  previewRenderer(imageData, scaling, placement = null) {
+    const prepared = this._preparePreview(imageData, scaling, placement);
     return (id, dithering) => {
       const spec = IMPORT_METHODS.find((m) => m.id === id);
       // The chosen Dither method drives Smooth and Sharp; Flat is "no dither" by definition. (The dialog hands Sharp a method only once one
@@ -572,14 +587,15 @@ class PNGFormatClass {
    * @returns {{scaled:Object, source:?Object, nextRGB:?Array, paletteRGBs:?Array}}
    * @private
    */
-  _preparePreview(imageData, scaling) {
-    const scaled = (imageData.width === ZX_SPECTRUM.WIDTH &&
+  _preparePreview(imageData, scaling, placement = null) {
+    // A screen-sized picture needs no scaling, unless a placement moves it
+    const scaled = (!placement && imageData.width === ZX_SPECTRUM.WIDTH &&
                     imageData.height === ZX_SPECTRUM.HEIGHT)
       ? imageData
-      : this._scaleImage(imageData, scaling);
+      : this._scaleImage(imageData, scaling, undefined, undefined, placement);
     // The Detail method needs the full-resolution image for the per-cell
     // colour choice, laid out by the same Scaling as the screen copy
-    const source = imageData !== scaled ? this._detailSource(imageData, scaling) : null;
+    const source = imageData !== scaled ? this._detailSource(imageData, scaling, placement) : null;
 
     // Indexed Next modes (Phase 13): the same generated palette the import
     // would load — WITHOUT touching the document's registers.

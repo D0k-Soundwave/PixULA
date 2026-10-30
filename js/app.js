@@ -37,6 +37,7 @@ const BOOT_MANIFEST = [
     ['GigaQuant',        'js/utils/giga-quant.js'],
     ['Dither',           'js/utils/dither.js'],
     ['SnapGrid',         'js/utils/snap-grid.js'],
+    ['Placement',        'js/utils/placement.js'],
     ['BitmapText',       'js/utils/bitmap-text.js'],
     ['Storage',          'js/utils/storage.js'],
     ['BackupService',    'js/services/backup-service.js'],

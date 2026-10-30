@@ -2435,10 +2435,41 @@
     background: var(--bg-secondary);
 }
 
+/*
+ * The picture's adjustments and its placement, side by side; on a window too
+ * narrow for both, the placement wraps underneath.
+ */
 .import-controls {
     display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+}
+
+.import-controls__group {
+    display: flex;
+    flex: 1 1 15rem;
     flex-direction: column;
     gap: var(--space-sm);
+}
+
+/* Offset fields and flips in a column, the direction pad beside them */
+.import-offset {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.import-offset__fields {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.import-offset .dir-pad {
+    flex: none;
+    width: 80px;
+    height: 80px;
 }
 
 .preferences-dialog-body h3 {
