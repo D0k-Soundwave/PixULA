@@ -1059,6 +1059,7 @@ const ro = {
     // Export formats
     'format.scr': 'ZX Spectrum Screen (.scr)',
     'format.zxp': 'Imagine ZX-Paintbrush (.zxp)',
+    'format.zxm': 'Hartă ZX-Paintbrush (.zxm)',
     'format.png': 'Imagine PNG (.png)',
     'format.bmp': 'Imagine BMP (.bmp)',
     'format.jpg': 'Imagine JPEG (.jpg)',

@@ -1059,6 +1059,7 @@ const tr = {
     // Export formats
     'format.scr': 'ZX Spectrum Screen (.scr)',
     'format.zxp': 'ZX-Paintbrush Görüntüsü (.zxp)',
+    'format.zxm': 'ZX-Paintbrush Haritası (.zxm)',
     'format.png': 'PNG Görüntüsü (.png)',
     'format.bmp': 'BMP Görüntüsü (.bmp)',
     'format.jpg': 'JPEG Görüntüsü (.jpg)',

@@ -2,99 +2,205 @@
 
 # PixULA
 
-**A modern, browser-based pixel art tool for creating classic ZX Spectrum graphics.**
+**A pixel art editor for ZX Spectrum graphics that runs in your browser.**
 
 ![License: GPL v3](https://img.shields.io/badge/license-GPL%20v3-blue?style=for-the-badge)
-![Status: Alpha](https://img.shields.io/badge/status-alpha-orange?style=for-the-badge)
-![Made with](https://img.shields.io/badge/made%20with-HTML%2FCSS%2FJS-yellow?style=for-the-badge)
+![Status: Beta](https://img.shields.io/badge/status-beta-orange?style=for-the-badge)
 ![Runs in](https://img.shields.io/badge/runs%20in-browser-brightgreen?style=for-the-badge)
-![Platform](https://img.shields.io/badge/platform-any%20OS-lightgrey?style=for-the-badge)
 
 </div>
 
----
+![PixULA with a Spectrum-style sunset on the canvas](docs/screenshots/pixula-workspace.png)
 
-PixULA gets its name from the ZX Spectrum's ULA (Uncommitted Logic Array) — the chip famously responsible for the platform's iconic "attribute clash," where any 8×8 pixel block is limited to just two colours. PixULA doesn't hide that constraint; it embraces it, live, as you draw.
+PixULA is a drawing program for making ZX Spectrum pictures: loading screens,
+sprites, fonts, tile maps and short animations. It's named after the ULA, the
+chip in the Spectrum that draws the screen and gives Spectrum graphics their
+particular look.
 
-## ![#0969DA](https://img.shields.io/badge/-0969DA?style=flat-square) What is PixULA?
+It runs in a web browser, from a folder on your own computer, so there's
+nothing to install and it works offline. It isn't trying to be Photoshop. It's
+much closer to the old Spectrum art packages, and in particular to
+**ZX Paintbrush** by Claus Jahn, which it borrows quite a lot from.
 
-PixULA is a free, open, browser-based image editor built specifically around the ZX Spectrum's screen formats and colour limitations — plus a wide range of extensions used by the modern ZX Spectrum Next scene. It runs entirely locally in any reasonably modern browser, with no installation, no server, and no dependency on a specific operating system.
+## Why the Spectrum is fussy about colour
 
-Inspired by the much-loved **ZX Paintbrush** by Claus Jahn, PixULA set out to be a simplified tool that keeps the spirit of that classic software while working anywhere a browser does. It's aimed at anyone who wants to create Spectrum-style art: retro hobbyists, ZX Spectrum Next demo-scene developers, classrooms teaching the history of computer graphics, pixel artists exploring retro constraints, or just someone who wants to show their kids what graphics used to look like.
+![Close-up of the sunset with the 8x8 cell grid switched on](docs/screenshots/pixula-colour-cells.png)
 
-> [!TIP]
-> Want to show your kids what graphics used to be like? Use PixULA. Want to let a classroom have a go at retro art? Use PixULA. Want to doodle on the train? You're crazy... but PixULA works there too.
+A standard Spectrum screen is 256 x 192 pixels, but colour isn't stored per
+pixel. It's stored per 8 x 8 block, and each block only gets two colours, an
+ink and a paper, plus a Bright and a Flash setting. Draw a red line through a
+block that already has blue in it and the blue turns red as well. That's
+attribute clash, and working around it is a big part of the craft of Spectrum
+art.
 
-## ![#8250DF](https://img.shields.io/badge/-8250DF?style=flat-square) Why I made it
+PixULA applies that rule while you draw rather than patching things up
+afterwards, so what you see is pretty much what a real Spectrum would show. The
+picture above is the sunset from the first screenshot, zoomed in with the cell
+grid on. You can see where the edge of the sun has had to give way to the
+colours of the cell it's sitting in.
 
-I've always loved ZX Paintbrush and wondered whether I could build something with some of its best features that would work anywhere, on any semi-modern machine, without a dedicated install. PixULA was built entirely in HTML, CSS, and JavaScript using **Claude Code**, which made it possible to develop a serious tool without having to spend time re-learning, and keep it a spare time "Hobby" project.
+## What it does
 
-The project is released under the **GPL 3.0** license on purpose. Most ZX Spectrum and pixel art tools out there are closed works that nobody else can extend, improve, or adapt. PixULA is explicitly the opposite: if you think a feature would be nice, add it. If something happens to me, I hope someone else picks the project up and keeps building on it. That openness — more than any single feature — is what I'm proudest of.
+This is a rough tour. The manual inside the app goes into proper detail.
 
-## ![#1A7F37](https://img.shields.io/badge/-1A7F37?style=flat-square) Features
+**Drawing.** There are around 20 tools: brush, spray, fade, pattern, hatch,
+eraser, fill, gradient, shapes, Bezier curves, a figure tool for multi-point
+shapes, an eyedropper, rectangle, ellipse and lasso selections, a cell grid
+tool, text and a pattern creator. Seven drawing modes decide what a stroke does
+to a cell. Besides normal drawing you can draw in XOR, change only the ink or
+only the paper colour, or change a cell's colours and leave its pixels alone.
+There's mirror drawing, snapping to the cell grid, and a custom grid for laying
+things out.
 
-- **Live attribute-clash feedback** — colour clash is enforced and shown as you draw, based on the constraints of the screen mode you've selected, not applied after the fact.
-- **Extensive screen mode support**, including:
-  - Standard ULA
-  - Multicolor 8×4, 8×2, and 8×1
-  - ULAplus and ULAplus 8×1 (Timex)
-  - Timex Hi-res (512×192)
-  - GigaScreen
-  - ULANext
-  - ZX Spectrum Next: Layer 2 (256×192, 320×256, 640×256 16-colour), LoRes (128×96), and Radastan (128×96, 16-colour)
-- Layering, with multiple tool and reference image saving
-- Raster text and WordArt tools
-- Screen transform tools
-- A dedicated project format (`.pixula`) that preserves the entire working document — every layer, palette, tool state, and reference image — separate from flattened image exports
+**Screen modes.** There are eighteen, from the plain 48K screen to some fairly
+obscure ones:
 
-## ![#BF8700](https://img.shields.io/badge/-BF8700?style=flat-square) Supported file formats
+- Standard ULA, 256 x 192 with 8 x 8 colour cells
+- Multicolour 8x4, 8x2 and 8x1
+- ULAplus, ULAplus 8x1 (Timex) and ULANext
+- Timex hi-res, 512 x 192
+- GigaScreen, MultiGigaScreen 8x4, 8x2 and 8x1, and Timex hi-res GigaScreen
+- ZX Spectrum Next: Layer 2 at 256 x 192, 320 x 256 and 640 x 256, LoRes
+  128 x 96, and Radastan 128 x 96
 
-PixULA can save images in 27 formats via **File → Save Image As**. Available formats depend on the active screen mode.
+Each mode has its own rules, and the tools follow whichever one you've picked.
 
-| Category | Formats |
+**Layers and stamps.** You get layers with merging, flattening and the usual
+moving about. Copy part of a picture and it becomes a stamp you can place as
+often as you like. You can also put a reference photo behind your work to
+trace over.
+
+**Palettes.** In the modes that have a palette (ULAplus, ULANext and the Next
+modes) you can edit it, keep a few versions to switch between, and load or save
+it as `.pal` or `.npl`.
+
+**Text, patterns and editors.** There's a text tool and a font editor for
+Spectrum character sets. There are about a hundred built-in fill patterns
+(dithers, halftones, hatching and textures), and you can make your own. A map
+editor handles tile maps and a sprite editor handles Next sprites. Tape Blocks
+opens a `.tap` or `.tzx`, shows what's in it, and lets you pull a screen out or
+add your picture to the tape as a new block.
+
+### Animation
+
+![A six-frame animation of a ball bouncing across the night sky, with the Animation panel open](docs/screenshots/pixula-animation.png)
+
+You can animate the whole screen or just a sprite-sized block of it. Every
+frame is still a proper Spectrum screen, so the colour rules carry on applying.
+The Animation panel lets you step through the frames and set how long each one
+stays up. Playback can loop, play once or go back and forth, and onion skinning
+shows the frames either side faintly while you draw. A layer can be shared by
+every frame, like a backdrop you only draw once, or have its own contents in
+each frame.
+
+When you're done, an animation can go out as numbered `.scr` files, an animated
+GIF, a PNG sprite sheet, a multi-frame SevenuP file, a tape with one screen per
+frame, or Next sprites.
+
+### Bringing pictures in
+
+![The import window showing Sharp, Smooth and Flat versions of the same picture](docs/screenshots/pixula-import.png)
+
+Open a PNG, JPG or GIF and PixULA shows you three versions of it side by side:
+Sharp, Smooth (dithered) and Flat. You pick whichever you like the look of.
+There are brightness and contrast sliders, a choice of how the picture is
+fitted to the screen, and about 30 dithering methods to try. It's a decent way
+to get a photo into Spectrum colours as a starting point, though like any
+conversion of this kind the result usually wants some tidying up by hand.
+
+### File formats
+
+PixULA opens around 40 kinds of file and saves to most of them. What you can
+save depends on the screen mode you're in.
+
+| | Formats |
 |---|---|
-| ZX Spectrum classic | `.scr` `.zxp` `.tap` `.tzx` |
-| Multicolor / Timex / GigaScreen | `.mlt` `.ifl` `.hrg` `.img` `.mg1` `.mg2` `.mg4` `.mg8` |
-| ZX Spectrum Next | `.nxi` `.sl2` `.slr` `.ctile` |
-| Standard images | `.png` `.bmp` `.jpg` |
-| Other ZX-family formats | `.zed` `.sev` |
-| Palette | `.pal` `.npl` |
-| Developer/source dumps | `.asm` `.c` `.bin` `.atr` |
+| Spectrum screens | `.scr` `.zxp`, and it'll read `.bsc` files and the screen from a `.sna` snapshot |
+| Multicolour, Timex and GigaScreen | `.mlt` `.ifl` `.hrg` `.img` `.mg1` `.mg2` `.mg4` `.mg8` |
+| Spectrum Next | `.nxi` `.sl2` `.slr` `.ctile` `.spr` |
+| Tape | `.tap` `.tzx` |
+| Other Spectrum programs | `.zed` (ZX-Editor), `.sev` (SevenuP), `.zxm` (ZX-Paintbrush maps) |
+| Fonts and maps | `.chr` `.ch4` `.ch6` `.ch8` `.chx` `.zxtm` |
+| Palettes | `.pal` `.npl` |
+| Everyday images | `.png` `.jpg` `.bmp` `.gif` |
+| For programmers | `.asm` `.c` `.bin` `.atr` |
 
-Full working projects (layers, palette, tools, references) are saved separately via **File → Save Project** as `.pixula`.
+There's also `.pixula`, PixULA's own project file. It keeps everything:
+layers, palette, animations, tool settings, the reference image, even where
+you were zoomed in. Use it while a picture is in progress, and export to one of
+the formats above when you want to hand it on.
 
-## ![#2DA44E](https://img.shields.io/badge/-2DA44E?style=flat-square) Download
+### Bits and pieces
 
-**[Download the latest release](https://github.com/D0k-Soundwave/PixULA/releases/latest)**, unzip it anywhere, and double-click `PixULA.html`.
+- Autosave into the browser, plus optional numbered backups into a folder you
+  choose.
+- The app and its manual come in 13 languages.
+- There are eight colour themes.
+- Graphics tablets work, and you can set what the pen's buttons and eraser end
+  do. Touch screens work too.
 
-That is the whole installation. It runs in your browser from the folder you unzipped it into - no install, no server, no internet connection, and nothing you draw ever leaves your machine. Any reasonably modern browser will do.
+## Getting it
 
-The **user manual** is built into the app - open it from **Help > Manual**. It covers every tool and its options, all the screen modes, the file formats, the pen and touch settings, and a set of step-by-step workflows, with screenshots. It opens in whichever of the app's 13 languages you have chosen. There is nothing separate to download and, like the app, it works offline.
+**[Download a release](https://github.com/D0k-Soundwave/PixULA/releases)**,
+unzip it anywhere, and double-click `PixULA.html`. That's the whole install.
 
-Prefer to run from source? Clone the repository and open `index.html` the same way; it is the same application, and the download is simply that folder packaged up.
+Or try it straight away online:
+[d0k-soundwave.github.io/PixULA](https://d0k-soundwave.github.io/PixULA/)
 
-## ![#D1242F](https://img.shields.io/badge/-D1242F?style=flat-square) Status
+Either way it runs on your own machine. It doesn't need an internet connection,
+and nothing you draw leaves your computer. Any reasonably recent browser should
+do. Chrome and Edge get a couple of extras, such as saving files straight into
+a folder, because they support the browser features those need.
 
-You can also run it in the Git page if you want to.
+If you'd rather run it from source, clone the repository and open `index.html`.
+It's the same thing; the download is just that folder zipped up.
 
-https://d0k-soundwave.github.io/PixULA/
+## The manual
 
-> [!IMPORTANT]
-> PixULA is currently a **working alpha**. It runs entirely locally in any reasonably modern browser, with no install and no server, and there is nothing to accept on first run - it makes no network requests at all, so there is nothing for the browser to warn you about. A few optional features do ask permission the first time you use them, because they reach outside the page: choosing a folder for automatic backups, linking a reference photo from disk, or pasting from the system clipboard. It's in active use, but feedback is genuinely needed to catch anything that's been missed.
+It's built into the app, under **Help > Manual**. It covers every tool and its
+options, all the screen modes and file formats, the pen and touch settings, and
+some step-by-step workflows, with screenshots. It opens in whichever language
+you've chosen and works offline like the rest of the app.
 
-## ![#CF222E](https://img.shields.io/badge/-CF222E?style=flat-square) Roadmap
+## Where it's at
 
-- [ ] **SAM Coupé support** — additional screen modes and native file formats for the SAM Coupé are planned for a future release.
+PixULA is in **beta**. I use it, and it's been tested a fair bit, but there are
+bound to be things I've missed, so feedback really does help.
 
-## ![#1B7C83](https://img.shields.io/badge/-1B7C83?style=flat-square) Getting involved
+A few things worth knowing:
+
+- Some optional features ask the browser for permission the first time you use
+  them, because they reach outside the page: choosing a backup folder, linking
+  a reference photo from your disk, and pasting from the clipboard.
+- Projects that contain an animation, saved with 0.1.0-beta.3 or later, won't
+  open in 0.1.0-beta.2 or earlier. Projects without animations open in any
+  version.
+
+## Why I made it
+
+I've always liked ZX Paintbrush, and I wondered whether I could make something
+with a good chunk of its best features that would run on pretty much any
+half-decent machine without installing anything. PixULA is that attempt. It's
+written in plain HTML, CSS and JavaScript, with no libraries and no build step,
+and it's a spare-time hobby project.
+
+It's GPL 3.0 on purpose. A lot of Spectrum and pixel art tools are closed, and
+nobody else can extend or fix them. I'd like this one to be the opposite: if
+you think something's missing, add it. And if I ever stop working on it, I'd
+hope someone else picks it up and carries on. That matters more to me than any
+one feature.
+
+## Maybe later
+
+- SAM Coupe screen modes and file formats, at some point.
+
+## Getting involved
 
 - **Repository:** [github.com/D0k-Soundwave/PixULA](https://github.com/D0k-Soundwave/PixULA/)
-- **Report a bug or suggest a feature:** open a [GitHub Issue](https://github.com/D0k-Soundwave/PixULA/issues), or email [D0k@Soundwave.team](mailto:D0k@Soundwave.team)
-- **License:** GPL 3.0 — you're explicitly encouraged to fork, extend, adapt, and build on this project
+- **Bugs and ideas:** open a [GitHub issue](https://github.com/D0k-Soundwave/PixULA/issues), or email [D0k@Soundwave.team](mailto:D0k@Soundwave.team)
+- **Forks, fixes and add-ons** are very welcome. That's what the licence is for.
 
-> [!NOTE]
-> This is a solo, community-minded project. If you improve it, extend it, or spot something broken, that's exactly what it's here for.
+## Licence
 
-## ![#57606A](https://img.shields.io/badge/-57606A?style=flat-square) License
-
-This project is licensed under the **GNU General Public License v3.0**. See the [LICENSE](LICENSE) file for details.
+PixULA is licensed under the **GNU General Public License v3.0**. See the
+[LICENSE](LICENSE) file for the details.

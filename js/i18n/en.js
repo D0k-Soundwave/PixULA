@@ -942,6 +942,7 @@ const en = {
     // Export formats
     'format.scr': 'ZX Spectrum Screen (.scr)',
     'format.zxp': 'ZX-Paintbrush Image (.zxp)',
+    'format.zxm': 'ZX-Paintbrush Map (.zxm)',
     'format.tap': 'ZX Spectrum Tape (.tap)',
     'format.tzx': 'ZX Spectrum Tape TZX (.tzx)',
     'format.asm': 'Assembly source (.asm)',

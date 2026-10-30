@@ -1059,6 +1059,7 @@ const hu = {
     // Export formats
     'format.scr': 'ZX Spectrum Screen (.scr)',
     'format.zxp': 'ZX-Paintbrush kép (.zxp)',
+    'format.zxm': 'ZX-Paintbrush térkép (.zxm)',
     'format.png': 'PNG kép (.png)',
     'format.bmp': 'BMP kép (.bmp)',
     'format.jpg': 'JPEG kép (.jpg)',
