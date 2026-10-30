@@ -1059,6 +1059,7 @@ const sk = {
     // Export formats
     'format.scr': 'ZX Spectrum Screen (.scr)',
     'format.zxp': 'Obrázok ZX-Paintbrush (.zxp)',
+    'format.zxm': 'Mapa ZX-Paintbrush (.zxm)',
     'format.png': 'Obrázok PNG (.png)',
     'format.bmp': 'Obrázok BMP (.bmp)',
     'format.jpg': 'Obrázok JPEG (.jpg)',

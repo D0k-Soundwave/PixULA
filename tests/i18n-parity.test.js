@@ -118,6 +118,24 @@ for (const { code, table, text } of locales) {
   }
 }
 
+// Every entry of the Save Image As / Save Selection As lists is labelled by
+// 'format.<ext>' (menu-system.js EXPORT_FORMATS). A missing key shows the
+// raw key in the menu, and parity alone cannot see it when every locale
+// lacks it alike - 'format.zxm' was missing from all 13 until 2026-10-30.
+{
+  const menuSrc = fs.readFileSync(path.join(__dirname, '..', 'js', 'ui', 'menu-system.js'), 'utf8');
+  const block = menuSrc.match(/const EXPORT_FORMATS = Object\.freeze\(\[([\s\S]*?)\]\);/);
+  if (!block) {
+    fail('menu-system.js: EXPORT_FORMATS not found');
+  } else {
+    const exts = [...block[1].matchAll(/\[\s*'([a-z0-9]+)'\s*,/g)].map((m) => m[1]);
+    if (!exts.length) fail('menu-system.js: no formats read from EXPORT_FORMATS');
+    for (const ext of exts) {
+      if (!(`format.${ext}` in en.table)) fail(`${SOT}: no 'format.${ext}' for the Save Image As entry`);
+    }
+  }
+}
+
 console.log(failures === 0
   ? `i18n-parity: ${locales.length} locales × ${enKeys.length} keys consistent\n\nALL CHECKS PASSED`
   : `\n${failures} PARITY FAILURE(S)`);

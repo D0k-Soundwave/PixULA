@@ -1059,6 +1059,7 @@ const ru = {
     // Export formats
     'format.scr': 'ZX Spectrum Screen (.scr)',
     'format.zxp': 'Изображение ZX-Paintbrush (.zxp)',
+    'format.zxm': 'Карта ZX-Paintbrush (.zxm)',
     'format.png': 'Изображение PNG (.png)',
     'format.bmp': 'Изображение BMP (.bmp)',
     'format.jpg': 'Изображение JPEG (.jpg)',
