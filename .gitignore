@@ -25,3 +25,8 @@ manual/img/
 
 # Local reference material (third-party help text); never committed.
 .reference/
+
+# Local assistant configuration and notes; kept on this machine only.
+.claude/
+CLAUDE.md
+claude.md
