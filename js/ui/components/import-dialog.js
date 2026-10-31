@@ -5,8 +5,11 @@
  * ImportDialog — the image import conversion dialog (Phase 8).
  *
  * Shown by FileManager before a PNG/JPG import is parsed: brightness,
- * contrast, scaling (fit/stretch/crop) and dithering with a live preview of
- * the exact quantized result. All pixel math stays in io/ (PNGFormat:
+ * contrast, placement and dithering with a live preview of the exact
+ * quantized result. Placement is the Reference panel's: Fit / Fill / Stretch /
+ * Center, Scale, Rotation, Offset with the direction pad, the flips, and a
+ * button that copies the reference layer's placement (js/utils/placement.js
+ * is the one description both use). All pixel math stays in io/ (PNGFormat:
  * applyBrightnessContrast + quantizeForPreview — the same engine parse()
  * runs on OK), this component only owns the dialog DOM and the preview
  * canvas. Cancel (button, ×, or Esc) resolves null and the import aborts.
@@ -26,7 +29,7 @@ class ImportDialogClass {
      * @param {ArrayBuffer} buffer - Raw file bytes
      * @param {string} ext - File extension ('png' | 'jpg' | 'jpeg' | 'gif')
      * @returns {Promise<{brightness:number,contrast:number,scaling:string,
-     *   dithering:string,method:string,choice:string}|null>}
+     *   placement:?Object,dithering:string,method:string,choice:string}|null>}
      *   The chosen conversion options, or null if the user cancelled.
      */
     async show(buffer, ext) {
@@ -43,7 +46,11 @@ class ImportDialogClass {
         // are three is written up there.
         const METHODS = PNGFormat.IMPORT_METHODS;
 
-        const state = { brightness: 0, contrast: 0, scaling: 'fit', dither: 'floyd-steinberg', ditherTouched: false };
+        // Opens on Fit, which is what Scaling's default always was. Stretch
+        // is not a placement (it scales the two sides apart), so it is a
+        // flag that sets the placement aside rather than a value of it.
+        const state = { brightness: 0, contrast: 0, dither: 'floyd-steinberg', ditherTouched: false,
+                        placement: Placement.fitted('contain', decoded.width, decoded.height), stretch: false };
         // The Dither method drives Smooth always, and Sharp once the person has chosen one (until then Sharp is shown, and imported, exactly
         // as it always was: no dither). Flat never dithers.
         const ditherFor = (id) => (id === 'smooth' ? state.dither : (id === 'sharp' && state.ditherTouched ? state.dither : undefined));
@@ -107,9 +114,20 @@ class ImportDialogClass {
             };
             select(chosen);
 
+            // Two groups side by side (wrapping on a narrow window): what the
+            // picture looks like, and where it sits
+            const controlsWrap = document.createElement('div');
+            controlsWrap.className = 'import-controls';
+            content.appendChild(controlsWrap);
             const controls = document.createElement('div');
-            controls.className = 'import-controls';
-            content.appendChild(controls);
+            controls.className = 'import-controls__group';
+            controlsWrap.appendChild(controls);
+            const placeGroup = document.createElement('div');
+            placeGroup.className = 'import-controls__group import-placement';
+            controlsWrap.appendChild(placeGroup);
+
+            const scalingNow = () => (state.stretch ? 'stretch' : 'fit');
+            const placementNow = () => (state.stretch ? null : { ...state.placement });
 
             // rAF-coalesced preview refresh (slider drags fire fast). The
             // CHOSEN method redraws at once; the other two once the controls
@@ -123,13 +141,12 @@ class ImportDialogClass {
             let renderer = null, rendererKey = null;
             const drawnKey = new Map();   // method id -> setting it shows
             const paint = (ids) => {
-                const baseKey = `${state.brightness}|${state.contrast}|${state.scaling}`;
-                const key = baseKey;
+                const key = `${state.brightness}|${state.contrast}|${state.stretch ? 'stretch' : JSON.stringify(state.placement)}`;
                 if (key !== rendererKey) {
                     const adjusted = (state.brightness !== 0 || state.contrast !== 0)
                         ? PNGFormat.applyBrightnessContrast(decoded, state.brightness, state.contrast)
                         : decoded;
-                    renderer = PNGFormat.previewRenderer(adjusted, state.scaling);
+                    renderer = PNGFormat.previewRenderer(adjusted, scalingNow(), placementNow());
                     rendererKey = key;
                 }
                 for (const p of panes) {
@@ -194,35 +211,6 @@ class ImportDialogClass {
                 if (window.OptionControls) OptionControls.decorateSliders(row);
             };
 
-            const addSelect = (key, i18n, fallback, options) => {
-                const row = document.createElement('div');
-                row.className = 'tool-option';
-                const label = document.createElement('label');
-                label.htmlFor = `import-${key}`;
-                const span = document.createElement('span');
-                span.dataset.i18n = i18n;
-                span.textContent = this._t(i18n, fallback);
-                label.appendChild(span);
-                const select = document.createElement('select');
-                select.id = `import-${key}`;
-                select.className = 'opt-input';
-                for (const opt of options) {
-                    const el = document.createElement('option');
-                    el.value = opt.value;
-                    el.dataset.i18n = opt.i18n;
-                    el.textContent = this._t(opt.i18n, opt.fallback);
-                    if (opt.value === state[key]) el.selected = true;
-                    select.appendChild(el);
-                }
-                select.addEventListener('change', () => {
-                    state[key] = select.value;
-                    refresh();
-                });
-                row.appendChild(label);
-                row.appendChild(select);
-                controls.appendChild(row);
-            };
-
             // The Dither method (Batch 8 part 8B) drives the Smooth conversion; the indexed modes keep their own
             // colour dither, so there it is shown shut with the reason.
             const addDitherSelect = () => {
@@ -270,12 +258,9 @@ class ImportDialogClass {
 
             addRange('brightness', 'import.brightness', 'Brightness');
             addRange('contrast',   'import.contrast',   'Contrast');
-            addSelect('scaling', 'import.scaling', 'Scaling', [
-                { value: 'fit',     i18n: 'import.scalingFit',     fallback: 'Fit (letterbox)' },
-                { value: 'stretch', i18n: 'import.scalingStretch', fallback: 'Stretch' },
-                { value: 'crop',    i18n: 'import.scalingCrop',    fallback: 'Crop (fill)' }
-            ]);
             addDitherSelect();
+            const syncPlacement = this._buildPlacementControls(placeGroup, state, decoded, () => refresh());
+            syncPlacement();
 
 
             Dialog.open({
@@ -288,7 +273,10 @@ class ImportDialogClass {
                     { i18n: 'dialog.cancel', label: 'Cancel', onClick: () => { settle(null); } },
                     { i18n: 'dialog.ok', label: 'OK', primary: true,
                       onClick: () => settle({
-                          ...state,
+                          brightness: state.brightness,
+                          contrast: state.contrast,
+                          scaling: scalingNow(),
+                          placement: placementNow(),
                           method: chosen.method,
                           dithering: ditherFor(chosen.id) || chosen.dithering,
                           choice: chosen.id
@@ -301,6 +289,214 @@ class ImportDialogClass {
             // Opening: the chosen method first, the others right after
             refresh(true);
         });
+    }
+
+    /**
+     * The Placement group: the Reference panel's controls, laid on the import
+     * instead of the reference layer. Every control writes state.placement
+     * (or state.stretch) and calls onChange; the returned sync() redraws the
+     * controls from the state, for the buttons that change several values.
+     * @param {HTMLElement} host
+     * @param {Object} state - the dialog state (placement, stretch)
+     * @param {{width:number,height:number}} decoded - the picture, for Fit / Fill / Center
+     * @param {function()} onChange
+     * @returns {function()} sync
+     * @private
+     */
+    _buildPlacementControls(host, state, decoded, onChange) {
+        const W = decoded.width, H = decoded.height;
+        const changed = () => { sync(); onChange(); };
+
+        const heading = document.createElement('div');
+        heading.className = 'panel-label';
+        heading.dataset.i18n = 'reference.fit';
+        heading.textContent = this._t('reference.fit', 'Placement');
+        host.appendChild(heading);
+
+        const mkButton = (row, i18n, fallback, hintKey, hintFallback, onClick, toggle = false) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = toggle ? 'panel-button small toggle' : 'panel-button small';
+            btn.dataset.i18n = i18n;
+            btn.textContent = this._t(i18n, fallback);
+            if (hintKey) {
+                btn.dataset.i18nTitle = hintKey;
+                btn.title = this._t(hintKey, hintFallback);
+            }
+            btn.addEventListener('click', onClick);
+            row.appendChild(btn);
+            return btn;
+        };
+        const fitTo = (mode) => {
+            state.stretch = false;
+            state.placement = Placement.fitted(mode, W, H, state.placement);
+            changed();
+        };
+
+        const fitRow = document.createElement('div');
+        fitRow.className = 'panel-row button-row';
+        host.appendChild(fitRow);
+        mkButton(fitRow, 'reference.contain', 'Fit', 'reference.contain.hint',
+            'Scale so the whole image fits inside the canvas', () => fitTo('contain'));
+        mkButton(fitRow, 'reference.cover', 'Fill', 'reference.cover.hint',
+            'Scale so the image fills the canvas, cropping the overhang', () => fitTo('cover'));
+        const stretchBtn = mkButton(fitRow, 'import.scalingStretch', 'Stretch', 'import.stretch.hint',
+            'Pull the picture to the exact size of the screen, whatever its shape', () => {
+                state.stretch = !state.stretch;
+                changed();
+            }, true);
+        const centerBtn = mkButton(fitRow, 'reference.center', 'Center', 'reference.center.hint',
+            'Recentre the image at its current scale', () => {
+                const o = Placement.centredOffset(state.placement.scale, W, H);
+                state.placement = { ...state.placement, offsetX: o.x, offsetY: o.y };
+                changed();
+            });
+
+        // Scale and Rotation: the Reference panel's ranges (see its comments -
+        // a negative scale mirrors; rotation is signed)
+        const slider = (id, i18n, fallback, min, max, unit, prop) => {
+            const row = document.createElement('div');
+            row.className = 'tool-option';
+            const label = document.createElement('label');
+            label.htmlFor = id;
+            const span = document.createElement('span');
+            span.dataset.i18n = i18n;
+            span.textContent = this._t(i18n, fallback);
+            const valueEl = document.createElement('span');
+            valueEl.className = 'opt-value';
+            label.appendChild(span);
+            label.appendChild(document.createTextNode(': '));
+            label.appendChild(valueEl);
+            const range = document.createElement('input');
+            range.type = 'range';
+            range.id = id;
+            range.min = String(min);
+            range.max = String(max);
+            range.className = 'opt-input';
+            range.addEventListener('input', () => {
+                const v = parseInt(range.value, 10) || 0;
+                if (prop === 'scale') {
+                    // Zoom about the picture's centre, as a person expects of
+                    // a scale control, rather than about its corner. 0 would
+                    // make the picture vanish, so it holds at 1.
+                    const p = state.placement, next = v || 1;
+                    const d = (p.scale - next) / 100;
+                    state.placement = { ...p, scale: next,
+                        offsetX: p.offsetX + W * d / 2, offsetY: p.offsetY + H * d / 2 };
+                } else {
+                    state.placement = { ...state.placement, [prop]: v };
+                }
+                changed();
+            });
+            row.appendChild(label);
+            row.appendChild(range);
+            host.appendChild(row);
+            if (window.OptionControls) OptionControls.decorateSliders(row);
+            return { range, sync: () => {
+                const v = Math.round(state.placement[prop]);
+                range.value = String(v);
+                valueEl.textContent = `${v}${unit}`;
+            } };
+        };
+        const scale = slider('import-scale', 'reference.scale', 'Scale', -99, 500, '%', 'scale');
+        const rotation = slider('import-rotation', 'reference.rotation', 'Rotation', -180, 180, '°', 'rotation');
+
+        // Offset: the two fields and the held-to-repeat direction pad, the
+        // Reference panel's own (Helpers.buildDirPad + attachRepeatPress).
+        // The fields and the flips stack beside the pad, so the group stays
+        // short enough to fit a small window.
+        const offWrap = document.createElement('div');
+        offWrap.className = 'import-offset';
+        host.appendChild(offWrap);
+        const offFields = document.createElement('div');
+        offFields.className = 'import-offset__fields';
+        offWrap.appendChild(offFields);
+        const offLabel = document.createElement('div');
+        offLabel.className = 'panel-label';
+        offLabel.dataset.i18n = 'reference.offset';
+        offLabel.textContent = this._t('reference.offset', 'Offset');
+        offFields.appendChild(offLabel);
+        const offRow = document.createElement('div');
+        offRow.className = 'panel-row input-row';
+        offFields.appendChild(offRow);
+        const mkNum = (id, i18n, fallback, prop) => {
+            const l = document.createElement('label');
+            l.htmlFor = id;
+            l.dataset.i18n = i18n;
+            l.textContent = this._t(i18n, fallback);
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.id = id;
+            input.className = 'panel-input small';
+            // Unreadable leaves the axis where it is (the Reference panel's
+            // readAxis, for the same reason)
+            input.addEventListener('change', () => {
+                const typed = parseInt(input.value, 10);
+                if (Number.isFinite(typed)) state.placement = { ...state.placement, [prop]: typed };
+                changed();
+            });
+            offRow.appendChild(l);
+            offRow.appendChild(input);
+            return input;
+        };
+        const offX = mkNum('import-offset-x', 'reference.x', 'X', 'offsetX');
+        const offY = mkNum('import-offset-y', 'reference.y', 'Y', 'offsetY');
+        const nudge = (prop, delta) => {
+            state.placement = { ...state.placement, [prop]: Math.round(state.placement[prop]) + delta };
+            changed();
+        };
+        const { element: pad, zones } = Helpers.buildDirPad();
+        Helpers.attachRepeatPress(zones.up,    () => nudge('offsetY', -1));
+        Helpers.attachRepeatPress(zones.down,  () => nudge('offsetY', 1));
+        Helpers.attachRepeatPress(zones.left,  () => nudge('offsetX', -1));
+        Helpers.attachRepeatPress(zones.right, () => nudge('offsetX', 1));
+        offWrap.appendChild(pad);
+
+        const flipRow = document.createElement('div');
+        flipRow.className = 'panel-row button-row';
+        offFields.appendChild(flipRow);
+        const flipX = mkButton(flipRow, 'reference.flipH', 'Flip H', null, null, () => {
+            state.placement = { ...state.placement, flipX: !state.placement.flipX };
+            changed();
+        }, true);
+        const flipY = mkButton(flipRow, 'reference.flipV', 'Flip V', null, null, () => {
+            state.placement = { ...state.placement, flipY: !state.placement.flipY };
+            changed();
+        }, true);
+
+        // The reference layer's placement, carried over: line the photo up as
+        // a reference, then import it on exactly those pixels. Rotation comes
+        // back from the service as 0-359; the slider is signed.
+        const refInfo = (window.ReferenceLayerService && ReferenceLayerService.hasImage())
+            ? ReferenceLayerService.getImageInfo() : null;
+        const useRef = mkButton(host, 'import.useReference', 'Use reference placement', 'import.useReference.hint',
+            'Place the picture where the reference image sits on the canvas', () => {
+                const r = ReferenceLayerService.getState();
+                const rot = ((Math.round(r.rotation || 0) % 360) + 360) % 360;
+                const p = Placement.matching({ ...r, rotation: rot > 180 ? rot - 360 : rot },
+                    refInfo.width, refInfo.height, W, H);
+                if (!p) return;
+                state.stretch = false;
+                state.placement = p;
+                changed();
+            });
+        useRef.classList.add('full-width');
+        useRef.disabled = !refInfo;
+
+        const placementOnly = [scale.range, rotation.range, offX, offY, centerBtn, flipX, flipY,
+            zones.up, zones.down, zones.left, zones.right];
+        const sync = () => {
+            scale.sync();
+            rotation.sync();
+            offX.value = String(Math.round(state.placement.offsetX));
+            offY.value = String(Math.round(state.placement.offsetY));
+            flipX.classList.toggle('active', !!state.placement.flipX);
+            flipY.classList.toggle('active', !!state.placement.flipY);
+            stretchBtn.classList.toggle('active', state.stretch);
+            // Stretch has no position, size or turn of its own
+            for (const el of placementOnly) el.disabled = state.stretch;
+        };
+        return sync;
     }
 
     /**
